@@ -270,6 +270,8 @@ useDialogA11y(computed(() => m.active !== null), ".ms-overlay", () => m.dismiss(
   display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
+  padding: var(--nx-overlay-top) 0 var(--nx-overlay-bottom);
   overflow: hidden;
 }
 
@@ -335,9 +337,12 @@ useDialogA11y(computed(() => m.active !== null), ".ms-overlay", () => m.dismiss(
   position: relative;
   width: 88%;
   max-width: 300px;
+  max-height: 100%;
+  box-sizing: border-box;
 
   padding: 20px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: var(--nx-glass-fill);
 
   animation: ms-card-pop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;

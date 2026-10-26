@@ -354,6 +354,9 @@ useDialogA11y(computed(() => rulesOpen.value), ".trs-root", () => { rulesOpen.va
 
   padding: 20px 16px;
   padding-bottom: calc(env(safe-area-inset-bottom) + 38px);
+  box-sizing: border-box;
+  max-height: calc(100% - var(--nx-overlay-top));
+  overflow-y: auto;
   animation: trs-slide-up 0.36s cubic-bezier(0.16, 1, 0.3, 1);
 }
 @keyframes trs-fade {

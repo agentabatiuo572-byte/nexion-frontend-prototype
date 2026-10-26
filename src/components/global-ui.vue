@@ -204,12 +204,15 @@ useDialogA11y(computed(() => ui.netError.visible), ".nx-mask--neterr");
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  box-sizing: border-box;
+  padding: max(24px, var(--nx-overlay-top)) 24px var(--nx-overlay-bottom);
 }
 .nx-modal { border-radius: var(--nx-glass-radius); box-shadow: var(--nx-glass-edge);
   box-sizing: border-box;
   width: 100%;
   max-width: 320px;
+  max-height: 100%;
+  overflow-y: auto;
   background: var(--nx-glass-fill);
   border: none;
 
@@ -219,6 +222,7 @@ useDialogA11y(computed(() => ui.netError.visible), ".nx-mask--neterr");
   flex-direction: column;
   gap: 8px;
 }
+.nx-modal > * { flex-shrink: 0; }
 .nx-modal__title {
   font-size: 15px;
   font-weight: 600;

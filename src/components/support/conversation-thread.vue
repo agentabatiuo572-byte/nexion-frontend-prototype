@@ -152,7 +152,7 @@
     </view>
     <view v-if="previewImage" class="nx-conv-image-overlay" role="dialog" aria-modal="true" :aria-label="imageLabels?.view">
       <view role="button" tabindex="0" class="nx-conv-image-close family-control" @click="closePreview" @keydown.enter.prevent="closePreview" @keydown.space.prevent="closePreview"><LiquidGlass :radius="22" /><text>{{ imageLabels?.close }}</text></view>
-      <image :src="previewImage" class="nx-conv-image-full" mode="widthFix" />
+      <image :src="previewImage" class="nx-conv-image-full" mode="aspectFit" />
     </view>
   </view>
 </template>
@@ -401,9 +401,9 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
 .nx-conv-attachment-actions { display: flex; flex-wrap: wrap; gap: 12px; }
 .nx-conv-attachment-action { display: flex; align-items: center; min-height: 44px; color: var(--v5-brand); }
 .nx-conv-attach-trigger { display: flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; color: var(--v5-ink-2); font-size: 20px; }
-.nx-conv-image-overlay { position: fixed; inset: 0; z-index: 800; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; padding: 24px; background: var(--v5-bg); }
-.nx-conv-image-close { align-self: flex-end; display: flex; align-items: center; min-height: 44px; color: var(--v5-ink); }
-.nx-conv-image-full { max-width: 100%; max-height: 78vh; }
+.nx-conv-image-overlay { position: fixed; inset: 0; z-index: 800; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; box-sizing: border-box; padding: max(24px, var(--nx-overlay-top)) 24px var(--nx-overlay-bottom); overflow-y: auto; overscroll-behavior: contain; background: var(--v5-bg); }
+.nx-conv-image-close { flex-shrink: 0; align-self: flex-end; display: flex; align-items: center; min-height: 44px; color: var(--v5-ink); }
+.nx-conv-image-full { flex: none; width: 100%; height: min(78vh, calc(100vh - max(24px, var(--nx-overlay-top)) - var(--nx-overlay-bottom) - 60px)); min-height: 0; max-width: 100%; }
 
 .nx-conv-queue { margin: 6px 0 0 auto; max-width: 90%; text-align: right; }
 .nx-conv-queue-status { display: block; font-size: 12px; line-height: 1.5; color: var(--v5-ink-3); }

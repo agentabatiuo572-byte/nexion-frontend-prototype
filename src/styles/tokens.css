@@ -22,9 +22,29 @@
   box-sizing: border-box;
 }
 
+/* The H5 picker uses a bottom sheet below its own 500px desktop breakpoint.
+   Native APP pickers keep the system-managed gesture area. */
+/* #ifdef H5 */
+@media screen and (max-width: 499px), screen and (max-height: 499px) {
+  .uni-picker-container .uni-picker-custom.uni-picker-custom {
+    padding-bottom: var(--nx-overlay-bottom);
+    max-height: calc(100% - var(--nx-overlay-top));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .uni-picker-container .uni-picker-custom .uni-picker-content {
+    height: min(238px, calc(100vh - var(--nx-overlay-top) - var(--nx-overlay-bottom) - 45px));
+  }
+}
+/* #endif */
+
 /* v2 palette — pure black + lime green + retain v1 dot-grid / pulse-node effects.
    Legacy tokens — kept until each module is migrated to v5. */
 :root {
+  /* Overlay spacing reserves native gestures and the H5 preview indicator. */
+  --nx-overlay-safe-bottom: max(env(safe-area-inset-bottom, 0px), 24px);
+  --nx-overlay-bottom: calc(16px + var(--nx-overlay-safe-bottom));
+  --nx-overlay-top: max(env(safe-area-inset-top, 0px), 12px);
   --ui-radius-surface: 22px;
   --ui-radius-icon: 12px;
   --ui-text-body: 15px;

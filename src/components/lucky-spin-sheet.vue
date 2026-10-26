@@ -558,14 +558,15 @@ useDialogA11y(computed(() => spin.open), ".lss-root", onBackdrop);
   right: 0;
   bottom: 0;
   z-index: 800;
-  max-height: calc(100% - 24px);
+  max-height: calc(100% - max(24px, var(--nx-overlay-top)));
+  box-sizing: border-box;
   overflow-y: auto;
 
 
   background: var(--nx-glass-fill);
   border: none;
   padding: 18px 16px;
-  padding-bottom: calc(env(safe-area-inset-bottom) + 32px);
+  padding-bottom: max(calc(env(safe-area-inset-bottom, 0px) + 32px), var(--nx-overlay-bottom));
 }
 
 /* header */

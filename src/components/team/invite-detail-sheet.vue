@@ -52,7 +52,7 @@ useDialogA11y(computed(() => props.open), '.invite-detail', () => emit('close'))
 <style scoped>
 .invite-detail { position: fixed; inset: 0; z-index: 8100; color: var(--v5-ink); }
 .invite-detail__mask { position: absolute; inset: 0; background: var(--v5-bg-color-mask); }
-.invite-detail__sheet { position: absolute; bottom: 0; left: 0; right: 0; max-height: 82vh; display: flex; flex-direction: column; border-radius: 24px 24px 0 0; background: var(--v5-surface); padding: var(--ui-space-inline) 20px calc(env(safe-area-inset-bottom) + 24px); }
+.invite-detail__sheet { position: absolute; bottom: 0; left: 0; right: 0; box-sizing: border-box; max-height: min(82vh, calc(100vh - var(--nx-overlay-top))); display: flex; flex-direction: column; border-radius: 24px 24px 0 0; background: var(--v5-surface); padding: var(--ui-space-inline) 20px max(calc(env(safe-area-inset-bottom, 0px) + 24px), var(--nx-overlay-bottom)); }
 .invite-detail__header { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); flex: 0 0 auto; font: 600 19px/1.4 var(--font-v5); }
 .invite-detail__close { position: relative; isolation: isolate; width: 44px; height: 44px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 50%; font-size: 24px; }
 .invite-detail__close > text { position: relative; z-index: 1; }

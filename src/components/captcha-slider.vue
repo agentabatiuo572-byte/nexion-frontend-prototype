@@ -324,9 +324,9 @@ onUnmounted(() => {
    为什么不排到最顶(< 10050):10050 是模拟硬件 chrome(顶部状态条 + Home Indicator,
    后者 pointer-events:none),它模拟的是手机自身的系统层,且与垂直居中的滑块卡片零几何
    重叠,压在滑块上不影响任何操作。 */
-.cs-layer { position: fixed; inset: 0; z-index: 9500; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.cs-layer { position: fixed; inset: 0; z-index: 9500; display: flex; align-items: center; justify-content: center; box-sizing: border-box; padding: max(16px, var(--nx-overlay-top)) 16px var(--nx-overlay-bottom); }
 .cs-mask { position: absolute; inset: 0; background: var(--v5-bg-color-mask); backdrop-filter: blur(4px); }
-.cs-card { border-radius: var(--nx-glass-radius); box-shadow: var(--nx-glass-edge); position: relative; width: 100%; max-width: 340px; background: var(--nx-glass-fill); border: none;  padding: 18px; }
+.cs-card { border-radius: var(--nx-glass-radius); box-shadow: var(--nx-glass-edge); position: relative; width: 100%; max-width: 340px; max-height: 100%; box-sizing: border-box; overflow-y: auto; background: var(--nx-glass-fill); border: none;  padding: 18px; }
 .cs-head { display: flex; align-items: flex-start; justify-content: space-between; }
 .cs-head__txt { display: flex; flex-direction: column; gap: 3px; }
 .cs-title { font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-ink); }

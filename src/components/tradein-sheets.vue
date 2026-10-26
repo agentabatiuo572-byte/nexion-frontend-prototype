@@ -1144,6 +1144,9 @@ useDialogA11y(computed(() => state.value.kind !== "none"), ".tis-root", hide);
   right: 0;
   bottom: 0;
   z-index: 800;
+  box-sizing: border-box;
+  max-height: calc(100% - var(--nx-overlay-top));
+  overflow-y: auto;
 
 
   background: var(--nx-glass-fill);

@@ -461,6 +461,8 @@ onBeforeUnmount(()=>{hide();alive=false;if(timer)clearInterval(timer);});
 <style src="./promotion.css"></style>
 
 <style scoped>
+.promotion-overlay { box-sizing: border-box; padding: max(16px, var(--nx-overlay-top)) 16px var(--nx-overlay-bottom); }
+.promotion-leave { max-height: calc(100vh - max(16px, var(--nx-overlay-top)) - var(--nx-overlay-bottom)); overscroll-behavior: contain; }
 .promotion-main { padding-bottom:140px; }
 .checkout-steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
 .checkout-step-track { height:3px; border-radius:999px; background:var(--v5-surface-3); }

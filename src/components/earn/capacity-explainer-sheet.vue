@@ -58,7 +58,11 @@ function goStore() {
 const sheetStyle: CSSProperties = {
   background: "var(--nx-glass-fill)",
   borderRadius: "var(--nx-glass-radius) var(--nx-glass-radius) 0 0",
-  padding: "18px 18px 30px",
+  boxSizing: "border-box",
+  maxHeight: "calc(100vh - var(--nx-overlay-top))",
+  overflowY: "auto",
+  overscrollBehavior: "contain",
+  padding: "18px 18px var(--nx-overlay-bottom)",
   boxShadow: "var(--nx-glass-edge)",
 };
 const closeBtnStyle: CSSProperties = {

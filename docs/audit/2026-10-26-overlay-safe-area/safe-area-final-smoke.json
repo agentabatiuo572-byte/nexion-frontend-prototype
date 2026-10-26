@@ -1,0 +1,117 @@
+{
+  "buildIndexSha256": "5FB013928F39AC2DC5C5C2BEA6A9E53FD65E41496DBAF6F601F5D55F7B7A13B2",
+  "records": [
+    {
+      "label": "final-merged-share-390x844-inset0",
+      "clientHeight": 678,
+      "controls": [
+        {
+          "bottom": 234.5,
+          "bottomGap": 609.5,
+          "label": "关闭",
+          "top": 190.5
+        },
+        {
+          "bottom": 506,
+          "bottomGap": 338,
+          "label": "分享海报",
+          "top": 444
+        },
+        {
+          "bottom": 568,
+          "bottomGap": 276,
+          "label": "复制邀请码",
+          "top": 506
+        },
+        {
+          "bottom": 630,
+          "bottomGap": 214,
+          "label": "复制链接",
+          "top": 568
+        },
+        {
+          "bottom": 692,
+          "bottomGap": 152,
+          "label": "更多",
+          "top": 630
+        },
+        {
+          "bottom": 754,
+          "bottomGap": 90,
+          "label": "邀请奖励规则",
+          "top": 692
+        },
+        {
+          "bottom": 808,
+          "bottomGap": 36,
+          "label": "取消",
+          "top": 760
+        }
+      ],
+      "paddingBottom": "24px",
+      "panel": {
+        "bottom": 844,
+        "height": 677.5,
+        "top": 166.5
+      },
+      "scrollHeight": 678,
+      "viewport": 844
+    },
+    {
+      "label": "final-merged-share-en-light-320x568-inset0",
+      "clientHeight": 488,
+      "controls": [
+        {
+          "bottom": 147.52083587646484,
+          "bottomGap": 420.4791641235352,
+          "label": "Close",
+          "top": 103.52083587646484
+        },
+        {
+          "bottom": 230.3541717529297,
+          "bottomGap": 337.6458282470703,
+          "label": "Share poster",
+          "top": 168.3541717529297
+        },
+        {
+          "bottom": 292.3541717529297,
+          "bottomGap": 275.6458282470703,
+          "label": "Copy code",
+          "top": 230.3541717529297
+        },
+        {
+          "bottom": 354.35418701171875,
+          "bottomGap": 213.64581298828125,
+          "label": "Copy link",
+          "top": 292.35418701171875
+        },
+        {
+          "bottom": 416.3541870117187,
+          "bottomGap": 151.64581298828125,
+          "label": "More",
+          "top": 354.35418701171875
+        },
+        {
+          "bottom": 478.3541870117187,
+          "bottomGap": 89.64581298828125,
+          "label": "Invitation reward rules",
+          "top": 416.3541870117187
+        },
+        {
+          "bottom": 532.3541870117188,
+          "bottomGap": 35.64581298828125,
+          "label": "Cancel",
+          "top": 484.3541870117187
+        }
+      ],
+      "paddingBottom": "24px",
+      "panel": {
+        "bottom": 568.0000228881836,
+        "height": 488.4791870117187,
+        "top": 79.52083587646484
+      },
+      "scrollHeight": 488,
+      "viewport": 568
+    }
+  ]
+}

@@ -486,14 +486,16 @@ const scrimStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  padding: "0 16px",
+  boxSizing: "border-box",
+  padding: "var(--nx-overlay-top) 16px var(--nx-overlay-bottom)",
   background: "rgba(0,0,0,0.7)",
 };
 const sheetStyle: CSSProperties = {
   position: "relative",
   width: "100%",
   maxWidth: "480px",
-  maxHeight: "85vh",
+  boxSizing: "border-box",
+  maxHeight: "min(85vh, calc(100vh - var(--nx-overlay-top) - var(--nx-overlay-bottom)))",
   display: "flex",
   flexDirection: "column",
   overflow: "hidden",

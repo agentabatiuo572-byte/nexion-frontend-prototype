@@ -89,8 +89,8 @@
       </view>
     </transition>
   </view>
-  <view v-if="showSuccess" class="nx-genesis-success fixed inset-0 grid place-items-center" style="z-index: 920; padding: 20px; background: var(--v5-bg-color-mask)" role="dialog" aria-modal="true" :aria-label="successTitle">
-    <view style="width: 100%; max-width: 360px; padding: 28px 22px; border-radius: 24px; background: var(--v5-surface); text-align: center; box-shadow: var(--v5-card-shadow-lift-strong)">
+  <view v-if="showSuccess" class="nx-genesis-success fixed inset-0 grid place-items-center" style="z-index: 920; box-sizing: border-box; padding: max(20px, var(--nx-overlay-top)) 20px var(--nx-overlay-bottom); background: var(--v5-bg-color-mask)" role="dialog" aria-modal="true" :aria-label="successTitle">
+    <view class="nx-genesis-success-card" style="width: 100%; max-width: 360px; box-sizing: border-box; max-height: calc(100vh - max(20px, var(--nx-overlay-top)) - var(--nx-overlay-bottom)); overflow-y: auto; overscroll-behavior: contain; padding: 28px 22px; border-radius: 24px; background: var(--v5-surface); text-align: center; box-shadow: var(--v5-card-shadow-lift-strong)">
       <text class="block" style="font-size: 26px; color: var(--v5-genesis-gold-on-dark)" aria-hidden="true">✦</text>
       <text class="block" style="margin-top: 10px; font-size: 20px; font-weight: 650; color: var(--v5-ink)">{{ successTitle }}</text>
       <text class="block" style="margin-top: 8px; font-size: 12px; line-height: 1.5; color: var(--v5-ink-3)">{{ t.genesis.purchaseSubtitle }}</text>
@@ -461,6 +461,10 @@ const submitStyle = computed<CSSProperties>(() => ({
   backdrop-filter: blur(8px);
 }
 .nx-sheet-panel {
+  box-sizing: border-box;
+  max-height: calc(100vh - var(--nx-overlay-top));
+  overflow-y: auto;
+  overscroll-behavior: contain;
   position: fixed;
   left: 0;
   right: 0;

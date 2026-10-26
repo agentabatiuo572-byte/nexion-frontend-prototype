@@ -410,10 +410,10 @@ const legendWrapStyle: CSSProperties = { padding: "12px 0", gap: "16px", flexWra
 const footerStyle: CSSProperties = { display: "flex", flexDirection: "column", gap: "4px", textAlign: "center", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.625 };
 const sheetStyle: CSSProperties = {
   boxShadow: "var(--nx-glass-edge)", width: "100%", maxWidth: "520px",
-  maxHeight: "80vh", overflowY: "auto", boxSizing: "border-box",
+  maxHeight: "min(80vh, calc(100% - var(--nx-overlay-top)))", overflowY: "auto", boxSizing: "border-box",
   background: "var(--nx-glass-fill)", backdropFilter: "blur(24px)",
   borderRadius: "28px 28px 0 0", border: "1px solid var(--v5-border)",
-  padding: "12px 24px calc(24px + env(safe-area-inset-bottom))",
+  padding: "12px 24px calc(24px + var(--nx-overlay-safe-bottom))",
 };
 const sheetCloseStyle: CSSProperties = { width: "44px", height: "44px", flexShrink: 0, fontSize: "24px", color: "var(--v5-ink-2)" };
 const sheetStatLabelStyle: CSSProperties = { fontSize: "12px", lineHeight: 1.5, color: "var(--v5-ink-3)" };

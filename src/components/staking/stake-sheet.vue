@@ -92,7 +92,7 @@
   </view>
   <view v-else-if="open && term !== null" class="nx-staking-sheet-root" role="dialog" aria-modal="true" :aria-label="t.staking.remoteUnavailableClosed">
     <view class="nx-sheet-backdrop" @click="emitClose" />
-    <view class="nx-staking-sheet-panel" :style="panelStyle" @click.stop>
+    <view class="nx-staking-sheet-panel nx-sheet-panel" :style="panelStyle" @click.stop>
       <view class="flex items-start justify-between" style="gap: 12px">
         <text class="block" :style="titleStyle">{{ t.staking.remoteUnavailableClosed }}</text>
         <view class="inline-flex items-center justify-center active:opacity-60" :style="closeBtnStyle" role="button" tabindex="0" :aria-label="t.ui.close" @click="emitClose"  @keydown.enter.prevent="emitClose" @keydown.space.prevent="emitClose">
@@ -526,6 +526,10 @@ useDialogA11y(computed(() => props.open), ".nx-staking-sheet-root", emitClose);
   backdrop-filter: blur(8px);
 }
 .nx-sheet-panel {
+  box-sizing: border-box;
+  max-height: calc(100vh - var(--nx-overlay-top));
+  overflow-y: auto;
+  overscroll-behavior: contain;
   position: fixed;
   left: 0;
   right: 0;

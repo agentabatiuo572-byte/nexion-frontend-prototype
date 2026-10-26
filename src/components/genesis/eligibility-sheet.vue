@@ -133,7 +133,7 @@ useDialogA11y(computed(() => props.open), ".nx-elig-root", emitClose);
 
 <style scoped>
 .nx-elig-backdrop { position: fixed; inset: 0; z-index: 790; background: var(--v5-bg-color-mask); backdrop-filter: blur(8px); }
-.nx-elig-panel { position: fixed; left: 0; right: 0; bottom: 0; z-index: 800; border-top-left-radius: 16px; border-top-right-radius: 16px; }
+.nx-elig-panel { box-sizing: border-box; max-height: calc(100vh - var(--nx-overlay-top)); overflow-y: auto; overscroll-behavior: contain; position: fixed; left: 0; right: 0; bottom: 0; z-index: 800; border-top-left-radius: 16px; border-top-right-radius: 16px; }
 .nx-elig-fade-enter-active, .nx-elig-fade-leave-active { transition: opacity 0.24s cubic-bezier(0.32, 0.72, 0, 1); }
 .nx-elig-fade-enter-from, .nx-elig-fade-leave-to { opacity: 0; }
 .nx-elig-slide-enter-active { transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1); }

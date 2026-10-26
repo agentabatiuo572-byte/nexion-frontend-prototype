@@ -1,0 +1,772 @@
+{
+  "scope": "CUA local mock prototype only; no native device or real service",
+  "records": [
+    {
+      "label": "share-390x844-inset34",
+      "clientHeight": 688,
+      "controls": [
+        {
+          "bottom": 224.5,
+          "bottomGap": 619.5,
+          "label": "关闭",
+          "top": 180.5
+        },
+        {
+          "bottom": 496,
+          "bottomGap": 348,
+          "label": "分享海报",
+          "top": 434
+        },
+        {
+          "bottom": 558,
+          "bottomGap": 286,
+          "label": "复制邀请码",
+          "top": 496
+        },
+        {
+          "bottom": 620,
+          "bottomGap": 224,
+          "label": "复制链接",
+          "top": 558
+        },
+        {
+          "bottom": 682,
+          "bottomGap": 162,
+          "label": "更多",
+          "top": 620
+        },
+        {
+          "bottom": 744,
+          "bottomGap": 100,
+          "label": "邀请奖励规则",
+          "top": 682
+        },
+        {
+          "bottom": 798,
+          "bottomGap": 46,
+          "label": "取消",
+          "top": 750
+        }
+      ],
+      "paddingBottom": "34px",
+      "panel": {
+        "bottom": 844,
+        "height": 687.5,
+        "top": 156.5
+      },
+      "scrollHeight": 688,
+      "viewport": 844
+    },
+    {
+      "label": "share-expanded-390x420-inset34",
+      "clientHeight": 361,
+      "controls": [
+        {
+          "bottom": 126.80208587646484,
+          "bottomGap": 293.19791412353516,
+          "label": "关闭",
+          "top": 82.80208587646484
+        },
+        {
+          "bottom": -57.03125,
+          "bottomGap": 477.03125,
+          "label": "分享海报",
+          "top": -119.03125
+        },
+        {
+          "bottom": 4.96875,
+          "bottomGap": 415.03125,
+          "label": "复制邀请码",
+          "top": -57.03125
+        },
+        {
+          "bottom": 66.96875,
+          "bottomGap": 353.03125,
+          "label": "复制链接",
+          "top": 4.96875
+        },
+        {
+          "bottom": 128.96875,
+          "bottomGap": 291.03125,
+          "label": "更多",
+          "top": 66.96875
+        },
+        {
+          "bottom": 190.96875,
+          "bottomGap": 229.03125,
+          "label": "邀请奖励规则",
+          "top": 128.96875
+        },
+        {
+          "bottom": 374.4270935058594,
+          "bottomGap": 45.572906494140625,
+          "label": "取消",
+          "top": 326.4270935058594
+        }
+      ],
+      "paddingBottom": "34px",
+      "panel": {
+        "bottom": 420.0000228881836,
+        "height": 361.1979370117187,
+        "top": 58.80208587646485
+      },
+      "scrollHeight": 361,
+      "viewport": 420
+    },
+    {
+      "label": "poster-390x420-inset34",
+      "clientHeight": 386,
+      "controls": [
+        {
+          "bottom": 101.60416793823242,
+          "bottomGap": 318.3958320617676,
+          "label": "关闭",
+          "top": 57.60416793823242
+        },
+        {
+          "bottom": 310.1354217529297,
+          "bottomGap": 109.86457824707033,
+          "label": "保存图片",
+          "top": 252.1354217529297
+        },
+        {
+          "bottom": 368.1354370117187,
+          "bottomGap": 51.86456298828125,
+          "label": "复制链接",
+          "top": 310.13543701171875
+        }
+      ],
+      "paddingBottom": "34px",
+      "panel": {
+        "bottom": 420.0000114440918,
+        "height": 386.3958435058594,
+        "top": 33.60416793823242
+      },
+      "scrollHeight": 386,
+      "viewport": 420
+    },
+    {
+      "label": "invite-rules-320x568-inset34",
+      "clientHeight": 401,
+      "controls": [
+        {
+          "bottom": 222.8125,
+          "bottomGap": 345.1875,
+          "label": "关闭",
+          "top": 178.8125
+        },
+        {
+          "bottom": 498,
+          "bottomGap": 70,
+          "label": "联系客服",
+          "top": 450
+        },
+        {
+          "bottom": 498,
+          "bottomGap": 70,
+          "label": "奖励记录",
+          "top": 450
+        }
+      ],
+      "paddingBottom": "58px",
+      "panel": {
+        "bottom": 568,
+        "height": 401.1875,
+        "top": 166.8125
+      },
+      "scrollHeight": 401,
+      "viewport": 568
+    },
+    {
+      "label": "invite-rules-320x568-inset0",
+      "clientHeight": 383,
+      "controls": [
+        {
+          "bottom": 240.8125,
+          "bottomGap": 327.1875,
+          "label": "关闭",
+          "top": 196.8125
+        },
+        {
+          "bottom": 516,
+          "bottomGap": 52,
+          "label": "联系客服",
+          "top": 468
+        },
+        {
+          "bottom": 516,
+          "bottomGap": 52,
+          "label": "奖励记录",
+          "top": 468
+        }
+      ],
+      "paddingBottom": "40px",
+      "panel": {
+        "bottom": 568,
+        "height": 383.1875,
+        "top": 184.8125
+      },
+      "scrollHeight": 383,
+      "viewport": 568
+    },
+    {
+      "label": "voucher-320x568-inset0",
+      "clientHeight": 141,
+      "controls": [
+        {
+          "bottom": 456,
+          "bottomGap": 112,
+          "label": "立即领取",
+          "top": 412
+        }
+      ],
+      "paddingBottom": "14px",
+      "panel": {
+        "bottom": 470.0000305175781,
+        "height": 141.42709350585938,
+        "top": 328.57293701171875
+      },
+      "scrollHeight": 141,
+      "viewport": 568
+    },
+    {
+      "label": "voucher-panel-320x568-inset0",
+      "clientHeight": 349,
+      "controls": [
+        {
+          "bottom": 283.1063232421875,
+          "bottomGap": 284.8936767578125,
+          "label": "关闭",
+          "top": 239.1063232421875
+        },
+        {
+          "bottom": 456.0334167480469,
+          "bottomGap": 111.96658325195312,
+          "label": "立即领取",
+          "top": 412.0334167480469
+        },
+        {
+          "bottom": 530.0334167480469,
+          "bottomGap": 37.966583251953125,
+          "label": "暂不领取",
+          "top": 486.0334167480469
+        }
+      ],
+      "paddingBottom": "38px",
+      "panel": {
+        "bottom": 568.0334167480469,
+        "height": 348.9270935058594,
+        "top": 219.1063232421875
+      },
+      "scrollHeight": 349,
+      "viewport": 568
+    },
+    {
+      "label": "trial-320x568-inset0",
+      "clientHeight": 515,
+      "controls": [
+        {
+          "bottom": 109.33333587646484,
+          "bottomGap": 458.6666641235352,
+          "label": "关闭",
+          "top": 73.33333587646484
+        },
+        {
+          "bottom": 482,
+          "bottomGap": 86,
+          "label": "立即免费试用",
+          "top": 434
+        },
+        {
+          "bottom": 530,
+          "bottomGap": 38,
+          "label": "我再想想",
+          "top": 490
+        }
+      ],
+      "paddingBottom": "38px",
+      "panel": {
+        "bottom": 568.0000228881836,
+        "height": 514.6666870117188,
+        "top": 53.33333587646485
+      },
+      "scrollHeight": 515,
+      "viewport": 568
+    },
+    {
+      "label": "nx-sheet-nofooter-320x568-inset0",
+      "clientHeight": 500,
+      "controls": [
+        {
+          "bottom": 128.1666717529297,
+          "bottomGap": 439.8333282470703,
+          "label": "关闭",
+          "top": 84.16667175292969
+        }
+      ],
+      "paddingBottom": "24px",
+      "panel": {
+        "bottom": 568.0000152587891,
+        "height": 499.8333435058594,
+        "top": 68.16667175292969
+      },
+      "scrollHeight": 500,
+      "viewport": 568
+    },
+    {
+      "label": "theme-centered-390x420-inset0",
+      "clientHeight": 278,
+      "controls": [
+        {
+          "bottom": 125,
+          "bottomGap": 295,
+          "label": "关闭",
+          "top": 81
+        }
+      ],
+      "paddingBottom": "20px",
+      "panel": {
+        "bottom": 341,
+        "height": 278,
+        "top": 63
+      },
+      "scrollHeight": 278,
+      "viewport": 420
+    },
+    {
+      "label": "global-confirm-390x420-inset0",
+      "clientHeight": 155,
+      "controls": [
+        {
+          "bottom": 263.4166717529297,
+          "bottomGap": 156.5833282470703,
+          "label": "取消",
+          "top": 215.4166717529297
+        },
+        {
+          "bottom": 263.4166717529297,
+          "bottomGap": 156.5833282470703,
+          "label": "退出登录",
+          "top": 215.4166717529297
+        }
+      ],
+      "paddingBottom": "16px",
+      "panel": {
+        "bottom": 279.4166793823242,
+        "height": 154.83334350585938,
+        "top": 124.58333587646484
+      },
+      "scrollHeight": 155,
+      "viewport": 420
+    },
+    {
+      "label": "device-deactivate-390x420-inset0",
+      "clientHeight": 369,
+      "controls": [
+        {
+          "bottom": 104.54167175292967,
+          "bottomGap": 315.4583282470703,
+          "label": "关闭",
+          "top": 68.54167175292969
+        },
+        {
+          "bottom": 278,
+          "bottomGap": 142,
+          "label": "等任务完成后自动取消",
+          "top": 230
+        },
+        {
+          "bottom": 334,
+          "bottomGap": 86,
+          "label": "强制取消(放弃当前任务奖励)",
+          "top": 286
+        },
+        {
+          "bottom": 382,
+          "bottomGap": 38,
+          "label": "返回",
+          "top": 342
+        }
+      ],
+      "paddingBottom": "38px",
+      "panel": {
+        "bottom": 420.0000114440918,
+        "height": 369.4583435058594,
+        "top": 50.54166793823242
+      },
+      "scrollHeight": 369,
+      "viewport": 420
+    },
+    {
+      "label": "nickname-390x420-inset0",
+      "clientHeight": 356,
+      "controls": [
+        {
+          "bottom": 74,
+          "bottomGap": 346,
+          "label": "关闭",
+          "top": 42
+        },
+        {
+          "bottom": 495.3333435058594,
+          "bottomGap": -75.33334350585938,
+          "label": "换一批",
+          "top": 451.3333435058594
+        },
+        {
+          "bottom": 495.3333435058594,
+          "bottomGap": -75.33334350585938,
+          "label": "确认选择",
+          "top": 451.3333435058594
+        }
+      ],
+      "paddingBottom": "20px",
+      "panel": {
+        "bottom": 380,
+        "height": 356,
+        "top": 24
+      },
+      "scrollHeight": 491,
+      "viewport": 420
+    },
+    {
+      "label": "nickname-scrolled-390x420-inset0",
+      "clientHeight": 356,
+      "controls": [
+        {
+          "bottom": -61.33333587646485,
+          "bottomGap": 481.3333358764648,
+          "label": "关闭",
+          "top": -93.33333587646484
+        },
+        {
+          "bottom": 360,
+          "bottomGap": 60,
+          "label": "换一批",
+          "top": 316
+        },
+        {
+          "bottom": 360,
+          "bottomGap": 60,
+          "label": "确认选择",
+          "top": 316
+        }
+      ],
+      "paddingBottom": "20px",
+      "panel": {
+        "bottom": 380,
+        "height": 356,
+        "top": 24
+      },
+      "scrollHeight": 491,
+      "viewport": 420
+    },
+    {
+      "label": "trial-rules-390x420-inset0",
+      "clientHeight": 318,
+      "controls": [
+        {
+          "bottom": 166.375,
+          "bottomGap": 253.625,
+          "label": "关闭",
+          "top": 122.375
+        },
+        {
+          "bottom": 382,
+          "bottomGap": 38,
+          "label": "知道了",
+          "top": 334
+        }
+      ],
+      "paddingBottom": "38px",
+      "panel": {
+        "bottom": 420,
+        "height": 317.625,
+        "top": 102.375
+      },
+      "scrollHeight": 318,
+      "viewport": 420
+    },
+    {
+      "label": "stake-390x420-inset0",
+      "clientHeight": 408,
+      "controls": [
+        {
+          "bottom": -148,
+          "bottomGap": 568,
+          "label": "关闭",
+          "top": -192
+        },
+        {
+          "bottom": 53.0625,
+          "bottomGap": 366.9375,
+          "label": "$100.00",
+          "top": 9.0625
+        },
+        {
+          "bottom": 53.0625,
+          "bottomGap": 366.9375,
+          "label": "$500.00",
+          "top": 9.0625
+        },
+        {
+          "bottom": 53.0625,
+          "bottomGap": 366.9375,
+          "label": "$1,000.00",
+          "top": 9.0625
+        },
+        {
+          "bottom": 53.0625,
+          "bottomGap": 366.9375,
+          "label": "$5,000.00",
+          "top": 9.0625
+        },
+        {
+          "bottom": 109.0625,
+          "bottomGap": 310.9375,
+          "label": "全部",
+          "top": 65.0625
+        },
+        {
+          "bottom": 352.72918701171875,
+          "bottomGap": 67.27081298828125,
+          "label": "锁仓 $20.00 共 30 天",
+          "top": 302.72918701171875
+        }
+      ],
+      "paddingBottom": "38px",
+      "panel": {
+        "bottom": 420,
+        "height": 408,
+        "top": 12
+      },
+      "scrollHeight": 630,
+      "viewport": 420
+    },
+    {
+      "label": "receipt-390x420-inset0",
+      "clientHeight": 356,
+      "controls": [
+        {
+          "bottom": 70.16666793823242,
+          "bottomGap": 349.8333320617676,
+          "label": "关闭",
+          "top": 26.166667938232425
+        },
+        {
+          "bottom": 335.88543701171875,
+          "bottomGap": 84.11456298828125,
+          "label": "复制 证明哈希",
+          "top": 291.88543701171875
+        }
+      ],
+      "paddingBottom": "0px",
+      "panel": {
+        "bottom": 374.5,
+        "height": 357,
+        "top": 17.5
+      },
+      "scrollHeight": 356,
+      "viewport": 420
+    },
+    {
+      "label": "intro-language-vi-320x568-inset0",
+      "clientHeight": 239,
+      "controls": [
+        {
+          "bottom": 434,
+          "bottomGap": 134,
+          "label": "中文",
+          "top": 386
+        },
+        {
+          "bottom": 482,
+          "bottomGap": 86,
+          "label": "English",
+          "top": 434
+        },
+        {
+          "bottom": 530,
+          "bottomGap": 38,
+          "label": "Tiếng Việt",
+          "top": 482
+        }
+      ],
+      "paddingBottom": "38px",
+      "panel": {
+        "bottom": 568.0000152587891,
+        "height": 238.6666717529297,
+        "top": 329.3333435058594
+      },
+      "scrollHeight": 239,
+      "viewport": 568
+    },
+    {
+      "label": "country-vi-320x568-inset0",
+      "clientHeight": 420,
+      "controls": [
+        {
+          "bottom": 258.05401611328125,
+          "bottomGap": 309.94598388671875,
+          "label": "Đóng bộ chọn quốc gia",
+          "top": 214.05401611328125
+        }
+      ],
+      "paddingBottom": "40px",
+      "panel": {
+        "bottom": 612.3665161132812,
+        "height": 420.3125,
+        "top": 192.05401611328125
+      },
+      "scrollHeight": 424,
+      "viewport": 568
+    },
+    {
+      "label": "country-vi-320x568-inset0-settled",
+      "clientHeight": 420,
+      "controls": [
+        {
+          "bottom": 213.6875,
+          "bottomGap": 354.3125,
+          "label": "Đóng bộ chọn quốc gia",
+          "top": 169.6875
+        }
+      ],
+      "paddingBottom": "40px",
+      "panel": {
+        "bottom": 568,
+        "height": 420.3125,
+        "top": 147.6875
+      },
+      "scrollHeight": 424,
+      "viewport": 568
+    },
+    {
+      "label": "country-final-end-320x568-inset0",
+      "clientHeight": 308,
+      "lastBottom": 527.6875,
+      "lastGap": 40.3125,
+      "panelBottom": 568,
+      "scrollBottom": 528,
+      "scrollHeight": 896,
+      "scrollTop": 588,
+      "viewport": 568
+    },
+    {
+      "label": "country-final-end-320x568-inset34",
+      "clientHeight": 290,
+      "lastBottom": 509.6875,
+      "lastGap": 58.3125,
+      "padding": "58px",
+      "scrollBottom": 510,
+      "scrollHeight": 896,
+      "scrollTop": 606,
+      "viewport": 568
+    },
+    {
+      "label": "network-member-390x844-inset0",
+      "clientHeight": 419,
+      "controls": [
+        {
+          "bottom": 516.5,
+          "bottomGap": 327.5,
+          "label": "关闭",
+          "top": 472.5
+        }
+      ],
+      "paddingBottom": "48px",
+      "panel": {
+        "bottom": 844.0000305175781,
+        "height": 420.1666870117187,
+        "top": 423.8333435058594
+      },
+      "scrollHeight": 419,
+      "viewport": 844
+    },
+    {
+      "label": "lucky-spin-expanded-390x420-inset0",
+      "clientHeight": 396,
+      "controls": [],
+      "paddingBottom": "40px",
+      "panel": {
+        "bottom": 420,
+        "height": 396,
+        "top": 24
+      },
+      "scrollHeight": 631,
+      "viewport": 420
+    },
+    {
+      "label": "withdraw-fee-390x420-inset0",
+      "clientHeight": 235,
+      "controls": [
+        {
+          "bottom": 327.4385681152344,
+          "bottomGap": 92.56143188476562,
+          "label": "关闭",
+          "top": 295.4385681152344
+        }
+      ],
+      "paddingBottom": "38px",
+      "panel": {
+        "bottom": 512.1052398681641,
+        "height": 234.6666717529297,
+        "top": 277.4385681152344
+      },
+      "scrollHeight": 235,
+      "viewport": 420
+    },
+    {
+      "label": "withdraw-fee-settled-390x420-inset0",
+      "clientHeight": 235,
+      "controls": [
+        {
+          "bottom": 235.33334350585935,
+          "bottomGap": 184.66665649414065,
+          "label": "关闭",
+          "top": 203.33334350585935
+        }
+      ],
+      "paddingBottom": "38px",
+      "panel": {
+        "bottom": 420.00001525878906,
+        "height": 234.6666717529297,
+        "top": 185.33334350585935
+      },
+      "scrollHeight": 235,
+      "viewport": 420
+    },
+    {
+      "label": "capacity-390x420-inset0",
+      "clientHeight": 347,
+      "controls": [
+        {
+          "bottom": 121.42708587646484,
+          "bottomGap": 298.57291412353516,
+          "label": "关闭",
+          "top": 91.42708587646484
+        },
+        {
+          "bottom": 380,
+          "bottomGap": 40,
+          "label": "查看更高算力设备",
+          "top": 334
+        }
+      ],
+      "paddingBottom": "40px",
+      "panel": {
+        "bottom": 420.0000228881836,
+        "height": 346.57293701171875,
+        "top": 73.42708587646484
+      },
+      "scrollHeight": 347,
+      "viewport": 420
+    }
+  ],
+  "notes": [
+    "Unsettled animation measurements are diagnostic only: country-vi-320x568-inset0 and withdraw-fee-390x420-inset0.",
+    "country-vi-320x568-inset0-settled is pre-fix outer geometry; final-end records are authoritative.",
+    "nickname unscrolled control bounds are intentionally before scrolling, not failures.",
+    "Most records precede later isolated picker/image/country fixes; unchanged per-component geometry retained. Final build requires per-file fingerprint association."
+  ]
+}
