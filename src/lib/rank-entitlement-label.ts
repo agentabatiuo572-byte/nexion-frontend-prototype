@@ -19,5 +19,12 @@ export function rankEntitlementLabel(reward: EntitlementVRankReward,
     const label = reward.customLabel?.trim();
     return label && !INTERNAL_LABEL_PATTERN.test(label) ? label : unavailable.custom;
   }
-  return reward.displayName?.trim() || (reward.type === "VOUCHER" ? unavailable.voucher : unavailable.sku);
+  let label = reward.displayName?.trim();
+  // Published TEST voucher names include a harness prefix and run date.
+  // Strip those decorations only; keep the actual entitlement and its ID.
+  if (reward.type === "VOUCHER" && /^UVEL\s+TEST\b/i.test(label ?? '')) {
+    label = label!.replace(/^UVEL\s+TEST\b(?:\s+TEAM\d+(?=\s|$))?\s*/i, '')
+      .replace(/(?:^|\s+)20\d{6}$/, '').trim();
+  }
+  return label || (reward.type === "VOUCHER" ? unavailable.voucher : unavailable.sku);
 }
