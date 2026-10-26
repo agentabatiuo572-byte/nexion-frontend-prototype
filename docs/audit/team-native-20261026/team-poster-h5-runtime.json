@@ -1,0 +1,24 @@
+{
+  "body": {
+    "bottom": 820.0000305175781,
+    "clientHeight": 674,
+    "height": 674.4791870117188,
+    "scrollHeight": 1037,
+    "y": 145.52084350585938
+  },
+  "previewReady": true,
+  "rewardDateText": "好友注册即领 $0.02 + 0.02 UVT · 扫码直达注册当前奖励规则自 2026/10/23 起生效；资格按注册日期和适用规则确认。",
+  "saveDisabled": "false",
+  "sheet": {
+    "bottom": 844.0000228881836,
+    "height": 776.4791870117188,
+    "y": 67.52083587646484
+  },
+  "bottomObserved": {
+    "scrollTop": 362,
+    "lastChannel": "Messenger",
+    "channelBottom": 802.4479370117188,
+    "viewportHeight": 844,
+    "previewReady": true
+  }
+}

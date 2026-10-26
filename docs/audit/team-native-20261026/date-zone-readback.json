@@ -1,0 +1,9 @@
+{
+  "policy": "existing device-local calendar semantics retained; same server instant crosses midnight in Japan",
+  "nativeDate": "2026/10/22",
+  "nativeZone": "Asia/Shanghai",
+  "source": "GET /api/config/referral-rewards",
+  "browserSystemZone": "Tokyo Standard Time",
+  "serverEffectiveAt": "2026-10-22T15:56:08.309253884Z",
+  "browserDate": "2026/10/23"
+}

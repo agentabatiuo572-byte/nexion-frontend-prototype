@@ -1,0 +1,9 @@
+{
+  "runtimeHash": "ebf8696a3a249c8f5ff2a5d5736da349ba398908a48986277e541d2b52f45c03",
+  "openedReadyAt": "2026-10-26T16:53:42.8934856+09:00",
+  "initial": "final date/nickname candidate ready, 2026/10/22",
+  "observedAt": "2026-10-26T07:55:00.6066842+00:00",
+  "elapsedSeconds": 77.713,
+  "result": "ready retained; localized date; save/link enabled and Messenger visible; no external action",
+  "sourceCommit": "eeae6348a27528751da7666c2ea58c9a898d2633"
+}
