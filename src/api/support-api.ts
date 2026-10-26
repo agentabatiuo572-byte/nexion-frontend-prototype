@@ -1,5 +1,6 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
+import { MESSAGE_ACK_TIMEOUT_MS } from '@/lib/conversation-delivery-policy';
 import { parseTicketCreationCapability, requireTicketCreationResult, ticketCreationDenials, type TicketCreationCapability } from './support-ticket-policy';
 import { parseServerTimestamp } from "./server-time";
 import type { Conversation, ConversationCategoryAvailability, ConvMessage, SupportFaq, SupportSlaTarget, Ticket, TicketCategory, TicketMessage, TicketPriority, TicketStatus } from "@/domain/support";
@@ -132,6 +133,8 @@ function parseConversationMessage(value: unknown): ConvMessage {
   const attachmentId = kind === "IMAGE" ? text(v?.attachmentId) : null;
   if (!v || id === null || ts === null || body === null || !sender || !["TEXT", "IMAGE", "SKU", "LINK"].includes(kind ?? "") || (kind === "TEXT" && !body) || (kind === "IMAGE" && !attachmentId) || (receipt !== null && receipt !== "sent" && receipt !== "read") || (sender === "system" && receipt !== null)) invalid("SUPPORT_CONVERSATION_RESPONSE_INVALID");
   const message: ConvMessage = { id: String(id), sender, text: body, ts, kind: kind as ConvMessage["kind"], attachmentId: attachmentId ?? undefined, authorName: text(v.senderName) ?? undefined, status: sender === "system" ? undefined : status };
+  if (sender === 'user' && typeof v.clientMessageId === 'string' && v.clientMessageId.length > 0 && v.clientMessageId.length <= 256)
+    message.clientMessageId = v.clientMessageId;
   if (kind === "SKU" || kind === "LINK") {
     if (sender !== "agent" || typeof v.targetAvailability !== "string" || !["AVAILABLE", "UNAVAILABLE", "UNKNOWN"].includes(v.targetAvailability)) invalid("SUPPORT_CONVERSATION_RESPONSE_INVALID");
     message.targetAvailability = v.targetAvailability as ConvMessage["targetAvailability"];
@@ -326,8 +329,8 @@ export function createSupportApi(client: ApiClient): SupportApi {
       method: "POST", path: await supportPath(`/conversations/${pathId(conversation.id)}/read`),
       body: { lastSeenMessageId, expectedStatus: conversation.status.toUpperCase(), expectedVersion: conversation.version },
     })),
-    startConversation: async (conversationType, openingText, key, attachmentId) => parseConversationDetail(await client.request({ method: "POST", path: await supportPath("/conversations"), idempotencyKey: requiredKey(key), body: { conversationType: conversationType.toUpperCase(), openingText: openingText.trim(), clientMessageId: key, ...(attachmentId ? { kind: "IMAGE", attachmentId } : {}) } })),
-    replyConversation: async (conversation, body, key, attachmentId) => parseConversationDetail(await client.request({ method: "POST", path: await supportPath(`/conversations/${pathId(conversation.id)}/replies`), idempotencyKey: requiredKey(key), body: { body: body.trim(), expectedStatus: conversation.status.toUpperCase(), expectedVersion: conversation.version, clientMessageId: key, ...(attachmentId ? { kind: "IMAGE", attachmentId } : {}) } })),
+    startConversation: async (conversationType, openingText, key, attachmentId) => parseConversationDetail(await client.request({ method: "POST", path: await supportPath("/conversations"), timeoutMs: MESSAGE_ACK_TIMEOUT_MS, idempotencyKey: requiredKey(key), body: { conversationType: conversationType.toUpperCase(), openingText: openingText.trim(), clientMessageId: key, ...(attachmentId ? { kind: "IMAGE", attachmentId } : {}) } })),
+    replyConversation: async (conversation, body, key, attachmentId) => parseConversationDetail(await client.request({ method: "POST", path: await supportPath(`/conversations/${pathId(conversation.id)}/replies`), timeoutMs: MESSAGE_ACK_TIMEOUT_MS, idempotencyKey: requiredKey(key), body: { body: body.trim(), expectedStatus: conversation.status.toUpperCase(), expectedVersion: conversation.version, clientMessageId: key, ...(attachmentId ? { kind: "IMAGE", attachmentId } : {}) } })),
     attachmentPolicy: async () => parseAttachmentPolicy(await client.request({ path: `${supportRoot}/attachments/policy` })),
     uploadAttachment: async (filePath, clientUploadId, key) => parseAttachment(await client.upload({
       path: `${supportRoot}/attachments`, filePath, name: "file", idempotencyKey: requiredKey(key),

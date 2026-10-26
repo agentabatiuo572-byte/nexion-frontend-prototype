@@ -3500,6 +3500,7 @@ autoDetect: "自动识别即将推出",
     chLiveChatHint: "联系顾问或客服团队",
   },
   conversations: {
+    delivery: { sending: "发送中", sent: "已发送", read: "已读", failed: "发送失败", unknown: "发送结果待确认", queued: "等待发送", retry: "点击重新发送" },
     recommendation: { product: "查看商品", home: "打开首页", wallet: "打开钱包", support: "打开在线客服", unavailable: "该内容暂不可用，原消息已保留。", unknown: "暂时无法确认该内容是否可用，原消息已保留。" },
     send: "发送",
     image: {

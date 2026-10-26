@@ -84,6 +84,8 @@
 	      :input-placeholder="inputPlaceholder"
 	      :input-label="inputLabel"
 	      :send-label="t.conversations.send"
+      :status-labels="t.conversations.delivery"
+      :send-success-revision="sendSuccessRevision"
       :quick-chips="quickChips"
       :empty-hint="emptyHint"
       :typing="agentTyping"
@@ -171,7 +173,8 @@ import { toast, confirm, useUI } from "@/store/ui";
 import { replyToQuickPrompt, type QuickPromptKey } from "@/mock/nova-templates";
 import type { ConversationType, ConvMessage } from "@/domain/support";
 
-import { ApiError, isSettledRejection, asApiError } from "@/api/errors";
+import { ApiError, asApiError } from "@/api/errors";
+import { isConversationDeliveryAmbiguous } from '@/lib/conversation-delivery-policy';
 import { isSupportAttachmentNotReady, type SupportAttachmentPolicy } from "@/api/support-api";
 import type { TicketCreationPolicy } from '@/api/support-ticket-policy';
 import { novaFailure } from "@/lib/nova-failure";
@@ -199,12 +202,27 @@ type FailedHumanSend = { text: string; attachmentId?: string; kind: "unknown" | 
 const imageDraft = ref<ImageDraft | null>(null);
 const failedHumanSend = ref<FailedHumanSend | null>(null);
 const humanSendBusy = ref(false);
+const localHumanSend = ref<ThreadMsg | null>(null);
+let localHumanSequence = 0;
+const sendSuccessRevision = ref(0);
+const pendingNovaSounds = new Set<string>();
+function noteSendSuccess() {
+  if (novaPageVisible && !chatDisposed) sendSuccessRevision.value++;
+}
 const queuedSendVisuals = new Map<string, (accepted?: boolean) => void>();
 function clearQueuedSendVisuals() {
+  pendingNovaSounds.clear();
   const callbacks = [...queuedSendVisuals.values()]; queuedSendVisuals.clear();
   callbacks.forEach(done => done(false));
 }
 function settleQueuedSendVisuals() {
+  for (const turnId of pendingNovaSounds) {
+    const item = nova.pendingRemote.find(row => row.turnId === turnId);
+    if (!item || item.delivery === 'failed') {
+      pendingNovaSounds.delete(turnId);
+      if (!item && nova.messages.some(row => row.turnId === turnId && !row.delivery)) noteSendSuccess();
+    }
+  }
   for (const [turnId, done] of queuedSendVisuals) {
     const item = nova.pendingRemote.find(row => row.turnId === turnId);
     if (!item || item.delivery === 'failed') {
@@ -476,6 +494,7 @@ const novaRequestControl = createLatestAbortableRequest();
 const startType = ref<Exclude<ConversationType, "ai"> | null>(null);
 watch([cid, startType], () => { ticketCreationBlock.value = null; });
 const humanComposerKey = computed(() => cid.value ? `conversation:${cid.value}` : startType.value ? `start:${startType.value}` : "");
+watch(() => [humanComposerKey.value, app.accountBindingEpoch, convStore.scopeInvalidated], () => { localHumanSend.value = null; }, { flush: 'sync' });
 let recoveredNavigation = "";
 function restoreRecoveredComposer(saved: HumanComposer | null | undefined, key: string) {
   if (!saved?.recoveredId || !startType.value || cid.value || !novaPageVisible || recoveredNavigation === saved.recoveredId) return;
@@ -964,6 +983,7 @@ const threadMessages = computed<ThreadMsg[]>(() => {
       text: m.text,
       timestamp: m.ts,
       receipt: receiptFor(m.status, i === lastUser),
+      deliveryState: m.delivery ? undefined : m.status,
       queue: m.delivery ? {
         turnId: m.turnId!, state: m.delivery,
         label: m.delivery === "failed" ? t.value.nova.queue[m.failure ?? "failed"]
@@ -980,7 +1000,17 @@ const threadMessages = computed<ThreadMsg[]>(() => {
     }));
   }
   const c = conv.value;
-  if (!c) return [];
+  const failed = failedHumanSend.value;
+  const pending: ThreadMsg | null = humanSendBusy.value && localHumanSend.value
+    ? { ...localHumanSend.value, deliveryState: 'sending' }
+    : failed ? {
+      id: localHumanSend.value?.id ?? `pending-human:${humanComposerKey.value}`,
+      side: 'right', tone: 'user', text: failed.text || t.value.conversations.image.message,
+      timestamp: localHumanSend.value?.timestamp, meta: t.value.conversations.image.you,
+      imageSrc: failed.attachmentId ? imageDraft.value?.filePath : undefined,
+      deliveryState: failed.settled ? 'failed' : 'unknown', localSend: true,
+    } : null;
+  if (!c) return pending ? [pending] : [];
   const lastUser = c.messages.map((m) => m.sender).lastIndexOf("user");
   const messages: ThreadMsg[] = c.messages.map((m, i) => ({
     id: m.id,
@@ -995,12 +1025,14 @@ const threadMessages = computed<ThreadMsg[]>(() => {
     timestamp: m.ts,
     meta: m.sender === "user" ? t.value.conversations.image.you : m.authorName || (c.type === "advisor" ? t.value.conversations.typeAdvisor : t.value.conversations.typeSupport),
     receipt: receiptFor(m.status, i === lastUser || m.sender === "agent"),
+    deliveryState: m.sender === 'system' ? undefined : m.status,
     authorAvatarSrc: imageSources.value[avatarImageKey(m) ?? ""],
     ...humanMessageRecommendation(m),
   }));
   const last = c.messages[c.messages.length - 1];
   const idleClose = c.status === "closed" && c.lastMessageKind === "IDLE_TIMEOUT_CLOSE" && (!last || c.lastTs > last.ts)
     ? localizedIdleClose(c.lastMessage, t.value.conversations) : null;
+  if (pending) messages.push(pending);
   return idleClose ? [...messages, {
     id: `idle-close:${c.id}:${c.lastTs}`, side: "left" as const,
     tone: "system" as const, text: idleClose, timestamp: c.lastTs,
@@ -1337,6 +1369,7 @@ async function onSend(text: string, restore?: () => void, settled?: (accepted?: 
         restore?.(); toast.warn(t.value.nova.queue.failed); return;
       }
       queuedVisualTurn = turnId;
+      pendingNovaSounds.add(turnId);
     } catch { restore?.(); toast.error(t.value.nova.queue.failed); return; }
     void drainNovaQueue();
     return;
@@ -1369,6 +1402,7 @@ async function onSend(text: string, restore?: () => void, settled?: (accepted?: 
   if (isAi.value) {
     nova.sendUser(text);
     accepted = true;
+    noteSendSuccess();
     nova.markUserRead(); // Nova reads instantly
     schedule(() => nova.setTyping(true), AI_TYPING_ON_MS);
     schedule(() => {
@@ -1422,6 +1456,7 @@ async function sendHumanMessage(text: string, attachmentId?: string, restore?: (
       if (imageDraft.value?.attachmentId === attachmentId) imageDraft.value = null;
       convStore.saveComposer(`start:${type}`, { text: draftText.value, imageDraft: null, failedSend: null, recoveredId: createdId });
       restoreCompletedHumanCreate(true);
+      noteSendSuccess();
       return true;
     } catch (cause) {
       if (!humanCreateRecovery.isCurrent(creation) || supportScope !== convStore.scopeInvalidated) return;
@@ -1443,6 +1478,7 @@ async function sendHumanMessage(text: string, attachmentId?: string, restore?: (
     if (replyBinding !== app.accountBindingEpoch || cid.value !== id || supportScope !== convStore.scopeInvalidated) return;
     if (imageDraft.value?.attachmentId === attachmentId) imageDraft.value = null;
     if (humanComposerKey.value) convStore.saveComposer(humanComposerKey.value, { text: draftText.value, imageDraft: imageDraft.value, failedSend: null });
+    noteSendSuccess();
     return true;
   } catch (cause) {
     if (replyBinding !== app.accountBindingEpoch || cid.value !== id || supportScope !== convStore.scopeInvalidated) return;
@@ -1451,6 +1487,13 @@ async function sendHumanMessage(text: string, attachmentId?: string, restore?: (
 }
 
 function stageHumanSend(text: string, attachmentId: string | undefined, attempts: number, restore?: () => void): boolean {
+  localHumanSend.value = {
+    id: attempts > 1 ? localHumanSend.value?.id ?? `pending-human:${humanComposerKey.value}` : `pending-human:${app.accountBindingEpoch}:${++localHumanSequence}`,
+    side: 'right', tone: 'user', text: text || t.value.conversations.image.message,
+    timestamp: attempts > 1 ? localHumanSend.value?.timestamp : Date.now(),
+    meta: t.value.conversations.image.you, deliveryState: 'sending', localSend: true,
+    imageSrc: attachmentId ? imageDraft.value?.filePath : undefined,
+  };
   if (!remoteApiEnabled || !humanComposerKey.value) return true;
   try {
     convStore.saveComposer(humanComposerKey.value, { text: draftText.value, imageDraft: imageDraft.value,
@@ -1466,7 +1509,7 @@ function stageHumanSend(text: string, attachmentId: string | undefined, attempts
 
 function humanSendFailed(text: string, attachmentId: string | undefined, cause: unknown, attempts: number) {
   const expired = isSupportAttachmentNotReady(cause);
-  const settled = expired || isSettledRejection(cause);
+  const settled = expired || !isConversationDeliveryAmbiguous(cause);
   const draft = imageDraft.value;
   if (expired && draft && draft.attachmentId === attachmentId) {
     draft.state = "failed";
@@ -1561,7 +1604,10 @@ function onQueueAction(turnId: string, action: "edit" | "cancel" | "retry" | "ca
   if (action === "edit") nova.editRemote(turnId);
   if (action === "cancel") nova.cancelRemote(turnId);
   if (action === "cancel-edit") nova.cancelRemoteEdit(turnId);
-  if (action === "retry") nova.retryRemote(turnId);
+  if (action === "retry") {
+    if (nova.pendingRemote.some(row => row.turnId === turnId && row.delivery === 'failed')) pendingNovaSounds.add(turnId);
+    nova.retryRemote(turnId);
+  }
   void drainNovaQueue();
 }
 
@@ -1582,6 +1628,7 @@ function onChip(key: string) {
   const k = key as QuickPromptKey;
   const onlineCount = app.visibleDevices.filter((d) => d.activatedAt !== null && isDeviceOnline(d, Date.now())).length;
   nova.sendUser(quickLabel(k), "user-quick");
+  noteSendSuccess();
   nova.markUserRead();
   schedule(() => nova.setTyping(true), AI_TYPING_ON_MS);
   schedule(() => {

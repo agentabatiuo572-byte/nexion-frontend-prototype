@@ -18,6 +18,7 @@ import * as secureId from "@/lib/secure-command-id";
 import * as format from "@/i18n/format";
 import { ApiError } from "@/api/errors";
 import * as apiErrors from "@/api/errors";
+import * as deliveryPolicy from '@/lib/conversation-delivery-policy';
 import * as realtimePage from "./conversation-realtime-page";
 import { createSupportApi } from "@/api/support-api";
 import * as ticketPolicy from '@/api/support-ticket-policy';
@@ -112,6 +113,7 @@ function mount(query: Record<string, string> = { type: "ai" }, conversation?: {
     "@/api/runtime": { novaAiApi: api, remoteApiEnabled: realtime.remote ?? true, sessionVault,
       supportApi: { attachmentPolicy: vi.fn(async () => ({ available: false })) } },
     "@/api/errors": apiErrors,
+    '@/lib/conversation-delivery-policy': deliveryPolicy,
     "@/api/support-api": { isSupportAttachmentNotReady: () => false },
     '@/api/support-ticket-policy': ticketPolicy,
     "@/lib/nova-failure": failure,
@@ -120,19 +122,22 @@ function mount(query: Record<string, string> = { type: "ai" }, conversation?: {
     "@/lib/nova-thinking": thinking,
     "./conversation-realtime-page": realtimePage,
   };
-  const page = new Function("require", "exports", script + "; return { isClosedSession, headerRole, dotStyle, onRestart, onSend, onQueueAction, onQueueSave, onStartNewConversation, threadMessages, loadEarlierNovaHistory, conversationThread, novaHistoryLoading, cleanup };")(
+  const scope = vue.effectScope();
+  const page = scope.run(() => new Function("require", "exports", script + "; return { isClosedSession, headerRole, dotStyle, onRestart, onSend, onQueueAction, onQueueSave, onStartNewConversation, threadMessages, loadEarlierNovaHistory, conversationThread, novaHistoryLoading, sendSuccessRevision, cleanup };")(
     (name: string) => {
       if (name.endsWith(".vue")) return {};
       if (!(name in modules)) throw new Error(`Unmocked dependency: ${name}`);
       return modules[name];
     }, {},
-  );
+  ));
+  cleanups.push(() => { page.cleanup(); scope.stop(); });
   hooks.onLoad(query);
   return { page, hooks, app, rebind, api, startConversation, sendUser, openConversation,watchRealtime, nova: useNova(), currentLocale, locale, navigation: modules["@/lib/route"] as { navTo: ReturnType<typeof vi.fn>; navBack: ReturnType<typeof vi.fn> } };
 }
 
+const cleanups: Array<() => void> = [];
 beforeEach(() => { setActivePinia(createPinia()); vi.useFakeTimers(); });
-afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
+afterEach(() => { cleanups.splice(0).forEach(stop => stop()); vi.clearAllTimers(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 it.each(['success', 'failure'])('settles the human send visual only after the actual %s result', async result => {
   const current = mount({ cid: 'support-1' }, { type: 'support', status: 'open', agentName: 'Support' });
@@ -157,6 +162,66 @@ it('keeps queued Nova sends turning until their own outcome and settles remainin
   expect(first).toHaveBeenCalledOnce(); expect(second).not.toHaveBeenCalled();
   current.hooks.onHide(); expect(second).toHaveBeenCalledOnce(); current.page.cleanup();
   expect(first).toHaveBeenCalledOnce(); expect(second).toHaveBeenCalledOnce();
+});
+
+it('counts two queued Nova successes independently more than 400ms apart and never recounts duplicate completions', async () => {
+  const current = mount(); await current.hooks.onShow();
+  const first = deferred<{ reply: string }>(), second = deferred<{ reply: string }>();
+  current.api.chat.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+  const firstVisual = vi.fn(), secondVisual = vi.fn();
+  await current.page.onSend('First original', undefined, firstVisual);
+  await current.page.onSend('Second original', undefined, secondVisual);
+  const ids = current.nova.pendingRemote.map(row => row.turnId!);
+  expect(current.page.sendSuccessRevision.value).toBe(0);
+  await vi.advanceTimersByTimeAsync(1800); first.resolve({ reply: 'First answer' }); await vi.advanceTimersByTimeAsync(0);
+  expect(current.page.sendSuccessRevision.value).toBe(1);
+  expect(firstVisual).toHaveBeenCalledExactlyOnceWith(true); expect(secondVisual).not.toHaveBeenCalled();
+  await vi.advanceTimersByTimeAsync(1800); second.resolve({ reply: 'Second answer' }); await vi.advanceTimersByTimeAsync(0);
+  expect(current.page.sendSuccessRevision.value).toBe(2);
+  expect(secondVisual).toHaveBeenCalledExactlyOnceWith(true);
+  for (const id of ids) current.nova.completeRemote(id, 'Duplicate delivery');
+  await vue.nextTick();
+  expect(current.page.sendSuccessRevision.value).toBe(2);
+  expect(firstVisual).toHaveBeenCalledOnce(); expect(secondVisual).toHaveBeenCalledOnce();
+  expect(current.nova.messages.map(row => row.text)).toEqual(['First original', 'First answer', 'Second original', 'Second answer']);
+});
+
+it.each([true, false])('counts Nova retry success with the original request even without a new visual callback (initial callback=%s)', async hasVisual => {
+  const current = mount(); await current.hooks.onShow();
+  current.api.chat.mockRejectedValueOnce(new ApiError({ kind: 'http', status: 429, message: 'NOVA_AI_BUSY' }))
+    .mockResolvedValueOnce({ reply: 'Recovered answer' });
+  const visual = vi.fn(); await current.page.onSend('Original retry text', undefined, hasVisual ? visual : undefined);
+  await vi.advanceTimersByTimeAsync(0);
+  const request = current.api.chat.mock.calls[0][0], id = current.nova.pendingRemote[0].turnId!;
+  expect(current.page.sendSuccessRevision.value).toBe(0);
+  expect(current.nova.pendingRemote[0].delivery).toBe('failed');
+  if (hasVisual) expect(visual).toHaveBeenCalledExactlyOnceWith(false);
+  current.page.onQueueAction(id, 'retry'); current.page.onQueueAction(id, 'retry');
+  await vi.advanceTimersByTimeAsync(3000);
+  expect(current.api.chat).toHaveBeenCalledTimes(2);
+  expect(current.api.chat.mock.calls[1][0]).toEqual(request);
+  expect(current.page.sendSuccessRevision.value).toBe(1);
+  expect(visual).toHaveBeenCalledTimes(hasVisual ? 1 : 0);
+  current.page.onQueueAction(id, 'retry'); current.nova.completeRemote(id, 'Duplicate answer'); await vue.nextTick();
+  expect(current.page.sendSuccessRevision.value).toBe(1); expect(current.api.chat).toHaveBeenCalledTimes(2);
+});
+
+it.each(['hide', 'account', 'binding', 'conversation', 'dispose'] as const)('does not sound a late Nova success after %s', async boundary => {
+  const current = mount(); await current.hooks.onShow();
+  const reply = deferred<{ reply: string }>(); current.api.chat.mockReturnValue(reply.promise);
+  const visual = vi.fn(); await current.page.onSend('Old private question', undefined, visual);
+  if (boundary === 'hide') current.hooks.onHide();
+  if (boundary === 'account') current.rebind('user:2');
+  if (boundary === 'binding') current.app.accountBindingEpoch++;
+  if (boundary === 'conversation') await current.page.onStartNewConversation();
+  if (boundary === 'dispose') current.page.cleanup();
+  await vue.nextTick(); reply.resolve({ reply: 'Old private answer' }); await vi.advanceTimersByTimeAsync(2000);
+  expect(current.page.sendSuccessRevision.value).toBe(0);
+  expect(visual).toHaveBeenCalledExactlyOnceWith(false);
+  if (boundary === 'hide') {
+    await current.hooks.onShow(); await vi.advanceTimersByTimeAsync(2000);
+    expect(current.page.sendSuccessRevision.value).toBe(0);
+  }
 });
 
 it('keeps the shared history path unchanged after failed anchor preparation and permits a successful retry', async () => {

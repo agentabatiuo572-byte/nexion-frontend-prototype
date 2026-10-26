@@ -2,6 +2,7 @@
 // Pages normalise either the nova store (AI/Nova) or the conversations store
 // (advisor/support) into ThreadMsg[] before handing them to the presentational thread.
 
+export type MessageDeliveryState = 'sending' | 'sent' | 'read' | 'failed' | 'unknown' | 'queued';
 export interface ThreadMsg {
   id: string;
   /** Bubble alignment: left = agent/Nova, right = the user. */
@@ -21,6 +22,9 @@ export interface ThreadMsg {
   timestamp?: number;
   /** Pre-localised, authoritative receipt placed beside its own bubble. */
   receipt?: string;
+  deliveryState?: MessageDeliveryState;
+  /** Current local human outbox entry, not a confirmed server message. */
+  localSend?: boolean;
   ctaLabel?: string;
   /** Logical route (mapped by lib/route navTo at tap time). */
   ctaHref?: string;

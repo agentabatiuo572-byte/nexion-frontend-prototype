@@ -29,7 +29,7 @@ function harness(messages: unknown[], translations = zh, download = vi.fn(async 
   const sources = ref<Record<string, string>>({}), failures = ref<Record<string, boolean>>({});
   const api = { authorAvatarContent: download, attachmentContent: vi.fn(async () => "blob:attachment"), conversation: vi.fn(async () => conv.value) };
   const state = new Function("computed", "ref", "conv", "app", "convStore", "imageSources", "imageFailures", "supportApi", "t", "localizedIdleClose", "catalogSkuBrandText", "catalogSkuRecommendationBody", "humanHistory",
-    `const isAi=ref(false), nova={}, locale={code:'zh'}, supportSessionReady=ref(true);let novaPageVisible=true,imageEpoch=0,imageLoads=new Set();\n${code}\nreturn {threadMessages,loadPrivateImages,clearPrivateImages};`)(
+    `const isAi=ref(false), nova={}, locale={code:'zh'}, supportSessionReady=ref(true),failedHumanSend=ref(null),humanSendBusy=ref(false),localHumanSend=ref(null),humanComposerKey=ref('conversation:test'),imageDraft=ref(null);let novaPageVisible=true,imageEpoch=0,imageLoads=new Set();\n${code}\nreturn {threadMessages,loadPrivateImages,clearPrivateImages};`)(
     computed, ref, conv, app, store, sources, failures, api, ref(translations), localizedIdleClose, catalogSkuBrandText, catalogSkuRecommendationBody, humanHistory);
   return { state, conv, app, store, sources, failures, api, humanHistory };
 }

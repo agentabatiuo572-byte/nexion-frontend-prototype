@@ -52,6 +52,8 @@ export type ConvRoleKey = "roleAi" | "roleAdvisor" | "roleSupport";
 export type ConvSessionStatus = "active" | "closed";
 export interface ConvMessage {
   id: string;
+  /** Original idempotent message key echoed by the server, when supplied. */
+  clientMessageId?: string;
   sender: "user" | "agent" | "system";
   status?: "sent" | "read";
   text: string;

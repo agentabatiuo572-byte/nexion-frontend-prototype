@@ -1,5 +1,6 @@
 /** Wire contract shared with the M3 client. No tokens in URLs or persistent message cache. */
 import { createAbortController } from "@/lib/abort-controller-compat";
+import { MESSAGE_ACK_TIMEOUT_MS } from '@/lib/conversation-delivery-policy';
 export interface RealtimeSocket {
   onopen: (()=>void)|null; onmessage: ((event:{data:string})=>void)|null;
   onclose: ((event:{code:number})=>void)|null; onerror: (()=>void)|null;
@@ -39,7 +40,7 @@ export class ConversationRealtime {
     const requestId=`c${Date.now()}_${++this.sequence}`;
     return new Promise((resolve,reject)=>{
       const abort=()=>{const p=this.pending.get(requestId);if(p){this.pending.delete(requestId);p.reject(new Error('CONVERSATION_DELIVERY_UNKNOWN'));}};
-      const timer=setTimeout(abort,12000);
+      const timer=setTimeout(abort,MESSAGE_ACK_TIMEOUT_MS);
       const done=()=>{clearTimeout(timer);signal?.removeEventListener('abort',abort);};
       this.pending.set(requestId,{resolve:v=>{done();resolve(v)},reject:e=>{done();reject(e)},timer});
       signal?.addEventListener('abort',abort,{once:true});

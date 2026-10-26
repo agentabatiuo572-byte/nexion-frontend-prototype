@@ -20,7 +20,7 @@
         <text class="nx-conv-empty-t">{{ emptyHint }}</text>
       </view>
 
-      <view v-for="m in messages" :key="m.id" class="nx-conv-msg-row">
+      <view v-for="m in messages" :key="m.id" class="nx-conv-msg-row" :class="{ 'nx-conv-msg-row--joined': compactGroups[m.id] }">
         <view v-if="timeGroups[m.id]" class="nx-conv-time-divider" role="separator" :aria-label="messageTimes[m.id]?.full">
           <text>{{ timeGroups[m.id] }}</text>
         </view>
@@ -32,14 +32,11 @@
         <view v-else :id="messageRowId(m.id)" class="nx-conv-bubble-row" :class="m.side === 'right' ? 'nx-conv-right' : 'nx-conv-left'" v-bind="entranceBindings(m)">
           <image v-if="m.authorAvatarSrc" class="nx-conv-author-avatar" :src="m.authorAvatarSrc" mode="aspectFill" :aria-label="m.meta" />
           <view class="nx-conv-bubble-line" :class="m.side === 'right' ? 'nx-conv-bubble-line--right' : ''">
-          <view v-if="m.side === 'right' && receiptText(m)" class="nx-conv-receipt" :data-state="m.queue?.state">
-            <text class="nx-conv-receipt-t" :role="m.queue ? m.queue.state === 'failed' ? 'alert' : 'status' : undefined" :aria-live="m.queue ? 'polite' : undefined">{{ receiptText(m) }}</text>
-          </view>
-          <view class="nx-conv-bubble" :style="bubbleStyle(m)">
+          <view class="nx-conv-bubble" :class="{ 'nx-conv-bubble--retry': canRetryStatus(m) }" :style="bubbleStyle(m)">
             <view class="nx-conv-bubble-body">
               <view v-if="m.imageSrc" class="nx-conv-image-open" role="button" tabindex="0" :aria-label="imageLabels?.view"
                 @click="openPreview(m.imageSrc)" @keydown.enter.prevent="openPreview(m.imageSrc)" @keydown.space.prevent="openPreview(m.imageSrc)">
-                <image class="nx-conv-image" :src="m.imageSrc" mode="widthFix" />
+                <image class="nx-conv-image" :src="m.imageSrc" mode="widthFix" @load="scheduleBubblePositions" />
                 <text class="nx-conv-image-caption">{{ imageLabels?.view }}</text>
               </view>
               <text v-else-if="m.imageLoading" class="nx-conv-image-caption">{{ imageLabels?.loading }}</text>
@@ -50,7 +47,6 @@
                   :key="si"
                   class="nx-conv-seg"
                   :class="{ 'nx-conv-seg--b': seg.bold }"
-                  :style="{ color: segColor(m) }"
                 >{{ seg.text }}</text>
                 <text v-if="line.length === 0" class="nx-conv-seg">{{ " " }}</text>
               </view>
@@ -59,12 +55,14 @@
               <text class="nx-conv-cta-t">{{ m.ctaLabel }}</text>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10" /><path d="M7 17 17 7" /></svg>
             </view>
+            <view v-if="messageTimes[m.id]?.clock || (m.side === 'right' && receiptState(m))" class="nx-conv-bubble-meta" :class="{ 'nx-conv-bubble-meta--retry': canRetryStatus(m) }">
+              <text v-if="messageTimes[m.id]?.clock" class="nx-conv-message-time" :title="messageTimes[m.id]?.full" :aria-label="[m.meta, messageTimes[m.id]?.full].filter(Boolean).join(' · ')">{{ messageTimes[m.id]?.clock }}</text>
+              <view v-if="m.side === 'right' && receiptState(m)" class="nx-conv-receipt" :class="{ 'nx-conv-receipt--action': canRetryStatus(m) }" :data-state="receiptState(m)" :role="canRetryStatus(m) ? 'button' : 'img'" :tabindex="canRetryStatus(m) ? 0 : undefined" :aria-label="receiptLabel(m)" @click="retryStatus(m)" @keydown.enter.prevent="onKeyboardActivate($event, () => retryStatus(m))" @keydown.space.prevent="onKeyboardActivate($event, () => retryStatus(m))">
+                <MessageStatusIcon :state="receiptState(m) || 'sent'" />
+              </view>
+            </view>
           </view>
-          <view v-if="m.side === 'left' && receiptText(m)" class="nx-conv-receipt" :data-state="m.queue?.state">
-            <text class="nx-conv-receipt-t" :role="m.queue ? m.queue.state === 'failed' ? 'alert' : 'status' : undefined" :aria-live="m.queue ? 'polite' : undefined">{{ receiptText(m) }}</text>
           </view>
-          </view>
-          <text v-if="messageMeta(m)" class="nx-conv-message-meta" :title="messageTimes[m.id]?.full" :aria-label="[m.meta, messageTimes[m.id]?.full].filter(Boolean).join(' · ')">{{ messageMeta(m) }}</text>
         </view>
         <view v-if="m.queue && queueLabels" class="nx-conv-queue" :data-state="m.queue.state">
           <view v-if="m.queue.state === 'editing'" class="nx-conv-edit">
@@ -75,7 +73,6 @@
             </view>
           </view>
           <view v-else class="nx-conv-queue-actions">
-            <view v-if="m.queue.state === 'failed'" class="nx-conv-queue-action family-control" role="button" tabindex="0" @click="runQueueAction(m, 'retry')" @keydown.enter.prevent="onKeyboardActivate($event, () => runQueueAction(m, 'retry'))" @keydown.space.prevent="onKeyboardActivate($event, () => runQueueAction(m, 'retry'))"><LiquidGlass :radius="22" /><text>{{ queueLabels.retry }}</text></view>
             <template v-if="m.queue.state === 'queued' && m.queue.editable">
               <view class="nx-conv-queue-action family-control" role="button" tabindex="0" @click="startEdit(m)" @keydown.enter.prevent="onKeyboardActivate($event, () => startEdit(m))" @keydown.space.prevent="onKeyboardActivate($event, () => startEdit(m))"><LiquidGlass :radius="22" /><text>{{ queueLabels.edit }}</text></view>
               <view class="nx-conv-queue-action family-control" role="button" tabindex="0" @click="runQueueAction(m, 'cancel')" @keydown.enter.prevent="onKeyboardActivate($event, () => runQueueAction(m, 'cancel'))" @keydown.space.prevent="onKeyboardActivate($event, () => runQueueAction(m, 'cancel'))"><LiquidGlass :radius="22" /><text>{{ queueLabels.cancel }}</text></view>
@@ -128,10 +125,8 @@
         <view role="button" tabindex="0" class="nx-conv-attachment-action family-control" @click="emit('cancel-attachment')" @keydown.enter.prevent="emit('cancel-attachment')" @keydown.space.prevent="emit('cancel-attachment')"><LiquidGlass :radius="22" /><text>{{ imageLabels?.cancel }}</text></view>
       </view>
     </view>
-    <view v-if="!closed && failedSendLabel" class="nx-conv-attachment" role="alert">
-      <text>{{ failedSendLabel }}</text>
+    <view v-if="!closed && failedSendLabel && canDiscardSend" class="nx-conv-recovery-actions">
       <view class="nx-conv-attachment-actions">
-        <view v-if="canRetrySend" role="button" tabindex="0" class="nx-conv-attachment-action family-control" @click="emit('retry-message')" @keydown.enter.prevent="emit('retry-message')" @keydown.space.prevent="emit('retry-message')"><LiquidGlass :radius="22" /><text>{{ imageLabels?.retrySend }}</text></view>
         <view v-if="canDiscardSend" role="button" tabindex="0" class="nx-conv-attachment-action family-control" @click="emit('edit-message')" @keydown.enter.prevent="emit('edit-message')" @keydown.space.prevent="emit('edit-message')"><LiquidGlass :radius="22" /><text>{{ imageLabels?.editSend }}</text></view>
         <view v-if="canDiscardSend" role="button" tabindex="0" class="nx-conv-attachment-action family-control" @click="emit('discard-message')" @keydown.enter.prevent="emit('discard-message')" @keydown.space.prevent="emit('discard-message')"><LiquidGlass :radius="22" /><text>{{ imageLabels?.discard }}</text></view>
       </view>
@@ -168,7 +163,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onScopeDispose, getCurrentInstance, type CSSProperties } from "vue";
 import LiquidGlass from "@/components/liquid-glass.vue";
-import type { ThreadMsg, QuickChip } from "./thread-types";
+import MessageStatusIcon from './message-status-icon.vue';
+import type { ThreadMsg, QuickChip, MessageDeliveryState } from "./thread-types";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import { onHide, onShow } from '@/composables/use-tab-page-lifecycle';
 import { useApp } from '@/store/app';
@@ -177,6 +173,7 @@ import { createConversationAudio } from '@/lib/conversation-audio';
 import { useConversationEntrance } from './conversation-entrance';
 import { conversationScrollChange, preservedConversationTop } from './conversation-scroll';
 import { buildConversationTimeGroups, formatConversationTime, type ConversationTimeOptions } from './conversation-time';
+import { bubbleViewportPosition, compactMessageGroups } from './conversation-bubble-layout';
 
 const props = defineProps<{
   messages: ThreadMsg[];
@@ -189,6 +186,9 @@ const props = defineProps<{
       而这里的 placeholder 还会在 Nova 不可用时换成状态句 —— 名称不能跟着它走。 */
   inputLabel: string;
   sendLabel: string;
+  statusLabels?: Record<MessageDeliveryState, string> & { retry: string };
+  /** Authoritative successes across send, retry and quick actions; independent of button motion. */
+  sendSuccessRevision?: number;
   quickChips?: QuickChip[];
   emptyHint?: string;
   /** "Agent is typing" indicator (pre-localised aria label via typingLabel). */
@@ -253,7 +253,7 @@ const messageTimes = computed(() => Object.fromEntries(props.messages.map(messag
 watch(() => props.messages.map(message => [message.id, message.timestamp]), () => {
   if (threadVisible.value) clockNow.value = Date.now();
 });
-function messageMeta(message: ThreadMsg) { return [message.meta, messageTimes.value[message.id]?.clock].filter(Boolean).join(' · '); }
+const compactGroups = computed(() => compactMessageGroups(props.messages, timeGroups.value));
 onHide(() => { threadVisible.value = false; });
 onShow(() => { entranceReveal.value++; threadVisible.value = true; });
 const preferences = usePreferences();
@@ -261,12 +261,33 @@ const sounds = createConversationAudio({ enabled: () => preferences.soundEnabled
 onHide(sounds.stop);
 onScopeDispose(sounds.destroy);
 watch(() => [preferences.soundEnabled, app.accountKey, app.accountBindingEpoch, props.composerKey], sounds.stop, { flush: 'sync' });
+watch(() => props.sendSuccessRevision, (revision, previous) => {
+  if (previous !== undefined && revision !== undefined && revision > previous) sounds.play('send');
+}, { flush: 'post' });
 const { entranceBindings } = useConversationEntrance(() => ({
   identity: JSON.stringify([app.accountKey, app.accountBindingEpoch, props.composerKey, props.revealTick, entranceReveal.value]),
   visible: threadVisible.value, ready: props.entranceReady === true, messages: props.messages,
 }), () => sounds.play('receive'));
 function receiptText(message: ThreadMsg): string | undefined {
   return message.queue ? props.queueLabels ? message.queue.label : undefined : message.receipt;
+}
+function receiptState(message: ThreadMsg): MessageDeliveryState | undefined {
+  if (message.deliveryState) return message.deliveryState;
+  if (message.queue) return message.queue.state === 'failed' ? 'failed' : message.queue.state === 'tracking' ? 'unknown' : message.queue.state === 'processing' ? 'sending' : 'queued';
+  return message.receipt ? 'sent' : undefined;
+}
+function canRetryStatus(message: ThreadMsg): boolean {
+  if (message.side !== 'right') return false;
+  return message.queue?.state === 'failed' || !!(message.localSend && ['failed', 'unknown'].includes(receiptState(message) ?? '') && props.canRetrySend);
+}
+function receiptLabel(message: ThreadMsg): string {
+  const state = receiptState(message);
+  const label = state ? props.statusLabels?.[state] ?? receiptText(message) ?? '' : '';
+  return canRetryStatus(message) ? `${label} · ${props.statusLabels?.retry ?? props.imageLabels?.retrySend ?? props.queueLabels?.retry ?? ''}` : label;
+}
+function retryStatus(message: ThreadMsg) {
+  if (!canRetryStatus(message)) return;
+  if (message.queue) runQueueAction(message, 'retry'); else emit('retry-message');
 }
 
 const draft = ref(props.initialDraft ?? "");
@@ -347,10 +368,9 @@ function onSend() {
     if (epoch !== sendVisualEpoch) return;
     draft.value = text;
     emit("draft-change", text);
-  }, accepted => {
+  }, _accepted => {
     if (settled || epoch !== sendVisualEpoch) return;
     settled = true;
-    if (accepted) sounds.play('send');
     // The timer only preserves the short turn on fast acknowledgements; it never
     // treats an elapsed duration as delivery success or retries the message.
     sendReturnTimer = setTimeout(() => {
@@ -386,6 +406,7 @@ function onThreadScroll(event: { detail: { scrollTop: number } }) {
   // Mirror the native position so a later prepend can reapply the same target.
   lastScrollTop = event.detail.scrollTop;
   scrollTop.value = lastScrollTop;
+  scheduleBubblePositions();
 }
 function messageRowId(id: string) { return 'nx-conv-message-' + Array.from(id).map(char=>char.charCodeAt(0).toString(16)).join('-'); }
 function measurePrefix(firstId: string, done: (height: number | null) => void) {
@@ -434,6 +455,7 @@ function scrollToEnd() {
     const node = scroller();
     if (node) { node.scrollTop = node.scrollHeight; lastScrollTop = node.scrollTop; }
     else { scrollAnchor.value = ''; void nextTick(() => { if (current()) scrollAnchor.value = 'nx-conv-end'; }); }
+    scheduleBubblePositions();
   };
   void nextTick(() => {
     apply(); scrollTimer = setTimeout(apply, 90);
@@ -456,6 +478,7 @@ function preserveHistoryPosition(firstId: string) {
       const nextTop = preservedConversationTop(top, prefixHeight - previousPrefix);
       const current = scroller(); if (current) current.scrollTop = nextTop;
       scrollTop.value = nextTop; lastScrollTop = nextTop;
+      scheduleBubblePositions();
     });
   });
 }
@@ -473,13 +496,60 @@ onMounted(() => {
   scrollToEnd();
 });
 
-// ── bubble styling ──
-function bubbleStyle(m: ThreadMsg): CSSProperties {
-  if (m.tone === "user") return { background: "var(--v5-brand-soft)" };
-  return { background: "var(--v5-surface-2)" };
+// Sample the whole visible conversation, never a gradient inside an individual bubble.
+// Scroll events coalesce; no polling or permanent animation loop is needed.
+const bubblePositions = ref<Record<string, number>>({});
+let bubblePositionTimer: ReturnType<typeof setTimeout> | undefined;
+let bubbleMeasureEpoch = 0;
+let bubbleResizeObserver: ResizeObserver | undefined;
+function cancelBubblePositions() { clearTimeout(bubblePositionTimer); bubblePositionTimer = undefined; bubbleMeasureEpoch++; }
+function scheduleBubblePositions() {
+  if (!threadVisible.value || bubblePositionTimer !== undefined) return;
+  bubblePositionTimer = setTimeout(() => { bubblePositionTimer = undefined; measureBubblePositions(); }, 16);
 }
-function segColor(_m: ThreadMsg): string {
-  return "var(--v5-ink)";
+function measureBubblePositions() {
+  const epoch = ++bubbleMeasureEpoch;
+  const messages = props.messages.filter(m => m.side === 'right' && m.tone !== 'system');
+  const apply = (viewport: { top?: number; height?: number } | undefined, rects: Array<{ top?: number; height?: number }>) => {
+    if (epoch !== bubbleMeasureEpoch || !threadVisible.value || !viewport?.height || viewport.top === undefined) return;
+    const next: Record<string, number> = {};
+    messages.forEach((message, index) => {
+      const rect = rects[index];
+      if (rect?.top !== undefined && rect.height !== undefined) next[message.id] = bubbleViewportPosition(rect.top, rect.height, viewport.top!, viewport.height!);
+    });
+    if (JSON.stringify(next) !== JSON.stringify(bubblePositions.value)) bubblePositions.value = next;
+  };
+  const root = (listHost.value as { $el?: HTMLElement } | null)?.$el ?? listHost.value as HTMLElement | null;
+  if (root?.getBoundingClientRect && root.querySelectorAll) {
+    apply(root.getBoundingClientRect(), Array.from(root.querySelectorAll('.nx-conv-right .nx-conv-bubble')).map(node => node.getBoundingClientRect()));
+    return;
+  }
+  if (typeof uni === 'undefined' || !uni.createSelectorQuery) return;
+  try {
+    const query = uni.createSelectorQuery().in(threadInstance);
+    query.select('.nx-conv-list').boundingClientRect();
+    query.selectAll('.nx-conv-right .nx-conv-bubble').boundingClientRect();
+    query.exec(rows => apply(rows[0] as UniApp.NodeInfo, rows[1] as UniApp.NodeInfo[]));
+  } catch { /* An unavailable native bridge keeps a safe, uniform theme colour. */ }
+}
+watch(() => [props.messages.map(m => [m.id, m.text, m.imageSrc, m.deliveryState]), props.composerKey, props.revealTick, props.timeLocale], () => {
+  cancelBubblePositions(); void nextTick(scheduleBubblePositions);
+}, { flush: 'post' });
+onMounted(() => {
+  scheduleBubblePositions();
+  const root = (listHost.value as { $el?: HTMLElement } | null)?.$el ?? listHost.value as HTMLElement | null;
+  if (typeof ResizeObserver !== 'undefined' && root?.querySelector) {
+    bubbleResizeObserver = new ResizeObserver(scheduleBubblePositions);
+    bubbleResizeObserver.observe(root);
+    const content = root.querySelector('.nx-conv-content'); if (content) bubbleResizeObserver.observe(content);
+  }
+});
+onShow(() => { void nextTick(scheduleBubblePositions); });
+onHide(cancelBubblePositions);
+onScopeDispose(() => { cancelBubblePositions(); bubbleResizeObserver?.disconnect(); });
+
+function bubbleStyle(m: ThreadMsg): CSSProperties {
+  return m.side === 'right' ? { '--nx-bubble-position': `${((bubblePositions.value[m.id] ?? 0.5) * 100).toFixed(1)}%` } as CSSProperties : {};
 }
 
 // ── **bold** + \n → render segments. Bare text must live in <text> (P-026). ──
@@ -508,11 +578,25 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  --nx-chat-incoming: rgba(35, 41, 43, .76);
+  --nx-chat-out-top: rgba(95, 123, 12, .84);
+  --nx-chat-out-bottom: rgba(22, 88, 66, .84);
+  --nx-chat-out-ink: #F7FBEF;
+  --nx-chat-out-meta: #DCE8C2;
+  --nx-chat-stroke: rgba(255, 255, 255, .09);
+}
+:global([data-theme="light"] .nx-conv-thread) {
+  --nx-chat-incoming: rgba(255, 255, 255, .76);
+  --nx-chat-out-top: rgba(130, 59, 191, .9);
+  --nx-chat-out-bottom: color-mix(in srgb, color-mix(in srgb, var(--v5-brand) 75%, var(--v5-brand-deep)) 90%, transparent);
+  --nx-chat-out-ink: #FFFFFF;
+  --nx-chat-out-meta: #EEF2FF;
+  --nx-chat-stroke: rgba(255, 255, 255, .24);
 }
 .nx-conv-list {
   flex: 1;
   min-height: 0; /* allow the scroll area to shrink so the input row stays visible */
-  padding: 16px;
+  padding: 12px;
 }
 /* Hide native scrollbars on both scroll areas — a mobile app shows no bars while
    keeping scroll/swipe. uni renders the real overflow node as an inner
@@ -537,14 +621,15 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
   line-height: 1.55;
 }
 .nx-conv-msg-row {
-  margin-bottom: 12px;
+  margin-top: 10px;
 }
+.nx-conv-msg-row:first-child { margin-top: 0; }
+.nx-conv-msg-row--joined { margin-top: 3px; }
 .nx-conv-image-open { display: flex; flex-direction: column; gap: 6px; cursor: pointer; }
 .nx-conv-image { width: min(220px, 58vw); max-height: 280px; border-radius: 10px; }
 .nx-conv-image-caption { color: var(--v5-ink-3); font-size: 12px; line-height: 1.5; }
-.nx-conv-right .nx-conv-image-caption { color: var(--v5-ink-2); }
-.nx-conv-message-meta { display: block; color: var(--v5-ink-3); font-size: 12px; padding: 4px 3px 0; }
-.nx-conv-time-divider { display:flex; justify-content:center; padding:10px 0 14px; color:var(--v5-ink-3); font-family:var(--font-v5); font-size:12px; line-height:18px; text-align:center; overflow-wrap:anywhere; }
+.nx-conv-right .nx-conv-image-caption { color: var(--nx-chat-out-meta); }
+.nx-conv-time-divider { display:flex; justify-content:center; padding:8px 0 12px; color:var(--v5-ink-3); font-family:var(--font-v5); font-size:11px; line-height:18px; text-align:center; overflow-wrap:anywhere; }
 .nx-conv-attachment { margin: 6px 14px; padding: 10px 0; border-top: 1px solid var(--v5-border); color: var(--v5-ink); font-size: 13px; }
 .nx-conv-attachment-actions { display: flex; flex-wrap: wrap; gap: 12px; }
 .nx-conv-attachment-action { display: flex; align-items: center; min-height: 44px; color: var(--v5-brand); }
@@ -579,23 +664,44 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
   align-items: flex-end;
 }
 .nx-conv-bubble {
-  max-width: 82%;
+  display: flow-root;
+  max-width: 89%;
   min-width: 0;
-  border-radius: 18px;
-  overflow: hidden;
+  padding: 6px 10px 5px;
+  border-radius: 17px;
+  border: 1px solid var(--nx-chat-stroke);
+  background-color: var(--nx-chat-incoming);
+  background-image: none;
+  -webkit-backdrop-filter: blur(16px) saturate(125%);
+  backdrop-filter: blur(16px) saturate(125%);
+  color: var(--v5-ink);
+  font-family: var(--font-v5);
+  font-size: 14px;
+  line-height: 21px;
+  overflow-wrap: anywhere;
 }
+.nx-conv-right .nx-conv-bubble {
+  background-color: var(--nx-chat-out-bottom);
+  background-color: color-mix(in srgb, var(--nx-chat-out-top) calc(100% - var(--nx-bubble-position, 50%)), var(--nx-chat-out-bottom) var(--nx-bubble-position, 50%));
+  color: var(--nx-chat-out-ink);
+  border-bottom-right-radius: 6px;
+}
+.nx-conv-left .nx-conv-bubble { border-bottom-left-radius: 6px; }
+.nx-conv-msg-row--joined .nx-conv-right .nx-conv-bubble { border-top-right-radius: 6px; }
+.nx-conv-msg-row--joined .nx-conv-left .nx-conv-bubble { border-top-left-radius: 6px; }
 .nx-conv-bubble-body {
-  padding: 10px 14px;
+  display: contents;
 }
 .nx-conv-line {
-  display: block;
-  min-height: 1.55em;
+  display: inline;
 }
+.nx-conv-line:not(:last-child)::after { content: '\A'; white-space: pre; }
 .nx-conv-seg {
   overflow-wrap: anywhere;
   font-family: var(--font-v5);
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
 }
 .nx-conv-seg--b {
   font-weight: 600;
@@ -615,21 +721,36 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
   letter-spacing: -0.005em;
 }
 .nx-conv-bottom-anchor {
-  height: 1px;
+  height: 8px;
 }
-.nx-conv-receipt {
-  display: flex;
-  flex: 0 0 auto;
-  max-width: 34%;
-  padding-bottom: 3px;
-}
-.nx-conv-receipt-t {
-  font-size: 12px;
+.nx-conv-bubble-meta {
+  display: inline-flex;
+  float: right;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  height: 18px;
+  margin: 3px 0 0 8px;
   color: var(--v5-ink-3);
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  line-height: 18px;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
 }
-.nx-conv-receipt[data-state="failed"] .nx-conv-receipt-t { color: var(--v5-danger); }
-.nx-conv-bubble-line { display:flex; align-items:flex-end; gap:6px; width:100%; min-width:0; }
+.nx-conv-right .nx-conv-bubble-meta { color: var(--nx-chat-out-meta); }
+.nx-conv-bubble-meta--retry { height: 44px; margin-top: 0; margin-bottom: -4px; }
+.nx-conv-receipt {
+  display: grid; place-items:center;
+  flex: 0 0 17px; width:17px; height:18px;
+  --nx-message-status-color: var(--nx-chat-out-meta);
+  --nx-message-status-read: var(--nx-chat-out-ink);
+  --nx-message-status-failed: #FFD6D1;
+  --nx-message-status-unknown: #FFEDB0;
+}
+.nx-conv-receipt--action { flex-basis:44px; width:44px; height:44px; margin-right:-6px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.nx-conv-receipt--action:active { opacity:.65; }
+.nx-conv-recovery-actions { padding:8px 16px calc(env(safe-area-inset-bottom) + 22px); }
+.nx-conv-bubble-line { display:flex; align-items:flex-end; width:100%; min-width:0; }
 .nx-conv-bubble-line--right { justify-content:flex-end; }
 .nx-conv-enter-right { animation:nx-conv-enter-right 180ms linear both; }
 .nx-conv-enter-left { animation:nx-conv-enter-left 180ms linear both; }

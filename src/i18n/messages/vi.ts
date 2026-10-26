@@ -3478,6 +3478,7 @@ autoDetect: "tự động nhận diện sắp ra mắt",
     chLiveChatHint: "Liên hệ cố vấn hoặc đội hỗ trợ",
   },
   conversations: {
+    delivery: { sending: "Đang gửi", sent: "Đã gửi", read: "Đã đọc", failed: "Gửi thất bại", unknown: "Chưa xác nhận gửi", queued: "Đang chờ gửi", retry: "Nhấn để gửi lại" },
     recommendation: { product: "Xem sản phẩm", home: "Mở trang chủ", wallet: "Mở ví", support: "Mở hỗ trợ trực tuyến", unavailable: "Nội dung này hiện không khả dụng. Tin nhắn gốc được giữ lại.", unknown: "Chưa thể xác nhận nội dung này có khả dụng hay không. Tin nhắn gốc được giữ lại." },
     send: "Gửi",
     image: {

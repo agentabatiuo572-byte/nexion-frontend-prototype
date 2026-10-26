@@ -55,7 +55,7 @@ export function supportDemo(url,locale,state,request) {
   if(p===root+'/conversations/cursor')return {records:state.dataState==='empty'?[]:state.supportConversations.map(item=>item.conversation),pageSize:100,total:state.dataState==='empty'?0:state.supportConversations.length};
   if(p===root+'/conversations'&&method==='POST') {
     const existing=state.supportConversations.find(item=>item.clientMessageId===input.clientMessageId);if(existing)return existing;
-    const id=state.supportConversations.length+1,detail={clientMessageId:input.clientMessageId,conversation:{id,conversationNo:'DEMO-SUPPORT-'+id,conversationType:input.conversationType.toLowerCase(),status:'OPEN',version:1,ownerAgentName:'Demo support',unreadCount:0,lastMessage:input.openingText,lastMessageAt:now,lastPublicMessageId:1},messages:[{id:1,senderType:'user',content:input.openingText,createdAt:now,receiptStatus:'sent'}],historyTruncated:false,nextCursor:null};
+    const id=state.supportConversations.length+1,detail={clientMessageId:input.clientMessageId,conversation:{id,conversationNo:'DEMO-SUPPORT-'+id,conversationType:input.conversationType.toLowerCase(),status:'OPEN',version:1,ownerAgentName:'Demo support',unreadCount:0,lastMessage:input.openingText,lastMessageAt:now,lastPublicMessageId:1},messages:[{id:1,clientMessageId:input.clientMessageId,senderType:'user',content:input.openingText,createdAt:now,receiptStatus:'sent'}],historyTruncated:false,nextCursor:null};
     state.supportConversations.unshift(detail);return detail;
   }
   const match=p.match(/^\/api\/app\/support\/conversations\/(DEMO-SUPPORT-\d+)(?:\/(read|replies|dismiss))?$/);

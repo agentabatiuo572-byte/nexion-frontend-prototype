@@ -7,6 +7,7 @@ import { createUniRealtimeSocket,setAppConversationRealtime } from '@/api/app-co
 import { catchUpConversation,mergeConversationMessages } from '@/api/conversation-history';
 import { remoteApiEnabled } from "@/api/runtime";
 import { asApiError } from "@/api/errors";
+import { awaitMessageOutcome, isConversationDeliveryAmbiguous, MESSAGE_ACK_TIMEOUT_MS, MESSAGE_READBACK_TIMEOUT_MS } from '@/lib/conversation-delivery-policy';
 import { isTicketReplyRequired } from '@/api/support-ticket-policy';
 import { isSupportAttachmentNotReady, type ConversationDismissal, type CurrentAdvisor } from "@/api/support-api";
 import type { Conversation, ConversationCategoryAvailability, ConversationType, TicketCategory } from "@/domain/support";
@@ -302,10 +303,9 @@ export const useConversations = defineStore("conversations", () => {
   }
 
   function mustReadBack(cause: unknown): boolean {
-    const error = asApiError(cause);
     return !isSupportAttachmentNotReady(cause)
       && !isTicketReplyRequired(cause)
-      && (error.status === 409 || (error.status ?? 0) >= 500 || error.kind === "network" || error.kind === "protocol");
+      && isConversationDeliveryAmbiguous(cause);
   }
 
   function completePending(scope: CommandScope, fingerprint: string): void {
@@ -337,6 +337,10 @@ export const useConversations = defineStore("conversations", () => {
     const running = scope.inFlight.get(fingerprint) as Promise<T> | undefined;
     if (running) return running;
     const key = createPolicy?.recovery?.key ?? scope.pending.get(fingerprint) ?? mutationKey(intent);
+    const humanSend = intent.startsWith('conversation-create:') || intent.startsWith('conversation-reply:');
+    const echoedOutcome = () => humanSend && scopeIsCurrent(scope)
+      ? conversations.value.find(row => (intent.startsWith('conversation-reply:') ? row.id === intent.split(':')[1] : row.type === intent.split(':')[1])
+        && row.messages.some(message => message.sender === 'user' && message.clientMessageId === key)) : undefined;
     scope.pending.set(fingerprint, key);
     persistPending(scope.accountKey, scope.runId, scope.pending);
     if (!scopeIsCurrent(scope)) throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
@@ -349,14 +353,29 @@ export const useConversations = defineStore("conversations", () => {
           throw new Error("SUPPORT_PENDING_RECOVERY_SCOPE_CHANGED");
         if (createPolicy && !createPolicy.recovery && !createPolicy.gate())
           throw new Error("SUPPORT_CATEGORY_UNAVAILABLE");
-        const result = await action(key);
+        const operation = action(key);
+        const result = await (humanSend ? awaitMessageOutcome(operation, MESSAGE_ACK_TIMEOUT_MS) : operation);
         if (!scopeIsCurrent(scope)) throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
         completePending(scope, fingerprint);
         return result;
       } catch (cause) {
+        const echoed = echoedOutcome();
+        if (echoed) { completePending(scope, fingerprint); return echoed as T; }
         if (recover && mustReadBack(cause) && scopeIsCurrent(scope)) {
-          const adopted = await recover(key);
+          let adopted: T | null = null;
+          try {
+            const recovery = recover(key);
+            adopted = await (humanSend ? awaitMessageOutcome(recovery, MESSAGE_READBACK_TIMEOUT_MS) : recovery);
+          } catch (readbackError) {
+            if (!humanSend) throw readbackError;
+            // A failed read cannot turn an uncertain write into a refusal.
+            // Preserve the original cause unless a canonical echo confirms it.
+          }
           if (!scopeIsCurrent(scope)) throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
+          if (adopted === null) {
+            const confirmed = echoedOutcome();
+            if (confirmed) adopted = confirmed as T;
+          }
           if (adopted !== null) {
             completePending(scope, fingerprint);
             return adopted;
@@ -379,6 +398,23 @@ export const useConversations = defineStore("conversations", () => {
     if (prior && (conversation.version < prior.version || (conversation.version === prior.version && conversation.lastTs < prior.lastTs))) return;
     const rest = conversations.value.filter((row) => row.id !== conversation.id);
     conversations.value = [mergeConversationMessages(prior,conversation), ...rest].sort((a, b) => b.lastTs - a.lastTs);
+    // A canonical echo is as conclusive as a command readback. Never correlate by body text.
+    const echoed = new Set(conversation.messages.filter(m => m.sender === 'user').map(m => m.clientMessageId).filter(Boolean));
+    if (!echoed.size) return;
+    const scope: CommandScope = { accountKey: accountKeyValue, epoch: accountEpoch, runId: pendingRunId, pending: pendingKeys, inFlight };
+    for (const [composerKey, saved] of Object.entries(humanComposers.value)) {
+      const failed = saved.failedSend;
+      if (!failed || failed.settled) continue;
+      if (composerKey.startsWith('start:') && composerKey.slice(6) !== conversation.type) continue;
+      if (!composerKey.startsWith('start:') && composerKey !== `conversation:${conversation.id}`) continue;
+      const intent = composerKey.startsWith('start:')
+        ? `conversation-create:${composerKey.slice(6)}:${failed.attachmentId ?? 'text'}:${failed.text.trim()}`
+        : `conversation-reply:${conversation.id}:${failed.attachmentId ?? 'text'}:${failed.text.trim()}`;
+      const fingerprint = opaqueSupportIntentSlot(intent), key = scope.pending.get(fingerprint);
+      if (!key || !echoed.has(key)) continue;
+      completePending(scope, fingerprint);
+      saveComposer(composerKey, { ...saved, failedSend: null, recoveredId: composerKey.startsWith('start:') ? conversation.id : undefined });
+    }
   }
 
   /** A delayed page may add an absent row, but cannot erase or regress a newer live snapshot. */
@@ -593,7 +629,7 @@ export const useConversations = defineStore("conversations", () => {
           return result?.kind === "conversation" ? result.conversation : null;
         }, account, createPolicy);
     } catch (cause) {
-      if (accountScopeIsCurrent(account) && mustReadBack(cause)) await reconcileAll(account);
+      if (accountScopeIsCurrent(account) && mustReadBack(cause)) void reconcileAll(account);
       throw cause;
     }
     if (accountScopeIsCurrent(account)) replace(conversation);
@@ -617,7 +653,7 @@ export const useConversations = defineStore("conversations", () => {
           return result?.kind === "conversation" ? result.conversation : null;
         }, account);
     } catch (cause) {
-      if (accountScopeIsCurrent(account) && mustReadBack(cause)) await reconcile(id, account);
+      if (accountScopeIsCurrent(account) && mustReadBack(cause)) void reconcile(id, account);
       throw cause;
     }
     if (epoch === accountEpoch) replace(conversation);

@@ -3553,6 +3553,7 @@ autoDetect: "auto-detect coming soon",
     chLiveChatHint: "Contact an advisor or the support team",
   },
   conversations: {
+    delivery: { sending: "Sending", sent: "Sent", read: "Read", failed: "Send failed", unknown: "Delivery unconfirmed", queued: "Queued", retry: "Tap to resend" },
     recommendation: { product: "View product", home: "Open Home", wallet: "Open Wallet", support: "Open support", unavailable: "This content is unavailable. The original message is retained.", unknown: "This content's availability is unconfirmed. The original message is retained." },
     send: "Send",
     image: {

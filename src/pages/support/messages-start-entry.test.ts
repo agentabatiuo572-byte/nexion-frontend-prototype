@@ -14,6 +14,7 @@ import { installSupportStorage } from "@/test/storage-setup";
 import * as conversationEntrance from '@/components/support/conversation-entrance';
 import * as conversationScroll from '@/components/support/conversation-scroll';
 import * as conversationTime from '@/components/support/conversation-time';
+import * as conversationBubbleLayout from '@/components/support/conversation-bubble-layout';
 import * as conversationAudio from '@/lib/conversation-audio';
 
 installSupportStorage();
@@ -256,6 +257,7 @@ import * as chatLimiter from "@/lib/send-limiter";
 import * as chatSecure from "@/lib/secure-command-id";
 import * as chatFormat from "@/i18n/format";
 import * as chatApiErrors from "@/api/errors";
+import * as deliveryPolicy from '@/lib/conversation-delivery-policy';
 import { isSupportAttachmentNotReady, type CurrentAdvisor } from "@/api/support-api";
 import * as ticketPolicy from '@/api/support-ticket-policy';
 import { useAuth } from "@/store/auth";
@@ -322,13 +324,14 @@ function mountRealHumanChat(query: Record<string, string> = { cid: "CV-cold" }, 
     "@/store/ui": { toast, confirm: vi.fn(), useUI: () => ({ clearConfirmsBy: vi.fn() }) },
     "@/mock/nova-templates": {}, "@/api/runtime": { novaAiApi: {}, remoteApiEnabled: true, sessionVault, supportApi: chatTransport },
     "@/api/errors": chatApiErrors,
+    '@/lib/conversation-delivery-policy': deliveryPolicy,
     "@/api/support-api": { isSupportAttachmentNotReady },
     '@/api/support-ticket-policy': ticketPolicy,
     "@/lib/nova-failure": chatFailure, "@/store/locale": { useLocaleStore: () => ({ code: "zh" }) },
     "@/lib/secure-command-id": chatSecure, "@/lib/nova-thinking": chatThinking, "./conversation-realtime-page": chatRealtime,
   };
   const scope = Vue.effectScope();
-  const page = scope.run(() => new Function("require", "exports", humanChatScript + ";return { onSend, onRestart, goBack, cleanup, loadAttachmentPolicy, attachmentPolicy, attachmentPolicyError, loadEarlierHumanHistory, conversationThread, humanEarlierBusy, ticketCreationBlock, ticketCreationBlockText, headerName, headerRole, emptyHint, humanType, isClosedSession, waitingForAgent, showUnassignedReceived, humanHistoryError, humanHistoryListError, retryHumanHistory, conv, threadMessages, get entranceScope() { return { isAi, novaHistoryLoading, humanOpenRequest, humanHistoryRetryBusy, humanEarlierBusy }; } };")((name: string) => {
+  const page = scope.run(() => new Function("require", "exports", humanChatScript + ";return { onSend, onRestart, goBack, cleanup, loadAttachmentPolicy, attachmentPolicy, attachmentPolicyError, loadEarlierHumanHistory, conversationThread, humanEarlierBusy, ticketCreationBlock, ticketCreationBlockText, headerName, headerRole, emptyHint, humanType, isClosedSession, waitingForAgent, showUnassignedReceived, humanHistoryError, humanHistoryListError, retryHumanHistory, conv, threadMessages, retryHumanSend, sendSuccessRevision, cid, startType, draftText, failedHumanSend, failedHumanLabel, humanSendBusy, supportSessionReady, localHumanSend, get entranceScope() { return { isAi, novaHistoryLoading, humanOpenRequest, humanHistoryRetryBusy, humanEarlierBusy }; } };")((name: string) => {
     if (name.endsWith(".vue")) return {}; if (!(name in modules)) throw new Error(`Unexpected chat dependency: ${name}`); return modules[name];
   }, {}));
   hooks.onLoad(query); chatCleanups.push(() => { page.cleanup(); scope.stop(); });
@@ -687,7 +690,7 @@ const humanComposerBinding = new Function("app", "cid", "startType", "isAi", "no
 const entranceBindingSource = readFileSync(new URL('./chat.vue', import.meta.url), 'utf8').match(/:entrance-ready="([^"]+)"/)![1];
 const entranceKeys = ['isAi', 'novaHistoryLoading', 'humanOpenRequest', 'humanHistoryRetryBusy', 'humanEarlierBusy'];
 const humanEntranceBinding = new Function(...entranceKeys, `return ${entranceBindingSource};`);
-function humanThreadComponent(state: unknown) {
+function humanThreadComponent(state: unknown, audio?: ReturnType<typeof conversationAudio.createConversationAudio>) {
   return new Function('require', 'exports', composerScript + ';return exports.default;')((name: string) => {
     if (name === 'vue') return { ...Vue, onMounted: vi.fn() };
     if (name === '@/composables/use-dialog-a11y') return { useDialogA11y: vi.fn() };
@@ -696,8 +699,10 @@ function humanThreadComponent(state: unknown) {
     if (name === './conversation-entrance') return conversationEntrance;
     if (name === './conversation-scroll') return conversationScroll;
     if (name === './conversation-time') return conversationTime;
+    if (name === './conversation-bubble-layout') return conversationBubbleLayout;
     if (name === '@/store/preferences') return { usePreferences: () => ({ soundEnabled: false }) };
-    if (name === '@/lib/conversation-audio') return conversationAudio;
+    if (name === '@/lib/conversation-audio') return audio ? { createConversationAudio: () => audio } : conversationAudio;
+    if (name === './message-status-icon.vue') return { default: { render: () => null } };
     if (name === '@/components/liquid-glass.vue') return { default: { render: () => null } };
     throw new Error(`Unexpected composer dependency: ${name}`);
   }, {});
@@ -739,8 +744,10 @@ describe("rendered human composer account boundary", () => {
       if (name === "./conversation-entrance") return conversationEntrance;
       if (name === "./conversation-scroll") return conversationScroll;
       if (name === "./conversation-time") return conversationTime;
+      if (name === './conversation-bubble-layout') return conversationBubbleLayout;
       if (name === "@/store/preferences") return { usePreferences: () => ({ soundEnabled: false }) };
       if (name === "@/lib/conversation-audio") return conversationAudio;
+      if (name === './message-status-icon.vue') return { default: { render: () => null } };
       if (name === "@/components/liquid-glass.vue") return { default: { render: () => null } };
       throw new Error(`Unexpected composer dependency: ${name}`);
     }, {});
@@ -757,6 +764,194 @@ describe("rendered human composer account boundary", () => {
     expect(input().props.value).toBe("");
     if (scenario.includes("A to B")) {
       state.accountKey = "account-a"; state.accountBindingEpoch += 1; await Vue.nextTick(); expect(input().props.value).toBe("");
+    }
+  });
+});
+
+// Bind the delivery-related props from the production parent template, so a
+// missing revision/retry binding cannot be hidden by a test-only parent.
+const parentTemplate = readFileSync(new URL('./chat.vue', import.meta.url), 'utf8');
+const deliveryBindings = [
+  ['composerKey', 'composer-key'], ['sendSuccessRevision', 'send-success-revision'], ['initialDraft', 'initial-draft'],
+  ['failedSendLabel', 'failed-send-label'], ['canDiscardSend', 'can-discard-send'], ['canRetrySend', 'can-retry-send'], ['sendBlocked', 'send-blocked'],
+].map(([prop, attribute]) => `${prop}: (${parentTemplate.match(new RegExp(`:${attribute}="([^"]+)"`))![1]})`);
+const bindDeliveryProps = new Function('scope', `const {app,cid,startType,isAi,nova,convStore,sendSuccessRevision,
+  draftText,failedHumanLabel,failedHumanSend,humanSendBusy,supportSessionReady} = scope; return {${deliveryBindings.join(',')}};`);
+const retryHandler = parentTemplate.match(/@retry-message="([^"]+)"/)![1];
+function renderHumanDelivery(current: ReturnType<typeof mountRealHumanChat>) {
+  const sound = { unlock: vi.fn(), play: vi.fn(), stop: vi.fn(), destroy: vi.fn() };
+  const thread = humanThreadComponent(current.app, sound), root = element('root');
+  const scope = Vue.proxyRefs({ ...current.page, app: current.app, convStore: current.store, isAi: false, nova: useNova() });
+  const view = renderer.createApp({ render: () => Vue.h(thread, {
+    ...bindDeliveryProps(scope), messages: current.page.threadMessages.value,
+    entranceReady: humanEntranceBinding(...entranceKeys.map(key => Vue.unref(current.page.entranceScope[key]))),
+    inputPlaceholder: 'Message', inputLabel: 'Message', sendLabel: 'Send', imageLabels: zh.conversations.image,
+    statusLabels: zh.conversations.delivery, onSend: current.page.onSend, onRetryMessage: current.page[retryHandler],
+    onDraftChange: (value: string) => { current.page.draftText.value = value; },
+  }) });
+  view.component('scroll-view', { setup: (_props: unknown, { slots }: any) => () => Vue.h('scroll-view', slots.default?.()) });
+  view.mount(root); mounted.push(view);
+  const byClass = (name: string) => flatten(root).filter(node => String(node.props.class).split(/\s+/).includes(name));
+  return { sound, byClass, async send(text: string) {
+    byClass('nx-conv-input')[0].props.onInput({ detail: { value: text } }); await Vue.nextTick();
+    byClass('nx-conv-send')[0].props.onClick(); await vi.advanceTimersByTimeAsync(0);
+  } };
+}
+function deliveredSnapshot(text: string) {
+  return { ...humanSnapshot(), version: 2, lastTs: 2, lastMessage: text,
+    messages: [...humanSnapshot().messages, { id: '2', sender: 'user', text, ts: 2, status: 'sent' }] };
+}
+
+describe('rendered human delivery and success revisions', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+
+  const deliveryFailures: Array<[string, chatApiErrors.ApiError, 'failed' | 'unknown']> = [
+    ['business refusal', new chatApiErrors.ApiError({ kind: 'business', code: 10001, message: 'refused' }), 'failed'],
+    ['HTTP refusal', new chatApiErrors.ApiError({ kind: 'http', status: 403, message: 'refused' }), 'failed'],
+    ['network', new chatApiErrors.ApiError({ kind: 'network', message: 'lost response' }), 'unknown'],
+    ...[408, 409, 425, 429, 503].map((code): [string, chatApiErrors.ApiError, 'unknown'] =>
+      [`WS ${code}`, new chatApiErrors.ApiError({ kind: 'business', code, message: 'uncertain ACK' }), 'unknown']),
+  ];
+  it.each(deliveryFailures)('keeps the original bubble/request through %s and icon retry, sounding only on success', async (_label, cause, status) => {
+    const current = mountRealHumanChat(); await current.show(); const view = renderHumanDelivery(current);
+    let fail!: (cause: unknown) => void;
+    chatTransport.replyConversation.mockReturnValueOnce(new Promise((_, reject) => { fail = reject; }));
+    const text = 'Keep this original request'; await view.send(text);
+    const local = { ...current.page.localHumanSend.value }, requestKey = chatTransport.replyConversation.mock.calls[0][2];
+    expect(view.byClass('nx-conv-receipt').at(-1)!.props['data-state']).toBe('sending');
+    expect(view.byClass('nx-conv-enter-right')).toHaveLength(1);
+    expect(current.page.sendSuccessRevision.value).toBe(0); expect(view.sound.play).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(401); fail(cause); await vi.advanceTimersByTimeAsync(0);
+    expect(current.page.failedHumanSend.value).toMatchObject({ text, kind: status, settled: status === 'failed', attempts: 1 });
+    expect(current.page.threadMessages.value.filter((row: any) => row.localSend)).toHaveLength(1);
+    const icon = view.byClass('nx-conv-receipt').at(-1)!;
+    expect(icon.props['data-state']).toBe(status); expect(icon.props.role).toBe('button');
+    expect(icon.props['aria-label']).toContain(zh.conversations.delivery[status as 'failed' | 'unknown']);
+    expect(view.byClass('nx-conv-recovery-actions')).toHaveLength(status === 'failed' ? 1 : 0);
+    expect(view.sound.play).not.toHaveBeenCalled();
+    const retried = chatDeferred(); chatTransport.replyConversation.mockReturnValueOnce(retried.promise);
+    icon.props.onClick(); icon.props.onClick(); await vi.advanceTimersByTimeAsync(0);
+    expect(chatTransport.replyConversation).toHaveBeenCalledTimes(2);
+    expect(current.page.failedHumanSend.value).toBeNull();
+    expect(current.page.localHumanSend.value).toMatchObject({ id: local.id, timestamp: local.timestamp, text });
+    expect(view.byClass('nx-conv-enter-right')).toHaveLength(0);
+    expect(view.byClass('nx-conv-receipt').at(-1)!.props['data-state']).toBe('sending');
+    expect(chatTransport.replyConversation.mock.calls[1][1]).toBe(text);
+    if (status === 'unknown') expect(chatTransport.replyConversation.mock.calls[1][2]).toBe(requestKey);
+    else expect(chatTransport.replyConversation.mock.calls[1][2]).not.toBe(requestKey);
+    retried.resolve(deliveredSnapshot(text)); await vi.advanceTimersByTimeAsync(0);
+    expect(current.page.sendSuccessRevision.value).toBe(1); expect(view.sound.play).toHaveBeenCalledExactlyOnceWith('send');
+    expect(current.page.threadMessages.value.filter((row: any) => row.text === text)).toHaveLength(1);
+    expect(current.page.threadMessages.value.some((row: any) => row.localSend)).toBe(false);
+    expect(view.byClass('nx-conv-enter-right')).toHaveLength(0);
+    await current.page.retryHumanSend(); await Vue.nextTick();
+    expect(chatTransport.replyConversation).toHaveBeenCalledTimes(2); expect(view.sound.play).toHaveBeenCalledOnce();
+  });
+
+  it('releases the rendered send at 15 seconds with an unknown retry icon and preserves the key for a late idempotent result', async () => {
+    const current = mountRealHumanChat(); await current.show(); const view = renderHumanDelivery(current);
+    const ack = chatDeferred(), readback = chatDeferred();
+    chatTransport.replyConversation.mockReturnValueOnce(ack.promise); chatTransport.commandResult.mockReturnValueOnce(readback.promise);
+    const text = 'Timed out original'; await view.send(text);
+    const key = chatTransport.replyConversation.mock.calls[0][2];
+    chatTransport.conversation.mockReturnValue(new Promise(() => {}));
+    await vi.advanceTimersByTimeAsync(11_999);
+    expect(current.page.humanSendBusy.value).toBe(true); expect(chatTransport.commandResult).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1); expect(chatTransport.commandResult).toHaveBeenCalledExactlyOnceWith(key);
+    await vi.advanceTimersByTimeAsync(2_999); expect(current.page.humanSendBusy.value).toBe(true);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(current.page.humanSendBusy.value).toBe(false);
+    expect(view.byClass('nx-conv-receipt').at(-1)!.props).toMatchObject({ 'data-state': 'unknown', role: 'button' });
+    expect(view.sound.play).not.toHaveBeenCalled();
+    // The plane schedules a zero-delay visual reset after the bounded outcome.
+    await vi.advanceTimersByTimeAsync(1);
+    expect(view.byClass('nx-conv-send')[0].props['aria-busy']).toBe(false);
+    ack.resolve(deliveredSnapshot(text)); readback.resolve({ kind: 'conversation', conversation: deliveredSnapshot(text) });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(current.page.failedHumanSend.value).toMatchObject({ text, kind: 'unknown' });
+    chatTransport.replyConversation.mockResolvedValueOnce(deliveredSnapshot(text));
+    view.byClass('nx-conv-receipt').at(-1)!.props.onClick(); await vi.advanceTimersByTimeAsync(0);
+    expect(chatTransport.replyConversation.mock.calls[1].slice(1)).toEqual([text, key, undefined]);
+    expect(view.sound.play).toHaveBeenCalledExactlyOnceWith('send');
+    expect(current.page.threadMessages.value.filter((row: any) => row.text === text)).toHaveLength(1);
+  });
+
+  it('keeps the retry icon unknown when a timed-out write cannot be read back due to a GET refusal', async () => {
+    const current = mountRealHumanChat(); await current.show(); const view = renderHumanDelivery(current);
+    chatTransport.replyConversation.mockReturnValue(new Promise(() => {}));
+    chatTransport.commandResult.mockRejectedValueOnce(new chatApiErrors.ApiError({ kind: 'http', status: 403, message: 'readback forbidden' }));
+    await view.send('Possibly delivered'); await vi.advanceTimersByTimeAsync(12_000);
+    expect(current.page.humanSendBusy.value).toBe(false);
+    expect(current.page.failedHumanSend.value).toMatchObject({ text: 'Possibly delivered', kind: 'unknown', settled: false });
+    expect(view.byClass('nx-conv-receipt').at(-1)!.props['data-state']).toBe('unknown');
+    expect(view.sound.play).not.toHaveBeenCalled();
+  });
+
+  it('replaces the saved unknown bubble with one exact canonical echo while commandResult still has no confirmation', async () => {
+    const current = mountRealHumanChat(); await current.show(); const view = renderHumanDelivery(current);
+    chatTransport.replyConversation.mockRejectedValueOnce(new chatApiErrors.ApiError({ kind: 'network', message: 'lost ACK' }));
+    const text = 'Server accepted this request'; await view.send(text);
+    expect(current.page.failedHumanSend.value).toMatchObject({ text, kind: 'unknown' });
+    const key = chatTransport.replyConversation.mock.calls[0][2], canonical = deliveredSnapshot(text);
+    const echoed = { ...canonical, messages: canonical.messages.map(message => message.sender === 'user'
+      ? { ...message, clientMessageId: key } : message) };
+    chatTransport.commandResult.mockResolvedValue(null); chatTransport.conversation.mockResolvedValue(echoed);
+    await current.store.open('CV-cold'); await Vue.nextTick();
+    expect(current.store.composer('conversation:CV-cold').failedSend).toBeNull();
+    expect(current.page.failedHumanSend.value).toBeNull();
+    expect(current.page.threadMessages.value.filter((row: any) => row.text === text)).toHaveLength(1);
+    expect(view.byClass('nx-conv-receipt').some(node => node.props['data-state'] === 'unknown')).toBe(false);
+    expect(chatTransport.replyConversation).toHaveBeenCalledOnce();
+  });
+
+  it('keeps an in-flight canonical echo successful when the pending readback later returns null', async () => {
+    const current = mountRealHumanChat(); await current.show(); const view = renderHumanDelivery(current), readback = chatDeferred();
+    chatTransport.replyConversation.mockReturnValue(new Promise(() => {})); chatTransport.commandResult.mockReturnValueOnce(readback.promise);
+    const text = 'Echo during readback'; await view.send(text); await vi.advanceTimersByTimeAsync(13_000);
+    const key = chatTransport.replyConversation.mock.calls[0][2], canonical = deliveredSnapshot(text);
+    chatTransport.conversation.mockResolvedValue({ ...canonical, messages: canonical.messages.map(message => message.sender === 'user'
+      ? { ...message, clientMessageId: key } : message) });
+    await current.store.open('CV-cold');
+    expect(current.store.composer('conversation:CV-cold').failedSend).toBeNull();
+    readback.resolve(null); await vi.advanceTimersByTimeAsync(0);
+    expect(current.page.humanSendBusy.value).toBe(false); expect(current.page.failedHumanSend.value).toBeNull();
+    expect(current.page.threadMessages.value.filter((row: any) => row.text === text)).toHaveLength(1);
+    expect(current.page.sendSuccessRevision.value).toBe(1); expect(view.sound.play).toHaveBeenCalledExactlyOnceWith('send');
+  });
+
+  it.each(['support', 'advisor'])('sounds the first successful new %s conversation despite its composer-key reset', async type => {
+    const current = mountRealHumanChat({ start: type }); await current.show(); const view = renderHumanDelivery(current);
+    const ack = chatDeferred(); chatTransport.startConversation.mockReturnValueOnce(ack.promise);
+    await view.send('First opening');
+    expect(current.page.cid.value).toBe(''); expect(view.sound.play).not.toHaveBeenCalled();
+    ack.resolve(deliveredSnapshot('First opening')); await vi.advanceTimersByTimeAsync(0);
+    expect(current.page.cid.value).toBe('CV-cold'); expect(current.page.startType.value).toBeNull();
+    expect(current.page.sendSuccessRevision.value).toBe(1);
+    expect(view.sound.play).toHaveBeenCalledExactlyOnceWith('send');
+    expect(current.navigation.navReplace).toHaveBeenCalledExactlyOnceWith('/pages/support/chat?cid=CV-cold');
+    await current.hooks.onShow(); await vi.advanceTimersByTimeAsync(1000);
+    expect(view.sound.play).toHaveBeenCalledOnce(); expect(chatTransport.startConversation).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ['reply', 'hide'], ['reply', 'binding'], ['reply', 'account'], ['reply', 'dispose'],
+    ['opening', 'hide'], ['opening', 'binding'], ['opening', 'account'], ['opening', 'dispose'],
+  ] as const)('does not sound a held %s success after %s', async (mode, boundary) => {
+    const current = mountRealHumanChat(mode === 'reply' ? { cid: 'CV-cold' } : { start: 'support' });
+    await current.show(); const view = renderHumanDelivery(current), ack = chatDeferred();
+    const action = mode === 'reply' ? chatTransport.replyConversation : chatTransport.startConversation;
+    action.mockReturnValueOnce(ack.promise); await view.send('Old private send');
+    expect(action).toHaveBeenCalledOnce();
+    if (boundary === 'hide') current.hooks.onHide();
+    if (boundary === 'binding') current.rebind();
+    if (boundary === 'account') current.rebind('user:2');
+    if (boundary === 'dispose') current.page.cleanup();
+    ack.resolve(deliveredSnapshot('Old private send')); await vi.advanceTimersByTimeAsync(0);
+    expect(current.page.sendSuccessRevision.value).toBe(0); expect(view.sound.play).not.toHaveBeenCalled();
+    if (boundary === 'hide') {
+      await current.hooks.onShow(); await vi.advanceTimersByTimeAsync(1000);
+      expect(current.page.sendSuccessRevision.value).toBe(0); expect(view.sound.play).not.toHaveBeenCalled();
     }
   });
 });

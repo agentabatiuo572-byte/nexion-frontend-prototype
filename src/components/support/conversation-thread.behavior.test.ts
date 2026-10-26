@@ -9,7 +9,7 @@ import chatSource from '@/pages/support/chat.vue?raw';
 import { useConversationEntrance } from './conversation-entrance';
 import { conversationScrollChange, preservedConversationTop } from './conversation-scroll';
 import * as conversationTime from './conversation-time';
-import { createConversationAudio } from '@/lib/conversation-audio';
+import * as conversationBubbleLayout from './conversation-bubble-layout';
 import type { ThreadMsg } from './thread-types';
 import { createSupportApi } from '@/api/support-api';
 import { zh } from '@/i18n/messages/zh';
@@ -34,12 +34,16 @@ function findAll(node: Vue.VNode, className: string): Vue.VNode[] {
   if (Array.isArray(node.children)) for (const child of node.children) if (Vue.isVNode(child)) result.push(...findAll(child, className));
   return result;
 }
-function mount(initial: ThreadMsg[] = []) {
+function visibleText(node: Vue.VNode): string {
+  if (typeof node.children === 'string') return node.children;
+  return Array.isArray(node.children) ? node.children.map(child => Vue.isVNode(child) ? visibleText(child) : typeof child === 'string' ? child : '').join('') : '';
+}
+function mount(initial: ThreadMsg[] = [], sendSuccessRevision = 0) {
   const app = Vue.reactive({ accountKey: 'user:7', accountBindingEpoch: 1 });
   const shown: Array<() => void> = [], hidden: Array<() => void> = [];
   const props = Vue.reactive({ messages: initial, entranceReady: true, timeLocale: 'zh' as 'zh' | 'en' | 'vi', composerKey: 'conversation:A', revealTick: 0,
-    inputPlaceholder: 'Message', inputLabel: 'Message', sendLabel: 'Send', queueLabels: zh.nova.queue,
-    imageLabels: zh.conversations.image, sendBlocked: false, attachDisabled: false, attachUnavailable: '', attachRetry: false });
+    inputPlaceholder: 'Message', inputLabel: 'Message', sendLabel: 'Send', queueLabels: zh.nova.queue, sendSuccessRevision,
+    imageLabels: zh.conversations.image, statusLabels: zh.conversations.delivery, canRetrySend: true, sendBlocked: false, attachDisabled: false, attachUnavailable: '', attachRetry: false });
   const exports: Record<string, any> = {}, emit = vi.fn();
   const sound = { unlock: vi.fn(), play: vi.fn(), stop: vi.fn(), destroy: vi.fn() };
   const modules: Record<string, unknown> = {
@@ -48,8 +52,10 @@ function mount(initial: ThreadMsg[] = []) {
     '@/composables/use-tab-page-lifecycle': { onShow: (fn: () => void) => shown.push(fn), onHide: (fn: () => void) => hidden.push(fn) },
     './conversation-entrance': { useConversationEntrance }, './conversation-scroll': { conversationScrollChange, preservedConversationTop },
     './conversation-time': conversationTime,
+    './conversation-bubble-layout': conversationBubbleLayout,
     '@/store/preferences': { usePreferences: () => ({ soundEnabled: false }) },
     '@/lib/conversation-audio': { createConversationAudio: () => sound },
+    './message-status-icon.vue': { default: { render: () => null } },
   };
   new Function('require', 'exports', code)((id: string) => { if (!(id in modules)) throw new Error(id); return modules[id]; }, exports);
   const scope = Vue.effectScope(), view = scope.run(() => exports.default.setup(props, { emit, expose() {} }))!;
@@ -57,24 +63,29 @@ function mount(initial: ThreadMsg[] = []) {
   let node!: Vue.VNode; const renderCache: unknown[] = [];
   return { props, app, view, emit, sound, hide: () => hidden.forEach(fn => fn()), show: () => shown.forEach(fn => fn()), stop: () => scope.stop(),
     async node() {
-      await renderToString(Vue.createSSRApp({ components: { LiquidGlass: { render: () => null } }, render: () => {
+      await renderToString(Vue.createSSRApp({ components: { LiquidGlass: { render: () => null }, MessageStatusIcon: { render: () => null } }, render: () => {
         node = render(Vue.proxyRefs({ ...Vue.toRefs(props), ...view }), renderCache); return node;
       } }));
       return node;
     } };
 }
 
-it.each([zh, en, vietnamese])('places genuine receipts beside their own bubble, retaining timestamps and wrapping content', async copy => {
-  const screen = mount([message('out', 'right', { receipt: copy.conversations.receiptSent }),
-    message('in', 'left', { receipt: copy.conversations.receiptRead, text: 'Long '.repeat(50) }),
-    message('unknown', 'left'), message('system', 'left', { tone: 'system', receipt: 'invalid system receipt' })]);
-  const rows = findAll(await screen.node(), 'nx-conv-bubble-line');
-  const elements = (row: Vue.VNode) => (row.children as Vue.VNode[]).filter(node => Vue.isVNode(node) && typeof node.type === 'string');
-  expect(elements(rows[0]).map(node => node.props!.class)).toEqual(['nx-conv-receipt', 'nx-conv-bubble']);
-  expect(elements(rows[1]).map(node => node.props!.class)).toEqual(['nx-conv-bubble', 'nx-conv-receipt']);
-  expect(findAll(rows[2], 'nx-conv-receipt')).toHaveLength(0);
-  expect(findAll(await screen.node(), 'nx-conv-message-meta')).toHaveLength(3);
-  expect(findAll(await screen.node(), 'nx-conv-receipt')).toHaveLength(2);
+it.each([zh, en, vietnamese])('keeps time inside each bubble and shows delivery status only inside the outgoing bubble', async copy => {
+  const timestamp = new Date(2026, 9, 26, 18, 57).getTime(), longText = 'Long '.repeat(50);
+  const screen = mount([message('out', 'right', { timestamp, receipt: copy.conversations.receiptSent, meta: 'External outgoing author' }),
+    message('in', 'left', { timestamp, receipt: copy.conversations.receiptRead, text: longText, meta: 'External incoming author' }),
+    message('unknown', 'left', { timestamp, meta: 'External unknown author' }),
+    message('system', 'left', { tone: 'system', receipt: 'invalid system receipt' })]);
+  const node = await screen.node(), bubbles = findAll(node, 'nx-conv-bubble');
+  expect(bubbles).toHaveLength(3);
+  for (const bubble of bubbles) expect(visibleText(bubble)).toContain('18:57');
+  expect(findAll(bubbles[0], 'nx-conv-receipt')).toHaveLength(1);
+  expect(findAll(bubbles[1], 'nx-conv-receipt')).toHaveLength(0);
+  expect(findAll(bubbles[2], 'nx-conv-receipt')).toHaveLength(0);
+  expect(findAll(node, 'nx-conv-receipt')).toHaveLength(1);
+  expect(findAll(node, 'nx-conv-message-meta')).toHaveLength(0);
+  expect(visibleText(bubbles[1])).toContain(longText);
+  expect(visibleText(node)).not.toContain('External');
 });
 
 it('does not animate initial history, async history snapshots or history pagination', async () => {
@@ -133,6 +144,52 @@ it('does not replay same-ID failed-send retry, receipt updates or removed-then-r
   expect(screen.view.entranceBindings(screen.props.messages[0]).class).toBeUndefined();
 });
 
+it.each(['sent', 'read'] as const)('animates a new pending human send once, then replaces it with canonical %s without a second entrance', async status => {
+  const screen = mount([message('history', 'left')]);
+  const pending = message('pending-human:1:1', 'right', { text: 'Original request', localSend: true,
+    timestamp: Date.now(), deliveryState: 'sending' });
+  screen.props.messages.push(pending); await flush();
+  expect(findAll(await screen.node(), 'nx-conv-enter-right')).toHaveLength(1);
+  await vi.advanceTimersByTimeAsync(201);
+  for (const deliveryState of ['unknown', 'sending', 'failed', 'sending'] as const) {
+    screen.props.messages[1].deliveryState = deliveryState; await flush();
+    expect(findAll(await screen.node(), 'nx-conv-enter-right')).toHaveLength(0);
+  }
+  screen.props.messages = [screen.props.messages[0], message('server-101', 'right', {
+    text: pending.text, timestamp: pending.timestamp, deliveryState: status })];
+  await flush();
+  expect(findAll(await screen.node(), 'nx-conv-enter-right')).toHaveLength(0);
+  expect(screen.sound.play).not.toHaveBeenCalled();
+  screen.props.messages.push(message('next-pending', 'right', { localSend: true, deliveryState: 'sending' })); await flush();
+  expect(findAll(await screen.node(), 'nx-conv-enter-right')).toHaveLength(1);
+});
+
+it.each(['queued', 'sending', 'failed', 'unknown', 'sent', 'read'] as const)('renders an accessible %s status icon and permits retry only for unresolved local sends', async deliveryState => {
+  const original = message('pending-original', 'right', { text: 'Original text', localSend: true, deliveryState });
+  const screen = mount([original]), node = await screen.node();
+  const receipts = findAll(node, 'nx-conv-receipt'); expect(receipts).toHaveLength(1);
+  const receipt = receipts[0], retryable = deliveryState === 'failed' || deliveryState === 'unknown';
+  expect(receipt.props!['data-state']).toBe(deliveryState);
+  expect(receipt.props!['aria-label']).toContain(zh.conversations.delivery[deliveryState]);
+  expect(receipt.props!.role).toBe(retryable ? 'button' : 'img');
+  expect(receipt.props!.tabindex).toBe(retryable ? 0 : undefined);
+  expect((receipt.children as Vue.VNode[]).find(child => Vue.isVNode(child) && typeof child.type === 'object')?.props?.state).toBe(deliveryState);
+  expect(findAll(node, 'nx-conv-receipt-t')).toHaveLength(0);
+  for (const activation of ['click', 'Enter', ' ']) {
+    screen.emit.mockClear();
+    if (activation === 'click') receipt.props!.onClick();
+    else for (const handler of receipt.props!.onKeydown) handler({ key: activation, repeat: false, preventDefault: vi.fn() });
+    expect(screen.emit.mock.calls.filter(call => call[0] === 'retry-message')).toHaveLength(retryable ? 1 : 0);
+    expect(screen.emit.mock.calls.some(call => call[0] === 'send')).toBe(false);
+    expect(screen.props.messages[0]).toEqual(original);
+  }
+  screen.props.canRetrySend = false;
+  screen.emit.mockClear();
+  const blocked = findAll(await screen.node(), 'nx-conv-receipt')[0]; blocked.props!.onClick();
+  expect(blocked.props!.role).toBe('img'); expect(blocked.props!.tabindex).toBeUndefined();
+  expect(screen.emit).not.toHaveBeenCalled();
+});
+
 it.each(['account', 'binding', 'conversation', 'return'] as const)('does not replay history across %s or let an old animation event end a new entry', async boundary => {
   const screen = mount(); screen.props.messages = [message('id')]; await flush();
   const old = screen.view.entranceBindings(screen.props.messages[0]);
@@ -146,11 +203,14 @@ it.each(['account', 'binding', 'conversation', 'return'] as const)('does not rep
   expect(screen.view.entranceBindings(screen.props.messages[1]).class).toBe('nx-conv-enter-left');
 });
 
-it('keeps failed queue receipt beside the bubble and its retry action available exactly once', async () => {
+it('keeps one failed queue retry icon inside its outgoing bubble', async () => {
   const screen = mount([message('failed', 'right', { queue: { turnId: 'turn-1', state: 'failed', label: 'Send failed', editable: false } })]);
-  const node = await screen.node(), receipts = findAll(node, 'nx-conv-receipt-t');
-  expect(receipts).toHaveLength(1); expect(receipts[0].props!.role).toBe('alert');
-  findAll(node, 'nx-conv-queue-action')[0].props!.onClick();
+  const node = await screen.node(), receipts = findAll(node, 'nx-conv-receipt');
+  expect(receipts).toHaveLength(1); expect(receipts[0].props!.role).toBe('button');
+  expect(findAll(findAll(node, 'nx-conv-bubble')[0], 'nx-conv-receipt')).toHaveLength(1);
+  expect(receipts[0].props!['aria-label']).toContain(zh.conversations.delivery.failed);
+  expect(findAll(node, 'nx-conv-receipt-t')).toHaveLength(0);
+  receipts[0].props!.onClick();
   expect(screen.emit).toHaveBeenCalledWith('queue-action', 'turn-1', 'retry');
 });
 
@@ -283,11 +343,12 @@ it('renders date/gap markers independently of precise per-message times and does
     message('three', 'left', { timestamp: day + 420000, meta: 'Support' })]);
   expect(findAll(await screen.node(), 'nx-conv-time-divider')).toHaveLength(2);
   expect(screen.view.timeGroups.value.one).toContain('今天');
-  expect(screen.view.messageMeta(screen.props.messages[1])).toBe('You · 00:02');
+  expect(findAll(await screen.node(), 'nx-conv-message-time').map(visibleText)).toEqual(['00:01', '00:02', '00:07']);
   vi.setSystemTime(new Date(2026, 9, 27, 0, 1)); screen.hide(); screen.show(); await flush();
   expect(screen.view.timeGroups.value.one).toContain('昨天');
   screen.props.timeLocale = 'vi'; await flush();
   expect(screen.view.timeGroups.value.one).toContain('Hôm qua');
+  expect(findAll(await screen.node(), 'nx-conv-message-time').map(visibleText)).toEqual(['00:01', '00:02', '00:07']);
   expect(findAll(await screen.node(), 'nx-conv-enter-left')).toHaveLength(0);
 });
 
@@ -375,17 +436,51 @@ it('does not let an earlier send completion reset a later plane turn', async () 
   second(); await vi.advanceTimersByTimeAsync(1); expect(screen.view.sendTurning.value).toBe(false);
 });
 
-it('plays send audio for an authoritative success once, never for failure or stale completion', async () => {
+it('uses post-flush success revisions for sound, with callbacks affecting only button motion', async () => {
   const screen = mount();
   screen.view.onDraft({ detail: { value: 'Hello' } }); screen.view.onSend();
   const settled = screen.emit.mock.calls.find(call => call[0] === 'send')![3];
-  settled(true); settled(true); expect(screen.sound.play).toHaveBeenCalledExactlyOnceWith('send');
+  settled(true); settled(true); expect(screen.sound.play).not.toHaveBeenCalled();
+  screen.props.sendSuccessRevision++;
+  expect(screen.sound.play).not.toHaveBeenCalled(); await flush();
+  expect(screen.sound.play).toHaveBeenCalledExactlyOnceWith('send');
+  screen.props.sendSuccessRevision = 1; await flush(); expect(screen.sound.play).toHaveBeenCalledOnce();
   screen.view.onDraft({ detail: { value: 'Failed' } }); screen.view.onSend();
   screen.emit.mock.calls.filter(call => call[0] === 'send').at(-1)![3](false);
   expect(screen.sound.play).toHaveBeenCalledOnce();
   screen.view.onDraft({ detail: { value: 'Left page' } }); screen.view.onSend(); screen.hide();
   screen.emit.mock.calls.filter(call => call[0] === 'send').at(-1)![3](true);
   expect(screen.sound.play).toHaveBeenCalledOnce();
+});
+
+it('sounds for concurrent successes more than 400ms apart even after the button has a newer send epoch', async () => {
+  const screen = mount();
+  for (const text of ['First', 'Second']) { screen.view.onDraft({ detail: { value: text } }); screen.view.onSend(); }
+  const [first, second] = screen.emit.mock.calls.filter(call => call[0] === 'send').map(call => call[3]);
+  first(true); screen.props.sendSuccessRevision++; await flush();
+  expect(screen.sound.play).toHaveBeenCalledExactlyOnceWith('send');
+  expect(screen.view.sendTurning.value).toBe(true);
+  await vi.advanceTimersByTimeAsync(401);
+  second(true); screen.props.sendSuccessRevision++; await flush();
+  expect(screen.sound.play.mock.calls).toEqual([['send'], ['send']]);
+  first(true); second(true); await flush(); expect(screen.sound.play).toHaveBeenCalledTimes(2);
+});
+
+it('sounds for retry success without a send-button callback and for first creation despite its composer-key change', async () => {
+  const screen = mount();
+  screen.props.sendSuccessRevision++; await flush(); // Icon retry has no button completion callback.
+  expect(screen.emit).not.toHaveBeenCalledWith('send');
+  expect(screen.sound.play).toHaveBeenCalledExactlyOnceWith('send');
+  await vi.advanceTimersByTimeAsync(401);
+  screen.props.composerKey = 'conversation:created-first'; screen.props.sendSuccessRevision++; await flush();
+  expect(screen.sound.play.mock.calls).toEqual([['send'], ['send']]);
+});
+
+it('does not replay an initial revision, a revision reset, or a disposed watcher', async () => {
+  const screen = mount([], 7); await flush(); expect(screen.sound.play).not.toHaveBeenCalled();
+  screen.props.sendSuccessRevision = 0; await flush(); expect(screen.sound.play).not.toHaveBeenCalled();
+  screen.stop(); screen.props.sendSuccessRevision++; await flush();
+  expect(screen.sound.play).not.toHaveBeenCalled(); expect(screen.sound.destroy).toHaveBeenCalledOnce();
 });
 
 it('sounds only for unseen live incoming messages, not history, receipts, systems or return', async () => {
@@ -408,7 +503,8 @@ function extract(names: string[]) {
 }
 function projection(conversation: unknown, copy = zh) {
   return new Function('deps', `const {computed,ref}=deps, t=ref(deps.copy), conv=ref(deps.conversation),
-    isAi=ref(false),nova={},locale={code:'zh'},imageSources=ref({}),imageFailures=ref({});
+    isAi=ref(false),nova={},locale={code:'zh'},imageSources=ref({}),imageFailures=ref({}),
+    failedHumanSend=ref(null),humanSendBusy=ref(false),localHumanSend=ref(null),humanComposerKey=ref('test'),imageDraft=ref(null);
     const avatarImageKey=()=>undefined,humanMessageRecommendation=()=>({}),localizedIdleClose=()=>null;
     ${extract(['receiptFor', 'threadMessages'])}; return threadMessages;`)(
     { computed: Vue.computed, ref: Vue.ref, copy, conversation });
