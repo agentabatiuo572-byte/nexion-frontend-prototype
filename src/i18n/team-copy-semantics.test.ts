@@ -70,7 +70,7 @@ describe('team copy distinguishes reward mechanisms', () => {
   it.each(Object.entries({ zh, en, vi }))('%s does not infer invitation cooling days or purchase eligibility from unavailable fields', (locale, messages) => {
     const copy = teamRedesignCopy(locale);
     expect([copy.inviteRuleSummary, copy.inviteRuleSettlement, messages.team.perFriendCooldown].join(' ')).not.toMatch(/30|冷却|cooling|cooldown|chờ \d/i);
-    expect(copy.inviteRuleSummary).toMatch(/条件|conditions|điều kiện/);
+    expect(copy.inviteRuleSummary).toMatch(/条件|conditions|điều kiện/i);
     expect(copy.inviteRuleSettlement).toMatch(/奖励记录|reward records|bản ghi thưởng/);
     expect(copy.settled).not.toMatch(/预估|estimate|ước tính/i);
     expect(copy.pending).not.toBe(copy.settled);

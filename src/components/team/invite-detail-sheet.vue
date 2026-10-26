@@ -6,9 +6,7 @@
       <view class="invite-detail__body">
         <template v-if="mode === 'rules'">
           <view class="invite-detail__art"><TeamArt kind="invite" :size="104" /></view>
-          <text class="invite-detail__paragraph">{{ copy.inviteRuleSummary }}</text>
-          <text class="invite-detail__paragraph">{{ copy.inviteRuleSettlement }}</text>
-          <text v-if="rewards.snapshot?.rewardEnabled === false" class="invite-detail__paragraph">{{ t.team.referralRewardsDisabled }}</text>
+          <InviteRuleContent />
           <NxButton class="invite-detail__support" :label="copy.contactSupport" @click="contactSupport" />
           <NxButton :label="copy.rewardRecords" @click="emit('records')" />
         </template>
@@ -38,6 +36,7 @@ import { formatAmount } from '@/lib/amount-display';
 import { navTo } from '@/lib/route';
 import { useDialogA11y } from '@/composables/use-dialog-a11y';
 import TeamArt from './team-art.vue';
+import InviteRuleContent from './invite-rule-content.vue';
 import NxButton from '@/components/ui/nx-button.vue';
 import LiquidGlass from '@/components/liquid-glass.vue';
 const props = defineProps<{ open: boolean; mode: 'rules' | 'records' }>();
