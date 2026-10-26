@@ -60,11 +60,14 @@ it('replaces the old grant after accepted renewal, restores watch, and never rep
   await rejected; await vi.advanceTimersByTimeAsync(0);
   expect(h.bearers).toEqual(['fixture-old', 'fixture-new']);
   expect(h.sockets[0].close).toHaveBeenCalledOnce();
+  expect(h.realtime.ready).toBe(false);
+  expect(h.state).toHaveBeenLastCalledWith(false, false, false);
   h.sockets[0].onopen?.(); h.sockets[0].frame({ type: 'ready' });
   h.sockets[0].frame({ type: 'error', code: 403 }); h.sockets[0].onclose?.({ code: 4401 });
   expect(h.sockets[1].sent).toHaveLength(0);
   await ready(h.sockets[1]);
   expect(h.realtime.ready).toBe(true); expect(h.reconcile).toHaveBeenCalledTimes(2);
+  expect(h.state).toHaveBeenLastCalledWith(true, false, false);
   expect(h.sockets[1].sent.map(value => JSON.parse(value))).toEqual([
     { type: 'auth', ticket: 'fixture-2' }, { type: 'watch', conversationNo: 'CV-fixture' },
   ]);
@@ -76,7 +79,7 @@ it('keeps a wire 401 terminal until a successful current-session renewal supplie
   const h = harness(); await vi.advanceTimersByTimeAsync(0); await ready(h.sockets[0]);
   h.sockets[0].frame({ type: 'error', code: 401 });
   await vi.advanceTimersByTimeAsync(20000);
-  expect(h.bearers).toHaveLength(1); expect(h.state).toHaveBeenCalledWith(false, true);
+  expect(h.bearers).toHaveLength(1); expect(h.state).toHaveBeenCalledWith(false, true, true);
   await h.api.refreshSession(); await vi.advanceTimersByTimeAsync(0); await ready(h.sockets[1]);
   expect(h.bearers).toEqual(['fixture-old', 'fixture-new']); expect(h.realtime.ready).toBe(true);
   h.realtime.stop();
@@ -95,7 +98,7 @@ it.each([401, 403])('keeps a fresh ticket denial %s terminal even after successf
   h.ticket.mockRejectedValueOnce({ status });
   await h.api.refreshSession(); await vi.advanceTimersByTimeAsync(60000);
   expect(h.ticket).toHaveBeenCalledTimes(2); expect(h.sockets).toHaveLength(1);
-  expect(h.state).toHaveBeenLastCalledWith(false, true); expect(h.realtime.ready).toBe(false);
+  expect(h.state).toHaveBeenLastCalledWith(false, true, true); expect(h.realtime.ready).toBe(false);
 });
 
 it('ignores a late old ticket after renewal has started a fresh connection', async () => {

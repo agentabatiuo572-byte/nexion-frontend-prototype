@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\WORKS\\PLAN\\.wt\\uvel-design-20261025-app",
+  "sourcePath": "D:\\workspace\\.worktrees\\app-full-click-20261026",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
   "sourceHead": "c17d42d464fdd82c0cdc62b69fed825d8a5a4a02",
-  "sourceRef": "c17d42d464fdd82c0cdc62b69fed825d8a5a4a02",
-  "sourceRefKind": "commit",
-  "sourceTree": "2d99af93e1aefa6ba20b7bfe165a365eab5ff5f0",
+  "sourceRef": "9937047ad431a08981b678028c8d9235d3ff3d27",
+  "sourceRefKind": "tree",
+  "sourceTree": "9937047ad431a08981b678028c8d9235d3ff3d27",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -738,6 +738,13 @@
       "sourceSha256": "a52f08fb27b4e0bf080e3fd1c8d7df4f9a0e09751dc956e916a5d2c0dafaa6b5",
       "targetBlob": "8e260f7cbfed506a216cf7de48c80ac86841e4b9",
       "targetSha256": "a52f08fb27b4e0bf080e3fd1c8d7df4f9a0e09751dc956e916a5d2c0dafaa6b5",
+      "mode": "100644"
+    },
+    "docs/audit/2026-10-26-service-reconnect.md": {
+      "sourceBlob": "2a721e1d8c804f289008eb9226f2fa61e7e1c25d",
+      "sourceSha256": "c339d0af741accd0d44ad25284cc89d5a082e83fafd9295845de03b28db63946",
+      "targetBlob": "2a721e1d8c804f289008eb9226f2fa61e7e1c25d",
+      "targetSha256": "c339d0af741accd0d44ad25284cc89d5a082e83fafd9295845de03b28db63946",
       "mode": "100644"
     },
     "docs/audit/2026-10-26-team-card-compact.md": {
@@ -7216,24 +7223,24 @@
       "mode": "100644"
     },
     "src/api/conversation-realtime.test.ts": {
-      "sourceBlob": "3dfe34a7ac5ad873e226add97cfa38195a32ccdd",
-      "sourceSha256": "34fa0c48449b750560c386854405a19777d1dc326f9a29245b841d73461f837f",
-      "targetBlob": "3dfe34a7ac5ad873e226add97cfa38195a32ccdd",
-      "targetSha256": "34fa0c48449b750560c386854405a19777d1dc326f9a29245b841d73461f837f",
+      "sourceBlob": "e6d2c353650e7ba3794d8c0ad1dd98cea13ddf9d",
+      "sourceSha256": "5ae0b30d92797ff13d8b6c9e2e060f641750627b7c316b03385605a4e627fd63",
+      "targetBlob": "e6d2c353650e7ba3794d8c0ad1dd98cea13ddf9d",
+      "targetSha256": "5ae0b30d92797ff13d8b6c9e2e060f641750627b7c316b03385605a4e627fd63",
       "mode": "100644"
     },
     "src/api/conversation-realtime.ts": {
-      "sourceBlob": "1d16180e9910b74d2c3520bf94399c11b0feef8c",
-      "sourceSha256": "b6e13f0327575e3087a6854339edf77467ac0d02882ed78582887afdb5cb0d24",
-      "targetBlob": "1d16180e9910b74d2c3520bf94399c11b0feef8c",
-      "targetSha256": "b6e13f0327575e3087a6854339edf77467ac0d02882ed78582887afdb5cb0d24",
+      "sourceBlob": "8bdd0cc768974a9e87f3c27630b03c8c9b10eb42",
+      "sourceSha256": "f85b20b6489bd08022dd6b0fcc2bacc1096f49e9f901f2e0ef95173068e71c2b",
+      "targetBlob": "8bdd0cc768974a9e87f3c27630b03c8c9b10eb42",
+      "targetSha256": "f85b20b6489bd08022dd6b0fcc2bacc1096f49e9f901f2e0ef95173068e71c2b",
       "mode": "100644"
     },
     "src/api/conversation-refresh-continuity.test.ts": {
-      "sourceBlob": "d23e74ec525bf4392ca89d3d28bf8910fe7e35f0",
-      "sourceSha256": "37ca42a86709c40bfeaf0156113708b8e2734406b2b14599a3fb64c8a5753bbb",
-      "targetBlob": "d23e74ec525bf4392ca89d3d28bf8910fe7e35f0",
-      "targetSha256": "37ca42a86709c40bfeaf0156113708b8e2734406b2b14599a3fb64c8a5753bbb",
+      "sourceBlob": "19fea625518dc161a6ac8f6a2eae3dd2d18ecd2d",
+      "sourceSha256": "cd526c6349198bb6fc560ce877d90b47e952db384adacc351fb1a4d7c6aece6f",
+      "targetBlob": "19fea625518dc161a6ac8f6a2eae3dd2d18ecd2d",
+      "targetSha256": "cd526c6349198bb6fc560ce877d90b47e952db384adacc351fb1a4d7c6aece6f",
       "mode": "100644"
     },
     "src/api/cregis-deposit-api.test.ts": {
@@ -18920,10 +18927,10 @@
       "mode": "100644"
     },
     "src/store/conversations-realtime.test.ts": {
-      "sourceBlob": "653bb453110a5d8bfb4ba4556fa0529a734a0ee8",
-      "sourceSha256": "33911c8dc9bce3cda9e00dc738b981fe1d529e91155c033107b86fc94dec2efe",
-      "targetBlob": "653bb453110a5d8bfb4ba4556fa0529a734a0ee8",
-      "targetSha256": "33911c8dc9bce3cda9e00dc738b981fe1d529e91155c033107b86fc94dec2efe",
+      "sourceBlob": "24866b7328d4640ab3ca31cece8a7733f77e361f",
+      "sourceSha256": "c7cd60a8b2e462ef0655753366f346ae9ce887338003ad3730e733d322fef015",
+      "targetBlob": "24866b7328d4640ab3ca31cece8a7733f77e361f",
+      "targetSha256": "c7cd60a8b2e462ef0655753366f346ae9ce887338003ad3730e733d322fef015",
       "mode": "100644"
     },
     "src/store/conversations-reauth-recovery.test.ts": {
@@ -18941,10 +18948,10 @@
       "mode": "100644"
     },
     "src/store/conversations.ts": {
-      "sourceBlob": "49bfa318caa8d8765e49ccdd14bd610dcff3d08a",
-      "sourceSha256": "9f950df761678e4cb4ba1dc5dec822762bdb867482b69233af64786ea4c9cb2c",
-      "targetBlob": "49bfa318caa8d8765e49ccdd14bd610dcff3d08a",
-      "targetSha256": "9f950df761678e4cb4ba1dc5dec822762bdb867482b69233af64786ea4c9cb2c",
+      "sourceBlob": "b9bb51fdb830c33d7e807ab5c8fc8cd3447b614b",
+      "sourceSha256": "6ede7814c94778f398bfb1b8701a7434fc2a2321b9d3d939a038074030d8adea",
+      "targetBlob": "b9bb51fdb830c33d7e807ab5c8fc8cd3447b614b",
+      "targetSha256": "6ede7814c94778f398bfb1b8701a7434fc2a2321b9d3d939a038074030d8adea",
       "mode": "100644"
     },
     "src/store/daily-powerup-remote-scope.test.ts": {

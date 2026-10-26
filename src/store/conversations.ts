@@ -209,7 +209,7 @@ export const useConversations = defineStore("conversations", () => {
       url: `${apiRuntimeConfig.baseUrl.replace(/^http/, "ws").replace(/\/$/, "")}/ws/conversations`,
       ticket: () => apiClient.request({ method: "POST", path: "/api/app/support/realtime-ticket" }), socket: createUniRealtimeSocket,
       reconcile: async signal => { const active = () => current() && !signal.aborted; if (!active()) return; await refresh(active); if (active() && watchedId) { const id=watchedId; await open(id,()=>active()&&watchedId===id); } },
-      state: (ready) => { if (current()) { realtimeReady.value = ready; realtimeFallback.value = !ready; } },
+      state: (ready, _terminal, unavailable) => { if (current()) { realtimeReady.value = ready; realtimeFallback.value = unavailable; } },
       presence: value => { if (!current()) return; clearTimeout(typingExpiry); if (!value) { typingIds.value={}; onlineIds.value={}; return; } onlineIds.value[value.conversationNo]=value.online; typingIds.value[value.conversationNo]=value.typing; typingExpiry=setTimeout(()=>{if(current())typingIds.value[value.conversationNo]=false;},value.expiresIn??5000); },
       scopeInvalidated: customerId => {
         if (!current() || accountKeyValue !== `user:${customerId}`) return;

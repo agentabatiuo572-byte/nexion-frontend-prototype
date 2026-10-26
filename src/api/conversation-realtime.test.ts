@@ -28,7 +28,7 @@ describe('conversation realtime recovery',()=>{
     const ticket=vi.fn().mockRejectedValue({status:403});
     const client=new ConversationRealtime({ticket,socket,url:'ws://local',reconcile,state});
     client.start();await vi.advanceTimersByTimeAsync(10000);
-    expect(state).toHaveBeenCalledWith(false,true);
+    expect(state).toHaveBeenCalledWith(false,true,true);
     expect(ticket).toHaveBeenCalledTimes(1);
     expect(socket).not.toHaveBeenCalled();
     expect(reconcile).not.toHaveBeenCalled();
@@ -43,6 +43,44 @@ describe('conversation realtime recovery',()=>{
     expect(reconcile).toHaveBeenCalled();
     expect(ticket).toHaveBeenCalledTimes(2);
     client.stop();
+  });
+  it('reports a renewal timeout and a socket failure until catch-up actually recovers',async()=>{
+    vi.useFakeTimers();
+    const state=vi.fn();const sockets:Socket[]=[];
+    const ticket=vi.fn().mockResolvedValueOnce({ticket:'first'}).mockImplementationOnce(()=>new Promise(()=>{})).mockResolvedValue({ticket:'retry'});
+    const client=new ConversationRealtime({ticket,socket:()=>{const socket=new Socket();sockets.push(socket);return socket;},url:'ws://local',reconcile:async()=>{},state});
+    client.start();await vi.advanceTimersByTimeAsync(0);sockets[0].frame({type:'ready'});await vi.advanceTimersByTimeAsync(0);
+    client.renewCredentials();
+    expect(state).toHaveBeenLastCalledWith(false,false,false);
+    await vi.advanceTimersByTimeAsync(14999);
+    expect(state).toHaveBeenLastCalledWith(false,false,false);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(state).toHaveBeenLastCalledWith(false,false,true);
+    await vi.advanceTimersByTimeAsync(1200);
+    expect(state).toHaveBeenLastCalledWith(false,false,true);
+    sockets[1].frame({type:'ready'});await vi.advanceTimersByTimeAsync(0);
+    expect(state).toHaveBeenLastCalledWith(true,false,false);
+    sockets[1].onerror?.();
+    expect(state).toHaveBeenLastCalledWith(false,false,true);
+    client.stop();
+  });
+  it('preserves a real failure through credential renewal until catch-up completes',async()=>{
+    vi.useFakeTimers();
+    const state=vi.fn();const sockets:Socket[]=[];let finishCatchUp!:()=>void;
+    const reconcile=vi.fn().mockResolvedValueOnce(undefined).mockImplementationOnce(()=>new Promise<void>(resolve=>{finishCatchUp=resolve;}));
+    const client=new ConversationRealtime({ticket:async()=>({ticket:'fresh'}),socket:()=>{const socket=new Socket();sockets.push(socket);return socket;},url:'ws://local',reconcile,state});
+    client.start();await vi.advanceTimersByTimeAsync(0);sockets[0].frame({type:'ready'});await vi.advanceTimersByTimeAsync(0);
+    sockets[0].onerror?.();
+    expect(state).toHaveBeenLastCalledWith(false,false,true);
+    state.mockClear();client.renewCredentials();await vi.advanceTimersByTimeAsync(0);
+    expect(state).toHaveBeenLastCalledWith(false,false,true);
+    sockets[1].frame({type:'ready'});await vi.advanceTimersByTimeAsync(0);
+    expect(client.ready).toBe(false);
+    expect(state).not.toHaveBeenCalledWith(false,false,false);
+    finishCatchUp();await vi.advanceTimersByTimeAsync(0);
+    expect(state).toHaveBeenLastCalledWith(true,false,false);
+    sockets[1].onerror?.();client.stop();
+    expect(state).toHaveBeenLastCalledWith(false,false,false);
   });
   it('resumes fallback after hide/show while the new ticket is still pending',async()=>{
     vi.useFakeTimers();
