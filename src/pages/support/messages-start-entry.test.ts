@@ -325,7 +325,7 @@ function mountRealHumanChat(query: Record<string, string> = { cid: "CV-cold" }, 
     "@/lib/secure-command-id": chatSecure, "@/lib/nova-thinking": chatThinking, "./conversation-realtime-page": chatRealtime,
   };
   const scope = Vue.effectScope();
-  const page = scope.run(() => new Function("require", "exports", humanChatScript + ";return { onSend, onRestart, goBack, cleanup, ticketCreationBlock, ticketCreationBlockText, headerName, headerRole, emptyHint, humanType, isClosedSession, waitingForAgent, showUnassignedReceived, humanHistoryError, humanHistoryListError, retryHumanHistory, conv };")((name: string) => {
+  const page = scope.run(() => new Function("require", "exports", humanChatScript + ";return { onSend, onRestart, goBack, cleanup, ticketCreationBlock, ticketCreationBlockText, headerName, headerRole, emptyHint, humanType, isClosedSession, waitingForAgent, showUnassignedReceived, humanHistoryError, humanHistoryListError, retryHumanHistory, conv, threadMessages, get entranceScope() { return { isAi, novaHistoryLoading, humanOpenRequest, humanHistoryRetryBusy, humanEarlierBusy }; } };")((name: string) => {
     if (name.endsWith(".vue")) return {}; if (!(name in modules)) throw new Error(`Unexpected chat dependency: ${name}`); return modules[name];
   }, {}));
   hooks.onLoad(query); chatCleanups.push(() => { page.cleanup(); scope.stop(); });
@@ -640,6 +640,47 @@ const composerScript = ts.transpileModule(composerCompiled.content, { compilerOp
 // child SFC. This includes the draft-owning component, unlike script-only tests.
 const composerBindingSource = readFileSync(new URL("./chat.vue", import.meta.url), "utf8").match(/:composer-key="([^"]+)"/)![1];
 const humanComposerBinding = new Function("app", "cid", "startType", "isAi", "nova", "convStore", `return ${composerBindingSource};`);
+const entranceBindingSource = readFileSync(new URL('./chat.vue', import.meta.url), 'utf8').match(/:entrance-ready="([^"]+)"/)![1];
+const entranceKeys = ['isAi', 'novaHistoryLoading', 'humanOpenRequest', 'humanHistoryRetryBusy', 'humanEarlierBusy'];
+const humanEntranceBinding = new Function(...entranceKeys, `return ${entranceBindingSource};`);
+function humanThreadComponent(state: unknown) {
+  return new Function('require', 'exports', composerScript + ';return exports.default;')((name: string) => {
+    if (name === 'vue') return { ...Vue, onMounted: vi.fn() };
+    if (name === '@/composables/use-dialog-a11y') return { useDialogA11y: vi.fn() };
+    if (name === '@/composables/use-tab-page-lifecycle') return { onShow: vi.fn(), onHide: vi.fn() };
+    if (name === '@/store/app') return { useApp: () => state };
+    if (name === './conversation-entrance') return conversationEntrance;
+    if (name === './conversation-scroll') return conversationScroll;
+    if (name === '@/components/liquid-glass.vue') return { default: { render: () => null } };
+    throw new Error(`Unexpected composer dependency: ${name}`);
+  }, {});
+}
+
+describe('human history readiness reaches the rendered conversation thread', () => {
+  it.each(['agent', 'user'] as const)('animates the first live %s message after async history without another parent interaction', async sender => {
+    const current = mountRealHumanChat(), gate = chatDeferred();
+    chatTransport.conversation.mockReturnValueOnce(gate.promise);
+    const thread = humanThreadComponent(current.app), root = element('root');
+    let renderedReady: boolean | undefined;
+    const view = renderer.createApp({ render: () => {
+      renderedReady = humanEntranceBinding(...entranceKeys.map(key => Vue.unref(current.page.entranceScope[key])));
+      return Vue.h(thread, { messages: current.page.threadMessages.value, entranceReady: renderedReady,
+        composerKey: 'CV-cold', inputPlaceholder: 'Message', inputLabel: 'Message', sendLabel: 'Send' });
+    } });
+    view.component('scroll-view', { setup: (_props: unknown, { slots }: any) => () => Vue.h('scroll-view', slots.default?.()) });
+    view.mount(root); mounted.push(view);
+    await current.hooks.onShow();
+    await vi.waitFor(() => expect(chatTransport.conversation).toHaveBeenCalledTimes(1));
+    expect(renderedReady).toBe(false);
+    gate.resolve(humanSnapshot()); await current.waitForHistory(); await Vue.nextTick(); await Vue.nextTick();
+    expect(renderedReady).toBe(true);
+    expect(flatten(root).filter(node => /nx-conv-enter-(left|right)/.test(String(node.props.class)))).toHaveLength(0);
+    current.store.get('CV-cold')!.messages.push({ id: 'live-first', sender, text: 'First live message', ts: 2, status: 'sent' });
+    await Vue.nextTick(); await Vue.nextTick();
+    const direction = sender === 'user' ? 'right' : 'left';
+    expect(flatten(root).filter(node => String(node.props.class).includes('nx-conv-enter-' + direction))).toHaveLength(1);
+  });
+});
 describe("rendered human composer account boundary", () => {
   it.each(["existing same account", "existing A to B to A", "new same account", "new A to B to A"])("clears an unsent private draft across %s rebinding", async scenario => {
     const state = Vue.reactive({ accountKey: "account-a", accountBindingEpoch: 1 });

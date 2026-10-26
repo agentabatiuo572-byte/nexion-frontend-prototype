@@ -312,7 +312,11 @@ function scroller(): HTMLElement | undefined {
   return [host, ...Array.from(host.querySelectorAll('*'))].find(node =>
     (node as HTMLElement).scrollHeight - (node as HTMLElement).clientHeight > 4) as HTMLElement | undefined;
 }
-function onThreadScroll(event: { detail: { scrollTop: number } }) { lastScrollTop = event.detail.scrollTop; }
+function onThreadScroll(event: { detail: { scrollTop: number } }) {
+  // Mirror the native position so a later prepend can reapply the same target.
+  lastScrollTop = event.detail.scrollTop;
+  scrollTop.value = lastScrollTop;
+}
 function messageRowId(id: string) { return 'nx-conv-message-' + Array.from(id).map(char=>char.charCodeAt(0).toString(16)).join('-'); }
 function measurePrefix(firstId: string, done: (height: number) => void) {
   const root = (listHost.value as { $el?: HTMLElement } | null)?.$el ?? listHost.value as HTMLElement | null;

@@ -195,6 +195,26 @@ it('preserves native history offsets using scoped row measurements and ignores s
   stale([{ top: 10 }, { top: 9999 }]); expect(screen.view.scrollTop.value).toBe(450);
 });
 
+it('reapplies an identical native history target after the user scrolls back between two pages', async () => {
+  const pending: Array<(rows: unknown[]) => void> = [];
+  const query: Record<string, any> = { in: () => query, select: () => query,
+    boundingClientRect: () => query, exec: (done: (rows: unknown[]) => void) => pending.push(done) };
+  vi.stubGlobal('uni', { createSelectorQuery: () => query });
+  const screen = mount([message('old')]);
+  let nativeTop = 150;
+  const applied: number[] = [];
+  const stop = Vue.watch(screen.view.scrollTop, value => { nativeTop = Number(value); applied.push(nativeTop); });
+  cleanups.push(stop);
+  for (const id of ['older', 'oldest']) {
+    nativeTop = 150;
+    screen.view.onThreadScroll({ detail: { scrollTop: nativeTop } }); await flush();
+    screen.props.messages = [message(id), ...screen.props.messages]; await flush();
+    pending.shift()!([{ top: 10 }, { top: 310 }]); await flush();
+    expect(nativeTop).toBe(450);
+  }
+  expect(applied.filter(top => top === 450)).toHaveLength(2);
+});
+
 it('has linear bounded motion, a reduced-motion override and only local inset shadows', () => {
   const css = descriptor.styles.find(style => style.scoped)!.content;
   expect(css).toContain('180ms linear both'); expect(css).toContain('translateX(-12px)'); expect(css).toContain('translateX(12px)');

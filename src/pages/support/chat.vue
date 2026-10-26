@@ -142,7 +142,7 @@
 
 <script setup lang="ts">
 import { catalogSkuBrandText, catalogSkuRecommendationBody } from "@/lib/brand-copy";
-import { ref, computed, watch, onUnmounted, type CSSProperties } from "vue";
+import { ref, shallowRef, computed, watch, onUnmounted, type CSSProperties } from "vue";
 import { onLoad, onUnload, onShow, onHide } from "@dcloudio/uni-app";
 import NovaAvatar from "@/components/nova/nova-avatar.vue";
 import ConversationThread from "@/components/support/conversation-thread.vue";
@@ -523,7 +523,7 @@ function restoreCompletedHumanCreate(activateRealtime = false) {
 }
 
 function stopHumanThreadPolling() {
-  humanOpenRequest = null;
+  humanOpenRequest.value = null;
   humanRealtime.stop();
 }
 
@@ -531,12 +531,14 @@ function startHumanThreadPolling(openEpoch: number, openId: string) {
   humanRealtime.watchIfCurrent(openEpoch, openId);
 }
 
-let humanOpenRequest: { epoch: number; id: string; binding: number; scope: number } | null = null;
+// The thread must observe history readiness even when no message/draft changes.
+// Keep the request object unproxied so cancellation can still compare identity.
+const humanOpenRequest = shallowRef<{ epoch: number; id: string; binding: number; scope: number } | null>(null);
 async function openHumanConversation(epoch: number, id: string) {
   if (!supportSessionReady.value) return;
   const request = { epoch, id, binding: app.accountBindingEpoch, scope: convStore.scopeInvalidated };
-  humanOpenRequest = request;
-  const current = () => humanOpenRequest === request && request.binding === app.accountBindingEpoch
+  humanOpenRequest.value = request;
+  const current = () => humanOpenRequest.value === request && request.binding === app.accountBindingEpoch
     && humanRealtime.isCurrent(request.epoch, request.id);
   try {
     await convStore.open(id, current);
@@ -549,7 +551,7 @@ async function openHumanConversation(epoch: number, id: string) {
     }
     if (current()) navBack("/pages/support/messages");
   } finally {
-    if (humanOpenRequest === request) humanOpenRequest = null;
+    if (humanOpenRequest.value === request) humanOpenRequest.value = null;
   }
 }
 
@@ -1307,7 +1309,7 @@ async function onSend(text: string, restore?: () => void) {
   humanSendBusy.value = true;
   try {
   // Do not supersede an in-flight page read; preserve the draft for its result.
-  if (!isAi.value && humanOpenRequest !== null) { restore?.(); return; }
+  if (!isAi.value && humanOpenRequest.value !== null) { restore?.(); return; }
   if (!isAi.value && !cid.value && startType.value && remoteApiEnabled) {
     const binding = app.accountBindingEpoch, scope = convStore.scopeInvalidated, type = startType.value;
     let originalPending = false;
