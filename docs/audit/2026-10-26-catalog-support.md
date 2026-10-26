@@ -44,6 +44,14 @@
 - 分项与审查方法见[双人签核记录](2026-10-26-catalog-support/independent-reviews.md)。
 - APP-PLUS编译命令 `npx uni build -p app` 完成，返回0；仅证明原生目标可编译，不等于APK/IPA打包或设备验收。产物指纹见[APP编译记录](2026-10-26-catalog-support/app-compile.json)。
 
+## H5 同步后复验
+
+- APP功能提交dd446032，受控同步到H5提交6e58b6b：46项写入、0项删除，H5自有规则、端口和平台边界保留。来源/源工作区/暂存区/目标共2836个受控文件一致。
+- H5重新构建通过，vue-tsc 0错误，13个Vitest文件189/189通过。H5构建与来源独立记录在[h5-build-evidence.json](2026-10-26-catalog-support/h5-build-evidence.json)，不沿用APP工作区的产物指纹。
+- [H5实景读回](2026-10-26-catalog-support/h5-runtime.json)：390px首页、专区及320×568团队均只有一个48px浮标，距导航12px；浅色图自然尺寸192px。实际点击浮标进入消息中心，服务分类选中，人工客服会话可见。
+- H5商城实测后台切换Pro赠S1、升级P1→P2，文字和机器图同步；目录缺图显示占位，恢复图片后目标浮动恢复。商城无额外客服浮标，浅色文案rgb(19,20,26)，未见横向溢出。
+- H5截图：[首页浅色](2026-10-26-catalog-support/h5-home-light-final.png)、[客服服务页](2026-10-26-catalog-support/h5-support-service-final.png)、[团队短屏](2026-10-26-catalog-support/h5-team-320-light-final.png)、[机型切换](2026-10-26-catalog-support/h5-store-alternate-final.png)、[缺图占位](2026-10-26-catalog-support/h5-store-missing-final.png)。本节随后以文档提交同轮同步，不修改已验收功能代码。
+
 ## 验证边界
 
 本轮是本地模拟浏览器与组件行为验证，不代表真实后台发布、生产部署、APK/IPA安装或iOS/Android实体机已验收。原生图片缓存的迟到事件覆盖来自行为测试，真实离线缓存损坏及系统手势区仍需设备复验。完整活动Banner的真实后台上传/发布链路不在本轮本地验收范围。

@@ -1,0 +1,51 @@
+{
+  "timestamp": "2026-10-26T18:19:13.8302719+09:00",
+  "sourceCommit": "dd44603293ea426ef12ba965c561e5f6e57a963a",
+  "h5BaseCommit": "779f930bc7a4bf61e61d9920ee2777700c9ec110",
+  "preview": "http://127.0.0.1:5232/preview",
+  "checks": {
+    "buildH5Exit": 0,
+    "vueTscErrors": 0,
+    "vitestFiles": 13,
+    "vitestPassed": 189,
+    "vitestFailed": 0,
+    "controlledSyncFiles": 2836,
+    "controlledSync": "pass"
+  },
+  "indexSha256": "530966ED79D394CE8794E21071DA37CB81361F18E4F8332F99598F2A0843CD73",
+  "build": [
+    {
+      "path": "app-chassis-D2cp7loV.css",
+      "sha256": "920EC1008DEE2EA003DC4289FE7FFDB07B606826112186346BF7AF1DEFB5C63C"
+    },
+    {
+      "path": "app-chassis.BaBAFCZc.js",
+      "sha256": "6C1EEF2FDDC631DE62ADAC782076A389748088820F7EF978CA0979F964296D13"
+    },
+    {
+      "path": "catalog-machine-image-BPdzf5qt.css",
+      "sha256": "A6C0ACB3090D15B0FA7303DAA3A925A49048B52F69421C0BDF69845B99A07799"
+    },
+    {
+      "path": "catalog-machine-image.DTNZv7ZQ.js",
+      "sha256": "55BFB195401D1AE0707BE042C6C2E122FF80830489F0239F0C8BC0FA7917AAEC"
+    },
+    {
+      "path": "promotion-entry-BDxLq2jp.css",
+      "sha256": "F25A9D339DC4CB6B3C1B92D9CD12A3177500BE35EF938F4C0C552D4A1283EE1D"
+    },
+    {
+      "path": "promotion-entry.BsDQgY_C.js",
+      "sha256": "A6F3A12CC793541A6E09E0D61EF1F36DEA32553EFEA11F553B0E5A1B353E3FAF"
+    },
+    {
+      "path": "promotion-entry.DjtecXLR.js",
+      "sha256": "26F560963A3F0CC63B35B0FA6EABB37B3D4CCA61577316CA1FCF737633D9CAE1"
+    },
+    {
+      "path": "store-B9pdsC2M.css",
+      "sha256": "566810227D61FE92578BBD6E350A6F576E31874F201CFE3A1885EF3999928728"
+    }
+  ],
+  "lightAssetSha256": "AAE0965A94A14AA8B5053E5536D2A9EE78BD13A6F5DAFAF4A1922ECFF6962086"
+}

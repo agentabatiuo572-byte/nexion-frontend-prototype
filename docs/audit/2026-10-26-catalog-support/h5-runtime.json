@@ -1,0 +1,321 @@
+{
+  "preview": "http://127.0.0.1:5232/preview",
+  "sourceCommit": "dd44603293ea426ef12ba965c561e5f6e57a963a",
+  "support": [
+    {
+      "label": "H5-home-390-dark",
+      "bubble": {
+        "bottom": 742,
+        "height": 48,
+        "opacity": "1",
+        "pointer": "auto",
+        "text": "1",
+        "width": 48,
+        "x": 326,
+        "y": 694
+      },
+      "copies": 1,
+      "indicator": {
+        "bottom": 844,
+        "height": 22,
+        "opacity": "1",
+        "pointer": "none",
+        "text": "",
+        "width": 390,
+        "x": 0,
+        "y": 822
+      },
+      "nav": {
+        "bottom": 822,
+        "height": 68,
+        "opacity": "1",
+        "pointer": "auto",
+        "text": "首页赚取商城团队我的",
+        "width": 366,
+        "x": 12,
+        "y": 754
+      },
+      "overflow": false,
+      "route": "#/pages/index/index"
+    },
+    {
+      "label": "H5-home-390-light",
+      "bubble": {
+        "bottom": 742,
+        "height": 48,
+        "opacity": "1",
+        "pointer": "auto",
+        "text": "1",
+        "width": 48,
+        "x": 326,
+        "y": 694
+      },
+      "copies": 1,
+      "indicator": {
+        "bottom": 844,
+        "height": 22,
+        "opacity": "1",
+        "pointer": "none",
+        "text": "",
+        "width": 390,
+        "x": 0,
+        "y": 822
+      },
+      "nav": {
+        "bottom": 822,
+        "height": 68,
+        "opacity": "1",
+        "pointer": "auto",
+        "text": "首页赚取商城团队我的",
+        "width": 366,
+        "x": 12,
+        "y": 754
+      },
+      "overflow": false,
+      "route": "#/pages/index/index"
+    },
+    {
+      "label": "H5-earn-390-light",
+      "bubble": {
+        "bottom": 742,
+        "height": 48,
+        "opacity": "1",
+        "pointer": "auto",
+        "text": "1",
+        "width": 48,
+        "x": 326,
+        "y": 694
+      },
+      "copies": 1,
+      "indicator": {
+        "bottom": 844,
+        "height": 22,
+        "opacity": "1",
+        "pointer": "none",
+        "text": "",
+        "width": 390,
+        "x": 0,
+        "y": 822
+      },
+      "nav": {
+        "bottom": 822,
+        "height": 68,
+        "opacity": "1",
+        "pointer": "auto",
+        "text": "首页赚取商城团队我的",
+        "width": 366,
+        "x": 12,
+        "y": 754
+      },
+      "overflow": false,
+      "route": "#/pages/earn/earn"
+    },
+    {
+      "label": "H5-team-320-short-light",
+      "bubble": {
+        "bottom": 466,
+        "height": 48,
+        "opacity": "1",
+        "pointer": "auto",
+        "text": "1",
+        "width": 48,
+        "x": 256,
+        "y": 418
+      },
+      "copies": 1,
+      "indicator": {
+        "bottom": 568,
+        "height": 22,
+        "opacity": "1",
+        "pointer": "none",
+        "text": "",
+        "width": 320,
+        "x": 0,
+        "y": 546
+      },
+      "nav": {
+        "bottom": 546,
+        "height": 68,
+        "opacity": "1",
+        "pointer": "auto",
+        "text": "首页赚取商城团队我的",
+        "width": 296,
+        "x": 12,
+        "y": 478
+      },
+      "overflow": false,
+      "route": "#/pages/team/team"
+    }
+  ],
+  "images": [
+    {
+      "label": "H5-store-alternate",
+      "images": [
+        {
+          "animation": "none",
+          "class": "catalog-machine-image upgrade-art__base",
+          "complete": true,
+          "naturalWidth": 1254,
+          "rect": {
+            "h": 96,
+            "w": 96,
+            "x": 44.66666793823242,
+            "y": 462
+          },
+          "src": "http://127.0.0.1:5232/static/img/products/uvel-pedestal/stellarrack-p1.webp",
+          "state": "ready"
+        },
+        {
+          "animation": "upgrade-float-892c84f6",
+          "class": "catalog-machine-image upgrade-art__target upgrade-art__target--ready",
+          "complete": true,
+          "naturalWidth": 1254,
+          "rect": {
+            "h": 150,
+            "w": 150,
+            "x": 205.33334350585935,
+            "y": 408.8247985839844
+          },
+          "src": "http://127.0.0.1:5232/static/img/products/uvel-pedestal/stellarrack-p2.webp",
+          "state": "ready"
+        }
+      ],
+      "rect": {
+        "h": 385.3333435058594,
+        "w": 358,
+        "x": 16,
+        "y": 351.3333435058594
+      },
+      "text": "升级建议UVELRack P1→ UVELRack P2现在 · 预估$45.00/天升级后 · 预估$75.00/天预计每日收益 · 实际收益随任务量与价格变化，不保证收益。查看详情"
+    },
+    {
+      "label": "H5-store-campaign-alternate",
+      "images": [
+        {
+          "animation": "promotion-float-cda0a342",
+          "class": "catalog-machine-image entry-main-image",
+          "complete": true,
+          "naturalWidth": 512,
+          "rect": {
+            "h": 118,
+            "w": 118,
+            "x": 225.33334350585935,
+            "y": 175.5313720703125
+          },
+          "src": "http://127.0.0.1:5232/static/img/home-glass-20260928/pro.webp",
+          "state": "ready"
+        },
+        {
+          "animation": "promotion-float-cda0a342",
+          "class": "catalog-machine-image entry-gift-image",
+          "complete": true,
+          "naturalWidth": 512,
+          "rect": {
+            "h": 84,
+            "w": 84,
+            "x": 295.3333435058594,
+            "y": 223.74957275390625
+          },
+          "src": "http://127.0.0.1:5232/static/img/home-glass-20260928/s1.webp",
+          "state": "ready"
+        }
+      ],
+      "rect": {
+        "h": 147.33334350585938,
+        "w": 358,
+        "x": 16,
+        "y": 172
+      },
+      "text": "购机赠礼买 UVELBox Pro送 UVELBox S1 1 份剩 29 天 · 活动规则 ›"
+    },
+    {
+      "label": "H5-store-missing",
+      "images": [
+        {
+          "animation": "none",
+          "class": "catalog-machine-image upgrade-art__base",
+          "rect": {
+            "h": 96,
+            "w": 96,
+            "x": 44.66666793823242,
+            "y": 462
+          },
+          "state": "unavailable"
+        },
+        {
+          "animation": "none",
+          "class": "catalog-machine-image upgrade-art__target",
+          "rect": {
+            "h": 150,
+            "w": 150,
+            "x": 205.33334350585935,
+            "y": 412
+          },
+          "state": "unavailable"
+        }
+      ],
+      "rect": {
+        "h": 385.3333435058594,
+        "w": 358,
+        "x": 16,
+        "y": 351.3333435058594
+      },
+      "text": "升级建议UVELBox Pro→ UVELBox Pro v2现在 · 预估$22.40/天升级后 · 预估$28.60/天预计每日收益 · 实际收益随任务量与价格变化，不保证收益。查看详情"
+    },
+    {
+      "label": "H5-store-restored-alternate",
+      "images": [
+        {
+          "animation": "none",
+          "class": "catalog-machine-image upgrade-art__base",
+          "complete": true,
+          "naturalWidth": 1254,
+          "rect": {
+            "h": 96,
+            "w": 96,
+            "x": 44.66666793823242,
+            "y": 462
+          },
+          "src": "http://127.0.0.1:5232/static/img/products/uvel-pedestal/stellarrack-p1.webp",
+          "state": "ready"
+        },
+        {
+          "animation": "upgrade-float-892c84f6",
+          "class": "catalog-machine-image upgrade-art__target upgrade-art__target--ready",
+          "complete": true,
+          "naturalWidth": 1254,
+          "rect": {
+            "h": 150,
+            "w": 150,
+            "x": 205.33334350585935,
+            "y": 410.7209167480469
+          },
+          "src": "http://127.0.0.1:5232/static/img/products/uvel-pedestal/stellarrack-p2.webp",
+          "state": "ready"
+        }
+      ],
+      "rect": {
+        "h": 385.3333435058594,
+        "w": 358,
+        "x": 16,
+        "y": 351.3333435058594
+      },
+      "text": "升级建议UVELRack P1→ UVELRack P2现在 · 预估$45.00/天升级后 · 预估$75.00/天预计每日收益 · 实际收益随任务量与价格变化，不保证收益。查看详情"
+    }
+  ],
+  "supportClick": {
+    "route": "#/pages/me/notifications?section=service",
+    "selected": "服务",
+    "conversation": "专属客服 · 1 条未读"
+  },
+  "lightAsset": {
+    "src": "/static/img/marketing/nova-avatar-light-20261026.webp",
+    "naturalWidth": 192
+  },
+  "store": {
+    "floatingSupportCount": 0,
+    "copyColor": "rgb(19, 20, 26)",
+    "overflow": false
+  },
+  "scope": "H5 compiled production output with local simulation; no live backend or native device"
+}

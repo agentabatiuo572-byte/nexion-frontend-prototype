@@ -3,10 +3,10 @@
   "sourcePath": "D:\\WORKS\\PLAN\\.wt\\uvel-design-20261025-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "dd44603293ea426ef12ba965c561e5f6e57a963a",
-  "sourceRef": "dd44603293ea426ef12ba965c561e5f6e57a963a",
+  "sourceHead": "7092572ba30977be7078f1a9f79873ff37885bb2",
+  "sourceRef": "7092572ba30977be7078f1a9f79873ff37885bb2",
   "sourceRefKind": "commit",
-  "sourceTree": "7ba2523f53fe4fdf2c874331934c7fa852124063",
+  "sourceTree": "c4d022366e11fb471f3f647b394693cfeadb0ff5",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -349,10 +349,10 @@
       "mode": "100644"
     },
     "docs/audit/2026-10-26-catalog-support.md": {
-      "sourceBlob": "55a0a1b2cb13deb3e3804683e44c5f56f39275ad",
-      "sourceSha256": "cd1e5fadbc2c3e93fb60872d169730d660d3390e4c546a471cb8ae05478dc2f7",
-      "targetBlob": "55a0a1b2cb13deb3e3804683e44c5f56f39275ad",
-      "targetSha256": "cd1e5fadbc2c3e93fb60872d169730d660d3390e4c546a471cb8ae05478dc2f7",
+      "sourceBlob": "5cd1a085c9f8579ce3c3f0e73cdb774d49f09621",
+      "sourceSha256": "c3ab4b0ee6dda7ae7c66b678ea5f12189dd6327bdaa244c1a06261ea2e023820",
+      "targetBlob": "5cd1a085c9f8579ce3c3f0e73cdb774d49f09621",
+      "targetSha256": "c3ab4b0ee6dda7ae7c66b678ea5f12189dd6327bdaa244c1a06261ea2e023820",
       "mode": "100644"
     },
     "docs/audit/2026-10-26-catalog-support/app-compile.json": {
@@ -381,6 +381,55 @@
       "sourceSha256": "85635645e6be44d45fc7164d2ec1fe7c0e39c2010c6877afca8f1a5a0fda9a1f",
       "targetBlob": "edb546a6d6df7ca18d33b26cc469551aa0404b25",
       "targetSha256": "85635645e6be44d45fc7164d2ec1fe7c0e39c2010c6877afca8f1a5a0fda9a1f",
+      "mode": "100644"
+    },
+    "docs/audit/2026-10-26-catalog-support/h5-build-evidence.json": {
+      "sourceBlob": "7c78b468938bd551d1f4e5d898e578152c92fcc1",
+      "sourceSha256": "1dd223ad84b24570c4d08c339d6fbfe8c367fb65f992d04dedf1ed480f6315c1",
+      "targetBlob": "7c78b468938bd551d1f4e5d898e578152c92fcc1",
+      "targetSha256": "1dd223ad84b24570c4d08c339d6fbfe8c367fb65f992d04dedf1ed480f6315c1",
+      "mode": "100644"
+    },
+    "docs/audit/2026-10-26-catalog-support/h5-home-light-final.png": {
+      "sourceBlob": "abdbefbba6e69f975c748c4aef0e6fe97c795ef6",
+      "sourceSha256": "c4a2f9bf68e7b26ca643003e0707cfd34b7af0abb67b29d2acf26921ec27b99c",
+      "targetBlob": "abdbefbba6e69f975c748c4aef0e6fe97c795ef6",
+      "targetSha256": "c4a2f9bf68e7b26ca643003e0707cfd34b7af0abb67b29d2acf26921ec27b99c",
+      "mode": "100644"
+    },
+    "docs/audit/2026-10-26-catalog-support/h5-runtime.json": {
+      "sourceBlob": "5886b1534fc8e747e0b7a599501cbfbb3746da7b",
+      "sourceSha256": "3d0184d51c68399584041a26d232dc10559391c3a6d842c52b77f771147785f4",
+      "targetBlob": "5886b1534fc8e747e0b7a599501cbfbb3746da7b",
+      "targetSha256": "3d0184d51c68399584041a26d232dc10559391c3a6d842c52b77f771147785f4",
+      "mode": "100644"
+    },
+    "docs/audit/2026-10-26-catalog-support/h5-store-alternate-final.png": {
+      "sourceBlob": "51459d3a33feae91bc765110367050204c25d210",
+      "sourceSha256": "eeaf2fab46f93254a3bd4882d9e7c8c290765c0af6cda6933f93812c661e0bf4",
+      "targetBlob": "51459d3a33feae91bc765110367050204c25d210",
+      "targetSha256": "eeaf2fab46f93254a3bd4882d9e7c8c290765c0af6cda6933f93812c661e0bf4",
+      "mode": "100644"
+    },
+    "docs/audit/2026-10-26-catalog-support/h5-store-missing-final.png": {
+      "sourceBlob": "6ad2e740656a10a12f9b23f7597f42af751067d6",
+      "sourceSha256": "edcc098ee9c9215e4ca6224821880199eab0f3ce15bdd4d7faee247bb9b65137",
+      "targetBlob": "6ad2e740656a10a12f9b23f7597f42af751067d6",
+      "targetSha256": "edcc098ee9c9215e4ca6224821880199eab0f3ce15bdd4d7faee247bb9b65137",
+      "mode": "100644"
+    },
+    "docs/audit/2026-10-26-catalog-support/h5-support-service-final.png": {
+      "sourceBlob": "6f1cc98728b8c1dab125ed91b0b4307c9f42ab15",
+      "sourceSha256": "2571f17398930bda72fda949c3f410d4220f5f7813cd0fe0bcb880bb4f9589b9",
+      "targetBlob": "6f1cc98728b8c1dab125ed91b0b4307c9f42ab15",
+      "targetSha256": "2571f17398930bda72fda949c3f410d4220f5f7813cd0fe0bcb880bb4f9589b9",
+      "mode": "100644"
+    },
+    "docs/audit/2026-10-26-catalog-support/h5-team-320-light-final.png": {
+      "sourceBlob": "3b47a4b7bcb304c6296b07f49f509388b7ce84af",
+      "sourceSha256": "39613e69134e14f445f3bd76b3002724fed3ac2a50ea77c6d034f8be6ce5e799",
+      "targetBlob": "3b47a4b7bcb304c6296b07f49f509388b7ce84af",
+      "targetSha256": "39613e69134e14f445f3bd76b3002724fed3ac2a50ea77c6d034f8be6ce5e799",
       "mode": "100644"
     },
     "docs/audit/2026-10-26-catalog-support/home-alternate.png": {
