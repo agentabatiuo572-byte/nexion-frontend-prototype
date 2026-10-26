@@ -223,22 +223,53 @@ beforeEach(() => {
 afterEach(() => { unmounts.splice(0).forEach(unmount => unmount()); vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe("mounted poster template during real authority refresh", () => {
-  it.each(["h5", "native"] as const)("keeps the %s poster open while public config polls and closes on confirmed failure", async platform => {
+  it.each(["h5", "native"] as const)("keeps the ready %s poster while public config polls the same link and closes on confirmed failure", async platform => {
     const s = await mount(platform); await s.generate(); await s.finish();
-    const confirmedLink = buildShareLink();
+    const confirmedLink = buildShareLink(), exportsBefore = s.exports.length, imageBefore = s.image();
     s.cfg.configStatus = "loading"; await flush();
     expect(s.open.value).toBe(true);
-    expect(s.control(en.share.saveImage).props["aria-disabled"]).toBe(true);
-    await s.generate(); await s.finish("/polling-poster.png");
+    expect(s.control(en.share.saveImage).props["aria-disabled"]).toBe(false);
+    await s.generate();
+    expect(s.exports).toHaveLength(exportsBefore); expect(s.image()).toBe(imageBefore);
     await s.control(en.share.copyLink).props.onClick();
     expect(s.copyText).toHaveBeenCalledWith(confirmedLink);
     expect(s.unavailable).not.toHaveBeenCalled();
     s.cfg.configStatus = "ready"; await flush();
     expect(s.open.value).toBe(true);
-    await s.generate(); await s.finish("/confirmed-poster.png");
-    expect(s.image()).toBe("/confirmed-poster.png");
+    await s.generate();
+    expect(s.exports).toHaveLength(exportsBefore); expect(s.image()).toBe(imageBefore);
     s.cfg.configStatus = "failed"; await flush();
     expect(s.open.value).toBe(false); expect(s.unavailable).toHaveBeenCalled();
+  });
+
+  it.each([
+    ["h5", "brand"], ["native", "brand"], ["h5", "gift"], ["native", "gift"],
+  ] as const)("keeps a ready %s %s poster through unrelated home/fleet refresh, changed values and errors", async (platform, template) => {
+    const s = await mount(platform);
+    s.cfg.config.rewards.enabled = true; s.cfg.config.rewards.welcomeGift.usdtAmount = 2;
+    await s.generate(); await s.finish();
+    if (template === "gift") {
+      s.tab(en.share.tplGift)!.props.onClick({ currentTarget: {} }); await s.generate(); await s.finish("/gift-ready.png");
+    }
+    const imageBefore = s.image(), exportsBefore = s.exports.length;
+    const pendingHome = s.hold(homePath), pendingFleet = s.hold(fleetPath);
+    const reads = [s.app.refreshHomeTruth(), s.app.refreshRemoteFleet()]; await flush();
+    expect(s.app.homeTruthStatus).toBe("loading"); expect(s.app.remoteFleetStatus).toBe("loading");
+    expect(s.image()).toBe(imageBefore); expect(s.control(en.share.saveImage).props["aria-disabled"]).toBe(false);
+    await s.generate(); expect(s.exports).toHaveLength(exportsBefore);
+    pendingHome.resolve(response(home(1.23))); pendingFleet.resolve(response(fleet(false)));
+    expect(await Promise.all(reads)).toEqual([true, true]); await s.generate();
+    expect(s.exports).toHaveLength(exportsBefore); expect(s.image()).toBe(imageBefore);
+    expect(s.control(en.share.copyLink).props["aria-disabled"]).toBe(false);
+    const failedHome = s.hold(homePath), failedFleet = s.hold(fleetPath);
+    const failures = [s.app.refreshHomeTruth(), s.app.refreshRemoteFleet()]; await flush();
+    failedHome.resolve(response({ ...home(), serverCanonical: false }));
+    failedFleet.resolve(response({ ...fleet(), serverCanonical: false }));
+    expect(await Promise.all(failures)).toEqual([false, false]); await s.generate();
+    expect(s.app.homeTruthStatus).toBe("error"); expect(s.app.remoteFleetStatus).toBe("error");
+    expect(s.exports).toHaveLength(exportsBefore); expect(s.image()).toBe(imageBefore);
+    expect(s.control(en.share.saveImage).props["aria-disabled"]).toBe(false);
+    expect(s.selected()).toBe(template === "gift" ? en.share.tplGift : en.share.tplBrand);
   });
 
   it.each(["home", "fleet", "both"])("keeps My yield selected through %s polling but exports only current confirmed data", async kind => {

@@ -415,8 +415,16 @@ function regenerate() {
 }
 
 watch(
-  () => [props.open, tpl.value, showUsername.value, buildShareLink(), runningDevices.value, yieldTodayUsdt.value,
-    app.remoteFleetStatus, app.homeTruthStatus, giftUsdt.value, giftNex.value, rewardEnabled.value, locale.code] as const,
+  [
+    () => props.open, () => tpl.value, () => showUsername.value, () => buildShareLink(),
+    // Only the yield drawing depends on fleet/earnings authority. Compare source
+    // values individually so a poll retaining the same link cannot clear ready art.
+    () => tpl.value === "yield" ? runningDevices.value : null,
+    () => tpl.value === "yield" ? yieldTodayUsdt.value : null,
+    () => tpl.value === "yield" ? app.remoteFleetStatus : null,
+    () => tpl.value === "yield" ? app.homeTruthStatus : null,
+    () => giftUsdt.value, () => giftNex.value, () => rewardEnabled.value, () => locale.code,
+  ],
   ([open]) => {
     if (open) {
       regenerate();
