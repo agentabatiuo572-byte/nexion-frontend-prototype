@@ -38,7 +38,7 @@ function mount(initial: ThreadMsg[] = []) {
   const shown: Array<() => void> = [], hidden: Array<() => void> = [];
   const props = Vue.reactive({ messages: initial, entranceReady: true, timeLocale: 'zh' as 'zh' | 'en' | 'vi', composerKey: 'conversation:A', revealTick: 0,
     inputPlaceholder: 'Message', inputLabel: 'Message', sendLabel: 'Send', queueLabels: zh.nova.queue,
-    imageLabels: zh.conversations.image, sendBlocked: false });
+    imageLabels: zh.conversations.image, sendBlocked: false, attachDisabled: false, attachUnavailable: '', attachRetry: false });
   const exports: Record<string, any> = {}, emit = vi.fn();
   const modules: Record<string, unknown> = {
     vue: { ...Vue, onMounted() {} }, '@/components/liquid-glass.vue': { default: { render: () => null } },
@@ -243,6 +243,21 @@ it('renders date/gap markers independently of precise per-message times and does
   screen.props.timeLocale = 'vi'; await flush();
   expect(screen.view.timeGroups.value.one).toContain('Hôm qua');
   expect(findAll(await screen.node(), 'nx-conv-enter-left')).toHaveLength(0);
+});
+
+it('disables unavailable image input without a visible caption while text sending and policy recovery remain usable', async () => {
+  const screen = mount(); screen.props.attachDisabled = true; screen.props.attachUnavailable = 'Images unavailable';
+  let node = await screen.node(); const attach = findAll(node, 'nx-conv-attach-trigger')[0];
+  expect(attach.props?.['aria-disabled']).toBe('true'); expect(attach.props?.tabindex).toBe(-1);
+  expect(attach.props?.style.opacity).toBe(0.45); expect(attach.props?.['aria-label']).toContain('Images unavailable');
+  attach.props!.onClick(); expect(screen.emit).not.toHaveBeenCalledWith('attach');
+  expect(findAll(node, 'nx-conv-policy-caption')).toHaveLength(0);
+  expect(findAll(node, 'nx-conv-policy-retry')).toHaveLength(0);
+  screen.view.onDraft({ detail: { value: 'Text still works' } }); screen.view.onSend();
+  expect(screen.emit).toHaveBeenCalledWith('send', 'Text still works', expect.any(Function));
+  screen.props.attachRetry = true; node = await screen.node();
+  findAll(node, 'nx-conv-policy-retry')[0].props!.onClick();
+  expect(screen.emit).toHaveBeenCalledWith('retry-policy');
 });
 
 it('has linear bounded motion, a reduced-motion override and only local inset shadows', () => {
