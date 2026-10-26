@@ -525,7 +525,7 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
 }
 .nx-conv-receipt-t {
   font-size: 12px;
-  color: var(--v5-ink-4);
+  color: var(--v5-ink-3);
   overflow-wrap: anywhere;
 }
 .nx-conv-receipt[data-state="failed"] .nx-conv-receipt-t { color: var(--v5-danger); }
