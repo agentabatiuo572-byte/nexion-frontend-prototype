@@ -1,7 +1,7 @@
 import * as Vue from "vue";
 import type { Component } from "vue";
-import { compileScript, parse } from "@vue/compiler-sfc";
-import { initPreContext, preHtml, preJs } from "@dcloudio/uni-cli-shared/dist/preprocess";
+import { compileScript, compileStyle, parse } from "@vue/compiler-sfc";
+import { initPreContext, preCss, preHtml, preJs } from "@dcloudio/uni-cli-shared/dist/preprocess";
 import ts from "typescript";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import raw from "./globe.vue?raw";
@@ -12,6 +12,7 @@ import { svgMarkup } from "@/lib/native-svg-markup";
 import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
 import { vi as viMessages } from "@/i18n/messages/vi";
+import { useIntroMotion } from "@/composables/use-intro-motion";
 
 // Compile both production SFCs through the installed Uni conditional parser.
 // Reparse its output so compileScript consumes the correct template AST.
@@ -57,6 +58,14 @@ function emit(target: Host, key: string, event = {}) {
   const callbacks = Array.isArray(target.props[key]) ? target.props[key] : [target.props[key]];
   callbacks.forEach((callback: (event: unknown) => void) => { expect(callback).toBeTypeOf("function"); callback(event); });
 }
+function touch(target: Host, key: string) {
+  let stopped = false;
+  const event = { stopPropagation: vi.fn(() => { stopped = true; }), preventDefault: vi.fn() };
+  for (let current: Host | null = target; current && !stopped; current = current.parent) {
+    if (current.props[key]) emit(current, key, event);
+  }
+  return event;
+}
 const unmounts: Array<() => void> = [];
 const settle = async () => { for (let n = 0; n < 4; n++) await Vue.nextTick(); };
 type Platform = "app" | "h5";
@@ -70,6 +79,7 @@ async function mount(platform: Platform) {
   const locale = Vue.ref<keyof typeof dictionaries>("en");
   const t = Vue.computed(() => dictionaries[locale.value]);
   const shows: Array<() => void> = [], hides: Array<() => void> = [];
+  const backs: Array<() => boolean> = [];
   let dialogOpen: Vue.Ref<boolean> | undefined;
   let closeDialog: (() => void) | undefined;
   const slot = { setup: (_props: unknown, { slots }: any) => () => Vue.h("view", slots.default?.()) };
@@ -78,11 +88,12 @@ async function mount(platform: Platform) {
     vue: Vue, "@/components/native-svg.vue": { default: native }, "@/components/svg-text": { default: SvgText },
     "@/components/app-chassis.vue": { default: slot }, "@/components/sub-page-header.vue": { default: slot },
     "@/i18n/use-t": { useT: () => t },
+    "@/composables/use-intro-motion": { useIntroMotion },
     "@/lib/globe-simulation": { globeSimulation, GLOBE_SIMULATION_INTERVAL_MS },
     "@/composables/use-dialog-a11y": { useDialogA11y: (open: Vue.Ref<boolean>, _selector: string, close: () => void) => {
       dialogOpen = open; closeDialog = close;
     } },
-    "@dcloudio/uni-app": { onShow: (cb: () => void) => shows.push(cb), onHide: (cb: () => void) => hides.push(cb) },
+    "@dcloudio/uni-app": { onShow: (cb: () => void) => shows.push(cb), onHide: (cb: () => void) => hides.push(cb), onBackPress: (cb: () => boolean) => backs.push(cb) },
   };
   const root = node("root");
   const app = renderer.createApp(compile(raw, "globe.vue", deps));
@@ -102,17 +113,19 @@ async function mount(platform: Platform) {
   const hide = async () => { hides.forEach(cb => cb()); await settle(); };
   const show = async () => { shows.forEach(cb => cb()); await settle(); };
   const dispose = () => { unmounts.splice(unmounts.indexOf(unmount), 1); unmount(); };
-  return { root, locale, graph, svg, controls, rows, markup, drawer, drawerValues, headline, closeButton,
+  return { root, locale, graph, svg, controls, rows, markup, drawer, drawerValues, headline, closeButton, backs,
     hide, show, dispose, dialogOpen: () => dialogOpen!.value, closeDialog: () => closeDialog!() };
 }
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(INITIAL_STEP * GLOBE_SIMULATION_INTERVAL_MS);
+  vi.stubGlobal("window", { matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }) });
 });
 afterEach(() => {
   unmounts.splice(0).forEach(unmount => unmount());
   vi.restoreAllMocks();
   vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 test("APP serializes eight centers, reference connections and geographic leaders into native SVG", async () => {
@@ -136,6 +149,40 @@ test("APP serializes eight centers, reference connections and geographic leaders
   expect(text(page.graph()!)).toContain(en.globe.referenceCenterShort);
 });
 
+test("APP reduced-motion stylesheet hides the pulse without hiding the interactive nodes", () => {
+  initPreContext("app");
+  const css = compileStyle({
+    source: preCss(parse(raw).descriptor.styles[0].content, "globe.vue"),
+    filename: "globe.vue", id: "data-v-globe", scoped: true,
+  });
+  expect(css.errors).toEqual([]);
+  expect(css.code).toMatch(/@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.nx-globe-native-pulse\[data-v-globe\]\s*\{\s*display: none;\s*animation: none;/);
+  expect(css.code).not.toMatch(/\.nx-globe-native-(?:node|dot)\[data-v-globe\][^{]*\{[^}]*display:\s*none/);
+});
+
+test("APP system back closes the open center drawer once and then allows the original page return", async () => {
+  const page = await mount("app");
+  expect(page.backs).toHaveLength(1);
+  expect(page.backs[0]()).toBe(false);
+  emit(page.controls()[3], "onClick"); await settle();
+  expect(text(page.drawer()!)).toContain(en.globe.centerLondon);
+  expect(page.drawerValues()[0]).toBe("24.9W+");
+  const totals = page.headline();
+  expect(page.backs[0]()).toBe(true); await settle();
+  expect(page.drawer()).toBeUndefined();
+  expect(page.dialogOpen()).toBe(false);
+  expect(page.headline()).toEqual(totals);
+  expect(page.backs[0]()).toBe(false);
+  emit(page.rows()[7], "onClick"); await settle();
+  emit(page.closeButton(), "onClick"); await settle();
+  expect(page.backs[0]()).toBe(false);
+});
+
+test("H5 does not register the native system back handler", async () => {
+  const page = await mount("h5");
+  expect(page.backs).toHaveLength(0);
+});
+
 test("H5 retains eight SVG controls, leader lines and SMIL pulse", async () => {
   const page = await mount("h5");
   expect(page.graph()).toBeUndefined();
@@ -151,6 +198,48 @@ test("H5 retains eight SVG controls, leader lines and SMIL pulse", async () => {
 });
 
 for (const platform of ["app", "h5"] as const) {
+  test(`${platform} stops drawer gestures before the chassis, prevents scrim scrolling and preserves card scrolling`, async () => {
+    const page = await mount(platform);
+    emit(page.rows()[0], "onClick"); await settle();
+    const drawer = page.drawer()!;
+    const card = all(drawer).find(n => hasClass(n, "nx-glass-sheet"))!;
+    const scrim = all(drawer).find(n => hasClass(n, "nx-globe-scrim"))!;
+    const backgroundGesture = vi.fn();
+    for (const key of ["onTouchstart", "onTouchmove", "onTouchend", "onTouchcancel"]) {
+      drawer.parent!.props[key] = backgroundGesture;
+      const event = touch(card, key);
+      expect(event.stopPropagation).toHaveBeenCalledOnce();
+      expect(event.preventDefault).not.toHaveBeenCalled();
+      expect(backgroundGesture).not.toHaveBeenCalled();
+    }
+    const scrimMove = touch(scrim, "onTouchmove");
+    expect(scrimMove.stopPropagation).toHaveBeenCalledOnce();
+    expect(scrimMove.preventDefault).toHaveBeenCalledOnce();
+    expect(backgroundGesture).not.toHaveBeenCalled();
+    expect(style(card)).toMatchObject({ overflowY: "auto", overscrollBehaviorY: "contain", maxHeight: "100%" });
+    const css = compileStyle({
+      source: preCss(parse(raw).descriptor.styles[0].content, "globe.vue"),
+      filename: "globe.vue", id: "data-v-globe", scoped: true,
+    });
+    expect(css.errors).toEqual([]);
+    expect(css.code).toMatch(/\.nx-globe-drawer\[data-v-globe\]\s*\{[^}]*overflow: hidden;[^}]*overscroll-behavior-y: contain;/);
+    expect(css.code).toMatch(/\.nx-globe-scrim\[data-v-globe\]\s*\{[^}]*touch-action: none;/);
+    expect(page.drawer()).toBeDefined();
+    emit(page.closeButton(), "onClick"); await settle();
+    expect(page.drawer()).toBeUndefined();
+  });
+
+  test(`${platform} preserves the 28px close face inside a 44px target and reserves title space`, async () => {
+    const page = await mount(platform);
+    emit(page.rows()[2], "onClick"); await settle();
+    const close = page.closeButton();
+    expect(style(close)).toMatchObject({ width: "44px", height: "44px", top: "4px", right: "4px" });
+    expect(close.children.some(child => style(child)?.width === "28px" && style(child)?.height === "28px")).toBe(true);
+    expect(all(page.drawer()!).some(n => style(n)?.["padding-right"] === "28px")).toBe(true);
+    emit(close, "onClick"); await settle();
+    expect(page.drawer()).toBeUndefined();
+  });
+
   test(`${platform} separates dense center dots and connects display positions to geographic anchors`, async () => {
     const page = await mount(platform);
     const points = page.controls().map(control => {

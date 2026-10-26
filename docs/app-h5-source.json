@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\WORKS\\PLAN\\.wt\\uvel-design-20261025-app",
+  "sourcePath": "D:\\workspace\\.worktrees\\globe-native-app-20261026",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "604e619821b2e5bbf374b0bb7be0c86ee543e658",
-  "sourceRef": "604e619821b2e5bbf374b0bb7be0c86ee543e658",
+  "sourceHead": "c2078fe1db92fc48b6546bc0cd7087b9fb6440d4",
+  "sourceRef": "c2078fe1db92fc48b6546bc0cd7087b9fb6440d4",
   "sourceRefKind": "commit",
-  "sourceTree": "a05dc30acaf03d864b233a8549c2c7ec27fb830f",
+  "sourceTree": "33d227df11b64cc0794920675767d8731653aaf3",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -125,10 +125,10 @@
       "mode": "100644"
     },
     "PRD/UVEL_设计审查功能同步_20261026.md": {
-      "sourceBlob": "cf6a150edef58bf7f46def59bbe13d7fc5510b48",
-      "sourceSha256": "80d17a7ff40decacbee538206ca735450c8a79c42e07fb6699d7ce3e96c3d177",
-      "targetBlob": "cf6a150edef58bf7f46def59bbe13d7fc5510b48",
-      "targetSha256": "80d17a7ff40decacbee538206ca735450c8a79c42e07fb6699d7ce3e96c3d177",
+      "sourceBlob": "08811d764a512367d51a4863409c84462b365b7e",
+      "sourceSha256": "7b835ab42ff67c056017d9b7723e5e771b80487b6095fb774e5cbd21023ee602",
+      "targetBlob": "08811d764a512367d51a4863409c84462b365b7e",
+      "targetSha256": "7b835ab42ff67c056017d9b7723e5e771b80487b6095fb774e5cbd21023ee602",
       "mode": "100644"
     },
     "PRD/UVEL_首页信任与活动规则_20261025.md": {
@@ -3660,10 +3660,10 @@
       "mode": "100644"
     },
     "docs/前端产品更新日志.md": {
-      "sourceBlob": "c5da026255f653f1f1627329c6e7d0d3d0cbde51",
-      "sourceSha256": "1a87c6b9cb93550cf148dbd9cffcc131dcb082c0b8883bf7f7ceaaeffe3bf3e7",
-      "targetBlob": "c5da026255f653f1f1627329c6e7d0d3d0cbde51",
-      "targetSha256": "1a87c6b9cb93550cf148dbd9cffcc131dcb082c0b8883bf7f7ceaaeffe3bf3e7",
+      "sourceBlob": "7087fc957438a7528a2b36a9a957a97280829c68",
+      "sourceSha256": "e97e7bfb649734d842b2e0b58da5b9079eefc13267ba1ea782c7764c49e681bf",
+      "targetBlob": "7087fc957438a7528a2b36a9a957a97280829c68",
+      "targetSha256": "e97e7bfb649734d842b2e0b58da5b9079eefc13267ba1ea782c7764c49e681bf",
       "mode": "100644"
     },
     "index.html": {
@@ -14782,25 +14782,25 @@
       "targetSha256": "aa60bdd97ee522c71b14d9cbd4485605dc503d6539cd772f618fdb4ae81cc3f6",
       "mode": "100644"
     },
-    "src/pages/globe/globe-native.behavior.test.ts": {
-      "sourceBlob": "562ab431c68706ced32aa0e56903c3a1b3074ca5",
-      "sourceSha256": "d60fc28a4aa4b87590c3b363357a53f2b6e2efb50c63324debf1b14aef83a780",
-      "targetBlob": "562ab431c68706ced32aa0e56903c3a1b3074ca5",
-      "targetSha256": "d60fc28a4aa4b87590c3b363357a53f2b6e2efb50c63324debf1b14aef83a780",
+    "src/pages/globe/globe-lifecycle.behavior.test.ts": {
+      "sourceBlob": "9e34a6934ef86306b3687e7eb4e7494e0a6e7f58",
+      "sourceSha256": "44925fb7bd52181edc6fcbfcbcfe43c2379670e932423f1ffbd1a5d92f9b42ae",
+      "targetBlob": "9e34a6934ef86306b3687e7eb4e7494e0a6e7f58",
+      "targetSha256": "44925fb7bd52181edc6fcbfcbcfe43c2379670e932423f1ffbd1a5d92f9b42ae",
       "mode": "100644"
     },
-    "src/pages/globe/globe-remote-epoch.test.ts": {
-      "sourceBlob": "8ba9b222711b900dd7a3edcf27d2f8a5fc871f6c",
-      "sourceSha256": "48f4bf0b811a5052f14e2b591dd27450921a3bfb809eef3d4e6de75766eaf196",
-      "targetBlob": "8ba9b222711b900dd7a3edcf27d2f8a5fc871f6c",
-      "targetSha256": "48f4bf0b811a5052f14e2b591dd27450921a3bfb809eef3d4e6de75766eaf196",
+    "src/pages/globe/globe-native.behavior.test.ts": {
+      "sourceBlob": "ee2f80dd5203125177695763926f42f4c1bc1c64",
+      "sourceSha256": "9b4a42f4e59186e48b309d9a7c953f08462322cfd09106f8d3a8df34c3daf26c",
+      "targetBlob": "ee2f80dd5203125177695763926f42f4c1bc1c64",
+      "targetSha256": "9b4a42f4e59186e48b309d9a7c953f08462322cfd09106f8d3a8df34c3daf26c",
       "mode": "100644"
     },
     "src/pages/globe/globe.vue": {
-      "sourceBlob": "c2848299912ef6b0b332e85dc5075838462498ba",
-      "sourceSha256": "ecffbe75bef6960bde5ef8c8cfbb7d80cc7ef85b436de2c540071d68c2d9ddd2",
-      "targetBlob": "c2848299912ef6b0b332e85dc5075838462498ba",
-      "targetSha256": "ecffbe75bef6960bde5ef8c8cfbb7d80cc7ef85b436de2c540071d68c2d9ddd2",
+      "sourceBlob": "22e4a97f8ffb03da2e723fcdd3d63d18c12b0ee3",
+      "sourceSha256": "097c01b77bb369b5bb0ea3939d44222f90f72974a088dffc9011a763ed999b64",
+      "targetBlob": "22e4a97f8ffb03da2e723fcdd3d63d18c12b0ee3",
+      "targetSha256": "097c01b77bb369b5bb0ea3939d44222f90f72974a088dffc9011a763ed999b64",
       "mode": "100644"
     },
     "src/pages/h3-observation-wiring.contract.test.ts": {

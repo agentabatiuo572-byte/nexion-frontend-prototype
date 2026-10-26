@@ -122,7 +122,7 @@
             <circle :cx="r.cx * W" :cy="r.cy * H" r="5" pointer-events="auto" :fill="r.isYou ? 'var(--v5-brand)' : 'var(--v5-brand)'" />
             <!-- Pulse ring -->
             <circle
-              v-if="pulseRegionId === r.id"
+              v-if="motionAllowed && pulseRegionId === r.id"
               :key="`pulse-${r.id}-${pulseTick}`"
               :cx="r.cx * W"
               :cy="r.cy * H"
@@ -178,13 +178,16 @@
       </view>
 
       <!-- Drawer -->
-      <view v-if="selected" class="nx-globe-drawer" role="dialog" aria-modal="true">
-        <view class="nx-globe-scrim" @click="selected = null" />
+      <view v-if="selected" class="nx-globe-drawer" role="dialog" aria-modal="true"
+        @touchstart.stop @touchmove.stop @touchend.stop @touchcancel.stop>
+        <view class="nx-globe-scrim" @touchmove.prevent @click="selected = null" />
         <view class="nx-glass-sheet relative border rounded-2xl" :style="drawerCardStyle">
           <view class="absolute grid place-items-center active:opacity-70" :style="drawerCloseStyle" role="button" tabindex="0" :aria-label="t.trial.sheetCloseAria" @click="selected = null"  @keydown.enter.prevent="selected = null" @keydown.space.prevent="selected = null">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+            <view class="grid place-items-center" :style="drawerCloseFaceStyle">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+            </view>
           </view>
-          <view class="flex items-center" style="gap: 12px">
+          <view class="flex items-center" style="gap: 12px; padding-right: 28px">
             <view class="grid place-items-center" :style="drawerIconBox(selected.isYou)">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" :stroke="selected.isYou ? 'var(--v5-brand)' : 'var(--v5-brand)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" /></svg>
             </view>
@@ -227,11 +230,20 @@ import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import { useT } from "@/i18n/use-t";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
+// #ifndef APP-PLUS
+import { useIntroMotion } from "@/composables/use-intro-motion";
+// #endif
 import { onHide, onShow } from "@dcloudio/uni-app";
+// #ifdef APP-PLUS
+import { onBackPress } from "@dcloudio/uni-app";
+// #endif
 
 import { globeSimulation, GLOBE_SIMULATION_INTERVAL_MS } from "@/lib/globe-simulation";
 
 const t = useT();
+// #ifndef APP-PLUS
+const motionAllowed = useIntroMotion();
+// #endif
 
 const W = 440;
 const H = 240;
@@ -261,6 +273,13 @@ const selected = computed<GlobeRegion | null>({
   get: () => regions.value.find(region => region.id === selectedId.value) ?? null,
   set: region => { selectedId.value = region?.id ?? null; },
 });
+// #ifdef APP-PLUS
+onBackPress(() => {
+  if (!selected.value) return false;
+  selected.value = null;
+  return true;
+});
+// #endif
 const me = computed(() => regions.value.find((r) => r.isYou) ?? null);
 const meX = computed(() => (me.value?.cx ?? 0) * W);
 const meY = computed(() => (me.value?.cy ?? 0) * H);
@@ -416,14 +435,19 @@ const drawerCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)",
   maxWidth: "420px",
   maxHeight: "100%",
   overflowY: "auto",
+  overscrollBehaviorY: "contain",
   boxSizing: "border-box",
   background: "var(--nx-glass-fill)",
   borderColor: "transparent",
   padding: "20px",
 };
 const drawerCloseStyle: CSSProperties = {
-  top: "12px",
-  right: "12px",
+  top: "4px",
+  right: "4px",
+  width: "44px",
+  height: "44px",
+};
+const drawerCloseFaceStyle: CSSProperties = {
   width: "28px",
   height: "28px",
   borderRadius: "999px",
@@ -481,6 +505,9 @@ useDialogA11y(computed(() => selected.value !== null), ".nx-globe-drawer", () =>
   border: 1px solid;
   animation: nx-globe-native-pulse 1.6s;
 }
+@media (prefers-reduced-motion: reduce) {
+  .nx-globe-native-pulse { display: none; animation: none; }
+}
 @keyframes nx-globe-native-pulse {
   from { transform: scale(1); opacity: 1; }
   to { transform: scale(4.8); opacity: 0; }
@@ -508,11 +535,14 @@ useDialogA11y(computed(() => selected.value !== null), ".nx-globe-drawer", () =>
   align-items: flex-end;
   justify-content: center;
   box-sizing: border-box;
+  overflow: hidden;
+  overscroll-behavior-y: contain;
   padding: 12px 12px calc(16px + max(env(safe-area-inset-bottom, 0px), 24px));
 }
 .nx-globe-scrim {
   position: absolute;
   inset: 0;
+  touch-action: none;
   background: color-mix(in srgb, var(--v5-surface-3) 80%, transparent);
   backdrop-filter: blur(4px);
 }
