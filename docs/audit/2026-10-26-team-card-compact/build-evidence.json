@@ -1,0 +1,49 @@
+{
+  "sourceBase": "c2078fe1db92fc48b6546bc0cd7087b9fb6440d4",
+  "buildIndexSha256": "A1095316A843F1E7C23E8E640963F0498D1D46D6FF684BB2F9F685F0ABB07D1D",
+  "files": [
+    {
+      "path": "src/components/team/invite-earn-card.vue",
+      "sha256": "E36E503E6CB53A9E6B898ADC62746A0B61699A85C3F23879720500CB01946E48"
+    },
+    {
+      "path": "src/components/team/team-summary-card.vue",
+      "sha256": "9BA4DFAB6DDB6C24997AF530CD3221D264245FF74030E9834B7A042562892485"
+    },
+    {
+      "path": "src/pages/team/team.vue",
+      "sha256": "9B5E585BEB388F8FC01511D8FF03505BE8653FC02D361B42271434F88D5FD4CB"
+    }
+  ],
+  "checks": [
+    "APP build:h5 passed after last code edit",
+    "APP type-check passed",
+    "47 focused tests passed; 43 relevant tests repeated after pair layout change"
+  ],
+  "screenshots": [
+    {
+      "path": "invite-320-vi-light-clear.png",
+      "sha256": "95B199851A81E20CCEF68ED3634E22DDC127FA318074550B7958B699D4CE413F"
+    },
+    {
+      "path": "invite-390-zh-final.png",
+      "sha256": "B80CF23E8BA8B81FC620617FBCA750888678E50095137F8A9D4B41A24404EDFB"
+    },
+    {
+      "path": "pair-320-en-dark.png",
+      "sha256": "4050918D21523AC38BFED7B8E95A14C292E4719CEF3074048D879952E31D9616"
+    },
+    {
+      "path": "pair-320-vi-dark.png",
+      "sha256": "B39A3F79F2B8F189228D374EC4CD57869D30A23A628B9C81BD1580AD737C44BF"
+    },
+    {
+      "path": "pair-320-vi-light.png",
+      "sha256": "931E94D0DB7611F4E47D8ACABD61AA8987E1C88FDE30E4D3AA64B67B98930EB2"
+    },
+    {
+      "path": "pair-390-zh-dark.png",
+      "sha256": "FB5F4A30C9539EF91C47CA526A626187C8F8380413D85E50506A83CAD5D6FCAC"
+    }
+  ]
+}

@@ -23,15 +23,15 @@ const countUnits=computed(()=>Math.max(1, String(props.status === 'ready' ? prop
 function open(){if(canOpen.value)emit('open');}
 </script>
 <style scoped>
-.team-summary { container: team-summary / inline-size; padding: var(--ui-space-inline); min-width: 0; color: var(--v5-ink); border: 1px solid var(--v5-border); border-radius: 22px; background: var(--v5-surface); }
+.team-summary { container: team-summary / inline-size; display: flex; flex-direction: column; gap: 6px; padding: var(--ui-space-inline); min-width: 0; color: var(--v5-ink); border: 1px solid var(--v5-border); border-radius: 22px; background: var(--v5-surface); }
 .team-summary__header { display: flex; align-items: center; justify-content: space-between; min-height: 32px; gap: 4px; }
 .team-summary__title { min-width: 0; overflow-wrap: anywhere; font: 600 15px/1.4 var(--font-v5); }
-.team-summary__arrow { font-size: 26px; color: var(--v5-ink-3); }
-.team-summary__body { --team-art-size: 56px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.team-summary__arrow { flex: none; font-size: 26px; color: var(--v5-ink-3); }
+.team-summary__body { --team-art-size: 56px; display: flex; flex-direction: column; align-items: center; min-height: 78px; gap: 6px; }
 .team-summary__metrics { container-type: inline-size; width: 100%; min-width: 0; text-align: center; }
 .team-summary__number { display: block; max-width: 100%; font: 600 24px/1.3 var(--font-v5); font-size: clamp(18px, calc(100cqi / var(--team-summary-count-units)), 38px); font-variant-numeric: tabular-nums; white-space: nowrap; overflow-x: auto; }
 .team-summary__label { display: block; margin-top: 2px; color: var(--v5-ink-3); font: 400 12px/1.5 var(--font-v5); }
-.team-summary__direct { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--v5-border); color: var(--v5-ink-3); font: 400 12px/1.5 var(--font-v5); }
+.team-summary__direct { display: flex; flex-wrap: wrap; gap: 0 6px; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--v5-border); color: var(--v5-ink-3); font: 400 12px/1.5 var(--font-v5); }
 .team-summary__direct > text { min-width: 0; overflow-wrap: anywhere; }
 .team-summary__direct > text:last-child { max-width: 100%; white-space: nowrap; overflow-x: auto; color: var(--v5-ink); font-weight: 600; }
 .team-summary__number,.team-summary__direct > text:last-child { overflow-y: hidden; scrollbar-width: none; }
@@ -42,6 +42,12 @@ function open(){if(canOpen.value)emit('open');}
 .team-summary[role='link']:active { opacity: .8; }
 .team-summary:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 /* Content-box widths, independent of the viewport or the parent's column count. */
+@container team-summary (min-width: 110px) {
+  .team-summary__body { --team-art-size: 48px; flex-direction: row-reverse; }
+  .team-summary__metrics { flex: 1; width: auto; text-align: left; }
+  .team-summary__body--long-count { flex-direction: column; }
+  .team-summary__body--long-count .team-summary__metrics { width: 100%; text-align: center; }
+}
 @container team-summary (min-width: 140px) {
   .team-summary__body { --team-art-size: 72px; flex-direction: row-reverse; }
   .team-summary__metrics { flex: 1; width: auto; text-align: left; }

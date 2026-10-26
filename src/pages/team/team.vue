@@ -540,7 +540,7 @@ const teamSummaryStatus = computed(() => remoteApiEnabled ? network.remoteStatus
 
 <style scoped>
 .team-overview-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: var(--ui-space-inline); align-items: stretch; }
-.team-rank { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 3px; min-width: 0; padding: var(--ui-space-inline); border: 1px solid var(--v5-border); border-radius: 22px; background: radial-gradient(ellipse at 50% 68%,color-mix(in srgb,var(--v5-brand) 7%,transparent),transparent 70%),var(--v5-surface); }
+.team-rank { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 6px; min-width: 0; padding: var(--ui-space-inline); border: 1px solid var(--v5-border); border-radius: 22px; background: radial-gradient(ellipse at 50% 68%,color-mix(in srgb,var(--v5-brand) 7%,transparent),transparent 70%),var(--v5-surface); }
 .team-rank__header { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 32px; gap: 4px; }
 .team-rank__header > svg { flex-shrink: 0; color: var(--v5-ink-3); }
 .team-rank:active { opacity: .8; }
@@ -550,6 +550,9 @@ const teamSummaryStatus = computed(() => remoteApiEnabled ? network.remoteStatus
 .team-rank__title { display: block; font: 600 15px/1.4 var(--font-v5); }
 .team-rank__level { position: relative; display: block; font: 600 24px/1.3 var(--font-v5); color: var(--v5-brand); }
 .team-rank__hint { display: block; margin-top: 4px; text-align: center; font: 400 12px/1.4 var(--font-v5); color: var(--v5-ink-3); }
+@media(max-width:359px) {
+  .team-overview-grid :deep(.team-summary__header),.team-rank__header { min-height: 42px; }
+}
 .team-section-title { display: block; font: 600 15px/1.4 var(--font-v5); margin-bottom: 8px; }
 .team-tools { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: var(--ui-space-inset); background: transparent; border: 0; border-radius: 0; }
 .team-tools :deep(.nx-list-row) { padding-left: 0; padding-right: 0; min-width: 0; border: 0; }

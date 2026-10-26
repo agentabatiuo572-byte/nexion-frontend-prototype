@@ -11,8 +11,8 @@
     <view class="nx-invite-body">
       <view class="invite-card__reward" role="status" :aria-busy="rewards.loading">
         <view class="invite-card__reward-line"><text class="invite-card__amount">{{ rewardReady && rewardEnabled ? rewardAmount : '—' }}</text><text class="invite-card__unit">UVT</text></view>
-        <!-- Keep the localized description footprint before the first read.
-             Hidden messages reserve geometry only and are not announced. -->
+        <!-- Reserve the normal localized caption while loading. Only the
+             active exceptional state may add height to this compact card. -->
         <view class="invite-card__descriptions">
           <text class="invite-card__description" :class="{ 'is-active': rewardReady && rewardEnabled && !!referralCode }" :aria-hidden="!(rewardReady && rewardEnabled && referralCode)">{{ copy.qualifiedFriendReward }}</text>
           <view class="invite-card__description" :class="{ 'is-active': rewardReady && !rewardEnabled && !!referralCode }" :aria-hidden="!(rewardReady && !rewardEnabled && referralCode)"><text>{{ t.team.referralRewardsDisabled }}</text><text>{{ t.team.sharingStillAvailable }}</text></view>
@@ -130,29 +130,31 @@ const stopRuntimeRefresh=subscribeRuntimeRevision(()=>{if(remoteApiEnabled)void 
 onUnmounted(stopRuntimeRefresh);
 </script>
 <style scoped>
-.invite-card { position: relative; padding: var(--ui-space-inline) var(--ui-space-inset) 8px; border: 1px solid var(--v5-border); border-radius: 22px; background: radial-gradient(ellipse at 86% 58%,color-mix(in srgb,var(--v5-brand) 9%,transparent),transparent 64%),var(--v5-surface); color: var(--v5-ink); }
-.invite-card__header { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); }
+.invite-card { position: relative; padding: 12px var(--ui-space-inset) 8px; border: 1px solid var(--v5-border); border-radius: 22px; background: radial-gradient(ellipse at 86% 58%,color-mix(in srgb,var(--v5-brand) 9%,transparent),transparent 64%),var(--v5-surface); color: var(--v5-ink); }
+.invite-card__header { position: relative; display: flex; align-items: center; min-height: 32px; padding-right: 96px; gap: var(--ui-space-inline); }
 .invite-card__title { font: 600 18px/1.35 var(--font-v5); }
-.invite-card__header-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.invite-card__header-actions { position: absolute; right: 0; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 4px; }
 .invite-card__history { display: grid; place-items: center; width: 44px; height: 44px; color: var(--v5-ink-3); }
 .invite-card__rules { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 44px; min-height: 44px; color: var(--v5-ink-3); font-size: 12px; }
 .nx-invite-body { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: 2px; padding-top: 0; }
-.invite-card__reward { min-width: 0; position: relative; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 9px; }
-.invite-card__reward-line { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
-.invite-card__amount { font: 600 clamp(28px,9vw,42px)/1.1 var(--font-v5); letter-spacing: -.035em; font-variant-numeric: tabular-nums; color: var(--v5-brand); }
-.invite-card__unit { font: 500 17px/1.2 var(--font-v5); }
-.invite-card__descriptions { display: grid; align-self: stretch; }
-.invite-card__description { grid-area: 1 / 1; visibility: hidden; font: 400 12px/1.5 var(--font-v5); color: var(--v5-ink-3); overflow-wrap: anywhere; }
-.invite-card__description.is-active { visibility: visible; }
+.invite-card__reward { min-width: 0; position: relative; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.invite-card__reward-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; max-width: 100%; }
+.invite-card__amount { font: 600 clamp(32px,10.25vw,40px)/1.1 var(--font-v5); letter-spacing: -.035em; font-variant-numeric: tabular-nums; color: var(--v5-brand); }
+.invite-card__unit { font: 500 21px/1.2 var(--font-v5); }
+.invite-card__descriptions { display: grid; align-self: stretch; min-height: 18px; }
+.invite-card__description { grid-area: 1 / 1; display: none; visibility: hidden; font: 400 12px/1.5 var(--font-v5); color: var(--v5-ink-3); overflow-wrap: anywhere; }
+.invite-card__description:first-child { display: block; }
+.invite-card__description.is-active { display: block; visibility: visible; }
 .invite-card__description > text { display: block; }
 .invite-card__art { position: relative; display: flex; align-items: center; justify-content: center; min-width: 0; pointer-events: none; }
-.invite-card__art :deep(.team-art) { position: relative; z-index: 1; width: 100%; height: auto; aspect-ratio: 4 / 3; }
+.invite-card__art :deep(.team-art) { position: relative; z-index: 1; width: 100%; height: auto; aspect-ratio: 4 / 3; transform: translateY(-14px) scale(1.08); }
 .invite-card__action { position: relative; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 7px; font: 500 12px/1.4 var(--font-v5); color: var(--v5-ink-2); cursor: pointer; }
-.invite-card__primary { isolation: isolate; align-self: stretch; gap: var(--ui-space-inline); padding: 8px 12px; box-sizing: border-box; border-radius: 999px; margin-top: 5px; font-size: 13px; color: var(--v5-ink); }
+.invite-card__primary { isolation: isolate; align-self: flex-start; width: max-content; min-width: min(128px,100%); max-width: 100%; gap: 8px; padding: 8px 10px; box-sizing: border-box; border-radius: 999px; margin-top: 2px; font-size: 13px; color: var(--v5-ink); }
 .invite-card__primary > text,.invite-card__primary > svg { position: relative; z-index: 1; }
 .invite-card__primary > text { text-align: center; min-width: 0; overflow-wrap: anywhere; }
 .invite-card__primary > svg { flex: 0 0 auto; }
-.invite-card__actions { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 2px 6px; padding-top: 8px; margin-top: 8px; border-top: 1px solid var(--v5-border); }
+.invite-card__actions { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 2px 6px; margin-top: 6px; border-top: 1px solid var(--v5-border); }
+.invite-card__actions > .invite-card__action + .invite-card__action::before { content: ''; position: absolute; left: -3px; top: 12px; bottom: 12px; width: 1px; background: var(--v5-border); }
 
 .invite-card__action[aria-disabled='true'] { opacity: .5; cursor: default; }
 .invite-card [tabindex='0']:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
