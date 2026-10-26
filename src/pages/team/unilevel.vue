@@ -61,7 +61,6 @@
           <text class="block">{{ t.directReferral.netHint }}</text>
           <text v-if="filter === 'device_earning'" class="block">{{ t.directReferral.platformPays }}</text>
           <template v-if="policyState === 'ready' && policy">
-            <text class="block">{{ t.directReferral.policyVersion }}: {{ policy.policyVersion }} · {{ t.directReferral.effectiveAt }}: {{ policy.effectiveAt ?? '—' }}</text>
             <text class="block">{{ ruleDescription }}</text>
           </template>
         </view>
