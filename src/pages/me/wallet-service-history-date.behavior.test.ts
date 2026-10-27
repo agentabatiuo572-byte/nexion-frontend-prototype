@@ -3,7 +3,7 @@ import { compileScript, parse } from "@vue/compiler-sfc";
 import { renderToString } from "@vue/server-renderer";
 import ts from "typescript";
 import { afterEach, expect, it, vi } from "vitest";
-import walletSource from "./wallet.vue?raw";
+import walletSource from "../../components/me/wallet-overview.vue?raw";
 import serviceSource from "@/components/support/service-message-list.vue?raw";
 import rowSource from "@/components/me/wallet-list-row.vue?raw";
 import swipeSource from "@/components/support/conversation-swipe-row.vue?raw";

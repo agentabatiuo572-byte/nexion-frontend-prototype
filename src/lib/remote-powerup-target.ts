@@ -5,7 +5,8 @@ const REMOTE_POWERUP_TARGETS = new Map([
   ["/market/genesis", "/pages/genesis/genesis"],
   ["/pages/team/team", "/pages/team/team"],
   ["/pages/me/rewards", "/pages/me/rewards"],
-  ["/pages/me/wallet", "/pages/me/wallet"],
+  ["/pages/me/wallet", "/pages/me/me"],
+  ["/pages/me/me", "/pages/me/me"],
   ["/pages/staking/staking", "/pages/staking/staking"],
   ["/pages/genesis/genesis", "/pages/genesis/genesis"],
 ]);

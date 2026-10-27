@@ -10,8 +10,7 @@ import { fmt, dateLocale } from "@/i18n/format";
 import { formatDisplayDateTime } from "@/lib/display-date";
 import type { EarningsReleaseStatus } from "@/api/earnings-release-api";
 import { resolveWalletTodayEarnings } from "@/lib/wallet-today-earnings";
-import source from "./wallet.vue?raw";
-import rowSource from "@/components/me/wallet-list-row.vue?raw";
+import source from "../../components/me/wallet-overview.vue?raw";
 
 // Reuse the wallet-nex test's native host; mount the actual page and value slots.
 function compile(source: string, filename: string) {
@@ -24,7 +23,7 @@ function compile(source: string, filename: string) {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
   }).outputText;
 }
-const pageCode = compile(source, "wallet.vue"), rowCode = compile(rowSource, "wallet-list-row.vue");
+const pageCode = compile(source, "wallet.vue");
 type Host = { tag: string; text: string; props: Record<string, unknown>; parent: Host | null; children: Host[] };
 const node = (tag = "", text = ""): Host => ({ tag, text, props: {}, parent: null, children: [] });
 const renderer = Vue.createRenderer<Host, Host>({
@@ -78,6 +77,7 @@ async function mount(remoteApiEnabled = true) {
     "@/api/order-api": { subscribeRuntimeRevision: () => () => {} },
     vue: Vue, "@dcloudio/uni-app": { onShow: (callback: () => void) => shown.push(callback), onHide: () => {} },
     "@/components/app-chassis.vue": { default: chassis },
+    "@/components/liquid-glass.vue": { default: { render: () => null } },
     "@/components/sub-page-header.vue": { default: { render: () => null } },
     "@/lib/route": { navTo: vi.fn() }, "@/i18n/use-t": { useT: () => Vue.ref(en) },
     "@/i18n/format": { fmt, dateLocale }, "@/lib/display-date": { formatDisplayDateTime }, "@/store/app": { useApp: () => app },
@@ -95,7 +95,6 @@ async function mount(remoteApiEnabled = true) {
     }, exports);
     return exports.default;
   }
-  modules["@/components/me/wallet-list-row.vue"] = { default: load(rowCode) };
   const root = node(), component = renderer.createApp(load(pageCode));
   component.mount(root); unmounts.push(() => component.unmount());
   await Vue.nextTick();
@@ -104,9 +103,13 @@ async function mount(remoteApiEnabled = true) {
     if (!found) throw new Error(`Missing wallet label: ${label}`);
     return found;
   };
-  const value = (label: string) => textContent(labelNode(label).parent!.parent!.children[2]);
+  const amountIn = (container: Host, className: string) => {
+    const amount = descendants(container).find(item => String(item.props.class ?? "").split(" ").includes(className));
+    if (!amount) throw new Error(`Missing wallet amount: ${className}`);
+    return textContent(amount);
+  };
+  const value = (label: string) => amountIn(labelNode(label).parent!, "wallet-metric-amount");
   const held = () => [value(en.wallet.reviewingEarnings), value(en.wallet.lockedRewards)];
-  const balance = () => textContent(labelNode(en.wallet.usdtBalance).parent!.children[1]);
   const confirmRelease = (review = 0, locked = 0) => {
     earningsReleaseSnapshot.value = receipt(review, locked);
     earningsReleaseHasSnapshot.value = true; earningsReleaseStatus.value = "ready";
@@ -116,7 +119,7 @@ async function mount(remoteApiEnabled = true) {
     click();
   };
   return { app, commission, earningsReleaseSnapshot, earningsReleaseHasSnapshot, earningsReleaseStatus,
-    refreshEarningsReleaseStatus, shown, held, balance, confirmRelease, clickRetry, value,
+    refreshEarningsReleaseStatus, shown, held, confirmRelease, clickRetry, value,
     allTimeSublabel: () => textContent(labelNode(en.wallet.allTimeEarnings).parent!),
     retryEarnings: () => { (labelNode(en.ui.retry).parent!.props.onClick as () => void)(); },
     text: () => textContent(root) };
@@ -162,13 +165,13 @@ describe("actual wallet held authority", () => {
       s.commission.eventsEvidence = { aggregate: { totalUSDT: 6 } };
       s.commission.eventsStatus = "ready";
     });
-    s.shown.forEach(show => show()); await Vue.nextTick();
+    void s.app.refreshHomeTruth(); void s.commission.refreshCanonicalEvents(); await Vue.nextTick();
     expect(s.value(en.wallet.allTimeEarnings)).toBe("$15.00");
     expect(s.allTimeSublabel()).toContain("Compute $10.00 · Team $5.00");
     expect(s.text()).not.toContain(en.wallet.earningsUnavailable);
     // Today's amount and all funds/held authority keep their separate rules.
     expect(s.text()).not.toContain("+$2.00");
-    expect(s.balance()).toBe("$42.25"); expect(s.held()).toEqual(["$0.00", "$0.00"]);
+    expect(s.held()).toEqual(["$0.00", "$0.00"]);
     mining(); await Promise.resolve(); await Vue.nextTick();
     expect(s.value(en.wallet.allTimeEarnings)).toBe("$17.00");
     team(); await Promise.resolve(); await Vue.nextTick();
@@ -232,12 +235,12 @@ describe("actual wallet held authority", () => {
     await Vue.nextTick(); expect(s.value(en.wallet.allTimeEarnings)).toBe("$16.75");
   });
   it.each([[1.005, "$1.01"], [2.675, "$2.68"], [0.145, "$0.15"], [999.995, "$1,000.00"]] as const)(
-    "rounds balance and held displays at the decimal half without changing the source: %s", async (amount, expected) => {
+    "rounds held displays at the decimal half without changing the source: %s", async (amount, expected) => {
       const s = await mount();
       s.app.user.usdtBalance = amount;
       s.confirmRelease(amount, amount);
       await Vue.nextTick();
-      expect(s.balance()).toBe(expected);
+
       expect(s.held()).toEqual([expected, expected]);
       expect(s.app.user.usdtBalance).toBe(amount);
       expect(s.earningsReleaseSnapshot.value!.buckets.pending_review).toBe(amount);
@@ -247,13 +250,13 @@ describe("actual wallet held authority", () => {
   it.each(["idle", "loading", "error"])("keeps fleet-confirmed held buckets unknown when release is %s without a snapshot", async status => {
     const s = await mount(); s.earningsReleaseStatus.value = status; await Vue.nextTick();
     expect(s.held()).toEqual(["—", "—"]);
-    expect(s.text()).toContain("$42.25"); expect(s.app.user.earningBuckets).toEqual({ pendingReviewUsdt: 0, bonusLockedUsdt: 0 });
+    expect(s.app.user.earningBuckets).toEqual({ pendingReviewUsdt: 0, bonusLockedUsdt: 0 });
   });
 
   it.each([[0, 0], [4.5, 7]])("renders confirmed same-currency held values %s/%s, including genuine zero", async (review, locked) => {
     const s = await mount(); s.confirmRelease(review, locked); await Vue.nextTick();
     expect(s.held()).toEqual([`$${review.toFixed(2)}`, `$${locked.toFixed(2)}`]);
-    expect(s.text()).toContain("$42.25"); expect(s.text()).toContain("+$2.00"); expect(s.text()).toContain("$15.00");
+    expect(s.text()).toContain("+$2.00"); expect(s.text()).toContain("$15.00");
   });
 
   it("retains same-account confirmed values while loading and clears them after failure or account reset", async () => {
@@ -294,9 +297,9 @@ describe("actual wallet held authority", () => {
     expect(s.held()).toEqual(["—", "—"]); expect(s.text()).toContain(en.wallet.releaseDetailsUnavailable);
   });
 
-  it("keeps onShow read recovery and existing local fixture buckets", async () => {
-    const s = await mount(); s.shown.forEach(show => show());
-    expect(s.refreshEarningsReleaseStatus).toHaveBeenCalledTimes(1); expect(s.app.refreshRemoteFleet).toHaveBeenCalledTimes(1);
+  it("keeps explicit read recovery and existing local fixture buckets", async () => {
+    const s = await mount(); s.earningsReleaseStatus.value = "error"; await Vue.nextTick(); s.clickRetry();
+    expect(s.refreshEarningsReleaseStatus).toHaveBeenCalledTimes(1);
     const local = await mount(false); local.app.user.earningBuckets.pendingReviewUsdt = 4.5;
     local.app.user.earningBuckets.bonusLockedUsdt = 7; await Vue.nextTick();
     expect(local.held()).toEqual(["$4.50", "$7.00"]);

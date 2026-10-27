@@ -47,7 +47,6 @@ const EXPECTED_TEMPLATE_DIFFERENCES = [
   "wallet-topup.vue",
   "wallet-withdraw-tracking.vue",
   "wallet-withdraw.vue",
-  "wallet.vue"
 ];
 // Reviewed touch-target/countdown fix: 44px controls and localized seconds slot.
 // Pin the exact formal/reference template pair for every approved difference.
@@ -111,7 +110,6 @@ const EXPECTED_TEMPLATE_PAIR_SHA256: Record<string, string> = {
   // Original pending requests expose retry even when the new-transfer form is incomplete.
   "wallet-withdraw.vue": "7ca90c0482579ea2ae27a162e1c080089317fff24b5789c70078eab3875655c2",
   // Reviewed e0a491a earnings reasons/retry with fixed two-decimal amount displays.
-  "wallet.vue": "eb813b7dfcb664f836091f06472188a2bd101f73c05aa6b607debf35051da849"
 };
 const EXPECTED_STYLE_PAIR_SHA256: Record<string, string> = {
   // Reviewed touch-target/countdown fix: a fixed localized seconds slot.

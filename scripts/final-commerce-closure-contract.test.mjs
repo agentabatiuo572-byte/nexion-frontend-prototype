@@ -56,6 +56,6 @@ test("catalog detail retry and bundle order item count remain visible", async ()
   assert.match(bundle, /const successBody = t\.value\.bundle\.checkoutSuccessBody/);
   assert.match(bundle, /bundleOrderApi\.create\([\s\S]*orderApi\.pay\([\s\S]*settled\.status !== "activated"[\s\S]*created\.itemCount/);
   const checkout = await source("src/pages/store/checkout.vue");
-  assert.match(checkout, /freeTrial\.convert\(p\.id, quotedTotal\)/);
+  assert.match(checkout, /freeTrial\.convert\(p\.id, quotedTotal, trialQuote\.quoteVersion\)/);
   assert.match(freeTrial, /const confirmed = await refreshRemote\(true\)[\s\S]*status\.value !== "converted"/);
 });

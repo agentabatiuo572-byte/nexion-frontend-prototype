@@ -234,7 +234,7 @@ const ROUTES: ReadonlyArray<{ key: RouteKey; href: string }> = [
   { key: "team", href: "/pages/team/team" },
   { key: "royalty", href: "/pages/team/unilevel" },
   { key: "networkMap", href: "/pages/team/network" },
-  { key: "wallet", href: "/pages/me/wallet" },
+  { key: "wallet", href: "/pages/me/me" },
   { key: "bankCards", href: "/pages/me/wallet-cards" },
   { key: "walletBills", href: "/pages/me/wallet-bills" },
   { key: "withdraw", href: "/pages/me/wallet-withdraw-method" },
@@ -263,7 +263,7 @@ const FAQ: ReadonlyArray<{ key: FaqKey; href: string }> = [
   { key: "royalty", href: "/pages/team/unilevel" },
   { key: "staking", href: "/pages/staking/staking" },
   { key: "genesis", href: "/pages/genesis/genesis" },
-  { key: "nex", href: "/pages/me/wallet" },
+  { key: "nex", href: "/pages/me/wallet-nex" },
 ];
 
 const results = computed<Hit[]>(() => {

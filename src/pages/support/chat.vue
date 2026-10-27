@@ -1021,7 +1021,7 @@ function humanMessageRecommendation(message: ConvMessage): Partial<ThreadMsg> {
   if (message.kind === "SKU" && message.skuId) return { text, ctaLabel: copy.product, ctaHref: `/pages/store/detail?id=${encodeURIComponent(message.skuId)}` };
   const target = message.linkTarget?.type;
   if (target === "HOME") return { text, ctaLabel: copy.home, ctaHref: "/home" };
-  if (target === "WALLET") return { text, ctaLabel: copy.wallet, ctaHref: "/me/wallet" };
+  if (target === "WALLET") return { text, ctaLabel: copy.wallet, ctaHref: "/pages/me/me" };
   if (target === "SUPPORT") return { text, ctaLabel: copy.support, ctaHref: "/pages/support/messages" };
   return { text };
 }

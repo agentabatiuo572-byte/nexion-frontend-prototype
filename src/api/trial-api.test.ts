@@ -55,6 +55,32 @@ describe("trial conversion contract", () => {
     expect(() => parseTrialAuthorityState({ ...base, state: "EXTENDED", eligibilityReason: "in-progress" }))
       .toThrow("TRIAL_RESPONSE_INVALID");
   });
+  const earlyQuote = {
+    settlementPolicy: "FULL_TERM_ON_CONVERSION", quoteVersion: "FULL_TERM_ON_CONVERSION:0123456789abcdef",
+    earlyPurchase: true, priceUsdt: 1299, accruedUsdt: "19.26", accruedNex: "5", settledUsdt: "115.56",
+    rewardNex: "30", earlyRewardUsdt: "96.3", earlyRewardNex: "25", offsetUsdt: "50", remainderUsdt: "65.56",
+    promoDiscountUsdt: "0", earlyDiscountConfiguredUsdt: "10", earlyDiscountUsdt: "10", discountUsdt: "60",
+    amountUsdt: "1239", earlyEndsAtEpochMs: 1_725_100_000_000,
+  };
+  it("parses the server early-conversion quote without deriving any amount", () => {
+    expect(parseTrialAuthorityState({ ...base, state: "ACTIVE", eligibilityReason: "in-progress", quote: earlyQuote }).quote)
+      .toEqual({
+        settlementPolicy: "FULL_TERM_ON_CONVERSION", quoteVersion: "FULL_TERM_ON_CONVERSION:0123456789abcdef",
+        earlyPurchase: true, priceUSD: 1299, accruedUSD: 19.26, accruedNEX: 5, settledUSD: 115.56, rewardNEX: 30,
+        earlyRewardUSD: 96.3, earlyRewardNEX: 25, offsetUSD: 50, remainderUSD: 65.56, promoDiscountUSD: 0,
+        earlyDiscountConfiguredUSD: 10, earlyDiscountUSD: 10, amountUSD: 1239, earlyEndsAt: 1_725_100_000_000,
+      });
+    expect(parseTrialAuthorityState(base).quote).toBeUndefined();
+  });
+  it.each([
+    { settlementPolicy: "UNKNOWN" },
+    { earlyPurchase: false },
+    { earlyEndsAtEpochMs: null },
+    { amountUsdt: "-1" },
+    { quoteVersion: "" },
+  ])("rejects an inconsistent early quote instead of showing partial benefits", patch => {
+    expect(() => parseTrialAuthorityState({ ...base, quote: { ...earlyQuote, ...patch } })).toThrow("TRIAL_RESPONSE_INVALID");
+  });
   const canonicalReceipt = {
     orderNo: "TRC-ABC123",
     productNo: "stellarbox-s1",
@@ -123,7 +149,18 @@ describe("trial conversion contract", () => {
       },
     } as never;
     const api = createTrialApi(client);
-    await api.convert("stellarbox-s1", 1264.555, "convert-key");
+    await api.convert("stellarbox-s1", 1264.555, null, "convert-key");
     expect(requests[0]?.body).toEqual({ productNo: "stellarbox-s1", expectedAmountUsdt: 1264.555 });
+  });
+  it("reads what an early conversion settled and rejects a partial settlement", () => {
+    const settled = { settlementPolicy: "FULL_TERM_ON_CONVERSION", earlyPurchase: true, remainderUsdt: "65.56",
+      rewardNex: "30", earlyRewardUsdt: "96.3", earlyRewardNex: "25", earlyDiscountUsdt: "10" };
+    expect(parseTrialConvertReceipt({ ...canonicalReceipt, ...settled }).settlement).toEqual({
+      settlementPolicy: "FULL_TERM_ON_CONVERSION", earlyPurchase: true, remainderUSD: 65.56, rewardNEX: 30,
+      earlyRewardUSD: 96.3, earlyRewardNEX: 25, earlyDiscountUSD: 10,
+    });
+    expect(parseTrialConvertReceipt(canonicalReceipt).settlement).toBeUndefined();
+    expect(() => parseTrialConvertReceipt({ ...canonicalReceipt, ...settled, rewardNex: undefined }))
+      .toThrow("TRIAL_RESPONSE_INVALID");
   });
 });

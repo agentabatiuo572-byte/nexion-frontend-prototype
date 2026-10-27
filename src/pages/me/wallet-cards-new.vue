@@ -15,7 +15,7 @@
   <AppChassis active="me">
     <BankAccountBinding v-if="!cardBindingAvailable" class="bank-binding-layout" :active="bankFormVisible" :return-to="returnTo" />
     <view v-else style="color: var(--v5-ink)">
-      <SubPageHeader :back="cardBindingAvailable ? '/pages/me/wallet-cards' : '/pages/me/wallet'" :title="t.cards.newTitle" />
+      <SubPageHeader :back="cardBindingAvailable ? '/pages/me/wallet-cards' : '/pages/me/me'" :title="t.cards.newTitle" />
       <CardSimulationBadge />
 
       <view :style="bodyStyle">

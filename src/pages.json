@@ -98,10 +98,6 @@
       "style": { "navigationStyle": "custom" }
     },
     {
-      "path": "pages/me/wallet",
-      "style": { "navigationStyle": "custom" }
-    },
-    {
       "path": "pages/me/wallet-topup",
       "style": { "navigationStyle": "custom" }
     },
@@ -347,14 +343,6 @@
     },
     {
       "path": "pages/me/trial",
-      "style": { "navigationStyle": "custom" }
-    },
-    {
-      "path": "pages/me/wallet-repurchase",
-      "style": { "navigationStyle": "custom" }
-    },
-    {
-      "path": "pages/me/wallet-repurchase-how",
       "style": { "navigationStyle": "custom" }
     },
     {

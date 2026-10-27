@@ -11,7 +11,7 @@
 <template>
   <AppChassis active="me">
     <view style="color: var(--v5-ink)">
-      <SubPageHeader back="/pages/me/wallet" :title="t.cards.listTitle" :subtitle="cardBindingAvailable ? t.cards.listSubtitle : t.cards.newTitle" />
+      <SubPageHeader back="/pages/me/me" :title="t.cards.listTitle" :subtitle="cardBindingAvailable ? t.cards.listSubtitle : t.cards.newTitle" />
       <CardSimulationBadge />
 
       <view :style="bodyStyle">
@@ -152,7 +152,7 @@ function goNew() {
 }
 
 function returnToWallet() {
-  navBack("/pages/me/wallet");
+  navBack("/pages/me/me");
 }
 
 // ── styles ──

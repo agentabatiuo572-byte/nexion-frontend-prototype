@@ -16,7 +16,7 @@
 <template>
   <AppChassis active="me">
     <view style="color: var(--v5-ink)">
-      <SubPageHeader back="/pages/me/wallet" :title="t.exchange.title" />
+      <SubPageHeader back="/pages/me/me" :title="t.exchange.title" />
       <view v-if="remoteApiEnabled && exchangeAuthorityStatus !== 'ready'" class="block" style="margin: 0 16px; font-size: 12px; color: var(--v5-ink-3)" role="status" aria-live="polite" :aria-busy="exchangeAuthorityStatus === 'loading' ? 'true' : 'false'">
         <text :style="exchangeAuthorityStatus === 'unavailable' ? { color: 'var(--v5-danger)' } : undefined">
           {{ exchangeAuthorityStatus === "loading" ? t.wallet.loadingTransactions : t.exchange.remoteUnavailableClosed }}

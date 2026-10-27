@@ -162,7 +162,7 @@ function goBack() {
   if (!order.value && formStep.value === "amount") { formStep.value = "account"; return; }
   navBack("/pages/me/wallet-withdraw-method");
 }
-function backToWallet() { if (!busy.value) navTo("/pages/me/wallet"); }
+function backToWallet() { if (!busy.value) navTo("/pages/me/me"); }
 function scope() {
   const id = ++revision, owner = app.accountKey, epoch = app.accountBindingEpoch, runtime = captureRuntimeRevision();
   return () => alive && revision === id && app.accountKey === owner && app.accountBindingEpoch === epoch && isCurrentRuntimeRevision(runtime);

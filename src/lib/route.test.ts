@@ -127,7 +127,7 @@ describe("route navigation failure handling", () => {
 
   it("recognizes physical tabBar routes during migrated navigation", () => {
     expect(toUniRoute("/pages/team/team")).toEqual({ url: "/pages/team/team", tab: true });
-    expect(toUniRoute("/pages/me/wallet")).toEqual({ url: "/pages/me/wallet", tab: false });
+    expect(toUniRoute("/pages/me/wallet")).toEqual({ url: "/pages/me/me", tab: true });
   });
 
   it("preserves a quota product for one H5 navigation when the destination loses its query", async () => {
@@ -345,4 +345,9 @@ describe("route navigation failure handling", () => {
     navTo("/pages/me/risk-disclosure");
     expect(uni.showToast).toHaveBeenCalledWith({ title: "Navigation failed", icon: "none" });
   });
+});
+
+
+it.each(["/me/wallet", "/pages/me/wallet", "/pages/me/wallet-repurchase", "/pages/me/wallet-repurchase-how", "/me/wallet/repurchase"])("retired wallet destination %s opens Me", href => {
+  expect(toUniRoute(href + "?from=notice")).toEqual({ url: "/pages/me/me?from=notice", tab: true });
 });

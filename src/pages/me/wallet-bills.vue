@@ -14,7 +14,7 @@
 <template>
   <AppChassis active="me">
     <view style="color: var(--v5-ink)">
-      <SubPageHeader :back="ledgerBizNo ? '/pages/me/rewards-list?cat=promotion' : '/pages/me/wallet'" :title="t.bills.title" />
+      <SubPageHeader :back="ledgerBizNo ? '/pages/me/rewards-list?cat=promotion' : '/pages/me/me'" :title="t.bills.title" />
 
       <!-- Tabs -->
       <GlassSegments v-if="!ledgerBizNo" :label="t.bills.tabGroupLabel" semantics="radio" v-model="tab" :options="tabOptions" style="margin: 0 16px 12px"  />

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { computed, reactive } from "vue";
 import ts from "typescript";
-import walletPage from "../pages/me/wallet.vue?raw";
+import walletPage from "../components/me/wallet-overview.vue?raw";
 import { resolveWalletTodayEarnings } from "./wallet-today-earnings";
 import { formatAmount } from "./amount-display";
 
@@ -22,8 +22,8 @@ describe("wallet today earnings authority", () => {
     const state = new Function("formatAmount", "computed", "app", "remoteApiEnabled", "resolveWalletTodayEarnings",
       `${code}\nreturn { todayEarningsText };`,
     )(formatAmount, computed, app, true, resolveWalletTodayEarnings);
-    const row = walletPage.slice(walletPage.indexOf(':label="t.wallet.todayLabel"'), walletPage.indexOf(':label="t.wallet.reviewingEarnings"'));
-    const binding = row.match(/#value><text[^>]*>\{\{(.*?)\}\}/)?.[1];
+    const row = walletPage.slice(walletPage.indexOf('data-wallet-metric="today"'), walletPage.indexOf('data-wallet-metric="reviewing"'));
+    const binding = row.match(/<text class="wallet-metric-amount[^>]*>\{\{(.*?)\}\}/)?.[1];
     if (!binding) throw new Error("Wallet Today text binding missing");
     const render = () => new Function("todayEarningsText", `return (${binding});`)(state.todayEarningsText.value);
     expect(render()).toBe("+$422.00");

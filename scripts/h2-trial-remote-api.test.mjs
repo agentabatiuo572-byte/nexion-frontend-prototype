@@ -130,12 +130,16 @@ test("trial conversion posts the product and stable idempotency key and validate
   // 客户端报价是**独立契约字段**(4c32a50 起 convert 签名为 productNo/expectedAmountUsdt/idempotencyKey,
   // 真实调用方 store/free-trial.ts 传 `expectedAmountUsdt ?? null`)。传真值而不是 null,
   // 这样这条断言除了钉住幂等键,也钉住金额确实按原值上行(被吞掉或被挪位都会红)。
-  await createTrialApi(client).convert("stellarbox-s1", 1200, "h2-convert-TRIAL-1");
+  await createTrialApi(client).convert("stellarbox-s1", 1200, null, "h2-convert-TRIAL-1");
   assert.deepEqual(client.requests[0], {
     method: "POST", path: "/api/trial/convert",
     body: { productNo: "stellarbox-s1", expectedAmountUsdt: 1200 },
     idempotencyKey: "h2-convert-TRIAL-1",
   });
+  // FEAT-TRIAL05: the confirmed server quote version travels with the amount.
+  await createTrialApi(client).convert("stellarbox-s1", 1239, "FULL_TERM_ON_CONVERSION:0123456789abcdef", "h2-convert-TRIAL-2");
+  assert.deepEqual(client.requests[1].body,
+    { productNo: "stellarbox-s1", expectedAmountUsdt: 1239, quoteVersion: "FULL_TERM_ON_CONVERSION:0123456789abcdef" });
 });
 
 test("trial start sends the device mapped from the authoritative product config", async () => {

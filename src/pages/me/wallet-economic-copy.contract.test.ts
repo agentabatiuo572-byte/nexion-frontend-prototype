@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-const pages = import.meta.glob("./wallet.vue", { query: "?raw", import: "default", eager: true }) as Record<string, string>;
+const pages = import.meta.glob("../../components/me/wallet-overview.vue", { query: "?raw", import: "default", eager: true }) as Record<string, string>;
 const messages = import.meta.glob("../../i18n/messages/{zh,en,vi}.ts", { query: "?raw", import: "default", eager: true }) as Record<string, string>;
 
 describe("wallet economic copy", () => {
   it("does not present an unsupported NEX holding entitlement", () => {
-    const wallet = pages["./wallet.vue"] ?? "";
+    const wallet = pages["../../components/me/wallet-overview.vue"] ?? "";
 
     expect(wallet).not.toContain("nexBoost");
     expect(wallet).not.toContain("nexCallout");

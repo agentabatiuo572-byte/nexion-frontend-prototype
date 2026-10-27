@@ -16,9 +16,9 @@ export const reviewedCopyR2 = [
   {"key":"trial.eligReasonUnknown","placeholders":[],"consumers":[{"file":"src/components/trial-claim-sheet.vue","expression":"w.eligReasonUnknown"}]},
   {"key":"computeShare.pairingPending","placeholders":[],"consumers":[{"file":"src/pages/compute-share/download.vue","expression":"t.value.computeShare.pairingPending"}]},
   {"key":"computeShare.pairingConnected","placeholders":[],"consumers":[{"file":"src/pages/compute-share/download.vue","expression":"t.value.computeShare.pairingConnected"}]},
-  {"key":"wallet.pendingSheetBody","placeholders":[],"consumers":[{"file":"src/pages/me/wallet.vue","expression":"t.value.wallet.pendingSheetBody"}]},
-  {"key":"wallet.lockedSheetBody","placeholders":[],"consumers":[{"file":"src/pages/me/wallet.vue","expression":"t.value.wallet.lockedSheetBody"}]},
-  {"key":"wallet.releaseAttestationInfo","placeholders":["hours"],"consumers":[{"file":"src/pages/me/wallet.vue","expression":"t.value.wallet.releaseAttestationInfo"}]}, // i18n-raw-ok: non-rendered test expression string
+  {"key":"wallet.pendingSheetBody","placeholders":[],"consumers":[{"file":"src/components/me/wallet-overview.vue","expression":"t.value.wallet.pendingSheetBody"}]},
+  {"key":"wallet.lockedSheetBody","placeholders":[],"consumers":[{"file":"src/components/me/wallet-overview.vue","expression":"t.value.wallet.lockedSheetBody"}]},
+  {"key":"wallet.releaseAttestationInfo","placeholders":["hours"],"consumers":[{"file":"src/components/me/wallet-overview.vue","expression":"t.value.wallet.releaseAttestationInfo"}]}, // i18n-raw-ok: non-rendered test expression string
   {"key":"wallet.trackExpectedAt","placeholders":["time"],"consumers":[{"file":"src/pages/me/wallet-withdraw-tracking.vue","expression":"t.value.wallet.trackExpectedAt"}]}, // i18n-raw-ok: non-rendered test expression string
   {"key":"onboarding.policyLine3","placeholders":[],"consumers":[{"file":"src/pages/onboarding/connect.vue","expression":"t.value.onboarding.policyLine3"}]},
   {"key":"session.kickedTaskNote","placeholders":[],"consumers":[{"file":"src/pages/session/kicked.vue","expression":"t.session.kickedTaskNote"}]},

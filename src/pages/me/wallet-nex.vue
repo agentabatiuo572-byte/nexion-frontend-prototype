@@ -18,7 +18,7 @@
 <template>
   <AppChassis active="me">
     <view style="color: var(--v5-ink)">
-      <SubPageHeader back="/pages/me/wallet" />
+      <SubPageHeader back="/pages/me/me" />
 
       <view :style="bodyStyle">
         <!-- Hero — de-carded: balance sits on the page floor, floor glow deleted. -->

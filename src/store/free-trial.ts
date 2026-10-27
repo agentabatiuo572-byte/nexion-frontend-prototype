@@ -5,7 +5,7 @@ import { mockServerNow, ONE_DAY_MS } from "./server-time";
 import { normalizeAccountKey } from "./account-cloud";
 import { acquireAccountCommandKey, readAccountRow, releaseAccountCommandKey, writeAccountRow } from "./account-scoped-storage";
 import { remoteApiEnabled, trialApi } from "@/api/runtime";
-import type { TrialAuthorityState } from "@/api/trial-api";
+import type { TrialAuthorityState, TrialConversionQuote } from "@/api/trial-api";
 import { asApiError, isAmbiguousOutcome } from "@/api/errors";
 import {
   resolveTrialAt,
@@ -65,7 +65,8 @@ function conversionRefusal(error: unknown): TrialConversionFailure | null {
   if (!["business", "http"].includes(failure.kind) || ![409, 422].includes(failure.code ?? 0)) return null;
   if (failure.kind === "http" && failure.status !== failure.code) return null;
   if (failure.message === "TRIAL_WALLET_INSUFFICIENT") return "insufficient-funds";
-  if (["TRIAL_AMOUNT_MISMATCH", "TRIAL_AMOUNT_INVALID"].includes(failure.message)) return "quote-changed";
+  if (["TRIAL_AMOUNT_MISMATCH", "TRIAL_AMOUNT_INVALID", "TRIAL_QUOTE_CHANGED", "TRIAL_QUOTE_VERSION_INVALID"]
+    .includes(failure.message)) return "quote-changed";
   return ["TRIAL_KILL_SWITCH_DISABLED", "TRIAL_PRODUCT_REQUIRED", "TRIAL_NOT_CONVERTIBLE",
     "TRIAL_PRODUCT_NOT_ELIGIBLE", "TRIAL_PRODUCT_NOT_AVAILABLE", "TRIAL_PRODUCT_NOT_RELEASED",
     "TRIAL_DAILY_YIELD_INVALID", "CAPACITY_REPLACEMENT_REQUIRED", "TRIAL_PRICE_SNAPSHOT_INVALID",
@@ -187,6 +188,8 @@ export const useFreeTrial = defineStore("freeTrial", () => {
   const authoritativeOffsetUSD = ref<number | null>(null);
   const authoritativeRemainderUSD = ref<number | null>(null);
   const authoritativePriceUSD = ref<number | null>(null);
+  /** FEAT-TRIAL05 server conversion quote; null on older servers or terminal claims. */
+  const authoritativeQuote = ref<TrialConversionQuote | null>(null);
   const remoteCanStart = ref(false);
   // Presentation only: keep the last confirmed promotion mounted during reads.
   // Never use this retained value to authorize a claim; canStart stays fail-closed.
@@ -254,6 +257,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
     authoritativeOffsetUSD.value = null;
     authoritativeRemainderUSD.value = null;
     authoritativePriceUSD.value = null;
+    authoritativeQuote.value = null;
     remoteCanStart.value = false;
     remoteEligibilityReason.value = "unknown";
     authorityClaimNo.value = null;
@@ -295,6 +299,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
     authoritativeOffsetUSD.value = next.offsetUSD ?? null;
     authoritativeRemainderUSD.value = next.remainderUSD ?? null;
     authoritativePriceUSD.value = next.priceUSD ?? null;
+    authoritativeQuote.value = next.quote ?? null;
     remoteCanStart.value = next.canStart;
     confirmedPromoVisible.value = next.canStart && next.status === "none";
     confirmedPromoKnown.value = true;
@@ -530,7 +535,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
   // 🔴 P0 防线:convert 内部自己取 mockServerNow() 并先 resolveTrialAt 推进边界,
   // 绝不信任调用方(结算页)缓存的 now 或内存里的旧 status —— 用户离线跨过宽限期
   // 后趁 poll 未跑下单,这里按真实时点判到 ended 即拒绝(边界推进结果已落盘)。
-  async function convert(productNo?: string, expectedAmountUsdt?: number): Promise<{
+  async function convert(productNo?: string, expectedAmountUsdt?: number, quoteVersion?: string | null): Promise<{
     ok: boolean; reason?: TrialConversionFailure; orderNo?: string;
   }> {
     const requestedProductNo = productNo ?? useTrialConfig().config.trialProductId;
@@ -541,7 +546,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
       if (authorityStatus.value !== "ready" || !authorityClaimNo.value) return { ok: false, reason: "unknown" };
       const requestedAccount = boundKey;
       const expectedClaimNo = authorityClaimNo.value;
-      let intent: string, key: string, originalAmount: number | null;
+      let intent: string, key: string, originalAmount: number | null, originalQuoteVersion: string | null;
       let originalOutcomeUnknown = false;
       try {
         // The intent contains the original quote as well as the claim/SKU. A
@@ -553,14 +558,21 @@ export const useFreeTrial = defineStore("freeTrial", () => {
         if (pending.length && (typeof commands[pending[0]!] !== "string" || !commands[pending[0]!]!.trim())) {
           return { ok: false, reason: "unknown" };
         }
-        intent = pending[0] ?? JSON.stringify([expectedClaimNo, requestedProductNo, expectedAmountUsdt ?? null]);
+        // The confirmed quote version is part of the intent; three-item intents
+        // written before FEAT-TRIAL05 replay without one, exactly as first sent.
+        intent = pending[0] ?? JSON.stringify(quoteVersion
+          ? [expectedClaimNo, requestedProductNo, expectedAmountUsdt ?? null, quoteVersion]
+          : [expectedClaimNo, requestedProductNo, expectedAmountUsdt ?? null]);
         const original: unknown = JSON.parse(intent);
-        if (!Array.isArray(original) || original.length !== 3 || original[0] !== expectedClaimNo
+        if (!Array.isArray(original) || (original.length !== 3 && original.length !== 4)
+            || original[0] !== expectedClaimNo
             || original[1] !== requestedProductNo || (original[2] !== null
-              && (typeof original[2] !== "number" || !Number.isFinite(original[2]) || original[2] < 0))) {
+              && (typeof original[2] !== "number" || !Number.isFinite(original[2]) || original[2] < 0))
+            || (original.length === 4 && (typeof original[3] !== "string" || !original[3]))) {
           return { ok: false, reason: "unknown" };
         }
         originalAmount = original[2];
+        originalQuoteVersion = original.length === 4 ? original[3] : null;
         key = acquireAccountCommandKey(CONVERT_COMMANDS_KEY, requestedAccount, intent, "h2-convert");
       } catch {
         return { ok: false, reason: "storage-unavailable" };
@@ -573,12 +585,14 @@ export const useFreeTrial = defineStore("freeTrial", () => {
         if (originalOutcomeUnknown) return { ok: false, reason: "unknown" } as const;
         // The backend caches business denials too. Retire only a known refusal;
         // a later user retry after top-up needs a fresh key, while unknown keeps it.
+        // A changed quote must be re-read before the user can confirm the new one.
+        if (reason === "quote-changed") void refreshRemote(true);
         return { ok: false, reason: releaseAccountCommandKey(CONVERT_COMMANDS_KEY, requestedAccount, intent, key)
           ? reason : "storage-unavailable" } as const;
       };
       try {
         const sequence = ++authorityRequestSequence;
-        const receipt = await trialApi.convert(requestedProductNo, originalAmount, key);
+        const receipt = await trialApi.convert(requestedProductNo, originalAmount, originalQuoteVersion, key);
         if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
         const confirmed = await refreshRemote(true);
         if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
@@ -603,7 +617,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
         // idempotency record can replay the original order receipt without a
         // second stock reservation; only then do we fall back to state readback.
         try {
-          const replay = await trialApi.convert(requestedProductNo, originalAmount, key);
+          const replay = await trialApi.convert(requestedProductNo, originalAmount, originalQuoteVersion, key);
           if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
           const reconciled = await refreshRemote(true);
           if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
@@ -739,7 +753,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
     status, startedAt, expiresAt, graceEndsAt, finishedAt, hasPendingConversion,
     shadowFrozenAtUSD, shadowFrozenAtNEX, legacyCardMigrated,
     authorityStatus, authorityError, authoritativeShadowUSD, authoritativeShadowNEX,
-    authoritativeOffsetUSD, authoritativeRemainderUSD, authoritativePriceUSD,
+    authoritativeOffsetUSD, authoritativeRemainderUSD, authoritativePriceUSD, authoritativeQuote,
     authorityClaimNo, authorityVersion, authorityServerState,
     eligibility, canStart, showPromo, showHeroPromo, confirmedOfferState,
     promoSlot,

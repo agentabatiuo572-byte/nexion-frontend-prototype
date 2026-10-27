@@ -539,6 +539,9 @@ test("wallet valuation names USDT for both values and preserves the remote unava
   expect(text(find(root, "nx-wallet-valuation"))).not.toContain("0.124");
   find(root, "nx-wallet-heading").props.onClick();
   expect(navTo).toHaveBeenCalledExactlyOnceWith("/pages/me/wallet-bills");
+  navTo.mockClear();
+  find(root, "nx-wallet-nex").props.onClick();
+  expect(navTo).toHaveBeenCalledExactlyOnceWith("/pages/me/wallet-nex");
   expect(find(root, "nx-wallet-slot-block")).toBeUndefined();
   app.slotCap = 1; await Vue.nextTick();
   const slot = find(root, "nx-wallet-slot-block");

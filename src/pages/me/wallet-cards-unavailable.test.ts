@@ -58,18 +58,9 @@ async function renderPage(name: typeof pages[number], remote: boolean, developme
 }
 
 describe("open bank-card form with no simulated binding", () => {
-  it("uses the same rail availability for the wallet entry instead of advertising saved-card reuse", () => {
-    const wallet = readFileSync(new URL("./wallet.vue", import.meta.url), "utf8");
-    const statement = wallet.match(/const cardsSub = computed\(\(\) =>[\s\S]*?\n\);/)?.[0];
-    if (!statement) throw new Error("Wallet card entry computed missing");
-    for (const [remote, development, count, expected] of [
-      [true, false, 0, en.cards.newTitle], [true, false, 2, en.cards.newTitle],
-      [true, true, 2, "2 bound"], [false, false, 0, en.wallet.cardsReuseHint], [false, false, 2, "2 bound"],
-    ] as const) {
-      const label = execute(statement, { computed: Vue.computed, remoteApiEnabled: remote, developmentPaymentEnabled: development,
-        cardsCount: Vue.ref(count), t: Vue.ref(en), fmt: (_: string, value: { n: number }) => `${value.n} bound` }, "cardsSub");
-      expect(label.value).toBe(expected);
-    }
+  it("keeps bank cards reachable from Me after removing the wallet landing", () => {
+    const me = readFileSync(new URL("./me.vue", import.meta.url), "utf8");
+    expect(me).toContain('href: "/me/wallet-cards"');
   });
   it.each(pages)("opens the original card entry without claiming saved-card or simulation state: %s", async name => {
     const html = await renderPage(name, true, false);
@@ -116,7 +107,7 @@ describe("open bank-card form with no simulated binding", () => {
     const navReplace = vi.fn(), refreshCards = vi.fn();
     execute(functionSource(sources["wallet-cards.vue"], "openCards"), { cardBindingAvailable: Vue.ref(false), navReplace, refreshCards }, "openCards")();
     expect(navReplace).toHaveBeenCalledWith("/pages/me/wallet-cards-new"); expect(refreshCards).not.toHaveBeenCalled();
-    expect(sources["wallet-cards-new.vue"]).toContain(":back=\"cardBindingAvailable ? '/pages/me/wallet-cards' : '/pages/me/wallet'\"");
+    expect(sources["wallet-cards-new.vue"]).toContain(":back=\"cardBindingAvailable ? '/pages/me/wallet-cards' : '/pages/me/me'\"");
   });
   it("clears card draft fields on page leave and account/runtime changes", () => {
     const clear = vi.fn(), holder = Vue.ref("TEST USER"), cardReady = Vue.ref(true), brand = Vue.ref("visa"), setAsDefault = Vue.ref(false), isBinding = Vue.ref(false);
@@ -135,7 +126,7 @@ describe("open bank-card form with no simulated binding", () => {
     vi.stubGlobal("uni", uni); vi.stubGlobal("getCurrentPages", () => [{}]);
     const method = name === "wallet-cards.vue" ? "returnToWallet" : "returnFromUnavailable";
     execute(functionSource(sources[name], method), { navBack, returnTo: Vue.ref("/pages/me/wallet-cards") }, method)();
-    expect(uni.reLaunch).toHaveBeenCalledWith(expect.objectContaining({ url: name === "wallet-cards.vue" ? "/pages/me/wallet" : "/pages/me/wallet-cards" }));
+    expect(uni.reLaunch).toHaveBeenCalledWith(expect.objectContaining({ url: name === "wallet-cards.vue" ? "/pages/tabs/tabs?target=%2Fpages%2Fme%2Fme" : "/pages/me/wallet-cards" }));
     expect(uni.navigateBack).not.toHaveBeenCalled();
   });
   it("returns to the previous page when a real navigation stack exists", () => {

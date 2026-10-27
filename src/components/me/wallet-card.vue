@@ -15,12 +15,13 @@
       <view class="nx-wallet-total" :aria-label="t.me.usdtBalance + ': $' + usdtLabel">
         <text class="nx-wallet-currency">$</text><text class="tabular-nums nx-wallet-amount">{{ usdtLabel }}</text>
       </view>
-      <view class="nx-wallet-nex" :aria-label="t.uiChrome.nexBalance + ': ' + nexLabel + ' UVT'">
+      <view class="nx-wallet-nex" role="link" tabindex="0" @click="goNex" @keydown.enter.prevent="goNex" :aria-label="t.uiChrome.nexBalance + ': ' + nexLabel + ' UVT'">
         <view class="nx-wallet-coin" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9zM8 15V9l8 6V9" /></svg></view>
         <text class="tabular-nums">{{ nexLabel }} UVT</text>
+        <svg class="nx-wallet-nex-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
       </view>
     <view class="nx-wallet-details">
-      <text v-if="compact || pendingLine" class="block nx-wallet-pending tabular-nums" :aria-hidden="pendingLine ? undefined : true">{{ pendingLine }}</text>
+      <text v-if="!compact && pendingLine" class="block nx-wallet-pending tabular-nums" :aria-hidden="pendingLine ? undefined : true">{{ pendingLine }}</text>
       <view class="nx-wallet-valuation">
         <text>{{ nexMarketLabel }}</text>
         <view v-if="!compact" class="nx-wallet-bills" role="link" tabindex="0" @click="goBills"  @keydown.enter.prevent="goBills" ><text>{{ fmt(t.me.billsThisMonth, {n:billsThisMonth}) }}</text><text aria-hidden="true"> â€º</text></view>
@@ -148,6 +149,9 @@ const DATA_DOTS = [
   { left: "90%", top: "82%", delay: "6.6s", bg: "var(--v5-brand-2)" },
 ];
 
+function goNex() {
+  navTo("/pages/me/wallet-nex");
+}
 function goBills() {
   navTo("/pages/me/wallet-bills");
 }
@@ -289,7 +293,8 @@ const usdtLabel = computed(() => usdtBalanceReadable.value ? usdtText.value : "â
 .nx-wallet-valuation { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; font: 400 12px/1.5 var(--font-v5); color: var(--v5-ink-3); }
 .nx-wallet-bills { display: flex; align-items: center; min-height: 44px; }
 .nx-wallet-slot-block { grid-template-columns: minmax(0, 1fr) auto; }
-.nx-wallet-heading:focus-visible, .nx-wallet-bills:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; border-radius: 12px; }
+.nx-wallet-nex-chevron { margin-left: auto; color: var(--v5-ink-3); }
+.nx-wallet-nex:focus-visible, .nx-wallet-heading:focus-visible, .nx-wallet-bills:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; border-radius: 12px; }
 @keyframes wallet-arc-breathe { from { opacity: .55; } to { opacity: 1; } }
 @media (max-width: 350px) { .nx-wallet-slot-block { grid-template-columns: minmax(0, 1fr); } .nx-wallet-summary { padding: 18px; } }
 @media (prefers-reduced-motion: reduce) { .nx-wallet-arc { animation: none; } }

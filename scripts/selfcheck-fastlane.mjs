@@ -733,7 +733,7 @@ function functionBody(src, opener) {
   //    且**全部逃过了 362 道机器门** —— 缺的正是这条守新不变量的门)。
   {
     const appVueSrc = readSrc("src/App.vue");
-    const walletSrc = readSrc("src/pages/me/wallet.vue");
+    const walletSrc = readSrc("src/components/me/wallet-overview.vue");
     const trackSrc = readSrc("src/pages/me/wallet-withdraw-tracking.vue");
     // 包 E(2026-08-05):换址闸从旧配对存储迁到 payout-address(地址直管)。
     // 判据**先于机制改写**指向新 store —— 新文件缺席时 readSrc 直接抛错 = 红,

@@ -244,7 +244,8 @@ describe("remote trial conversion refusal and original-intent recovery", () => {
     expect((await store.convert("stellarbox-s1", 1247.73)).reason).toBe("insufficient-funds");
     expect(await store.convert("stellarbox-s1", 1247.73)).toEqual({ ok: true, orderNo: receipt.orderNo });
     expect(remote.convert).toHaveBeenCalledTimes(2);
-    expect(remote.convert.mock.calls[0][2]).not.toBe(remote.convert.mock.calls[1][2]);
+    // Arguments: productNo, expectedAmountUsdt, quoteVersion, idempotencyKey.
+    expect(remote.convert.mock.calls[0][3]).not.toBe(remote.convert.mock.calls[1][3]);
   });
 
   it.each(["TRIAL_AMOUNT_MISMATCH", "TRIAL_AMOUNT_INVALID"])("returns the genuine quote refusal without replay: %s", async (message) => {

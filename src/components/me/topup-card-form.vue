@@ -284,7 +284,7 @@ function retry() {
 }
 
 function goWallet() {
-  navReset({ url: "/pages/me/wallet", fail: () => {} });
+  navReset({ url: "/pages/me/me", fail: () => {} });
 }
 
 // ── styles ──

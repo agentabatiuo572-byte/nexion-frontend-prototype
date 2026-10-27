@@ -13,7 +13,7 @@
 <template>
   <AppChassis active="me">
     <CardStagger style="padding-bottom: 24px">
-      <SubPageHeader back="/pages/me/wallet" />
+      <SubPageHeader back="/pages/me/me" />
 
       <view v-if="remoteApiEnabled && (remoteRefreshError || faucet.remoteReadState === 'error')" class="mx-4 rounded-2xl" :style="remoteErrorStyle">
         <view class="flex items-center justify-between" style="gap: 12px">

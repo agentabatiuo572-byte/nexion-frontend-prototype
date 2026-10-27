@@ -120,7 +120,7 @@ const claimBusy = ref(false);
 
 const POWERUPS: PowerUp[] = [
   { id: "royalty_boost", threshold: 7, tint: "var(--v5-success)", key: "royalty_boost", href: "/pages/team/team" },
-  { id: "nex_boost", threshold: 14, tint: "var(--v5-brand)", key: "nex_boost", href: "/pages/me/wallet" },
+  { id: "nex_boost", threshold: 14, tint: "var(--v5-brand)", key: "nex_boost", href: "/pages/me/me" },
   { id: "staking_boost", threshold: 30, tint: "var(--v5-warning)", key: "staking_boost", href: "/pages/staking/staking" },
   { id: "genesis_whitelist", threshold: 60, tint: "var(--v5-ink)", key: "genesis_whitelist", href: "/pages/genesis/genesis" },
 ];

@@ -19,12 +19,12 @@
   Then → withdraw-tracking. <AppChassis active="me">.
   Header is the shared sticky <SubPageHeader> (back=/pages/me/wallet, title="USDT",
   subtitle=t.wallet.withdraw — mirrors the prototype's
-  <SetPageHeader title="USDT" subtitle={t.wallet.withdraw} backHref="/me/wallet"/>).
+  <SetPageHeader title="USDT" subtitle={t.wallet.withdraw} backHref="/pages/me/me"/>).
 -->
 <template>
   <AppChassis active="me">
     <view style="color: var(--v5-ink)">
-      <SubPageHeader back="/pages/me/wallet" title="USDT" :subtitle="t.wallet.withdraw" />
+      <SubPageHeader back="/pages/me/me" title="USDT" :subtitle="t.wallet.withdraw" />
       <view v-if="pendingAttempt" class="mx-4 mb-3 flex items-start" :style="holdBannerStyle">
         <view class="flex-1 min-w-0">
           <text class="block" style="font-size: 12px; color: var(--v5-warning); font-weight: 600">{{ t.walletV3.withdrawAmbiguousExitTitle }}</text>

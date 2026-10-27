@@ -4,7 +4,7 @@ import ts from "typescript";
 import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
 import { vi } from "@/i18n/messages/vi";
-import page from "./wallet.vue?raw";
+import page from "../../components/me/wallet-overview.vue?raw";
 
 const start = page.indexOf("const withdrawalRowSub = computed");
 const end = page.indexOf("function fmtTime(", start);

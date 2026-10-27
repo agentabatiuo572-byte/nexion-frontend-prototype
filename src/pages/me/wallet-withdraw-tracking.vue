@@ -10,7 +10,7 @@
 <template>
   <AppChassis active="me">
     <view style="padding-bottom: 16px">
-      <SubPageHeader :back="'/pages/me/wallet'" :title="wd ? wd.id : t.wallet.withdrawalStatusSubtitle" />
+      <SubPageHeader :back="'/pages/me/me'" :title="wd ? wd.id : t.wallet.withdrawalStatusSubtitle" />
 
       <!-- Exact deep-link reads wait for the authenticated account before presenting any absence. -->
       <view v-if="trackingReadPending && !wd" class="px-5" style="padding-top: 4px">
@@ -504,7 +504,7 @@ function goWithdraw() {
   navTo("/pages/me/wallet-withdraw-method");
 }
 function goWallet() {
-  navTo("/me/wallet");
+  navTo("/pages/me/me");
 }
 function goSupport() {
   navTo("/pages/me/support");

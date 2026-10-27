@@ -1,6 +1,6 @@
 <template>
   <view class="bank-binding" data-testid="bank-account-binding">
-    <SubPageHeader back="/pages/me/wallet" :title="t.cards.newTitle" />
+    <SubPageHeader back="/pages/me/me" :title="t.cards.newTitle" />
     <view class="binding-body">
       <view class="binding-head">
         <view class="binding-icon">
@@ -127,7 +127,7 @@ function reset() {
 watch(() => [props.active, app.accountKey, app.accountBindingEpoch] as const, reset, { immediate: true });
 const stopRuntime = subscribeRuntimeRevision(reset);
 onBeforeUnmount(() => { stopRuntime(); if (timer) clearInterval(timer); form.reset(); });
-function done() { void navReplace(props.returnTo === "/pages/me/wallet-cards" ? "/pages/me/wallet" : props.returnTo); }
+function done() { void navReplace(props.returnTo === "/pages/me/wallet-cards" ? "/pages/me/me" : props.returnTo); }
 </script>
 
 <style scoped>

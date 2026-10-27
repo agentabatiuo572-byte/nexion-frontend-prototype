@@ -715,7 +715,7 @@ async function finishCreditedFlow() {
     }
     if (!pageActive.value) return;
   }
-  navBack("/pages/me/wallet");
+  navBack("/pages/me/me");
 }
 function startNewTopup() {
   autoResumePending.value = false;

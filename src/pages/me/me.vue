@@ -5,10 +5,8 @@
       <ProfileRow />
 
       <WalletCard compact />
+      <WalletOverview />
 
-      <NxListGroup class="me-security-hint">
-        <NxListRow :title="t.security.twoFactorTitle" :value="twoFactorSummary" @click="navTo('/pages/me/security')" />
-      </NxListGroup>
       <NxSection :title="t.me.frequentFunctions" :action="t.me.deviceAddLabel" class="me-shortcuts" @action="navTo('/pages/store/store')">
         <view class="me-shortcut-grid">
           <template v-for="item in frequentItems" :key="item.key">
@@ -73,6 +71,8 @@ import NxListGroup from "@/components/ui/nx-list-group.vue";
 import NxListRow from "@/components/ui/nx-list-row.vue";
 import ProfileRow from "@/components/me/profile-row.vue";
 import WalletCard from "@/components/me/wallet-card.vue";
+import WalletOverview from "@/components/me/wallet-overview.vue";
+import { useCommission } from "@/store/commission";
 
 import ThemePickerSheet from "@/components/me/theme-picker-sheet.vue";
 import { useT } from "@/i18n/use-t";
@@ -149,6 +149,7 @@ const rewardsSeen = useRewardsSeen();
 const vrank = useVRank();
 const theme = useTheme();
 const bills = useBills();
+const commission = useCommission();
 const market = useMarket();
 const themePickerOpen = ref(false);
 const remoteSecurity = ref<SecurityState | null>(null);
@@ -389,6 +390,8 @@ async function refreshRemoteMe() {
   if (!remoteApiEnabled) return;
   await settleRemoteMeLoaders([
     ["home", () => app.refreshHomeTruth()],
+    ["commission", () => commission.refreshCanonicalEvents()],
+    ["withdrawals", () => app.refreshRemoteWithdrawalList()],
     ["fleet", async () => { await refreshRemoteFleetAfterCatalog(app.accountKey); await refreshEarningsReleaseStatus(); }],
     ["funds", refreshRemoteFunds],
     ["orders", refreshRemoteOrders],
@@ -429,7 +432,10 @@ const unsubscribeOrdersRevision = subscribeRuntimeRevision(() => {
     remote: remoteApiEnabled, authenticated: auth.isAuthenticated,
     accountId: auth.accountId, appAccountKey: app.accountKey,
     sessionUserId: sessionVault.read()?.user.userId ?? null,
-  })) void refreshRemoteOrders();
+  })) {
+    void refreshRemoteOrders();
+    void refreshEarningsReleaseStatus().catch(() => undefined);
+  }
 });
 onUnmounted(() => {
   remoteMeActive = false;
@@ -656,5 +662,4 @@ const signOutStyle: CSSProperties = {
 .me-network-item__meta { font-size: var(--v5-type-body-s); line-height: var(--v5-type-body-s-lh); color: var(--v5-ink-3); overflow-wrap: anywhere; }
 .me-shortcut:focus-visible, .me-network-item:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; border-radius: var(--v5-radius-s); }
 .me-shortcut:active, .me-network-item:active { opacity: .72; }
-.me-security-hint { color: var(--v5-warning-ink); }
 </style>

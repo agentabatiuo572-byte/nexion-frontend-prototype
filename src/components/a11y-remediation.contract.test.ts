@@ -12,7 +12,7 @@ const sources = import.meta.glob([
   "../pages/me/wallet-withdraw.vue",
   "../pages/me/language.vue",
   "../pages/me/security.vue",
-  "../pages/me/wallet.vue",
+  "./me/wallet-overview.vue",
   "../pages/team/team.vue",
   "../pages/compute-share/download.vue",
   "../pages/learn/course.vue",
@@ -78,9 +78,9 @@ describe("accessibility remediation contracts", () => {
   });
 
   it("uses the shared semantic activation contract on wallet, team, download, learning and developer actions", () => {
-    const wallet = read("../pages/me/wallet.vue");
-    expect(wallet).toContain('role="button" tabindex="0" :aria-label="t.wallet.nexBalance"');
-    expect(wallet).toContain('role="button" tabindex="0" :aria-label="t.wallet.topUp"');
+    const wallet = read("./me/wallet-overview.vue");
+    expect(wallet).toContain('data-wallet-metric="reviewing" role="button" tabindex="0"');
+    expect(wallet).toContain('data-wallet-metric="locked" role="button" tabindex="0"');
 
     const team = read("../pages/team/team.vue");
     expect(team).toMatch(/<view[^>]*class="[^"]*nx-team-rank-link[^"]*"[^>]*role="link" tabindex="0"[^>]*@click="go\('\/pages\/team\/rank'\)"/);

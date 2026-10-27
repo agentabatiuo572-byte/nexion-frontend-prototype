@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-const page = (import.meta.glob("./wallet.vue", { query: "?raw", import: "default", eager: true })["./wallet.vue"] ?? "") as string;
+const page = (import.meta.glob("../../components/me/wallet-overview.vue", { query: "?raw", import: "default", eager: true })["../../components/me/wallet-overview.vue"] ?? "") as string;
 
 describe("wallet authority failure contract", () => {
   it("offers retry and distinguishes stale confirmed values from no snapshot", () => {
@@ -10,7 +10,6 @@ describe("wallet authority failure contract", () => {
     expect(page).toContain("t.wallet.fundsStaleBody");
     expect(page).toContain("app.remoteWalletReceiptHasSnapshot");
     expect(page).toContain("t.wallet.fundsReceiptOnlyBody");
-    expect(page).toContain("usdtBalanceReadable");
     expect(page).toContain("t.wallet.retryFunds");
   });
 

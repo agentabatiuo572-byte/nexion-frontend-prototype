@@ -18,7 +18,7 @@ describe("remote power-up target", () => {
 
   it("accepts only the known in-app destinations", () => {
     expect(canonicalPowerUpTarget("/pages/team/team")).toBe("/pages/team/team");
-    expect(canonicalPowerUpTarget("/pages/me/wallet")).toBe("/pages/me/wallet");
+    expect(canonicalPowerUpTarget("/pages/me/wallet")).toBe("/pages/me/me");
     expect(canonicalPowerUpTarget("/pages/genesis/genesis")).toBe("/pages/genesis/genesis");
     expect(canonicalPowerUpTarget("/market/genesis")).toBe("/pages/genesis/genesis");
     expect(canonicalPowerUpTarget("/wallet/staking")).toBe("/pages/staking/staking");

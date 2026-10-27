@@ -4,6 +4,36 @@ import type { TrialStatus } from "../store/trial-boundary";
 export type TrialEligibilityReason =
   "in-progress" | "converted" | "used" | "phase-closed" | "quota-exhausted" | "risk" | "product-unavailable" | "capacity-full" | "unknown";
 export type TrialConfigValue = string | boolean;
+export type TrialSettlementPolicy = "FULL_TERM_ON_CONVERSION" | "ACCRUED_ON_CONVERSION";
+
+/**
+ * FEAT-TRIAL05 server quote for converting this claim now. The App only
+ * displays it and echoes `quoteVersion` back on convert; it never derives
+ * credit, rewards or the early discount itself.
+ */
+export interface TrialConversionQuote {
+  settlementPolicy: TrialSettlementPolicy;
+  quoteVersion: string;
+  /** True only inside the original term with the early-purchase policy on. */
+  earlyPurchase: boolean;
+  priceUSD: number;
+  /** Real accrual so far — never replaced by the settled totals. */
+  accruedUSD: number;
+  accruedNEX: number;
+  settledUSD: number;
+  rewardNEX: number;
+  /** Not yet accrued part of the full term, granted for converting early. */
+  earlyRewardUSD: number;
+  earlyRewardNEX: number;
+  offsetUSD: number;
+  remainderUSD: number;
+  promoDiscountUSD: number;
+  /** The configured fixed discount (rules copy); this order may apply less. */
+  earlyDiscountConfiguredUSD: number;
+  earlyDiscountUSD: number;
+  amountUSD: number;
+  earlyEndsAt: number | null;
+}
 
 export interface TrialAuthorityState {
   authoritative: true;
@@ -26,6 +56,8 @@ export interface TrialAuthorityState {
   offsetUSD?: number;
   remainderUSD?: number;
   priceUSD?: number;
+  /** Missing on older servers and on terminal claims: keep the accrued-only presentation. */
+  quote?: TrialConversionQuote;
   source: string;
   serverCanonical: true;
   sourceEnvironment: "PRODUCTION";
@@ -48,6 +80,16 @@ export interface TrialConvertReceipt {
   discountUsdt: number;
   paymentStatus: "PENDING" | "PAID";
   orderStatus: "PENDING_PAYMENT" | "PAID";
+  /** Present from FEAT-TRIAL05 servers: what this conversion actually settled. */
+  settlement?: {
+    settlementPolicy: TrialSettlementPolicy;
+    earlyPurchase: boolean;
+    remainderUSD: number;
+    rewardNEX: number;
+    earlyRewardUSD: number;
+    earlyRewardNEX: number;
+    earlyDiscountUSD: number;
+  };
   source: "nx_trial_claim + nx_order + nx_order_item";
   serverCanonical: true;
   sourceEnvironment: "PRODUCTION";
@@ -69,7 +111,8 @@ export interface TrialApi {
   state(): Promise<TrialAuthorityState>;
   eligibility(): Promise<TrialAuthorityState>;
   start(idempotencyKey: string, deviceName: string): Promise<TrialAuthorityState>;
-  convert(productNo: string, expectedAmountUsdt: number | null, idempotencyKey: string): Promise<TrialConvertReceipt>;
+  convert(productNo: string, expectedAmountUsdt: number | null, quoteVersion: string | null,
+    idempotencyKey: string): Promise<TrialConvertReceipt>;
   cancel(reason: "explicit" | "unbind", idempotencyKey: string): Promise<TrialAuthorityState>;
 }
 
@@ -102,6 +145,46 @@ function timestamp(value: unknown): number | null {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : invalid();
 }
 
+const SETTLEMENT_POLICIES = new Set(["FULL_TERM_ON_CONVERSION", "ACCRUED_ON_CONVERSION"]);
+
+export function parseTrialConversionQuote(value: unknown): TrialConversionQuote {
+  const row = record(value);
+  const policy = row?.settlementPolicy;
+  const version = typeof row?.quoteVersion === "string" ? row.quoteVersion.trim() : "";
+  const amounts = {
+    priceUSD: finiteNumber(row?.priceUsdt), accruedUSD: finiteNumber(row?.accruedUsdt),
+    accruedNEX: finiteNumber(row?.accruedNex), settledUSD: finiteNumber(row?.settledUsdt),
+    rewardNEX: finiteNumber(row?.rewardNex), earlyRewardUSD: finiteNumber(row?.earlyRewardUsdt),
+    earlyRewardNEX: finiteNumber(row?.earlyRewardNex), offsetUSD: finiteNumber(row?.offsetUsdt),
+    remainderUSD: finiteNumber(row?.remainderUsdt), promoDiscountUSD: finiteNumber(row?.promoDiscountUsdt),
+    earlyDiscountConfiguredUSD: finiteNumber(row?.earlyDiscountConfiguredUsdt),
+    earlyDiscountUSD: finiteNumber(row?.earlyDiscountUsdt), amountUSD: finiteNumber(row?.amountUsdt),
+  };
+  const earlyEndsAt = timestamp(row?.earlyEndsAtEpochMs);
+  if (!row || typeof policy !== "string" || !SETTLEMENT_POLICIES.has(policy) || !version || version.length > 96
+      || typeof row.earlyPurchase !== "boolean"
+      || row.earlyPurchase !== (policy === "FULL_TERM_ON_CONVERSION")
+      || (row.earlyPurchase && earlyEndsAt === null)
+      || Object.values(amounts).some(amount => amount === null)) return invalid();
+  return { settlementPolicy: policy as TrialSettlementPolicy, quoteVersion: version,
+    earlyPurchase: row.earlyPurchase, ...amounts as { [K in keyof typeof amounts]: number }, earlyEndsAt };
+}
+
+function receiptSettlement(row: Record<string, unknown>): TrialConvertReceipt["settlement"] | null | undefined {
+  if (row.settlementPolicy === undefined) return undefined;
+  const policy = row.settlementPolicy;
+  const remainderUSD = finiteNumber(row.remainderUsdt);
+  const rewardNEX = finiteNumber(row.rewardNex);
+  const earlyRewardUSD = finiteNumber(row.earlyRewardUsdt);
+  const earlyRewardNEX = finiteNumber(row.earlyRewardNex);
+  const earlyDiscountUSD = finiteNumber(row.earlyDiscountUsdt);
+  if (typeof policy !== "string" || !SETTLEMENT_POLICIES.has(policy) || typeof row.earlyPurchase !== "boolean"
+      || remainderUSD === null || rewardNEX === null || earlyRewardUSD === null || earlyRewardNEX === null
+      || earlyDiscountUSD === null) return null;
+  return { settlementPolicy: policy as TrialSettlementPolicy, earlyPurchase: row.earlyPurchase,
+    remainderUSD, rewardNEX, earlyRewardUSD, earlyRewardNEX, earlyDiscountUSD };
+}
+
 export function parseTrialConvertReceipt(value: unknown): TrialConvertReceipt {
   const row = record(value);
   const orderNo = typeof row?.orderNo === "string" ? row.orderNo.trim() : "";
@@ -113,13 +196,14 @@ export function parseTrialConvertReceipt(value: unknown): TrialConvertReceipt {
   const source = row?.source === "nx_trial_claim + nx_order + nx_order_item" ? row.source : null;
   const provenance = record(row?.provenance);
   const paymentNo = row?.paymentNo == null ? undefined : String(row.paymentNo).trim();
-  if (!/^TRC-[A-Z0-9]+$/.test(orderNo) || !productNo || amountUsdt === null || discountUsdt === null
+  const settlement = row ? receiptSettlement(row) : undefined;
+  if (settlement === null || !/^TRC-[A-Z0-9]+$/.test(orderNo) || !productNo || amountUsdt === null || discountUsdt === null
       || !paymentStatus || !orderStatus || !source
       || row?.serverCanonical !== true || row?.sourceEnvironment !== "PRODUCTION" || row?.runId !== ""
       || provenance?.serverCanonical !== true || provenance.source !== source
       || provenance.sourceEnvironment !== "PRODUCTION" || provenance.runId !== "") return invalid();
   return { orderNo, ...(paymentNo ? { paymentNo } : {}), productNo, amountUsdt, discountUsdt,
-    paymentStatus, orderStatus, source, serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "",
+    paymentStatus, orderStatus, ...(settlement ? { settlement } : {}), source, serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "",
     provenance: { source, serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "" } };
 }
 
@@ -166,6 +250,7 @@ export function parseTrialAuthorityState(value: unknown): TrialAuthorityState {
   const remainderUSD = hasAmounts ? finiteNumber(row.remainderUsdt) : null;
   const priceUSD = hasAmounts ? finiteNumber(row.priceUsdt) : null;
   if (hasAmounts && (offsetUSD === null || remainderUSD === null || priceUSD === null)) return invalid();
+  const quote = row.quote == null ? undefined : parseTrialConversionQuote(row.quote);
   if (typeof canStart !== "boolean" || serverNow === null || version === null || !Number.isInteger(version)
       || !source || row.serverCanonical !== true || row.sourceEnvironment !== "PRODUCTION" || row.runId !== ""
       || provenance?.serverCanonical !== true || provenance.source !== source
@@ -206,6 +291,7 @@ export function parseTrialAuthorityState(value: unknown): TrialAuthorityState {
     shadowUSD,
     shadowNEX,
     ...(hasAmounts ? { offsetUSD: offsetUSD!, remainderUSD: remainderUSD!, priceUSD: priceUSD! } : {}),
+    ...(quote ? { quote } : {}),
     source,
     serverCanonical: true,
     sourceEnvironment: "PRODUCTION",
@@ -233,10 +319,11 @@ export function createTrialApi(client: ApiClient): TrialApi {
       body: { deviceName },
       idempotencyKey,
     }),
-    convert: async (productNo, expectedAmountUsdt, idempotencyKey) => parseTrialConvertReceipt(await client.request({
+    convert: async (productNo, expectedAmountUsdt, quoteVersion, idempotencyKey) => parseTrialConvertReceipt(await client.request({
       method: "POST",
       path: "/api/trial/convert",
-      body: { productNo, expectedAmountUsdt },
+      // Older intents carry no version; omitting it keeps their idempotent replay byte-identical.
+      body: quoteVersion ? { productNo, expectedAmountUsdt, quoteVersion } : { productNo, expectedAmountUsdt },
       idempotencyKey,
     })),
     cancel: (reason, idempotencyKey) => parse({

@@ -3,7 +3,7 @@ import ts from "typescript";
 import type { EarningsReleaseStatus } from "@/api/earnings-release-api";
 import { fmt } from "@/i18n/format";
 
-const page = (import.meta.glob("./wallet.vue", { query: "?raw", import: "default", eager: true })["./wallet.vue"]) as string;
+const page = (import.meta.glob("../../components/me/wallet-overview.vue", { query: "?raw", import: "default", eager: true })["../../components/me/wallet-overview.vue"]) as string;
 const script = page.match(/<script setup lang="ts">([\s\S]*?)<\/script>/)![1];
 const source = ts.createSourceFile("wallet.ts", script, ts.ScriptTarget.Latest, true);
 const fn = source.statements.find(s => ts.isFunctionDeclaration(s) && s.name?.text === "releaseSheetMessage")!;

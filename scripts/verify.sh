@@ -1072,7 +1072,7 @@ sentinel_present "SPEC-7 settle buckets earnings" src/store/app.ts 'bucketUserEa
 sentinel_present "SPEC-7 settle accrues app attestation" src/store/app.ts 'recordAttestation\(accountKey\.value'
 sentinel_present "SPEC-7 settle pauses on config sync failure" src/store/app.ts 'if \(cfgStore\.syncFailed\) return'
 sentinel_present "SPEC-7 config sync-failed dev toggle prod-guarded" src/store/config.ts '_devSetConfigSyncFailed'
-sentinel_present "SPEC-7 wallet shows config sync failure state" src/pages/me/wallet.vue 'syncFailedTitle'
+sentinel_present "SPEC-7 wallet shows config sync failure state" src/components/me/wallet-overview.vue 'syncFailedTitle'
 
 # ── PAY-VN 越南支付架构(规格 PRD/specs/ 下的「越南支付架构规格 v1.0」· 2026-07-24)──
 #    注:此处刻意不写规格文件名全称 —— 文件名带旧品牌前缀,写全会被本文件的 brand 哨兵抓,
@@ -1155,7 +1155,7 @@ sentinel_present "AUTH02 legacy risk migration seals schema2 barrier" src/store/
 sentinel_present "AUTH02 sponsorship is rebound per account" src/lib/account-scope.ts 'useSponsorship\(\)\.bindAccount\(accountKey\)'
 sentinel_present "AUTH02 sponsorship stores bindings per account" src/store/sponsorship.ts 'bindingsByAccount'
 sentinel_present "AUTH02 dev bridge is entrypoint DEV-gated" src/main.ts 'if \(import\.meta\.env\.DEV\)'
-sentinel_present "SPEC-7 wallet pending bucket info sheet" src/pages/me/wallet.vue 'pendingSheetTitle'
+sentinel_present "SPEC-7 wallet pending bucket info sheet" src/components/me/wallet-overview.vue 'pendingSheetTitle'
 # Bug7:钱包释放说明只使用服务端回执；零余额、不可读、限制及在线阈值由实际页面函数测试覆盖。
 if npx vitest run src/pages/me/wallet-release-message.test.ts >"${VERIFY_LOG_PREFIX}-wallet-release-message.log" 2>&1; then
   ok "SPEC-7 wallet release explanations follow server receipts"
@@ -1171,7 +1171,7 @@ sentinel_present "SPEC-7 dev bridge is DEV-gated" src/lib/spec7-dev-bridge.ts 'i
 sentinel_present "SPEC-7 earning buckets typed" src/store/types.ts 'interface EarningBuckets'
 sentinel_present "SPEC-7 user carries earningBuckets" src/store/types.ts 'earningBuckets: EarningBuckets'
 sentinel_present "SPEC-7 legacy account snapshots receive bucket defaults" src/store/app.ts 'withDefaultEarningBuckets'
-sentinel_present "SPEC-7 wallet page reads earning buckets" src/pages/me/wallet.vue 'app\.user\.earningBuckets'
+sentinel_present "SPEC-7 wallet page reads earning buckets" src/components/me/wallet-overview.vue 'app\.user\.earningBuckets'
 sentinel_present "SPEC-7 wallet card reads earning buckets" src/components/me/wallet-card.vue 'app\.user\.earningBuckets'
 # z1 判决 A:2026-07-31「上限=总余额」规则被 D5 server-canonical 新规则取代 ——
 # 可提上限 =(总余额 − 服务端 held 两桶)× policy.balanceMaxRatio,且 clusterRestricted /
@@ -1202,7 +1202,7 @@ fi
 #    故本门现在守两面:① 值仍是总余额(原判据,保留);② 标签不含「可提现」语义(新增)。
 withdrawable_source_parity() {
   local miss=""
-  grep -qE 'const usdt = computed\(\(\) => app\.user\.usdtBalance\)' src/pages/me/wallet.vue || miss="${miss}wallet.vue "
+  grep -qE 'const usdt = computed\(\(\) => app\.user\.usdtBalance\)' src/components/me/wallet-card.vue || miss="${miss}wallet.vue "
   grep -qE 'const usdt = computed\(\(\) => app\.user\.usdtBalance\)' src/components/me/wallet-card.vue || miss="${miss}wallet-card.vue "
   if [ -z "$miss" ]; then ok "wallet surfaces show total balance (app.user.usdtBalance)";
   else bad "wallet surface value source DRIFT — still on old bucket: $miss"; fi
@@ -1225,7 +1225,7 @@ withdrawable_source_parity() {
   # 文件里顺手加一处引用旧桶的辅助展示(主 computed 仍正确),上面照样全绿而页面口径已分裂。
   local stale
   stale=$(grep -nE '(earningBuckets|buckets(\.value)?)\.withdrawableUsdt' \
-    src/pages/me/wallet.vue src/components/me/wallet-card.vue src/pages/me/wallet-withdraw.vue 2>/dev/null | head -4)
+    src/components/me/wallet-overview.vue src/components/me/wallet-card.vue src/pages/me/wallet-withdraw.vue 2>/dev/null | head -4)
   if [ -z "$stale" ]; then ok "no stale withdrawable-bucket reads in wallet surfaces (0 hits)";
   else bad "stale withdrawable-bucket read resurfaced (口径分裂面)"; echo "$stale" | sed 's/^/        /'; fi
 }
@@ -2066,7 +2066,7 @@ spec4_account_session_semantics() {
     const register=fs.readFileSync("src/pages/register/register.vue","utf8");
     const signIn=fs.readFileSync("src/auth/complete-sign-in.ts","utf8");
     const entry=fs.readFileSync("src/lib/entry-surface.ts","utf8");
-    const wallet=fs.readFileSync("src/pages/me/wallet.vue","utf8");
+    const wallet=fs.readFileSync("src/components/me/wallet-overview.vue","utf8");
     const withdrawalTracking=fs.readFileSync("src/pages/me/wallet-withdraw-tracking.vue","utf8");
     if(/function writeActiveRecord|function readActiveRecord|const ACTIVE_KEY/.test(session)) throw new Error("legacy single active-session writer returned");
     if(/rec\.deviceId !== deviceId\.value[\s\S]*return "kicked"/.test(session)) throw new Error("different device login still kicks current session");

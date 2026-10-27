@@ -80,6 +80,7 @@
               <view v-if="voucherDetailsOpen" class="checkout-voucher-details"><text v-if="voucherMatch" class="checkout-row-description">{{ voucherMatch.def.name }}</text><view role="group" :aria-label="t.promotion.voucher"><button class="checkout-voucher-choice" :disabled="!canChangeVoucher()" :aria-pressed="!voucherAutomatic" @click="selectAutomaticVoucher(false)">{{ t.promotion.noVoucher }}</button><button class="checkout-voucher-choice" :disabled="!canChangeVoucher()" :aria-pressed="voucherAutomatic" @click="selectAutomaticVoucher(true)">{{ reviewCopy.automaticVoucher }}</button></view><NxButton variant="text" size="small" :label="auditCopy.vouchers" @click="navTo('/pages/me/rewards-list?cat=voucher')" /></view>
               <view v-if="promoDiscount > 0" class="checkout-option"><view class="checkout-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12v9h16v-9M2 7h20v5H2zM12 7v14M12 7C3 8 4 0 8 2c3 1 4 5 4 5s1-4 4-5c4-2 5 6-4 5" /></svg></view><view class="checkout-option-copy"><text class="checkout-row-title">{{ promoRowLabel }}</text></view><text class="checkout-discount">−{{ promoDiscountText }} USDT</text></view>
               <view v-if="trialOffsetView.offsetUSD > 0" class="checkout-option"><view class="checkout-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg></view><view class="checkout-option-copy"><text class="checkout-row-title">{{ t.store.coRowTrialOffset }}</text></view><text class="checkout-discount">−{{ trialOffsetText }} USDT</text></view>
+              <view v-if="trialOffsetView.earlyDiscountUSD > 0" class="checkout-option" data-testid="checkout-trial-early-discount"><view class="checkout-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" /></svg></view><view class="checkout-option-copy"><text class="checkout-row-title">{{ trialCopy.earlyDiscountLabel }}</text></view><text class="checkout-discount">−{{ trialEarlyDiscountText }} USDT</text></view>
               <!-- Trade-in remains a separate, reversible action, never a payment switch. -->
               <view v-if="hasTradein || removedTradein || tradeinAvailable" class="checkout-option checkout-tradein">
                 <view class="checkout-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 4-4 4 4 4M3 8h13m1 12 4-4-4-4M21 16H8" /></svg></view>
@@ -107,6 +108,7 @@
               <CheckoutRow :label="t.store.coRowSubtotal" :value="priceText + ' USDT'" class="checkout-fee" />
               <CheckoutRow v-if="promoDiscount > 0" :label="promoRowLabel" :value="'−' + promoDiscountText + ' USDT'" class="checkout-fee checkout-fee--discount" />
               <CheckoutRow v-if="trialOffsetView.offsetUSD > 0" :label="t.store.coRowTrialOffset" :value="'−' + trialOffsetText + ' USDT'" class="checkout-fee checkout-fee--discount" />
+              <CheckoutRow v-if="trialOffsetView.earlyDiscountUSD > 0" :label="trialCopy.earlyDiscountLabel" :value="'−' + trialEarlyDiscountText + ' USDT'" class="checkout-fee checkout-fee--discount" />
               <CheckoutRow v-if="hasVoucher" :label="t.voucher.checkoutRowLabel" :value="'−' + voucherDiscountText + ' USDT'" class="checkout-fee checkout-fee--discount" />
               <CheckoutRow v-if="hasTradein" :label="t.tradein.checkoutRowLabel" :value="'−' + tradeinCreditText + ' USDT'" class="checkout-fee checkout-fee--discount" />
               <CheckoutRow v-if="isCard" :label="fmt(t.store.coRowCardFee, { rate: cardFeeRateLabel() })" :value="cardFeeText + ' USDT'" class="checkout-fee" />
@@ -114,6 +116,7 @@
               <CheckoutRow v-if="!remoteApiEnabled" :label="t.store.coRowShipping" :value="t.store.coShippingValue" class="checkout-fee" />
               <CheckoutRow :label="t.store.coRowTotal" :value="confirmTotalText + ' USDT'" big class="checkout-fee checkout-fee--total" />
             </view>
+            <text v-if="trialEarlyNote" class="checkout-note" data-testid="checkout-trial-early-note">{{ trialEarlyNote }}</text>
             <text v-if="trialZeroDue" class="checkout-note">{{ t.store.coTrialZeroNote }}</text>
             <view v-if="capped" class="checkout-note checkout-note--warning"><text>{{ slotsFullText }}</text></view>
             <view class="checkout-policy-notice" data-testid="checkout-policy-notice"><text>{{ policyHasDevice ? policyCopy.deviceScope+t.store.faq.refund.a : policyCopy.review }}</text><button class="checkout-policy-link" @click="purchasePolicyOpen=true">{{ policyCopy.entry }}</button></view>
@@ -637,8 +640,11 @@ interface TrialQuote {
   offsetUSD: number;
   remainderUSD: number;
   shadowNEX: number;
+  /** FEAT-TRIAL05 (server quote only): fixed early discount and the quote version echoed to convert. */
+  earlyDiscountUSD: number;
+  quoteVersion: string | null;
 }
-const NO_TRIAL: TrialQuote = { applied: false, promo: 0, offsetUSD: 0, remainderUSD: 0, shadowNEX: 0 };
+const NO_TRIAL: TrialQuote = { applied: false, promo: 0, offsetUSD: 0, remainderUSD: 0, shadowNEX: 0, earlyDiscountUSD: 0, quoteVersion: null };
 
 /** 单一解析:给定时刻解析一次试用状态机,派生本页全部试用金额(纯函数,零落盘)。 */
 function trialQuoteAt(now: number): TrialQuote {
@@ -646,6 +652,20 @@ function trialQuoteAt(now: number): TrialQuote {
   const r = resolveTrialAt(freeTrial.snapshot(), now, cfg);
   const trialProductId = resolveTrialCheckoutProductId(cfg.trialProductId);
   if ((r.status !== "active" && r.status !== "grace") || !trialProductId || productId.value !== trialProductId) return NO_TRIAL;
+  // A server quote carries every amount convert() settles, including the
+  // full-term rewards and the early discount; display it verbatim.
+  const serverQuote = remoteApiEnabled ? freeTrial.authoritativeQuote ?? null : null;
+  if (serverQuote) {
+    return {
+      applied: true,
+      promo: serverQuote.promoDiscountUSD,
+      offsetUSD: serverQuote.offsetUSD,
+      remainderUSD: serverQuote.remainderUSD,
+      shadowNEX: serverQuote.rewardNEX,
+      earlyDiscountUSD: serverQuote.earlyDiscountUSD,
+      quoteVersion: serverQuote.quoteVersion,
+    };
+  }
   // Remote credit is the same server projection shown by free-trial.liveShadow*.
   // Only local mode accrues by time; recomputing remote credit would quote a
   // different discount from the trial page and the conversion authority.
@@ -661,6 +681,8 @@ function trialQuoteAt(now: number): TrialQuote {
     offsetUSD: split.offsetUSD,
     remainderUSD: split.remainderUSD,
     shadowNEX: remoteApiEnabled || r.status === "active" ? acc.nex : r.shadowFrozenAtNEX,
+    earlyDiscountUSD: 0,
+    quoteVersion: null,
   };
 }
 
@@ -668,7 +690,13 @@ function trialQuoteAt(now: number): TrialQuote {
 const trialView = computed(() => trialQuoteAt(nowTick.value));
 // Until the claim snapshot has been read, an ordinary full-price order could
 // accidentally bypass an existing trial. Keep review/payment closed on that read.
+// An early quote past its original-term end is stale too: never show or pay a lapsed offer.
+const trialEarlyQuoteLapsed = computed(() => {
+  const quote = freeTrial.authoritativeQuote;
+  return !!quote?.earlyPurchase && quote.earlyEndsAt !== null && nowTick.value >= quote.earlyEndsAt;
+});
 const trialQuoteUnavailable = computed(() => remoteApiEnabled && (freeTrial.authorityStatus !== "ready"
+  || trialEarlyQuoteLapsed.value
   || ((freeTrial.status === "active" || freeTrial.status === "grace")
     && (freeTrial.authoritativeOffsetUSD === null || freeTrial.authoritativeRemainderUSD === null
       || freeTrial.authoritativePriceUSD === null))));
@@ -679,6 +707,16 @@ const promoDiscount = computed(() => trialView.value.promo);
 const trialOffsetView = computed(() => trialView.value);
 const promoDiscountText = computed(() => formatAmount(promoDiscount.value));
 const trialOffsetText = computed(() => formatAmount(trialOffsetView.value.offsetUSD));
+const trialEarlyDiscountText = computed(() => formatAmount(trialOffsetView.value.earlyDiscountUSD));
+watch(trialEarlyQuoteLapsed, (lapsed) => { if (lapsed) void freeTrial.refreshRemote(true); });
+const trialEarlyNote = computed(() => {
+  const quote = remoteApiEnabled && trialConversionMode.value ? freeTrial.authoritativeQuote : null;
+  if (!quote?.earlyPurchase) return "";
+  const nex = `${formatAmount(quote.rewardNEX)} UVT`;
+  return fmt(trialCopy.value.earlyCheckoutNote, {
+    rewards: quote.remainderUSD > 0 ? `${formatAmount(quote.remainderUSD)} USDT · ${nex}` : nex,
+  });
+});
 const promoRowLabel = computed(() => fmt(t.value.store.coRowTrialDiscount, { pct: (trialCfg.value.discountRate * 100).toFixed(0) }));
 
 // ─── Voucher redemption ──────────────────────────────────────────────────
@@ -831,7 +869,8 @@ const netPrice = computed(() => {
         voucherDiscount.value -
         tradeinCredit.value -
         promoDiscount.value -
-        trialOffsetView.value.offsetUSD)
+        trialOffsetView.value.offsetUSD -
+        trialOffsetView.value.earlyDiscountUSD)
     ).toFixed(2),
   );
 });
@@ -1244,7 +1283,7 @@ async function onConfirmPay() {
         step.value = "select-payment";
         return;
       }
-      const conversion = await freeTrial.convert(p.id, quotedTotal);
+      const conversion = await freeTrial.convert(p.id, quotedTotal, trialQuote.quoteVersion);
       if (!isCurrentCheckoutRoute(confirmationScope)) { confirming = false; return; }
       confirming = false;
       if (!conversion.ok || !conversion.orderNo) {
@@ -1314,7 +1353,8 @@ function adoptSession(s: PendingCheckoutSession) {
     { trial: trialView.value, voucher: { id: voucherMatch.value?.def.id ?? null, discount: voucherDiscount.value } },
     s.quote,
   );
-  trialQuote = reconciled.trial;
+  // Invoices belong to the local payment leg; a server trial quote never reaches them.
+  trialQuote = { ...reconciled.trial, earlyDiscountUSD: 0, quoteVersion: null };
   voucherQuote = reconciled.voucher;
   interceptFired = true;
   activeSession.value = s;

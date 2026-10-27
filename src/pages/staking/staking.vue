@@ -15,7 +15,7 @@
        unmount the page and discard the calculator draft or scroll position. -->
   <AppChassis v-if="config.isEnabled('stakingVisible')" active="me">
     <CardStagger style="padding-bottom: 24px">
-      <SubPageHeader back="/pages/me/wallet" />
+      <SubPageHeader back="/pages/me/me" />
       <!-- 开发诊断,不是产品文案:所以① 只在 DEV 构建渲染 ② 文案是裸英文字面量,不进三语词典 ——
            进了词典它就成了「工程名词写死在用户文案契约里」,而且词典对象摇不掉、会原样进生产包。
            ③ 与下面的 remoteError 分支解耦成独立 v-if:挂在同一条 v-else-if 链上时,这道闸一旦为假

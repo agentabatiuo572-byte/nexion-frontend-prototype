@@ -7,7 +7,7 @@
 <template>
   <AppChassis v-if="visibility.isEnabled('stakingVisible')" active="me">
     <view style="padding-bottom: 24px">
-      <SubPageHeader back="/pages/me/wallet" />
+      <SubPageHeader back="/pages/me/me" />
 
       <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
         <!-- hero — rules-intro pill rides the title row (owner 2026-07-09: kill

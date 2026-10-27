@@ -215,7 +215,7 @@
       "routeScoped": true,
       "pages": [
         "src/pages/me/wallet-withdraw.vue",
-        "src/pages/me/wallet.vue",
+        "src/components/me/wallet-overview.vue",
         "src/pages/me/wallet-topup.vue",
         "src/pages/me/wallet-bills.vue",
         "src/pages/me/security.vue",
@@ -247,7 +247,7 @@
         "src/pages/me/help.vue",
         "src/pages/me/wallet-cards.vue",
         "src/pages/me/wallet-cards-new.vue",
-        "src/pages/me/wallet.vue",
+        "src/components/me/wallet-overview.vue",
         "src/pages/store/orders.vue",
         "src/pages/me/notifications.vue",
         "src/pages/me/receipts.vue",
@@ -454,7 +454,7 @@
     "test:withdraw-status-mirror": {
       "kind": "runtime",
       "pages": [
-        "src/pages/me/wallet.vue",
+        "src/components/me/wallet-overview.vue",
         "src/pages/me/wallet-withdraw-tracking.vue"
       ],
       "inputs": [

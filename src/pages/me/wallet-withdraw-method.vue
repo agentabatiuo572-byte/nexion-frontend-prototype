@@ -1,6 +1,6 @@
 <template>
   <AppChassis active="me">
-    <SubPageHeader back="/pages/me/wallet" :title="t.bankWithdrawal.chooseMethod" />
+    <SubPageHeader back="/pages/me/me" :title="t.bankWithdrawal.chooseMethod" />
     <view class="withdraw-methods">
       <text class="intro">{{ t.bankWithdrawal.chooseMethodHint }}</text>
       <view class="method" role="button" tabindex="0" data-testid="withdraw-method-usdt" :aria-disabled="!canOpenUsdt" @click="openUsdt" @keydown.enter.prevent="openUsdt" @keydown.space.prevent="openUsdt">

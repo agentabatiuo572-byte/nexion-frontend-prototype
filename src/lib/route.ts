@@ -56,6 +56,9 @@ export function toUniRoute(href: string): { url: string; tab: boolean } {
   const qi = href.indexOf("?");
   const path = qi >= 0 ? href.slice(0, qi) : href;
   const query = qi >= 0 ? href.slice(qi) : "";
+  if (["/me/wallet", "/pages/me/wallet", "/me/wallet/repurchase", "/me/wallet-repurchase", "/pages/me/wallet-repurchase", "/me/wallet/repurchase/how", "/me/wallet-repurchase-how", "/pages/me/wallet-repurchase-how"].includes(path)) {
+    return { url: "/pages/me/me" + query, tab: true };
+  }
   // Already a uni route → pass through, while still recognizing real tab roots.
   // Calling navigateTo for a tabBar page fails on App/mini-program runtimes.
   if (path.startsWith("/pages/")) {
