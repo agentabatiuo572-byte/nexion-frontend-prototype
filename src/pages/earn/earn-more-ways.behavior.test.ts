@@ -152,9 +152,9 @@ describe('earn cards render the actual entry controls', () => {
   it.each(['zh', 'en', 'vi'] as const)('renders three shared cards with complete %s copy and existing destinations', language => {
     const f = renderWays('h5', language);
     expect(withClass(f.root, 'earn-way-card')).toHaveLength(3);
-    expect(nodes(f.root).filter(node => node.type === 'image').map(node => node.props.src)).toEqual([
-      '/static/img/earn-20261027/phone.webp', '/static/img/earn-20261027/staking.webp', '/static/img/earn-20261027/gpu.webp',
-    ]);
+    for (const artwork of ['phone', 'staking', 'gpu']) {
+      expect(withClass(f.root, `earn-way-card--${artwork}`)).toHaveLength(1);
+    }
     for (const text of [f.copy.earnWays.phoneBody, f.copy.earnWays.stakingBody, f.copy.earnWays.gpuBody]) expect(textOf(f.root)).toContain(text);
     for (const label of [f.copy.downloadApp, f.copy.stakingAction, f.copy.earnWays.gpuAction]) {
       const button = f.buttonByLabel(label); expect(button.props.tabindex).toBe(0); button.props.onClick();

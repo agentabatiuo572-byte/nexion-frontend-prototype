@@ -96,7 +96,7 @@ describe("conversation realtime lifecycle", () => {
     expect(store.advisorLoading).toBe(false);
   });
 
-  it("keeps drafts per conversation and clears them only for the invalidated account scope", () => {
+  it("keeps same-account drafts when only the support assignment changes", () => {
     const store = useConversations();
     store.bindAccount("user:1");
     store.saveComposer("conversation:CV-1", { text: "private draft", imageDraft: null, failedSend: null });
@@ -104,10 +104,10 @@ describe("conversation realtime lifecycle", () => {
     harness.instances[0].options.scopeInvalidated(2);
     expect(store.composer("conversation:CV-1").text).toBe("private draft");
     harness.instances[0].options.scopeInvalidated(1);
-    expect(store.composer("conversation:CV-1").text).toBe("");
+    expect(store.composer("conversation:CV-1").text).toBe("private draft");
     expect(store.scopeInvalidated).toBe(1);
   });
-  it("retires unresolved command keys as well as drafts when the customer scope is invalidated", async () => {
+  it("preserves an unknown command and its original key across assignment changes and reload", async () => {
     const store = useConversations(); store.bindAccount("user:1");
     await store.open("CV-1");
     runtime.supportApi.replyConversation.mockRejectedValueOnce(new Error("lost response"));
@@ -118,9 +118,16 @@ describe("conversation realtime lifecycle", () => {
     store.saveComposer("conversation:CV-1", { text: "next private draft", imageDraft: null,
       failedSend: { text: "unknown reply", kind: "unknown", settled: false, retryable: true, attempts: 1 } }, true);
     store.startRealtime(); harness.instances.at(-1)!.options.scopeInvalidated(1);
-    expect(store.humanComposers).toEqual({}); expect(localStorage.getItem(pendingKey) ?? "").not.toContain(wireKey);
+    expect(store.composer("conversation:CV-1").failedSend).toMatchObject({ text: "unknown reply", kind: "unknown", settled: false });
+    expect(localStorage.getItem(pendingKey)).toContain(wireKey);
+    store.stopRealtime();
     setActivePinia(createPinia()); const restored = useConversations(); restored.bindAccount("user:1");
-    expect(restored.humanComposers).toEqual({});
+    expect(restored.composer("conversation:CV-1").text).toBe("next private draft");
+    expect(restored.composer("conversation:CV-1").failedSend).toMatchObject({ text: "unknown reply", kind: "unknown", settled: false });
+    await restored.open("CV-1");
+    runtime.supportApi.replyConversation.mockResolvedValueOnce(row());
+    await restored.sendUser("CV-1", "unknown reply");
+    expect(runtime.supportApi.replyConversation.mock.calls.at(-1)![2]).toBe(wireKey);
   });
   it("singleflights the user transport and fences callbacks from a stopped same-account instance", async () => {
     const store = useConversations();

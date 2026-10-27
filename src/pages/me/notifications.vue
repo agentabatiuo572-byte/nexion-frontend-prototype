@@ -4,9 +4,10 @@
     <view class="message-center message-page" :style="{ top: top + 'px' }">
       <view class="message-nav">
         <view class="message-button message-icon-button nx-design-glass" role="button" tabindex="0" :aria-label="t.profile.back" @click="navBack('/pages/me/me')"><LiquidGlass :radius="22" tone="navigation" /><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6" /></svg></view>
+        <view v-if="center.error" class="message-summary-recovery" role="alert"><text v-if="!headerState.title" class="message-recovery-title" role="heading" aria-level="1">{{ t.notifs.drawerTitle }}</text><view class="message-button" role="button" :tabindex="center.loading ? -1 : 0" :aria-disabled="center.loading" :aria-label="actionCopy.refreshFailed + ' · ' + t.ui.retry" @click="center.refresh()" @keydown.enter.prevent="center.refresh()" @keydown.space.prevent="center.refresh()"><text>{{ actionCopy.refreshFailed }} · {{ t.ui.retry }}</text></view></view>
         <view class="message-button message-icon-button nx-design-glass" role="button" tabindex="0" :aria-label="t.notifs.preferences" @click="navTo('/pages/me/preferences')"><LiquidGlass :radius="22" tone="navigation" /><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></view>
       </view>
-      <view class="message-compact" :class="{ 'message-compact--visible': !headerState.title }" :aria-hidden="headerState.title"><text>{{ t.notifs.drawerTitle }} · {{ section === 'service' ? t.notifs.serviceTab : t.notifs.notificationsTab }}</text></view>
+      <view v-if="!center.error" class="message-compact" :class="{ 'message-compact--visible': !headerState.title }" :aria-hidden="headerState.title"><text>{{ t.notifs.drawerTitle }} · {{ section === 'service' ? t.notifs.serviceTab : t.notifs.notificationsTab }}</text></view>
       <view class="message-collapse" :class="{ 'message-collapse--hidden': !headerState.title }" :style="collapseStyle('title')" :aria-hidden="!headerState.title" :inert="!headerState.title ? true : undefined" @focusin="headerFocused = true" @focusout="headerFocused = false">
         <view class="message-heading">
           <view class="message-heading-row">
@@ -14,7 +15,6 @@
             <view class="message-subtitle" role="status"><view v-if="center.totalUnread" class="message-status-dot" aria-hidden="true" /><text>{{ unreadLabel }}</text></view>
             <view v-if="section === 'notifications' && notifs.unread > 0" class="message-button message-mark-all" role="button" :tabindex="headerState.title && !markingAll && !clearingRead ? 0 : -1" :aria-disabled="markingAll || clearingRead" :aria-label="t.notifs.markAll" @click="markAll" @keydown.enter.prevent="markAll" @keydown.space.prevent="markAll"><text>{{ actionCopy.markAllShort }}</text></view>
           </view>
-          <view v-if="center.error" class="message-summary-recovery"><view class="message-button" role="button" :tabindex="center.loading ? -1 : 0" :aria-disabled="center.loading" :aria-label="t.ui.retry" @click="center.refresh()"><text>{{ t.ui.retry }}</text></view></view>
         </view>
       </view>
       <view class="message-collapse message-primary-wrap" :class="{ 'message-collapse--hidden': !headerState.primary }" :style="collapseStyle('primary')" :aria-hidden="!headerState.primary" :inert="!headerState.primary ? true : undefined" @focusin="headerFocused = true" @focusout="headerFocused = false">
@@ -31,7 +31,6 @@
       <scroll-view :key="section" scroll-y class="message-scroll" :show-scrollbar="false" @scroll="onMessageScroll" @wheel="onScrollInput" @touchmove="onScrollInput" @keydown.up="onScrollInput" @keydown.down="onScrollInput" @keydown.home="onScrollInput" @keydown.end="onScrollInput" @keydown.page-up="onScrollInput" @keydown.page-down="onScrollInput">
       <ServiceMessageList v-if="section === 'service'" :filter="serviceFilter" hide-filters />
       <view v-else class="notification-feed" :aria-busy="notifs.loading">
-        <view v-if="notifs.error" data-testid="notification-error" class="message-state" role="alert"><text>{{ notifsErrorText }}</text><view class="message-button message-retry" role="button" :tabindex="notifs.loading ? -1 : 0" :aria-disabled="notifs.loading" :aria-label="t.ui.retry" @click="notifs.retryRemote()" @keydown.enter.prevent="notifs.retryRemote()" @keydown.space.prevent="notifs.retryRemote()"><text>{{ t.ui.retry }}</text></view></view>
         <view v-if="!notifs.loading && !notifs.error && notifs.nextCursor && filtered.length === 0" role="status" class="message-state"><text>{{ t.notifs.moreToCheck }}</text></view>
         <EmptyState v-if="!notifs.loading && !notifs.error && !notifs.nextCursor && filtered.length === 0" kind="empty-list" :title="emptyTitle" :desc="notifs.items.length === 0 ? t.notifs.emptyBody : undefined" />
         <view v-for="(n, index) in filtered" :key="n.id" class="notification-item" :class="{ 'notification-item--read': !!n.readAt, 'notification-item--last': index === filtered.length - 1 }">
@@ -43,6 +42,7 @@
           </view>
           <view v-if="expandedId === n.id" class="notification-detail"><text v-if="n.body" class="notification-body">{{ platformDisplayText(n.body) }}</text><view v-if="n.ctaHref" class="message-button notification-cta" role="button" tabindex="0" :aria-label="platformDisplayText(n.ctaLabel || t.me.open)" @click.stop="onTap(n)"><LiquidGlass :radius="22" /><text>{{ platformDisplayText(n.ctaLabel || t.me.open) }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2"><path d="M4 12h16m-7-7 7 7-7 7" /></svg></view></view>
         </view>
+        <view v-if="notifs.error" data-testid="notification-error" class="message-state" role="alert"><text>{{ notifsErrorText }}</text><view class="message-button message-retry" role="button" :tabindex="notifs.loading ? -1 : 0" :aria-disabled="notifs.loading" :aria-label="t.ui.retry" @click="notifs.retryRemote()" @keydown.enter.prevent="notifs.retryRemote()" @keydown.space.prevent="notifs.retryRemote()"><text>{{ t.ui.retry }}</text></view></view>
         <view v-if="notifs.loading && !filtered.length" class="message-state" role="status" aria-live="polite"><text>{{ t.help.loadingMore }}</text></view>
         <view v-if="notifs.nextCursor" class="message-more"><view class="message-button" role="button" :tabindex="notifs.loading ? -1 : 0" :aria-disabled="notifs.loading" :aria-label="t.notifs.loadMore" @click="notifs.loadMoreRemote()"><LiquidGlass :radius="22" /><text>{{ notifs.loading ? t.help.loadingMore : t.notifs.loadMore }}</text></view></view>
         <view v-if="notifs.items.length || notifs.nextCursor" class="notification-management">
@@ -340,6 +340,9 @@ watch(section, () => { resetHeader(); preserveSectionInH5(); });
 
 <style src="@/styles/message-center.css"></style>
 <style scoped>
+.message-recovery-title { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+.message-nav .message-summary-recovery { flex: 1; min-width: 0; margin: 0 8px; }
+.message-nav .message-summary-recovery .message-button { font-size: 12px; line-height: 18px; text-align: center; }
 .notification-management { display: flex; justify-content: flex-end; padding: 4px 0 8px; }
 /* Keep the shared segment semantics and keyboard handling; only this page's
    rails use the reference's green primary selection and neutral category glass. */

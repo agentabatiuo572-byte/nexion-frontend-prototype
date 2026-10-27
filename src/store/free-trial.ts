@@ -52,7 +52,7 @@ export type { TrialStatus } from "./trial-boundary";
 /** Why the trial can't start right now (spec 异常2 — concrete reasons, no generic error).
  *  "risk" = spec 异常2 第三具名原因(风控命中)。MOCK 无风控引擎,本地 eligibility()
  *  无触发路径;生产由后端 GET /api/trial/eligibility 下发该 reason。 */
-export type TrialIneligibleReason = "in-progress" | "converted" | "used" | "phase-closed" | "quota-exhausted" | "risk" | "product-unavailable" | "unknown";
+export type TrialIneligibleReason = "in-progress" | "converted" | "used" | "phase-closed" | "quota-exhausted" | "risk" | "product-unavailable" | "capacity-full" | "unknown";
 export type TrialStartFailure = TrialIneligibleReason | "onboarding-required" | "terms-required";
 type TrialConversionFailure = TrialIneligibleReason | "insufficient-funds" | "quote-changed" | "rejected" | "storage-unavailable";
 const CONVERT_COMMANDS_KEY = "nexgrid-trial-convert-accounts-v1";
@@ -184,6 +184,9 @@ export const useFreeTrial = defineStore("freeTrial", () => {
   const authorityError = ref<string | null>(null);
   const authoritativeShadowUSD = ref(0);
   const authoritativeShadowNEX = ref(0);
+  const authoritativeOffsetUSD = ref<number | null>(null);
+  const authoritativeRemainderUSD = ref<number | null>(null);
+  const authoritativePriceUSD = ref<number | null>(null);
   const remoteCanStart = ref(false);
   // Presentation only: keep the last confirmed promotion mounted during reads.
   // Never use this retained value to authorize a claim; canStart stays fail-closed.
@@ -248,6 +251,9 @@ export const useFreeTrial = defineStore("freeTrial", () => {
     load({ ...INITIAL });
     authoritativeShadowUSD.value = 0;
     authoritativeShadowNEX.value = 0;
+    authoritativeOffsetUSD.value = null;
+    authoritativeRemainderUSD.value = null;
+    authoritativePriceUSD.value = null;
     remoteCanStart.value = false;
     remoteEligibilityReason.value = "unknown";
     authorityClaimNo.value = null;
@@ -286,6 +292,9 @@ export const useFreeTrial = defineStore("freeTrial", () => {
     });
     authoritativeShadowUSD.value = next.shadowUSD;
     authoritativeShadowNEX.value = next.shadowNEX;
+    authoritativeOffsetUSD.value = next.offsetUSD ?? null;
+    authoritativeRemainderUSD.value = next.remainderUSD ?? null;
+    authoritativePriceUSD.value = next.priceUSD ?? null;
     remoteCanStart.value = next.canStart;
     confirmedPromoVisible.value = next.canStart && next.status === "none";
     confirmedPromoKnown.value = true;
@@ -451,6 +460,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
         return { ok: false, reason: "unknown" };
       }
       pendingStartKey ??= commandKey("start");
+      const previousClaimNo = authorityClaimNo.value;
       try {
         const sequence = ++authorityRequestSequence;
         const receipt = await trialApi.start(pendingStartKey, deviceName);
@@ -484,6 +494,10 @@ export const useFreeTrial = defineStore("freeTrial", () => {
           pendingStartKey = null;
           return { ok: true };
         }
+        // A known rejected command may be cached by the idempotency boundary.
+        // Retire it only after a read confirms that no claim was created.
+        if (reconciled && authorityClaimNo.value === previousClaimNo && reason !== "unknown"
+            && failure.kind === "business" && status.value !== "active" && status.value !== "grace") pendingStartKey = null;
         return { ok: false, reason };
       }
     }
@@ -714,6 +728,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
       case "TRIAL_QUOTA_EXHAUSTED": return "quota-exhausted";
       case "TRIAL_CYCLE_RISK_BLOCKED": return "risk";
       case "TRIAL_PRODUCT_NOT_AVAILABLE": return "product-unavailable";
+      case "TRIAL_CAPACITY_FULL": return "capacity-full";
       case "TRIAL_PHASE_CLOSED":
       case "TRIAL_KILL_SWITCH_DISABLED": return "phase-closed";
       default: return "unknown";
@@ -724,6 +739,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
     status, startedAt, expiresAt, graceEndsAt, finishedAt, hasPendingConversion,
     shadowFrozenAtUSD, shadowFrozenAtNEX, legacyCardMigrated,
     authorityStatus, authorityError, authoritativeShadowUSD, authoritativeShadowNEX,
+    authoritativeOffsetUSD, authoritativeRemainderUSD, authoritativePriceUSD,
     authorityClaimNo, authorityVersion, authorityServerState,
     eligibility, canStart, showPromo, showHeroPromo, confirmedOfferState,
     promoSlot,

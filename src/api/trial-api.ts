@@ -2,7 +2,7 @@ import type { ApiClient } from "./api-client";
 import type { TrialStatus } from "../store/trial-boundary";
 
 export type TrialEligibilityReason =
-  "in-progress" | "converted" | "used" | "phase-closed" | "quota-exhausted" | "risk" | "product-unavailable" | "unknown";
+  "in-progress" | "converted" | "used" | "phase-closed" | "quota-exhausted" | "risk" | "product-unavailable" | "capacity-full" | "unknown";
 export type TrialConfigValue = string | boolean;
 
 export interface TrialAuthorityState {
@@ -22,6 +22,10 @@ export interface TrialAuthorityState {
   cooldownUntil: number | null;
   shadowUSD: number;
   shadowNEX: number;
+  /** Claim-snapshot amounts. Missing on older responses; never infer available credit. */
+  offsetUSD?: number;
+  remainderUSD?: number;
+  priceUSD?: number;
   source: string;
   serverCanonical: true;
   sourceEnvironment: "PRODUCTION";
@@ -73,7 +77,7 @@ const SERVER_STATES = new Set([
   "ELIGIBLE", "ACTIVE", "GRACE", "EXTENDED", "REDEEMED", "FAILED", "CANCELLED",
 ]);
 const REASONS = new Set([
-  "in-progress", "converted", "used", "phase-closed", "quota-exhausted", "risk", "product-unavailable", "unknown",
+  "in-progress", "converted", "used", "phase-closed", "quota-exhausted", "risk", "product-unavailable", "capacity-full", "unknown",
 ]);
 
 function invalid(): never {
@@ -87,6 +91,7 @@ function record(value: unknown): Record<string, unknown> | null {
 }
 
 function finiteNumber(value: unknown, min = 0): number | null {
+  if (typeof value !== "number" && (typeof value !== "string" || !value.trim())) return null;
   const parsed = typeof value === "number" ? value : Number(value);
   return Number.isFinite(parsed) && parsed >= min ? parsed : null;
 }
@@ -156,6 +161,11 @@ export function parseTrialAuthorityState(value: unknown): TrialAuthorityState {
   const claimNo = row.claimNo == null ? null : String(row.claimNo).trim();
   const shadowUSD = finiteNumber(row.shadowUsdt ?? 0);
   const shadowNEX = finiteNumber(row.shadowNex ?? 0);
+  const hasAmounts = ["offsetUsdt", "remainderUsdt", "priceUsdt"].some(key => key in row);
+  const offsetUSD = hasAmounts ? finiteNumber(row.offsetUsdt) : null;
+  const remainderUSD = hasAmounts ? finiteNumber(row.remainderUsdt) : null;
+  const priceUSD = hasAmounts ? finiteNumber(row.priceUsdt) : null;
+  if (hasAmounts && (offsetUSD === null || remainderUSD === null || priceUSD === null)) return invalid();
   if (typeof canStart !== "boolean" || serverNow === null || version === null || !Number.isInteger(version)
       || !source || row.serverCanonical !== true || row.sourceEnvironment !== "PRODUCTION" || row.runId !== ""
       || provenance?.serverCanonical !== true || provenance.source !== source
@@ -195,6 +205,7 @@ export function parseTrialAuthorityState(value: unknown): TrialAuthorityState {
     cooldownUntil,
     shadowUSD,
     shadowNEX,
+    ...(hasAmounts ? { offsetUSD: offsetUSD!, remainderUSD: remainderUSD!, priceUSD: priceUSD! } : {}),
     source,
     serverCanonical: true,
     sourceEnvironment: "PRODUCTION",

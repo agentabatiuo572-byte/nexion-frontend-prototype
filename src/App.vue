@@ -61,6 +61,7 @@ import {
   sessionVault,
   setRemoteUnauthorizedHandler,
 } from "@/api/runtime";
+import { refreshBusinessCalendar } from "@/lib/business-calendar-sync";
 import { completeSignIn } from "@/auth/complete-sign-in";
 import { preserveRouteDuringSessionRestore } from '@/auth/session-restore-route';
 import { prepareProductCatalog, refreshProductCatalog } from "@/store/product-catalog";
@@ -1022,6 +1023,7 @@ function checkQuestRoute() {
     lastPlatformConfigLoadAt = Date.now();
     void useConfig().load();
   }
+  void refreshBusinessCalendar();
   // H5 站内路由不会重发 App.onShow。静态评审页会按安全边界停掉业务循环，
   // 所以离开评审页后必须由仍存活的守卫在这一拍重新校验并恢复；放在同路由短路前，
   // 才能覆盖「路由已经切回业务页、lastQuestRoute 也已更新」的时序。
@@ -1223,6 +1225,7 @@ onLaunch(() => {
   }));
   installBusinessLoopProbe();
   void useConfig().load();
+  void refreshBusinessCalendar();
   void useGenesisConfig().refresh();
   if (remoteApiEnabled) {
     // Public server configuration is warmed at launch. Each store starts

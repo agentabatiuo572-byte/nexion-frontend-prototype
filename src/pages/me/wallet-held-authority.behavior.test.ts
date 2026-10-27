@@ -128,6 +128,7 @@ describe("actual wallet held authority", () => {
     const s = await mount();
     if (status === "null amount") s.app.homeTruth.earnings.all.usdt = null;
     else s.app.homeTruthStatus = status;
+    if (status === "loading") s.app.homeTruth.earnings.all.usdt = null;
     await Vue.nextTick();
     expect(s.value(en.wallet.allTimeEarnings)).toBe("-");
     expect(s.allTimeSublabel()).toContain("Compute - · Team $5.00");
@@ -139,9 +140,64 @@ describe("actual wallet held authority", () => {
     const s = await mount();
     if (status === "missing aggregate") s.commission.eventsEvidence = null;
     else s.commission.eventsStatus = status;
+    if (status === "loading") s.commission.eventsEvidence = null;
     await Vue.nextTick();
     expect(s.value(en.wallet.allTimeEarnings)).toBe("-");
     expect(s.allTimeSublabel()).toContain("Compute $10.00 · Team -");
+  });
+
+  it("keeps confirmed cumulative values through the actual warm onShow reads and replaces each fresh result", async () => {
+    const s = await mount();
+    s.confirmRelease();
+    let mining!: () => void, team!: () => void;
+    s.app.refreshHomeTruth.mockImplementation(async () => {
+      s.app.homeTruthStatus = "loading";
+      await new Promise<void>(resolve => { mining = resolve; });
+      s.app.homeTruth.earnings.all.usdt = 12;
+      s.app.homeTruthStatus = "ready";
+    });
+    s.commission.refreshCanonicalEvents.mockImplementation(async () => {
+      s.commission.eventsStatus = "loading";
+      await new Promise<void>(resolve => { team = resolve; });
+      s.commission.eventsEvidence = { aggregate: { totalUSDT: 6 } };
+      s.commission.eventsStatus = "ready";
+    });
+    s.shown.forEach(show => show()); await Vue.nextTick();
+    expect(s.value(en.wallet.allTimeEarnings)).toBe("$15.00");
+    expect(s.allTimeSublabel()).toContain("Compute $10.00 · Team $5.00");
+    expect(s.text()).not.toContain(en.wallet.earningsUnavailable);
+    // Today's amount and all funds/held authority keep their separate rules.
+    expect(s.text()).not.toContain("+$2.00");
+    expect(s.balance()).toBe("$42.25"); expect(s.held()).toEqual(["$0.00", "$0.00"]);
+    mining(); await Promise.resolve(); await Vue.nextTick();
+    expect(s.value(en.wallet.allTimeEarnings)).toBe("$17.00");
+    team(); await Promise.resolve(); await Vue.nextTick();
+    expect(s.value(en.wallet.allTimeEarnings)).toBe("$18.00");
+  });
+
+  it("does not recover stale cumulative values on error or after scope snapshots are cleared", async () => {
+    const s = await mount();
+    s.app.homeTruthStatus = "loading"; s.commission.eventsStatus = "loading";
+    await Vue.nextTick(); expect(s.value(en.wallet.allTimeEarnings)).toBe("$15.00");
+    s.app.homeTruthStatus = "error"; s.commission.eventsStatus = "error";
+    await Vue.nextTick(); expect(s.value(en.wallet.allTimeEarnings)).toBe("-");
+    expect(s.allTimeSublabel()).toContain("Compute - · Team -");
+    expect(s.text()).toContain(en.wallet.earningsUnavailable);
+    s.app.homeTruth.earnings.all.usdt = null; s.commission.eventsEvidence = null;
+    s.app.homeTruthStatus = "loading"; s.commission.eventsStatus = "loading";
+    await Vue.nextTick(); expect(s.value(en.wallet.allTimeEarnings)).toBe("-");
+    expect(s.allTimeSublabel()).toContain("Compute - · Team -");
+  });
+
+  it("keeps a confirmed zero through loading but never fills a missing Home snapshot with zero", async () => {
+    const s = await mount();
+    s.app.homeTruth.earnings.all.usdt = 0;
+    s.commission.eventsEvidence!.aggregate.totalUSDT = 0;
+    s.app.homeTruthStatus = "loading"; s.commission.eventsStatus = "loading";
+    await Vue.nextTick(); expect(s.value(en.wallet.allTimeEarnings)).toBe("$0.00");
+    Object.assign(s.app, { homeTruth: null });
+    await Vue.nextTick(); expect(s.value(en.wallet.allTimeEarnings)).toBe("-");
+    expect(s.allTimeSublabel()).toContain("Compute - · Team $0.00");
   });
 
   it("preserves real lifetime zero and refreshes both missing sources through the actual retry", async () => {

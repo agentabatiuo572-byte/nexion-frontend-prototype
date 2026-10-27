@@ -1,5 +1,5 @@
 import { formatAmount } from "@/lib/amount-display";
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
 import ts from "typescript";
 import source from "./checkout.vue?raw";
@@ -8,6 +8,20 @@ import { resolveTrialAt, accruedShadow, type TrialRowSnapshot } from "@/store/tr
 import { DEFAULT_TRIAL_CONFIG, computeDiscountedPrice, computeTrialOffset, resolveTrialCheckoutProductId } from "@/store/trial-config";
 
 describe("trial credit in the actual checkout quote", () => {
+  it.each([499, 1999])("quotes the claim price rather than changed catalogue price %s", catalogPrice => {
+    const subtotal = ts.transpileModule(source.slice(source.indexOf("const purchaseSubtotal ="), source.indexOf("const promoDiscount =")), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+    const net = ts.transpileModule(source.slice(source.indexOf("const netPrice ="), source.indexOf("// 异常4: credit")), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+    const deps = { computed, remoteApiEnabled: true, trialConversionMode: ref(true), freeTrial: { authoritativePriceUSD: 1299 }, product: ref({ price: catalogPrice }), appliedTradeinView: ref(null), voucherDiscount: ref(0), tradeinCredit: ref(0), promoDiscount: ref(20), trialOffsetView: ref({ offsetUSD: 5 }) };
+    const result = new Function(...Object.keys(deps), subtotal + net + "return {subtotal:purchaseSubtotal.value,net:netPrice.value};")(...Object.values(deps));
+    expect(result).toEqual({ subtotal: 1299, net: 1274 });
+  });
+  it("does not quote a voucher that the trial conversion command cannot redeem", () => {
+    const code = ts.transpileModule(source.slice(source.indexOf("const voucherMatch ="), source.indexOf("const voucherDiscount =")), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+    const bestVoucherFor = vi.fn().mockReturnValue({ discountUSD: 50 });
+    const quote = new Function("computed", "remoteApiEnabled", "trialConversionMode", "voucher", code + "return voucherMatch.value;");
+    expect(quote(computed, true, ref(true), { bestVoucherFor })).toBeNull();
+    expect(bestVoucherFor).not.toHaveBeenCalled();
+  });
   const quoteCode = ts.transpileModule(source.slice(source.indexOf("function trialQuoteAt(now:"), source.indexOf("const trialView =")),
     { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
   function quoteHarness(remoteApiEnabled: boolean) {
@@ -15,7 +29,8 @@ describe("trial credit in the actual checkout quote", () => {
     const cfg = { ...DEFAULT_TRIAL_CONFIG, trialProductId: "stellarbox-s1", shadowDailyUSD: 38.52, shadowDailyNEX: 30, trialOffsetCapUSD: 100 };
     const row: TrialRowSnapshot = { status: "active", startedAt: 1, expiresAt: 3 * day + 1, graceEndsAt: 4 * day + 1,
       finishedAt: null, shadowFrozenAtUSD: 12.84, shadowFrozenAtNEX: 10, legacyCardMigrated: false };
-    const freeTrial = { snapshot: () => row, authoritativeShadowUSD: 12.84, authoritativeShadowNEX: 10 };
+    const freeTrial = { snapshot: () => row, authoritativeShadowUSD: 12.84, authoritativeShadowNEX: 10,
+      authoritativeOffsetUSD: 12.84, authoritativeRemainderUSD: 0 };
     const deps = { remoteApiEnabled, freeTrial, trialCfg: ref(cfg), productId: ref("stellarbox-s1"), resolveTrialAt, accruedShadow,
       computeTrialOffset, computeDiscountedPrice, resolveTrialCheckoutProductId,
       NO_TRIAL: { applied: false, promo: 0, offsetUSD: 0, remainderUSD: 0, shadowNEX: 0 } };
@@ -26,11 +41,19 @@ describe("trial credit in the actual checkout quote", () => {
     const h = quoteHarness(true);
     expect(h.quote(h.day + 1)).toMatchObject({ applied: true, offsetUSD: 12.84, shadowNEX: 10 });
     h.freeTrial.authoritativeShadowUSD = 4.25;
+    h.freeTrial.authoritativeOffsetUSD = 4.25;
     h.freeTrial.authoritativeShadowNEX = 3;
     expect(h.quote(2 * h.day + 1)).toMatchObject({ offsetUSD: computeTrialOffset(h.cfg, 4.25).offsetUSD, shadowNEX: 3 });
     h.row.status = "grace";
     expect(h.quote(3 * h.day + 2)).toMatchObject({ offsetUSD: 4.25, shadowNEX: 3 });
     expect(h.quote(5 * h.day)).toMatchObject({ applied: false, offsetUSD: 0 });
+  });
+  it("uses the claim split when current cap changes, including its purchase remainder", () => {
+    const h = quoteHarness(true);
+    h.cfg.trialOffsetCapUSD = 1;
+    h.freeTrial.authoritativeOffsetUSD = 5;
+    h.freeTrial.authoritativeRemainderUSD = 7.84;
+    expect(h.quote(h.day + 1)).toMatchObject({ offsetUSD: 5, remainderUSD: 7.84 });
   });
   it("keeps local-only accrual and the frozen grace boundary", () => {
     const h = quoteHarness(false);
@@ -49,6 +72,7 @@ function harness() {
   let current = true;
   const scope = { accountKey: "fixture-a", accountEpoch: 1, productNo: "stellarbox-s1", generation: 1 };
   const deps = {
+    trialQuoteUnavailable: ref(false),
     ref, voucherSelecting:ref(false), remoteApiEnabled: true, checkoutWalletRefreshing: ref(false), step: ref("confirm"),
     captureCheckoutRoute: () => scope, isCurrentCheckoutRoute: () => current,
     resumeServerOrder: vi.fn().mockResolvedValue(false), product: ref({ id: scope.productNo }),

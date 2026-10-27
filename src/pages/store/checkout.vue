@@ -22,6 +22,11 @@
         </view>
       </view>
 
+      <view v-else-if="trialQuoteUnavailable" class="text-center" role="status" style="padding: 24px 16px">
+        <text class="block" style="font-size: 13px; color: var(--v5-ink-3)">{{ freeTrial.authorityStatus === 'loading' ? t.trial.entryChecking : t.trial.entryUnavailable }}</text>
+        <NxButton variant="secondary" :label="t.trial.entryRetry" :busy="freeTrial.authorityStatus === 'loading'" @click="freeTrial.refreshRemote(true)" />
+      </view>
+
       <!-- Product not found -->
       <view v-else-if="!product" class="text-center" style="padding: 20px">
         <text class="block" style="font-size: 13px; color: var(--v5-ink-3); margin-bottom: 12px">{{ t.store.coProductNotFound }}</text>
@@ -69,7 +74,7 @@
             <view class="checkout-group">
               <view class="checkout-option checkout-voucher" role="button" tabindex="0" :aria-expanded="voucherDetailsOpen" @click="voucherDetailsOpen = !voucherDetailsOpen" @keydown.enter.prevent="voucherDetailsOpen = !voucherDetailsOpen" @keydown.space.prevent="voucherDetailsOpen = !voucherDetailsOpen">
                 <view class="checkout-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9a2 2 0 0 0 0 6v3a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-3a2 2 0 0 0 0-6V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1z" /><path d="M14 6v2m0 3v2m0 3v2" /></svg></view>
-                <view class="checkout-option-copy"><text class="checkout-row-title">{{ t.voucher.checkoutRowLabel }}</text><text class="checkout-row-description">{{ hasVoucher ? auditCopy.autoApplyVoucher : !voucherAutomatic ? t.promotion.noVoucher : expiredVoucherForSku ? t.voucher.expiredNote : t.promotion.noVoucher }}</text></view>
+                <view class="checkout-option-copy"><text class="checkout-row-title">{{ t.voucher.checkoutRowLabel }}</text><text class="checkout-row-description">{{ remoteApiEnabled && trialConversionMode ? trialCopy.voucherUnavailable : hasVoucher ? auditCopy.autoApplyVoucher : !voucherAutomatic ? t.promotion.noVoucher : expiredVoucherForSku ? t.voucher.expiredNote : t.promotion.noVoucher }}</text></view>
                 <text v-if="hasVoucher" class="checkout-discount">−{{ voucherDiscountText }} USDT</text><svg class="checkout-chevron" :class="{ 'checkout-chevron--open': voucherDetailsOpen }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
               </view>
               <view v-if="voucherDetailsOpen" class="checkout-voucher-details"><text v-if="voucherMatch" class="checkout-row-description">{{ voucherMatch.def.name }}</text><view role="group" :aria-label="t.promotion.voucher"><button class="checkout-voucher-choice" :disabled="!canChangeVoucher()" :aria-pressed="!voucherAutomatic" @click="selectAutomaticVoucher(false)">{{ t.promotion.noVoucher }}</button><button class="checkout-voucher-choice" :disabled="!canChangeVoucher()" :aria-pressed="voucherAutomatic" @click="selectAutomaticVoucher(true)">{{ reviewCopy.automaticVoucher }}</button></view><NxButton variant="text" size="small" :label="auditCopy.vouchers" @click="navTo('/pages/me/rewards-list?cat=voucher')" /></view>
@@ -207,7 +212,7 @@
         <view class="checkout-sticky-copy"><text class="checkout-total">{{ promotionCheckout.footer.amount }}</text><text class="checkout-product-meta">{{ t.store.coRowTotal }}</text></view>
         <NxButton variant="primary" :disabled="promotionCheckout.footer.disabled" :label="promotionCheckout.footer.label" @click="promotionCheckout.footer.action" />
       </view>
-      <view v-if="!promotionRoute && product && !receiptWriteFailure && (step === 'select-payment' || step === 'confirm')" class="checkout-sticky">
+      <view v-if="!promotionRoute && product && !trialQuoteUnavailable && !receiptWriteFailure && (step === 'select-payment' || step === 'confirm')" class="checkout-sticky">
         <view class="checkout-sticky-copy"><text class="checkout-total">{{ confirmTotalText }} USDT</text><text class="checkout-product-meta">{{ t.store.coRowTotal }}</text></view>
         <NxButton variant="primary" :disabled="checkoutWalletRefreshing || (remoteApiEnabled && !checkoutWalletReadable) || purchaseUnavailable || quantitySwitching" :busy="checkoutWalletRefreshing || quantitySwitching" :label="isCard ? t.store.coContinueToPayment : t.store.coPayNow" @click="submitReview" />
       </view>
@@ -254,6 +259,7 @@ import { useVoucher } from "@/store/voucher";
 import { useTradeinSheet } from "@/store/tradein-sheet";
 import type { PurchaseEligibilitySnapshot } from "@/api/purchase-eligibility-api";
 import { trialReservesSlotNow, useFreeTrial } from "@/store/free-trial";
+import { useTrialLifecycleCopy } from "@/i18n/trial-lifecycle";
 import { useTrialConfig, computeDiscountedPrice, computeTrialOffset, resolveTrialCheckoutProductId } from "@/store/trial-config";
 import { resolveTrialAt, accruedShadow } from "@/store/trial-boundary";
 import { mockServerNow } from "@/store/server-time";
@@ -615,6 +621,7 @@ const { gate: purchaseGate } = usePurchaseGate(product);
 // 都不再读原始 `freeTrial.status`。展示侧按 1s ticker 解析,越界后 ≤1s 自动收回
 // 抵扣行;支付侧按 mockServerNow() 重解一次只用于「还能不能按这份报价成交」。
 const freeTrial = useFreeTrial();
+const trialCopy = useTrialLifecycleCopy();
 const trialCfg = computed(() => useTrialConfig().config);
 // 1s ticker — the credit keeps accruing during active (display freshness).
 const nowTick = ref(mockServerNow());
@@ -645,7 +652,9 @@ function trialQuoteAt(now: number): TrialQuote {
   const acc = remoteApiEnabled
     ? { usd: freeTrial.authoritativeShadowUSD, nex: freeTrial.authoritativeShadowNEX }
     : accruedShadow(r, now, cfg);
-  const split = computeTrialOffset(cfg, remoteApiEnabled || r.status === "active" ? acc.usd : r.shadowFrozenAtUSD);
+  const split = remoteApiEnabled
+    ? { offsetUSD: freeTrial.authoritativeOffsetUSD ?? 0, remainderUSD: freeTrial.authoritativeRemainderUSD ?? 0 }
+    : computeTrialOffset(cfg, r.status === "active" ? acc.usd : r.shadowFrozenAtUSD);
   return {
     applied: true,
     promo: computeDiscountedPrice(cfg).discount,
@@ -657,7 +666,15 @@ function trialQuoteAt(now: number): TrialQuote {
 
 /** 展示侧的那一次解析 —— 确认页渲染的每个数字都出自它。 */
 const trialView = computed(() => trialQuoteAt(nowTick.value));
+// Until the claim snapshot has been read, an ordinary full-price order could
+// accidentally bypass an existing trial. Keep review/payment closed on that read.
+const trialQuoteUnavailable = computed(() => remoteApiEnabled && (freeTrial.authorityStatus !== "ready"
+  || ((freeTrial.status === "active" || freeTrial.status === "grace")
+    && (freeTrial.authoritativeOffsetUSD === null || freeTrial.authoritativeRemainderUSD === null
+      || freeTrial.authoritativePriceUSD === null))));
 const trialConversionMode = computed(() => trialView.value.applied);
+const purchaseSubtotal = computed(() => remoteApiEnabled && trialConversionMode.value
+  ? freeTrial.authoritativePriceUSD ?? 0 : product.value?.price ?? 0);
 const promoDiscount = computed(() => trialView.value.promo);
 const trialOffsetView = computed(() => trialView.value);
 const promoDiscountText = computed(() => formatAmount(promoDiscount.value));
@@ -687,6 +704,7 @@ watch([()=>app.accountKey,()=>app.accountBindingEpoch,productId],()=>{
   catch { voucherAutomatic.value=false; }
 },{immediate:true});
 function canChangeVoucher():boolean {
+  if (remoteApiEnabled && trialConversionMode.value) return false;
   return pageAlive&&pageVisible&&quantityReady.value&&checkoutRouteInitialized&&!activeCheckoutLoad
     &&!promotionRoute.value&&!!product.value&&!purchaseUnavailable.value
     &&(step.value==='select-payment'||step.value==='confirm')
@@ -712,6 +730,7 @@ async function selectAutomaticVoucher(enabled:boolean):Promise<void> {
   finally{voucherSelecting.value=false;}
 }
 const voucherMatch = computed(() => {
+  if (remoteApiEnabled && trialConversionMode.value) return null;
   if(!voucherAutomatic.value)return null;
   const p = product.value;
   if (!p) return null;
@@ -808,7 +827,7 @@ const netPrice = computed(() => {
   return Math.max(
     0,
     +(
-      ((product.value?.price ?? 0) -
+      (purchaseSubtotal.value -
         voucherDiscount.value -
         tradeinCredit.value -
         promoDiscount.value -
@@ -1046,7 +1065,7 @@ const capped = computed(() => targetOccupiesPhysicalSlot.value && (
 ));
 
 // ── derived text ──
-const priceText = computed(() => formatAmount((product.value?.price ?? 0)));
+const priceText = computed(() => formatAmount(purchaseSubtotal.value));
 // Header "Total" = device price after voucher (still excludes card fee, matching
 // the pre-voucher convention). Card fee is computed on the discounted subtotal.
 const netPriceText = computed(() => formatAmount(netPrice.value));
@@ -1081,7 +1100,7 @@ const stepLabels = computed(() => [
 ]);
 const stepDisplay = computed(() => ['confirmed','activating','live'].includes(step.value) ? 2 : ['pay-instructions','awaiting'].includes(step.value) ? 1 : 0);
 async function submitReview() {
-  if (quantitySwitching.value || (remoteApiEnabled && !checkoutWalletReadable.value)) return;
+  if (trialQuoteUnavailable.value || quantitySwitching.value || (remoteApiEnabled && !checkoutWalletReadable.value)) return;
   if (step.value === 'select-payment') { goConfirm(); await nextTick(); }
   if (step.value === 'confirm') await requestConfirmPay();
 }
@@ -1092,6 +1111,7 @@ function selectPayment(id: string) {
 }
 
 function goConfirm() {
+  if (trialQuoteUnavailable.value) return;
   if (purchaseUnavailable.value) {
     toast.warn(t.value.store.specUnavailable);
     navTo("/store");
@@ -1154,6 +1174,7 @@ let pendingVoucherRelease: string | null = null;
 
 let purchaseConfirmationOpen = false;
 async function requestConfirmPay() {
+  if (trialQuoteUnavailable.value) return;
   if (voucherSelecting.value || purchaseConfirmationOpen || confirming || checkoutWalletRefreshing.value || step.value !== "confirm") return;
   const scope = captureCheckoutRoute();
   const amount = netPrice.value + cardFee.value;
@@ -1168,7 +1189,7 @@ async function requestConfirmPay() {
       cancelLabel: t.value.store.coCancel,
       owner: dialogOwner,
     });
-    if (!accepted || !isCurrentCheckoutRoute(scope) || step.value !== "confirm") return;
+    if (!accepted || !isCurrentCheckoutRoute(scope) || trialQuoteUnavailable.value || step.value !== "confirm") return;
     if (amount !== netPrice.value + cardFee.value) {
       toast.warn(t.value.store.coTotalQuoteChanged);
       step.value = "select-payment";
@@ -1182,6 +1203,7 @@ async function requestConfirmPay() {
 }
 
 async function onConfirmPay() {
+  if (trialQuoteUnavailable.value) return;
   if (voucherSelecting.value || confirming || checkoutWalletRefreshing.value || step.value !== "confirm") return;
   confirming = true;
   const recoveryScope = captureCheckoutRoute();
@@ -1190,6 +1212,7 @@ async function onConfirmPay() {
     const recovering = await resumeServerOrder(recoveryScope);
     if (recovering || !isCurrentCheckoutRoute(recoveryScope)) { confirming = false; return; }
   }
+  if (trialQuoteUnavailable.value) { confirming = false; return; }
   if (confirmedAmount !== netPrice.value + cardFee.value) {
     confirming = false;
     toast.warn(t.value.store.coTotalQuoteChanged);

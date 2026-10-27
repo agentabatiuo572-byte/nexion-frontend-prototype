@@ -1,4 +1,5 @@
 import * as displayDate from "@/lib/display-date";
+import * as businessCalendar from "@/lib/business-calendar";
 import { platformDisplayText } from "@/lib/brand-copy";
 import { formatAmount } from "@/lib/amount-display";
 import { formatFinanceAmount } from "@/lib/finance-amount-display";
@@ -105,7 +106,7 @@ async function mount(direction = "nex2usdt") {
     "@/components/sub-page-header.vue": { default: header },
     "@/lib/route": { navTo }, "@/lib/exchange-quote": { exchangeQuote },
     "@/i18n/use-t": { useT: () => Vue.ref(en) },
-    "@/lib/display-date": displayDate, "@/i18n/format": { dateLocale: () => "en", fmt: (text: string, values: Record<string, string>) => text.replace(/\{(\w+)\}/g, (_match, key) => values[key]) },
+    "@/lib/display-date": displayDate, "@/lib/business-calendar": businessCalendar, "@/i18n/format": { dateLocale: () => "en", fmt: (text: string, values: Record<string, string>) => text.replace(/\{(\w+)\}/g, (_match, key) => values[key]) },
     "@/api/geo-policy-error": { geoPolicyUserMessage: vi.fn() },
     "@/lib/remote-authority-display": { remoteAuthorityStatus },
     "@/store/ui": { toast, confirm },

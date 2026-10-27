@@ -81,6 +81,7 @@ function mount(query: Record<string, string> = { type: "ai" }, conversation?: {
     "@/lib/hashpower": { isDeviceOnline: () => false },
     "@/store/conversations": { useConversations: () => ({
       humanComposers,
+      clearedComposerThrough: {},
       conversations: conversation ? [{ id: query.cid, messages: [], ...conversation }] : [],
       refresh: vi.fn(async () => undefined),
       composer: (key: string) => humanComposers[key] ?? { text: "", imageDraft: null, failedSend: null },
@@ -92,7 +93,9 @@ function mount(query: Record<string, string> = { type: "ai" }, conversation?: {
       advisorLoading: false,
       advisorError: false,
       scopeInvalidated: 0,
+      peerChangedIds: {},
       get: () => conversation ? { id: query.cid, messages: [], ...conversation } : undefined,
+      getThread: () => conversation ? { conversationIds: [query.cid] } : undefined,
       open: openConversation,
       watchRealtime,
       setTyping: vi.fn(),

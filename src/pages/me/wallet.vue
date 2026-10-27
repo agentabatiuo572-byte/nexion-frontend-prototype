@@ -255,9 +255,9 @@ const todayEarningsText = computed(() => todayEarnings.value === null ? "—" : 
 const pendingReview = computed(() => buckets.value.pendingReviewUsdt);
 const lockedRewards = computed(() => buckets.value.bonusLockedUsdt);
 const miningLifetimeUSD = computed(() => !remoteApiEnabled ? app.earnings.total
-  : app.homeTruthStatus === "ready" ? app.homeTruth?.earnings.all.usdt ?? null : null);
+  : app.homeTruthStatus === "ready" || app.homeTruthStatus === "loading" ? app.homeTruth?.earnings.all.usdt ?? null : null);
 const teamLifetimeUSD = computed(() => !remoteApiEnabled ? commission.totalUSDTLifetime()
-  : commission.eventsStatus === "ready" ? commission.eventsEvidence?.aggregate.totalUSDT ?? null : null);
+  : commission.eventsStatus === "ready" || commission.eventsStatus === "loading" ? commission.eventsEvidence?.aggregate.totalUSDT ?? null : null);
 const allTimeEarned = computed(() => miningLifetimeUSD.value === null || teamLifetimeUSD.value === null
   ? null : miningLifetimeUSD.value + teamLifetimeUSD.value);
 const allTimeSublabel = computed(() =>

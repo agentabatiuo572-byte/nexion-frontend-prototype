@@ -1,4 +1,5 @@
 import type { AmbassadorApplication, AmbassadorApplicationInput } from "@/api/ambassador-application-api";
+import { businessWallClock } from "./business-calendar";
 
 export interface TeamP31718Request {
   accountKey: string;
@@ -48,9 +49,9 @@ function dateKey(parts: { year: number; month: number; day: number }): string {
   return `${String(parts.year).padStart(4, "0")}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}`;
 }
 
-function shanghaiToday(now: Date): { year: number; month: number; day: number } {
-  // Current Shanghai business dates use UTC+8; native runtimes may have no Intl.
-  const shifted = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+function businessToday(now: Date): { year: number; month: number; day: number } {
+  // The server checks the event date against the business calendar's current date (D-16).
+  const shifted = businessWallClock("LEGACY", now.getTime());
   return { year: shifted.getUTCFullYear(), month: shifted.getUTCMonth() + 1, day: shifted.getUTCDate() };
 }
 
@@ -67,7 +68,7 @@ export function parseAmbassadorApplicationDraft(
 ): AmbassadorApplicationInput | null {
   if (!Number.isFinite(now.getTime())) return null;
   const eventDate = dateParts(draft.eventDate) ? draft.eventDate : null;
-  const today = shanghaiToday(now);
+  const today = businessToday(now);
   if (!eventDate || eventDate < dateKey(today) || eventDate > dateKey(plusOneYear(today))) return null;
 
   const city = javaTrim(draft.city);

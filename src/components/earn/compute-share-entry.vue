@@ -1,8 +1,20 @@
 <template>
   <EarnWayCard v-if="enabled && context === 'earn'" eyebrow="DESKTOP" :title="remainderCopy.earnWays.gpuTitle"
     :body="remainderCopy.earnWays.gpuBody" :action="remainderCopy.earnWays.gpuAction"
-    image="/static/img/earn-20261027/gpu.webp" :notice="slotsFull ? t.computeShare.entryFull : undefined"
+    artwork="gpu" :notice="slotsFull ? t.computeShare.entryFull : undefined"
     data-proof="compute-share-entry" @click="goDownload" />
+  <view v-else-if="enabled && compact" class="compute-share-entry compute-share-entry--compact" data-proof="compute-share-entry">
+    <view class="compute-share-entry__heading">
+      <view class="compute-share-entry__icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 21h8m-4-5v5" /></svg>
+      </view>
+      <view class="compute-share-entry__copy">
+        <text class="compute-share-entry__title">{{ t.computeShare.entryTitle }}</text>
+        <text class="compute-share-entry__body">{{ slotsFull ? t.computeShare.entryFull : t.computeShare.entryBody }}</text>
+      </view>
+    </view>
+    <view class="compute-share-entry__compact-cta" role="button" tabindex="0" @click="goDownload"><text>{{ t.computeShare.entryCta }}</text></view>
+  </view>
   <view v-else-if="enabled" class="nx-glass-card compute-share-entry" :class="{ 'mx-4': context === 'devices' }" :style="rootStyle" data-proof="compute-share-entry">
     <view :style="iconStyle">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -32,7 +44,7 @@ import { trialReservesSlotNow } from "@/store/free-trial";
 import { useT } from "@/i18n/use-t";
 import { useRemainderUiCopy } from "@/i18n/remainder-ui";
 
-withDefaults(defineProps<{ context?: "earn" | "devices" }>(), { context: "earn" });
+withDefaults(defineProps<{ context?: "earn" | "devices"; compact?: boolean }>(), { context: "earn", compact: false });
 
 const app = useApp();
 const cfg = useConfig();
@@ -92,4 +104,13 @@ const bodyStyle: CSSProperties = {
 
 <style scoped>
 .compute-share-entry__cta { grid-column: 2; justify-self: start; max-width: 100%; }
+.compute-share-entry--compact { min-width: 0; margin-top: 8px; padding: 12px; border: 1px solid var(--v5-border); border-radius: var(--ui-radius-surface); background: var(--v5-surface); }
+.compute-share-entry__heading { display: flex; align-items: flex-start; gap: 10px; }
+.compute-share-entry__icon { display: grid; place-items: center; flex: none; width: 28px; height: 28px; }
+.compute-share-entry__copy { flex: 1; min-width: 0; }
+.compute-share-entry__title { display: block; color: var(--v5-ink); font: 600 13px/18px var(--font-v5); overflow-wrap: anywhere; }
+.compute-share-entry__body { display: block; margin-top: 4px; color: var(--v5-ink-3); font: 400 12px/18px var(--font-v5); overflow-wrap: anywhere; }
+.compute-share-entry__compact-cta { display: flex; align-items: center; justify-content: center; min-height: 44px; box-sizing: border-box; margin-top: 8px; padding: 10px 12px; border-radius: var(--v5-radius-full); background: var(--v5-brand-soft); color: var(--v5-brand); font: 500 13px/18px var(--font-v5); text-align: center; overflow-wrap: anywhere; cursor: pointer; }
+.compute-share-entry__compact-cta:active { opacity: .7; }
+.compute-share-entry__compact-cta:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
 </style>

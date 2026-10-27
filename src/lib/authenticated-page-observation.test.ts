@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createAuthenticatedPageObservationReporter, shanghaiIsoWeekKey } from "./authenticated-page-observation";
+import { createAuthenticatedPageObservationReporter, businessIsoWeekKey } from "./authenticated-page-observation";
 
 const session = { accessToken: "access", user: { userId: 7 } };
 const scope = { accountKey: "user:7", epoch: 3 };
@@ -43,8 +43,8 @@ describe("authenticated page observation reporter", () => {
   });
 
   it("uses one date-normalized ISO key for the 2027 new-year first week", () => {
-    expect(shanghaiIsoWeekKey(Date.parse("2027-01-04T00:00:00.000Z"))).toBe("WEEK:2027-W01");
-    expect(shanghaiIsoWeekKey(Date.parse("2027-01-10T15:59:59.000Z"))).toBe("WEEK:2027-W01");
+    expect(businessIsoWeekKey(Date.parse("2027-01-04T00:00:00.000Z"))).toBe("WEEK:2027-W01");
+    expect(businessIsoWeekKey(Date.parse("2027-01-10T15:59:59.000Z"))).toBe("WEEK:2027-W01");
   });
 
   it("allows a later page revisit after a failed request's bounded cooldown without scheduling retries", async () => {

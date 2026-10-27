@@ -95,6 +95,86 @@ it('recovers an uncertain deletion from its original command receipt', async () 
   expect(store.get('one')).toBeUndefined();
 });
 
+it.each(['CONVERSATION_USER_CLEAR_CONFLICT', 'CONVERSATION_USER_CLEAR_MEMBERS_CHANGED'])(
+  'releases a retained %s only after authoritative refusal, refreshes and waits for a new confirmation', async reason => {
+    const original = { ...row('one'), unread: 0, messages: [{ id: '10', sender: 'user' as const, text: 'Keep this history', ts: 10 }] };
+    api.conversations.mockResolvedValue({ items: [original] });
+    const store = useConversations(); store.bindAccount('user:1'); await store.refresh();
+    store.saveComposer('conversation:one', { text: 'Keep this draft', imageDraft: null, failedSend: null });
+    const current = { ...original, version: 2 };
+    const refreshed = reason.endsWith('MEMBERS_CHANGED') ? [current, row('added')] : [current];
+    api.conversations.mockResolvedValue({ items: refreshed });
+    const retained = new Map<string, string>();
+    api.deleteConversation.mockImplementation(async (_id, _peer, members: Conversation[], key: string) => {
+      const payload = JSON.stringify(members.map(member => [member.id, member.version]));
+      if (retained.has(key)) throw new ApiError({ kind: 'http', status: 409,
+        message: retained.get(key) === payload ? reason : 'IDEMPOTENCY_REQUEST_HASH_CONFLICT' });
+      retained.set(key, payload);
+      if (members.find(member => member.id === 'one')?.version === 1)
+        throw new ApiError({ kind: 'http', status: 409, code: 409, message: reason });
+      return cleared(refreshed.map(member => member.id));
+    });
+    await expect(store.deleteConversation('one')).rejects.toThrow(reason);
+    expect(api.deleteConversation).toHaveBeenCalledOnce(); expect(api.commandResult).not.toHaveBeenCalled();
+    expect(store.get('one')?.version).toBe(2);
+    expect(store.get('one')?.messages).toEqual(original.messages);
+    expect(store.getThread('one')?.conversationIds.sort()).toEqual(refreshed.map(member => member.id).sort());
+    expect(store.composer('conversation:one').text).toBe('Keep this draft'); expect(store.deletingIds).toEqual({});
+    const firstKey = api.deleteConversation.mock.calls[0][3];
+    expect(localStorage.getItem('support-pending-commands:user:1:canonical-v1:conversations') ?? '').not.toContain(firstKey);
+    await store.deleteConversation('one');
+    expect(api.deleteConversation).toHaveBeenCalledTimes(2);
+    expect(api.deleteConversation.mock.calls[1][3]).not.toBe(firstKey);
+    expect(store.get('one')).toBeUndefined();
+  },
+);
+
+it.each(['immediate-readback', 'reload-readback'] as const)(
+  'recovers a lost clear refusal through %s and never clears history on rejection', async recovery => {
+    const rows = [row('one')]; api.conversations.mockResolvedValue({ items: rows });
+    let store = useConversations(); store.bindAccount('user:1'); await store.refresh();
+    const refusal = new ApiError({ kind: 'http', status: 409, code: 409, message: 'CONVERSATION_USER_CLEAR_CONFLICT' });
+    api.deleteConversation.mockRejectedValueOnce(new ApiError({ kind: 'network', message: 'lost refusal response' }));
+    api.commandResult.mockRejectedValue(recovery === 'immediate-readback' ? refusal
+      : new ApiError({ kind: 'http', status: 409, message: 'SUPPORT_COMMAND_RESULT_UNKNOWN' }));
+    await expect(store.deleteConversation('one')).rejects.toThrow(recovery === 'immediate-readback'
+      ? refusal.message : 'SUPPORT_COMMAND_RESULT_UNKNOWN');
+    const firstKey = api.deleteConversation.mock.calls[0][3];
+    expect(api.commandResult).toHaveBeenCalledWith(firstKey);
+    expect(store.get('one')).toBeDefined(); expect(api.deleteConversation).toHaveBeenCalledOnce();
+    if (recovery === 'reload-readback') {
+      expect(localStorage.getItem('support-pending-commands:user:1:canonical-v1:conversations')).toContain(firstKey);
+      setActivePinia(createPinia()); store = useConversations();
+      api.commandResult.mockRejectedValue(refusal); store.bindAccount('user:1'); await store.refresh();
+    }
+    expect(localStorage.getItem('support-pending-commands:user:1:canonical-v1:conversations') ?? '').not.toContain(firstKey);
+    expect(store.get('one')).toBeDefined();
+    api.deleteConversation.mockResolvedValueOnce(cleared(['one']));
+    await store.deleteConversation('one');
+    expect(api.deleteConversation.mock.calls[1][3]).not.toBe(firstKey);
+    expect(store.get('one')).toBeUndefined();
+  },
+);
+
+it.each(['network', 'ordinary-409', 'unconfirmed-readback'] as const)(
+  'keeps the original clear key for %s instead of assuming rejection', async failure => {
+    api.conversations.mockResolvedValue({ items: [row('one')] });
+    const store = useConversations(); store.bindAccount('user:1'); await store.refresh();
+    const unknown = new ApiError({ kind: failure === 'ordinary-409' ? 'http' : 'network',
+      status: failure === 'ordinary-409' ? 409 : undefined, message: 'original outcome unknown' });
+    api.deleteConversation.mockRejectedValueOnce(unknown);
+    if (failure === 'unconfirmed-readback') api.commandResult.mockRejectedValueOnce(
+      new ApiError({ kind: 'http', status: 409, message: 'SUPPORT_COMMAND_NOT_COMMITTED' }));
+    await expect(store.deleteConversation('one')).rejects.toBeInstanceOf(ApiError);
+    const firstKey = api.deleteConversation.mock.calls[0][3];
+    expect(store.get('one')).toBeDefined();
+    expect(localStorage.getItem('support-pending-commands:user:1:canonical-v1:conversations')).toContain(firstKey);
+    api.deleteConversation.mockResolvedValueOnce(cleared(['one']));
+    await store.deleteConversation('one');
+    expect(api.deleteConversation.mock.calls[1][3]).toBe(firstKey);
+  },
+);
+
 it('an old account deletion cannot erase the next account snapshot', async () => {
   const pending = deferred<any>(); api.deleteConversation.mockReturnValue(pending.promise);
   api.conversations.mockResolvedValue({ items: [row('one')] });

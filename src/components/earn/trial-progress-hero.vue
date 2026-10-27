@@ -9,9 +9,10 @@
   <view class="nx-glass-card relative overflow-hidden" :style="cardStyle">
     <view class="flex items-center justify-between">
       <text :style="ribbonStyle">{{ ribbon }}</text>
-      <text :style="boxNameStyle">UVELBox S1</text>
+      <text :style="boxNameStyle">{{ cfg.trialProductName }}</text>
     </view>
 
+    <text class="block" style="margin-top:16px;font-size:12px;color:var(--v5-ink-3)">{{ lifecycle.accruedLabel }}</text>
     <!-- Shadow earnings -->
     <view class="flex items-baseline" style="gap: 6px; margin-top: 12px">
       <text :style="dollarStyle">$</text>
@@ -47,6 +48,7 @@ import { formatTrialDate } from "@/lib/trial-date";
 import { useTrialConfig } from "@/store/trial-config";
 import type { TrialStatus } from "@/store/free-trial";
 import { trialCycleDurationMs } from "@/lib/trial-cycle-duration";
+import { useTrialLifecycleCopy } from "@/i18n/trial-lifecycle";
 
 const props = defineProps<{
   status: TrialStatus;
@@ -61,6 +63,7 @@ const props = defineProps<{
 }>();
 
 const t = useT();
+const lifecycle = useTrialLifecycleCopy();
 const cfg = computed(() => useTrialConfig().config);
 
 const remainingLabel = computed(() => formatTrialRemaining(props.remainingMs, t.value.coreReview));

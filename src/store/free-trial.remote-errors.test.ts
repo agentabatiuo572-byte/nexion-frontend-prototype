@@ -111,6 +111,18 @@ describe("useFreeTrial remote command errors", () => {
     await expect(useFreeTrial().start()).resolves.toEqual({ ok: false, reason: "quota-exhausted" });
   });
 
+  it("retires a known full-capacity refusal after a read proves no claim was created", async () => {
+    remote.eligibility.mockResolvedValue(authority(true));
+    remote.state.mockResolvedValue(authority(false, "capacity-full"));
+    remote.start.mockRejectedValue(new ApiError({ kind: "business", message: "TRIAL_CAPACITY_FULL", code: 409 }));
+    const store = useFreeTrial();
+    expect(await store.start()).toEqual({ ok: false, reason: "capacity-full" });
+    const refusedKey = remote.start.mock.calls[0]![0];
+    remote.state.mockResolvedValue(authority(true));
+    await store.start();
+    expect(remote.start.mock.calls[1]![0]).not.toBe(refusedKey);
+  });
+
   it.each([
     ["USER_ONBOARDING_REQUIRED", "onboarding-required"],
     ["LEGAL_TERMS_ACK_REQUIRED", "terms-required"],

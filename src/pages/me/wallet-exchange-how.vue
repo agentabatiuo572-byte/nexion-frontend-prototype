@@ -45,7 +45,7 @@
         </template>
         <text class="block" :style="introStyle">{{ w.s3Intro }}</text>
         <view style="display: flex; flex-direction: column; gap: 10px">
-          <IconRow emoji="📅" :label="w.lim1Label" :body="w.lim1Body" />
+          <IconRow emoji="📅" :label="w.lim1Label" :body="fmt(w.lim1Body, { zone: businessOffsetLabel('LEGACY') })" />
           <IconRow emoji="🌐" :label="w.lim2Label" :body="w.lim2Body" />
         </view>
         <CalloutBox :title="`💡 ${w.s3HintTitle}`" :body="w.s3HintBody" tone="amber" />
@@ -63,7 +63,7 @@
           </view>
           <view class="flex items-start" style="gap: 8px">
             <text class="shrink-0" :style="stepNumStyle">2.</text>
-            <text :style="stepBodyStyle">{{ w.s4Step2 }}</text>
+            <text :style="stepBodyStyle">{{ fmt(w.s4Step2, { zone: businessOffsetLabel("LEGACY") }) }}</text>
           </view>
           <view class="flex items-start" style="gap: 8px">
             <text class="shrink-0" :style="stepNumStyle">3.</text>
@@ -110,6 +110,8 @@ import HowFaqRow from "@/components/how/how-faq-row.vue";
 import IconRow from "@/components/how/how-icon-row.vue";
 import CalloutBox from "@/components/how/how-callout-box.vue";
 import { useT } from "@/i18n/use-t";
+import { fmt } from "@/i18n/format";
+import { businessOffsetLabel } from "@/lib/business-calendar";
 
 const t = useT();
 const w = computed(() => t.value.exchangeHowItWorks);

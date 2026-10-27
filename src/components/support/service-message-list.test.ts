@@ -239,4 +239,18 @@ describe("rendered service threads and deletion", () => {
     expect(textOf(h.root)).not.toContain(zh.conversations.staleSnapshot);
     expect(textOf(h.root)).not.toContain("Preview ");
   });
+
+  it.each(["error", "category"])("places warm %s details after retained rows without moving their flow prefix", async source => {
+    const h = mount();
+    const rowPrefix = () => h.root.children[0].children.filter(n => n.tag !== "#comment").slice(0, 2).map(n => n.tag);
+    const before = rowPrefix();
+    if (source === "error") h.conversations.error = "offline";
+    if (source === "category") h.conversations.categoryAvailabilityStatus = "failed";
+    await Vue.nextTick();
+    expect(rowPrefix()).toEqual(before);
+    const nodes = flatten(h.root), rows = h.rows(), state = byClass(h.root, "service-state")[0];
+    expect(nodes.indexOf(state)).toBeGreaterThan(nodes.indexOf(rows[rows.length - 1]));
+    expect(textOf(state)).toContain(zh.conversations.staleSnapshot);
+    expect(textOf(state)).toContain(zh.ui.retry);
+  });
 });

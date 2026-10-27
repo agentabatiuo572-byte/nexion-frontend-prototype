@@ -30,7 +30,7 @@ const nav = all.find(node => hasClass(node, "message-nav"))!;
 const heading = all.find(node => hasClass(node, "message-heading"))!;
 
 // Evaluate the page's actual unread expression, preserving its full source count.
-function unreadLabel(translations: typeof zh | typeof en | typeof vi, totalUnread: number): string {
+function unreadLabel(translations: typeof zh | typeof en | typeof vi, totalUnread: number, error: string | null = null): string {
   const ast = ts.createSourceFile("notifications.vue.ts", descriptor.scriptSetup!.content, ts.ScriptTarget.Latest, true);
   let initializer: ts.Expression | undefined;
   function find(node: ts.Node): void {
@@ -40,7 +40,7 @@ function unreadLabel(translations: typeof zh | typeof en | typeof vi, totalUnrea
   find(ast);
   if (!initializer) throw new Error("Missing page unread expression");
   const code = ts.transpileModule(`const label = ${initializer.getText(ast)};`, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
-  return new Function("computed", "center", "t", "fmt", code + ";return label.value;")(Vue.computed, { totalUnread, error: null, loading: false }, Vue.ref(translations), fmt) as string;
+  return new Function("computed", "center", "t", "fmt", code + ";return label.value;")(Vue.computed, { totalUnread, error, loading: false }, Vue.ref(translations), fmt) as string;
 }
 async function renderHeader(translations: typeof zh | typeof en | typeof vi, totalUnread: number, expanded = true, overrides: Record<string, unknown> = {}): Promise<string> {
   const code = compile(`<view>${nav.loc.source}${heading.loc.source}</view>`, { mode: "function", prefixIdentifiers: true, isCustomElement: tag => ["view", "text"].includes(tag) }).code;
@@ -81,15 +81,20 @@ describe("message page header content contract", () => {
 
   it("places one accessible page heading below navigation, with summary actions on one row", () => {
     const children = nav.children.filter((node): node is ElementNode => node.type === 1);
-    expect(children).toHaveLength(2);
+    expect(children).toHaveLength(3);
     expect(children[0].loc.source).toContain("navBack('/pages/me/me')");
-    expect(children[1].loc.source).toContain("navTo('/pages/me/preferences')");
+    expect(children[2].loc.source).toContain("navTo('/pages/me/preferences')");
+    expect(children[1].loc.source).toContain('message-summary-recovery');
+    expect(children[1].loc.source).toContain('@click="center.refresh()"');
     const titles = all.filter(node => hasClass(node, "message-title"));
     expect(titles).toHaveLength(1);
     expect(elements(heading.children)).toContain(titles[0]);
     expect(titles[0].loc.source).toContain('role="heading"');
     expect(titles[0].loc.source).toContain('aria-level="1"');
-    expect(nav.loc.source).not.toContain("drawerTitle");
+    const recoveryTitle = all.find(node => hasClass(node, 'message-recovery-title'))!;
+    expect(recoveryTitle.loc.source).toContain('v-if="!headerState.title"');
+    expect(recoveryTitle.loc.source).toContain('role="heading"');
+    expect(nav.loc.source).toContain(recoveryTitle.loc.source);
     expect(heading.loc.source).toContain("unreadLabel");
   });
 
@@ -111,7 +116,7 @@ describe("message page header content contract", () => {
     const compact = all.find(node => hasClass(node, "message-compact"))!;
     expect(compact.loc.source).toContain("'message-compact--visible': !headerState.title");
     expect(compact.loc.source).toContain(':aria-hidden="headerState.title"');
-    expect(compact.props.some(prop => prop.type === 7 && ["if", "show"].includes(prop.name))).toBe(false);
+    expect(compact.props.find(prop => prop.type === 7 && prop.name === 'if')).toMatchObject({ exp: { content: '!center.error' } });
     const html = await renderHeader(zh, 298, false);
     const titleMarkup = html.match(/<text[^>]*role="heading"[^>]*>/)?.[0];
     expect(titleMarkup).toContain("message-title--hidden");
@@ -167,6 +172,45 @@ describe("message page header content contract", () => {
     expect(failed).not.toContain(zh.notifs.allCaughtUp);
     expect(source).toContain('@click="center.refresh()"');
     expect(source).toContain('@click="notifs.retryRemote()"');
+  });
+
+  it.each([[zh, '更新失败'], [en, 'Update failed'], [vi, 'Làm mới thất bại']] as const)(
+    "keeps a visible failure and direct retry in fixed navigation, outside the collapsible heading", async (copy, failure) => {
+      const failed = await renderHeader(copy, 0, false, {
+        center: { totalUnread: 0, error: 'failed', loading: false, refresh() {} }, unreadLabel: copy.notifs.unreadUnavailable,
+      });
+      expect(failed).toContain(failure); expect(failed).toContain(copy.ui.retry);
+      expect(nav.loc.source).toContain('role="alert"');
+      expect(all.find(node => hasClass(node, 'message-compact'))!.loc.source).toContain('v-if="!center.error"');
+      expect(heading.loc.source).not.toContain('message-summary-recovery');
+      expect(failed).not.toContain(copy.notifs.allCaughtUp);
+    });
+
+  it("keeps notification failure details after selected rows while retaining their retry", () => {
+    const feed = all.find(node => hasClass(node, 'notification-feed'))!;
+    const children = feed.children.filter((node): node is ElementNode => node.type === 1);
+    const error = children.findIndex(node => attribute(node, 'data-testid')?.type === 6);
+    const rows = children.findIndex(node => hasClass(node, 'notification-item'));
+    expect(error).toBeGreaterThan(rows);
+    expect(children[error].loc.source).toContain('role="alert"');
+    expect(children[error].loc.source).toContain('@click="notifs.retryRemote()"');
+  });
+
+  it("executes the actual fixed-nav retry for pointer and keyboard without claiming unavailable unread is zero", () => {
+    let calls = 0;
+    const center = { error: 'offline', loading: false, refresh() { calls++; } };
+    const code = compile(nav.loc.source, { mode: 'function', prefixIdentifiers: true,
+      isCustomElement: tag => ['view', 'text'].includes(tag) }).code;
+    const render = new Function('Vue', code)({ ...Vue, resolveComponent: () => ({ render: () => null }) });
+    const context = { center, t: zh, actionCopy: notificationActionsCopy.zh, headerState: { title: false }, navBack() {}, navTo() {} };
+    const nodes = (node: Vue.VNode): Vue.VNode[] => [node, ...(Array.isArray(node.children) ? node.children.filter(Vue.isVNode).flatMap(nodes) : [])];
+    const retry = () => nodes(render(context, [])).find(node => node.props?.['aria-label'] === '更新失败 · ' + zh.ui.retry)!;
+    retry().props!.onClick();
+    for (const handler of retry().props!.onKeydown) handler({ key: 'Enter', preventDefault() {} });
+    expect(calls).toBe(2);
+    center.loading = true;
+    expect(retry().props!.tabindex).toBe(-1); expect(retry().props!['aria-disabled']).toBe(true);
+    expect(unreadLabel(zh, 0, 'offline')).toBe(zh.notifs.unreadUnavailable);
   });
 
   it("matches the reference glass highlights without painting over the category label or dot", () => {

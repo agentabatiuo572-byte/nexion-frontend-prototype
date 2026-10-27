@@ -35,6 +35,14 @@ const base = {
 };
 
 describe("trial conversion contract", () => {
+  it("retains the claim's canonical split even when current policy differs", () => {
+    expect(parseTrialAuthorityState({ ...base, offsetUsdt: "5", remainderUsdt: "5", priceUsdt: "649" }))
+      .toMatchObject({ shadowUSD: 10, offsetUSD: 5, remainderUSD: 5, priceUSD: 649 });
+  });
+  it.each([{ offsetUsdt: -1, remainderUsdt: 0, priceUsdt: 649 }, { offsetUsdt: 5 },
+    { offsetUsdt: 5, remainderUsdt: "invalid", priceUsdt: 649 }])("rejects an incomplete or invalid canonical split", amounts => {
+    expect(() => parseTrialAuthorityState({ ...base, ...amounts })).toThrow("TRIAL_RESPONSE_INVALID");
+  });
   it("retains the extended purchase deadline without resuming production", () => {
     const extendedEndsAt = 1_726_000_000_000;
     const parsed = parseTrialAuthorityState({ ...base, state: "EXTENDED", eligibilityReason: "in-progress",

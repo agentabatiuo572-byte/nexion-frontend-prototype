@@ -133,7 +133,7 @@
       <view :style="dashStyle">
         <view class="flex items-center justify-between" style="margin-bottom: 12px">
           <text :style="dashTitleStyle">{{ t.exchange.capsLabel }}</text>
-          <text class="font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-3)">{{ t.exchange.capsReset }}</text>
+          <text class="font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-3)">{{ fmt(t.exchange.capsReset, { zone: businessOffsetLabel("LEGACY") }) }}</text>
         </view>
 
         <!-- Per-user cap -->
@@ -228,6 +228,7 @@ import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
+import { businessOffsetLabel } from "@/lib/business-calendar";
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
 import { remoteAuthorityStatus } from "@/lib/remote-authority-display";
 import { toast, confirm } from "@/store/ui";
@@ -747,7 +748,7 @@ function notifyRemoteSwapResult(
   if (order.status === "QUEUED") {
     toastIfRemoteScopeCurrent(scope, runScope, () => toast.info(
       t.value.exchange.queuedToastTitle,
-      fmt(t.value.exchange.queuedToastBody, { amount: formatAmount(order.fromAsset === "USDT" ? order.fromAmount : order.toAmount) }),
+      fmt(t.value.exchange.queuedToastBody, { amount: formatAmount(order.fromAsset === "USDT" ? order.fromAmount : order.toAmount), zone: businessOffsetLabel("LEGACY") }),
     ));
     return;
   }
@@ -883,7 +884,7 @@ async function handleConfirm() {
           v3.enqueue({ amountUSD: snap.usd, direction: snap.direction });
           toastIfRemoteScopeCurrent(requestScope, requestRunScope, () => toast.info(
             t.value.exchange.queuedToastTitle,
-            fmt(t.value.exchange.queuedToastBody, { amount: formatAmount(snap.usd) }),
+            fmt(t.value.exchange.queuedToastBody, { amount: formatAmount(snap.usd), zone: businessOffsetLabel("LEGACY") }),
           ));
         }
         return;

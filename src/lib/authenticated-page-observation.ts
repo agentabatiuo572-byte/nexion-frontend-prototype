@@ -1,4 +1,5 @@
 import type { RemoteAccountRequest } from "./remote-account-epoch";
+import { businessWallClock } from "./business-calendar";
 
 export interface ObservationSession {
   accessToken: string;
@@ -25,7 +26,6 @@ export interface AuthenticatedPageObservationOptions {
   failureCooldownMs?: number;
 }
 
-const SHANGHAI_OFFSET_MS = 8 * 60 * 60 * 1_000;
 const DAY_MS = 24 * 60 * 60 * 1_000;
 const SUCCESS_TTL_MS = 8 * DAY_MS;
 const FAILURE_COOLDOWN_MS = 30 * 1_000;
@@ -42,10 +42,10 @@ function boundedDuration(value: number | undefined, fallback: number): number {
 /**
  * This is a client-side transport-suppression key only. It is never sent to
  * the service and cannot grant a reward; the service remains authoritative
- * for the Asia/Shanghai week and its deduplication decision.
+ * for the business-calendar week and its deduplication decision.
  */
-export function shanghaiIsoWeekKey(timestamp: number): string {
-  const date = new Date(timestamp + SHANGHAI_OFFSET_MS);
+export function businessIsoWeekKey(timestamp: number): string {
+  const date = businessWallClock("LEGACY", timestamp);
   // ISO weeks are calendar-day based. Keeping the shifted time-of-day would
   // make the first Thursday of an ISO year round into the following week.
   date.setUTCHours(0, 0, 0, 0);
@@ -92,7 +92,7 @@ export function createAuthenticatedPageObservationReporter(options: Authenticate
     if (!input.visible() || !input.isCurrent(input.scope) || !hasMatchingUserSession(input.session, input.scope)) return;
     const current = now();
     prune(current);
-    const key = `${input.scope.accountKey}:${input.scope.epoch}:${shanghaiIsoWeekKey(current)}:${input.subject}`;
+    const key = `${input.scope.accountKey}:${input.scope.epoch}:${businessIsoWeekKey(current)}:${input.subject}`;
     const previous = attempted.get(key);
     if (
       previous?.state === "pending"
@@ -111,7 +111,7 @@ export function createAuthenticatedPageObservationReporter(options: Authenticate
   }
 
   function retryFailed(scope: RemoteAccountRequest, subject: string): void {
-    const key = `${scope.accountKey}:${scope.epoch}:${shanghaiIsoWeekKey(now())}:${subject}`;
+    const key = `${scope.accountKey}:${scope.epoch}:${businessIsoWeekKey(now())}:${subject}`;
     if (attempted.get(key)?.state === "failed") attempted.delete(key);
   }
 

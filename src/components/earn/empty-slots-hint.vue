@@ -3,10 +3,7 @@
   <view class="earn-fleet-list mx-4">
     <view class="nx-home-glass-panel" aria-hidden="true" />
     <view class="earn-fleet-content">
-      <view v-if="trialSlot" class="earn-trial-reservation">
-        <text>{{ t.trial.slotTag }}</text>
-        <text class="font-mono-tabular">1 / {{ app.slotCap }}</text>
-      </view>
+      <TrialDeviceRow variant="earn" :expanded="trialExpanded" @toggle="emit('toggleTrial')" />
       <slot />
       <view class="earn-add-wrap">
         <view class="earn-add-device nx-home-pill" role="button" tabindex="0"
@@ -21,6 +18,7 @@
 
 <script setup lang="ts">
 import { computed, type CSSProperties } from "vue";
+import TrialDeviceRow from "@/components/trial-device-row.vue";
 import { useApp } from "@/store/app";
 import { useSlotActionSheet } from "@/store/slot-action-sheet";
 import { trialReservesSlotNow } from "@/store/free-trial";
@@ -30,6 +28,8 @@ import { useT } from "@/i18n/use-t";
 
 const app = useApp();
 const t = useT();
+defineProps<{ trialExpanded?: boolean }>();
+const emit = defineEmits<{ (event: "toggleTrial"): void }>();
 
 const activeDevices = computed(() => app.visibleDevices.filter(isActiveSlotDevice));
 const trialSlot = computed(() => (trialReservesSlotNow() ? 1 : 0));
@@ -132,6 +132,7 @@ const ctaLabelStyle: CSSProperties = {
 <style scoped>
 .earn-fleet-list { position: relative; border-radius: var(--v5-radius-2xl); }
 .earn-fleet-content { position: relative; }
+.earn-fleet-content > :deep(.trial-device-row:first-child) { border-radius: var(--v5-radius-2xl) var(--v5-radius-2xl) 0 0; }
 .earn-trial-reservation { display: flex; justify-content: space-between; gap: 12px; margin: 0 16px; padding: 14px 0 10px; font: 500 12px/1.4 var(--font-v5); color: var(--v5-ink-2); border-bottom: 1px solid var(--v5-border); }
 .earn-add-wrap { padding: 4px 14px 14px; }
 .earn-add-device { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 44px; padding: 10px 18px; font: 600 15px/1.4 var(--font-v5); transition: transform .4s cubic-bezier(.16,1.4,.3,1); }

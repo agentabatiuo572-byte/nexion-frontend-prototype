@@ -134,6 +134,29 @@ describe("App remote fleet refresh wiring", () => {
     expect(app.homeTruthStatus).toBe("error");
   });
 
+  it.each(["success", "failure"])("drops a previous same-account Home epoch's %s after rebind", async outcome => {
+    const previous = deferred<unknown>();
+    const overview = (amount: number) => ({ earnings: {
+      today: { usdt: 2, nex: 0 }, week: { usdt: 3, nex: 0 },
+      month: { usdt: 4, nex: 0 }, all: { usdt: amount, nex: 0 },
+    } });
+    remote.appHomeApi.fetch.mockResolvedValueOnce(overview(10))
+      .mockReturnValueOnce(previous.promise).mockResolvedValueOnce(overview(20));
+    const app = useApp(); app.bindAccount("user:1001");
+    await app.refreshHomeTruth();
+    const oldRead = app.refreshHomeTruth();
+    expect(app.homeTruthStatus).toBe("loading");
+    expect(app.homeTruth?.earnings.all.usdt).toBe(10);
+    app.bindAccount("user:1001");
+    expect(app.homeTruth).toBeNull(); expect(app.homeTruthStatus).toBe("idle");
+    await app.refreshHomeTruth();
+    if (outcome === "success") previous.resolve(overview(999));
+    else previous.reject(new Error("previous epoch offline"));
+    await expect(oldRead).resolves.toBe(false);
+    expect(app.homeTruth?.earnings.all.usdt).toBe(20);
+    expect(app.homeTruthStatus).toBe("ready"); expect(app.homeTruthError).toBeNull();
+  });
+
   it("coalesces concurrent Home lifecycle reads for the current account generation", async () => {
     const pending = deferred<unknown>();
     remote.appHomeApi.fetch.mockReturnValueOnce(pending.promise);

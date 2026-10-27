@@ -9,7 +9,7 @@ import { conversationPeerKey, groupConversationThreads, type ConversationThread 
 import type { ConversationUserClear } from '@/api/conversation-management';
 import { remoteApiEnabled } from "@/api/runtime";
 import { asApiError } from "@/api/errors";
-import { awaitMessageOutcome, isConversationDeliveryAmbiguous, MESSAGE_ACK_TIMEOUT_MS, MESSAGE_READBACK_TIMEOUT_MS } from '@/lib/conversation-delivery-policy';
+import { awaitMessageOutcome, isConversationDeliveryAmbiguous, isConversationPeerChanged, isConversationUserClearRejected, MESSAGE_ACK_TIMEOUT_MS, MESSAGE_READBACK_TIMEOUT_MS } from '@/lib/conversation-delivery-policy';
 import { isTicketReplyRequired } from '@/api/support-ticket-policy';
 import { isSupportAttachmentNotReady, type ConversationDismissal, type CurrentAdvisor } from "@/api/support-api";
 import type { Conversation, ConversationCategoryAvailability, ConversationType, TicketCategory } from "@/domain/support";
@@ -135,6 +135,10 @@ export const useConversations = defineStore("conversations", () => {
         }, account);
       if (!accountScopeIsCurrent(account)) throw new Error('SUPPORT_ACCOUNT_SCOPE_CHANGED');
       applyUserClear(result);
+    } catch (cause) {
+      // Keep the records. Refresh the next confirmation's versions/members without retrying the write.
+      if (accountScopeIsCurrent(account) && isConversationUserClearRejected(cause)) await refresh();
+      throw cause;
     } finally {
       if (accountScopeIsCurrent(account)) for (const member of members) delete deletingIds.value[member.id];
     }
@@ -162,7 +166,7 @@ export const useConversations = defineStore("conversations", () => {
     }
     for (const [key, saved] of Object.entries(humanComposers.value)) {
       const id = key.startsWith('conversation:') ? key.slice(13) : saved.recoveredId;
-      if (id && members.has(id) && (saved.userClearThrough ?? -1) < result.throughMessageId) clearComposer(key);
+      if (id && members.has(id) && (saved.userClearThrough ?? -1) < result.throughMessageId) clearComposer(key, result.throughMessageId);
     }
     conversations.value = conversations.value.flatMap(row => { const visible = userVisibleSnapshot(row); return visible ? [visible] : []; });
   }
@@ -201,11 +205,13 @@ export const useConversations = defineStore("conversations", () => {
   const realtimeReady = ref(false);
   const realtimeFallback = ref(false);
   const scopeInvalidated = ref(0);
+  const peerChangedIds = ref<Record<string, boolean>>({});
   const advisor = ref<CurrentAdvisor | null>(null);
   const advisorLoading = ref(false);
   const advisorError = ref(false);
   let advisorRequestGeneration = 0;
   const humanComposers = ref<Record<string, HumanComposer>>({});
+  const clearedComposerThrough = ref<Record<string, number>>({});
   let humanWritesBlocked = false;
   let suspendedHumanAccount = reauthAccount();
   const discardedHumanAccounts = new Set<string>();
@@ -249,9 +255,11 @@ export const useConversations = defineStore("conversations", () => {
     }
     persistHumanOutbox(required);
   }
-  function clearComposer(key: string) {
+  function clearComposer(key: string, throughMessageId?: number) {
     if (humanWritesBlocked) return;
-    delete humanComposers.value[key]; persistHumanOutbox();
+    delete humanComposers.value[key];
+    if (throughMessageId !== undefined) clearedComposerThrough.value[key] = throughMessageId;
+    persistHumanOutbox();
   }
   function suspendForReauthentication() {
     if (!remoteApiEnabled || !accountKeyValue.startsWith("user:")) return;
@@ -297,10 +305,10 @@ export const useConversations = defineStore("conversations", () => {
       presence: value => { if (!current()) return; clearTimeout(typingExpiry); if (!value) { typingIds.value={}; onlineIds.value={}; return; } onlineIds.value[value.conversationNo]=value.online; typingIds.value[value.conversationNo]=value.typing; typingExpiry=setTimeout(()=>{if(current())typingIds.value[value.conversationNo]=false;},value.expiresIn??5000); },
       scopeInvalidated: customerId => {
         if (!current() || accountKeyValue !== `user:${customerId}`) return;
-        const account = accountKeyValue;
         const watched = watchedId;
-        discardAccountOutbox(account);
-        bindAccount(account);
+        // Assignment changes invalidate live presence, not the outcome of a sent command.
+        // Keep the account's pending keys and payloads for authoritative readback.
+        stopRealtime();
         scopeInvalidated.value += 1;
         startRealtime();
         if (watched) watchRealtime(watched);
@@ -474,6 +482,7 @@ export const useConversations = defineStore("conversations", () => {
     }
     const key = createPolicy?.recovery?.key ?? scope.pending.get(fingerprint) ?? mutationKey(intent);
     const humanSend = intent.startsWith('conversation-create:') || intent.startsWith('conversation-reply:');
+    const userClear = intent.startsWith('conversation-user-clear:');
     const echoedOutcome = () => humanSend && scopeIsCurrent(scope)
       ? conversations.value.find(row => (intent.startsWith('conversation-reply:') ? row.id === intent.split(':')[1] : row.type === intent.split(':')[1])
         && row.messages.some(message => message.sender === 'user' && message.clientMessageId === key)) : undefined;
@@ -498,12 +507,15 @@ export const useConversations = defineStore("conversations", () => {
       } catch (cause) {
         const echoed = echoedOutcome();
         if (echoed) { completePending(scope, fingerprint); return echoed as T; }
-        if (recover && mustReadBack(cause) && scopeIsCurrent(scope)) {
+        if (recover && mustReadBack(cause) && !(userClear && isConversationUserClearRejected(cause)) && scopeIsCurrent(scope)) {
           let adopted: T | null = null;
           try {
             const recovery = recover(key);
             adopted = await (humanSend ? awaitMessageOutcome(recovery, MESSAGE_READBACK_TIMEOUT_MS) : recovery);
           } catch (readbackError) {
+            // The readback endpoint exposes these reasons only for a retained terminal clear refusal.
+            if (userClear && isConversationUserClearRejected(readbackError) && scopeIsCurrent(scope)
+                && scope.pending.get(fingerprint) === key) completePending(scope, fingerprint);
             if (!humanSend) throw readbackError;
             // A failed read cannot turn an uncertain write into a refusal.
             // Preserve the original cause unless a canonical echo confirms it.
@@ -518,7 +530,8 @@ export const useConversations = defineStore("conversations", () => {
             return adopted;
           }
         }
-        if (!mustReadBack(cause) && scopeIsCurrent(scope) && scope.pending.get(fingerprint) === key) completePending(scope, fingerprint);
+        if ((!mustReadBack(cause) || (userClear && isConversationUserClearRejected(cause)))
+            && scopeIsCurrent(scope) && scope.pending.get(fingerprint) === key) completePending(scope, fingerprint);
         throw cause;
       } finally {
         scope.inFlight.delete(fingerprint);
@@ -753,7 +766,11 @@ export const useConversations = defineStore("conversations", () => {
           if (opaqueSupportIntentSlot(intent) === fingerprint)
             saveComposer(composerKey, { ...saved, failedSend: null, recoveredId: composerKey.startsWith("start:") ? result.conversation.id : undefined });
         }
-      } catch { /* unknown remains durable until the authoritative readback succeeds */ }
+      } catch (cause) {
+        // A recorded refusal is terminal; other read failures still leave the original command unknown.
+        if (isConversationUserClearRejected(cause) && scopeIsCurrent(scope)
+            && !scope.inFlight.has(fingerprint) && scope.pending.get(fingerprint) === key) completePending(scope, fingerprint);
+      }
     }
   }
 
@@ -805,6 +822,10 @@ export const useConversations = defineStore("conversations", () => {
           return result?.kind === "conversation" ? result.conversation : null;
         }, account, undefined, onDispatch);
     } catch (cause) {
+      if (accountScopeIsCurrent(account) && isConversationPeerChanged(cause)) {
+        peerChangedIds.value[id] = true;
+        void refreshAdvisor();
+      }
       if (accountScopeIsCurrent(account) && mustReadBack(cause)) void reconcile(id, account);
       throw cause;
     }
@@ -839,7 +860,9 @@ export const useConversations = defineStore("conversations", () => {
     advisorRequestGeneration += 1;
     accountEpoch += 1; conversations.value = []; error.value = null; loading.value = false; typingIds.value = {};
     advisor.value = null; advisorLoading.value = false; advisorError.value = false;
+    peerChangedIds.value = {};
     humanComposers.value = {};
+    clearedComposerThrough.value = {};
     dismissedThrough.value = {}; dismissingIds.value = {};
     clearedThrough.clear(); deletionAvailable.value = false; deletingIds.value = {};
     dismissalAvailable.value = false;
@@ -873,5 +896,5 @@ export const useConversations = defineStore("conversations", () => {
     if (remoteApiEnabled) void preparePendingRun().then(reconcilePending).catch(() => undefined);
   }
 
-  return { conversations, humanThreads, getThread, openThread, loadEarlierThread, deleteConversation, deletionAvailable, deletingIds, dismissConversation, dismissingIds, dismissalAvailable, typingIds, onlineIds,realtimeReady,realtimeFallback,scopeInvalidated,advisor,advisorLoading,advisorError,humanComposers,composer,saveComposer,clearComposer,suspendForReauthentication,discardHumanOutbox,hasPendingHumanSend,hasPendingHumanCreate,refreshAdvisor,startRealtime,stopRealtime,watchRealtime,setTyping, categoryAvailability, categoryAvailabilityStatus, categoryLoading, totalUnread, loading, mutating, error, refresh, refreshCategories, categoryEnabled, categoryReadable, byType, get, open, loadEarlier, startConversation, startSupportSession, sendUser, convertToTicket, reset, bindAccount };
+  return { conversations, humanThreads, getThread, openThread, loadEarlierThread, deleteConversation, deletionAvailable, deletingIds, dismissConversation, dismissingIds, dismissalAvailable, typingIds, onlineIds,realtimeReady,realtimeFallback,scopeInvalidated,peerChangedIds,advisor,advisorLoading,advisorError,humanComposers,clearedComposerThrough,composer,saveComposer,clearComposer,suspendForReauthentication,discardHumanOutbox,hasPendingHumanSend,hasPendingHumanCreate,refreshAdvisor,startRealtime,stopRealtime,watchRealtime,setTyping, categoryAvailability, categoryAvailabilityStatus, categoryLoading, totalUnread, loading, mutating, error, refresh, refreshCategories, categoryEnabled, categoryReadable, byType, get, open, loadEarlier, startConversation, startSupportSession, sendUser, convertToTicket, reset, bindAccount };
 });

@@ -1239,7 +1239,7 @@ function humanHistoryLoader(screen: ReturnType<typeof mount>) {
   });
   const env = { conversationThread: Vue.ref(screen.view), supportSessionReady: Vue.ref(true), humanEarlierBusy: busy,
     humanHistoryRetryBusy: Vue.ref(false), cid: Vue.ref('A'), humanRealtime: { capture: () => ({ id: 'A', epoch: 1 }), isCurrent: () => true },
-    humanHistory: Vue.ref([{ id: 'A', historyNextCursor: 1 }]), convStore: { loadEarlier }, toast: { warn },
+    humanHistory: Vue.ref([{ id: 'A', historyNextCursor: 1 }]), convStore: { loadEarlierThread: loadEarlier }, toast: { warn },
     t: Vue.ref({ security: { opFailed: 'Failed' } }) };
   const load = new Function('env', `const { ${Object.keys(env).join(',')} } = env; const historyRetryGeneration = 0;
     ${transpile(fn.getText(parsed))}; return loadEarlierHumanHistory;`)(env) as () => Promise<void>;

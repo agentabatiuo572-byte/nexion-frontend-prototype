@@ -9,6 +9,7 @@ import { vi as vietnamese } from "@/i18n/messages/vi";
 import { fmt } from "@/i18n/format";
 import raw from "./trial.vue?raw";
 import { formatAmount } from "@/lib/amount-display";
+import { trialLifecycleCopy } from "@/i18n/trial-lifecycle";
 
 // Render the actual page and invoke its actual handlers: disabling the paint
 // must not allow a click/key press to navigate against an unread catalog.
@@ -51,6 +52,8 @@ async function mount(locale: keyof typeof translations, trialStatus: "active" | 
   const navTo = vi.fn();
   const refresh = vi.fn().mockResolvedValue(true);
   const dependencies: Record<string, unknown> = {
+    "@/api/runtime": { remoteApiEnabled: false },
+    "@/i18n/trial-lifecycle": { useTrialLifecycleCopy: () => Vue.ref(trialLifecycleCopy[locale]) },
     "@/lib/amount-display": { formatAmount },
     vue: Vue,
     "@/components/app-chassis.vue": { default: { setup: (_props: unknown, context: { slots: Vue.Slots }) => () => Vue.h("chassis", context.slots.default?.()) } },

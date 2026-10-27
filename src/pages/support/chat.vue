@@ -182,7 +182,7 @@ import { replyToQuickPrompt, type QuickPromptKey } from "@/mock/nova-templates";
 import type { ConversationType, ConvMessage } from "@/domain/support";
 
 import { ApiError, asApiError } from "@/api/errors";
-import { isConversationDeliveryAmbiguous } from '@/lib/conversation-delivery-policy';
+import { isConversationDeliveryAmbiguous, isConversationPeerChanged } from '@/lib/conversation-delivery-policy';
 import { isSupportAttachmentNotReady, type SupportAttachmentPolicy } from "@/api/support-api";
 import type { TicketCreationPolicy } from '@/api/support-ticket-policy';
 import { novaFailure } from "@/lib/nova-failure";
@@ -278,10 +278,11 @@ function clearPrivateImages() {
   for (const source of Object.values(imageSources.value)) if (source.startsWith("blob:") && typeof URL !== "undefined") URL.revokeObjectURL(source);
   imageSources.value = {}; imageFailures.value = {};
 }
-watch(() => [app.accountBindingEpoch, convStore.scopeInvalidated], () => {
+watch(() => [app.accountBindingEpoch, convStore.scopeInvalidated], ([binding], [previousBinding]) => {
   humanComposerResetting = true;
   try {
-    clearPrivateImages(); imageDraft.value = null; failedHumanSend.value = null; draftText.value = ""; resetAttachmentPolicy();
+    clearPrivateImages(); imageDraft.value = null; resetAttachmentPolicy();
+    if (binding !== previousBinding) { failedHumanSend.value = null; draftText.value = ""; }
     ticketCreationBlock.value = null;
   } finally { humanComposerResetting = false; }
   if (novaPageVisible && !isAi.value && remoteApiEnabled && supportSessionReady.value) { void convStore.refreshAdvisor(); void loadAttachmentPolicy(); }
@@ -529,6 +530,17 @@ const novaRequestControl = createLatestAbortableRequest();
 const startType = ref<Exclude<ConversationType, "ai"> | null>(null);
 watch([cid, startType], () => { ticketCreationBlock.value = null; });
 const humanComposerKey = computed(() => cid.value ? `conversation:${cid.value}` : startType.value ? `start:${startType.value}` : "");
+watch(() => [app.accountBindingEpoch, humanComposerKey.value, convStore.clearedComposerThrough[humanComposerKey.value]] as const,
+  ([binding, key, through], [previousBinding, previousKey, previousThrough]) => {
+    if (binding !== previousBinding || key !== previousKey || through === undefined || through <= (previousThrough ?? -1)) return;
+    // Only a confirmed clear of this owner's composer can retire its page mirror.
+    humanComposerResetting = true;
+    try {
+      draftText.value = ""; failedHumanSend.value = null; imageDraft.value = null; localHumanSend.value = null;
+      clearPrivateImages(); resetAttachmentPolicy();
+    } finally { humanComposerResetting = false; }
+    if (novaPageVisible && !isAi.value && supportSessionReady.value) void loadAttachmentPolicy();
+  }, { flush: 'sync' });
 watch(() => [humanComposerKey.value, app.accountBindingEpoch, convStore.scopeInvalidated], () => { localHumanSend.value = null; }, { flush: 'sync' });
 let recoveredNavigation = "";
 function restoreRecoveredComposer(saved: HumanComposer | null | undefined, key: string) {
@@ -859,8 +871,9 @@ const humanType = computed<Exclude<ConversationType, "ai"> | null>(() =>
 // The App only permits replies to the same states accepted by AppSupportService.
 // A transferred thread is history: a restart creates a new user-owned conversation.
 const replyAllowedStatuses = new Set(["open", "resolved", "closed"]);
-const isReplyAllowed = computed(() => !conv.value || replyAllowedStatuses.has(conv.value.status));
-const isTransferredSession = computed(() => !isAi.value && conv.value?.status === "transferred");
+const isTransferredSession = computed(() => !isAi.value
+  && (conv.value?.status === "transferred" || convStore.peerChangedIds[cid.value] === true));
+const isReplyAllowed = computed(() => !isTransferredSession.value && (!conv.value || replyAllowedStatuses.has(conv.value.status)));
 const isClosedSession = computed(() =>
   isAi.value ? novaProviderHold.value : !!conv.value && !isReplyAllowed.value,
 );
@@ -1521,16 +1534,21 @@ async function sendHumanMessage(text: string, attachmentId?: string, restore?: (
     return;
   }
   const replyBinding = app.accountBindingEpoch;
+  const composerKey = humanComposerKey.value, clearThrough = convStore.clearedComposerThrough[composerKey];
   if (!stageHumanSend(text, attachmentId, attempts, restore)) return;
   try {
     await convStore.sendUser(id, text, attachmentId, bindHumanDispatchKey());
-    if (replyBinding !== app.accountBindingEpoch || cid.value !== id || supportScope !== convStore.scopeInvalidated) return;
+    if (replyBinding !== app.accountBindingEpoch || cid.value !== id || supportScope !== convStore.scopeInvalidated
+        || clearThrough !== convStore.clearedComposerThrough[composerKey]) return;
     if (imageDraft.value?.attachmentId === attachmentId) imageDraft.value = null;
     if (humanComposerKey.value) convStore.saveComposer(humanComposerKey.value, { text: draftText.value, imageDraft: imageDraft.value, failedSend: null });
     noteSendSuccess();
     return true;
   } catch (cause) {
-    if (replyBinding !== app.accountBindingEpoch || cid.value !== id || supportScope !== convStore.scopeInvalidated) return;
+    if (replyBinding !== app.accountBindingEpoch || cid.value !== id
+        || clearThrough !== convStore.clearedComposerThrough[composerKey]) return;
+    // A same-account assignment notification does not undo this explicit refusal.
+    if (supportScope !== convStore.scopeInvalidated && !isConversationPeerChanged(cause)) return;
     humanSendFailed(text, attachmentId, cause, attempts);
   }
 }
@@ -1574,7 +1592,7 @@ function humanSendFailed(text: string, attachmentId: string | undefined, cause: 
     draft.error = "expired";
     draft.replaceOnly = true;
   }
-  failedHumanSend.value = { text, attachmentId, settled, retryable: !expired, attempts,
+  failedHumanSend.value = { text, attachmentId, settled, retryable: !expired && !isConversationPeerChanged(cause), attempts,
     kind: expired ? "expired" : settled ? "failed" : "unknown" };
   if (humanComposerKey.value) convStore.saveComposer(humanComposerKey.value, { text: draftText.value, imageDraft: imageDraft.value, failedSend: failedHumanSend.value });
 }

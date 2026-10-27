@@ -17,7 +17,12 @@
     <view style="padding-bottom: 24px">
       <SubPageHeader back="/pages/me/me" :title="t.trial.pageTitle" :subtitle="t.trial.pageHeaderSubtitle" />
 
-      <view class="mx-4" style="display: flex; flex-direction: column; gap: 12px">
+      <view v-if="authorityUnavailable" class="mx-4 trial-read-state" role="status" :aria-busy="freeTrial.authorityStatus === 'loading'">
+        <view v-if="freeTrial.authorityStatus === 'loading'" class="trial-read-skeleton" aria-hidden="true"><view/><view/><view/></view>
+        <text>{{ freeTrial.authorityStatus === 'loading' ? lifecycle.loading : lifecycle.unavailable }}</text>
+        <view v-if="freeTrial.authorityStatus !== 'loading'" role="button" tabindex="0" class="trial-read-retry" @click="freeTrial.refreshRemote(true)"><text>{{ lifecycle.retry }}</text></view>
+      </view>
+      <view v-else class="mx-4" style="display: flex; flex-direction: column; gap: 12px">
         <!-- ═══ active / grace — running cycle ═══ -->
         <template v-if="isActiveCycle">
           <CountdownHero
@@ -42,11 +47,13 @@
           </view>
 
           <!-- Accrued credit + conversion CTA -->
-          <view :style="creditWrapStyle">
+          <view :style="creditWrapStyle" data-testid="trial-credit-summary">
             <view class="flex items-center justify-between">
-              <text style="font-size: 12px; color: var(--v5-ink-3)">{{ t.trial.offsetAccruedLabel }}</text>
-              <text class="font-mono-tabular" style="font-size: 15px; font-weight: 600; color: var(--v5-tech-cyan); white-space: nowrap">${{ formatAmount(trialOffset.offsetUSD) }}</text>
+              <text style="font-size: 12px; color: var(--v5-ink-3)">{{ lifecycle.availableOffsetLabel }}</text>
+              <text class="font-mono-tabular" style="font-size: 15px; font-weight: 600; color: var(--v5-brand); white-space: nowrap">${{ formatAmount(trialOffset.offsetUSD) }}</text>
             </view>
+            <view class="trial-estimate-row"><text>{{ lifecycle.estimateTotalLabel }}</text><text>≈ ${{ formatAmount(estimatedOffsetUSD) }}</text></view>
+            <text class="trial-early-note">{{ lifecycle.earlyPurchaseNote }}</text>
             <text v-if="trialOffset.remainderUSD > 0" class="block" :style="remainderNoteStyle">{{ offsetRemainderNote }}</text>
             <view
               class="w-full flex items-center justify-center"
@@ -79,7 +86,7 @@
         </template>
 
         <!-- ═══ none — claim intro ═══ -->
-        <view v-else-if="status === 'none'" :style="idleCardStyle">
+        <view v-else-if="status === 'none' || (status === 'ended' && canStartNow)" :style="idleCardStyle">
           <view class="grid place-items-center" :style="idleIconBoxStyle">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" /></svg>
           </view>
@@ -177,10 +184,16 @@ import { getProduct } from "@/mock/products";
 import { productCatalogState, refreshProductCatalog } from "@/store/product-catalog";
 import { navTo } from "@/lib/route";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
+import { remoteApiEnabled } from "@/api/runtime";
+import { useTrialLifecycleCopy } from "@/i18n/trial-lifecycle";
 
 const t = useT();
 const freeTrial = useFreeTrial();
 const trialConfig = useTrialConfig();
+const lifecycle = useTrialLifecycleCopy();
+const authorityUnavailable = computed(() => remoteApiEnabled && (freeTrial.authorityStatus !== "ready"
+  || ((freeTrial.status === "active" || freeTrial.status === "grace")
+    && (freeTrial.authoritativeOffsetUSD === null || freeTrial.authoritativeRemainderUSD === null))));
 
 const cfg = computed(() => trialConfig.config);
 const status = computed(() => freeTrial.status);
@@ -214,7 +227,10 @@ const trialProductUnavailable = computed(() => {
 const shadowUSD = computed(() => liveShadowUSD(now.value));
 const shadowNEX = computed(() => liveShadowNEX(now.value));
 const remainingMsValue = computed(() => remainingMs(now.value));
-const trialOffset = computed(() => computeTrialOffset(cfg.value, shadowUSD.value));
+const trialOffset = computed(() => remoteApiEnabled
+  ? { offsetUSD: freeTrial.authoritativeOffsetUSD ?? 0, remainderUSD: freeTrial.authoritativeRemainderUSD ?? 0 }
+  : computeTrialOffset(cfg.value, shadowUSD.value));
+const estimatedOffsetUSD = computed(() => computeTrialOffset(cfg.value, cfg.value.shadowDailyUSD * cfg.value.trialDays).offsetUSD);
 
 const w = computed(() => t.value.trial);
 const idleBody = computed(() => freeTrial.authorityStatus === "mock" || freeTrial.authorityServerState !== null
@@ -257,6 +273,7 @@ const ineligibleReasonText = computed(() => {
   if (r === "risk") return w.value.eligReasonRisk;
   if (r === "quota-exhausted") return w.value.eligReasonQuota;
   if (r === "product-unavailable") return t.value.store.trialProductUnavailable;
+  if (r === "capacity-full") return lifecycle.value.capacityFull;
   return w.value.eligReasonClosed;
 });
 
@@ -279,7 +296,7 @@ function claim() {
 // state (status ∈ active|grace ∧ product = trialProductId); the URL marker only
 // controls safe return copy when the canonical catalogue omits the trial SKU.
 function goCheckout() {
-  if (trialProductUnavailable.value) return;
+  if (authorityUnavailable.value || trialProductUnavailable.value) return;
   const productId = trialProductId.value;
   if (!productId) return; // applyAuthoritative already rejects unknown policy ids
   navTo(`/pages/store/checkout?product=${productId}&source=trial`);
@@ -329,6 +346,14 @@ useDialogA11y(computed(() => rulesOpen.value), ".trs-root", () => { rulesOpen.va
 </script>
 
 <style scoped>
+.trial-read-state { display:flex;flex-direction:column;gap:16px;padding:24px 0;color:var(--v5-ink-3);font-size:13px; }
+.trial-read-skeleton { display:flex;flex-direction:column;gap:14px; }
+.trial-read-skeleton > view { height:24px;width:70%;border-radius:8px;background:var(--v5-surface-2); }
+.trial-read-skeleton > view:first-child { height:100px;width:100%;border-radius:20px; }
+.trial-read-retry { min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:999px;background:var(--v5-surface-2);color:var(--v5-ink); }
+.trial-estimate-row { display:flex;justify-content:space-between;gap:12px;margin-top:10px;color:var(--v5-ink-3);font-size:12px;line-height:1.5; }
+.trial-estimate-row > text:last-child { flex-shrink:0;font-variant-numeric:tabular-nums; }
+.trial-early-note { display:block;margin-top:12px;font-size:12px;line-height:1.6;color:var(--v5-ink-2); }
 .trs-root {
   position: fixed;
   inset: 0;

@@ -30,14 +30,15 @@ test("zero-stock S1 stays visible but every trial and purchase CTA is disabled",
   assert.match(stickyCta, /if \(!cta\.value \|\| cta\.value\.disabled\) return/);
   assert.match(trialHero, /product-unavailable/);
   assert.match(trialHero, /heroProductUnavailable/);
-  assert.match(trialHero, /:tabindex="canClaim \? 0 : -1"/);
-  assert.match(trialHero, /@keydown\.enter\.prevent="onClick"/);
-  assert.match(trialHero, /@keydown\.space\.prevent="onClick"/);
+  assert.match(trialHero, /:tabindex="canOpen \? 0 : -1"/);
+  assert.match(trialHero, /const canOpen = computed\(\(\) => hasLifecycle\.value \|\| canClaim\.value \|\| capacityFull\.value\)/);
+  assert.match(trialHero, /if \(!canClaim\.value\) return/);
+  assert.doesNotMatch(trialHero, /@keydown/);
   assert.match(trialPage, /product-unavailable/);
   assert.match(trialPage, /trialProductUnavailable/);
   assert.match(trialPage, /:tabindex="canStartNow \? 0 : -1"/);
   assert.match(trialPage, /:aria-disabled="trialProductUnavailable \? 'true' : 'false'"/);
-  assert.match(trialPage, /if \(trialProductUnavailable\.value\) return/);
+  assert.match(trialPage, /if \(authorityUnavailable\.value \|\| trialProductUnavailable\.value\) return/);
   for (const locale of locales) {
     assert.match(locale, /temporarilyOutOfStock:\s*"[^"]+"/);
     assert.match(locale, /heroProductUnavailable:\s*"[^"]+"/);

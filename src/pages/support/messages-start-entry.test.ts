@@ -416,7 +416,7 @@ function mountRealHumanChat(query: Record<string, string> = { cid: "CV-cold" }, 
     "@/lib/secure-command-id": chatSecure, "@/lib/nova-thinking": chatThinking, "./conversation-realtime-page": chatRealtime,
   };
   const scope = Vue.effectScope();
-  const page = scope.run(() => new Function("require", "exports", humanChatScript + ";return { onSend, onRestart, goBack, cleanup, loadAttachmentPolicy, attachmentPolicy, attachmentPolicyError, loadEarlierHumanHistory, conversationThread, humanEarlierBusy, ticketCreationBlock, ticketCreationBlockText, headerName, headerRole, emptyHint, humanType, isClosedSession, waitingForAgent, showUnassignedReceived, humanHistoryError, humanHistoryListError, retryHumanHistory, conv, threadMessages, retryHumanSend, sendSuccessRevision, sendSuccessOwner, cid, startType, draftText, failedHumanSend, failedHumanLabel, humanSendBusy, supportSessionReady, localHumanSend, measureTopOverlay, topOverlayHeight, get entranceScope() { return { isAi, novaHistoryLoading, humanOpenRequest, humanHistoryRetryBusy, humanEarlierBusy }; } };")((name: string) => {
+  const page = scope.run(() => new Function("require", "exports", humanChatScript + ";return { onSend, onRestart, goBack, cleanup, loadAttachmentPolicy, attachmentPolicy, attachmentPolicyError, loadEarlierHumanHistory, conversationThread, humanEarlierBusy, ticketCreationBlock, ticketCreationBlockText, headerName, headerRole, emptyHint, humanType, isClosedSession, waitingForAgent, showUnassignedReceived, humanHistoryError, humanHistoryListError, retryHumanHistory, conv, threadMessages, retryHumanSend, sendSuccessRevision, sendSuccessOwner, cid, startType, draftText, imageDraft, failedHumanSend, failedHumanLabel, humanSendBusy, supportSessionReady, localHumanSend, measureTopOverlay, topOverlayHeight, get entranceScope() { return { isAi, novaHistoryLoading, humanOpenRequest, humanHistoryRetryBusy, humanEarlierBusy }; } };")((name: string) => {
     if (name.endsWith(".vue")) return {}; if (!(name in modules)) throw new Error(`Unexpected chat dependency: ${name}`); return modules[name];
   }, {}));
   hooks.onLoad(query); chatCleanups.push(() => { page.cleanup(); scope.stop(); });
@@ -430,6 +430,105 @@ function mountRealHumanChat(query: Record<string, string> = { cid: "CV-cold" }, 
   }
   return { page, hooks, show, waitForHistory, store, app, navigation, rebind, watchRealtime, toast, sendBudgets };
 }
+
+describe('explicit support peer change', () => {
+  it.each([zh, en, vietnamese])('keeps the failed message and original owner, then restarts only on user action', async messages => {
+    const current = mountRealHumanChat(undefined, messages); await current.show();
+    const refusal = new chatApiErrors.ApiError({ kind: 'http', status: 409, code: 409, message: 'CONVERSATION_PEER_CHANGED' });
+    chatTransport.advisor.mockClear();
+    chatTransport.advisor.mockResolvedValueOnce({ assignmentId: 8, currentAdvisorId: 8,
+      currentAdvisorName: 'New advisor', assignmentState: 'ASSIGNED', availability: 'UNKNOWN' });
+    chatTransport.replyConversation.mockRejectedValueOnce(refusal);
+    await current.page.onSend('Keep the rejected original', vi.fn()); await Vue.nextTick();
+    expect(current.page.failedHumanSend.value).toMatchObject({ text: 'Keep the rejected original', kind: 'failed', settled: true, retryable: false });
+    expect(current.page.threadMessages.value.at(-1)).toMatchObject({ text: 'Keep the rejected original', deliveryState: 'failed', localSend: true });
+    expect(await current.store.hasPendingHumanSend('conversation:CV-cold', current.page.failedHumanSend.value)).toBe(false);
+    expect(chatTransport.commandResult).not.toHaveBeenCalled(); expect(chatTransport.advisor).toHaveBeenCalledOnce();
+    expect(current.page.headerName.value).toBe('Fixture');
+    expect(current.page.headerRole.value).toBe(messages.conversations.sessionTransferred);
+    expect(current.page.isClosedSession.value).toBe(true);
+    expect(current.store.get('CV-cold')?.status).toBe('open');
+    expect(current.store.get('CV-cold')?.ownerAgentId).toBe('7');
+    expect(current.navigation.navTo).not.toHaveBeenCalled();
+    expect(chatTransport.startConversation).not.toHaveBeenCalled();
+    await current.page.retryHumanSend(); expect(chatTransport.replyConversation).toHaveBeenCalledOnce();
+    await current.store.open('CV-cold');
+    expect(current.page.isClosedSession.value).toBe(true);
+    current.hooks.onHide(); await current.show();
+    expect(current.page.failedHumanSend.value.text).toBe('Keep the rejected original');
+    current.page.onRestart();
+    expect(current.navigation.navTo).toHaveBeenCalledExactlyOnceWith('/pages/support/chat?start=advisor');
+    expect(chatTransport.replyConversation).toHaveBeenCalledOnce(); expect(chatTransport.startConversation).not.toHaveBeenCalled();
+  });
+
+  it('preserves unknown and its draft when the same account assignment scope changes', async () => {
+    const current = mountRealHumanChat(); await current.show();
+    chatTransport.replyConversation.mockRejectedValueOnce(new chatApiErrors.ApiError({ kind: 'http', status: 409, message: 'CONVERSATION_VERSION_CONFLICT' }));
+    await current.page.onSend('Unknown original', vi.fn());
+    const key = chatTransport.replyConversation.mock.calls[0][2];
+    current.page.draftText.value = 'Next draft';
+    await Vue.nextTick(); await Vue.nextTick();
+    current.store.scopeInvalidated++; await Vue.nextTick();
+    expect(current.page.failedHumanSend.value).toMatchObject({ text: 'Unknown original', kind: 'unknown', settled: false });
+    expect(current.page.draftText.value).toBe('Next draft');
+    expect(await current.store.hasPendingHumanSend('conversation:CV-cold', current.page.failedHumanSend.value)).toBe(true);
+    expect(current.page.isClosedSession.value).toBe(false);
+    expect(current.navigation.navTo).not.toHaveBeenCalled();
+    expect(localStorage.getItem('support-pending-commands:user:1:canonical-v1:conversations')).toContain(key);
+    current.page.draftText.value += '!'; await Vue.nextTick();
+    expect(current.store.composer('conversation:CV-cold').failedSend).toMatchObject({ text: 'Unknown original', kind: 'unknown', settled: false });
+  });
+
+  it.each(['draft', 'peer-refused'] as const)('keeps an already-flushed %s across an assignment notification', async state => {
+    const current = mountRealHumanChat(); await current.show();
+    if (state === 'peer-refused') {
+      chatTransport.replyConversation.mockRejectedValueOnce(new chatApiErrors.ApiError({ kind: 'http', status: 409, message: 'CONVERSATION_PEER_CHANGED' }));
+      await current.page.onSend('Refused original', vi.fn());
+    }
+    current.page.draftText.value = 'Stable draft';
+    await Vue.nextTick(); await Vue.nextTick();
+    current.store.scopeInvalidated++; await Vue.nextTick(); await Vue.nextTick();
+    expect(current.page.draftText.value).toBe('Stable draft');
+    if (state === 'peer-refused') {
+      expect(current.page.failedHumanSend.value).toMatchObject({ text: 'Refused original', settled: true, retryable: false });
+      expect(current.page.threadMessages.value.at(-1)).toMatchObject({ text: 'Refused original', deliveryState: 'failed' });
+      expect(current.page.isClosedSession.value).toBe(true);
+      expect(current.page.headerName.value).toBe('Fixture');
+    }
+    expect(current.navigation.navTo).not.toHaveBeenCalled(); expect(chatTransport.startConversation).not.toHaveBeenCalled();
+  });
+
+  it('ends only the rejected command while retaining another unknown in the same conversation', async () => {
+    const current = mountRealHumanChat(); await current.show();
+    const unknown = { text: 'Earlier unknown', kind: 'unknown' as const, settled: false, retryable: true, attempts: 1 };
+    chatTransport.replyConversation.mockRejectedValueOnce(new chatApiErrors.ApiError({ kind: 'network', message: 'lost ACK' }));
+    await expect(current.store.sendUser('CV-cold', unknown.text)).rejects.toThrow('lost ACK');
+    const key = chatTransport.replyConversation.mock.calls.at(-1)![2];
+    chatTransport.replyConversation.mockRejectedValueOnce(new chatApiErrors.ApiError({ kind: 'business', status: 409, code: 409, message: 'CONVERSATION_PEER_CHANGED' }));
+    await current.page.onSend('Definitely refused', vi.fn());
+    expect(await current.store.hasPendingHumanSend('conversation:CV-cold', unknown)).toBe(true);
+    expect(await current.store.hasPendingHumanSend('conversation:CV-cold', current.page.failedHumanSend.value)).toBe(false);
+    expect(localStorage.getItem('support-pending-commands:user:1:canonical-v1:conversations')).toContain(key);
+    expect(current.page.failedHumanSend.value).toMatchObject({ text: 'Definitely refused', settled: true, retryable: false });
+  });
+
+  it.each(['assignment', 'account'] as const)('scopes a late peer-change refusal to the original account after %s changes', async change => {
+    const current = mountRealHumanChat(); await current.show();
+    let reject!: (cause: unknown) => void;
+    chatTransport.replyConversation.mockReturnValueOnce(new Promise((_done, fail) => { reject = fail; }));
+    const pending = current.page.onSend('Original refused message', vi.fn());
+    await vi.waitFor(() => expect(chatTransport.replyConversation).toHaveBeenCalledOnce());
+    if (change === 'assignment') current.store.scopeInvalidated++;
+    else current.rebind('user:2');
+    await Vue.nextTick();
+    reject(new chatApiErrors.ApiError({ kind: 'business', status: 409, message: 'CONVERSATION_PEER_CHANGED' }));
+    await pending; await Vue.nextTick();
+    expect(current.store.peerChangedIds['CV-cold']).toBe(change === 'assignment' ? true : undefined);
+    if (change === 'assignment') expect(current.page.failedHumanSend.value).toMatchObject({ text: 'Original refused message', kind: 'failed', settled: true, retryable: false });
+    else expect(current.page.failedHumanSend.value).toBeNull();
+    expect(current.navigation.navTo).not.toHaveBeenCalled(); expect(chatTransport.startConversation).not.toHaveBeenCalled();
+  });
+});
 
 describe('human chat route admission', () => {
   it.each<Record<string, string>>([{}, { cid: '' }, { cid: ' \t' }, { start: 'ai' }, { cid: '', start: 'invalid' }])(
@@ -733,6 +832,72 @@ describe("human chat assignment belongs to the current conversation", () => {
 });
 
 describe("real chat and store account recovery", () => {
+  it('does not restore a pre-clear in-flight send when its failed ACK and empty readback arrive later', async () => {
+    const current = mountRealHumanChat(); await current.show();
+    let reject!: (cause: unknown) => void;
+    chatTransport.replyConversation.mockReturnValueOnce(new Promise((_done, fail) => { reject = fail; }));
+    const pending = current.page.onSend('Before-clear in-flight text', vi.fn());
+    await vi.waitFor(() => expect(chatTransport.replyConversation).toHaveBeenCalledOnce());
+    const key = chatTransport.replyConversation.mock.calls[0][2];
+    const renewed = { ...humanSnapshot(), version: 2, lastTs: 30, lastPublicMessageId: 30, userClearedThroughMessageId: 20,
+      messages: [{ id: '30', sender: 'agent', text: 'Visible after boundary', ts: 30, status: 'sent' }] };
+    chatTransport.conversation.mockResolvedValue(renewed); await current.store.open('CV-cold'); await Vue.nextTick();
+    current.page.draftText.value = 'New draft after boundary'; await Vue.nextTick(); await Vue.nextTick();
+    reject(new chatApiErrors.ApiError({ kind: 'network', message: 'late failed ACK' }));
+    await pending; await Vue.nextTick();
+    expect(chatTransport.commandResult).toHaveBeenCalledWith(key);
+    expect(current.page.failedHumanSend.value).toBeNull(); expect(current.page.localHumanSend.value).toBeNull();
+    expect(current.page.draftText.value).toBe('New draft after boundary');
+    expect(current.page.threadMessages.value.map((message: any) => message.id)).toEqual(['30']);
+    expect(current.store.composer('conversation:CV-cold')).toMatchObject({ text: 'New draft after boundary', failedSend: null, userClearThrough: 20 });
+    expect(localStorage.getItem('support-pending-commands:user:1:canonical-v1:conversations')).toContain(key);
+  });
+
+  it.each(['management', 'detail', 'older-page'] as const)(
+    'clears only covered live-page mirrors on a new %s watermark and keeps later drafts/messages', async source => {
+      const current = mountRealHumanChat();
+      const snapshot = { ...humanSnapshot(), lastTs: 30, lastPublicMessageId: 30, historyNextCursor: 10, historyTruncated: true,
+        messages: [{ id: '10', sender: 'user', text: 'Old history', ts: 10, status: 'read' },
+          { id: '30', sender: 'agent', text: 'Newer history', ts: 30, status: 'sent' }] };
+      chatTransport.conversation.mockResolvedValue(snapshot); await current.show();
+      const draftImage = { filePath: '/local-old-image', clientUploadId: 'old-upload', key: 'old-upload-key', state: 'ready', attachmentId: 'old-attachment' };
+      current.page.imageDraft.value = draftImage;
+      chatTransport.replyConversation.mockRejectedValueOnce(new chatApiErrors.ApiError({ kind: 'network', message: 'unknown send' }));
+      await current.page.onSend('Unknown before clear', vi.fn());
+      const originalKey = chatTransport.replyConversation.mock.calls[0][2];
+      current.page.draftText.value = 'Unsent before clear';
+      await Vue.nextTick(); await Vue.nextTick();
+      expect(current.page.failedHumanSend.value).toMatchObject({ kind: 'unknown', attachmentId: 'old-attachment' });
+      const clearance = { scope: 'USER_VIEW', userScopeCleared: true, peerKey: 'agent:7', throughMessageId: 20, conversationNos: ['CV-cold'] };
+      const renewed = { ...snapshot, userClearedThroughMessageId: 20, messages: [snapshot.messages[1]], historyNextCursor: null, historyTruncated: false };
+      chatTransport.conversation.mockResolvedValue(renewed);
+      if (source === 'management') {
+        chatTransport.conversations.mockResolvedValue({ items: [renewed] });
+        chatTransport.conversationManagement.mockResolvedValue({ clearUserHistory: true, clearedPeers: [clearance] });
+        await current.store.refresh();
+      } else if (source === 'detail') await current.store.open('CV-cold');
+      else {
+        current.page.conversationThread.value = { prepareHistoryPrepend: vi.fn(async () => true) };
+        await current.page.loadEarlierHumanHistory();
+      }
+      await Vue.nextTick();
+      expect(current.page.draftText.value).toBe(''); expect(current.page.failedHumanSend.value).toBeNull();
+      expect(current.page.imageDraft.value).toBeNull(); expect(current.page.localHumanSend.value).toBeNull();
+      expect(current.page.threadMessages.value.map((message: any) => message.id)).toEqual(['30']);
+      expect(current.store.humanComposers['conversation:CV-cold']).toBeUndefined();
+      expect(localStorage.getItem('support-pending-commands:user:1:canonical-v1:conversations')).toContain(originalKey);
+
+      current.page.draftText.value = 'New draft after clear';
+      current.page.imageDraft.value = { ...draftImage, filePath: '/new-image', attachmentId: 'new-attachment' };
+      await Vue.nextTick(); await Vue.nextTick();
+      await current.store.open('CV-cold'); await Vue.nextTick();
+      expect(current.page.draftText.value).toBe('New draft after clear');
+      expect(current.page.imageDraft.value.attachmentId).toBe('new-attachment');
+      expect(current.store.composer('conversation:CV-cold')).toMatchObject({ text: 'New draft after clear', failedSend: null, userClearThrough: 20 });
+      expect(current.page.threadMessages.value.some((message: any) => message.localSend)).toBe(false);
+      expect(localStorage.getItem('support-pending-commands:user:1:canonical-v1:conversations')).toContain(originalKey);
+    });
+
   it("settles a late original clear receipt without clearing a newer same-cid message", async () => {
     const current = mountRealHumanChat({});
     const original = { ...humanSnapshot(), lastTs: 20, lastPublicMessageId: 20,

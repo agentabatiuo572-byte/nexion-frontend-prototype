@@ -45,6 +45,25 @@ beforeEach(() => {
 afterEach(() => disposePinia(testPinia));
 
 describe("commission runtime-revision recovery", () => {
+  it.each(["account", "same account epoch", "runtime"])("clears retained aggregate and drops late results after %s changes", async change => {
+    const snapshot = (amount: number) => ({ events: [], page: 1, totalRows: 0, aggregate: { totalUSDT: amount } });
+    remote.teamInsightsApi.commissions.mockResolvedValue(snapshot(5));
+    const store = useCommission(); store.bindAccount("account-a");
+    await vi.waitFor(() => expect(store.eventsStatus).toBe("ready"));
+    let resolveOld!: (value: unknown) => void;
+    remote.teamInsightsApi.commissions.mockReturnValueOnce(new Promise(resolve => { resolveOld = resolve; }));
+    const oldRead = store.refreshCanonicalEvents();
+    expect(store.eventsStatus).toBe("loading"); expect(store.eventsEvidence?.aggregate.totalUSDT).toBe(5);
+    let resolveNew!: (value: unknown) => void;
+    remote.teamInsightsApi.commissions.mockReturnValueOnce(new Promise(resolve => { resolveNew = resolve; }));
+    if (change === "runtime") advanceRuntimeRevision();
+    else store.bindAccount(change === "account" ? "account-b" : "account-a");
+    expect(store.eventsEvidence).toBeNull(); expect(store.eventsStatus).toBe("loading");
+    resolveNew(snapshot(7)); await vi.waitFor(() => expect(store.eventsStatus).toBe("ready"));
+    resolveOld(snapshot(999)); await oldRead;
+    expect(store.eventsEvidence?.aggregate.totalUSDT).toBe(7); expect(store.eventsStatus).toBe("ready");
+  });
+
   it("keeps confirmed aggregate only through a same-account refresh, never after failure or rebind", async () => {
     const store = useCommission();
     store.bindAccount("account-a");

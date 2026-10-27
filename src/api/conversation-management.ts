@@ -26,7 +26,7 @@ export function parseConversationUserClear(data: unknown): ConversationUserClear
   return value;
 }
 
-/** Optional R19 contract; the current production backend only implements dismiss. */
+/** Negotiate account-side clearing; older deployments may not expose this capability yet. */
 export function createConversationManagement(client: ApiClient) {
   return {
     async conversationManagement(): Promise<ConversationManagement> {

@@ -225,7 +225,7 @@ TabBar:active tab 显示背景 chip 高亮。
 /me/wallet/bills                 账单流水
 /me/wallet/cards                 我的银行卡(saved-cards 列表)
 /me/wallet/cards/new             绑定银行卡(可带 returnTo)
-/me/trial                        免费试用(绑卡式 3 天 + 7 grace + 3 extension)
+/me/trial                        免费试用(无需绑卡；时长、保留期与延长资格由后台决定)
 /me/wallet/nex                   NEX 资产详情页(持仓 / P&L / 用途 / 活动)
 /me/receipts                     推理收据
 /me/rewards                      我的奖励(类别汇总:优惠券 / USDT / NEX 奖励)
@@ -970,7 +970,7 @@ flowchart TD
 
 两列等宽，间隔 12px；每张卡高 184px。票券使用裁口、虚线和金属插图；面额来自可领取及未使用券的实际定义，非可叠加券不得求和。若存在无封顶折扣券，不将其他券的有限金额称作整体最高金额。试用使用设备插图、真实天数和短领取按钮，保留“购机抵扣、不可提现”含义，不采用未经确认的随时取消承诺。弹层中的抵扣上限、资格与领取操作继续由现有接口控制。
 
-无可用福利时整区消失；已领取券入口进入券列表，可领取券打开领取弹层。首页不自动打开福利弹层，chassis 不向其他 tab 重复注入。
+已领取试用持续显示生命周期状态卡，试用中、到期抵扣期、结束与已转购分别进入详情或设备管理，不因领取移除。仅余一项福利时占满当前行。已领取券入口进入券列表，可领取券打开领取弹层。首页不自动打开福利弹层，chassis 不向其他 tab 重复注入。
 
 ### 5.5 待办
 
@@ -980,7 +980,7 @@ flowchart TD
 
 ### 5.6 我的设备
 
-设备改为行：48px 缩略图、名称、真实运行状态、今日收益和详情箭头。异常设备优先，首页最多显示 4 台，其余通过管理查看。设备总数与剩余槽位来自现有状态。读取失败不把设备当作 0 台；有同账号确认过的快照时可在后台刷新期间保留。添加设备入口继续遵守资格与原生/H5 边界。
+设备按行展示：缩略图、名称、真实运行状态、今日收益和详情箭头。异常设备优先，已激活设备均保留可见。试用中及抵扣保留期增加独立试用行，默认沿普通设备行呈现机型并增加试用标记与剩余时间；当前抵扣、预计抵扣进度及详情/购机入口收进展开区或详情。赚取页试用行与正式设备共用互斥展开，管理页展开保留取消确认，不伪装为已购资产。槽位数统一为服务端正式占槽数加一个有效试用预留；转购以真实设备替换预留，结束释放预留。读取失败不把设备当作 0 台；同账号已确认设备快照仍可见，未知槽数显示“-”。添加设备入口继续遵守资格与原生/H5 边界。
 
 ### 5.7 活动位
 
@@ -3092,170 +3092,59 @@ Day-30 的 `🎰 Lucky Spin × 1` 奖励发放 1 张转盘抽奖券,进入 §11.
 
 ⚠️ 当前原型用本地状态模拟收单方 token 库,并用一个托管字段容器组件充当 SDK 的对等物:卡号 / CVV 的明文只存在于该组件内部,三个调用面(充值 / 绑卡 / 结账)在代码上取不到。真后台对接时替换该组件为收单方 SDK,调用面不改;所有 mutation 走 server endpoint,client 只 cache 展示字段(`brand / last4 / expiry / holder`)。
 
-### 9.11 免费试用 `/me/trial` (Sprint #146-2)
+### 9.11 免费试用 `/me/trial`
 
-**目的**:绑卡式免费试用 NexGridBox S1,试用期满自动转购,作为 SaaS 转化漏斗的核心拉新机制。对标 Audible / Apple Arcade / Spotify 等成熟试用模型。
+本节采用正式服务端无卡试用契约；完整功能单元与验收见 [免费试用生命周期与队列](UVEL_试用生命周期与队列_20261027.md)。
 
-#### 9.11.1 状态机
+- 用户从首页“我的福利”主动领取。确认展示试用设备、配置时长、预计抵扣与开始计时的条件；确认后调用幂等领取，权威读回成功才展示激活成功。无需支付方式，不自动购机或扣款。
+- 试用领取后首页状态卡持续显示，试用中、到期抵扣期、结束和已转购都有明确下一步。试用中及抵扣保留期在首页队列、赚取设备列表和设备管理展示同一试用项，详情统一进入 `/pages/me/trial`。
+- 服务端 ACTIVE 映射试用中；GRACE/EXTENDED 映射生产已停止、抵扣仍有效；FAILED/CANCELLED 映射结束；REDEEMED 映射已转购。结束后的再次领取资格以 `/api/trial/eligibility` 为准，前端不增发资格。
+- 试用中可随时主动进入结算，无需等满试用期。已累计收益、当前可抵购机款和全期预计抵扣分别展示；预计值不得作为钱包余额或当前可用抵扣。当前抵扣、购后余额部分、价格使用领取快照的权威投影，缺失或失败显示未知并提供重试。
+- 早购应付 = 领取快照价格 − 配置早购优惠（比例且有封顶）− 当前已累计可用抵扣；最低为零。优惠与抵扣沿用服务端规则，不承诺固定折扣或新增赠送。购前不可提现；超出抵扣上限的既有累计部分及试用 UVT 仅在成功购机后按原规则入账。
+- 购机必须经过展示实付金额的主动确认，由 `POST /api/trial/convert` 原子完成结算、钱包、订单、设备与试用终态。失败、报价增加、余额不足和结果待确认均不得展示转购成功；结果不明时保留原幂等意图恢复。
+- ACTIVE/GRACE/EXTENDED 只预留一个槽位，试用不写入正式设备数组。首页、赚取和设备管理统一以正式占槽数加试用预留统计；普通购买及激活计入预留，转购置换该预留而非另加一槽。结束释放试用槽，已购设备始终保留。
+- 取消仅从设备管理主动确认，成功读回后结束试用；关闭确认、失败或换号不结束试用。客户端时间只用于倒计时，生命周期与金额以服务端为准。
+- 首页不自动弹出领取；领取入口唯一，状态入口不计为第二次领取。加载保留骨架或同账号已确认的只读快照；失败不得变成未领取、零余额或已购成功。
 
-7 态(`useFreeTrial.status`):
+### 9.11a 试用接口与交易边界
 
-```
-idle
- ↓ startWithCard(tokenId) — 用户绑卡后
-active (trialDays 天免费,shadow 持续累加)
- ↓ tick 检测 activeEndsAt
-grace (graceDays 天保留窗,shadow 冻结,推送购买引导)
- ↓ 高质量用户(shadow ≥ highQualityThresholdUSD)→ 弹延长 sheet → acceptExtension
-extended (extensionDays 天,继续 push)
- ↓ tick 检测 scheduledChargeAt 触发 attemptCharge
- ├→ redeemed (扣款成功 / 主动 redeemEarly):addDevice + activateDevice + receipt
- ├→ failed (扣款失败,余额不足 / 卡 invalid):shadow 归零,push reminder
- └→ cancelled (用户解绑卡 / 主动取消):shadow 归零
-```
+用户端以正式后台 AppTrialLifecycleService 返回的领取单和资格为准。运营配置通过既有后台配置服务发布；客户端不直接调用管理员配置接口，也不自行决定资格、扣款或入账。
 
-终态进入冷却期(`cooldownDays`),冷却后可再次申请。
-
-#### 9.11.2 用户路径
-
-| 入口 | 触发 |
-|---|---|
-| Home mount 自动 push claim sheet | session-once,1.5s 延迟,canStart && status=idle 时 |
-| Home `TrialHeroBanner` (idle+canStart) | $116 hero + social proof + 立即领取 pill |
-| Earn 顶部 `TrialHeroBanner` (idle+canStart) | 同上,inline 多入口 |
-| Earn 顶部 `TrialGhostSlot` (active/grace/extended) | NexGridBox S1 设备卡:试用中标识 + live shadow + ETA + 早购折扣 + 买断 CTA;**占用 1 个设备槽位,试用期 MissedIncomeBanner 让位以避免转化卡重复** |
-| Home 顶部 `TrialGhostSlot` (active/grace/extended) | 同上 |
-| Me 页 `TrialEntry` | idle+canStart:pill;active:card |
-| `/me/trial` 详情页 | 倒计时 + shadow 累计 + 绑卡卡 + 提前购买折扣表 + 去赚取页 CTA(forward-only;**取消试用入口移至 `/me/devices` 设备管理**)|
-
-#### 9.11.3 关键交互
-
-- **claim → 绑卡**:`/me/wallet/cards/new?returnTo=<urlencode("/me/trial?trial=1")>&trial=1` — `returnTo` 内联 `trial=1` 标记,确保绑卡完成回跳后 `/me/trial` 仍带标记并自动触发 `startWithCard(defaultTokenId)`;顶层 `trial=1` 供绑卡页判定展示披露。绑卡页 `?trial=1` 顶部 warning notice 显式披露 `${trialPriceUSD}` 扣款金额 + 抵扣机制(试用收益封顶抵扣 `trialOffsetCapUSD`、购买后剩余收益入余额)+ 中途取消条款(法务披露后置,只在用户已 commit 后出现)
-- **早购 redeemEarly**:`/me/trial` 主 CTA。实付 = `trialPriceUSD` − 早购促销(`discountRate` 封顶 `discountCapUSD`,默认 15% / $20)− 试用收益抵扣(`min(shadow, trialOffsetCapUSD)`,默认上限 $50)。早购促销与收益抵扣**叠加**;早购促销为主动转化专享,**auto-charge 不享促销**。**主动购买必经二次确认弹窗**:点击购买后弹全局 `confirm()` 明示实付金额 + 收益结算说明,用户确认后才扣款(合规要求 — 单击不得直接扣款)
-- **自动扣款**:SimulationProvider 每 4s poll `useFreeTrial.poll(now)`,boundary 满足 → mock attemptCharge(`chargeFailRate` 概率失败演示)。实付 = `trialPriceUSD` 全价(**无早购促销**)− 试用收益抵扣(`min(shadow, trialOffsetCapUSD)`)。auto-charge 为无人值守扣款,合规依据是绑卡页披露 + grace 剩 1h 紧迫推送(不另设二次确认弹窗)
-- **高质量延长**(MVP-D):grace 进入时检查 `shadowFrozenAtUSD >= highQualityThresholdUSD`,满足 → SimulationProvider 弹 `<TrialExtensionSheet>`,用户接受调 `acceptExtension()`(返 boolean,非 grace 时返 false)进入 `extended`。Sheet 关闭 / backdrop 点击 = 隐式 decline(等同 `declineExtension()` 标 `extensionGranted=true`),防 4s poll 循环骚扰
-- **紧迫推送**(MVP-D):
-  - `active` 剩 ≤24h:toast.warn `"免费试用剩 24 小时 · 提前购买立省 $X"`
-  - `grace` 剩 ≤1h:toast.warn `"1 小时后系统将自动完成购买 · 不想买? 现在取消"`
-  - session-scoped `urgencyFired` 标志防 spam;trial restart(新 active)时 reset
-- **解绑挽留**(MVP-C):用户在 `/me/wallet/cards` 删试用绑定卡 → handleRemove 拦截 → 弹 `<TrialUnbindRetentionSheet>` → 用户确认 → `cancel("unbind")` + `removeCard(tokenId)`,30 天 cooldown 启动
-- **claim sheet auto-push**(MVP-C):受 4 个后台可控参数节流(见 §9.11b TrialConfig):enabled / delayMs / cooldownHours / maxPerSession。manual show(用户主动点入口卡)不计入 sessionShownCount
-
-#### 9.11.4 资金 / 数据风控
-
-- **shadow 兑现规则(Model A — 购前抵扣封顶 / 购后剩余入余额)**:
-  - `liveShadowUSD/NEX` 在 `active/grace/extended` 状态:仅 UI display,**不写**入 `useApp.earnings` / `useApp.wallet` / `useCommission.events` / lifetime stats / `useNetwork` / V 级条件;**购买设备前,试用收益只能用于抵扣购机款,不可提现、不可当现金花**
-  - **槽位占用**:试用激活期(`active/grace/extended`)预留 1 个设备槽位 — shadow 设备**不进** `useApp.devices[]`,但 `/earn`、`/me/devices`、`EmptySlotsHint` 的槽位计数与 `activateDevice` 上限均计入该预留(`trialReservesSlotNow()` 非响应式查询,store↔trial 耦合);激活真实设备不会超出 `MAX_DEVICES`,转购(`redeemed`)时试用预留释放、真实设备入槽,净占用不变
-  - 进入 `redeemed` 终态(redeemEarly 主动购买 + auto-charge 自动转购两路径):累计 shadow 经纯函数 `computeTrialOffset(config, shadowUSD)` 拆为 `{ offsetUSD, remainderUSD }`,`offsetUSD = min(shadowUSD, trialOffsetCapUSD)` 抵扣购机款(已反映在实付金额),**仅 `remainderUSD`(超出抵扣上限的部分)在购买完成后 creditBalance 入账户余额**;NEX 收益不能抵 USDT 标价,购买后全额 creditNex 入 NEX 余额。两条路径共用同一 helper,各写 `type:"bonus"` bill。snapshot 时机在 `useFreeTrial.poll()` / `redeemEarly()` 改 status 之前
-  - 进入 `failed / cancelled` 终态:shadow 归零、不入账(符合 §9.11.5 "中途取消则收益归零" 承诺)
-- **绑卡强制**:`canStart()` 守卫 + 必经绑卡跳转;无卡不可启动
-- **冷却期边界守卫**:claim sheet 可被多入口唤起(不预检资格),`onClaim` 前置 `canStart()` 判断 — 冷却期内 / phase 关闭则提示并不跳转绑卡,避免白绑卡;若用户已带 `trial=1` 标记回到 `/me/trial` 但 `canStart()` 为假,清除 URL 标记 + toast 提示原因,不静默无开通
-- **一次性 + 冷却**:终态进入 `cooldownDays`(默认 30 天)cooldown,期间不可再次试用
-- **referral 农场屏蔽**:试用账户的 referral signup 不触发 `useCommission` inviter bonus
-- **client time 防篡改**:`startedAt` snapshot 即写 persist,后续只读不写
-- **试用收益用语**:产品内 0 mock 字眼,只用"试用收益 / 试用累计 / 试用奖励"(参 [[feedback-trial-copy-no-mock]])
-
-#### 9.11.5 入口推广策略
-
-- **Home auto-push**(MVP-C 后台可控):受 `autoPushEnabled` / `autoPushDelayMs`(默认 1500ms)/ `autoPushCooldownHours`(默认 24h)/ `autoPushMaxPerSession`(默认 1)节流;`useTrialClaimSheet.lastClosedAt` localStorage persist 跨 session 延续 cooldown
-- **入口/banner 文案规则**:**入口侧严禁"自动扣款 / 扣款 / $X 后扣"字眼** — 只突出"免费 / 0 元 / 试用收益 / 立即领取";扣款金额 + 完整条款仅在用户**主动 commit 流程**内(`/me/wallet/cards/new?trial=1` 顶部 warning + `/me/trial` 详情页倒计时区域)透明告知,符合"先吸引进入、再展示条款"的真平台 SaaS 营销范式
-- **入口侧不暴露 grace 期天数**:用户在 active 期完全不知道有 7 天 grace,只有 active 结束后 toast/ribbon 才显示"试用即将完成购买"
-- **多入口**:Home Hero(TrialHeroBanner)/ Earn 顶部 / Me 入口 / `/me/devices` 空槽位(待补)/ Home 自动 push(`<MissionControl>` mount useEffect),降低用户单点拒绝率
-- **抵扣引导**:claim sheet 主体强调"试用收益直接抵扣设备款"(转化甜头) + "提前购买额外立省 $20"(早购钩子),不暴露扣款字眼
-
-### 9.11a 后台接口(留接口待真实后台对接)
-
-按 [[feedback-mock-real-compatible]] 规则,当前**前端 mock 实现**保持 backend-replaceable shape,user 任意阶段可接真后台不需要重写前端。
-
-#### 9.11a.1 Admin endpoints(运营后台用)
-
-| Endpoint | Method | Payload | 用途 |
+| 接口 | 方法 | 请求 | 契约 |
 |---|---|---|---|
-| `/api/admin/trial/config` | `GET` | — | 拉取 `TrialConfig` 全量参数 |
-| `/api/admin/trial/config` | `PUT` | `Partial<TrialConfig>` | 更新部分参数,前端 store 同步刷新 |
-| `/api/admin/trial/sessions` | `GET` | `?status=&from=&to=&limit=` | 列出活动 / 终态试用会话 |
-| `/api/admin/trial/sessions/:userId` | `GET` | — | 单用户试用详情 + shadow 累计 + 状态转换 timeline |
-| `/api/admin/trial/sessions/:userId/cancel` | `POST` | `{ reason }` | 强制取消试用(资金风控介入)|
-| `/api/admin/trial/sessions/:userId/charge` | `POST` | — | 立即触发 attemptCharge(测试扣款链路)|
-| `/api/admin/trial/kpi` | `GET` | `?from=&to=` | KPI 聚合:绑卡转化率 / 试用→购买率 / 失败率 / 提前购买率 / 复活率 |
+| `/api/trial/eligibility` | GET | — | 返回当前资格、原因和权威试用快照；包括冷却结束后的再领资格 |
+| `/api/trial/state` | GET | — | 返回领取单状态、配置、时间边界、累计收益、当前抵扣及剩余收益 |
+| `/api/trial/start` | POST | `{ deviceName }` | 无需绑卡和支付；后台校验商品、库存、资格、名额及物理容量，创建或重开领取单并立即计时 |
+| `/api/trial/cancel` | POST | `{ reason }` | 主动取消当前试用，进入后台配置的冷却期；状态读回成功后移除试用槽 |
+| `/api/trial/convert` | POST | `{ productNo, expectedAmountUsdt }` | 主动确认后原子完成钱包扣款、订单、真实设备、试用终态及购后剩余收益入账 |
+| `/api/trial/extension` | POST | — | 沿用后台延长资格；延长的是购买与抵扣有效期，不继续累计试用收益 |
 
-#### 9.11a.2 User-facing endpoints(用户端操作)
+写操作使用 `Idempotency-Key`。未确认的网络结果重用原意图并先恢复读回；已知拒绝且权威状态确认未执行时才允许下一次新意图。领取成功必须经过同一领取单的成功读回，付款成功必须存在真实订单编号。历史 `redeem-early` 不是当前 App 购机入口；前端不得自行串接余额、设备和订单写入替代 convert。
 
-| Endpoint | Method | Payload | 用途 | 当前 mock 实现替换点 |
-|---|---|---|---|---|
-| `/api/trial/eligibility` | `GET` | — | 检查当前用户能否开新试用 | `useFreeTrial.canStart()` 返回值 |
-| `/api/trial/state` | `GET` | — | 拉取当前试用完整 state(polling / SSE / WS) | 替换 `useFreeTrial.poll()` 整体逻辑 |
-| `/api/trial/start` | `POST` | `{ cardTokenId }` | 开通试用(server 生成所有时间戳) | `useFreeTrial.startWithCard()` |
-| `/api/trial/redeem-early` | `POST` | — | 主动早购,server 调 PSP 扣 `trialPriceUSD` − 早购促销(`discountRate` 封顶 `discountCapUSD`)− 收益抵扣(`min(shadow, trialOffsetCapUSD)`);`remainderUSD` 购后入余额。返回价格拆解供二次确认弹窗预览 | `useFreeTrial.redeemEarly()` |
-| `/api/trial/charge` | `POST` | — | **Server-internal**(cron 触发,client 不直接调)— grace/extended 到期 auto-charge 扣 `trialPriceUSD` 全价(无早购促销)− 收益抵扣(`min(shadow, trialOffsetCapUSD)`),`remainderUSD` 购后入余额。Client 通过 SSE `/api/trial/state` 观察终态转换 | `useFreeTrial.poll()` 内 `mockChargeAttempt` |
-| `/api/trial/cancel` | `POST` | `{ reason: "unbind" \| "explicit" }` | 取消试用,30 天 cooldown 启动。Unbind 路径配套触发 card token revocation(见 §9.10)| `useFreeTrial.cancel()` |
-| `/api/trial/extension` | `POST` | `{ accept: boolean }` | 接受/拒绝高质量延长。Accept 返 canonical state(`extended`);decline 返 `grace` 但 `extensionGranted=true`,防 4s poll 循环 | `useFreeTrial.acceptExtension() / declineExtension()` |
+**金额与状态职责**
+- 领取时固定商品、价格、日收益、试用天数和收益抵扣上限；进行中的试用不得随当前目录变化被改写。冷却结束后的新领取使用当时有效配置。
+- 预计抵扣仅作说明；当前可用抵扣、剩余收益和领取价读取 `offsetUsdt/remainderUsdt/priceUsdt`。未知金额显示“-”，不得反算成零或开放支付。
+- convert 根据领取快照、当前有效促销政策及真实累计重算应付。若高于用户确认值则拒绝并重新确认；失败不得留下部分扣款、订单或设备。
+- 当前 convert 不接受代金券标识，结算不得额外扣除代金券。普通购机的代金券流程保留。
+- ACTIVE/GRACE/EXTENDED 期间可主动购机；没有自动扣款或强制转购。到期由后台推进至保留期或结束，客户端仅显示及刷新。
+- 试用槽与正式设备分开表示。普通订单未履约预留、礼品预留与试用预留须参与容量判定；已交付未激活库存不重复当未履约预留。转购将试用预留替换为一个正式设备槽。
+- 读取失败保留同账号已确认身份和正式设备，金额及未确认数量显示“-”，提供重试；切换账号不得沿用旧结果。
 
-#### 9.11a.3 前端实现规则
+### 9.11b 试用配置与快照
 
-- `useTrialConfig` 当前 persist 在 localStorage,**真实接入后**:mount 时 fetch `/api/admin/trial/config` → seed store;`update()` 改 PUT 后更新 store
-- `useFreeTrial` 当前全前端 state,**真实接入后**:user action(startWithCard / redeemEarly / cancel / acceptExtension)改为先 POST 对应 endpoint,响应成功才 update local state(乐观更新 + 失败回滚)
-- `useFreeTrial.poll()` 当前 client-side 时间判定,**真实接入后**:替换为 SSE/WS 订阅 `/api/trial/state` 或定时 GET poll;状态转换逻辑全 server-side
-- 所有 `mockServerNow()` 调用点 → 替换为已同步的 server time 缓存(单点替换)
-- `mockChargeAttempt()` → 删除,redeem 链路直接走 server endpoint
+| 配置 | 含义与生效边界 |
+|---|---|
+| trialDays / graceDays / extensionDays | 累计期、抵扣保留期及符合资格的延长期；由后台返回各领取单时间边界 |
+| trialProductId / trialProductName | 当前可领取商品；已领取记录使用其商品快照 |
+| trialPriceUSD / shadowDailyUSD / shadowDailyNEX | 商品价格及日收益；优先取后台商品数据，领取后固定在领取单 |
+| trialOffsetCapUSD | 领取时固定的收益抵扣上限，超出部分按购后结算规则处理 |
+| discountRate / discountCapUSD | 现行主动购机促销比例与上限，最终优惠由 convert 计算 |
+| cooldownDays / phaseOpen / seatsLeftToday | 再领冷却、开放状态、当日剩余名额；只能通过权威资格决定能否领取 |
+| highQualityThresholdUSD | 既有延长资格参数，不保证所有用户可延长 |
+| autoChargeAtEnd | 当前用户端始终为 false；不得据此触发自动付款 |
+| autoPushEnabled / autoPushDelayMs / autoPushCooldownHours / autoPushMaxPerSession | 兼容的提示配置，不构成本轮首页自动弹出领取的授权 |
 
-#### 9.11a.4 生产环境 server-side responsibilities(MOCK ↔ REAL 切换清单)
-
-下表所列逻辑当前为前端 mock 实现,**真实接入时必须迁移到 server-side**,前端只负责 fetch + 显示:
-
-| Server-side 职责 | 当前 mock 实现位置 | Why server-side |
-|---|---|---|
-| **当前时间权威值** | `mockServerNow()` in `free-trial.ts` | 防止 client clock skew / 篡改试用时长 |
-| **试用资格判定**(cooldown / phaseOpen) | `useFreeTrial.canStart()` | 不暴露规则给 client,防止伪造 |
-| **状态机推进**(active→grace→extended→redeemed/failed/cancelled) | `useFreeTrial.poll()` | server-cron / job runner 在精确时刻触发,client 只 reflect |
-| **shadow 累积冻结**(grace 进入时 snapshot) | poll 内 `shadowFrozenAtUSD/NEX` 计算 | 防止 client 伪造高 shadow 数额套高质量延长 |
-| **PSP 扣款** | `mockChargeAttempt(chargeFailRate)` | 真 PSP(Stripe / Adyen)调用 + balance 检查 + idempotency key,**前端永不可知失败概率/RNG** |
-| **抵扣价格计算 + 收益结算拆分** | `computeDiscountedPrice(config)` + `computeTrialOffset(config, shadow)` | 前端展示 OK,但订单 total 与收益的"抵扣 / 入余额"拆分必须 server 重算(防止 client 伪造 discountRate / shadow / offset)|
-| **referral signup bonus 屏蔽** | (待 MVP-C 实现)`useCommission` filter trial 期间 inviter | server-side 检查 `user.trialActive` 字段决定不发,前端不应介入 |
-| **30 天 cooldown 校验** | canStart 内 `now < cooldownEndsAt` | server-side 校验,前端只 reflect |
-| **高质量用户判定** | `isHighQualityEligible()` 用 shadowFrozenAtUSD ≥ threshold | server-side 综合判定(可扩展 KYC / 邀请 / 活跃度等组合规则)|
-| **自动扣款定时触发** | SimulationProvider TRIAL_TICK_MS 轮询 | server cron(Cloudflare Workers / Vercel Cron / 等)精确到秒,client 只 SSE/WS 订阅状态 |
-
-**实施 checklist(真后台接入时)**:
-1. 替换 `mockServerNow()` → server time fetch + skew cache(单点)
-2. 删除 `mockChargeAttempt()`,redeem 链路改 server POST
-3. 删除 `useFreeTrial.poll()` 主体,改为 SSE/WS 订阅或定时 GET state
-4. `useTrialConfig.update()` 改 PUT request
-5. 加 `useCommission` trial-aware inviter bonus 屏蔽(后端 enforced)
-6. 加 axios/fetch 错误处理 + 失败回滚 + 乐观更新 retry
-
-### 9.11b TrialConfig 数据模型(后台可控参数表)
-
-```ts
-interface TrialConfig {
-  trialDays: number;              // 默认 3 — 免费试用 shadow 累积天数
-  graceDays: number;              // 默认 7 — 保留期(shadow 冻结,持续推送)
-  extensionDays: number;          // 默认 3 — 高质量用户额外延长
-  discountRate: number;           // 默认 0.15 — 主动购买抵扣比例
-  discountCapUSD: number;         // 默认 20 — 早购促销折扣上限 USD
-  trialOffsetCapUSD: number;      // 默认 50 — 试用收益抵扣购机款上限 USD(购前只抵扣;超出部分购后入余额)
-  autoChargeAtEnd: boolean;       // 默认 true — 周期满是否自动扣款
-  highQualityThresholdUSD: number; // 默认 100 — 高质量延长触发阈值(shadow USD)
-  chargeFailRate: number;         // 默认 0.01 — mock 扣款失败概率(演示风控)
-  trialProductId: "stellarbox-s1"; // 当前固定;后续可扩 Pro/Rack
-  trialPriceUSD: number;          // 默认 649 — 扣款目标金额(= S1 售价)
-  shadowDailyUSD: number;         // 默认 7 — S1 baseline 日产
-  shadowDailyNEX: number;         // 默认 40 — S1 baseline NEX 日产
-  cooldownDays: number;           // 默认 30 — 终态后冷却期
-  phaseOpen: boolean;             // 默认 true — 当前 phase 是否开放试用
-  // ── claim sheet auto-push 节流(MVP-C 后台可控)──
-  autoPushEnabled: boolean;       // 默认 true — kill switch,关闭后只能用户主动从入口触发
-  autoPushDelayMs: number;        // 默认 1500 — 进入 home 后多少毫秒触发 auto-push
-  autoPushCooldownHours: number;  // 默认 24 — 关闭后多少小时内不再 auto-push 同一设备(localStorage 跨 session 持久化)
-  autoPushMaxPerSession: number;  // 默认 1 — 单会话最多 auto-push 几次(防骚扰)
-}
-```
-
-后台 PUT 任一字段 → 前端 `useTrialConfig.update(patch)` → 所有挂载 `useTrialConfig` 的组件(claim sheet / hero banner / /me/trial / ghost slot / `<MissionControl>` auto-push effect)立即响应新参数。
-
-**字段实时性**:
-- `discountRate / discountCapUSD / trialOffsetCapUSD / highQualityThresholdUSD / chargeFailRate / cooldownDays / phaseOpen / autoPush*`:实时生效,每次 poll / redeem / claim sheet 渲染读取
-- `trialDays / graceDays / extensionDays / trialPriceUSD / shadowDailyUSD / shadowDailyNEX`:**仅影响新启动的 trial**;正在进行中的 trial 在 `startWithCard()` 时已 snapshot `activeEndsAt / graceEndsAt`,中途修改不会推后/拉前 already-started boundary。`/me/replay-tour` TrialConfigPanel 顶部有 ⚠️ 提示说明。
+演示页面的金额、天数和剩余名额均为示例。生产界面只展示后台发布值，不能将默认值或示例当作收益与优惠承诺。
 
 ### 9.11c 全平台后台可控参数清单(非 trial 模块)
 
@@ -3356,7 +3245,7 @@ interface TrialConfig {
 
 | 实验值 | 当前位置 | 替换 |
 |---|---|---|
-| `chargeFailRate=0.01` 客户端 Math.random | `lib/store/trial-config.ts:59` + `free-trial.ts:55-60` | server-only,`POST /api/trial/charge` 返 `{ok, reason}` |
+| 试用购机结果 | 正式 `POST /api/trial/convert` | 由真实钱包余额、订单事务及幂等结果决定，客户端不模拟扣款成功率 |
 | Unilevel rates promotion 周 multiplier | `lib/v3/commission.ts:56-62` | server feature flag(server-side 计算佣金时按 user bucket 应用 multiplier)|
 | Sign-in lucky multiplier(5% 2x / 15% 1.5x,作用于签到 NEX 发放)| `lib/store/nex-faucet.ts` | `POST /api/faucet/sign-in` 返 multiplier |
 | PHASES 全表(每 phase 多个时变 dials,含 `withdrawPenaltyFeeRate` / `nexFeeOffsetRate`)| `lib/store/product-phase.ts` | `GET /api/admin/platform/phase-config` + user bucket-aware override |
@@ -3374,8 +3263,8 @@ interface TrialConfig {
 | Early withdraw staking | `useStaking.earlyWithdraw` + `useApp.creditBalance` + (missing `addBill` / penalty bill / `addReceipt`) | `POST /api/staking/:id/early-withdraw` |
 | Re-invest from wallet | `useApp.debitBalance` + `useStaking.stake` + (missing `addBill`) | `POST /api/wallet/reinvest` |
 | Submit withdrawal | `useApp.debitNex`(烧 nexBurned 抵手续费,可为 0) + `useApp.submitWithdrawal(amount,network,address,fee)` | `POST /api/withdrawals` 原子(烧 nexBurned / 扣 USDT / queue tx / 写 USDT 提现单(fee=actualFee)+ 烧 NEX 时写 NEX 抵扣单 / 返 withdrawalId;失败回滚 NEX) |
-| Open free trial | `useCards.bind` + `useFreeTrial.startWithCard` + (missing PSP authorization) | `POST /api/trial/start` |
-| 试用早购 | `useFreeTrial.redeemEarly` + `useOrders.createOrder` + `useApp.creditDevice` | `POST /api/trial/redeem-early` |
+| Open free trial | `useFreeTrial.start` 请求并读回同一领取单，不写本地正式资产 | `POST /api/trial/start` |
+| 试用早购 | 显示真实抵扣与应付、用户二次确认；订单/余额/设备由后台同一事务完成 | `POST /api/trial/convert` |
 
 每个 endpoint 必须支持 `Idempotency-Key` header(由客户端 mint UUIDv4,server 用作 dedup key 24h)— 当前所有 client mutation 都没有 idempotency,网络抖动 retry 会造成重复扣款 / 重复开仓。
 
@@ -3817,7 +3706,7 @@ flowchart LR
 | 银行卡已解绑 | `card.unbound`(真实解绑完成) | payment_method | high | `/pages/me/wallet-cards`(§9.10 我的银行卡) | 说明解除绑定，提示查看当前支付方式 |
 | 支付卡换绑提醒 | `card.rebind_notified`(后台换绑提醒动作) | payment_method | high | `/pages/me/wallet-cards` | 说明需要查看或更新支付方式，不宣称已完成换绑 |
 
-- 触发时机与担保规则权威在后台侧(担保中的卡不可被后台静默解绑,仅可收到本换绑引导;用户自解绑担保卡经挽留流程仍可达,见 §9.11 试用担保)。
+- 卡片换绑与解绑资格由后台决定；免费试用无需绑定或担保银行卡，不因试用状态阻止解绑。
 - 文案由后端按账户语言提供中/英/越，已发消息保留原文；本地 builder 仅适用于 mock，正式模式不伪造通知。
 
 ### 11.3 信任中心 `/trust`
@@ -4967,46 +4856,25 @@ SavedCard = {
 - `^62` → unionpay
 - 否则 → unknown
 
-### 12.18 FreeTrial(useFreeTrial,persist key `nexgrid-trial-v1`)
+### 12.18 试用状态与呈现
 
-```
-{
-  status: "idle" | "active" | "grace" | "extended" | "redeemed" | "failed" | "cancelled";
-  cardTokenId: string | null;       // 绑定卡 token,自动扣款 + 解绑挽留拦截依据
-  startedAt: number | null;          // ms epoch — 试用激活时刻
-  activeEndsAt: number | null;       // = startedAt + trialDays
-  graceEndsAt: number | null;        // = activeEndsAt + graceDays
-  extendedEndsAt: number | null;     // = graceEndsAt + extensionDays(仅 extended 时)
-  scheduledChargeAt: number | null;  // 当前下次扣款时间,跟随 grace/extended 切换
-  finishedAt: number | null;          // 终态时刻,驱动 cooldown 计算
-  failReason: "insufficient_funds" | "card_invalid" | "unknown" | null;
-  extensionGranted: boolean;          // 已接受高质量延长(防重弹)
-  shadowFrozenAtUSD: number;          // grace 进入瞬间冻结的 shadow 累计(USD)
-  shadowFrozenAtNEX: number;
-}
+| 数据 | 契约 |
+|---|---|
+| 服务端状态 | ELIGIBLE / CLAIMED / ACTIVE / GRACE / EXTENDED / REDEEMED / FAILED / CANCELLED |
+| 页面状态 | none / active / grace / converted / ended；不能单靠页面状态决定再领资格 |
+| authorityStatus | unknown / loading / ready / error；只有已确认的资格与金额可以授权领取、转购 |
+| claimNo / version | 后台生成并用于读回一致性，客户端不得创建正式领取单编号 |
+| startedAt / expiresAt / graceEndsAt / finishedAt | 服务端时间边界；EXTENDED 对应抵扣保留截止时间 |
+| shadowUSD / shadowNEX | 已累计但未购前不可提现的试用收益 |
+| authoritativeOffsetUSD / authoritativeRemainderUSD / authoritativePriceUSD | 当前可抵扣、购后剩余收益及领取价；缺失不得按零处理 |
+| canStart / eligibilityReason | 后台决定当前可否领取，包括冷却、容量、库存、名额和风险拒绝 |
+| reservedTrialSlots | active/grace 为1，确认的终态为0，读取失败时为未知；与正式 devices 数组分开 |
 
-// Actions
-startWithCard(tokenId): void
-redeemEarly(): { ok: boolean; reason?: ChargeFailReason }
-cancel("unbind" | "explicit"): void
-acceptExtension(): void
-declineExtension(): void
-poll(now): void                       // SimulationProvider 每 4s 调
-reset(): void
-canStart(): boolean                   // idle + cooldown 过期 + phaseOpen
+start、cancel、convert 只通过既有接口提交幂等命令。start 成功后读回同一领取单；convert 返回正式订单编号后进入订单详情。poll 只刷新状态，不扣款、不在客户端制造设备。
 
-// Derived helpers (lib/store/free-trial.ts exports)
-liveShadowUSD(now): number             // active 时实时累加;grace/extended 返冻结值
-liveShadowNEX(now): number
-remainingMs(now): number               // 当前阶段倒计时
-isHighQualityEligible(): boolean       // grace + !extensionGranted + shadow >= threshold
-computeDiscountedPrice(config): { subtotal; discount; total }
-```
+试用卡在领取后持续显示；失败保留同账号已确认身份，金额未知时显示“-”及重试。终态移除试用槽但不删除正式设备。冷却结束且后台明确允许再领时，首页与详情复用领取确认入口。
 
-**关键安全约束**:
-- shadow 字段**永不**入资金账户 / commission events / lifetime stats / network 统计
-- `cardTokenId` 只在持卡人本人的 `useCards` 内匹配存在的卡才有效;cards.remove 时检查 trial 占用并拦截
-- `poll()` 触发的扣款成功 → 同步调 `useApp.addDevice + activateDevice`(走 Sprint #146-1 激活流程,槽满则进库存)
+**资金边界**：购前累计收益不得进入可提现余额或正式设备收益；转购抵扣、超额剩余收益及 UVT 的购后处理由后台原子结算。没有绑卡、卡片占用拦截或客户端自动扣款流程。
 
 ---
 

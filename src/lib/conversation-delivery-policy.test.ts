@@ -1,12 +1,28 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/api/errors';
-import { awaitMessageOutcome, isConversationDeliveryAmbiguous,
+import { awaitMessageOutcome, isConversationDeliveryAmbiguous, isConversationUserClearRejected,
   MESSAGE_ACK_TIMEOUT_MS, MESSAGE_READBACK_TIMEOUT_MS, MESSAGE_SEND_WAIT_MS } from './conversation-delivery-policy';
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
 describe('human delivery uncertainty', () => {
+  it.each(['http', 'business'] as const)('settles only the explicit peer-change rejection over %s', kind => {
+    expect(isConversationDeliveryAmbiguous(new ApiError({ kind, status: 409, code: 409,
+      message: 'CONVERSATION_PEER_CHANGED' }))).toBe(false);
+  });
+
+  it.each([
+    new ApiError({ kind: 'http', status: 409, message: 'CONVERSATION_VERSION_CONFLICT' }),
+    new ApiError({ kind: 'business', code: 409, message: 'CONVERSATION_PEER_CHANGED_RETRY' }),
+    new ApiError({ kind: 'http', status: 503, code: 409, message: 'CONVERSATION_PEER_CHANGED' }),
+    new ApiError({ kind: 'network', status: 409, message: 'CONVERSATION_PEER_CHANGED' }),
+    new ApiError({ kind: 'protocol', status: 409, message: 'CONVERSATION_PEER_CHANGED' }),
+    Object.assign(new Error('CONVERSATION_PEER_CHANGED'), { status: 409 }),
+  ])('does not settle lookalike or unconfirmed peer-change errors: %s', cause => {
+    expect(isConversationDeliveryAmbiguous(cause)).toBe(true);
+  });
+
   it.each([408, 409, 425, 429, 500, 502, 503, 504, 599])('preserves uncertainty for HTTP and WebSocket acknowledgement %i', code => {
     for (const options of [{ kind: 'http' as const, status: code },
       { kind: 'business' as const, code }, { kind: 'business' as const, status: code }]) {
@@ -33,6 +49,28 @@ describe('human delivery uncertainty', () => {
   it('uses an explicit status ahead of a business envelope code', () => {
     expect(isConversationDeliveryAmbiguous(new ApiError({ kind: 'business', status: 403, code: 503, message: 'refused' }))).toBe(false);
     expect(isConversationDeliveryAmbiguous(new ApiError({ kind: 'business', status: 503, code: 10001, message: 'unknown' }))).toBe(true);
+  });
+});
+
+describe('authoritative user-clear refusal', () => {
+  it.each(['CONVERSATION_USER_CLEAR_CONFLICT', 'CONVERSATION_USER_CLEAR_MEMBERS_CHANGED'])(
+    'recognizes only the exact 409 reason %s without changing human-send ambiguity', message => {
+      for (const kind of ['http', 'business'] as const) {
+        const cause = new ApiError({ kind, status: 409, code: 409, message });
+        expect(isConversationUserClearRejected(cause)).toBe(true);
+        expect(isConversationDeliveryAmbiguous(cause)).toBe(true);
+      }
+    });
+
+  it.each([
+    new ApiError({ kind: 'http', status: 409, message: 'SUPPORT_COMMAND_NOT_COMMITTED' }),
+    new ApiError({ kind: 'business', code: 409, message: 'CONVERSATION_USER_CLEAR_CONFLICT_RETRY' }),
+    new ApiError({ kind: 'http', status: 503, code: 409, message: 'CONVERSATION_USER_CLEAR_CONFLICT' }),
+    new ApiError({ kind: 'network', status: 409, message: 'CONVERSATION_USER_CLEAR_CONFLICT' }),
+    Object.assign(new Error('CONVERSATION_USER_CLEAR_CONFLICT'), { status: 409 }),
+  ])('does not interpret a lookalike or unconfirmed result as a clear refusal: %s', cause => {
+    expect(isConversationUserClearRejected(cause)).toBe(false);
+    expect(isConversationDeliveryAmbiguous(cause)).toBe(true);
   });
 });
 

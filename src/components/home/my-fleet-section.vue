@@ -2,12 +2,13 @@
 <template>
   <view class="hf-section" data-home-section="fleet">
     <NxSection :title="t.home.myFleet" :meta="fleetCountText" :action="t.home.fleetManage" @action="goManage">
-    <view v-if="fleetReady" class="hf-grid">
+    <view v-if="fleetVisible || trialPresentation.active.value" class="hf-grid">
+      <TrialDeviceRow v-if="trialPresentation.active.value" key="trial:current" variant="home" />
       <DeviceRow v-for="d in devices" :key="d.id" :device="d" :runtime-confirmed="fleetReady" />
-      <AddDeviceRow v-if="fleetReady && slotDevices.length < app.slotCap" />
+      <AddDeviceRow v-if="countReady && slotsUsed < app.slotCap" />
     </view>
-    <view v-else-if="app.remoteFleetStatus !== 'error'" class="hf-grid hf-loading" role="status" aria-live="polite" aria-busy="true"><text class="sr-only">{{ copy.fleetLoading }}</text><view v-for="n in 2" :key="n" class="hf-skeleton-row" aria-hidden="true"><view class="hf-skeleton-art"/><view class="hf-skeleton-copy"><view/><view/></view></view></view>
-    <view v-else class="hf-unavailable"><text>{{ copy.fleetUnavailable }}</text><NxButton size="small" variant="text" :label="t.home.fleetManage" @click="goManage" /></view>
+    <view v-if="!fleetVisible && app.remoteFleetStatus !== 'error'" class="hf-grid hf-loading" role="status" aria-live="polite" aria-busy="true"><text class="sr-only">{{ copy.fleetLoading }}</text><view v-for="n in 2" :key="n" class="hf-skeleton-row" aria-hidden="true"><view class="hf-skeleton-art"/><view class="hf-skeleton-copy"><view/><view/></view></view></view>
+    <view v-if="app.remoteFleetStatus === 'error' || trial.authorityStatus === 'error'" class="hf-unavailable"><text>{{ copy.fleetUnavailable }}</text><NxButton size="small" variant="text" :label="t.home.fleetManage" @click="goManage" /></view>
     </NxSection>
   </view>
 </template>
@@ -24,30 +25,36 @@ import NxSection from "@/components/ui/nx-section.vue";
 import NxButton from "@/components/ui/nx-button.vue";
 import DeviceRow from "./device-row.vue";
 import AddDeviceRow from "./add-device-row.vue";
-import { isActiveSlotDevice } from "@/lib/device-slot-policy";
+import TrialDeviceRow from "@/components/trial-device-row.vue";
+import { useTrialPresentation } from "@/composables/use-trial-presentation";
+import { useFreeTrial } from "@/store/free-trial";
 import { deviceOnlineState } from '@/lib/hashpower';
 
 const t = useT();
 const copy = useAuditUiCopy();
 const app = useApp();
+const trial = useFreeTrial();
+const trialPresentation = useTrialPresentation();
 
 const allDevices = computed(() => app.visibleDevices.filter((d) => d.activatedAt !== null)
   .sort((a,b) => Number(deviceOnlineState(a,Date.now(),fleetReady.value) === 'online') - Number(deviceOnlineState(b,Date.now(),fleetReady.value) === 'online')));
-const devices = computed(() => allDevices.value.slice(0,4));
-const slotDevices = computed(() => allDevices.value.filter(isActiveSlotDevice));
+const devices = computed(() => fleetVisible.value ? allDevices.value : []);
 // Read-only fleet presentation may retain this account's last confirmed
 // snapshot while a background refresh is pending. Actions remain governed by
 // their existing authoritative checks.
 const fleetReady = computed(() => !remoteApiEnabled
   || app.remoteFleetStatus === "ready"
   || (app.remoteFleetStatus === "loading" && app.remoteFleetHasSnapshot));
-const fleetCountText = computed(() => fleetReady.value ? fmt(t.value.home.fleetOfMax, {
-  n: slotDevices.value.length,
+const fleetVisible = computed(() => !remoteApiEnabled || app.remoteFleetHasSnapshot);
+const countReady = computed(() => fleetReady.value && trialPresentation.reservedSlots.value !== null);
+const slotsUsed = computed(() => app.activeSlotCount + (trialPresentation.reservedSlots.value ?? 0));
+const fleetCountText = computed(() => countReady.value ? fmt(t.value.home.fleetOfMax, {
+  n: slotsUsed.value,
   max: app.slotCap,
 }) : "— / —");
 
 function goManage() {
-  navTo("/pages/earn/earn");
+  navTo("/pages/me/devices");
 }
 
 
@@ -63,6 +70,7 @@ function goManage() {
 .hf-grid { display: flex; flex-direction: column; overflow: hidden; border-radius: var(--ui-radius-surface); background: var(--v5-surface); border:1px solid var(--v5-border); }
 .hf-unavailable { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-radius: var(--ui-radius-surface); background: var(--v5-surface); color: var(--v5-ink-3); font-size: 12px; }
 .hf-grid > :deep(.nx-device-row + .nx-device-row) { border-top: 1px solid var(--v5-border); }
+.hf-grid > :deep(.trial-device-row + .nx-device-row) { border-top: 1px solid var(--v5-border); }
 </style>
 
 <style scoped>.hf-skeleton-row {display:flex;align-items:center;gap:12px;height:68px;padding:10px 16px;box-sizing:border-box;}.hf-skeleton-row + .hf-skeleton-row {border-top:1px solid var(--v5-border);}.hf-skeleton-art {width:48px;height:48px;border-radius:14px;background:var(--v5-surface-2);}.hf-skeleton-copy {flex:1;}.hf-skeleton-copy > view {height:12px;width:65%;border-radius:6px;background:var(--v5-surface-2);}.hf-skeleton-copy > view + view {margin-top:10px;width:40%;}</style>

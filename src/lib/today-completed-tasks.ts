@@ -1,21 +1,20 @@
 import type { CompletedTask } from "@/store/types";
+import { businessDayKey } from "./business-calendar";
 
-const SHANGHAI_OFFSET_MS = 8 * 60 * 60 * 1000;
-
-function shanghaiDayKey(timestamp: number): string {
+function businessDay(timestamp: number): string {
   if (!Number.isFinite(timestamp) || timestamp < 0) return "";
-  return new Date(timestamp + SHANGHAI_OFFSET_MS).toISOString().slice(0, 10);
+  return businessDayKey("LEGACY", timestamp);
 }
 
 export function todayCompletedTasks(tasks: readonly CompletedTask[], serverNow: number): CompletedTask[] {
-  const today = shanghaiDayKey(serverNow);
+  const today = businessDay(serverNow);
   if (!today) return [];
   return tasks
-    .filter((task) => shanghaiDayKey(task.completedAt) === today)
+    .filter((task) => businessDay(task.completedAt) === today)
     .sort((left, right) => right.completedAt - left.completedAt);
 }
 
-// Receipt clocks use the device's local time; Shanghai only determines the business day.
+// Receipt clocks use the device's local time; the business calendar only determines the business day.
 export function localClockTime(timestamp: number): string {
   const date = new Date(timestamp);
   if (timestamp < 0 || Number.isNaN(date.getTime())) return "—";

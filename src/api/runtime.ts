@@ -53,6 +53,7 @@ import { createBundleDiscountApi } from "./bundle-discount-api";
 import { createAmbassadorApplicationApi } from "./ambassador-application-api";
 import { createTeamInsightsApi } from "./team-insights-api";
 import { createWalletBillsApi } from "./wallet-bills-api";
+import { createBusinessCalendarApi } from "./business-calendar-api";
 import { createStorefrontActivityApi } from "./storefront-activity-api";
 import { createGenesisPointsApi } from "./genesis-points-api";
 import { createNetworkRankApi } from "./network-rank-api";
@@ -196,6 +197,7 @@ export const ambassadorApplicationApi = createAmbassadorApplicationApi(
 );
 export const teamInsightsApi = createTeamInsightsApi(apiClient, expectedApiEnvironment);
 export const walletBillsApi = createWalletBillsApi(apiClient);
+export const businessCalendarApi = createBusinessCalendarApi(apiClient);
 export const storefrontActivityApi = createStorefrontActivityApi(apiClient, expectedApiEnvironment);
 export const genesisPointsApi = createGenesisPointsApi(apiClient, expectedApiEnvironment);
 export const networkRankApi = createNetworkRankApi(apiClient, expectedApiEnvironment);

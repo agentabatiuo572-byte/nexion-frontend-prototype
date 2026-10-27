@@ -6,6 +6,11 @@ import { afterEach, expect, it, vi } from "vitest";
 import walletSource from "./wallet.vue?raw";
 import serviceSource from "@/components/support/service-message-list.vue?raw";
 import rowSource from "@/components/me/wallet-list-row.vue?raw";
+import swipeSource from "@/components/support/conversation-swipe-row.vue?raw";
+import deleteSource from "@/composables/use-conversation-delete.ts?raw";
+import { groupConversationThreads } from "@/api/conversation-threads";
+import type { Conversation } from "@/domain/support";
+import { conversationActionsCopy } from "@/i18n/conversation-actions";
 import { formatDisplayDateTime } from "@/lib/display-date";
 import { formatFinanceAmount } from "@/lib/finance-amount-display";
 import { resolveWalletTodayEarnings } from "@/lib/wallet-today-earnings";
@@ -36,7 +41,9 @@ function screen(remote = true) {
     { id: "updated-only", lastTs: Date.parse("2026-01-02T16:05:06Z"), lastMessage: "activity preview", messages: [], unread: 2, roleKey: "typeAdvisor" },
     { id: "loaded-message", lastTs: Date.parse("2025-12-31T16:05:06Z"), lastMessage: "old", messages: [{ ts: Date.parse("2026-01-01T16:05:06Z"), text: "loaded preview", sender: "agent" }], unread: 0, roleKey: "typeAdvisor" },
   ]);
-  const conversations = Vue.reactive({ loading: false, error: null as string | null, categoryLoading: false, categoryAvailabilityStatus: "ready", realtimeFallback: false, typingIds: {}, byType: (kind: string) => kind === "advisor" ? rows : [] });
+  const conversations = Vue.reactive({ loading: false, error: null as string | null, categoryLoading: false, categoryAvailabilityStatus: "ready", realtimeFallback: false, typingIds: {},
+    deletionAvailable: false, deletingIds: {}, categoryEnabled: () => true,
+    get humanThreads() { return groupConversationThreads(rows as unknown as Conversation[]); } });
   const navTo = vi.fn(), refresh = vi.fn();
   const pass = { setup: (_: unknown, { slots }: { slots: Vue.Slots }) => () => Vue.h("view", slots.default?.()) };
   const empty = { render: () => null };
@@ -48,12 +55,18 @@ function screen(remote = true) {
     "@/api/runtime": { remoteApiEnabled: remote, developmentPaymentEnabled: false }, "@/store/app": { useApp: () => app },
     "@/store/commission": { useCommission: () => ({ eventsStatus: "ready", eventsEvidence: { aggregate: { totalUSDT: 5 } }, totalUSDTLifetime: () => 5 }) },
     "@/store/cards": { useCards: () => ({ cards: [] }) }, "@/store/config": { useConfig: () => ({ syncFailed: false, isEnabled: () => false }) },
-    "@/store/ui": { confirm: vi.fn() }, "@/lib/wallet-today-earnings": { resolveWalletTodayEarnings },
+    "@/store/ui": { confirm: vi.fn(), toast: { error: vi.fn() }, useUI: () => ({ clearConfirmsBy: vi.fn() }) },
+    "@/store/locale": { useLocaleStore: () => locale }, "@/i18n/conversation-actions": { conversationActionsCopy },
+    "@/lib/wallet-today-earnings": { resolveWalletTodayEarnings },
     "@/store/earning-release": { earningsReleaseSnapshot: Vue.ref(null), earningsReleaseHasSnapshot: Vue.ref(false), earningsReleaseStatus: Vue.ref("idle"), refreshEarningsReleaseStatus: vi.fn() },
     "@/components/app-chassis.vue": { default: pass }, "@/components/sub-page-header.vue": { default: empty },
     "@/components/glass-segments.vue": { default: empty }, "@/components/liquid-glass.vue": { default: empty },
     "@/store/conversations": { useConversations: () => conversations }, "@/store/message-drawer": { useMessageDrawer: () => ({ refresh }) } };
   modules["@/components/me/wallet-list-row.vue"] = { default: compile(rowSource, modules) };
+  modules["./conversation-swipe-row.vue"] = { default: compile(swipeSource, modules) };
+  const deleteJs = ts.transpileModule(deleteSource, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
+  modules["@/composables/use-conversation-delete"] = new Function("require", "exports", deleteJs + ";return exports;")(
+    (id: string) => { if (!(id in modules)) throw new Error(`Unexpected delete import ${id}`); return modules[id]; }, {});
   const wallet = compile(walletSource, modules);
   const service = compile(serviceSource, modules);
   return { app, locale, rows, conversations, navTo, refresh,
@@ -77,7 +90,8 @@ it.each([
     }
     s.rows[0].lastTs = Date.parse("2025-12-31T16:05:06Z"); s.rows[1].messages = [];
     const service = await s.service(); expect(service).toContain(expected[index]); expect(service).toContain("activity preview");
-    expect(service.indexOf('class="service-time"')).toBeGreaterThan(service.indexOf('class="service-rowbottom"'));
+    expect(service.indexOf('class="service-preview"')).toBeGreaterThan(-1);
+    expect(service.indexOf('class="service-time"')).toBeGreaterThan(service.indexOf('class="service-preview"'));
   }
   expect(s.navTo).not.toHaveBeenCalled(); expect(s.refresh).not.toHaveBeenCalled();
 });

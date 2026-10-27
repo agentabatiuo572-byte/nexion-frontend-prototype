@@ -110,6 +110,17 @@ describe("shared message center", () => {
     expect(center.totalUnread).toBe(4); expect(center.error).toBe("offline"); expect(center.loading).toBe(false);
   });
 
+  it.each(['notification', 'conversation', 'category'])("does not let a successful sibling source hide a %s failure", async source => {
+    const center = useMessageDrawer(); await center.refresh();
+    if (source === 'notification') runtime.notificationApi.page.mockRejectedValueOnce(new Error('offline'));
+    if (source === 'conversation') runtime.supportApi.conversations.mockRejectedValueOnce(new Error('offline'));
+    if (source === 'category') runtime.supportApi.conversationCategories.mockRejectedValueOnce(new Error('offline'));
+    await center.refresh();
+    expect(center.error).toBeTruthy(); expect(center.loading).toBe(false);
+    expect(center.actionableUnread).toBeNull();
+    await center.refresh(); expect(center.error).toBeNull();
+  });
+
   it("runs one non-overlapping foreground loop and leaves human polling to realtime", async () => {
     const slow = deferred<CanonicalNotificationPage>();
     runtime.notificationApi.page.mockReturnValueOnce(slow.promise);
