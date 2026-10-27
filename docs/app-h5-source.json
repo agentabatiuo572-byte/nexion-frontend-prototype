@@ -3,10 +3,10 @@
   "sourcePath": "D:\\WORKS\\PLAN\\.wt\\phone-platform-support-20261027",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "e936bd85ed8c4a9cb09a1d5e60ce1080a3553e4a",
-  "sourceRef": "e936bd85ed8c4a9cb09a1d5e60ce1080a3553e4a",
+  "sourceHead": "448a8955fbc426599132e3653cf3d431f1cc3ff0",
+  "sourceRef": "448a8955fbc426599132e3653cf3d431f1cc3ff0",
   "sourceRefKind": "commit",
-  "sourceTree": "ccf2989c2510f1d6bd9835e48c9f68813d61c000",
+  "sourceTree": "24ed910c8b09b5242006f79d8da4db3075019ed0",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -111,10 +111,10 @@
       "mode": "100644"
     },
     "PRD/NexGrid_产品功能架构设计文档_v3.7.md": {
-      "sourceBlob": "07552c972d5b64b973ae70f7f7fa3658e64c4620",
-      "sourceSha256": "5de907397edaef5f65b1bff86689afd218579dbddd9e36930bcafaaf161955eb",
-      "targetBlob": "07552c972d5b64b973ae70f7f7fa3658e64c4620",
-      "targetSha256": "5de907397edaef5f65b1bff86689afd218579dbddd9e36930bcafaaf161955eb",
+      "sourceBlob": "ea8c0ef3ba426574bd45c62199d6554589f736b9",
+      "sourceSha256": "d69afac0d048545f85d6dea25aba13118c2bdd30f9c417593a85547ef49b098d",
+      "targetBlob": "ea8c0ef3ba426574bd45c62199d6554589f736b9",
+      "targetSha256": "d69afac0d048545f85d6dea25aba13118c2bdd30f9c417593a85547ef49b098d",
       "mode": "100644"
     },
     "PRD/UVEL_IM时间戳显示规范_20261026.md": {
@@ -4822,17 +4822,17 @@
       "mode": "100644"
     },
     "docs/plans/2026-10-27-ios-model-calibration.md": {
-      "sourceBlob": "2db4802d24e766284fe810d762a08c6cc50774d0",
-      "sourceSha256": "c68db0c4f5b650a4c1453cff958dddb0a8aaf35815f6d3b5e84edddee7d61b33",
-      "targetBlob": "2db4802d24e766284fe810d762a08c6cc50774d0",
-      "targetSha256": "c68db0c4f5b650a4c1453cff958dddb0a8aaf35815f6d3b5e84edddee7d61b33",
+      "sourceBlob": "cdae8cf8db6c1cd92d136b0501f4f61d1eec5b7c",
+      "sourceSha256": "e20799b95e519b1d605b9045bccd74793b30b3aa5064db5b96a18f3cd4a32b11",
+      "targetBlob": "cdae8cf8db6c1cd92d136b0501f4f61d1eec5b7c",
+      "targetSha256": "e20799b95e519b1d605b9045bccd74793b30b3aa5064db5b96a18f3cd4a32b11",
       "mode": "100644"
     },
     "docs/plans/2026-10-27-ios-model-presets.json": {
-      "sourceBlob": "0b0cb4105f0d77b6e0f75c3cb34d6fb457dd23f8",
-      "sourceSha256": "e64efc79e2383d3e4d4e6b3a80991bc77240da3fff1bbd3ff8ee59f9f34e9b5c",
-      "targetBlob": "0b0cb4105f0d77b6e0f75c3cb34d6fb457dd23f8",
-      "targetSha256": "e64efc79e2383d3e4d4e6b3a80991bc77240da3fff1bbd3ff8ee59f9f34e9b5c",
+      "sourceBlob": "9a365a5ba65413d0e75aae1da10a9940c9d856c2",
+      "sourceSha256": "e3313561f5c22818adff7fb43cd309d19d75378c93cd8a371fa4c161ee6df17b",
+      "targetBlob": "9a365a5ba65413d0e75aae1da10a9940c9d856c2",
+      "targetSha256": "e3313561f5c22818adff7fb43cd309d19d75378c93cd8a371fa4c161ee6df17b",
       "mode": "100644"
     },
     "docs/specs/PAY-NexGrid_越南支付架构规格_v1.0.md": {
