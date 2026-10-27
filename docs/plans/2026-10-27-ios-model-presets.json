@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "status": "PROPOSAL_ONLY_NOT_PUBLISHED",
+  "snapshotDate": "2026-10-27",
+  "catalogVersion": "iphone-models-20261027-draft-1",
+  "platform": "ios",
+  "matchBy": "MODEL_ONLY",
+  "storageCapacityIgnored": true,
+  "computeUnit": "platform",
+  "valueSource": "OPERATOR_PRESET",
+  "precision": 2,
+  "rangeBounds": "INCLUSIVE",
+  "sources": [
+    "https://www.apple.com.cn/shop/buy-iphone",
+    "https://www.apple.com/shop/buy-iphone"
+  ],
+  "notice": "Documentation draft only. All ranges are proposed operator presets, not Apple specifications or measured hardware performance. No configuration has been published.",
+  "models": [
+    { "id": "ios-iphone-16", "model": "iPhone 16", "aliases": [], "minComputeValue": 80, "maxComputeValue": 100, "catalogClass": "APPLE_CURRENT_SNAPSHOT" },
+    { "id": "ios-iphone-17e", "model": "iPhone 17e", "aliases": [], "minComputeValue": 90, "maxComputeValue": 110, "catalogClass": "APPLE_CURRENT_SNAPSHOT" },
+    { "id": "ios-iphone-17", "model": "iPhone 17", "aliases": [], "minComputeValue": 110, "maxComputeValue": 130, "catalogClass": "APPLE_CURRENT_SNAPSHOT" },
+    { "id": "ios-iphone-air", "model": "iPhone Air", "aliases": [], "minComputeValue": 105, "maxComputeValue": 125, "catalogClass": "APPLE_CURRENT_SNAPSHOT" },
+    { "id": "ios-iphone-18-pro", "model": "iPhone 18 Pro", "aliases": [], "minComputeValue": 140, "maxComputeValue": 160, "catalogClass": "APPLE_CURRENT_SNAPSHOT" },
+    { "id": "ios-iphone-18-pro-max", "model": "iPhone 18 Pro Max", "aliases": [], "minComputeValue": 145, "maxComputeValue": 165, "catalogClass": "APPLE_CURRENT_SNAPSHOT" },
+    { "id": "ios-iphone-duo", "model": "iPhone Duo", "aliases": [], "minComputeValue": 130, "maxComputeValue": 150, "catalogClass": "APPLE_CURRENT_SNAPSHOT" },
+    { "id": "ios-iphone-16e", "model": "iPhone 16e", "aliases": [], "minComputeValue": 70, "maxComputeValue": 90, "catalogClass": "COMPATIBILITY_PROPOSAL" },
+    { "id": "ios-iphone-16-plus", "model": "iPhone 16 Plus", "aliases": [], "minComputeValue": 80, "maxComputeValue": 100, "catalogClass": "COMPATIBILITY_PROPOSAL" },
+    { "id": "ios-iphone-16-pro", "model": "iPhone 16 Pro", "aliases": [], "minComputeValue": 100, "maxComputeValue": 120, "catalogClass": "COMPATIBILITY_PROPOSAL" },
+    { "id": "ios-iphone-16-pro-max", "model": "iPhone 16 Pro Max", "aliases": [], "minComputeValue": 105, "maxComputeValue": 125, "catalogClass": "COMPATIBILITY_PROPOSAL" },
+    { "id": "ios-iphone-17-pro", "model": "iPhone 17 Pro", "aliases": [], "minComputeValue": 120, "maxComputeValue": 140, "catalogClass": "COMPATIBILITY_PROPOSAL" },
+    { "id": "ios-iphone-17-pro-max", "model": "iPhone 17 Pro Max", "aliases": [], "minComputeValue": 125, "maxComputeValue": 145, "catalogClass": "COMPATIBILITY_PROPOSAL" }
+  ]
+}

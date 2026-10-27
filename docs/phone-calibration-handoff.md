@@ -1,5 +1,7 @@
 # 正式 APP 手机校准交接
 
+> 2026-10-27 新方案待实施：iOS 改为按原生机型匹配运营预设区间，Android 与 iOS 都是手机算力目标平台。按机型而不按容量；后台维护机型与区间。见 [方案与当前缺口](plans/2026-10-27-ios-model-calibration.md)。本轮只交付方案，没有发布配置或实现代码；以下 Android 专属范围属于旧实现交接，不代表新产品限制或新方案已通过验收。
+
 实施目标为正式 Android APP，分支 test；原型未修改。功能契约见 PRD §4.7.3、§6.10、§6.11。
 
 完整跨仓验收提示词与配置顺序见 [后端交接](https://github.com/agentabatiuo572-byte/nexion-backend/blob/test/docs/phone-calibration-handoff.md)。真机验收由同事执行；手机执行边界仍限 Android 原生 App，H5/iOS 不开启手机任务。不把浏览器或模拟桥接测试称为真机验收。
