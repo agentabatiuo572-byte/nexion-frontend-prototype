@@ -75,5 +75,25 @@
     "passed": 539
   },
   "scope": "R19 local prototype and frontend only",
-  "nativeDeviceVerified": false
+  "nativeDeviceVerified": false,
+  "appImplementationCommit": "bc58616ebb64cd7f5efc9558619c21daf3fcbab6",
+  "h5": {
+    "previewEntry": "index-DJrQ8Ibi.js",
+    "tests": {
+      "files": 9,
+      "passed": 299
+    },
+    "typecheck": "pass",
+    "build": "pass",
+    "sharedFiles": 2970,
+    "syncWrites": 231,
+    "syncDeletes": 0,
+    "sourceRef": "bc58616ebb64cd7f5efc9558619c21daf3fcbab6"
+  },
+  "userPreview": {
+    "port": 5237,
+    "archivedConversations": 3,
+    "archivedMessages": 33,
+    "archiveUnchanged": true
+  }
 }
