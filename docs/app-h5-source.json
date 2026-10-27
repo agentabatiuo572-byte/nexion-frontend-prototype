@@ -3,10 +3,10 @@
   "sourcePath": "D:\\WORKS\\PLAN\\.wt\\phone-platform-support-20261027",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "448a8955fbc426599132e3653cf3d431f1cc3ff0",
-  "sourceRef": "448a8955fbc426599132e3653cf3d431f1cc3ff0",
+  "sourceHead": "27f8f2938367b4e0408924069e535f9d7f9a72d2",
+  "sourceRef": "27f8f2938367b4e0408924069e535f9d7f9a72d2",
   "sourceRefKind": "commit",
-  "sourceTree": "24ed910c8b09b5242006f79d8da4db3075019ed0",
+  "sourceTree": "141538286080b739af0c82829ed7ad236bb27f62",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -4819,6 +4819,13 @@
       "sourceSha256": "014f28c23c0395a4b58fd9dd40d25192188139333a5eca00a1748e653e548423",
       "targetBlob": "99da7eb258a28f8f9eaadfb62ca035fa2276220a",
       "targetSha256": "014f28c23c0395a4b58fd9dd40d25192188139333a5eca00a1748e653e548423",
+      "mode": "100644"
+    },
+    "docs/plans/2026-10-27-ios-model-calibration-ai-handoff.md": {
+      "sourceBlob": "78393e0c3a36e12df1944735f363614227320203",
+      "sourceSha256": "38fae920970416711dcafc251505bd7cfbe9a953f21ef193eb7c7c63b27852d0",
+      "targetBlob": "78393e0c3a36e12df1944735f363614227320203",
+      "targetSha256": "38fae920970416711dcafc251505bd7cfbe9a953f21ef193eb7c7c63b27852d0",
       "mode": "100644"
     },
     "docs/plans/2026-10-27-ios-model-calibration.md": {
