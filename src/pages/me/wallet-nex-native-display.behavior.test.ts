@@ -172,7 +172,7 @@ describe("mounted NEX wallet Android display", () => {
 
   it.each([["en", en], ["zh", zh], ["vi", vietnamese]] as const)("renders activity in device-local time despite the %s locale fallback", async (_locale, translations) => {
     const s = await mount(translations);
-    expect(s.text()).toContain("2026-10-03 16:34:40");
+    expect(s.text()).toContain("Oct 3, 2026 16:34:40");
     expect(s.wholeText()).not.toContain("GMT");
     expect(Date.prototype.toLocaleString).not.toHaveBeenCalled();
     expect(s.bills.summary.recentNexBills[0].ts).toBe(timestamp);

@@ -109,7 +109,7 @@ interface PowerUp {
 
 const t = useT();
 import { useLocaleStore } from '@/store/locale';
-import { powerUpEffectText } from '@/lib/power-up-copy';
+import { powerUpEffectText, powerUpNameText } from '@/lib/power-up-copy';
 const locale = useLocaleStore();
 // `w` indexes dynamic `${key}_label/_desc` props → type as a string record.
 const w = computed(() => t.value.daily.powerUps as unknown as Record<string, string>);
@@ -130,7 +130,7 @@ const powerUps = computed<PowerUp[]>(() => (remoteApiEnabled
       id: item.powerUpCode.toLowerCase() as StreakPowerUpId,
       threshold: item.unlockStreakDays,
       tint: "var(--v5-success)", key: item.powerUpCode.toLowerCase() as PowerUp["key"], href: item.targetPath,
-      labelText: item.name, descText: powerUpEffectText(item.effectType, item.effectValue, locale.code),
+      labelText: powerUpNameText(item.powerUpCode, item.effectType, item.name, w.value), descText: powerUpEffectText(item.effectType, item.effectValue, locale.code),
       status: item.status,
       // 服务端的可用性判定是权威:它读的是各域自己的读模型,比客户端本地推断更准。
       serverBusinessAvailable: item.businessAvailable,
@@ -216,7 +216,7 @@ async function handleClaim(p: PowerUp) {
       // This component renders the faucet snapshot, so refresh that read model too.
       await faucet.refreshRemote();
       if (!isClaimed(p.id)) return;
-      toast.success(fmt(w.value.toastTitle, { name: p.labelText ?? w.value[`${p.key}_label`] }), p.descText ?? w.value.toastBody);
+      toast.success(fmt(w.value.toastTitle, { name: powerUps.value.find((current) => current.id === p.id)?.labelText ?? p.labelText ?? w.value[`${p.key}_label`] }), p.descText ?? w.value.toastBody);
       // Remote targetPath is the server canonical href. Navigate only after
       // activation is confirmed; a failed claim remains retryable in the store.
       const target = canonicalPowerUpTarget(p.href);

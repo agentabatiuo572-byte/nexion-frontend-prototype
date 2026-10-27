@@ -103,7 +103,7 @@ import RewardPageSurface from "@/components/team/reward-page-surface.vue";
 import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import { useT } from "@/i18n/use-t";
-import { fmt } from "@/i18n/format";
+import { dateLocale, fmt } from "@/i18n/format";
 import { formatTrialDate } from "@/lib/trial-date";
 import { useCommission, type CommissionEvent, type CommissionKind } from "@/store/commission";
 import { remoteApiEnabled } from "@/api/runtime";
@@ -182,7 +182,7 @@ function eventMeta(e: CommissionEvent): string {
   const kindLabel = t.value.commissions.kind[e.kind];
   const order = e.sourceRef ? ` · ${e.kind === "direct_purchase" ? t.value.directReferral.order : t.value.directReferral.receipt} ${e.sourceRef}` : e.orderAmountUSD ? ` · ${t.value.commissions.orderPrefix}${formatGroupedAmount(e.orderAmountUSD)}` : "";
   const device = e.sourceDeviceId ? ` · ${t.value.directReferral.device}: ${e.sourceDeviceId}` : "";
-  const date = formatTrialDate(e.ts);
+  const date = formatTrialDate(e.ts, dateLocale());
   return `${kindLabel}${order}${device} · ${date}`;
 }
 function coolingTag(e: CommissionEvent): string {

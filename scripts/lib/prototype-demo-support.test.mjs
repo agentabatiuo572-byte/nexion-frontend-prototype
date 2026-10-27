@@ -7,7 +7,9 @@ const root='/api/app/support';
 const request=(state,path,body)=>supportDemo(new URL(root+path,'http://127.0.0.1'),'zh',state,{
   method:()=>body===undefined?'GET':'POST',postDataJSON:()=>body,
 });
-const create=(state,key)=>request(state,'/conversations',{conversationType:'SUPPORT',openingText:key,clientMessageId:key});
+// The global-id tests deliberately create a second staff thread, distinct from
+// the default staff-1 seed. Same-staff reuse is covered by the R19 contract tests.
+const create=(state,key)=>{state.supportAdvisorId??=2;return request(state,'/conversations',{conversationType:'SUPPORT',openingText:key,clientMessageId:key});};
 const reply=(state,no,key)=>request(state,`/conversations/${no}/replies`,{body:key,clientMessageId:key});
 const allMessages=state=>state.supportConversations.flatMap(detail=>detail.messages);
 function assertGlobalIds(state) {
@@ -109,6 +111,7 @@ test('restored legacy collisions preserve history, metadata, references and orig
   };
   state.supportConversations[0].nextCursor=5;
   const original=structuredClone(state);
+  original.supportConversations.forEach(row=>row.conversation.ownerAgentId='1');
   const detail=state.supportConversations[0];
   request(state,'/conversations/cursor');
   assertGlobalIds(state);
@@ -138,6 +141,7 @@ test('restored legacy collisions preserve history, metadata, references and orig
 test('valid sparse IDs remain stable and new allocations continue across state export/restore',()=>{
   const state={messageState:'normal',supportScenario:'normal',supportConversations:[legacyDetail(2,[100,150]),legacyDetail(1,[2,9])]};
   const before=structuredClone(state.supportConversations);
+  before.forEach(row=>row.conversation.ownerAgentId='1');
   request(state,'/conversations/cursor');
   assert.deepEqual(state.supportConversations,before);
   const sent=reply(state,'DEMO-SUPPORT-1','sparse-reply');
@@ -206,7 +210,7 @@ function commands(state) {
   });
 }
 async function committedCommand(operation) {
-  const state={},send=commands(state);
+  const state={supportAdvisorId:2},send=commands(state);
   const path=operation==='create'?'/conversations':'/conversations/DEMO-SUPPORT-1/replies';
   const input=operation==='create'?{conversationType:'SUPPORT',openingText:'synthetic original',clientMessageId:'saved-open'}
     :{body:'synthetic original',clientMessageId:'saved-reply'};

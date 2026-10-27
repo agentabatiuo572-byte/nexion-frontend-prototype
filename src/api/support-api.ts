@@ -4,6 +4,7 @@ import { MESSAGE_ACK_TIMEOUT_MS } from '@/lib/conversation-delivery-policy';
 import { normalizeMessageText } from '@/lib/message-length-policy';
 import { parseTicketCreationCapability, requireTicketCreationResult, ticketCreationDenials, type TicketCreationCapability } from './support-ticket-policy';
 import { parseServerTimestamp } from "./server-time";
+import { createConversationManagement, parseConversationUserClear, type ConversationUserClear, type ConversationManagement } from './conversation-management';
 import type { Conversation, ConversationCategoryAvailability, ConvMessage, SupportFaq, SupportSlaTarget, Ticket, TicketCategory, TicketMessage, TicketPriority, TicketStatus } from "@/domain/support";
 
 interface Page<T> { items: T[]; total: number }
@@ -25,10 +26,13 @@ export interface CurrentAdvisor {
   availability: "UNBOUND" | "DISABLED" | "BUSY" | "UNKNOWN";
 }
 export type SupportCommandResult =
+  | { kind: "conversation-user-clear"; clearance: ConversationUserClear }
   | { kind: "ticket"; ticket: Ticket }
   | { kind: "conversation"; conversation: Conversation }
   | { kind: "conversation-ticket"; conversation: Conversation; ticket: Ticket };
 export interface SupportApi {
+  conversationManagement(): Promise<ConversationManagement>;
+  deleteConversation(id: string, peerKey: string, members: Conversation[], key: string): Promise<ConversationUserClear>;
   authorityRevision(): Promise<string>;
   advisor(): Promise<CurrentAdvisor>;
   tickets(): Promise<Page<Ticket>>;
@@ -123,7 +127,11 @@ function parseConversationHeader(value: unknown): Conversation {
   const lastMessageKind = v?.lastMessageKind === "IDLE_TIMEOUT_CLOSE" ? "IDLE_TIMEOUT_CLOSE" : null;
   if (!v || !id || !type || !status || version === null || lastTs === null || unread === null || agentName === null || lastMessage === null) invalid("SUPPORT_CONVERSATION_RESPONSE_INVALID");
   if (lastPublicMessageId === null) invalid("SUPPORT_CONVERSATION_RESPONSE_INVALID");
-  return { id, type, status, version, agentName: agentName || "Unassigned", roleKey: type === "advisor" ? "roleAdvisor" : "roleSupport", avatarTint: type === "advisor" ? "var(--v5-brand)" : "var(--v5-tech-cyan)", messages: [], unread, lastTs, lastMessage, lastPublicMessageId, lastMessageKind, sessionStatus: status === "open" || status === "resolved" ? "active" : "closed", historyTruncated: false, historyNextCursor: null };
+  const ownerAgentId = v.ownerAgentId == null ? null : text(v.ownerAgentId);
+  if (v.ownerAgentId != null && ownerAgentId === null) invalid("SUPPORT_CONVERSATION_IDENTITY_INVALID");
+  const userClearedThroughMessageId = v.userClearedThroughMessageId == null ? undefined : integer(v.userClearedThroughMessageId);
+  if (userClearedThroughMessageId === null) invalid("SUPPORT_USER_CLEAR_RESPONSE_INVALID");
+  return { id, type, status, version, ownerAgentId, userClearedThroughMessageId, agentName: agentName || "Unassigned", roleKey: type === "advisor" ? "roleAdvisor" : "roleSupport", avatarTint: type === "advisor" ? "var(--v5-brand)" : "var(--v5-tech-cyan)", messages: [], unread, lastTs, lastMessage, lastPublicMessageId, lastMessageKind, sessionStatus: status === "open" || status === "resolved" ? "active" : "closed", historyTruncated: false, historyNextCursor: null };
 }
 function parseConversationMessage(value: unknown): ConvMessage {
   const v = row(value); const id = integer(v?.id, 1); const ts = time(v?.createdAt);
@@ -249,6 +257,7 @@ export function createSupportApi(client: ApiClient): SupportApi {
     if (value == null) return null;
     const v = row(value); const type = text(v?.resultType)?.toLowerCase();
     if (!v || !type) invalid("SUPPORT_COMMAND_RESULT_INVALID");
+    if (type === 'conversation_user_clear') return { kind: 'conversation-user-clear', clearance: parseConversationUserClear(v.result) };
     if (type === "ticket") return { kind: "ticket", ticket: parseTicketDetail(v.result) };
     if (type === "conversation") return { kind: "conversation", conversation: parseConversationDetail(v.result) };
     if (type === "conversation-ticket") {
@@ -294,6 +303,7 @@ export function createSupportApi(client: ApiClient): SupportApi {
     return page;
   }
   return {
+    ...createConversationManagement(client),
     authorityRevision: async () => "canonical-v1",
     advisor: async () => parseCurrentAdvisor(await client.request({ method: "GET", path: `${supportRoot}/advisor` })),
     tickets: allTickets,

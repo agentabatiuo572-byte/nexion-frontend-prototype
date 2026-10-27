@@ -260,7 +260,10 @@ const draftText = ref("");
 const attachmentPolicy = ref<SupportAttachmentPolicy | null>(null);
 const attachmentPolicyError = ref(false);
 let attachmentPolicyGeneration = 0;
+type SupportImagePicker = { allowHidden: boolean; current: () => boolean };
+let supportImagePicker: SupportImagePicker | null = null;
 function resetAttachmentPolicy() {
+  supportImagePicker = null;
   attachmentPolicyGeneration++;
   attachmentPolicy.value = null; attachmentPolicyError.value = false;
 }
@@ -343,41 +346,59 @@ const failedHumanLabel = computed(() => failedHumanSend.value
   : undefined);
 
 async function chooseSupportImage() {
-  if (chatDisposed || !supportSessionReady.value) return;
+  if (chatDisposed || !novaPageVisible || !supportSessionReady.value || supportImagePicker) return;
   if (isAi.value || imageDraft.value || failedHumanSend.value) return;
-  const binding = app.accountBindingEpoch, scope = convStore.scopeInvalidated, key = humanComposerKey.value;
-  const current = () => !chatDisposed && novaPageVisible && supportSessionReady.value && binding === app.accountBindingEpoch
+  const account = app.accountKey, binding = app.accountBindingEpoch, scope = convStore.scopeInvalidated, key = humanComposerKey.value;
+  const current = () => !chatDisposed && supportSessionReady.value && account === app.accountKey && binding === app.accountBindingEpoch
     && scope === convStore.scopeInvalidated && key === humanComposerKey.value;
+  let picker: SupportImagePicker | null = null;
   try {
     if (!attachmentPolicy.value) await loadAttachmentPolicy();
-    if (!current()) return;
+    if (!novaPageVisible || !current() || supportImagePicker) return;
     const policy = attachmentPolicy.value, generation = attachmentPolicyGeneration;
     if (!policy?.available) return;
-    const selected = await new Promise<UniNamespace.ChooseImageSuccessCallbackResult | null>((resolve, reject) =>
-      uni.chooseImage({ count: 1, sizeType: ["original"], sourceType: ["album", "camera"], success: resolve, fail: (cause) => {
-        let cancelled = /^(?:chooseImage:fail\s+)?cancel(?:led|ed)?$/i.test(cause instanceof Error ? cause.message : cause.errMsg);
-        // #ifdef APP-PLUS
-        // Uni's native source actionSheet reports cancellation without a message.
-        cancelled = cancelled || cause.errMsg === "chooseImage:fail" && (cause as { code?: unknown }).code === 0
-          && Object.getOwnPropertyNames(cause).every(key => key === "errMsg" || key === "code");
-        // #endif
-        if (cancelled) resolve(null); else reject(cause);
-      } }));
-    if (!selected || !current() || generation !== attachmentPolicyGeneration || attachmentPolicy.value !== policy) return;
-    const path = selected.tempFilePaths[0];
-    if (!path) return;
-    const selectedFile = Array.isArray(selected.tempFiles) ? selected.tempFiles[0] : selected.tempFiles;
-    if (policy.maxBytes && selectedFile?.size > policy.maxBytes) { toast.info(t.value.conversations.image.tooLarge, ""); return; }
-    const id = requireCryptoUuid();
-    imageDraft.value = { filePath: path, clientUploadId: id, key: `support-upload-${id}`, state: "uploading" };
+    picker = { allowHidden: false, current: () => current() && generation === attachmentPolicyGeneration && attachmentPolicy.value === policy };
+    // #ifdef APP-PLUS
+    // The native album/camera hides this page while its one picker owns the result.
+    picker.allowHidden = true;
+    // #endif
+    supportImagePicker = picker;
+    try {
+      const selected = await new Promise<UniNamespace.ChooseImageSuccessCallbackResult | null>((resolve, reject) =>
+        uni.chooseImage({ count: 1, sizeType: ["original"], sourceType: ["album", "camera"], success: resolve, fail: (cause) => {
+          let cancelled = /^(?:chooseImage:fail\s+)?cancel(?:led|ed)?$/i.test(cause instanceof Error ? cause.message : cause.errMsg);
+          // #ifdef APP-PLUS
+          // Uni's native source actionSheet reports cancellation without a message.
+          cancelled = cancelled || cause.errMsg === "chooseImage:fail" && (cause as { code?: unknown }).code === 0
+            && Object.getOwnPropertyNames(cause).every(key => key === "errMsg" || key === "code");
+          // #endif
+          if (cancelled) resolve(null); else reject(cause);
+        } }));
+      if (!selected || supportImagePicker !== picker || !picker.current() || !novaPageVisible && !picker.allowHidden) return;
+      const path = selected.tempFilePaths[0];
+      if (!path) return;
+      const selectedFile = Array.isArray(selected.tempFiles) ? selected.tempFiles[0] : selected.tempFiles;
+      if (policy.maxBytes && selectedFile?.size > policy.maxBytes) { toast.info(t.value.conversations.image.tooLarge, ""); return; }
+      const id = requireCryptoUuid();
+      imageDraft.value = { filePath: path, clientUploadId: id, key: `support-upload-${id}`, state: "uploading" };
+    } catch (cause) {
+      if (supportImagePicker !== picker || !picker.current()) return;
+      throw cause;
+    } finally {
+      if (supportImagePicker === picker) {
+        supportImagePicker = null;
+        if (!novaPageVisible) resetAttachmentPolicy();
+      }
+    }
     await retrySupportUpload();
   } catch {
-    if (!current()) return;
+    if (!current() || !novaPageVisible && !picker?.allowHidden) return;
     toast.error(t.value.conversations.image.uploadFailed, "");
   }
 }
 async function loadAttachmentPolicy() {
   if (!supportSessionReady.value || !remoteApiEnabled || !novaPageVisible || chatDisposed) return;
+  if (supportImagePicker?.allowHidden && supportImagePicker.current()) return;
   const binding = app.accountBindingEpoch, scope = convStore.scopeInvalidated, key = humanComposerKey.value;
   const generation = ++attachmentPolicyGeneration;
   const current = () => generation === attachmentPolicyGeneration && !chatDisposed && novaPageVisible && supportSessionReady.value
@@ -523,6 +544,8 @@ function restoreRecoveredComposer(saved: HumanComposer | null | undefined, key: 
   });
 }
 watch(humanComposerKey, (key, previous) => {
+  const hadPicker = supportImagePicker !== null;
+  if (hadPicker) resetAttachmentPolicy();
   if (previous) convStore.saveComposer(previous, { ...convStore.composer(previous), text: draftText.value, imageDraft: imageDraft.value,
     failedSend: failedHumanSend.value ?? (humanSendBusy.value ? convStore.composer(previous).failedSend : null) });
   const saved = key ? convStore.composer(key) : null;
@@ -530,6 +553,7 @@ watch(humanComposerKey, (key, previous) => {
   imageDraft.value = saved?.imageDraft ?? null;
   failedHumanSend.value = saved?.failedSend ?? null;
   restoreRecoveredComposer(saved, key);
+  if (hadPicker && novaPageVisible) void loadAttachmentPolicy();
 }, { flush: "sync" });
 watch([draftText, imageDraft, failedHumanSend], () => {
   if (humanComposerResetting) return;
@@ -751,7 +775,7 @@ onHide(() => {
   novaPageVisible = false;
   topOverlayMeasureEpoch++;
   clearQueuedSendVisuals();
-  resetAttachmentPolicy();
+  if (!supportImagePicker?.allowHidden || !supportImagePicker.current()) resetAttachmentPolicy();
   cancelHistoryRetry();
   clearPrivateImages();
   categoryGate = null;
@@ -808,7 +832,10 @@ async function retryHumanHistory() {
   catch { if(current()) humanHistoryListError.value=true; }
   finally { if(request===historyRetryGeneration)humanHistoryRetryBusy.value=false; }
 }
-const humanHistory = computed(() => convStore.conversations.filter(row => row.type !== "ai"));
+const humanHistory = computed(() => {
+  const ids = cid.value ? convStore.getThread(cid.value)?.conversationIds ?? [] : [];
+  return convStore.conversations.filter(row => ids.includes(row.id));
+});
 const conv = computed(() => {
   const current = cid.value ? convStore.get(cid.value) : undefined;
   if (!current) return undefined;
@@ -1065,8 +1092,7 @@ async function loadEarlierHumanHistory() {
     const prepared = await conversationThread.value?.prepareHistoryPrepend();
     if (!humanRealtime.isCurrent(scope.epoch, scope.id) || request !== historyRetryGeneration) return;
     if (prepared !== true) { toast.warn(t.value.security.opFailed); return; }
-    const earlier = humanHistory.value.find(row=>row.historyNextCursor);
-    if (earlier) await convStore.loadEarlier(earlier.id, () => humanRealtime.isCurrent(scope.epoch, scope.id));
+    await convStore.loadEarlierThread(scope.id, () => humanRealtime.isCurrent(scope.epoch, scope.id));
   } catch {
     if (humanRealtime.isCurrent(scope.epoch, scope.id)) toast.warn(t.value.security.opFailed);
   } finally { if(request===historyRetryGeneration)humanEarlierBusy.value=false; }

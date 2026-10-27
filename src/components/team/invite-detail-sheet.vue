@@ -26,6 +26,7 @@
   </view>
 </template>
 <script setup lang="ts">
+import { formatDisplayDate } from "@/lib/display-date";
 import { computed } from 'vue';
 import { useReferralReward } from '@/store/referral-reward';
 import { useLocaleStore } from '@/store/locale';
@@ -44,7 +45,7 @@ const emit = defineEmits<{ (e: 'close'): void; (e: 'records'): void }>();
 const t = useT(), locale = useLocaleStore(), rewards = useReferralReward();
 const copy = computed(() => teamRedesignCopy(locale.code));
 const title = computed(() => props.mode === 'rules' ? copy.value.inviteRules : copy.value.rewardRecords);
-function date(value: string) { return new Intl.DateTimeFormat(dateLocale(), { month: 'short', day: 'numeric' }).format(new Date(value)); }
+function date(value: string) { return formatDisplayDate(value, dateLocale()); }
 function contactSupport() { emit('close'); navTo('/pages/me/support'); }
 useDialogA11y(computed(() => props.open), '.invite-detail', () => emit('close'));
 </script>

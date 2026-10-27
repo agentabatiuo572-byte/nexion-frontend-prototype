@@ -1,17 +1,8 @@
 <template>
   <view>
     <SubPageHeader :back="back" />
-    <view v-if="loading" class="mx-4" style="padding: 28px 0; color: var(--v5-ink-3);" role="status"><text>{{ t.howPublished.loading }}</text></view>
-    <view v-else-if="error" class="mx-4" style="padding: 28px 0;" role="alert">
-      <view style="padding: 14px 0; color: var(--v5-ink-2);">
-        <text class="block" style="font-size: 15px; font-weight: 600;">{{ t.howPublished.unavailableTitle }}</text>
-        <text class="block" style="margin-top: 6px; font-size: 12px; color: var(--v5-ink-3);">{{ t.howPublished.unavailableBody }}</text>
-        <view class="reward-cta" style="margin-top: 12px" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load">
-          <text>{{ t.ui.retry }}</text>
-        </view>
-      </view>
-    </view>
-    <view v-else-if="content" class="pb-8">
+    <view v-if="loading && !content" class="mx-4" style="padding: 28px 0; color: var(--v5-ink-3);" role="status"><text>{{ t.howPublished.loading }}</text></view>
+    <view v-if="content" class="pb-8">
       <view v-if="languageFallback" class="mx-4" style="margin: 16px; padding: 14px 0; border-block: 1px solid var(--v5-border);" role="status" aria-live="polite">
         <text class="block" :style="bodyStyle">{{ t.howPublished.languageFallback }}</text>
         <view class="reward-cta" style="margin-top: 12px" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load">
@@ -35,6 +26,15 @@
         </HowSection>
       </template>
     </view>
+    <view v-if="error" class="mx-4" style="padding: 28px 0;" role="alert" aria-live="polite">
+      <view style="padding: 14px 0; color: var(--v5-ink-2);">
+        <text class="block" style="font-size: 15px; font-weight: 600;">{{ t.howPublished.unavailableTitle }}</text>
+        <text class="block" style="margin-top: 6px; font-size: 12px; color: var(--v5-ink-3);">{{ t.howPublished.unavailableBody }}</text>
+        <view class="reward-cta" style="margin-top: 12px" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load">
+          <text>{{ t.ui.retry }}</text>
+        </view>
+      </view>
+    </view>
     <view class="mx-4 mt-6"><view class="reward-cta reward-cta--wide" role="button" tabindex="0" @click="navBack(back)" @keydown.enter.prevent="navBack(back)" @keydown.space.prevent="navBack(back)"><text>{{ backLabel }}</text></view></view>
   </view>
 </template>
@@ -44,6 +44,7 @@ import { computed, onUnmounted, ref, watch } from "vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import HowHero from "@/components/team/reward-compact-hero.vue";
 import HowSection from "@/components/team/reward-rule-block.vue";
+import { ApiError } from "@/api/errors";
 import { howContentApi, remoteApiEnabled } from "@/api/runtime";
 import type { HowContentDocument, HowContentKey } from "@/api/how-content-api";
 import { useLocaleStore } from "@/store/locale";
@@ -93,9 +94,9 @@ async function load() {
     if (props.contentKey === "team-unilevel-how" && (!next.blocks.some(block => block.id === "direct-referral-scope")
       || (next.schemaVersion === 2 && (next.templateId !== "unilevel-v2" || !next.blocks.some(block => block.id === "seven-layer-scope"))))) throw new Error("TEAM_PUBLICATION_REQUIRED");
     content.value = next;
-  } catch {
+  } catch (failure) {
     if (!requestFence.isCurrent(generation)) return;
-    content.value = null;
+    if (!(failure instanceof ApiError && failure.kind === "network")) content.value = null;
     error.value = true;
     emit("unavailable");
   } finally {
@@ -107,6 +108,9 @@ async function load() {
 watch(
   () => [props.contentKey, locale.code] as const,
   () => {
+    requestFence.invalidate();
+    content.value = null;
+    error.value = false;
     if (remoteApiEnabled) {
       void load();
       return;
@@ -116,7 +120,7 @@ watch(
     error.value = false;
     loading.value = false;
   },
-  { immediate: true },
+  { immediate: true, flush: "sync" },
 );
 onUnmounted(() => requestFence.invalidate());
 </script>

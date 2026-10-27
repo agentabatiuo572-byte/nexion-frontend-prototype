@@ -20,7 +20,7 @@
           <text class="roster-chevron" aria-hidden="true">{{ expandedMemberId === m.id ? '−' : '+' }}</text>
         </view>
         <view v-if="expandedMemberId === m.id" :id="`member-${kind}-${m.id}`" class="member-details">
-          <view class="member-detail"><text>{{ t.network.joined }}</text><text>{{ fmt(t.uiChrome.joinedDaysAgo, { n: daysAgo(m.joinedAt) }) }}</text></view>
+          <view class="member-detail member-joined"><text>{{ t.network.joined }}</text><text>{{ formatDisplayDateTime(m.joinedAt, locale.code) }}</text></view>
           <view class="member-detail"><text>{{ t.network.allTime }}</text><text class="tabular-nums">{{ formatComputePoints(m.lifetimeComputePoints, locale.code) }}</text></view>
           <view class="member-detail"><text>{{ m.layer === 1 ? t.network.badgeDirect : t.network.badgeExtended }}</text><text>{{ m.city }}</text></view>
           <text v-if="showContribution" class="member-contribution tabular-nums">+${{ formatAmount(contribution(m)) }}</text>
@@ -42,7 +42,7 @@ import TeamRankEmblem from "./team-rank-emblem.vue";
 import type { NetworkMember, MemberStatus } from "@/store/network";
 import { UNILEVEL_USDT } from "@/store/commission";
 import { useT } from "@/i18n/use-t";
-import { fmt } from "@/i18n/format";
+import { formatDisplayDateTime } from "@/lib/display-date";
 
 const props = defineProps<{
   color: string;
@@ -73,9 +73,6 @@ watch(() => props.members, (members) => {
 function contribution(m: NetworkMember): number {
   return props.kind === "direct" ? m.monthVolumeUSD * 0.1 : m.monthVolumeUSD * (UNILEVEL_USDT[m.layer] ?? 0);
 }
-function daysAgo(joinedAt: number): number {
-  return Math.floor((Date.now() - joinedAt) / 86400000);
-}
 function statusColor(status: MemberStatus): string {
   return status === "active" ? "var(--v5-brand)" : status === "idle" ? "var(--v5-warning)" : "var(--v5-ink-4)";
 }
@@ -101,6 +98,8 @@ function statusColor(status: MemberStatus): string {
 .member-details { margin-left: 54px; padding: 0 0 16px; display: flex; flex-direction: column; gap: var(--ui-space-inline); }
 .member-detail { display: flex; justify-content: space-between; gap: var(--ui-space-inset); font-size: 12px; line-height: 1.5; color: var(--v5-ink-3); }
 .member-detail > :last-child { text-align: right; color: var(--v5-ink-2); overflow-wrap: anywhere; }
+.member-joined { flex-wrap: wrap; }
+.member-joined > :last-child { min-width: 0; flex: 1 1 170px; }
 .member-contribution { color: var(--v5-ink-2); text-align: right; font-size: 12px; }
 [role="button"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 @media (max-width: 360px) { .member-trigger { gap: 8px; } .member-details { margin-left: 0; } .member-points { font-size: 14px; } }

@@ -23,7 +23,7 @@ export const all = (root: Host): Host[] => [root, ...root.children.flatMap(all)]
 export const text = (root: Host): string => root.text + root.children.map(text).join("");
 export const flush = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); await Vue.nextTick(); };
 export const slot = { default: Vue.defineComponent({ setup: (_, { slots }) => () => Vue.h("shell", {}, slots.default?.()) }) };
-export function mountEntry(source: string, dependencies: Record<string, unknown>) {
+export function mountEntry(source: string, dependencies: Record<string, unknown>, props: Record<string, unknown> = {}) {
   const descriptor = parse(source, { filename: "entry.vue" }).descriptor;
   const compiled = compileScript(descriptor, { id: "entry-review", inlineTemplate: true,
     templateOptions: { compilerOptions: { hoistStatic: false, isCustomElement: tag => ["view", "text", "scroll-view", "input"].includes(tag) } },
@@ -37,7 +37,7 @@ export function mountEntry(source: string, dependencies: Record<string, unknown>
     if (!(id in dependencies)) throw new Error(`Missing entry test dependency: ${id}`);
     return dependencies[id];
   }, exports);
-  const root = node("root"), app = renderer.createApp(exports.default);
+  const root = node("root"), app = renderer.createApp(exports.default, props);
   app.component("scroll-view", slot.default);
   app.mount(root);
   return { root, unmount: () => app.unmount(), control: (label: string) => all(root).find(n => ["button", "link"].includes(n.props.role) && text(n) === label),

@@ -94,7 +94,7 @@
       <view
         v-for="task in allRecent"
         :key="task.id"
-        class="earn-history-row flex items-center justify-between gap-2 active:opacity-80"
+        class="earn-history-row active:opacity-80"
         :data-task-id="task.id" style="font-size: 12px; min-height: 44px"
         :role="canOpenTaskReceipt(task) ? 'button' : undefined"
         :tabindex="canOpenTaskReceipt(task) ? 0 : undefined"
@@ -103,13 +103,13 @@
         @keydown.enter.stop.prevent="openTaskReceipt(task)" @keydown.space.stop.prevent="openTaskReceipt(task)"
       >
         <svg class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335" /><path d="m9 11 3 3L22 4" /></svg>
-        <text class="flex-1 truncate min-w-0" style="color: var(--v5-ink-2)">{{ task.model }}<text style="color: var(--v5-ink-4); margin: 0 4px">·</text><text style="color: var(--v5-ink-3)">{{ workloadLabel(task.category) }}</text></text>
-        <text class="tabular-nums shrink-0" style="font-family: var(--font-v5); color: var(--v5-success-ink)">{{ formatUsd(task.reward, 'detail', true) }}</text>
-        <text class="text-right shrink-0" style="font-size: 12px; color: var(--v5-ink-3); width: 48px">{{ shortTime(task.completedAt) }}</text>
-        <view v-if="canOpenTaskReceipt(task)" class="shrink-0 grid place-items-center" style="width: 22px; height: 22px; border-radius: 6px; color: var(--v5-ink-4)" :title="task.receiptNo ?? task.id" @click.stop="openTaskReceipt(task)">
+        <text class="earn-history-description" style="color: var(--v5-ink-2)">{{ task.model }}<text style="color: var(--v5-ink-4); margin: 0 4px">·</text><text style="color: var(--v5-ink-3)">{{ workloadLabel(task.category) }}</text></text>
+        <text class="earn-history-amount tabular-nums" style="font-family: var(--font-v5); color: var(--v5-success-ink)">{{ formatUsd(task.reward, 'detail', true) }}</text>
+        <text class="earn-history-time" style="font-size: 12px; color: var(--v5-ink-3)">{{ completedTime(task.completedAt) }}</text>
+        <view v-if="canOpenTaskReceipt(task)" class="earn-history-document shrink-0 grid place-items-center" style="width: 22px; height: 22px; border-radius: 6px; color: var(--v5-ink-4)" :title="task.receiptNo ?? task.id" @click.stop="openTaskReceipt(task)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" /><path d="M14 8H8" /><path d="M16 12H8" /><path d="M13 16H8" /></svg>
         </view>
-        <view v-else class="shrink-0" style="width: 22px; height: 22px" />
+        <view v-else class="earn-history-document shrink-0" style="width: 22px; height: 22px" />
       </view>
     </view>
     <ReceiptModal :receipt="openReceipt" @close="openReceipt = null" />
@@ -119,9 +119,10 @@
 <script setup lang="ts">
 import { formatUsd } from "@/lib/usd-display";
 import { navTo } from "@/lib/route";
-import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
+import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onHide, onShow } from "@/composables/use-tab-page-lifecycle";
-import { taskRelativeTime } from "@/lib/task-relative-time";
+import { formatDisplayDateTime } from "@/lib/display-date";
+import { dateLocale } from "@/i18n/format";
 import { useApp } from "@/store/app";
 import { useT } from "@/i18n/use-t";
 import { prepareEarnConfig, useEarnConfig } from "@/store/earn-config";
@@ -137,9 +138,6 @@ import { toast } from "@/store/ui";
 
 const app = useApp();
 const t = useT();
-const relativeNow = ref(Date.now());
-let relativeTimer: ReturnType<typeof setInterval> | undefined;
-onMounted(() => { relativeTimer = setInterval(() => { relativeNow.value = Date.now(); }, 30000); });
 const receipts = remoteApiEnabled ? null : useReceipts();
 const openReceipt = ref<Receipt | CanonicalComputeReceipt | null>(null);
 let receiptRequestEpoch = 0;
@@ -212,7 +210,6 @@ onUnmounted(() => {
   receiptPageVisible = false;
   receiptPageEpoch += 1;
   receiptRequestEpoch += 1;
-  if (relativeTimer) clearInterval(relativeTimer);
 });
 
 // Model names are proper nouns (untranslated); the workload half is copy.
@@ -275,9 +272,17 @@ function retryAssignments() {
   void app.refreshRemoteFleet().catch(() => undefined);
 }
 
-function shortTime(ts: number): string {
-  return taskRelativeTime(ts, relativeNow.value, t.value.security);
+function completedTime(ts: number): string {
+  return formatDisplayDateTime(ts, dateLocale());
 }
 
 
 </script>
+
+<style scoped>
+.earn-history-row { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto 22px; align-items: center; gap: 2px 8px; }
+.earn-history-description, .earn-history-time { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+.earn-history-amount { min-width: 0; max-width: 120px; text-align: right; overflow-wrap: anywhere; }
+.earn-history-time { grid-column: 2 / -1; grid-row: 2; text-align: right; }
+.earn-history-document { grid-column: 4; grid-row: 1; }
+</style>

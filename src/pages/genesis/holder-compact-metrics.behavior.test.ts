@@ -1,3 +1,4 @@
+import * as displayDate from "@/lib/display-date";
 import * as Vue from "vue";
 import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
@@ -61,7 +62,7 @@ it.each([en, zh, vietnamese])("renders actual holder allocations from parser-con
     "@/lib/genesis-marketplace-presentation": { formatGenesisPrice },
     vue: Vue, "@dcloudio/uni-app": { onShow: (hook: () => void) => shows.push(hook), onHide: (hook: () => void) => hides.push(hook) },
     "@/lib/route": { navTo: vi.fn() }, "@/i18n/use-t": { useT: () => Vue.ref(copy) },
-    "@/i18n/format": { fmt, dateLocale: () => "en-US" },
+    "@/lib/display-date": displayDate, "@/i18n/format": { fmt, dateLocale: () => "en-US" },
     "@/store/genesis": { useGenesis: () => genesis, GENESIS_EMISSION: {} },
     "@/store/genesis-config": { useGenesisConfig: () => ({ refresh: configRefresh }) },
     "@/store/config": { useConfig: () => ({ isEnabled: () => true }) },

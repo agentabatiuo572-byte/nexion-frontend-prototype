@@ -131,7 +131,7 @@ let alive = true;
 let visible = false;
 const pendingKey = () => `nexgrid.bank-withdraw.pending:${app.accountKey}`;
 const money = (value: number) => formatAmount(value);
-const displayDate = formatBankDateTime;
+const displayDate = (value: string) => formatBankDateTime(value, dateLocale());
 const quoteExpired = computed(() => !!quote.value && (parseServerTimestamp(quote.value.expiresAt) ?? 0) <= now.value);
 const canSubmit = computed(() => accepted.value && !!quote.value && !quoteExpired.value && !uncertain.value && config.value?.enabled === true
   && config.value.unresolvedIntent !== undefined && config.value.unresolvedIntent?.state !== "MULTIPLE"

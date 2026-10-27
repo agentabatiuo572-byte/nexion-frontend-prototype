@@ -109,7 +109,7 @@ import { formatStakingPercentage } from "@/lib/staking-percentage";
 import { navTo } from "@/lib/route";
 import { ref, computed, watch, onBeforeUnmount, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
-import { fmt } from "@/i18n/format";
+import { dateLocale, fmt } from "@/i18n/format";
 import { formatTrialDate } from "@/lib/trial-date";
 import { useApp } from "@/store/app";
 import { postMoneyBill } from "@/lib/money-receipt";
@@ -213,7 +213,7 @@ const interestText = computed(() =>
   props.term !== null ? formatAmount(amount.value * apyRate.value * (props.term / 365)) : "0.00",
 );
 const unlockDateText = computed(() =>
-  props.term !== null ? formatTrialDate(Date.now() + props.term * ONE_DAY_MS) : "",
+  props.term !== null ? formatTrialDate(Date.now() + props.term * ONE_DAY_MS, dateLocale()) : "",
 );
 const totalText = computed(() =>
   props.term !== null ? formatAmount(amount.value * (1 + apyRate.value * (props.term / 365))) : "0.00",

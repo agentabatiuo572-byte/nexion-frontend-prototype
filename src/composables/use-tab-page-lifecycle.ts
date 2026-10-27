@@ -50,3 +50,13 @@ export function onLoad(hook: (query?: TabQuery) => void) { register("load", hook
 export function onShow(hook: () => void) { register("show", hook, pageShow); }
 export function onHide(hook: () => void) { register("hide", hook, pageHide); }
 export function onUnload(hook: () => void) { register("unload", hook, pageUnload); }
+
+/** Tab children stay mounted; their display clocks belong to visible visits. */
+export function useVisibleInterval(tick: () => void, delay: number) {
+  let timer: ReturnType<typeof setInterval> | undefined;
+  const stop = () => { if (timer !== undefined) clearInterval(timer); timer = undefined; };
+  const start = () => { tick(); if (timer === undefined) timer = setInterval(tick, delay); };
+  if (inject(TAB_LIFECYCLE, null)) { onShow(start); onHide(stop); }
+  else onMounted(start);
+  onBeforeUnmount(stop);
+}

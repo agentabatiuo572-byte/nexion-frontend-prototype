@@ -31,6 +31,8 @@ export default glassViewImplementation;
 
 <style>
 .nx-liquid-glass { position: absolute; inset: 0; pointer-events: none; backdrop-filter: blur(var(--nx-material-blur, .75px)) saturate(110%); -webkit-backdrop-filter: blur(var(--nx-material-blur, .75px)) saturate(110%); }
+/* APP icon SVGs have a view root; keep only later sibling icons above the decorative glass. */
+:global(.nx-liquid-glass ~ .nx-native-svg) { position: relative; z-index: 1; }
 .nx-liquid-optics, .nx-liquid-tint, .nx-liquid-specular, .nx-liquid-rim { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; }
 .nx-liquid-optics { overflow: hidden; }
 .nx-liquid-tint { background: var(--v5-liquid-tint); box-shadow: var(--v5-liquid-shadow); }

@@ -197,6 +197,7 @@
 </template>
 
 <script setup lang="ts">
+import { dateLocale } from "@/i18n/format";
 import { commerceOrderTitle, commerceCopy } from "@/lib/commerce-review";
 import { useLocaleStore } from "@/store/locale";
 import { formatAmount as formatPlainAmount } from "@/lib/amount-display";
@@ -439,7 +440,7 @@ function contactOrderSupport() {
   if(!needsRecovery.value||!order.value)return;
   const scope=captureDetailScope();
   uni.setClipboardData({data:order.value.id,success:()=>{
-    if(isCurrentDetailScope(scope))void navTo('/pages/support/chat?start=support');
+    if(isCurrentDetailScope(scope))void navTo('/pages/me/notifications?section=service');
   }});
 }
 const STATUS_COLORS: Record<OrderStatus, string> = {
@@ -521,7 +522,7 @@ function eventText(stage: OrderStatus): string {
 
 function dt(ts: number): string {
   return Number.isFinite(ts) && Number.isFinite(new Date(ts).getTime())
-    ? formatTrialDateTime(ts)
+    ? formatTrialDateTime(ts, dateLocale())
     : "—";
 }
 

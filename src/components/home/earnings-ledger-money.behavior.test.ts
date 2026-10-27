@@ -29,6 +29,7 @@ function mount(ledger: AppHomeEarningsLedgerRow[] | null, copy = zh, remoteApiEn
     homeTruthStatus: "ready", refreshHomeTruth: vi.fn() });
   const navTo = vi.fn();
   const modules: Record<string, unknown> = {
+    "@/store/locale": { useLocaleStore: () => ({ code: copy === zh ? "zh" : copy === vietnamese ? "vi" : "en" }) },
     vue: Vue, "@/lib/usd-display": { formatUsd }, "./home-live-feed": { formatHomeFeedTime },
     "@/lib/route": { navTo }, "@/i18n/use-t": { useT: () => Vue.ref(copy) },
     "@/api/runtime": { remoteApiEnabled }, "@/store/app": { useApp: () => app },

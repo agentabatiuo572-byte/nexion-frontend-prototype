@@ -30,6 +30,7 @@ const REGISTRY = {
   "app-h5-sync.test.mjs": { how: "elsewhere", by: "npm run test:app-h5-sync" },
   // ── chain:本执行器跑(原孤儿,z1 接入)──
   "native-svg-icons.test.mjs": { how: "chain" },
+  "native-glass-icon-layer.test.mjs": { how: "chain" },
   "hard-block-auth-contract.test.mjs": { how: "chain" },
   "session-ended-remote-contract.test.mjs": { how: "chain" },
   "hard-block-d5-runtime-contract.test.mjs": { how: "chain" },

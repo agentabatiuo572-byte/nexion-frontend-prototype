@@ -1,0 +1,76 @@
+# R19 客服会话与收益卡审查
+
+状态：APP 前端与原型本轮队列已完成，两位独立审查逐项均 ≥9；按序进入 H5 同步。正式后端部署和真机验收不在本地通过范围内。
+
+## 本轮范围
+
+| 项目 | 要求 | 验收状态 |
+| --- | --- | --- |
+| 客服会话 | 稳定客服 ID 合并入口和历史，不同客服分开 | 原型合并入口与继承历史通过 |
+| 未读数量 | 会话右侧数字，按该客服准确汇总 | 新包 390 中文暗色、320 越文浅色通过 |
+| 删除交互 | 左滑展开、二次确认、取消/失败保留、移除管理入口 | 真实网页鼠标与行为测试通过；真机触摸未验 |
+| 用户侧清空 | 后台完整历史保留；跨登录/设备不再向用户显示旧历史 | 原型清空、冷缓存恢复及新消息通过；正式后端未覆盖 |
+| 三张收益卡 | 生图设计后复刻；三语、320/390、明暗主题 | 当前新包实景及入口通过 |
+| 同步与记录 | 功能进 PRD、视觉进前端日志，APP 双审后同步 H5 | APP 已签，进入 H5 同步 |
+
+## 设计依据
+
+- [本轮生图设计板](2026-10-27-service-earn/design-board.png)：三张横向紧凑入口卡。黑灰/青柠色与珠白/电光蓝；手机、玻璃质押方块、GPU 独立立体素材。
+- 文案和按钮以 Vue 实时渲染，不将交互区域压成图片。
+- 底部 Liquid Glass 保留。头像、消息气泡及输入框不属本轮重画范围。
+- [生图提示词与资产说明](2026-10-27-service-earn/imagegen-prompts.md)。
+
+## 交互参考
+
+参考成熟实现的“滑动露出操作、明确破坏性确认”模式，没有复制 Telegram 的业务或权限模型：
+
+- [Telegram iOS 的会话菜单与删除确认](https://github.com/TelegramMessenger/Telegram-iOS/blob/master/submodules/ChatListUI/Sources/ChatContextMenus.swift)
+- [uni-ui swipe action 实现](https://github.com/dcloudio/uni-ui/blob/master/uni_modules/uni-swipe-action/components/uni-swipe-action-item/uni-swipe-action-item.vue)
+- [uni-app 官方滑动组件说明](https://zh.uniapp.dcloud.io/component/uniui/uni-swipe-action.html)
+
+## 后端未覆盖项
+
+正式后端的现有移出列表能力保留消息，无法保证用户重新登录或换设备后不再读取旧历史。需要账号与客服级的用户可见性清空边界、幂等命令以及所有用户读取通道应用该边界；客服后台不应用用户侧清空边界。前端能力门关闭时不宣称删除成功。
+
+正式双设备与客服后台的真实服务联调尚未进行。APP 原生构建不等于 iOS/Android 真机手势验收。
+
+## 本轮发现并修复
+
+- 客服 ID 类型比较导致已有会话仍显示新建入口：按领域字符串 ID 比较。
+- uni-app 的 H5 鼠标事件省略 `button/buttons`，旧滑动实现只在原生事件 mock 下通过，真实鼠标拖动会导航：适配已归一化事件，补实际事件与交互测试。
+- 关闭的滑动行右边泄漏一像素红色删除底色：删除区域仅在拖动或展开时可见。
+- 独立审查最初给用户侧清空 **8.4**：旧页与补齐缺口页首次返回清空水位时，合并函数丢弃水位，旧文本/附件可能回流。现改为贯穿分页合并的最高水位，过滤旧消息及无效游标；Noether 的两条红例转绿，最终复评 **9.1**。
+- 宽回归恢复了旧测试 harness 的缺失依赖，暴露原生相册正常 hide 后丢弃选择的既存问题。现在有效原生选择会话可跨相册 hide/show 返回，账户或会话切换仍使旧结果失效；独立行为测试 **45/45**。此处不等于真机相册通过。
+- 合入远端 `fc6726cf` 的加载稳定性与完整本地化日期修复。重叠的消息列表保留后台刷新不闪行、冷空加载和错误重试门控；完整日期放在摘要下方，避免挤占右侧未读数。
+
+## 当前运行验证（隔离副本）
+
+使用 5240 本地模拟服务；5237 用户原始预览未执行清空。清空前后比对原始消息序列 SHA256，客服档案的 **3 个原会话、34 条消息不变**；用户列表 0 条，3 个旧 CID 详情均返回 0 条、无前页游标。清除该隔离源的 localStorage/sessionStorage 后重载，用户侧仍为空。随后新发消息复用 `DEMO-SUPPORT-3`；新客服回复后仅展示水位后的消息，列表右侧未读为 1。
+
+网页端实际鼠标左拖使行偏移 -80px，不触发导航；显式点击删除才打开确认。取消保留会话。390 中文暗色与 320 越南文浅色确认弹窗均有 Home Indicator 安全间距。收益入口已实测打开 APP 下载引导、质押页和 GPU 连接页；没有执行资金操作或真实客户端下载。
+
+以上是原型/前端证据，不代表正式后端或真实双设备验收完成。原始模拟 state 和包含用户已有聊天的材料仅留本机，不随仓库提交。
+
+## 最终 APP 验证证据
+
+- 源码基线 `fc6726cf`，浏览器入口 `index-C8qsuSm4.js`。关键源码 SHA256、测试总数及边界见 [verification.json](2026-10-27-service-earn/verification.json)。
+- **21 个 Vitest 文件 539 项通过**：17 文件 375 项覆盖 store/API/分页/原生相册及收益入口；4 文件 164 项覆盖消息入口、真实 SFC 列表、左滑和清空确认。另 **66 项 Node 模拟服务测试通过**。
+- `npm run type-check`、`npm run build:h5`、`npm run build:custom -- app` 通过。没有把定向验证称为全量 `npm run verify`，没有真机安装或资金业务操作。
+- [暗色三张收益卡](2026-10-27-service-earn/final-earn-dark-zh-390.png)、[浅色越文 320 上半段](2026-10-27-service-earn/final-earn-light-vi-320.png)、[浅色越文 320 下半段](2026-10-27-service-earn/final-earn-light-vi-320-lower.png)。GPU CTA `Cách kết nối` 单行，内容保持可滚动。
+- [关闭态](2026-10-27-service-earn/final-service-closed-dark-390.png)、[真实左滑展开](2026-10-27-service-earn/final-service-open-dark-390.png)、[反向滑回](2026-10-27-service-earn/final-service-reclosed-dark-390.png)：删除区 hidden → visible → hidden，始终停留在服务列表。
+- [浅色越文 320 列表](2026-10-27-service-earn/final-service-closed-light-vi-320.png)、[清空确认](2026-10-27-service-earn/final-clear-confirm-light-vi-320.png)：日期、右未读和安全间距完整；取消后会话仍为 1 行、未读仍为 1。
+- [清空结果摘要](2026-10-27-service-earn/clear-after.json)仅保存合成 CID、计数和比较结果，不保存原始消息正文。
+
+## 独立审查最终分数
+
+| 项目 | Noether：行为/边界 | Einstein：视觉/交互 |
+| --- | --- | --- |
+| 同客服入口与历史 | 9.2 | 9.1（可见入口与结果） |
+| 右侧未读 | 9.1 | 9.1 |
+| 左滑与确认 | 9.2 | 展开 9.1；关闭/收回 9.2；确认 9.1 |
+| 用户侧清空 | 9.1 | 9.1（空态及新消息可见结果） |
+| Phone 卡 | 9.2 | 9.2 |
+| Staking 卡 | 9.2 | 9.1 |
+| GPU 卡 | 9.1 | 9.1 |
+
+逐项评分，不取平均；源代码与本地原型签核不外推为正式服务器通过。[行为报告](2026-10-27-service-earn/review-behavior.md)、[视觉报告](2026-10-27-service-earn/review-visual.md)保留实际覆盖范围、旧失败和复验依据。

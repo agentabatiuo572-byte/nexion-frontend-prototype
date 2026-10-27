@@ -7,7 +7,8 @@ import ts from "typescript";
 import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
 import { vi as vietnamese } from "@/i18n/messages/vi";
-import { fmt } from "@/i18n/format";
+import { fmt, dateLocale } from "@/i18n/format";
+import { formatDisplayDateTime } from "@/lib/display-date";
 import { formatCommandAmount } from "@/lib/command-amount";
 import { genesisMarketFloor } from "@/lib/genesis-market-floor";
 import { presentGenesisFloorPrice, presentGenesisRoyalty } from "@/lib/genesis-marketplace-presentation";
@@ -45,7 +46,7 @@ function card(listed = false, copy = en) {
     remoteApiEnabled: true, genesisMarketFloor, presentGenesisFloorPrice, presentGenesisRoyalty,
     formatCommandAmount, parseGenesisListingPrice, canExecuteGenesisListingConfirmation,
     captureAccountScope: () => accountEpoch, isCurrentAccountScope: (epoch: number) => epoch === accountEpoch,
-    useUI, toast, confirm, fmt, formatGenesisPrice,
+    useUI, toast, confirm, fmt, dateLocale, formatDisplayDateTime, formatGenesisPrice,
   };
   const actions = scope.run(() => new Function(...Object.keys(bindings), `${js}\nreturn { handleList, handleCancel, askPriceText };`)(...Object.values(bindings))) as {
     handleList: () => Promise<void>; handleCancel: () => Promise<void>; askPriceText: { value: string };

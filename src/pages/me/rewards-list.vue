@@ -51,7 +51,7 @@
                 <view class="flex-1 min-w-0">
                   <text class="block truncate" :style="ticketNameStyle">{{ v.name }}</text>
                   <text class="block truncate" :style="rowSubStyle">{{ scopeText(v) }}</text>
-                  <text class="block truncate" :style="rowSubTightStyle">{{ expiryText(v) }}</text>
+                  <text class="block" :style="rowSubTightStyle">{{ expiryText(v) }}</text>
                 </view>
                 <view class="shrink-0 inline-flex items-center active:opacity-80" :style="useBtnStyle" role="button" tabindex="0" :aria-label="t.rewards.useCta" @click="onUse(v)">
                   <text class="vcs-cta-t" :style="useBtnTextStyle">{{ t.rewards.useCta }}</text>
@@ -137,6 +137,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatDisplayDate } from "@/lib/display-date";
 import { platformDisplayText } from "@/lib/brand-copy";
 
 import { formatAmount } from "@/lib/amount-display";
@@ -148,7 +149,7 @@ import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import PromotionRewardList from "@/components/promotion/promotion-reward-list.vue";
 import { useT } from "@/i18n/use-t";
-import { fmt } from "@/i18n/format";
+import { dateLocale, fmt } from "@/i18n/format";
 import { resolveWalletBillMemo } from "@/lib/wallet-bill-display";
 import { useCourseRewardTitles } from "@/composables/use-course-reward-titles";
 import { useVoucher } from "@/store/voucher";
@@ -279,16 +280,11 @@ watchEffect(() => {
   }
 });
 
-function pad2(n: number): string {
-  return String(n).padStart(2, "0");
-}
 function formatDate(ms: number): string {
-  const d = new Date(ms);
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  return formatDisplayDate(ms, dateLocale());
 }
 function shortDate(ms: number): string {
-  const d = new Date(ms);
-  return `${d.getMonth() + 1}/${d.getDate()}`;
+  return formatDisplayDate(ms, dateLocale());
 }
 // Ticket stub — the denomination alone, big ("$50" / "8%"); the word ("立减"/
 // "折扣"/"OFF") drops to the small label line below it.
@@ -426,7 +422,7 @@ function vIconStyle(dim: boolean): CSSProperties {
 }
 const rowTitleStyle: CSSProperties = { fontSize: "13px", fontWeight: 500, color: "var(--v5-ink)" };
 const rowSubStyle: CSSProperties = { marginTop: "3px", fontSize: "12px", color: "var(--v5-ink-3)" };
-const rowSubTightStyle: CSSProperties = { marginTop: "1px", fontSize: "12px", color: "var(--v5-ink-3)" };
+const rowSubTightStyle: CSSProperties = { marginTop: "1px", fontSize: "12px", color: "var(--v5-ink-3)", overflowWrap: "anywhere" };
 const rowDateStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-4)" };
 function rewardAmountText(bill: Bill): string {
   return formatUsd(bill.amountExact ?? bill.amount, bill.symbol === 'USDT' ? 'detail' : 'overview', true).replace('$', '');

@@ -20,7 +20,7 @@
         <text class="tabular-nums">{{ nexLabel }} UVT</text>
       </view>
     <view class="nx-wallet-details">
-      <text v-if="pendingLine" class="block nx-wallet-pending tabular-nums">{{ pendingLine }}</text>
+      <text v-if="compact || pendingLine" class="block nx-wallet-pending tabular-nums" :aria-hidden="pendingLine ? undefined : true">{{ pendingLine }}</text>
       <view class="nx-wallet-valuation">
         <text>{{ nexMarketLabel }}</text>
         <view v-if="!compact" class="nx-wallet-bills" role="link" tabindex="0" @click="goBills"  @keydown.enter.prevent="goBills" ><text>{{ fmt(t.me.billsThisMonth, {n:billsThisMonth}) }}</text><text aria-hidden="true"> â€º</text></view>
@@ -306,4 +306,8 @@ const usdtLabel = computed(() => usdtBalanceReadable.value ? usdtText.value : "â
 .nx-wallet--compact .nx-wallet-nex { font-size: var(--v5-type-body-m); padding-bottom: 0; }
 .nx-wallet--compact .nx-wallet-coin { width: var(--v5-space-6); height: var(--v5-space-6); }
 .nx-wallet--compact .nx-wallet-details { padding: var(--v5-space-2) 0 0; }
+/* Keep compact feedback slots present; longer financial text can still wrap. */
+.nx-wallet--compact .nx-wallet-pending { min-height: 1.65em; overflow-wrap: anywhere; }
+.nx-wallet--compact .nx-wallet-valuation { min-height: 1.5em; align-items: flex-start; }
+.nx-wallet--compact .nx-wallet-valuation > text { min-width: 0; overflow-wrap: anywhere; }
 </style>

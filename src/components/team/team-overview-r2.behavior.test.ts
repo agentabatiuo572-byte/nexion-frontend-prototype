@@ -169,7 +169,8 @@ describe('R1-TV01 summary count and container contracts (not pixel measurements)
     expect(find(p.root, 'team-art').props.style).not.toHaveProperty('width');
     card.props.onClick(); expect(onOpen).toHaveBeenCalledOnce();
     await p.set({ total: 123456789 }); expect(text(count)).toBe('123456789');
-    await p.set({ status: 'loading' }); expect(text(count)).toBe('—');
+      await p.set({ status: 'loading', hasSnapshot: true }); expect(text(count)).toBe('123456789');
+      await p.set({ hasSnapshot: false }); expect(text(count)).toBe('—');
     expect(card.props['aria-busy']).toBe(true);
     card.props.onClick(); expect(onOpen).toHaveBeenCalledOnce();
     await p.set({ status: 'error' });

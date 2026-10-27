@@ -14,9 +14,9 @@ describe("wallet bill dates", () => {
       expect(walletBillMonthLabel(later, "vi-VN")).toBe("tháng 9 năm 2026");
       expect(walletBillMonthLabel(later, "en-US")).toBe("September 2026");
       expect(walletBillMonthLabel(later, "zh-CN")).toBe("2026/09");
-      expect(walletBillTimeLabel(later, "vi-VN")).toBe("26 thg 9, 02:59");
-      expect(walletBillTimeLabel(later, "en-US")).toBe("Sep 26, 02:59");
-      expect(walletBillTimeLabel(later, "zh-CN")).toBe("09/26 02:59");
+      expect(walletBillTimeLabel(later, "vi-VN")).toBe("26/09/2026 02:59");
+      expect(walletBillTimeLabel(later, "en-US")).toBe("Sep 26, 2026 02:59");
+      expect(walletBillTimeLabel(later, "zh-CN")).toBe("2026/09/26 02:59");
     } finally {
       dateSpy.mockRestore();
       timeSpy.mockRestore();

@@ -55,6 +55,7 @@ const render=new Function('Vue',ts.transpileModule(renderCode,{compilerOptions:{
 // storage and native notifications are adapters; no copy of the read lifecycle.
 function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items?:{productNo:string;quantity:number}[];voucherId?:string;upgradeActivityId?:string},adapters?:{app:ReturnType<typeof useRealApp>;refreshCatalog:typeof refreshProductCatalog}){
   const props=Vue.reactive({activityId:input?.activityId??'a1',items:input?.items??[{productNo:'sku',quantity:1}],orderNo:undefined as string|undefined,voucherId:input?.voucherId,upgradeActivityId:input?.upgradeActivityId});
+  const auth=Vue.reactive({isAuthenticated:true}),locale=Vue.reactive({code:'zh'});
   const intent=selectPromotionCheckoutRecord({},props).intent;
   let rows:Record<string,PromotionCheckoutRecord>=stored?{[intent]:structuredClone(stored)}:{};
   let writable=true;
@@ -76,9 +77,9 @@ function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items
     '@/i18n/format':{fmt},
     vue:{...Vue,onMounted:(fn:()=>Promise<void>)=>mounted.push(fn),onBeforeUnmount:(fn:()=>void)=>unmounted.push(fn)},
     'vue-router':{onBeforeRouteLeave:vi.fn()},
-    '@/api/runtime':{promotionApi:api,deviceE3Api:{fleet}},'@/api/errors':{asApiError},
+    '@/api/runtime':{promotionApi:api,deviceE3Api:{fleet}},'@/api/errors':{asApiError,ApiError},
     '@/api/promotion-api':{validatePromotionItems},
-    '@/i18n/use-t':{useT:()=>Vue.ref(zh)},'@/store/locale':{useLocaleStore:()=>({code:'zh'})},'@/store/app':{useApp:()=>adapters?.app??app},'@/store/auth':{useAuth:()=>({isAuthenticated:true})},
+    '@/i18n/use-t':{useT:()=>Vue.ref(zh)},'@/store/locale':{useLocaleStore:()=>locale},'@/store/app':{useApp:()=>adapters?.app??app},'@/store/auth':{useAuth:()=>auth},
     '@/store/voucher':{useVoucher:()=>vouchers},'@/mock/products':{getProduct},
     '@/store/product-catalog':{productCatalogState:catalog,productCatalogPresentation:presentation,refreshProductCatalog:refreshCatalog},
     '@/lib/route':{navTo:vi.fn(),navBack:vi.fn()},'@/store/ui':{confirm,useUI:()=>({clearConfirmsBy})},
@@ -99,7 +100,7 @@ function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items
   cleanup.push(()=>{unmounted.forEach(fn=>fn());scope.stop();});
   const passthrough={setup:(_props:unknown,{slots}:Vue.SetupContext)=>()=>Vue.h('view',slots.default?.())};
   const html=()=>renderToString(Vue.createSSRApp({components:{PromotionAction:passthrough,PromotionTerms:empty,RewardRows:empty,LiquidGlass:empty,NxSheet:empty},render:()=>render(Vue.proxyRefs({$slots:{},...Vue.toRefs(props),...view}),[])}));
-  return{view,exposed,api,save,key,app,fleet,props,vouchers,getProduct,catalog,presentation,refreshCatalog,html,confirm,clearConfirmsBy,start:()=>Promise.all(mounted.map(fn=>fn())),saved:()=>rows[intent],failStorage:()=>{writable=false;}};
+  return{view,exposed,api,save,key,app,fleet,props,auth,locale,vouchers,getProduct,catalog,presentation,refreshCatalog,html,confirm,clearConfirmsBy,start:()=>Promise.all(mounted.map(fn=>fn())),saved:()=>rows[intent],failStorage:()=>{writable=false;}};
 }
 
 it('order creation, recovery and payment keep the UVEL display name without rewriting the receipt snapshot',async()=>{
@@ -685,4 +686,50 @@ it.each(['PENDING','PAID','CANCELLED','EXPIRED','REFUNDED'] as const)('step high
   const html=await page.html();expect(page.view.checkoutStep.value).toBe(['PENDING','PAID'].includes(paymentStatus)?1:-1);
   expect((html.match(/checkout-step-fill--active/g)??[]).length).toBe(['PENDING','PAID'].includes(paymentStatus)?2:0);
   expect(page.view.checkoutStep.value).not.toBe(2);
+});
+
+
+function ordinaryQuote(quantity=2,amount=quantity===2?'31.84':'15.92'):Quote {
+  const subtotalUsdt=(quantity*19.9).toFixed(2),discountUsdt=(Number(subtotalUsdt)-Number(amount)).toFixed(2);
+  return selectedQuote([{productNo:'sku',quantity}],{activityId:null,activityVersion:null,subtotalUsdt,discountUsdt,amountUsdt:amount,promotionDiscountUsdt:'0',expectedRewards:[],items:[{lineId:'line',productNo:'sku',quantity,unitPriceUsdt:'19.90',subtotalUsdt,discountUsdt,payableUsdt:amount}]});
+}
+async function ordinaryCheckout(quantity=2){const page=screen(undefined,{activityId:'',items:[{productNo:'sku',quantity}]});page.api.quote.mockResolvedValueOnce(ordinaryQuote(quantity));await page.start();return page;}
+it.each([1,2])('same-selection quantity %s refresh retains all read-only fees while authoritative quote is invalid',async quantity=>{
+  const page=await ordinaryCheckout(quantity),old=await page.html(),response=deferred<Quote>(),oldAmount=quantity===2?'31.84':'15.92',newAmount=quantity===2?'30.00':'15.00';page.api.quote.mockReturnValueOnce(response.promise);
+  const read=page.view.loadQuote();await flush();const pending=await page.html();
+  for(const section of ['checkout-discounts','checkout-payment','checkout-fees']){expect(old).toContain('data-testid="'+section+'"');expect(pending).toContain('data-testid="'+section+'"');}
+  expect(pending).toContain(oldAmount+' USDT');expect(page.saved().quote).toBeNull();expect(page.view.quote.value).toBeNull();expect(page.exposed.footer.value).toMatchObject({amount:oldAmount+' USDT',disabled:true});
+  await page.view.createOrder();await page.view.pay();expect(page.api.create).not.toHaveBeenCalled();expect(page.api.pay).not.toHaveBeenCalled();
+  response.resolve(ordinaryQuote(quantity,newAmount));await read;expect(page.exposed.footer.value).toMatchObject({amount:newAmount+' USDT',disabled:false});expect(await page.html()).not.toContain(oldAmount+' USDT');expect(page.api.create).not.toHaveBeenCalled();
+});
+it('same-input network failure keeps fees visible with retry but never restores create/payment authority',async()=>{
+  const page=await ordinaryCheckout();page.api.quote.mockRejectedValueOnce(new ApiError({kind:'network',message:'REQUEST_TIMEOUT'}));await page.view.loadQuote();
+  const html=await page.html();expect(html).toContain('data-testid="checkout-fees"');expect(html).toContain('31.84 USDT');expect(html).toContain(zh.promotion.errorNote);expect(html).toContain(zh.promotion.quote);
+  expect(page.saved().quote).toBeNull();expect(page.view.canCreate.value).toBe(false);expect(page.exposed.footer.value.disabled).toBe(true);await page.view.createOrder();await page.view.pay();expect(page.api.create).not.toHaveBeenCalled();expect(page.api.pay).not.toHaveBeenCalled();
+});
+it.each([new ApiError({kind:'business',message:'PROMOTION_NOT_ELIGIBLE_OR_UNAVAILABLE'}),new ApiError({kind:'auth',message:'AUTH_REQUIRED'}),new ApiError({kind:'protocol',message:'INVALID_QUOTE'}),new Error('QUOTE_INPUT_CHANGED')])('strict refresh rejection removes prior fee snapshot: %s',async failure=>{
+  const page=await ordinaryCheckout();page.api.quote.mockRejectedValueOnce(failure);await page.view.loadQuote();expect(await page.html()).not.toContain('31.84 USDT');expect(page.exposed.footer.value).toMatchObject({amount:'-',disabled:true});expect(page.view.canCreate.value).toBe(false);
+});
+it('new quantity never inherits the prior displayed subtotal or payable while pending or failed',async()=>{
+  const page=await ordinaryCheckout(),response=deferred<Quote>();page.api.quote.mockReturnValueOnce(response.promise);const read=page.view.changeQuantity('sku',-1);await flush();expect(await page.html()).not.toContain('31.84 USDT');expect(page.exposed.footer.value).toMatchObject({amount:'-',disabled:true});response.reject(new ApiError({kind:'network',message:'OFFLINE'}));await read;expect(await page.html()).not.toContain('31.84 USDT');
+});
+it('new manual voucher never inherits prior payable while its current selection is unread',async()=>{
+  const page=await ordinaryCheckout(),response=deferred<Quote>();page.view.voucherOpen.value=true;page.api.quote.mockReturnValueOnce(response.promise);const read=page.view.selectVoucher(null);await flush();expect(await page.html()).not.toContain('31.84 USDT');response.reject(new ApiError({kind:'network',message:'OFFLINE'}));await read;expect(await page.html()).not.toContain('31.84 USDT');expect(page.exposed.footer.value.disabled).toBe(true);
+});
+it.each(['hide','account'] as const)('late same-scope refresh after %s cannot restore presentation or eligibility',async change=>{
+  const page=await ordinaryCheckout(),response=deferred<Quote>();page.api.quote.mockReturnValueOnce(response.promise);const read=page.view.loadQuote();await flush();if(change==='hide')page.exposed.hide();else page.app.accountBindingEpoch++;
+  expect(await page.html()).not.toContain('31.84 USDT');response.resolve(ordinaryQuote(2,'1.00'));await read;expect(await page.html()).not.toContain('1.00 USDT');expect(page.view.quote.value).toBeNull();expect(page.view.canCreate.value).toBe(false);expect(page.api.create).not.toHaveBeenCalled();expect(page.api.pay).not.toHaveBeenCalled();
+});
+
+it.each(['locale','auth','activity'] as const)('presentation scope %s A-B-A clears memory and rejects an old read',async key=>{
+  const page=await ordinaryCheckout(),response=deferred<Quote>();page.api.quote.mockReturnValueOnce(response.promise);const read=page.view.loadQuote();await flush();
+  if(key==='locale'){page.locale.code='en';page.locale.code='zh';}else if(key==='auth'){page.auth.isAuthenticated=false;page.auth.isAuthenticated=true;}else{page.props.activityId='other';page.props.activityId='';}
+  expect(await page.html()).not.toContain('31.84 USDT');response.resolve(ordinaryQuote(2,'30.00'));await read;expect(page.view.quote.value).toBeNull();expect(page.exposed.footer.value.disabled).toBe(true);expect(await page.html()).not.toContain('30.00 USDT');expect(page.api.create).not.toHaveBeenCalled();
+});
+it('same campaign refresh preserves its existing deadline while busy rather than shortening the fee section',async()=>{
+  const page=screen();await page.start();const response=deferred<Quote>();page.api.quote.mockReturnValueOnce(response.promise);page.api.get.mockReturnValueOnce(new Promise(()=>{}));const read=page.view.loadQuote();await flush();expect(await page.html()).toContain(zh.promotion.deadline);expect(page.view.canCreate.value).toBe(false);response.resolve(quote('q2'));await read;
+});
+
+it('fresh event-voucher unavailability clears the prior displayed quote rather than presenting old savings',async()=>{
+  const page=screen(undefined,{activityId:'',items:[{productNo:'sku',quantity:1}],voucherId:'EVENT'});page.vouchers.claimedUnused=[voucherDef('EVENT',3.98)];page.api.quote.mockResolvedValueOnce(ordinaryQuote(1));await page.start();expect(page.exposed.footer.value.disabled).toBe(false);page.vouchers.claimedUnused=[];await page.view.loadQuote();expect(page.view.eventVoucherStatus.value).toBe('unavailable');expect(page.view.displayQuote.value).toBeNull();expect(page.exposed.footer.value).toMatchObject({amount:'-',disabled:true});expect(page.api.create).not.toHaveBeenCalled();
 });

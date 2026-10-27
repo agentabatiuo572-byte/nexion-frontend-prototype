@@ -106,7 +106,7 @@
                   <svg v-if="!isUnlocked(a.id)" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                 </view>
                 <text class="block" :style="aDescStyle(isUnlocked(a.id))">{{ desc(a) }}</text>
-                <text v-if="isUnlocked(a.id)" class="block" :style="aWhenStyle">{{ w.unlockedAt }} · {{ relativeWhen(recOf(a.id)!.unlockedAt) }}</text>
+                <text v-if="isUnlocked(a.id)" class="block" :style="aWhenStyle">{{ w.unlockedAt }} · {{ formatDisplayDateTime(recOf(a.id)!.unlockedAt, locale.code) }}</text>
               </view>
               <view class="text-right shrink-0">
                 <text class="block" :style="rewardStyle(isUnlocked(a.id))">{{ rewardLabel(a) }}</text>
@@ -141,6 +141,7 @@ import SubPageHeader from "@/components/sub-page-header.vue";
 import { dailyMilestoneRewardText, dailyRewardLabels } from "@/pages/daily/daily-reward-view";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
+import { formatDisplayDateTime } from "@/lib/display-date";
 import { toast } from "@/store/ui";
 import { useApp } from "@/store/app";
 import { postMoneyBillsOnce, type ReceiptDraft } from "@/lib/money-receipt";
@@ -419,14 +420,6 @@ function rewardLabel(a: AchievementDef): string {
   if (a.rewardUsdt) return `+${formatAmount(a.rewardUsdt)}`;
   return "VIP badge";
 }
-function relativeWhen(ms: number): string {
-  const diff = Date.now() - ms;
-  if (diff < 60_000) return w.value.unlockedJustNow;
-  if (diff < 3600_000) return `${Math.floor(diff / 60_000)}m ago`;
-  if (diff < 86400_000) return `${Math.floor(diff / 3600_000)}h ago`;
-  return `${Math.floor(diff / 86400_000)}d ago`;
-}
-
 function handleClaim(id: string) {
   const def = ACHIEVEMENTS.find((a) => a.id === id);
   if (!def) return;
@@ -524,7 +517,7 @@ function aLabelStyle(ul: boolean): CSSProperties {
 function aDescStyle(ul: boolean): CSSProperties {
   return { fontSize: "12px", marginTop: "2px", lineHeight: 1.375, color: ul ? "var(--v5-ink-3)" : "var(--v5-ink-4)" };
 }
-const aWhenStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-4)", marginTop: "2px" };
+const aWhenStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-4)", marginTop: "2px", lineHeight: 1.5, whiteSpace: "normal", overflowWrap: "anywhere" };
 function rewardStyle(ul: boolean): CSSProperties {
   return { fontSize: "12px", fontWeight: 500, color: ul ? "var(--v5-brand)" : "var(--v5-ink-4)" };
 }

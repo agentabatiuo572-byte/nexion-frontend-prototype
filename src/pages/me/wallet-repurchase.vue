@@ -130,7 +130,7 @@
           <view v-for="order in repurchase.orders" :key="order.orderNo" style="padding: 16px 0; border-top: 1px solid var(--v5-border)">
             <text class="block" style="overflow-wrap: anywhere">{{ order.orderNo }}</text>
             <Row :label="orderStatusLabel(order.status)" :value="`${formatAmount(order.amountUsdt)} USDT`" />
-            <Row :label="w.maturesAt" :value="new Date(order.unlockAt).toLocaleString(dateLocale())" />
+            <Row :label="w.maturesAt" :value="formatDisplayDateTime(order.unlockAt, dateLocale(), true)" />
             <Row :label="fmt(w.interestCanonical, { apy: order.apyPct, days: order.lockDays })" :value="`${formatAmount(order.estimatedInterestUsdt)} USDT`" />
             <view v-if="order.status === 'MATURE_UNCLAIMED'" role="button" tabindex="0" :aria-disabled="confirming || repurchase.submitting || repurchase.loading || !!repurchase.error" :style="retryCtaStyle" @click="handleClaim(order.orderNo)"  @keydown.enter.prevent="handleClaim(order.orderNo)" @keydown.space.prevent="handleClaim(order.orderNo)"><text>{{ w.claimAction }}</text></view>
             <view v-if="order.status === 'ACTIVE'" role="button" tabindex="0" :aria-disabled="confirming || repurchase.submitting || repurchase.loading || !!repurchase.error" :style="retryCtaStyle" @click="handleEarlyWithdraw(order.orderNo)"  @keydown.enter.prevent="handleEarlyWithdraw(order.orderNo)" @keydown.space.prevent="handleEarlyWithdraw(order.orderNo)"><text>{{ w.earlyAction }}</text></view>
@@ -142,6 +142,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatDisplayDateTime } from "@/lib/display-date";
 import { formatFinanceAmount as formatAmount } from "@/lib/finance-amount-display";
 import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onShow, onHide } from "@dcloudio/uni-app";

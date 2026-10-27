@@ -191,7 +191,18 @@ const fenceReader = createLearningPageFenceReader(
 function fence(): LearningPageFence { return fenceReader.capture(); }
 function current(scope: LearningPageFence): boolean { return fenceReader.isCurrent(scope); }
 function onKeyboardActivate(event: KeyboardEvent, action: () => void) { if (!event.repeat) action(); }
-function backToCourses() { void navReplace("/pages/learn/courses"); }
+function backToCourses() {
+  try {
+    const routes = getCurrentPages().map(page => page.route?.replace(/^\//, ""));
+    let center = routes.length - 2;
+    while (center >= 0 && routes[center] === "pages/learn/course") center--;
+    if (routes[routes.length - 1] === "pages/learn/course" && center >= 0 && routes[center] === "pages/learn/courses") {
+      uni.navigateBack({ delta: routes.length - 1 - center, fail: () => { void navReplace("/pages/learn/courses"); } });
+      return;
+    }
+  } catch { /* An unreadable stack keeps the declared learning-center target. */ }
+  void navReplace("/pages/learn/courses");
+}
 function attemptIdentity(expectedCourse: LearningCourse): LearningAttemptIdentity | null {
   const accountKey = String(app.accountKey).trim();
   if (!accountKey) return null;

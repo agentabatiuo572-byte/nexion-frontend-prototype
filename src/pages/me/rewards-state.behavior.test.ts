@@ -1,3 +1,4 @@
+import * as displayDate from "@/lib/display-date";
 import * as brandCopy from "@/lib/brand-copy";
 import { formatAmount } from "@/lib/amount-display";
 import { formatUsd } from "@/lib/usd-display";
@@ -12,7 +13,7 @@ import legacySource from "../events/promotion-rewards.vue?raw";
 import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
 import { vi as vietnamese } from "@/i18n/messages/vi";
-import { fmt } from "@/i18n/format";
+import { dateLocale, fmt } from "@/i18n/format";
 import { useLocaleStore } from "@/store/locale";
 import { formatHowNumber } from "@/lib/rank-how-content";
 import { resolveWalletBillMemo } from "@/lib/wallet-bill-display";
@@ -90,7 +91,7 @@ async function mount(localeCode: Locale, rows: Bill[] = [], page: keyof typeof c
     "@/components/promotion/promotion-reward-list.vue": { default: Vue.defineComponent({ props: ["activityId", "orderNo"],
       setup: props => () => Vue.h("promotion-rewards", { activityId: props.activityId, orderNo: props.orderNo }) }) },
     "@/i18n/use-t": { useT: () => Vue.computed(() => dicts[locale.code as Locale]) },
-    "@/i18n/format": { fmt }, "@/store/locale": { useLocaleStore }, "@/lib/rank-how-content": { formatHowNumber },
+    "@/lib/display-date": displayDate, "@/i18n/format": { dateLocale, fmt }, "@/store/locale": { useLocaleStore }, "@/lib/rank-how-content": { formatHowNumber },
     "@/lib/wallet-bill-display": { resolveWalletBillMemo },
     "@/composables/use-course-reward-titles": { useCourseRewardTitles: () => Vue.ref({ "intro-uvel@v1": "UVEL intro" }) },
     "@/store/voucher": { useVoucher: () => voucher },

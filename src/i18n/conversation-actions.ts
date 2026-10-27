@@ -1,0 +1,5 @@
+export const conversationActionsCopy = {
+  zh: { delete: '删除', deleting: '删除中', title: '删除会话？', message: '将清空你与该客服的全部聊天记录，重新登录或换设备后也不再显示。客服端仍保留完整记录；后续新消息正常接收。', confirm: '删除并清空', cancel: '取消', failed: '删除失败，聊天记录仍保留。请重试。', contact: '联系客服', swipeHint: '左滑删除会话' },
+  en: { delete: 'Delete', deleting: 'Deleting', title: 'Delete conversation?', message: 'Your chat history with this support contact will no longer appear, even after signing in again or switching devices. Support retains the full history. You will still receive new messages.', confirm: 'Delete and clear', cancel: 'Cancel', failed: 'Could not delete. Your chat history is still saved. Please retry.', contact: 'Contact support', swipeHint: 'Swipe left to delete' },
+  vi: { delete: 'Xóa', deleting: 'Đang xóa', title: 'Xóa cuộc trò chuyện?', message: 'Lịch sử trò chuyện với nhân viên hỗ trợ này sẽ không còn hiển thị, kể cả khi đăng nhập lại hoặc đổi thiết bị. Phía hỗ trợ vẫn giữ đầy đủ lịch sử. Bạn vẫn nhận được tin nhắn mới.', confirm: 'Xóa toàn bộ', cancel: 'Hủy', failed: 'Không thể xóa. Lịch sử vẫn được giữ. Vui lòng thử lại.', contact: 'Liên hệ hỗ trợ', swipeHint: 'Vuốt trái để xóa' },
+};

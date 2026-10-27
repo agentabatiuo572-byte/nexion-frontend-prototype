@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { supportDemo } from './lib/prototype-demo-support.mjs';
 import './lib/prototype-demo-support.test.mjs';
+import './lib/prototype-demo-support-management.test.mjs';
 const read=(state,path='/api/app/support/conversations/DEMO-SUPPORT-1')=>supportDemo(new URL(path,'http://127.0.0.1'),'zh',state,{method:()=> 'GET'});
 test('receipt scenarios supply explicit both-side states and retain missing/system receipts',()=>{
   const state={messageState:'receipts'},first=read(state);

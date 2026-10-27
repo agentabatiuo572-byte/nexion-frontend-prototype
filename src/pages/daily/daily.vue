@@ -218,7 +218,7 @@ import SubPageHeader from "@/components/sub-page-header.vue";
 import StreakPowerUps from "@/components/daily/streak-power-ups.vue";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
-import { fmt } from "@/i18n/format";
+import { dateLocale, fmt } from "@/i18n/format";
 import { formatTrialDateTime } from "@/lib/trial-date";
 import { useNexFaucet } from "@/store/nex-faucet";
 import { useApp } from "@/store/app";
@@ -492,7 +492,7 @@ function daysLeftText(day: number): string {
     return fmt(t.value.daily.milestones.daysLeft, { n: remaining });
 }
 function formatTs(ts: number): string {
-  return Number.isFinite(new Date(ts).getTime()) ? formatTrialDateTime(ts) : "—";
+  return Number.isFinite(new Date(ts).getTime()) ? formatTrialDateTime(ts, dateLocale()) : "—";
 }
 
 /** 签到分录的稳定幂等键 = 当天日期(签到一天一次)。带时间戳的话判重永不命中 = 假幂等。 */

@@ -1,4 +1,5 @@
 import * as Vue from "vue";
+import * as tabLifecycle from "@/composables/use-tab-page-lifecycle";
 import { formatAmount } from "@/lib/amount-display";
 import { formatUsd } from "@/lib/usd-display";
 import { deviceStatisticsCapabilityCopy } from "@/i18n/device-statistics-capability";
@@ -6,6 +7,7 @@ import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import ts from "typescript";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
+vi.mock("@dcloudio/uni-app", () => ({ onLoad: vi.fn(), onShow: vi.fn(), onHide: vi.fn(), onUnload: vi.fn(), onBackPress: vi.fn() }));
 import source from "./device-detail.vue?raw";
 import cardSource from "../../components/earn/device-card-pc.vue?raw";
 import sheetSource from "../../components/earn/capacity-explainer-sheet.vue?raw";
@@ -40,6 +42,7 @@ function component(raw: string, id: string, dependencies: Record<string, unknown
   }).outputText;
   const module = { exports: {} as { default: Component } };
   new Function("require", "module", "exports", code)((key: string) => {
+    if (key === "@/composables/use-tab-page-lifecycle") return tabLifecycle;
     if (!(key in dependencies)) throw new Error(`Unexpected device-detail import: ${key}`);
     return dependencies[key];
   }, module, module.exports);

@@ -1,5 +1,6 @@
 import * as Vue from 'vue';
 import { compileScript, parse } from '@vue/compiler-sfc';
+import { initPreContext, preJs } from '@dcloudio/uni-cli-shared/dist/preprocess';
 import { compile } from '@vue/compiler-dom';
 import { renderToString } from '@vue/server-renderer';
 import ts from 'typescript';
@@ -60,7 +61,7 @@ function visibleText(node: Vue.VNode): string {
   if (typeof node.children === 'string') return node.children;
   return Array.isArray(node.children) ? node.children.map(child => Vue.isVNode(child) ? visibleText(child) : typeof child === 'string' ? child : '').join('') : '';
 }
-function mount(initial: ThreadMsg[] = [], sendSuccessRevision = 0, slots: Vue.Slots = {}) {
+function mount(initial: ThreadMsg[] = [], sendSuccessRevision = 0, slots: Vue.Slots = {}, platform: 'app' | 'h5' = 'app') {
   const app = Vue.reactive({ accountKey: 'user:7', accountBindingEpoch: 1 });
   const shown: Array<() => void> = [], hidden: Array<() => void> = [];
   const props = Vue.reactive({ messages: initial, entranceReady: true, typing: false, topInset: 0, timeLocale: 'zh' as 'zh' | 'en' | 'vi', composerKey: 'conversation:A', revealTick: 0,
@@ -80,7 +81,10 @@ function mount(initial: ThreadMsg[] = [], sendSuccessRevision = 0, slots: Vue.Sl
     '@/lib/conversation-audio': { createConversationAudio: () => sound },
     './message-status-icon.vue': { default: { render: () => null } },
   };
-  new Function('require', 'exports', code)((id: string) => { if (!(id in modules)) throw new Error(id); return modules[id]; }, exports);
+  initPreContext(platform);
+  const platformCode = platform === 'app' ? code : transpile(compileScript(parse(source.replace(descriptor.scriptSetup!.content,
+    preJs(descriptor.scriptSetup!.content, 'conversation-thread.vue'))).descriptor, { id: 'thread-behavior-h5' }).content);
+  new Function('require', 'exports', platformCode)((id: string) => { if (!(id in modules)) throw new Error(id); return modules[id]; }, exports);
   const scope = Vue.effectScope(), view = scope.run(() => exports.default.setup(props, { emit, expose() {} }))!;
   cleanups.push(() => scope.stop());
   let node!: Vue.VNode; const renderCache: unknown[] = [];
@@ -109,6 +113,359 @@ function initialFlowScroller() {
     get scrollTop() { return top; },
     set scrollTop(value: number) { top = Math.max(0, Math.min(value, this.scrollHeight - this.clientHeight)); } };
 }
+
+function nativePreviewMeasurements() {
+  const pending: Array<{ selectors: string[]; done: (rows: unknown[]) => void }> = [], fields = vi.fn(), previewImage = vi.fn();
+  vi.stubGlobal('uni', { previewImage, createSelectorQuery: () => {
+    const selectors: string[] = [];
+    const query = { in: () => query, select: (value: string) => { selectors.push(value); return query; },
+      selectAll: (value: string) => { selectors.push(value); return query; }, boundingClientRect: () => query,
+      fields: (options: unknown) => { fields(options); return query; },
+      exec: (done: (rows: unknown[]) => void) => { if (selectors.includes('.nx-conv-msg-row') || selectors.some(selector => selector.endsWith('-preview-image'))) pending.push({ selectors, done }); } };
+    return query;
+  } });
+  return { previewImage, fields,
+    reply(rows: unknown[], images: unknown[] = []) { const request = pending.shift(); expect(request?.selectors).toContain('.nx-conv-msg-row'); request!.done([rows, images]); },
+    ack(id: string, result = previewImageNode(id, 124)) { const request = pending.shift(); expect(request?.selectors).toEqual(['#' + previewImageNode(id, 124).id]); request!.done([result]); },
+    get pending() { return pending.length; } };
+}
+const previewRow = (id: string, height: number, minimum = 0) => ({
+  id: 'nx-conv-message-' + Array.from(id).map(char => char.charCodeAt(0).toString(16)).join('-') + '-preview',
+  height, 'min-height': minimum + 'px',
+});
+const imageOne = 'https://fixture.invalid/one', imageTwo = 'https://fixture.invalid/two';
+const previewImageNode = (id: string, height: number, minimum = 0, maximum = 0) => ({
+  id: previewRow(id, 0).id + '-image', width: 220, height, 'min-height': minimum + 'px', 'max-height': maximum + 'px',
+});
+
+it('native no-DOM preview measures identified rows and confirms real min-height before opening', async () => {
+  const native = nativePreviewMeasurements(), screen = mount([message('one', 'left', { imageSrc: imageOne }), message('system', 'left', { tone: 'system' }), message('two', 'left', { imageSrc: imageTwo })]);
+  screen.view.listHost.value = {}; screen.view.onThreadScroll({ detail: { scrollTop: 120 } });
+  screen.view.openPreview(imageOne); expect(native.previewImage).not.toHaveBeenCalled();
+  native.reply([previewRow('two', 180), { id: 'history-prefix', height: 900 }, previewRow('system', 24), previewRow('one', 220)], [previewImageNode('two', 90), previewImageNode('one', 124)]);
+  expect(screen.view.previewRowHeights.value).toEqual({ one: 220, two: 180 }); expect(native.previewImage).not.toHaveBeenCalled();
+  await flush(); expect(native.previewImage).not.toHaveBeenCalled();
+  native.reply([previewRow('two', 180, 180), previewRow('one', 220, 220)], [previewImageNode('one', 124, 124, 124), previewImageNode('two', 90, 90, 90)]);
+  expect(native.fields).toHaveBeenCalledWith({ id: true, size: true, computedStyle: ['min-height'] });
+  expect(native.fields).toHaveBeenLastCalledWith({ id: true, size: true, computedStyle: ['min-height', 'max-height'] });
+  expect(native.previewImage).toHaveBeenCalledOnce(); expect(native.previewImage.mock.calls[0][0]).toMatchObject({ current: imageOne, urls: [imageOne] });
+  screen.hide(); screen.props.messages = screen.props.messages.map(row => row.imageSrc ? { ...row, imageSrc: undefined, imageLoading: true } : row); screen.show(); await flush();
+  const rows = findAll(await screen.node(), 'nx-conv-msg-row');
+  expect(rows.map(row => (Vue.normalizeStyle(row.props?.style) as Vue.CSSProperties)?.minHeight)).toEqual(['220px', undefined, '180px']);
+  expect(screen.view.previewImage.value).toBe('');
+});
+
+it.each(['missing', 'duplicate', 'nan', 'zero', 'uncommitted'] as const)('native preview falls back in place when geometry is %s', async failure => {
+  const native = nativePreviewMeasurements(), screen = mount([message('one', 'left', { imageSrc: imageOne })]); screen.view.listHost.value = {};
+  screen.view.openPreview(imageOne);
+  native.reply(failure === 'missing' ? [] : failure === 'duplicate' ? [previewRow('one', 220), previewRow('one', 220)] : [previewRow('one', failure === 'nan' ? NaN : failure === 'zero' ? 0 : 220)], [previewImageNode('one', 124)]);
+  await flush(); if (failure === 'uncommitted') native.reply([previewRow('one', 220)]);
+  expect(native.previewImage).not.toHaveBeenCalled(); expect(screen.view.previewImage.value).toBe(imageOne); expect(screen.view.previewRowHeights.value).toEqual({});
+});
+
+it.each(['account', 'binding', 'composer', 'reveal', 'host', 'hide', 'dispose', 'source-aba', 'reorder', 'scroll'] as const)('late native capture cannot launch after %s', async change => {
+  const native = nativePreviewMeasurements(), screen = mount([message('one', 'left', { imageSrc: imageOne }), message('two', 'left', { imageSrc: imageTwo })]); screen.view.listHost.value = {};
+  screen.view.openPreview(imageOne);
+  if (change === 'account') screen.app.accountKey = 'user:8';
+  if (change === 'binding') screen.app.accountBindingEpoch++;
+  if (change === 'composer') screen.props.composerKey = 'conversation:B';
+  if (change === 'reveal') screen.props.revealTick++;
+  if (change === 'host') screen.view.listHost.value = {};
+  if (change === 'hide') { screen.hide(); screen.show(); }
+  if (change === 'dispose') screen.stop();
+  if (change === 'source-aba') { screen.props.messages[0].imageSrc = undefined; screen.props.messages[0].imageSrc = imageOne; }
+  if (change === 'reorder') screen.props.messages.reverse();
+  if (change === 'scroll') screen.view.onThreadScroll({ detail: { scrollTop: 270 } });
+  native.reply([previewRow('one', 220), previewRow('two', 180)], [previewImageNode('one', 124), previewImageNode('two', 90)]); await flush();
+  expect(native.previewImage).not.toHaveBeenCalled(); expect(screen.view.previewImage.value).toBe(''); expect(screen.view.previewRowHeights.value).toEqual({});
+  if (change === 'scroll') expect(screen.view.scrollTop.value).toBe(270);
+});
+
+it.each(['scroll', 'binding', 'reveal', 'hide', 'source', 'dispose'] as const)('native style-commit callback is fenced after %s', async change => {
+  const native = nativePreviewMeasurements(), screen = mount([message('one', 'left', { imageSrc: imageOne })]); screen.view.listHost.value = {};
+  screen.view.openPreview(imageOne); native.reply([previewRow('one', 220)], [previewImageNode('one', 124)]); await flush();
+  if (change === 'scroll') screen.view.onThreadScroll({ detail: { scrollTop: 270 } });
+  if (change === 'binding') screen.app.accountBindingEpoch++;
+  if (change === 'reveal') screen.props.revealTick++;
+  if (change === 'hide') { screen.hide(); screen.show(); }
+  if (change === 'source') screen.props.messages[0].imageSrc = undefined;
+  if (change === 'dispose') screen.stop();
+  native.reply([previewRow('one', 220, 220)]); await flush();
+  expect(native.previewImage).not.toHaveBeenCalled(); expect(screen.view.previewRowHeights.value).toEqual({});
+  if (change === 'scroll') expect(screen.view.scrollTop.value).toBe(270);
+});
+
+it('a newer click supersedes both measurement and style-commit callbacks without opening an old image', async () => {
+  const native = nativePreviewMeasurements(), screen = mount([message('one', 'left', { imageSrc: imageOne }), message('two', 'left', { imageSrc: imageTwo })]); screen.view.listHost.value = {};
+  screen.view.openPreview(imageOne); native.reply([previewRow('one', 220), previewRow('two', 180)], [previewImageNode('one', 124), previewImageNode('two', 90)]); await flush();
+  screen.view.openPreview(imageTwo); native.reply([previewRow('one', 220, 220), previewRow('two', 180, 180)]);
+  expect(native.previewImage).not.toHaveBeenCalled();
+  native.reply([previewRow('one', 220), previewRow('two', 180)], [previewImageNode('one', 124), previewImageNode('two', 90)]); await flush(); native.reply([previewRow('one', 220, 220), previewRow('two', 180, 180)], [previewImageNode('one', 124, 124, 124), previewImageNode('two', 90, 90, 90)]);
+  expect(native.previewImage).toHaveBeenCalledOnce(); expect(native.previewImage.mock.calls[0][0].current).toBe(imageTwo);
+});
+
+it.each(['missing', 'duplicate', 'zero', 'nan', 'wrong-id'] as const)('native image geometry %s cannot be replaced with a guessed size', async failure => {
+  const native = nativePreviewMeasurements(), screen = mount([message('one', 'left', { imageSrc: imageOne })]); screen.view.listHost.value = {};
+  screen.view.openPreview(imageOne);
+  const image = previewImageNode(failure === 'wrong-id' ? 'another' : 'one', failure === 'zero' ? 0 : failure === 'nan' ? NaN : 124);
+  native.reply([previewRow('one', 220)], failure === 'missing' ? [] : failure === 'duplicate' ? [image, image] : [image]); await flush();
+  expect(native.previewImage).not.toHaveBeenCalled(); expect(screen.view.previewImage.value).toBe(imageOne);
+  expect(screen.view.previewRowHeights.value).toEqual({}); expect(screen.view.previewImageHeights.value).toEqual({});
+});
+
+it.each(['missing', 'minimum', 'maximum', 'actual-height'] as const)('both images need committed size bounds before preview, failure=%s', async failure => {
+  const native = nativePreviewMeasurements(), screen = mount([message('one', 'left', { imageSrc: imageOne }), message('two', 'left', { imageSrc: imageTwo })]); screen.view.listHost.value = {};
+  screen.view.openPreview(imageOne); native.reply([previewRow('one', 220), previewRow('two', 180)], [previewImageNode('one', 124), previewImageNode('two', 90)]); await flush();
+  const second = previewImageNode('two', failure === 'actual-height' ? 240 : 90, failure === 'minimum' ? 0 : 90, failure === 'maximum' ? 280 : 90);
+  native.reply([previewRow('one', 220, 220), previewRow('two', 180, 180)], failure === 'missing' ? [previewImageNode('one', 124, 124, 124)] : [previewImageNode('one', 124, 124, 124), second]);
+  expect(native.previewImage).not.toHaveBeenCalled(); expect(screen.view.previewImage.value).toBe(imageOne); expect(screen.view.previewImageHeights.value).toEqual({});
+});
+
+async function nativeReservedPair() {
+  const native = nativePreviewMeasurements(), screen = mount([message('one', 'left', { imageSrc: imageOne }), message('two', 'left', { imageSrc: imageTwo })]); screen.view.listHost.value = {};
+  screen.view.openPreview(imageOne); native.reply([previewRow('one', 220), previewRow('two', 180)], [previewImageNode('one', 124), previewImageNode('two', 90)]); await flush();
+  native.reply([previewRow('one', 220, 220), previewRow('two', 180, 180)], [previewImageNode('one', 124, 124, 124), previewImageNode('two', 90, 90, 90)]);
+  const oldImages = findAll(await screen.node(), 'nx-conv-image');
+  screen.hide(); screen.props.messages = screen.props.messages.map(row => ({ ...row, imageSrc: undefined, imageLoading: true })); screen.show();
+  await activateExistingHumanPage(screen).activate(); await flush();
+  screen.props.messages = screen.props.messages.map((row, index) => ({ ...row, imageSrc: index ? imageTwo : imageOne, imageLoading: false }));
+  const images = findAll(await screen.node(), 'nx-conv-image'); return { screen, native, oldImages, images };
+}
+const loadedImage = { detail: { width: 640, height: 360 } };
+
+it('numeric image bounds cover the default-sized reload and release both current loads only after view acknowledgment', async () => {
+  const { screen, native, images } = await nativeReservedPair();
+  expect(images.map(image => image.props?.style)).toEqual([{ minHeight: '124px', maxHeight: '124px' }, { minHeight: '90px', maxHeight: '90px' }]);
+  expect(images.every(image => image.props?.style.height === undefined)).toBe(true);
+  images.forEach(image => image.props!.onLoad(loadedImage)); await flush();
+  expect(native.pending).toBe(2); expect(screen.view.previewImageHeights.value).toEqual({ one: 124, two: 90 });
+  native.ack('one'); expect(screen.view.previewImageHeights.value).toEqual({ two: 90 }); expect(screen.view.previewRowHeights.value).toEqual({ two: 180 });
+  native.ack('two'); expect(screen.view.previewImageHeights.value).toEqual({}); expect(screen.view.previewRowHeights.value).toEqual({});
+});
+
+it.each(['missing', 'zero', 'nan'] as const)('unknown intrinsic load %s keeps its numeric reservation', async failure => {
+  const { screen, native, images } = await nativeReservedPair();
+  images[0].props!.onLoad(failure === 'missing' ? undefined : { detail: { width: failure === 'zero' ? 0 : NaN, height: 360 } }); await flush();
+  expect(native.pending).toBe(0); expect(screen.view.previewImageHeights.value.one).toBe(124); expect(screen.view.previewRowHeights.value.one).toBe(220);
+});
+
+it.each(['wrong-id', 'zero-width', 'zero-height', 'nan-height'] as const)('post-load view acknowledgment %s cannot release pending bounds', async failure => {
+  const { screen, native, images } = await nativeReservedPair(); images[0].props!.onLoad(loadedImage); await flush();
+  const result = previewImageNode(failure === 'wrong-id' ? 'foreign' : 'one', failure === 'zero-height' ? 0 : failure === 'nan-height' ? NaN : 124);
+  if (failure === 'zero-width') result.width = 0;
+  native.ack('one', result); expect(screen.view.previewImageHeights.value.one).toBe(124); expect(screen.view.previewRowHeights.value.one).toBe(220);
+});
+
+it.each(['owner', 'binding', 'host', 'hide', 'source-aba', 'dispose'] as const)('late post-load view acknowledgment cannot release after %s', async change => {
+  const { screen, native, images } = await nativeReservedPair(); images[0].props!.onLoad(loadedImage); await flush();
+  if (change === 'owner') screen.app.accountKey = 'user:8';
+  if (change === 'binding') screen.app.accountBindingEpoch++;
+  if (change === 'host') screen.view.listHost.value = {};
+  if (change === 'hide') screen.hide();
+  if (change === 'source-aba') { screen.props.messages[0].imageSrc = undefined; screen.props.messages[0].imageSrc = imageOne; }
+  if (change === 'dispose') screen.stop();
+  const before = JSON.stringify(screen.view.previewImageHeights.value); native.ack('one');
+  expect(JSON.stringify(screen.view.previewImageHeights.value)).toBe(before);
+});
+
+it('old source load and queued load before another preview cannot release newer measured bounds', async () => {
+  const { screen, native, oldImages, images } = await nativeReservedPair(); oldImages[0].props!.onLoad(loadedImage); await flush(); expect(native.pending).toBe(0);
+  images[0].props!.onLoad(loadedImage); await flush(); screen.view.openPreview(imageTwo);
+  native.ack('one'); native.reply([previewRow('one', 260), previewRow('two', 200)], [previewImageNode('one', 130), previewImageNode('two', 110)]); await flush();
+  expect(screen.view.previewImageHeights.value).toEqual({ one: 130, two: 110 });
+});
+
+// Execute the current human-page activation, including its reveal revision and
+// existing history/policy reads, against the complete thread's real watchers.
+function activateExistingHumanPage(screen: ReturnType<typeof mount>) {
+  const start = chatSource.indexOf('async function activateHumanPage()');
+  const end = chatSource.indexOf('// Bare full-screen page', start);
+  const reads = { refreshAdvisor: vi.fn(), refresh: vi.fn(async () => {}), open: vi.fn(async () => {}), images: vi.fn(), policy: vi.fn() };
+  const context = { novaPageVisible: true, isAi: Vue.ref(false), supportSessionReady: Vue.ref(true), stopHumanThreadPolling: vi.fn(),
+    humanRealtime: { show: () => 1 }, app: screen.app, convStore: { scopeInvalidated: 0, refreshAdvisor: reads.refreshAdvisor, refresh: reads.refresh, composer: () => ({}) },
+    loadAttachmentPolicy: reads.policy, restoreCompletedHumanCreate: vi.fn(), restoreRecoveredComposer: vi.fn(), humanComposerKey: Vue.ref('conversation:A'),
+    cid: Vue.ref('existing-canonical'), startType: Vue.ref(null), revealTick: Vue.toRef(screen.props, 'revealTick'), remoteApiEnabled: true,
+    humanHistoryListError: Vue.ref(false), openHumanConversation: reads.open, loadPrivateImages: reads.images };
+  const activate = new Function(...Object.keys(context), transpile(chatSource.slice(start, end)) + '\nreturn activateHumanPage;')(...Object.values(context)) as () => Promise<void>;
+  return { activate, reads };
+}
+
+it.each(['retained', 'hidden-clamp'] as const)('native image preview returns to historical reading position through the real human activation: %s', async scenario => {
+  const screen = mount([message('historical-image', 'left', { imageSrc: 'https://fixture.invalid/readable-image' }), message('latest')]);
+  const host = initialFlowScroller(); screen.view.listHost.value = host;
+  host.scrollTop = 120; screen.view.onThreadScroll({ detail: { scrollTop: 120 } });
+  const previewImage = vi.fn(); vi.stubGlobal('uni', { previewImage });
+  screen.view.openPreview('https://fixture.invalid/readable-image'); expect(previewImage).toHaveBeenCalledOnce();
+  screen.hide();
+  if (scenario === 'hidden-clamp') { host.clientHeight = host.scrollHeight; host.scrollTop = 0; screen.view.onThreadScroll({ detail: { scrollTop: 0 } }); host.clientHeight = 681; }
+  screen.show(); const page = activateExistingHumanPage(screen); await page.activate(); await flush();
+  expect(host.scrollTop).toBe(120); expect(screen.view.scrollTop.value).toBe(120);
+  expect(screen.view.scrollAnchor.value).not.toBe('nx-conv-end');
+  expect(page.reads.refresh).toHaveBeenCalledOnce(); expect(page.reads.open).toHaveBeenCalledOnce(); expect(page.reads.images).toHaveBeenCalledOnce(); expect(page.reads.policy).toHaveBeenCalledOnce();
+  screen.props.messages.push(message('incoming-after-preview')); await flush(); expect(host.scrollTop).toBe(120);
+  screen.hide(); screen.show(); await page.activate(); await flush(); expect(host.scrollTop).toBe(450);
+});
+
+it.each(['during', 'after'] as const)('native preview at the tail keeps ordinary append following %s return', async moment => {
+  const screen = mount([message('image', 'left', { imageSrc: 'https://fixture.invalid/image' })]);
+  const host = initialFlowScroller(); screen.view.listHost.value = host; screen.view.scrollToEnd(); await flush();
+  screen.view.onThreadScroll({ detail: { scrollTop: host.scrollTop } }); vi.stubGlobal('uni', { previewImage: vi.fn() });
+  screen.view.openPreview('https://fixture.invalid/image'); screen.hide();
+  if (moment === 'during') { host.scrollHeight += 100; screen.props.messages.push(message('real-new-message')); await flush(); }
+  screen.show(); await activateExistingHumanPage(screen).activate(); await flush();
+  if (moment === 'after') { host.scrollHeight += 100; screen.props.messages.push(message('real-new-message')); await flush(); }
+  expect(host.scrollTop).toBe(550);
+});
+
+it.each(['ready', 'failed'] as const)('native preview reserves only measured image-row height while private sources are cleared and re-read: %s', async outcome => {
+  const screen = mount([message('image', 'left', { imageSrc: 'https://fixture.invalid/image' }), message('latest')]);
+  const host = initialFlowScroller(); let intrinsicHeight = 220, reservedHeight = 0;
+  Object.defineProperty(host, 'scrollHeight', { get: () => 911 + Math.max(intrinsicHeight, reservedHeight) });
+  host.querySelectorAll = (selector?: string) => selector === '.nx-conv-msg-row'
+    ? [{ getBoundingClientRect: () => ({ height: 220 }) }, { getBoundingClientRect: () => ({ height: 100 }) }] as any : [];
+  screen.view.listHost.value = host; host.scrollTop = 400; screen.view.onThreadScroll({ detail: { scrollTop: 400 } });
+  vi.stubGlobal('uni', { previewImage: vi.fn() }); screen.view.openPreview('https://fixture.invalid/image');
+  const measuredRow = findAll(await screen.node(), 'nx-conv-msg-row')[0];
+  reservedHeight = parseFloat(String((Vue.normalizeStyle(measuredRow.props!.style) as Vue.CSSProperties)?.minHeight)) || 0;
+  expect(reservedHeight).toBe(220);
+  screen.hide(); screen.props.messages[0] = { ...screen.props.messages[0], imageSrc: undefined, imageLoading: true }; intrinsicHeight = 18;
+  host.scrollTop = host.scrollTop; expect(host.scrollTop).toBe(400);
+  screen.show(); await activateExistingHumanPage(screen).activate(); await flush(); expect(host.scrollTop).toBe(400);
+  const loadingRow = findAll(await screen.node(), 'nx-conv-msg-row')[0]; expect((Vue.normalizeStyle(loadingRow.props!.style) as Vue.CSSProperties)?.minHeight).toBe('220px');
+  expect(visibleText(loadingRow)).toContain(zh.conversations.image.loading);
+  if (outcome === 'failed') {
+    screen.props.messages[0] = { ...screen.props.messages[0], imageLoading: false, imageError: true };
+    const errorRow = findAll(await screen.node(), 'nx-conv-msg-row')[0];
+    expect(visibleText(errorRow)).toContain(zh.conversations.image.failed); expect(findAll(errorRow, 'nx-conv-image')).toHaveLength(0);
+    expect(host.scrollTop).toBe(400); return;
+  }
+  screen.props.messages[0] = { ...screen.props.messages[0], imageSrc: 'https://fixture.invalid/new-current-source', imageLoading: false };
+  intrinsicHeight = 220;
+  findAll(await screen.node(), 'nx-conv-image')[0].props!.onLoad(); await flush();
+  const loadedRow = findAll(await screen.node(), 'nx-conv-msg-row')[0];
+  expect((Vue.normalizeStyle(loadedRow.props!.style) as Vue.CSSProperties)?.minHeight).toBeUndefined(); reservedHeight = 0; host.scrollTop = host.scrollTop;
+  expect(host.scrollTop).toBe(400);
+});
+
+it('native preview restoration respects user scroll during the current layout transaction', async () => {
+  const screen = mount([message('image')]), host = initialFlowScroller(); screen.view.listHost.value = host;
+  host.scrollTop = 120; screen.view.onThreadScroll({ detail: { scrollTop: 120 } }); vi.stubGlobal('uni', { previewImage: vi.fn() });
+  screen.view.openPreview('https://fixture.invalid/image'); screen.hide(); screen.show();
+  const resumed = activateExistingHumanPage(screen).activate(); await Vue.nextTick();
+  host.scrollTop = 210; screen.view.onThreadScroll({ detail: { scrollTop: 210 } });
+  await resumed; await flush(); await vi.advanceTimersByTimeAsync(100); await flush();
+  expect(host.scrollTop).toBe(210); expect(screen.view.scrollTop.value).toBe(210);
+});
+
+it.each(['before-activation', 'before-watch'] as const)('native preview never replaces a returned user scroll captured %s', async moment => {
+  const screen = mount([message('image')]), host = initialFlowScroller(); screen.view.listHost.value = host;
+  host.scrollTop = 120; screen.view.onThreadScroll({ detail: { scrollTop: 120 } }); vi.stubGlobal('uni', { previewImage: vi.fn() });
+  screen.view.openPreview('https://fixture.invalid/image'); screen.hide(); screen.show();
+  let activation: Promise<void> | undefined;
+  if (moment === 'before-watch') activation = activateExistingHumanPage(screen).activate();
+  host.scrollTop = 270; screen.view.onThreadScroll({ detail: { scrollTop: 270 } });
+  await (activation ?? activateExistingHumanPage(screen).activate()); await flush(); await vi.advanceTimersByTimeAsync(100); await flush();
+  expect(host.scrollTop).toBe(270); expect(screen.view.scrollTop.value).toBe(270);
+});
+
+it('preview geometry is not fabricated when native rows have no measured image heights', async () => {
+  const screen = mount([message('image', 'left', { imageSrc: 'https://fixture.invalid/image' })]);
+  screen.view.listHost.value = initialFlowScroller(); vi.stubGlobal('uni', { previewImage: vi.fn() }); screen.view.openPreview('https://fixture.invalid/image');
+  expect((Vue.normalizeStyle(findAll(await screen.node(), 'nx-conv-msg-row')[0].props!.style) as Vue.CSSProperties)?.minHeight).toBeUndefined();
+  screen.app.accountBindingEpoch++; await flush(); expect((Vue.normalizeStyle(findAll(await screen.node(), 'nx-conv-msg-row')[0].props!.style) as Vue.CSSProperties)?.minHeight).toBeUndefined();
+});
+
+async function nativePreviewLoadFixture(two = false) {
+  const src = 'https://fixture.invalid/load-frame';
+  const screen = mount([message('image', 'left', { imageSrc: src }), ...(two ? [message('second-image', 'left', { imageSrc: src + '-second' })] : [])]);
+  const host = initialFlowScroller(); screen.view.listHost.value = host;
+  host.querySelectorAll = (selector?: string) => selector === '.nx-conv-msg-row'
+    ? [{ getBoundingClientRect: () => ({ height: 220 }) }, { getBoundingClientRect: () => ({ height: 180 }) }] as any : [];
+  vi.stubGlobal('uni', { previewImage: vi.fn() }); screen.view.openPreview(src);
+  const oldImages = findAll(await screen.node(), 'nx-conv-image');
+  const height = async (index = 0) => (Vue.normalizeStyle(findAll(await screen.node(), 'nx-conv-msg-row')[index].props!.style) as Vue.CSSProperties)?.minHeight;
+  return { screen, src, oldImages, height };
+}
+
+it.each(['unavailable', 'replacement', 'same-url-new-frame'] as const)('native preview image load from an old VNode cannot release a current %s slot', async state => {
+  const { screen, src, oldImages, height } = await nativePreviewLoadFixture(); screen.hide();
+  screen.props.messages[0] = { ...screen.props.messages[0], imageSrc: undefined, imageLoading: true }; await flush();
+  screen.show(); await activateExistingHumanPage(screen).activate(); await flush();
+  if (state !== 'unavailable') {
+    // Mutating the existing message also checks that the listener captures the
+    // source/frame while rendering, rather than reading the old VNode's live object.
+    screen.props.messages[0].imageSrc = state === 'replacement' ? src + '-new' : src;
+    screen.props.messages[0].imageLoading = false; await flush();
+  }
+  oldImages[0].props!.onLoad(); await flush(); expect(await height()).toBe('220px');
+  if (state !== 'unavailable') { findAll(await screen.node(), 'nx-conv-image')[0].props!.onLoad(); await flush(); expect(await height()).toBeUndefined(); }
+});
+
+it('native preview image load queued before a new hidden reservation cannot release that reservation', async () => {
+  const { screen, src, height } = await nativePreviewLoadFixture(); screen.hide(); screen.show();
+  await activateExistingHumanPage(screen).activate(); await flush();
+  findAll(await screen.node(), 'nx-conv-image')[0].props!.onLoad();
+  screen.view.openPreview(src); screen.hide(); screen.props.messages[0] = { ...screen.props.messages[0], imageSrc: undefined, imageLoading: true };
+  await flush(); expect(await height()).toBe('220px');
+});
+
+it('native preview image loads from two current frames release both rows in the same turn', async () => {
+  const { screen, height } = await nativePreviewLoadFixture(true); screen.hide(); screen.show();
+  await activateExistingHumanPage(screen).activate(); await flush();
+  findAll(await screen.node(), 'nx-conv-image').forEach(image => image.props!.onLoad()); await flush();
+  expect(await height(0)).toBeUndefined(); expect(await height(1)).toBeUndefined();
+});
+
+it.each(['account', 'binding', 'composer', 'host'] as const)('native preview reading restore cannot cross %s ownership', async boundary => {
+  const screen = mount([message('image', 'left', { imageSrc: 'https://fixture.invalid/image' })]), host = initialFlowScroller(); screen.view.listHost.value = host;
+  host.querySelectorAll = (selector?: string) => selector === '.nx-conv-msg-row' ? [{ getBoundingClientRect: () => ({ height: 220 }) }] as any : [];
+  host.scrollTop = 120; screen.view.onThreadScroll({ detail: { scrollTop: 120 } }); vi.stubGlobal('uni', { previewImage: vi.fn() });
+  screen.view.openPreview('https://fixture.invalid/image'); screen.hide();
+  if (boundary === 'account') screen.app.accountKey = 'user:other';
+  if (boundary === 'binding') screen.app.accountBindingEpoch++;
+  if (boundary === 'composer') screen.props.composerKey = 'conversation:B';
+  const currentHost = boundary === 'host' ? initialFlowScroller() : host; screen.view.listHost.value = currentHost;
+  screen.show(); await activateExistingHumanPage(screen).activate(); await flush(); expect(currentHost.scrollTop).toBe(450);
+  expect((Vue.normalizeStyle(findAll(await screen.node(), 'nx-conv-msg-row')[0].props!.style) as Vue.CSSProperties)?.minHeight).toBeUndefined();
+});
+
+it('a failed native preview uses its existing overlay and cannot suppress a later ordinary reentry', async () => {
+  const screen = mount([message('image', 'left', { imageSrc: 'https://fixture.invalid/image' })]), host = initialFlowScroller(); screen.view.listHost.value = host;
+  host.scrollTop = 120; screen.view.onThreadScroll({ detail: { scrollTop: 120 } });
+  vi.stubGlobal('uni', { previewImage: vi.fn((options: { fail: () => void }) => options.fail()) });
+  screen.view.openPreview('https://fixture.invalid/image'); expect(screen.view.previewImage.value).toBe('https://fixture.invalid/image');
+  screen.hide(); screen.show(); await activateExistingHumanPage(screen).activate(); await flush(); expect(host.scrollTop).toBe(450);
+});
+
+it.each([false, true])('native preview failure cannot expose a cleared current-owner private source, hidden=%s', async hidden => {
+  let failed!: () => void; const screen = mount([message('image', 'left', { imageSrc: 'https://fixture.invalid/image' })]);
+  screen.view.listHost.value = initialFlowScroller();
+  vi.stubGlobal('uni', { previewImage: vi.fn((options: { fail: () => void }) => { failed = options.fail; }) });
+  screen.view.openPreview('https://fixture.invalid/image'); if (hidden) screen.hide();
+  screen.props.messages[0] = { ...screen.props.messages[0], imageSrc: undefined, imageError: true }; await flush(); failed();
+  expect(screen.view.previewImage.value).toBe('');
+});
+
+it('a late native preview failure cannot expose the previous owner image', async () => {
+  let failed!: () => void; const screen = mount([message('image')]); vi.stubGlobal('uni', { previewImage: vi.fn((options: { fail: () => void }) => { failed = options.fail; }) });
+  screen.view.listHost.value = initialFlowScroller();
+  screen.view.openPreview('https://fixture.invalid/image'); screen.app.accountBindingEpoch++; await flush(); failed();
+  expect(screen.view.previewImage.value).toBe('');
+});
+
+it('disposed native preview callbacks cannot recreate the image overlay', () => {
+  let failed!: () => void; const screen = mount([message('image')]); vi.stubGlobal('uni', { previewImage: vi.fn((options: { fail: () => void }) => { failed = options.fail; }) });
+  screen.view.listHost.value = initialFlowScroller();
+  screen.view.openPreview('https://fixture.invalid/image'); screen.stop(); failed(); expect(screen.view.previewImage.value).toBe('');
+});
+
+it('H5 preview remains a local overlay without native preview or native-return suppression', async () => {
+  const screen = mount([message('image')], 0, {}, 'h5'), host = initialFlowScroller(); screen.view.listHost.value = host;
+  host.scrollTop = 120; screen.view.onThreadScroll({ detail: { scrollTop: 120 } }); const previewImage = vi.fn(); vi.stubGlobal('uni', { previewImage });
+  screen.view.openPreview('https://fixture.invalid/image'); expect(previewImage).not.toHaveBeenCalled(); expect(screen.view.previewImage.value).toBe('https://fixture.invalid/image');
+  screen.view.closePreview(); expect(screen.view.previewImage.value).toBe(''); expect(host.scrollTop).toBe(120);
+  screen.hide(); screen.show(); await activateExistingHumanPage(screen).activate(); await flush(); expect(host.scrollTop).toBe(450);
+});
 
 // Execute the installed UniApp methods which owned the stale transitionend in
 // r18-reentry-scroll-trace.json. Only the DOM geometry/event target is replaced.
@@ -1283,7 +1640,7 @@ it('labels a fresh arrival as today between clock ticks without hiding a genuine
   screen.props.messages = [message('live', 'left', { timestamp: start + 20_000 })]; await flush();
   expect(screen.view.timeGroups.value.live).toBe('今天 14:00');
   screen.props.messages = [...screen.props.messages, message('future', 'left', { timestamp: start + 86_420_000 })]; await flush();
-  expect(screen.view.timeGroups.value.future).toContain('2026年10月27日');
+  expect(screen.view.timeGroups.value.future).toContain('2026/10/27');
 });
 
 it('disables unavailable image input without a visible caption while text sending and policy recovery remain usable', async () => {
@@ -1505,4 +1862,21 @@ it('history recovery retry is single-flight, handles failure and ignores an obso
   const style = parse(chatSource).descriptor.styles.find(item => item.scoped)!.content;
   expect(style).toMatch(/\.cp-history-text-action \{[^}]*min-height:44px[^}]*background:transparent/);
   expect(style).toMatch(/\.cp-history-text-action \{[^}]*justify-content:center/);
+});
+
+it.each([
+  ['zh', '2025/12/31 23:59:05'], ['en', 'Dec 31, 2025 23:59:05'], ['vi', '31/12/2025 23:59:05'],
+] as const)('keeps shared absolute dates accessible while midnight and24h remain separate rules in %s', async (locale, full) => {
+  vi.stubGlobal('Intl', undefined);
+  const first = new Date(2025, 11, 31, 23, 59, 5).getTime(); vi.setSystemTime(new Date(2026, 0, 3, 12));
+  const screen = mount([message('last-year', 'left', { timestamp: first, meta: 'Support' }),
+    message('new-year', 'right', { timestamp: first + 60_000, meta: 'You' }),
+    message('after24h', 'left', { timestamp: first + 60_000 + 86_400_000, meta: 'Support' })]);
+  screen.props.timeLocale = locale; await flush(); const node = await screen.node();
+  expect(Object.keys(screen.view.timeGroups.value)).toEqual(['last-year', 'after24h']);
+  expect(findAll(node, 'nx-conv-time-divider')).toHaveLength(2);
+  const times = findAll(node, 'nx-conv-message-time'); expect(times.map(visibleText)).toEqual(['23:59', '00:00', '00:00']);
+  expect(times[0].props?.title).toMatch(new RegExp('^' + full.replaceAll('/', '\\/') + ' GMT[+-]\\d{2}:\\d{2}$'));
+  expect(times[0].props?.['aria-label']).toContain(full);
+  expect(findAll(node, 'nx-conv-enter-left')).toHaveLength(0);
 });

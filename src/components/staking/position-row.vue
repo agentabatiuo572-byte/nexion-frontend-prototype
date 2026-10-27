@@ -66,6 +66,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatDisplayDate } from "@/lib/display-date";
 import { formatAmount } from "@/lib/amount-display";
 import { formatStakingPercentage } from "@/lib/staking-percentage";
 import { computed, type CSSProperties } from "vue";
@@ -99,7 +100,7 @@ const apyPct = computed(() => formatStakingPercentage(props.p.apy));
 const daysIn = computed(() => Math.floor(elapsed.value / ONE_DAY_MS));
 const accruedText = computed(() => formatAmount(accrued.value));
 const claimText = computed(() => fmt(t.value.stakingV3.position.claim, { amount: formatAmount(props.p.amountUSDT + accrued.value) }));
-const startedDate = computed(() => new Date(props.p.startTs).toLocaleDateString(dateLocale()));
+const startedDate = computed(() => formatDisplayDate(props.p.startTs, dateLocale()));
 
 function onTrack() {
   toast.info(t.value.stakingV3.position.autoClaimToast, fmt(t.value.stakingV3.position.autoClaimSubtitle, { n: remainingDays.value }));

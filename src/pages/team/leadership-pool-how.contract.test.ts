@@ -6,7 +6,7 @@ describe("leadership How server facts", () => {
   it("uses live eligibility, published weights and current participation without invented funding rules", () => {
     expect(source).toContain("leadershipHowFacts");
     expect(source).toContain("rank: facts.value.unlockRank");
-    expect(source).toContain("new Date(facts.value.nextPayoutAt)");
+    expect(source).toContain("formatDisplayDateTime(facts.value.nextPayoutAt, locale.code, true)");
     expect(source).toContain("configuredVoteRows");
     expect(source).toContain("row.leadershipVotes");
     expect(source).toContain("remotePool.value?.distribution");

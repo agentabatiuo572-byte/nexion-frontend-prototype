@@ -140,7 +140,7 @@ describe("ticket timeline message behavior", () => {
     expect(h.state.timeLabel.value).toBe("12:34");
     expect(h.state.dateLabel.value).toBe("2026/10/03");
     h.locale.code = "en"; expect(h.state.dateLabel.value).toBe("Oct 3, 2026");
-    h.locale.code = "vi"; expect(h.state.dateLabel.value).toBe("3 thg 10, 2026");
+    h.locale.code = "vi"; expect(h.state.dateLabel.value).toBe("03/10/2026");
     expect(await h.html()).toContain('class="ticket-record-date"');
     h.props.showDate = false;
     expect(await h.html()).not.toContain('class="ticket-record-date"');

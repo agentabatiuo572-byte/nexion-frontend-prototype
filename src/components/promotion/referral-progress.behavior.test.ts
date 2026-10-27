@@ -20,7 +20,7 @@ function mount() {
   const app = Vue.reactive({ accountKey: 'user:7', accountBindingEpoch: 1 });
   const auth = Vue.reactive({ isAuthenticated: true });
   const products=Vue.reactive<Record<string,{imageUrl?:string}>>({});
-  const catalog=Vue.reactive({status:'ready',revision:'1'});
+  const catalog=Vue.reactive({status:'ready',revision:'1',serverCanonical:true});
   const list = vi.fn().mockResolvedValue({ items: [{ activityId: 'A', template: 'DIRECT_REFERRAL', state:'ACTIVE' }], nextCursor: null, hasMore: false });
   const refreshProductCatalog=vi.fn().mockResolvedValue(true);
   const referral = vi.fn<(id: string) => Promise<Progress>>().mockImplementation(async id => ({ activityId: id, qualifyingOrders: 1, ownRewards: [] }));
@@ -130,6 +130,17 @@ it('clears old pagination and errors immediately while the next account is loadi
   resolve({items:[],nextCursor:null,hasMore:false});await flush();expect(screen.view.loading.value).toBe(false);
 });
 
+it('retains the ordinary activity on hide and pending return, but shows real read errors',async()=>{
+  const screen=mount();await flush();
+  screen.hide();expect(screen.view.activities.value.map(row=>row.activityId)).toEqual(['A']);
+  let reject!:(reason:unknown)=>void;screen.list.mockReturnValueOnce(new Promise((_yes,no)=>{reject=no;}));
+  screen.show();await flush();
+  expect(screen.view.activities.value.map(row=>row.activityId)).toEqual(['A']);
+  reject(new Error('offline'));await flush();expect(screen.view.error.value).toBe(true);
+  screen.list.mockReturnValueOnce(new Promise(()=>{}));screen.app.accountBindingEpoch++;await flush();
+  expect(screen.view.activities.value).toEqual([]);
+});
+
 it('keeps another activity readable when one progress request fails and retries only that activity',async()=>{
   const screen=mount();await flush();
   screen.list.mockResolvedValueOnce({items:[{activityId:'A',template:'DIRECT_REFERRAL',state:'ACTIVE'},{activityId:'B',template:'DIRECT_REFERRAL',state:'ACTIVE'}],nextCursor:null,hasMore:false});
@@ -171,7 +182,11 @@ it('refreshes the same purchase URL with progress retry and hides it when the ca
   const screen=mount();await flush();
   const activity={activityId:'A',version:1,rewardRules:[{productNo:'purchase',inviterReward:{type:'DEVICE',giftProductNo:'gift'}}]} as PublicPromotion;
   screen.products.purchase={imageUrl:'https://images.example/purchase'};
-  const first=screen.view.referralImageProps(activity);await screen.view.loadProgress('A');
+  const first=screen.view.referralImageProps(activity);
+  await screen.view.loadProgress('A');expect(screen.view.referralImageProps(activity).refreshKey).toBe(first.refreshKey);
+  screen.catalog.status='loading';expect(screen.view.referralImageProps(activity)).toEqual(first);
+  screen.catalog.serverCanonical=false;expect(screen.view.referralImageProps(activity).imageUrl).toBeUndefined();screen.catalog.serverCanonical=true;
+  screen.catalog.status='ready';await (screen.view.loadProgress as (id:string,refresh:boolean)=>Promise<void>)('A',true);
   const retry=screen.view.referralImageProps(activity);expect(retry.imageUrl).toBe(first.imageUrl);expect(retry.refreshKey).not.toBe(first.refreshKey);
   screen.catalog.status='error';expect(screen.view.referralImageProps(activity).imageUrl).toBeUndefined();
   screen.catalog.status='ready';screen.auth.isAuthenticated=false;expect(screen.view.referralImageProps(activity).imageUrl).toBeUndefined();

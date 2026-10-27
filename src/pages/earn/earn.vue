@@ -97,23 +97,18 @@
       </EmptySlotsHint>
 
       <EarningsLedgerCard class="mx-4" />
-      <NxSection class="mx-4" :title="auditCopy.moreWays">
-        <view class="earn-way nx-glass-card">
-          <text class="earn-way__title">{{ remainderCopy.phoneTitle }}</text>
-          <text class="earn-way__body">{{ remainderCopy.phoneBody }}</text>
-          <!-- #ifdef H5 -->
-          <NxButton size="small" :label="remainderCopy.downloadApp" @click="goPhoneDownload" />
-          <!-- #endif -->
-          <!-- #ifndef H5 -->
-          <NxButton size="small" :label="nativePhoneAvailable ? remainderCopy.phoneAction : remainderCopy.phoneReadOnly" @click="goPhoneCompute" />
-          <!-- #endif -->
-        </view>
-        <view v-if="stakingVisible" class="earn-way nx-glass-card">
-          <text class="earn-way__title">{{ remainderCopy.stakingTitle }}</text>
-          <text class="earn-way__body">{{ remainderCopy.stakingBody }}</text>
-          <NxButton size="small" :label="remainderCopy.stakingAction" @click="goStaking" />
-        </view>
-        <ComputeShareEntry />
+      <NxSection class="mx-4 earn-more-ways" :title="auditCopy.moreWays">
+        <!-- #ifdef H5 -->
+        <EarnWayCard eyebrow="ANDROID" :title="remainderCopy.earnWays.phoneTitle" :body="remainderCopy.earnWays.phoneBody"
+          image="/static/img/earn-20261027/phone.webp" :action="remainderCopy.downloadApp" @click="goPhoneDownload" />
+        <!-- #endif -->
+        <!-- #ifndef H5 -->
+        <EarnWayCard eyebrow="ANDROID" :title="remainderCopy.earnWays.phoneTitle" :body="remainderCopy.earnWays.phoneBody"
+          image="/static/img/earn-20261027/phone.webp" :action="nativePhoneAvailable ? remainderCopy.earnWays.phoneAction : remainderCopy.earnWays.phoneReadOnly" @click="goPhoneCompute" />
+        <!-- #endif -->
+        <EarnWayCard v-if="stakingVisible" eyebrow="UVT" :title="remainderCopy.stakingTitle" :body="remainderCopy.earnWays.stakingBody"
+          image="/static/img/earn-20261027/staking.webp" :action="remainderCopy.stakingAction" @click="goStaking" />
+        <ComputeShareEntry context="earn" />
         <TrialGhostSlot />
       </NxSection>
       <MarketBoard />
@@ -132,7 +127,7 @@ import { onHide, onShow } from "@/composables/use-tab-page-lifecycle";
 import AppChassis from "@/components/tab-page-frame.vue";
 import CardStagger from "@/components/card-stagger.vue";
 import NxSection from "@/components/ui/nx-section.vue";
-import NxButton from "@/components/ui/nx-button.vue";
+import EarnWayCard from "@/components/earn/earn-way-card.vue";
 import EarningsLedgerCard from "@/components/home/earnings-ledger-card.vue";
 import { useAuditUiCopy } from "@/i18n/audit-ui";
 import { useRemainderUiCopy } from "@/i18n/remainder-ui";
@@ -377,8 +372,5 @@ const rangeOptions = computed(() => RANGES.map(value => ({ value, label: rangeLa
 
 <style scoped>
 .earn-scope { color: var(--v5-ink-2); font: 400 12px/1.4 var(--font-v5); text-align: right; max-width: 50%; }
-.earn-way { margin-top: 12px; padding: 12px; border-radius: var(--nx-glass-radius); background: var(--nx-glass-fill); }
-.earn-way__title { display: block; color: var(--v5-ink); font: 600 15px/1.4 var(--font-v5); }
-.earn-way__body { display: block; margin-block: 4px 8px; color: var(--v5-ink-2); font: 400 13px/1.55 var(--font-v5); }
-.earn-way :deep(.nx-button) { max-width: 100%; }
+.earn-more-ways :deep(.nx-section__title) { font-size: 20px; line-height: 1.25; }
 </style>

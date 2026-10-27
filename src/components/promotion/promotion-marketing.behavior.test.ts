@@ -106,7 +106,7 @@ it('cycles actual home offers and leaves absolute expiry and purchase conditions
   const html=await screen.html();
   expect(html).toContain('剩 29 天');expect(html).toContain('购机赠礼');expect(html).toContain('活动规则');
   find(screen.node(),'entry-home-deadline')!.props!.onClick({stopPropagation(){}});
-  expect(screen.view.termsText.value).toContain('2026-11-06 00:00 · UTC');
+  expect(screen.view.termsText.value).toContain('2026/11/06 00:00 · UTC');
   expect(screen.view.termsRules.value[0].text).toContain('2');
   find(screen.node(),'entry-pagination')!.props!.onClick();
   expect(screen.view.visibleItems.value[0].activityId).toBe('a2');
@@ -182,7 +182,7 @@ it('both supplied and independently fetched adverts require ACTIVE, independent 
   const own=advert();own.list.mockResolvedValueOnce(page([activity(),activity({activityId:'closed',state:'ENDED'})]));await own.view.load(true);
   expect(own.view.items.value.map((row:PublicPromotion)=>row.activityId)).toEqual(['a1']);
   const late=deferred<PublicPromotionPage>();own.list.mockReturnValueOnce(late.promise);const read=own.view.load(true);
-  expect(own.view.items.value).toEqual([]);own.hide();late.resolve(page([activity()]));await read;expect(own.view.items.value).toEqual([]);
+  expect(own.view.items.value.map((row:PublicPromotion)=>row.activityId)).toEqual(['a1']);own.hide();late.resolve(page([activity()]));await read;expect(own.view.items.value.map((row:PublicPromotion)=>row.activityId)).toEqual(['a1']);
   own.list.mockRejectedValueOnce(new Error('unavailable'));own.show();await flush();expect(own.view.items.value).toEqual([]);expect(own.view.status.value).toBe('error');
 });
 it.each(['account','locale'] as const)('an independent advert clears marketing and fences the old read across %s',async boundary=>{
@@ -271,7 +271,7 @@ it('keeps distinct roles for the same SKU and reloads current URLs after catalog
   screen.catalog.status='error';await screen.html();expect(find(screen.node(),'entry-main-image')!.props!['image-url']).toBeUndefined();
   screen.catalog.status='ready';screen.catalog.revision='next';await screen.html();
   expect(find(screen.node(),'entry-main-image')!.props!['image-url']).toBe('https://images.example/same');
-  expect(find(screen.node(),'entry-main-image')!.props!['refresh-key']).not.toBe(refresh);
+  expect(find(screen.node(),'entry-main-image')!.props!['refresh-key']).toBe(refresh);
 });
 
 it.each(['account','epoch','locale','version','url','refresh','hide'] as const)('rejects stale banner readiness after %s',async boundary=>{

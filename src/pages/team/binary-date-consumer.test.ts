@@ -21,7 +21,7 @@ for (const [zone, date] of [["Asia/Tokyo", "2026-10-12"], ["Asia/Ho_Chi_Minh", "
     });
     const event = Object.freeze({ ts: Date.parse("2026-10-11T15:30:00Z") });
     for (const locale of ["zh-CN", "en-US", "vi-VN"]) {
-      expect(eventDate(event, formatTrialDate, () => locale)).toBe(date);
+      expect(eventDate(event, formatTrialDate, () => locale)).toBe(locale.startsWith("zh") ? date.replace(/-/g, "/") : locale.startsWith("vi") ? `${date.slice(8)}/${date.slice(5, 7)}/${date.slice(0, 4)}` : `Oct ${Number(date.slice(8))}, 2026`);
     }
     expect(nativeLocale).not.toHaveBeenCalled();
     expect(event.ts).toBe(Date.parse("2026-10-11T15:30:00Z"));

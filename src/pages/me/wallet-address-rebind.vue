@@ -249,6 +249,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatDisplayDateTime } from "@/lib/display-date";
 import { computed, getCurrentInstance, nextTick, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onHide, onLoad, onShow } from "@dcloudio/uni-app";
 import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
@@ -258,7 +259,7 @@ import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import CaptchaSlider from "@/components/captcha-slider.vue";
 import { useT } from "@/i18n/use-t";
-import { fmt } from "@/i18n/format";
+import { dateLocale, fmt } from "@/i18n/format";
 import { navBack, navTo } from "@/lib/route";
 import { requireAccountPhone } from "@/lib/require-account-phone";
 import { confirm as uiConfirm, toast, useUI } from "@/store/ui";
@@ -706,9 +707,7 @@ const freezeBannerText = computed(() =>
 );
 const cooldownDays = computed(() => payout.changeCooldownDays ?? cfg.config.withdrawRules.rebindCooldownDays);
 function fmtStamp(ts: number): string {
-  const d = new Date(ts);
-  const p2 = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+  return formatDisplayDateTime(ts, dateLocale());
 }
 // 频控拦截给绝对时刻(平台口径,不说「明天」;规格 ② 异常3)
 const cooldownUntilText = computed(() => {

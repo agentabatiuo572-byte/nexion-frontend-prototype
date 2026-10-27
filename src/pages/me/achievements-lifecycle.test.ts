@@ -1,4 +1,5 @@
 import { formatAmount } from "@/lib/amount-display";
+import { formatDisplayDateTime } from "@/lib/display-date";
 import ts from "typescript";
 import * as vue from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -36,6 +37,7 @@ function mount() {
   let beforeDelivery: (() => void) | undefined;
   const modules: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
+    "@/lib/display-date": { formatDisplayDateTime },
     "@/store/locale": { useLocaleStore: () => ({code:"zh"}) },
     vue: { ...vue, onUnmounted: (fn: () => void) => hooks.unmount.push(fn) },
     "@dcloudio/uni-app": { onShow: (fn: () => void) => hooks.show.push(fn), onHide: (fn: () => void) => hooks.hide.push(fn) },

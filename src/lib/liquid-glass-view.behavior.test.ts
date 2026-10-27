@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { mountChassis, segmentsView, type SegmentsConfiguration } from "./liquid-glass-view";
 
-function harness(top = 0, maximum = 800) {
+function harness(top = 0, maximum = 800, tabKey?: string) {
   const listeners = new Map<string, () => void>();
   const scroll = {
     scrollTop: top, scrollHeight: maximum + 600, clientHeight: 600,
@@ -30,7 +30,7 @@ function harness(top = 0, maximum = 800) {
     observe = observe;
     disconnect = disconnect;
   });
-  const controller = mountChassis(root as unknown as HTMLElement);
+  const controller = mountChassis(root as unknown as HTMLElement, { tabKey });
   return {
     title, navTitle, logo, controller, scroll, root, observe, disconnect,
     move(next: number) { scroll.scrollTop = next; listeners.get("scroll")?.(); },
@@ -39,6 +39,108 @@ function harness(top = 0, maximum = 800) {
 }
 
 afterEach(() => { vi.unstubAllGlobals(); });
+
+it("restores each tab's last matching query scroll in the WebView and drops replaced queries", () => {
+  const h = harness(0, 800, "/pages/index/index");
+  h.move(625);
+  h.controller.update({ tabKey: "/pages/store/store?activityId=a" });
+  expect(h.scroll.scrollTop).toBe(0);
+  h.move(410);
+  h.controller.update({ tabKey: "/pages/index/index" });
+  expect(h.scroll.scrollTop).toBe(625);
+  h.controller.update({ tabKey: "/pages/store/store?activityId=a" });
+  expect(h.scroll.scrollTop).toBe(410);
+  h.controller.update({ tabKey: "/pages/store/store?activityId=b" });
+  expect(h.scroll.scrollTop).toBe(0);
+  h.controller.update({ tabKey: "/pages/store/store?activityId=a" });
+  expect(h.scroll.scrollTop).toBe(0);
+  h.controller.destroy();
+  expect(h.disconnect).toHaveBeenCalledOnce();
+});
+
+it("fences a short incoming tab's clamp before the renderjs animation frame commits its key", () => {
+  const h = harness(0, 800, "/pages/index/index");
+  h.root.dataset.tabKey = "/pages/index/index";
+  h.move(625);
+  h.root.dataset.tabKey = "/pages/store/store";
+  h.scroll.scrollHeight = 600; h.move(0);
+  h.controller.update({ tabKey: "/pages/store/store" });
+  h.scroll.scrollHeight = 1400; h.root.dataset.tabKey = "/pages/index/index";
+  h.controller.update({ tabKey: "/pages/index/index" });
+  expect(h.scroll.scrollTop).toBe(625);
+  h.controller.destroy();
+});
+
+it("fences A to B to A when the renderjs frame has not committed either navigation", () => {
+  const h = harness(0, 800, "/pages/index/index");
+  h.move(625);
+  h.root.dataset.tabKey = "/pages/index/index"; h.root.dataset.tabRevision = "2";
+  h.move(0);
+  h.controller.update({ tabKey: "/pages/index/index", tabRevision: 2 });
+  expect(h.scroll.scrollTop).toBe(625);
+  h.controller.destroy();
+});
+
+it("restores subpage and external-browser returns without saving hidden-page clamp events", () => {
+  const h = harness();
+  h.move(578);
+  h.root.dataset.pageVisible = "false"; h.move(0);
+  h.controller.update({ visible: false });
+  h.root.dataset.pageVisible = "true";
+  h.controller.update({ visible: true });
+  expect(h.scroll.scrollTop).toBe(578);
+  let visibility = "visible";
+  let notify!: () => void;
+  vi.stubGlobal("document", { get visibilityState() { return visibility; }, addEventListener: (_: string, fn: () => void) => { notify = fn; }, removeEventListener: vi.fn() });
+  const external = mountChassis(h.root as unknown as HTMLElement);
+  h.move(432);
+  visibility = "hidden"; h.move(0);
+  visibility = "visible"; notify();
+  expect(h.scroll.scrollTop).toBe(432);
+  external.destroy(); h.controller.destroy();
+});
+
+function clampedLayout() {
+  const events = new Map<string, () => void>(), frames = new Map<number, FrameRequestCallback>();
+  let serial = 0, height = 1800, top = 0, mutation = () => {}, resize = () => {};
+  const body = {}, observed: unknown[] = [];
+  vi.stubGlobal("requestAnimationFrame", (fn: FrameRequestCallback) => { frames.set(++serial, fn); return serial; });
+  vi.stubGlobal("cancelAnimationFrame", (id: number) => frames.delete(id));
+  vi.stubGlobal("MutationObserver", class { constructor(fn: () => void) { mutation = fn; } observe() {} disconnect() { mutation = () => {}; } });
+  vi.stubGlobal("ResizeObserver", class { constructor(fn: () => void) { resize = fn; } observe(target: unknown) { observed.push(target); } disconnect() { resize = () => {}; } });
+  const scroll = { clientHeight: 600, get scrollHeight() { return height; }, get scrollTop() { return top; },
+    set scrollTop(value: number) { top = Math.max(0, Math.min(value, Math.max(0, height - 600))); },
+    querySelector: () => body, addEventListener: (event: string, fn: () => void) => events.set(event, fn), removeEventListener: (event: string) => events.delete(event) };
+  const root = { dataset: { pageVisible: "true" }, querySelector: () => scroll, querySelectorAll: () => [],
+    getClientRects: () => root.dataset.pageVisible === "false" ? [] : [{}],
+    addEventListener: (event: string, fn: () => void) => events.set(`root:${event}`, fn), removeEventListener: (event: string) => events.delete(`root:${event}`) };
+  const controller = mountChassis(root as unknown as HTMLElement);
+  const frame = () => { const pending = [...frames.values()]; frames.clear(); pending.forEach(fn => fn(0)); };
+  const move = (value: number) => { scroll.scrollTop = value; events.get("scroll")?.(); };
+  return { root, scroll, controller, observed, body, frame, move,
+    changeHeight(value: number, notification: "mutation" | "resize" = "mutation") { height = value; move(top); (notification === "mutation" ? mutation : resize)(); frame(); },
+    marker(value: string) { root.dataset.pageVisible = value; mutation(); frame(); },
+    wheel(value: number) { events.get("wheel")?.(); move(value); },
+  };
+}
+
+it.each(["mutation", "resize"] as const)("restores after real DOM clamping until %s reports that long content returned", notification => {
+  const p = clampedLayout(); p.move(1050); p.marker("false"); p.controller.update({ visible: false });
+  p.changeHeight(600, notification); p.marker("true"); p.controller.update({ visible: true }); p.frame();
+  expect(p.scroll.scrollTop).toBe(0);
+  expect(p.observed).toContain(p.body);
+  p.changeHeight(1800, notification); expect(p.scroll.scrollTop).toBe(1050); p.controller.destroy();
+});
+
+it("waits for a late visible marker, lets a user's wheel cancel restoration, and cancels pending frames on destroy", () => {
+  const p = clampedLayout(); p.move(1050); p.marker("false"); p.controller.update({ visible: false }); p.changeHeight(600);
+  p.controller.update({ visible: true }); p.frame(); p.changeHeight(1800); expect(p.scroll.scrollTop).toBe(0);
+  p.marker("true"); expect(p.scroll.scrollTop).toBe(1050);
+  p.marker("false"); p.controller.update({ visible: false }); p.changeHeight(600); p.marker("true"); p.controller.update({ visible: true }); p.frame();
+  p.changeHeight(900); p.wheel(100); p.changeHeight(1800); expect(p.scroll.scrollTop).toBe(100);
+  p.marker("false"); p.controller.update({ visible: false }); p.changeHeight(600); p.marker("true"); p.controller.update({ visible: true });
+  p.controller.destroy(); p.changeHeight(1800); p.frame(); expect(p.scroll.scrollTop).toBe(0);
+});
 
 function motionHarness() {
   const frames = new Map<number, FrameRequestCallback>();
@@ -222,7 +324,8 @@ describe("chassis header title visibility", () => {
     expect(late.dataset.hidden).toBe("true");
     expect(late.getAttribute("aria-hidden")).toBe("true");
     h.move(0); expect(late.dataset.hidden).toBe("false");
-    expect(h.observe).toHaveBeenCalledWith(expect.anything(), { childList: true, subtree: true });
+    expect(h.observe).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ childList: true, subtree: true, attributes: true,
+      attributeFilter: expect.arrayContaining(["data-page-visible", "data-tab-key", "data-tab-revision"]) }));
   });
 
   it("clamps overscroll on a short page to the visible top state", () => {

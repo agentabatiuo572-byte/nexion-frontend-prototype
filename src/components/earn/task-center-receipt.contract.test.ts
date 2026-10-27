@@ -65,8 +65,8 @@ import { compileScript, compileTemplate, parse } from '@vue/compiler-sfc';
 import ts from 'typescript';
 import { createPinia, setActivePinia } from 'pinia';
 import { zh } from '@/i18n/messages/zh';
-import { fmt } from '@/i18n/format';
-import { taskRelativeTime } from '@/lib/task-relative-time';
+import { fmt, dateLocale } from '@/i18n/format';
+import { formatDisplayDateTime } from '@/lib/display-date';
 import { workloadLabel } from '@/lib/workload-label';
 import { isActiveSlotDevice } from '@/lib/device-slot-policy';
 const remote = vi.hoisted(() => ({
@@ -78,6 +78,7 @@ const remote = vi.hoisted(() => ({
 vi.mock('@/api/runtime', () => remote);
 const { useApp } = await import('@/store/app');
 const { useUI, toast } = await import('@/store/ui');
+const tabLifecycle = await import('@/composables/use-tab-page-lifecycle');
 const sourceRoot = new URL("../../", import.meta.url);
 const stopped: Array<() => void> = [];
 function deferred<T>() { let resolve!: (v:T)=>void; let reject!:(e:unknown)=>void; const promise=new Promise<T>((a,b)=>{resolve=a;reject=b;}); return {promise,resolve,reject}; }
@@ -104,6 +105,8 @@ function compile(path:string, imports:(id:string)=>any, template=false) {
 }
 async function setup() {
   const app=useApp(); app.bindAccount('A'); const ui=useUI(); const shows:Function[]=[]; const hides:Function[]=[];
+  const lifecycle=tabLifecycle.createTabLifecycle({},true);
+  shows.push(()=>lifecycle.setVisible(true));hides.push(()=>lifecycle.setVisible(false));
   const modal={props:['receipt'],emits:['close'],setup:(p:any,c:any)=>()=>Vue.h('probe-modal',{receipt:p.receipt,onClose:()=>c.emit('close')})};
   const noChild={render:()=>null}; const navigation={navTo:vi.fn()};
   const imports=(id:string):any=>{
@@ -114,12 +117,13 @@ async function setup() {
     if(id==='@/store/config')return{useConfig:()=>({configStatus:'ready',isEnabled:()=>false})};
     if(id==='@/lib/native-phone-runtime')return{hasNativeAndroidPhoneRuntime:()=>true};
     if(id==='vue')return Vue;
-    if(id==='@dcloudio/uni-app'||id==='@/composables/use-tab-page-lifecycle')return{onShow:(f:Function)=>shows.push(f),onHide:(f:Function)=>hides.push(f)};
+    if(id==='@/composables/use-tab-page-lifecycle')return tabLifecycle;
+    if(id==='@dcloudio/uni-app')return{onShow:(f:Function)=>shows.push(f),onHide:(f:Function)=>hides.push(f)};
     if(id==='@/store/app')return{useApp:()=>app};
     if(id==='@/store/ui')return{toast};
     if(id==='@/i18n/use-t')return{useT:()=>Vue.ref(zh)};
-    if(id==='@/i18n/format')return{fmt};
-    if(id==='@/lib/task-relative-time')return{taskRelativeTime};
+    if(id==='@/i18n/format')return{fmt,dateLocale};
+    if(id==='@/lib/display-date')return{formatDisplayDateTime};
     if(id==='@/lib/workload-label')return{workloadLabel};
     if(id==='@/lib/device-slot-policy')return{isActiveSlotDevice};
     if(id==='@/lib/route')return navigation;
@@ -142,7 +146,8 @@ async function setup() {
     createElement:tag=>({tag,props:{},children:[]}),createText:text=>({text,children:[]}),createComment:text=>({comment:text,children:[]}),setText:(n,text)=>{n.text=text;},setElementText:(n,text)=>{n.text=text;},parentNode:n=>n.parent??null,nextSibling:()=>null,patchProp:(n,k,_o,v)=>{n.props[k]=v;},
   });
   let taskState:any; const child={...task,setup:(p:any,c:any)=>{taskState=task.setup(p,c);return taskState;}};
-  const root:any={children:[]}; const mounted=renderer.createApp({...parent,render:()=>Vue.h(child)}); mounted.mount(root);
+  const content={...parent,render:()=>Vue.h(child)};
+  const root:any={children:[]}; const mounted=renderer.createApp({setup(){Vue.provide(tabLifecycle.TAB_LIFECYCLE,lifecycle);return()=>Vue.h(content);}}); mounted.mount(root);
   let active=true; const stop=()=>{if(active){active=false;mounted.unmount();}}; stopped.push(stop); await flush();
   const find=(tag:string):any=>{const walk=(n:any):any=>n.tag===tag?n:(n.children??[]).map(walk).find(Boolean);return walk(root);};
   return {app,ui,task:taskState,root,stop,find,hide:()=>hides.forEach(f=>f()),show:()=>shows.forEach(f=>f()),rebind:(key:string)=>app.bindAccount(key)};
@@ -150,6 +155,13 @@ async function setup() {
 const row={id:'task-synthetic',receiptNo:'receipt-synthetic'} as any;
 const receipt={receiptNo:'receipt-synthetic',serverCanonical:true} as any;
 describe('actual Earn/TaskCenter mounted handlers with production App/UI stores',()=>{
+  it('completed-history dates do not add a timer across hide/show',async()=>{
+    const s=await setup();const shown=vi.getTimerCount();
+    s.hide();expect(vi.getTimerCount()).toBe(shown);
+    s.show();expect(vi.getTimerCount()).toBe(shown);
+    s.show();expect(vi.getTimerCount()).toBe(shown);
+    s.stop();expect(vi.getTimerCount()).toBe(shown);
+  });
   it('current success opens only the selected receipt',async()=>{
     const s=await setup();remote.taskAssignmentApi.receipt.mockResolvedValue(receipt);await s.task.openTaskReceipt(row);await flush();expect(s.find('probe-modal').props.receipt).toEqual(receipt);expect(s.ui.toasts).toHaveLength(0);
   });

@@ -1,5 +1,7 @@
 import ts from "typescript";
-import { computed, reactive, ref } from "vue";
+import { fmt } from "@/i18n/format";
+import { normalizeMessageText, MESSAGE_MAX_LENGTH } from "@/lib/message-length-policy";
+import { computed, reactive, ref, shallowRef } from "vue";
 import { expect, it, vi } from "vitest";
 import source from "./chat.vue?raw";
 import { zh } from "@/i18n/messages/zh";
@@ -56,15 +58,15 @@ function preflightHarness(messages = zh) {
   const app = reactive({ accountBindingEpoch: 1 });
   const convStore = reactive({ scopeInvalidated: 1, composer: vi.fn(() => ({ failedSend })),
     hasPendingHumanCreate: vi.fn(() => pendingRead), refreshAdvisor: vi.fn(), saveComposer: vi.fn() });
-  const toast = { error: vi.fn() }, restore = vi.fn(), sendHumanMessage = vi.fn();
+  const toast = { error: vi.fn(), warn: vi.fn() }, restore = vi.fn(), sendHumanMessage = vi.fn();
   const cid = ref(""), startType = ref("advisor"), humanSendBusy = ref(false);
   const page = new Function("deps", `const { isAi, supportSessionReady, humanSendBusy, cid, startType, remoteApiEnabled,
     app, convStore, imageDraft, t, toast, sendHumanMessage, stopHumanThreadPolling, humanRealtime,
-    loadAttachmentPolicy, restoreCompletedHumanCreate, restoreRecoveredComposer, humanComposerKey, revealTick } = deps;
-    let novaPageVisible = true, humanOpenRequest = null;
+    loadAttachmentPolicy, restoreCompletedHumanCreate, restoreRecoveredComposer, humanComposerKey, revealTick, normalizeMessageText, MESSAGE_MAX_LENGTH, fmt, humanOpenRequest } = deps;
+    let novaPageVisible = true;
     ${preflightCode}; return { onSend, activateHumanPage, hide: () => { novaPageVisible = false; } };`)(
     { isAi: ref(false), supportSessionReady: ref(true), humanSendBusy, cid, startType, remoteApiEnabled: true,
-      app, convStore, imageDraft: ref(null), t: ref(messages), toast, sendHumanMessage,
+      app, convStore, imageDraft: ref(null), t: ref(messages), toast, sendHumanMessage, normalizeMessageText, MESSAGE_MAX_LENGTH, fmt, humanOpenRequest: shallowRef(null),
       stopHumanThreadPolling: vi.fn(), humanRealtime: { show: vi.fn(() => 1) },
       loadAttachmentPolicy: vi.fn(), restoreCompletedHumanCreate: vi.fn(), restoreRecoveredComposer: vi.fn(),
       humanComposerKey: ref("start:advisor"), revealTick: ref(0) });
@@ -112,4 +114,13 @@ it.each([zh, en, vietnamese])("N10 keeps failed/refreshing advisor identity out 
   expect(h.state.headerName.value).not.toBe(messages.conversations.image.advisorUnavailable);
   h.store.advisorError = false; h.store.advisorLoading = true;
   expect(h.state.headerName.value).toBe(messages.conversations.typeAdvisor);
+});
+
+it("rejects an over-limit draft through the real normalizer without touching unknown recovery", async () => {
+  const h = preflightHarness(), settled = vi.fn();
+  await h.page.onSend("x".repeat(MESSAGE_MAX_LENGTH + 1), h.restore, settled);
+  expect(h.toast.warn).toHaveBeenCalledExactlyOnceWith(fmt(zh.conversations.messageTooLong, { n: MESSAGE_MAX_LENGTH }));
+  expect(h.restore).toHaveBeenCalledOnce(); expect(settled).toHaveBeenCalledExactlyOnceWith(false);
+  expect(h.sendHumanMessage).not.toHaveBeenCalled(); expect(h.convStore.hasPendingHumanCreate).not.toHaveBeenCalled();
+  expect(h.convStore.saveComposer).not.toHaveBeenCalled(); expect(h.failedSend.kind).toBe("unknown");
 });

@@ -1,4 +1,4 @@
-<template><component :is="content" /></template>
+<template><view v-show="visible"><component :is="content" /></view></template>
 <script setup lang="ts">
 import { provide, watch, onBeforeUnmount, type Component } from "vue";
 import { createTabLifecycle, TAB_LIFECYCLE } from "@/composables/use-tab-page-lifecycle";

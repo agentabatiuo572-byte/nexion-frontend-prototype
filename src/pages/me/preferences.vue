@@ -70,6 +70,9 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onShow, onHide } from "@dcloudio/uni-app";
+// #ifdef APP-PLUS
+import { onBackPress } from "@dcloudio/uni-app";
+// #endif
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import LiquidGlass from "@/components/liquid-glass.vue";
@@ -136,6 +139,16 @@ onShow(() => {
 });
 onHide(() => { pageVisible = false; invalidatePendingIntents(); });
 onUnmounted(() => { disposed = true; pageVisible = false; invalidatePendingIntents(); });
+// #ifdef APP-PLUS
+onBackPress(event => {
+  if (event.from !== "backbutton" || disposed || !pageVisible) return false;
+  const currentConfirm = ui.confirmQueue[ui.confirmQueue.length - 1];
+  if (currentConfirm?.owner !== confirmOwner) return false;
+  // The retry-only global mask renders above confirmation; keep both intact.
+  if (!ui.netError.visible) ui.resolveConfirm(currentConfirm.id, false);
+  return true;
+});
+// #endif
 const preferenceError = computed(() => {
   const labels = t.value.preferences as typeof t.value.preferences & Record<"updateFailed" | "unavailable", string>;
   return prefs.error === "updateFailed" ? labels.updateFailed : labels.unavailable;

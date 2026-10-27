@@ -1,10 +1,10 @@
 <template>
   <view class="team-summary" data-testid="team-summary" :role="canOpen ? 'link' : undefined" :tabindex="canOpen ? 0 : undefined" :aria-label="canOpen ? t.team.summaryView : undefined" :aria-busy="status === 'idle' || status === 'loading'" @click="open" @keydown.enter.prevent="open" @keydown.space.prevent="open">
     <view class="team-summary__header"><text class="team-summary__title">{{ copy.myTeam }}</text><text v-if="canOpen" class="team-summary__arrow" aria-hidden="true">›</text></view>
-    <view class="team-summary__body" :class="{ 'team-summary__body--long-count': status === 'ready' && String(total).length > 6 }"><TeamArt kind="members" :size="56" /><view class="team-summary__metrics"><text class="team-summary__number" :style="{ '--team-summary-count-units': countUnits }">{{ status === 'ready' ? total : '—' }}</text><text class="team-summary__label">{{ copy.members }}</text></view></view>
-    <view class="team-summary__direct"><text>{{ copy.directInvites }}</text><text>{{ status === 'ready' ? direct : '—' }}</text></view>
-    <view v-if="status === 'ready' && !total" class="team-summary__empty"><text>{{ t.team.summaryEmpty }}</text><NxButton class="team-summary__action" :label="copy.inviteFriends" variant="secondary" size="medium" @click="$emit('invite')" /></view>
-    <view v-else-if="status !== 'ready'" class="team-summary__status" role="status"><text>{{ status === 'error' ? t.team.summaryUnavailable : t.team.summaryLoading }}</text><NxButton v-if="status === 'error'" class="team-summary__action" :label="t.network.retry" variant="text" size="medium" @click="$emit('retry')" /></view>
+    <view class="team-summary__body" :class="{ 'team-summary__body--long-count': readable && String(total).length > 6 }"><TeamArt kind="members" :size="56" /><view class="team-summary__metrics"><text class="team-summary__number" :style="{ '--team-summary-count-units': countUnits }">{{ readable ? total : '—' }}</text><text class="team-summary__label">{{ copy.members }}</text></view></view>
+    <view class="team-summary__direct"><text>{{ copy.directInvites }}</text><text>{{ readable ? direct : '—' }}</text></view>
+    <view v-if="readable && !total" class="team-summary__empty"><text>{{ t.team.summaryEmpty }}</text><NxButton class="team-summary__action" :label="copy.inviteFriends" variant="secondary" size="medium" @click="$emit('invite')" /></view>
+    <view v-else-if="!readable" class="team-summary__status" role="status"><text>{{ status === 'error' ? t.team.summaryUnavailable : t.team.summaryLoading }}</text><NxButton v-if="status === 'error'" class="team-summary__action" :label="t.network.retry" variant="text" size="medium" @click="$emit('retry')" /></view>
   </view>
 </template>
 <script setup lang="ts">
@@ -14,12 +14,13 @@ import { useLocaleStore } from '@/store/locale';
 import { teamRedesignCopy } from '@/i18n/team-redesign';
 import TeamArt from './team-art.vue';
 import NxButton from '@/components/ui/nx-button.vue';
-const props=defineProps<{status:'idle'|'loading'|'ready'|'error'; total:number; direct:number}>();
+const props=defineProps<{status:'idle'|'loading'|'ready'|'error'; total:number; direct:number; hasSnapshot?:boolean}>();
 const emit=defineEmits<{(event:'invite'):void;(event:'open'):void;(event:'retry'):void}>();
 const t=useT(), locale=useLocaleStore(), copy=computed(()=>teamRedesignCopy(locale.code));
 const canOpen=computed(()=>props.status==='ready' && props.total>0);
+const readable=computed(()=>props.status==='ready'||(props.status==='loading'&&props.hasSnapshot));
 // Size the real count; never abbreviate it to fit a decorative image.
-const countUnits=computed(()=>Math.max(1, String(props.status === 'ready' ? props.total : '—').length * .7));
+const countUnits=computed(()=>Math.max(1, String(readable.value ? props.total : '—').length * .7));
 function open(){if(canOpen.value)emit('open');}
 </script>
 <style scoped>

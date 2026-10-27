@@ -14,6 +14,7 @@ import * as trustFields from "@/lib/trust-fields";
 import { createTrustSectionApi, type PublishedTrustSection, type TrustLocale } from "@/api/trust-section-api";
 import { trustResources, type TrustCategoryKey } from "./trust-resources";
 import { trustCategoryMaterial } from "./trust-category-material";
+import { mountChassis } from "@/lib/liquid-glass-view";
 
 // Execute the real page setup/template and material reader. Only the published
 // read boundary and unrelated presentation children are isolated.
@@ -120,6 +121,68 @@ it.each(['zh', 'en', 'vi'] as const)('retains readable materials and marks stale
   expect(text(screen.root)).not.toContain(continuityCopy(language).trustRefreshFailed);
 });
 
+it.each(['ready', 'error'] as const)('keeps the captured bottom after returning while Trust refresh finishes as %s', async outcome => {
+  const screen = mount([section('nexNarrative', { 'hostingContent.zh': 'Confirmed hosting' })]);
+  await screen.expand('hosting');
+  const frames: FrameRequestCallback[] = [], listeners = new Map<string, () => void>();
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => frames.push(callback));
+  vi.stubGlobal('cancelAnimationFrame', vi.fn());
+  vi.stubGlobal('MutationObserver', undefined); vi.stubGlobal('ResizeObserver', undefined);
+  vi.stubGlobal('document', { visibilityState: 'visible', addEventListener: vi.fn(), removeEventListener: vi.fn() });
+  let max = 555.3778, top = max;
+  const scroll = { clientHeight: 600, get scrollHeight() { return 600 + max; },
+    get scrollTop() { return top; }, set scrollTop(value: number) { top = Math.max(0, Math.min(max, value)); },
+    addEventListener: (name: string, callback: () => void) => listeners.set(name, callback), removeEventListener: vi.fn(), querySelector: () => null };
+  const host = { dataset: { pageVisible: 'true' }, querySelector: () => scroll, querySelectorAll: () => [], getClientRects: () => [{}], addEventListener: vi.fn(), removeEventListener: vi.fn() };
+  const controller = mountChassis(host as unknown as HTMLElement);
+  const flush = () => { while (frames.length) frames.shift()!(0); };
+  try {
+    host.dataset.pageVisible = 'false'; controller.update({ visible: false });
+    screen.status.value = 'loading'; await Vue.nextTick();
+    const rendered = all(screen.root), status = rendered.find(node => node.props.class === 'trust-refresh-status')!;
+    const categories = rendered.find(node => node.props.class === 'trust-categories')!;
+    // Model the observed WebView anchor adjustment only when the actual SFC
+    // inserts the transient 20.8px line + 12px gap before the reading anchor.
+    const beforeAnchor = rendered.indexOf(status) < rendered.indexOf(categories);
+    const added = 32.7111; max += added; if (beforeAnchor) scroll.scrollTop += added;
+    host.dataset.pageVisible = 'true'; controller.update({ visible: true }); flush();
+    expect(scroll.scrollTop).toBeCloseTo(555.3778, 3);
+    screen.status.value = outcome; await Vue.nextTick();
+    if (outcome === 'ready') { max -= added; if (beforeAnchor) scroll.scrollTop -= added; }
+    listeners.get('scroll')?.();
+    expect(scroll.scrollTop).toBeCloseTo(555.3778, 3);
+    expect(text(screen.body())).toContain('Confirmed hosting');
+    expect(beforeAnchor).toBe(false);
+    if (outcome === 'error') expect(text(screen.root)).toContain(continuityCopy('zh').trustRefreshFailed);
+  } finally { controller.destroy(); }
+});
+
+it('clears prior-scope material and feedback rather than preserving its layout as authority', async () => {
+  const screen = mount([section('nexNarrative', { 'hostingContent.zh': 'Private prior source' })]);
+  await screen.expand('hosting'); screen.status.value = 'error'; await Vue.nextTick();
+  expect(text(screen.root)).toContain('Private prior source');
+  screen.sections.value = []; screen.status.value = 'loading'; await Vue.nextTick();
+  expect(text(screen.root)).not.toContain('Private prior source');
+  expect(text(screen.root)).not.toContain(continuityCopy('zh').trustRefreshFailed);
+  expect(all(screen.root).find(node => node.props.class === 'trust-refresh-status')).toBeUndefined();
+});
+
+it.each(['zh', 'en', 'vi'] as const)('keeps cold read errors and their retry beside the requested %s material', async language => {
+  const screen = mount([], language); screen.status.value = 'error';
+  await screen.expand('hosting');
+  const alert = all(screen.body()).find(node => node.props.role === 'alert')!;
+  expect(text(alert)).toContain(networkReauditCopy(language).error);
+  const retry = all(alert).find(node => node.props.onClick && text(node) === dictionaries[language].ui.retry)!;
+  screen.refresh.mockImplementationOnce(async () => {
+    screen.sections.value = [section('nexNarrative', { [`hostingContent.${language}`]: 'Confirmed after retry' })];
+    screen.status.value = 'ready'; return true;
+  });
+  retry.props.onClick(); await Vue.nextTick();
+  expect(screen.refresh).toHaveBeenLastCalledWith(true);
+  expect(text(screen.body())).toContain('Confirmed after retry');
+  expect(all(screen.body()).find(node => node.props.role === 'alert')).toBeUndefined();
+});
+
 describe("Trust categories consume published materials", () => {
   it.each(['zh', 'en', 'vi'] as const)('R07 keeps real after-sales/security routes available without published materials in %s', async language => {
     const page = mount([], language), copy = networkReauditCopy(language);
@@ -127,7 +190,9 @@ describe("Trust categories consume published materials", () => {
       page.status.value = state;
       const warranty = await page.expand('warranty');
       all(warranty).find(n => n.props.role === 'button' && text(n) === copy.afterSales)!.props.onClick();
-      expect(page.navTo).toHaveBeenLastCalledWith('/pages/support/chat');
+      expect(page.navTo).toHaveBeenLastCalledWith('/pages/me/notifications?section=service');
+      expect(page.open).not.toHaveBeenCalled();
+      expect(page.error).not.toHaveBeenCalled();
       const security = await page.expand('security');
       all(security).find(n => n.props.role === 'button' && text(n) === copy.securitySettings)!.props.onClick();
       expect(page.navTo).toHaveBeenLastCalledWith('/pages/me/security');

@@ -397,7 +397,8 @@ import { formatAmount } from "@/lib/amount-display";
 import { formatUsd } from "@/lib/usd-display";
 import { useDeviceStatisticsCapabilityCopy } from "@/i18n/device-statistics-capability";
 import NxButton from "@/components/ui/nx-button.vue";
-import { computed, nextTick, ref, watch, onMounted, onUnmounted, type CSSProperties } from "vue";
+import { computed, nextTick, ref, watch, onUnmounted, type CSSProperties } from "vue";
+import { onHide, useVisibleInterval } from "@/composables/use-tab-page-lifecycle";
 import { advanceMonotonicHighWater, deadlineRemainingDays, deadlineRemainingMs, projectServerNow, readMonotonicNowMs } from "@/lib/server-deadline-clock";
 import { useApp } from "@/store/app";
 import { useSession } from "@/store/session";
@@ -452,15 +453,12 @@ function goPhoneBinding() { if (nativePhoneAvailable) navTo("/pages/onboarding/c
 // 1s re-render so progress + countdown tick.
 const now = ref(Date.now());
 const monotonicNow = ref(readMonotonicNowMs());
-let timer: ReturnType<typeof setInterval> | null = null;
-onMounted(() => {
-  timer = setInterval(() => {
-    now.value = Date.now();
-    monotonicNow.value = advanceMonotonicHighWater(monotonicNow.value, readMonotonicNowMs());
-  }, 1000);
-});
+useVisibleInterval(() => {
+  now.value = Date.now();
+  monotonicNow.value = advanceMonotonicHighWater(monotonicNow.value, readMonotonicNowMs());
+}, 1000);
+onHide(() => { onPressEnd(); closeMenu(); });
 onUnmounted(() => {
-  if (timer) clearInterval(timer);
   onPressEnd();
   if (typeof document !== "undefined") document.removeEventListener("keydown", onDocumentMenuKeydown, true);
 });

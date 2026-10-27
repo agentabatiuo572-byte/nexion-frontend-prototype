@@ -137,10 +137,12 @@ useDialogA11y(
   computed(() => topConfirm.value !== null),
   ".nx-mask--confirm",
   () => { if (topConfirm.value) ui.resolveConfirm(topConfirm.value.id, false); },
+  false, 1,
 );
 // 断网遮罩:**不传 close** —— 它只有「重试」一条路,没有取消语义。
 // 给它接 Esc 会凭空造出一个"看起来关掉了、其实什么都没做"的出口。
-useDialogA11y(computed(() => ui.netError.visible), ".nx-mask--neterr");
+// Both global masks use z-index 9100; the network mask renders last, above confirmation.
+useDialogA11y(computed(() => ui.netError.visible), ".nx-mask--neterr", undefined, false, 2);
 
 
 </script>

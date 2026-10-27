@@ -148,6 +148,7 @@
 </template>
 
 <script setup lang="ts">
+import { dateLocale } from "@/i18n/format";
 import { formatFinanceAmount } from "@/lib/finance-amount-display";
 import { navReset, navTo } from "@/lib/route";
 import { computed, onMounted, onUnmounted, type CSSProperties } from "vue";
@@ -269,7 +270,7 @@ function fmtUSD(n: number): string {
   return Number.isFinite(n) ? `$${fmtNum(n)}` : "—";
 }
 function fmtActivityTime(timestamp: number): string {
-  return Number.isFinite(new Date(timestamp).getTime()) ? formatTrialDateTime(timestamp) : "—";
+  return Number.isFinite(new Date(timestamp).getTime()) ? formatTrialDateTime(timestamp, dateLocale()) : "—";
 }
 
 function goMarket() {

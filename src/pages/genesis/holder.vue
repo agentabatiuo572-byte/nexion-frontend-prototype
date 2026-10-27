@@ -233,6 +233,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatDisplayDate } from "@/lib/display-date";
 import { platformDisplayText } from "@/lib/brand-copy";
 
 import { formatAmount } from "@/lib/amount-display";
@@ -373,7 +374,7 @@ const emissionFeed = computed(() => {
   if (remoteApiEnabled) {
     return genesis.remoteEmissions.map((entry) => ({
       label: entry.paidAt
-        ? `${entry.batchNo} · ${new Date(entry.paidAt).toLocaleDateString(dateLocale())}`
+        ? `${entry.batchNo} · ${formatDisplayDate(entry.paidAt, dateLocale())}`
         : `${entry.batchNo} · ${entry.status}`,
       amt: `+${formatAmount(entry.amountUsdt)} USDT`,
     }));
@@ -411,7 +412,7 @@ const holdingAmountLabel = computed(() => remoteApiEnabled
   : t.value.genesisHolder.holdingCard.allocation);
 
 function mintedText(ms: number): string {
-  return fmt(t.value.genesisHolder.holdingCard.mintedOn, { date: new Date(ms).toLocaleDateString(dateLocale()) });
+  return fmt(t.value.genesisHolder.holdingCard.mintedOn, { date: formatDisplayDate(ms, dateLocale()) });
 }
 
 function goGenesis() {

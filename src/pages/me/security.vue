@@ -47,7 +47,7 @@
           </view>
           <view class="flex-1 min-w-0">
             <text class="block" :style="rowLabelStyle">{{ t.security.passwordTitle }}</text>
-            <text class="block truncate" :style="rowSubStyle">{{ passwordHintLine }}</text>
+            <text class="block" :style="passwordHintStyle">{{ passwordHintLine }}</text>
           </view>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :style="chevronStyle"><path d="m6 9 6 6 6-6" /></svg>
         </view>
@@ -110,7 +110,7 @@
         </view>
         <view v-if="phoneEditing" :style="pwdFormStyle">
           <text v-if="phonePolicy && phonePolicy.remainingChanges === 0" class="block" :style="rowSubStyle">
-            {{ t.security.phoneChangeLimit }} {{ phonePolicy.nextAvailableAt ? new Date(phonePolicy.nextAvailableAt).toLocaleDateString() : "" }}
+            {{ t.security.phoneChangeLimit }} {{ phonePolicy.nextAvailableAt ? formatDisplayDate(phonePolicy.nextAvailableAt, dateLocale()) : "" }}
           </text>
           <template v-else-if="!phoneChallenge">
             <view class="flex" style="gap: 8px">
@@ -214,6 +214,8 @@
 </template>
 
 <script setup lang="ts">
+import { dateLocale } from "@/i18n/format";
+import { formatDisplayDate, formatDisplayDateTime } from "@/lib/display-date";
 import ThirdPartyAuth from "@/components/third-party-auth.vue";
 import { formatAmount } from "@/lib/amount-display";
 import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
@@ -522,10 +524,8 @@ watch([() => String(app.accountKey), () => app.accountBindingEpoch], () => {
 
 const passwordHintLine = computed(() => {
   if (remoteApiEnabled && !remoteSecurity.value) return "—";
-  return t.value.security.passwordHint.replace("{when}", relativeWhen(
-    remoteApiEnabled
-      ? Date.parse(remoteSecurity.value?.passwordChangedAt ?? "")
-      : security.passwordChangedAt,
+  return t.value.security.passwordHint.replace("{when}", formatDisplayDateTime(
+    remoteApiEnabled ? remoteSecurity.value?.passwordChangedAt : security.passwordChangedAt, dateLocale(),
   ));
 });
 
@@ -635,15 +635,6 @@ function lastActiveLabel(ms: number): string {
   if (diff < 3600 * 1000) return fmt(t.value.security.timeMinutesAgo, { n: Math.floor(diff / 60000) });
   if (diff < 24 * 3600 * 1000) return fmt(t.value.security.timeHoursAgo, { n: Math.floor(diff / 3600000) });
   return fmt(t.value.security.timeDaysAgo, { n: Math.floor(diff / (24 * 3600 * 1000)) });
-}
-
-function relativeWhen(ms: number): string {
-  if (!Number.isFinite(ms) || ms <= 0) return "—";
-  const days = Math.floor((Date.now() - ms) / (24 * 3600 * 1000));
-  if (days < 1) return t.value.security.timeToday;
-  if (days < 30) return fmt(t.value.security.timeDaysAgo, { n: days });
-  if (days < 365) return fmt(t.value.security.timeMonthsAgo, { n: Math.floor(days / 30) });
-  return fmt(t.value.security.timeYearsAgo, { n: Math.floor(days / 365) });
 }
 
 function cancelPwd() {
@@ -1093,6 +1084,7 @@ const rowSubStyle: CSSProperties = {
   fontSize: "13px",
   color: "var(--v5-ink-3)",
 };
+const passwordHintStyle: CSSProperties = { ...rowSubStyle, lineHeight: 1.5, whiteSpace: "normal", overflowWrap: "anywhere" };
 const chevronStyle: CSSProperties = { flexShrink: 0 };
 const footerStyle: CSSProperties = {
   marginTop: "10px",

@@ -3,6 +3,7 @@ import * as Vue from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import ts from "typescript";
 import { all, flush, mountEntry, slot, text } from "@/lib/entry-review.test-support";
+import { ApiError } from "@/api/errors";
 import { PublishedContentRequestFence } from "@/components/how/p3-14-published-request-fence";
 import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
@@ -69,6 +70,7 @@ function published(publishedRead: (...args: any[]) => Promise<unknown>, language
     "@/i18n/use-t": { useT: () => Vue.computed(() => locale.code === "zh" ? zh : en) },
     "@/lib/route": { navBack },
     "@/components/how/p3-14-published-request-fence": { PublishedContentRequestFence },
+    "@/api/errors": { ApiError },
   });
   const page = mount(guide, { contentKey: "team-unilevel-how", kind: "members", back: "/pages/team/unilevel", backLabel: "Return to rewards" });
   return { ...page, locale, navBack };

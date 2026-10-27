@@ -92,7 +92,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z" /></svg>
             <view class="flex-1 min-w-0">
               <text class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink)' }">{{ e.sourceUserName }}</text>
-              <text class="block font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ formatTrialDate(e.ts) }}</text>
+              <text class="block font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ formatTrialDate(e.ts, dateLocale()) }}</text>
             </view>
             <view class="reward-match-amount"><text class="font-mono-tabular tabular-nums" :style="{ fontSize: '14px', color: binaryAmountColor(e.status), fontWeight: 600 }">{{ binaryAmountLabel(e) }}</text><text v-if="binaryStatusLabel(e.status)" class="reward-caption">{{ binaryStatusLabel(e.status) }}</text></view>
           </view>

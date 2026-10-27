@@ -17,13 +17,13 @@
         :key="r.id"
         data-home-ledger-row="true"
         class="grid items-center gap-2.5"
-        :style="{ gridTemplateColumns: '1fr auto 48px', padding: '10px 0', borderBottom: i < rows.length - 1 ? '1px solid var(--v5-border)' : 'none' }"
+        :style="{ gridTemplateColumns: 'minmax(0, 1fr) auto', minHeight: '56px', rowGap: '4px', padding: '10px 0', borderBottom: i < rows.length - 1 ? '1px solid var(--v5-border)' : 'none' }"
       >
         <view class="min-w-0">
           <text class="block truncate" style="font-family: var(--font-v5); font-weight: 500; font-size: 13px; color: var(--v5-ink)">{{ r.model }}<text style="color: var(--v5-ink-3)"> · {{ r.who }}</text></text>
         </view>
         <text class="font-mono-tabular tabular-nums" style="font-size: 12px; color: var(--v5-success-ink); font-weight: 500">{{ r.amt }}</text>
-        <text class="font-mono-tabular text-right" style="font-size: 12px; color: var(--v5-ink-4)">{{ r.t }}</text>
+        <text data-home-ledger-time="true" class="font-mono-tabular text-right" style="grid-column: 1 / -1; min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 18px; font-size: 12px; color: var(--v5-ink-4)">{{ r.t }}</text>
       </view>
       <view v-if="remoteApiEnabled && rows.length === 0" class="flex items-center justify-between px-2 py-3" style="gap: 12px">
         <text style="font-size: 12px; color: var(--v5-ink-3)">{{ ledgerStatusText }}</text>
@@ -38,12 +38,14 @@ import { formatUsd } from "@/lib/usd-display";
 import { navTo } from "@/lib/route";
 import { computed } from "vue";
 import { useT } from "@/i18n/use-t";
+import { useLocaleStore } from "@/store/locale";
 import { remoteApiEnabled } from "@/api/runtime";
 import { useApp } from "@/store/app";
 import { formatHomeFeedTime } from "./home-live-feed";
 
 const t = useT();
 const app = useApp();
+const locale = useLocaleStore();
 const ROWS = [
   { id: 1, who: "Pocket Studios", model: "SDXL Turbo", amt: formatUsd(0.00032, "detail", true), t: "2s" },
   { id: 2, who: "Echo Earbuds", model: "Whisper tiny", amt: formatUsd(0.00005, "detail", true), t: "14s" },
@@ -61,7 +63,7 @@ const remoteRows = computed(() => (app.homeTruth?.earningsLedger ?? [])
     who: entry.client,
     model: entry.model,
     amt: formatUsd(entry.rewardUsdt, "detail", !entry.synthetic),
-    t: formatHomeFeedTime(entry.completedAt),
+    t: formatHomeFeedTime(entry.completedAt, locale.code),
   })));
 const rows = computed(() => remoteApiEnabled ? remoteRows.value : ROWS);
 const ledgerStatusText = computed(() => {

@@ -75,6 +75,10 @@ export interface Conversation {
   status: "open" | "transferred" | "resolved" | "closed";
   version: number;
   agentName: string;
+  /** Stable server staff identity. A display name must never identify a thread. */
+  ownerAgentId?: string | null;
+  /** Server account/peer visibility boundary; never removes staff-side history. */
+  userClearedThroughMessageId?: number;
   roleKey: ConvRoleKey;
   avatarTint: string;
   messages: ConvMessage[];

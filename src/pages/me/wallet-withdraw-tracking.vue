@@ -125,6 +125,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatDisplayDateTime } from "@/lib/display-date";
 import { formatFinanceAmount as formatAmount } from "@/lib/finance-amount-display";
 import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onLoad, onShow, onHide } from "@dcloudio/uni-app";
@@ -136,7 +137,7 @@ import { platformDayIndex } from "@/store/withdrawal-eligibility-core";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import { useT } from "@/i18n/use-t";
-import { fmt } from "@/i18n/format";
+import { dateLocale, fmt } from "@/i18n/format";
 import { useApp } from "@/store/app";
 import type { Withdrawal, WithdrawalStatus } from "@/store/types";
 import { navTo, navReplace } from "@/lib/route";
@@ -401,9 +402,7 @@ const retryBlockedLine = computed(() =>
   (isFailedEnd.value && wd.value?.retriable === false ? t.value.wallet.trackRetryBlocked : null));
 const againDisabled = computed(() => dailyLimit.value.reached);
 const againReasonText = computed(() => {
-  const at = new Date(dailyLimit.value.resetAt);
-  const p2 = (n: number) => String(n).padStart(2, "0");
-  const stamp = `${p2(at.getMonth() + 1)}-${p2(at.getDate())} ${p2(at.getHours())}:${p2(at.getMinutes())}`;
+  const stamp = formatDisplayDateTime(dailyLimit.value.resetAt, dateLocale());
   return fmt(t.value.walletV3.dailyLimitReached, { time: stamp });
 });
 // SPEC-7: freeze 路由/冻结状态用独立危险态文案;manual/delay 用审核中文案。
@@ -467,11 +466,9 @@ const etaSub = computed(() => {
   return Number.isFinite(at) ? fmt(t.value.wallet.trackExpectedAt, { time: absTime(at as number) }) : t.value.wallet.trackReviewNote;
 });
 
-/** 「MM-DD HH:mm」本地时刻。到账是**确定发生过的事**,给绝对时间比「3 小时前」可核对。 */
+/** 按界面语言显示包含年份的本地时刻。到账是**确定发生过的事**,给绝对时间比「3 小时前」可核对。 */
 function absTime(ts: number): string {
-  const d = new Date(ts);
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  return formatDisplayDateTime(ts, dateLocale());
 }
 
 /**

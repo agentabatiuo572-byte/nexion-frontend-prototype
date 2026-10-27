@@ -13,8 +13,8 @@ const locales = [["zh", zh], ["en", en], ["vi", vi]] as const;
 function view(messages: typeof en | typeof zh | typeof vi) {
   const t = ref(messages);
   const latestWithdrawal = ref<{ status: string; network: string; submittedAt: number } | null>(null);
-  const sub = new Function("computed", "latestWithdrawal", "t", "fmtTime",
-    `${code}; return withdrawalRowSub;`)(computed, latestWithdrawal, t, () => "time");
+  const sub = new Function("computed", "latestWithdrawal", "t", "fmtTime", "remoteApiEnabled",
+    `${code}; return withdrawalRowSub;`)(computed, latestWithdrawal, t, () => "time", true);
   return { t, latestWithdrawal, sub };
 }
 

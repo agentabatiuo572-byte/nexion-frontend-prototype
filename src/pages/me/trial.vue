@@ -167,7 +167,7 @@ import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import CountdownHero from "@/components/earn/trial-progress-hero.vue";
 import { useT } from "@/i18n/use-t";
-import { fmt } from "@/i18n/format";
+import { dateLocale, fmt } from "@/i18n/format";
 import { formatTrialDateTime } from "@/lib/trial-date";
 import { geoPolicyErrorKind, geoPolicyUserMessage } from "@/api/geo-policy-error";
 import { useFreeTrial, liveShadowUSD, liveShadowNEX, remainingMs } from "@/store/free-trial";
@@ -223,7 +223,7 @@ const idleBody = computed(() => freeTrial.authorityStatus === "mock" || freeTria
 const offsetRemainderNote = computed(() => fmt(w.value.offsetRemainderNote, { remainder: formatAmount(trialOffset.value.remainderUSD) }));
 const offsetUsableUntilText = computed(() =>
   fmt(w.value.offsetUsableUntil, {
-    time: freeTrial.graceEndsAt !== null ? formatTrialDateTime(freeTrial.graceEndsAt) : w.value.countdownDateEmpty,
+    time: freeTrial.graceEndsAt !== null ? formatTrialDateTime(freeTrial.graceEndsAt, dateLocale()) : w.value.countdownDateEmpty,
   }),
 );
 const buyCtaText = computed(() =>

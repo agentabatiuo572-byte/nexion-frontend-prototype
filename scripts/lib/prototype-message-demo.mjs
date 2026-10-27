@@ -1,5 +1,6 @@
 // Preview-only delivery scenarios. Both HTTP and WS execute the existing demoFixture.
 import { setTimeout as delay } from 'node:timers/promises';
+import { supportAccountId, supportUserView } from './prototype-demo-support.mjs';
 
 const root='/api/app/support';
 const commandPath=/^\/api\/app\/support\/conversations(?:\/(DEMO-SUPPORT-\d+)\/(replies|read))?$/;
@@ -17,10 +18,17 @@ export function createPrototypeMessages({state,fixtureFor}) {
     async request(url,request) {
       const receipt=receiptPath.exec(url.pathname);
       if(receipt&&request.method()==='GET') {
-        const saved=receipts.get(decodeURIComponent(receipt[1]));
+        const key=decodeURIComponent(receipt[1]),saved=receipts.get(key);
+        const clearance=state.supportClearCommands?.find(row=>row.accountId===supportAccountId(state)&&row.key===key);
+        if(clearance)return ok({resultType:'CONVERSATION_USER_CLEAR',result:structuredClone(clearance.result)});
+        if(!saved) {
+          const command=state.supportMessageCommands?.find(row=>row.key===key);
+          const detail=command&&state.supportConversations?.find(row=>row.conversation.conversationNo===command.conversationNo);
+          return ok(detail?{resultType:'CONVERSATION',result:supportUserView(state,detail)}:null);
+        }
         if(saved?.scenario==='timeout'&&!saved.result)await delay(4000);
         // Keep the uncertain outcome visible until an explicit retry of the original command.
-        return ok(saved?.result&&!saved.hidden?{resultType:'CONVERSATION',result:structuredClone(saved.result)}:null);
+        return ok(saved?.result&&!saved.hidden?{resultType:'CONVERSATION',result:supportUserView(state,saved.result)}:null);
       }
       const match=commandPath.exec(url.pathname);
       if(!match||request.method()!=='POST')return fail(422,'该演示操作尚未配置');
@@ -42,7 +50,7 @@ export function createPrototypeMessages({state,fixtureFor}) {
         if(saved.fingerprint!==fingerprint)return fail(409,'消息请求标识已被使用');
         await saved.pending;
         saved.hidden=false;
-        return structuredClone(saved.response);
+        return saved.result?ok(supportUserView(state,saved.result)):structuredClone(saved.response);
       }
       const saved={fingerprint,scenario:state.messageSendState,hidden:operation!=='read'&&['unknown','timeout'].includes(state.messageSendState)};
       const epoch=generation,scenario=state.messageSendState||'normal';
@@ -73,7 +81,7 @@ export function createPrototypeMessages({state,fixtureFor}) {
         // A lost acknowledgement leaves the client uncertain despite the saved result.
         return {...fail(504,'发送结果待确认，请重试原消息'),deliveryUnknown:true};
       }
-      return structuredClone(saved.response);
+      return saved.result?ok(supportUserView(state,saved.result)):structuredClone(saved.response);
     },
   };
 }

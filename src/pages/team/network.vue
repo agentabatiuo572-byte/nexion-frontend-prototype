@@ -214,7 +214,7 @@
               <text class="block font-display tabular-nums" :style="sheetStatValStyle('var(--v5-ink)')">{{ formatComputePoints(selected.lifetimeComputePoints, locale.code) }}</text>
             </view>
           </view>
-          <view class="sheet-detail-row"><text>{{ t.network.joined }}</text><text>{{ networkReauditCopy(locale.code).days.replace('{n}', String(daysJoined(selected))) }}</text></view>
+          <view class="sheet-detail-row sheet-joined-date"><text>{{ t.network.joined }}</text><text>{{ formatDisplayDateTime(selected.joinedAt, locale.code) }}</text></view>
           <view class="sheet-detail-row"><text>{{ t.network.status }}</text><text :style="{ color: statusColor(selected.status) }">{{ networkReauditCopy(locale.code)[selected.status] }}</text></view>
           <view v-if="memberRankTitle(selected)" class="sheet-detail-row"><text>{{ t.network.title }}</text><text>{{ memberRankTitle(selected) }}</text></view>
         </view>
@@ -224,6 +224,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatDisplayDateTime } from "@/lib/display-date";
 import { displayNickname } from "@/lib/brand-copy";
 import { networkReauditCopy } from "@/i18n/network-reaudit";
 import { formatComputePoints } from "@/i18n/compute-points";
@@ -364,9 +365,6 @@ const idleCount = computed(() => members.value.filter((m) => m.status === "idle"
 
 const idleSuffixText = computed(() => fmt(t.value.network.idleSuffix, { n: idleCount.value }));
 
-function daysJoined(m: NetworkMember): number {
-  return Math.floor((Date.now() - m.joinedAt) / 86400000);
-}
 // 头衔显示名收在 lib/v-rank-copy，档位表只读取 canonical store projection。
 function memberRankTitle(m: NetworkMember): string {
   return rankTitle(m.vRank, locale.code, vRank.ladder);
@@ -423,7 +421,7 @@ function sheetStatValStyle(color: string): CSSProperties {
 
 // 遮罩只拦指针不拦键盘:不接这一层,弹层打开后 Tab 会直接走到背景(那里有花钱的按钮),
 // 且没有 Esc、关掉后焦点也回不到触发它的控件。
-useDialogA11y(computed(() => selected.value !== null), ".nx-net-sheet-wrap", () => { selected.value = null; });
+useDialogA11y(computed(() => selected.value !== null), ".nx-net-sheet-wrap", () => { selected.value = null; }, true);
 
 
 </script>
@@ -448,6 +446,8 @@ useDialogA11y(computed(() => selected.value !== null), ".nx-net-sheet-wrap", () 
 .sheet-relation { display: block; font-size: 12px; line-height: 1.5; margin-top: 4px; }
 .sheet-metrics { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--ui-space-section); padding: 24px 0; }
 .sheet-detail-row { display: flex; align-items: start; justify-content: space-between; gap: var(--ui-space-section); padding: var(--ui-space-inset) 0; border-top: 1px solid var(--v5-border); font-size: 13px; color: var(--v5-ink-3); line-height: 1.5; }
+.sheet-joined-date { flex-wrap: wrap; }
+.sheet-joined-date > :last-child { min-width: 0; flex: 1 1 170px; }
 .sheet-detail-row > :last-child { text-align: right; color: var(--v5-ink); overflow-wrap: anywhere; }
 [role="button"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { .nx-net-native-pulse { animation: none !important; } }

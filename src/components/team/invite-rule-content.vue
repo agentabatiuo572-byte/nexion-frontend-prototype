@@ -19,13 +19,13 @@ import { useT } from '@/i18n/use-t';
 import { teamRedesignCopy } from '@/i18n/team-redesign';
 import { fmt } from '@/i18n/format';
 import { formatAmount } from '@/lib/amount-display';
-import { formatJoinedDate } from '@/lib/profile-date';
+import { formatDisplayDate } from '@/lib/display-date';
 
 const cfg = useConfig(), rewards = useReferralReward(), locale = useLocaleStore(), t = useT();
 const copy = computed(() => teamRedesignCopy(locale.code));
 const loading = computed(() => cfg.loading || cfg.configStatus === 'idle' || cfg.configStatus === 'loading' || rewards.loading);
 const effectiveTime = computed(() => Date.parse(cfg.config.rewards.effectiveAt ?? ''));
-const effectiveDate = computed(() => formatJoinedDate(effectiveTime.value, locale.code));
+const effectiveDate = computed(() => formatDisplayDate(cfg.config.rewards.effectiveAt, locale.code));
 const state = computed(() => {
   if (loading.value) return 'loading';
   const policy = cfg.config.rewards, snapshot = rewards.snapshot;

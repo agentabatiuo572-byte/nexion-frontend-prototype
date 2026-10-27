@@ -1,25 +1,26 @@
 <template>
-  <view class="quota-tier">
+  <view class="quota-tier" :aria-busy="pending">
     <view class="quota-product" role="link" tabindex="0" :aria-label="displayName" @click="openProduct" @keydown.enter.prevent="openProduct" @keydown.space.prevent="openProduct">
       <image v-if="productImage" :src="productImage" mode="aspectFit" class="quota-product__image" :alt="displayName" />
-      <view class="quota-product__copy"><text class="quota-product__name">{{ displayName }}</text><text class="quota-product__price">{{ priceLineText }}</text><text class="quota-product__qualification" :class="{ 'quota-product__qualification--met': unlocked }">{{ unlocked ? t.quota.unlocked : t.quota.locked }}</text></view>
+      <view class="quota-product__copy"><text class="quota-product__name">{{ displayName }}</text><text class="quota-product__price">{{ priceLineText }}</text><text class="quota-product__qualification" :class="{ 'quota-product__qualification--met': !pending && unlocked }">{{ pending ? auditCopy.loading : unlocked ? t.quota.unlocked : t.quota.locked }}</text></view>
       <svg class="quota-product__arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
     </view>
     <view class="quota-stock">
-      <view class="quota-stat-line"><text>{{ fmt(t.quota.leftLabel, { n: stockLeft }) }}</text><text>{{ fmt(t.quota.soldPct, { pct: Math.round(stockPct * 100) }) }}</text></view>
+      <view class="quota-stat-line"><text>{{ fmt(t.quota.leftLabel, { n: pending ? '—' : stockLeft }) }}</text><text>{{ fmt(t.quota.soldPct, { pct: pending ? '—' : Math.round(stockPct * 100) }) }}</text></view>
       <view ref="stockBarRef" class="quota-stock__track"><view :style="stockFillStyle" /></view>
     </view>
     <view v-if="tier.conditions.length" class="quota-conditions">
       <text class="quota-section-label">{{ tier.unlockKind === 'either' ? t.quota.unlockEither : t.quota.unlockAll }}</text>
       <view v-for="(condition, index) in tier.conditions" :key="index" class="quota-condition">
         <view class="quota-stat-line"><text>{{ conditionLabel(condition) }}</text><text class="quota-condition__values">{{ conditionValue(condition) }}</text></view>
-        <QuotaConditionBar :pct="condition.required > 0 ? Math.min(1, Math.max(0, condition.current / condition.required)) : 1" :met="condition.current >= condition.required" :tint="tier.tint" :label="conditionLabel(condition)" :value-text="conditionValue(condition)" />
+        <QuotaConditionBar :pct="pending ? 0 : condition.required > 0 ? Math.min(1, Math.max(0, condition.current / condition.required)) : 1" :met="!pending && condition.current >= condition.required" :tint="tier.tint" :label="conditionLabel(condition)" :value-text="conditionValue(condition)" />
       </view>
     </view>
     <text v-if="tier.conditions.some(condition => condition.kind === 'legacyUSD') && !tier.conditions.some(condition => condition.kind === 'volume')" class="quota-unavailable">{{ logicCopy.pointsUnavailable }}</text>
     <view v-if="tier.perks.length" class="quota-perks"><text v-for="(perk, index) in tier.perks" :key="index">{{ perk }}</text></view>
     <view class="quota-actions">
-      <NxButton v-if="unlocked && stockLeft > 0 && tier.available !== false" variant="secondary" :label="fmt(t.quota.buyCta, { name: displayName })" @click="openProduct"><text>{{ fmt(t.quota.buyCta, { name: displayName }) }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
+      <NxButton v-if="pending" variant="secondary" :label="auditCopy.loading" :disabled="true" :busy="true" />
+      <NxButton v-else-if="unlocked && stockLeft > 0 && tier.available !== false" variant="secondary" :label="fmt(t.quota.buyCta, { name: displayName })" @click="openProduct"><text>{{ fmt(t.quota.buyCta, { name: displayName }) }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
       <text v-else-if="stockLeft <= 0" class="quota-unavailable" aria-disabled="true">{{ t.quota.stockUnavailable }}</text>
       <text v-else-if="unlocked && tier.available === false" class="quota-unavailable" aria-disabled="true">{{ auditCopy.quotaUnavailable }}</text>
       <NxButton v-else variant="secondary" :label="t.store.purchaseEligibilityIneligible" @click="openProduct"><text>{{ t.store.purchaseEligibilityIneligible }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
@@ -68,7 +69,7 @@ export interface QuotaTier {
 }
 
 
-const props = defineProps<{ tier: QuotaTier }>();
+const props = defineProps<{ tier: QuotaTier; pending?: boolean }>();
 const emit = defineEmits<{ navigate: [url: string] }>();
 const t = useT();
 const locale = useLocaleStore();
@@ -84,11 +85,12 @@ const unlocked = computed(() => {
 const stockPct = computed(() => props.tier.monthlyStock > 0 ? Math.min(1, props.tier.soldThisMonth / props.tier.monthlyStock) : 1);
 const stockLeft = computed(() => Math.max(0, props.tier.monthlyStock - props.tier.soldThisMonth));
 const priceLineText = computed(() => fmt(t.value.quota.priceLine, { price: formatFinanceAmount(props.tier.price) }));
-const stockFillStyle = computed(() => ({ width: `${stockBarInView.value ? stockPct.value * 100 : 0}%`, transition: stockBarInView.value ? PROGRESS_GROW_TRANSITION : 'none' }));
+const stockFillStyle = computed(() => ({ width: `${!props.pending && stockBarInView.value ? stockPct.value * 100 : 0}%`, transition: !props.pending && stockBarInView.value ? PROGRESS_GROW_TRANSITION : 'none' }));
 function conditionLabel(condition: QuotaCondition) {
   return condition.kind === 'legacyUSD' ? logicCopy.value.legacyTeam : condition.label;
 }
 function conditionValue(condition: QuotaCondition) {
+  if (props.pending) return "— / —";
   if (condition.kind === 'legacyUSD') return `${formatLegacyUSD(condition.current, locale.code)} / ${formatLegacyUSD(condition.required, locale.code)}`;
   return condition.kind === 'volume'
     ? `${formatComputePoints(condition.current, locale.code)} / ${formatComputePoints(condition.required, locale.code)}`

@@ -125,6 +125,7 @@ import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
 import { fmt } from "@/i18n/format";
 import { platformDisplayText } from "@/lib/brand-copy";
+import { formatLegalEffectiveDate } from "@/lib/legal-effective-date";
 import { resolveRiskDisclosureDisplayLanguage, riskDisclosureChapterCopy } from "@/lib/risk-disclosure-language";
 import { canAcknowledgeRiskDisclosure, canCompleteRiskDisclosureReadingFromScrollEvent, EMPTY_RISK_DISCLOSURE_READING_STATE, riskDisclosureDocumentIdentity, updateRiskDisclosureReadingState } from "@/lib/risk-disclosure-reading-gate";
 import { toast } from "@/store/ui";
@@ -156,7 +157,7 @@ const languageFallback = computed(() => displayLanguage.value?.fallback ?? false
 const disclosureContext = computed(() => disclosure.value ? fmt(w.value.publishedContext, {
   jurisdiction: disclosure.value.jurisdiction === "CN" ? w.value.mainlandChina : disclosure.value.jurisdictionName,
   version: disclosure.value.version,
-  effectiveDate: disclosure.value.effectiveDate,
+  effectiveDate: formatLegalEffectiveDate(disclosure.value.effectiveDate, locale.code),
 }) : "");
 const documentIdentity = computed(() => riskDisclosureDocumentIdentity(disclosure.value));
 

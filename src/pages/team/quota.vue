@@ -16,12 +16,12 @@
 
         <view v-if="remoteApiEnabled && remoteError" class="quota-state" role="alert"><text class="quota-body">{{ auditCopy.quotaLoadError }}</text><NxButton variant="text" :label="t.store.catalogRetry" :busy="remoteRefreshing" @click="refreshRemoteQuota" /></view>
         <view v-else-if="remoteApiEnabled && !remoteSnapshot" class="quota-state" role="status" aria-live="polite" aria-busy="true"><text>{{ auditCopy.loading }}</text></view>
-        <view v-if="remoteApiEnabled && productCatalogState.status !== 'ready'" class="quota-state" :role="productCatalogState.status === 'error' ? 'alert' : 'status'">
+        <view v-if="remoteApiEnabled && !catalogDisplayReady" class="quota-state" :role="productCatalogState.status === 'error' ? 'alert' : 'status'">
           <text class="quota-body">{{ productCatalogState.status === 'error' ? t.store.catalogErrorTitle : t.store.catalogLoadingTitle }}</text>
           <NxButton v-if="productCatalogState.status === 'error'" variant="text" :label="t.store.catalogRetry" @click="retryCatalog" />
         </view>
         <view v-if="quotaReady && !focusedTiers.length" class="quota-state" role="status"><text>{{ t.empty.listTitle }}</text></view>
-        <QuotaTierCard v-for="tier in focusedTiers" :key="tier.productId" :tier="tier" @navigate="go" />
+        <QuotaTierCard v-for="tier in focusedTiers" :key="tier.productId" :tier="tier" :pending="remoteApiEnabled && !quotaReady" @navigate="go" />
 
         <view class="quota-footer">
           <NxButton variant="secondary" :label="t.empty.devicesCta" @click="go('/pages/store/store')"><text>{{ t.empty.devicesCta }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
@@ -71,6 +71,8 @@ const app = useApp();
 const remoteSnapshot = ref<TeamQuotaSnapshot | null>(null);
 const remoteError = ref<string | null>(null);
 const remoteRefreshing = ref(false);
+const catalogDisplayReady = computed(() => productCatalogState.status === "ready"
+  || (productCatalogState.status === "loading" && productCatalogState.serverCanonical && productCatalogPresentation.value !== null));
 let quotaMounted = true;
 let quotaRequestGeneration = 0;
 function captureQuotaRequest(): TeamP31718Request {
@@ -99,7 +101,6 @@ async function refreshRemoteQuota() {
   const request = captureQuotaRequest();
   remoteRefreshing.value = true;
   remoteError.value = null;
-  remoteSnapshot.value = null;
   try {
     const value = await teamQuotaApi.snapshot();
     if (quotaRequestIsCurrent(request)) remoteSnapshot.value = value;
@@ -116,6 +117,10 @@ watch([() => app.accountKey, () => app.accountBindingEpoch], () => {
     void refreshRemoteQuota();
   }
 });
+watch(() => locale.code, () => {
+  resetQuotaPageState();
+  if (quotaMounted && remoteApiEnabled) void refreshRemoteQuota();
+});
 onLoad((options) => {
   const fallback = new URLSearchParams(takeNavigationQuery("/pages/team/quota")).get("product");
   const requested = typeof options?.product === "string" ? options.product.trim() : fallback?.trim() ?? "";
@@ -124,7 +129,8 @@ onLoad((options) => {
 
 onShow(() => {
   quotaMounted = true;
-  resetQuotaPageState();
+  quotaRequestGeneration += 1;
+  remoteRefreshing.value = false;
   // The tier cards render catalog-owned names/perks (BUG 34/33), so the
   // catalog must be observed here too — a direct entry never visits the store.
   void refreshProductCatalog();
@@ -132,7 +138,8 @@ onShow(() => {
 });
 onHide(() => {
   quotaMounted = false;
-  resetQuotaPageState();
+  quotaRequestGeneration += 1;
+  remoteRefreshing.value = false;
 });
 onUnload(() => {
   quotaMounted = false;
@@ -202,7 +209,7 @@ function buildTier(productId: string, tint: string): QuotaTier | null {
 // — so the card renders catalog facts and only falls back to the server row
 // while the catalog read has not landed.
 function catalogProduct(productId: string): Product | undefined {
-  if (productCatalogState.status !== "ready") return undefined;
+  if (!catalogDisplayReady.value) return undefined;
   return productCatalogPresentation.value?.products.find((p) => p.id === productId);
 }
 function catalogProductName(productId: string, fallback: string): string {
@@ -243,14 +250,14 @@ function quotaPerkText(perk: string): string {
 /** 请求聚焦的商品是否确实在配额档位里(空 id = 未指定,不提示)。 */
 const focusedTierPresent = computed(() =>
   !focusedProductId.value || (remoteApiEnabled && !remoteSnapshot.value)
-  || (remoteApiEnabled && productCatalogState.status !== "ready")
+  || (remoteApiEnabled && !catalogDisplayReady.value)
   || tiers.value.some((tier) => tier.productId === focusedProductId.value));
 const focusedTiers = computed(() => focusedProductId.value
   ? tiers.value.filter((tier) => tier.productId === focusedProductId.value) : tiers.value);
 
 const tiers = computed<QuotaTier[]>(() =>
   remoteApiEnabled
-    ? (productCatalogState.status !== "ready" ? [] : remoteSnapshot.value?.tiers ?? []).map((tier, index) => ({
+    ? (!catalogDisplayReady.value ? [] : remoteSnapshot.value?.tiers ?? []).map((tier, index) => ({
       productId: tier.productId, imageUrl: catalogProduct(tier.productId)?.imageUrl, name: catalogProductName(tier.productId, tier.name), price: catalogProduct(tier.productId)?.price ?? tier.price,
       monthlyStock: tier.monthlyStock, soldThisMonth: tier.soldThisMonth,
       available: tier.available,
@@ -275,7 +282,7 @@ function go(url: string) {
 
 const heroTier = computed(() => focusedTiers.value[0]);
 const heroImage = computed(() => heroTier.value ? getProductMedia(heroTier.value.productId)?.src ?? heroTier.value.imageUrl : undefined);
-const quotaReady = computed(() => !remoteApiEnabled || (remoteSnapshot.value !== null && productCatalogState.status === 'ready'));
+const quotaReady = computed(() => !remoteApiEnabled || (remoteSnapshot.value !== null && !remoteRefreshing.value && !remoteError.value && productCatalogState.status === 'ready'));
 </script>
 
 <style scoped>

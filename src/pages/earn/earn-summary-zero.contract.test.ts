@@ -132,7 +132,7 @@ async function rendered(view: ReturnType<typeof hero>) {
   const app = Vue.createSSRApp({ render, setup: () => Vue.proxyRefs(view) });
   const wrapper = Vue.defineComponent({ setup: (_, { slots }) => () => Vue.h("main", [slots.pageTop?.(), slots.default?.()]) });
   for (const name of ["AppChassis", "CardStagger", "TrialHeroBanner", "TrialGhostSlot", "DeviceCardPC",
-    "CapacityExplainerSheet", "MissedIncomeBanner", "ComputeShareEntry", "EmptySlotsHint", "MarketBoard", "TaskCenter",
+    "CapacityExplainerSheet", "MissedIncomeBanner", "ComputeShareEntry", "EarnWayCard", "EmptySlotsHint", "MarketBoard", "TaskCenter",
     "GlassSegments", "NxSection", "NxButton", "EarningsLedgerCard"]) {
     app.component(name, wrapper);
   }

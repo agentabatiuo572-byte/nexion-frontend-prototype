@@ -1,3 +1,4 @@
+import * as displayDate from "@/lib/display-date";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import * as Vue from "vue";
@@ -35,7 +36,7 @@ function component(source: string, overrides: Record<string, unknown> = {}): Vue
   const modules: Record<string, unknown> = {
     vue: Vue, "@/lib/amount-display": amount, "@/lib/staking-percentage": percentage,
     "@/lib/staking-canonical": canonical, "@/lib/g-remote-intent": intent,
-    "@/lib/staking-review-copy": reviewCopy, "@/i18n/format": format,
+    "@/lib/staking-review-copy": reviewCopy, "@/lib/display-date": displayDate, "@/i18n/format": format,
     "@/i18n/use-t": { useT: () => Vue.computed(() => zh) }, "@/store/staking": storeModule,
     "@/store/config": { useConfig: () => ({ configStatus: "ready", isEnabled: () => true }) },
     "@/store/app": { useApp: () => Vue.reactive({ accountKey: "A", accountBindingEpoch: 1 }) },

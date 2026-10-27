@@ -1,17 +1,8 @@
 <template>
   <view>
     <SubPageHeader :back="back" />
-    <view v-if="loading" class="mx-4" style="padding: 28px 0; color: var(--v5-ink-3);" role="status"><text>{{ t.howPublished.loading }}</text></view>
-    <view v-else-if="error" class="mx-4" style="padding: 28px 0;" role="alert">
-      <view style="padding: 14px; border-radius: 12px; background: var(--v5-surface-2); color: var(--v5-ink-2);">
-        <text class="block" style="font-size: 15px; font-weight: 600;">{{ t.howPublished.unavailableTitle }}</text>
-        <text class="block" style="margin-top: 6px; font-size: 12px; color: var(--v5-ink-3);">{{ t.howPublished.unavailableBody }}</text>
-        <view class="flex items-center justify-center" style="margin-top: 12px; min-height: 44px; border-radius: 999px; background: var(--v5-brand); color: var(--v5-on-brand);" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load">
-          <text>{{ t.ui.retry }}</text>
-        </view>
-      </view>
-    </view>
-    <view v-else-if="content" class="pb-8">
+    <view v-if="loading && !content" class="mx-4" style="padding: 28px 0; color: var(--v5-ink-3);" role="status"><text>{{ t.howPublished.loading }}</text></view>
+    <view v-if="content" class="pb-8">
       <view v-if="languageFallback" class="mx-4" style="margin: 16px; padding: 14px; border-radius: 12px; background: var(--v5-surface-2);" role="status" aria-live="polite">
         <text class="block" :style="bodyStyle">{{ t.howPublished.languageFallback }}</text>
         <view class="flex items-center justify-center" style="margin-top: 12px; min-height: 44px; border-radius: 999px; background: var(--v5-brand); color: var(--v5-on-brand);" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load">
@@ -36,6 +27,15 @@
         <HowCalloutBox v-else class="mx-4" :title="block.title" :body="block.body" :tone="neutral ? 'neutral' : 'purple'" />
       </template>
     </view>
+    <view v-if="error" class="mx-4" style="padding: 28px 0;" role="alert" aria-live="polite">
+      <view style="padding: 14px; border-radius: 12px; background: var(--v5-surface-2); color: var(--v5-ink-2);">
+        <text class="block" style="font-size: 15px; font-weight: 600;">{{ t.howPublished.unavailableTitle }}</text>
+        <text class="block" style="margin-top: 6px; font-size: 12px; color: var(--v5-ink-3);">{{ t.howPublished.unavailableBody }}</text>
+        <view class="flex items-center justify-center" style="margin-top: 12px; min-height: 44px; border-radius: 999px; background: var(--v5-brand); color: var(--v5-on-brand);" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load">
+          <text>{{ t.ui.retry }}</text>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -45,6 +45,7 @@ import SubPageHeader from "@/components/sub-page-header.vue";
 import HowHero from "@/components/how/how-hero.vue";
 import HowSection from "@/components/how/how-section.vue";
 import HowCalloutBox from "@/components/how/how-callout-box.vue";
+import { ApiError } from "@/api/errors";
 import { howContentApi, remoteApiEnabled } from "@/api/runtime";
 import type { HowContentDocument, HowContentKey } from "@/api/how-content-api";
 import { useLocaleStore } from "@/store/locale";
@@ -93,9 +94,9 @@ async function load() {
     if (props.contentKey === "team-unilevel-how" && (!next.blocks.some(block => block.id === "direct-referral-scope")
       || (next.schemaVersion === 2 && (next.templateId !== "unilevel-v2" || !next.blocks.some(block => block.id === "seven-layer-scope"))))) throw new Error("TEAM_PUBLICATION_REQUIRED");
     content.value = next;
-  } catch {
+  } catch (failure) {
     if (!requestFence.isCurrent(generation)) return;
-    content.value = null;
+    if (!(failure instanceof ApiError && failure.kind === "network")) content.value = null;
     error.value = true;
     emit("unavailable");
   } finally {
@@ -107,6 +108,9 @@ async function load() {
 watch(
   () => [props.contentKey, locale.code] as const,
   () => {
+    requestFence.invalidate();
+    content.value = null;
+    error.value = false;
     if (remoteApiEnabled) {
       void load();
       return;
@@ -116,7 +120,7 @@ watch(
     error.value = false;
     loading.value = false;
   },
-  { immediate: true },
+  { immediate: true, flush: "sync" },
 );
 onUnmounted(() => requestFence.invalidate());
 </script>

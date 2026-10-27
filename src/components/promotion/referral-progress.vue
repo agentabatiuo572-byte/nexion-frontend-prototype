@@ -1,6 +1,6 @@
 <template>
   <view v-if="loading || activities.length || error || hasMore" class="promotion referral-progress" data-testid="referral-progress">
-    <text v-if="loading" class="promotion-copy" role="status">{{ t.promotion.loading }}</text>
+    <text v-if="loading && !activities.length" class="promotion-copy" role="status">{{ t.promotion.loading }}</text>
     <view v-for="activity in activities" :key="activity.activityId" class="referral-activity" :data-activity-id="activity.activityId">
       <view class="referral-hero">
         <view class="referral-copy">
@@ -42,12 +42,14 @@ const progressBusy=ref<Record<string,boolean>>({}),progressErrors=ref<Record<str
 const imageRefresh=ref<Record<string,number>>({});
 function referralImageProps(activity:PublicPromotion){
   const slot=promotionMachineSlots(activity).find(item=>item.role==='purchase');
-  return {sku:slot?.sku,imageUrl:auth.isAuthenticated&&productCatalogState.status==='ready'&&slot?getProduct(slot.sku)?.imageUrl:undefined,
-    scopeKey:activity.activityId+':purchase',refreshKey:JSON.stringify([productCatalogState.status,productCatalogState.revision,activity.version,imageRefresh.value[activity.activityId]])};
+  void productCatalogState.revision;
+  const readable=productCatalogState.status==='ready'||(productCatalogState.status==='loading'&&productCatalogState.serverCanonical);
+  return {sku:slot?.sku,imageUrl:auth.isAuthenticated&&readable&&slot?getProduct(slot.sku)?.imageUrl:undefined,
+    scopeKey:activity.activityId+':purchase',refreshKey:JSON.stringify([activity.version,imageRefresh.value[activity.activityId]])};
 }
 function qualifyingCount(id:string){return progressBusy.value[id]||progressErrors.value[id]?'-':progress.value[id]?.qualifyingOrders??'-';}
-function showProgress(id:string){if(!visible||progressBusy.value[id]||!auth.isAuthenticated)return;expandedActivity.value=expandedActivity.value===id?null:id;if(expandedActivity.value)void loadProgress(id);}
-function currentRead(){const request=generation,account=app.accountKey,epoch=app.accountBindingEpoch,authenticated=auth.isAuthenticated;return()=>alive&&visible&&request===generation&&account===app.accountKey&&epoch===app.accountBindingEpoch&&authenticated===auth.isAuthenticated;}
+function showProgress(id:string){if(!visible||progressBusy.value[id]||!auth.isAuthenticated)return;expandedActivity.value=expandedActivity.value===id?null:id;if(expandedActivity.value)void loadProgress(id,true);}
+function currentRead(){const request=generation,account=app.accountKey,epoch=app.accountBindingEpoch,authenticated=auth.isAuthenticated,language=locale.code;return()=>alive&&visible&&request===generation&&account===app.accountKey&&epoch===app.accountBindingEpoch&&authenticated===auth.isAuthenticated&&language===locale.code;}
 function clearRead(preserveExpanded=true){
   generation++;activities.value=[];progress.value={};progressBusy.value={};progressErrors.value={};imageRefresh.value={};termsActivity.value=null;
   if(!preserveExpanded)expandedActivity.value=null;
@@ -55,7 +57,7 @@ function clearRead(preserveExpanded=true){
 }
 async function loadActivities(reset=false){
   if(!visible||!remoteApiEnabled||(!reset&&loading.value))return;
-  if(reset)clearRead();
+  if(reset){generation++;progressBusy.value={};termsActivity.value=null;}
   const current=currentRead();loading.value=true;error.value=false;
   const catalogRead=reset&&auth.isAuthenticated&&sessionVault.read()
     ?refreshProductCatalog(productCatalogState.status!=='loading'):Promise.resolve();
@@ -72,17 +74,17 @@ async function loadActivities(reset=false){
     if(auth.isAuthenticated)await Promise.all(activities.value.map(p=>loadProgress(p.activityId)));
   }catch{if(current())error.value=true;}finally{if(current())loading.value=false;}
 }
-async function loadProgress(id:string){
+async function loadProgress(id:string,refreshImage=false){
   if(!visible||!auth.isAuthenticated||!sessionVault.read()||progressBusy.value[id])return;
   const current=currentRead();progressBusy.value={...progressBusy.value,[id]:true};
-  imageRefresh.value={...imageRefresh.value,[id]:(imageRefresh.value[id]??0)+1};
+  if(refreshImage||progressErrors.value[id])imageRefresh.value={...imageRefresh.value,[id]:(imageRefresh.value[id]??0)+1};
   try{const result=await promotionApi.referral(id);if(current()){progress.value={...progress.value,[id]:result};progressErrors.value={...progressErrors.value,[id]:false};}}
   catch{if(current())progressErrors.value={...progressErrors.value,[id]:true};}
   finally{if(current())progressBusy.value={...progressBusy.value,[id]:false};}
 }
-watch(()=>[app.accountKey,app.accountBindingEpoch,auth.isAuthenticated],()=>{clearRead(false);if(visible)void loadActivities(true);},{immediate:true});
+watch(()=>[app.accountKey,app.accountBindingEpoch,auth.isAuthenticated,locale.code],()=>{clearRead(false);if(visible)void loadActivities(true);},{immediate:true});
 onShow(()=>{visible=true;void loadActivities(true);});
-onHide(()=>{visible=false;clearRead();});
+onHide(()=>{visible=false;generation++;progressBusy.value={};loading.value=false;termsActivity.value=null;});
 onBeforeUnmount(()=>{alive=false;visible=false;generation++;});
 </script>
 <style src="./promotion.css"></style>

@@ -30,7 +30,7 @@
       </GlassSegments>
       <scroll-view :key="section" scroll-y class="message-scroll" :show-scrollbar="false" @scroll="onMessageScroll" @wheel="onScrollInput" @touchmove="onScrollInput" @keydown.up="onScrollInput" @keydown.down="onScrollInput" @keydown.home="onScrollInput" @keydown.end="onScrollInput" @keydown.page-up="onScrollInput" @keydown.page-down="onScrollInput">
       <ServiceMessageList v-if="section === 'service'" :filter="serviceFilter" hide-filters />
-      <view v-else class="notification-feed">
+      <view v-else class="notification-feed" :aria-busy="notifs.loading">
         <view v-if="notifs.error" data-testid="notification-error" class="message-state" role="alert"><text>{{ notifsErrorText }}</text><view class="message-button message-retry" role="button" :tabindex="notifs.loading ? -1 : 0" :aria-disabled="notifs.loading" :aria-label="t.ui.retry" @click="notifs.retryRemote()" @keydown.enter.prevent="notifs.retryRemote()" @keydown.space.prevent="notifs.retryRemote()"><text>{{ t.ui.retry }}</text></view></view>
         <view v-if="!notifs.loading && !notifs.error && notifs.nextCursor && filtered.length === 0" role="status" class="message-state"><text>{{ t.notifs.moreToCheck }}</text></view>
         <EmptyState v-if="!notifs.loading && !notifs.error && !notifs.nextCursor && filtered.length === 0" kind="empty-list" :title="emptyTitle" :desc="notifs.items.length === 0 ? t.notifs.emptyBody : undefined" />
@@ -43,7 +43,7 @@
           </view>
           <view v-if="expandedId === n.id" class="notification-detail"><text v-if="n.body" class="notification-body">{{ platformDisplayText(n.body) }}</text><view v-if="n.ctaHref" class="message-button notification-cta" role="button" tabindex="0" :aria-label="platformDisplayText(n.ctaLabel || t.me.open)" @click.stop="onTap(n)"><LiquidGlass :radius="22" /><text>{{ platformDisplayText(n.ctaLabel || t.me.open) }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2"><path d="M4 12h16m-7-7 7 7-7 7" /></svg></view></view>
         </view>
-        <view v-if="notifs.loading" class="message-state" role="status" aria-live="polite"><text>{{ t.help.loadingMore }}</text></view>
+        <view v-if="notifs.loading && !filtered.length" class="message-state" role="status" aria-live="polite"><text>{{ t.help.loadingMore }}</text></view>
         <view v-if="notifs.nextCursor" class="message-more"><view class="message-button" role="button" :tabindex="notifs.loading ? -1 : 0" :aria-disabled="notifs.loading" :aria-label="t.notifs.loadMore" @click="notifs.loadMoreRemote()"><LiquidGlass :radius="22" /><text>{{ notifs.loading ? t.help.loadingMore : t.notifs.loadMore }}</text></view></view>
         <view v-if="notifs.items.length || notifs.nextCursor" class="notification-management">
           <view class="message-button" role="button" :tabindex="clearingRead || markingAll || notifs.loading ? -1 : 0" :aria-disabled="clearingRead || markingAll || notifs.loading" @click="confirmClearRead"><LiquidGlass :radius="22" /><text>{{ actionCopy.clearRead }}</text></view>
@@ -57,6 +57,7 @@
 </template>
 
 <script setup lang="ts">
+import { displayTimestamp, formatDisplayDate } from "@/lib/display-date";
 import { platformDisplayText } from "@/lib/brand-copy";
 import { computed, getCurrentInstance, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { onShow, onHide, onLoad, onResize } from "@dcloudio/uni-app";
@@ -196,14 +197,16 @@ watch(() => [app.accountKey, app.accountBindingEpoch] as const, ([nextKey, nextE
 });
 
 function dateHeading(ts: number): string {
+  if (displayTimestamp(ts) === null) return "—";
   const date = new Date(ts), today = new Date(), yesterday = new Date();
   yesterday.setDate(today.getDate() - 1);
   if (date.toDateString() === today.toDateString()) return t.value.notifs.today;
   if (date.toDateString() === yesterday.toDateString()) return t.value.notifs.yesterday;
-  return date.toLocaleDateString(locale.code, { year: "numeric", month: "short", day: "numeric" });
+  return formatDisplayDate(ts, locale.code);
 }
 
 function timeAgo(ts: number): string {
+  if (displayTimestamp(ts) === null) return "—";
   const date = new Date(ts), now = new Date(), yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
   if (date.toDateString() === yesterday.toDateString()) {

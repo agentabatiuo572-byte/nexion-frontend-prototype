@@ -63,6 +63,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatDisplayDate } from "@/lib/display-date";
 import { formatAmount } from "@/lib/amount-display";
 import { computed } from "vue";
 import { useVoucherClaimSheet } from "@/store/voucher-claim-sheet";
@@ -73,7 +74,7 @@ import { visibleVoucherCatalog } from "@/lib/voucher-sheet-authority";
 import { toast } from "@/store/ui";
 import { useT } from "@/i18n/use-t";
 import { remoteApiEnabled } from "@/api/runtime";
-import { fmt } from "@/i18n/format";
+import { dateLocale, fmt } from "@/i18n/format";
 import { navTo } from "@/lib/route";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
 
@@ -92,12 +93,8 @@ const vouchers = computed<VoucherDef[]>(() => {
   );
 });
 
-function pad2(n: number): string {
-  return String(n).padStart(2, "0");
-}
 function formatDate(ms: number): string {
-  const d = new Date(ms);
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  return formatDisplayDate(ms, dateLocale());
 }
 
 function valueText(v: VoucherDef): string {

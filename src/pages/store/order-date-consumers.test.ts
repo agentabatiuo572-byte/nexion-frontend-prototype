@@ -33,8 +33,8 @@ afterEach(() => {
 
 describe("BUG 412 order date consumers", () => {
   for (const [zone, time, midnightDate, midnightTime] of [
-    ["Asia/Tokyo", "11:48:31", "2026-10-03", "00:01:02"],
-    ["Asia/Ho_Chi_Minh", "09:48:31", "2026-10-02", "22:01:02"],
+    ["Asia/Tokyo", "11:48:31", "2026/10/03", "00:01:02"],
+    ["Asia/Ho_Chi_Minh", "09:48:31", "2026/10/02", "22:01:02"],
   ]) {
     it.each(["english fallback", "throws"])(`${zone} keeps local numeric dates and seconds when Android locale %s`, (mode) => {
       vi.stubEnv("TZ", zone);
@@ -49,10 +49,10 @@ describe("BUG 412 order date consumers", () => {
       const timeline = [{ status: "placed", ts: placedAt }, { status: "paid", ts: placedAt + 1000 }];
       const view = detail(timeline);
 
-      expect(dateText(placedAt)).toBe("2026-10-03");
-      expect(view.dt(placedAt)).toBe(`2026-10-03 ${time}`);
-      expect(view.eventText("placed")).toBe(`2026-10-03 ${time}`);
-      expect(view.eventText("paid")).toBe(`2026-10-03 ${time.slice(0, -2)}32`);
+      expect(dateText(placedAt)).toBe("2026/10/03");
+      expect(view.dt(placedAt)).toBe(`2026/10/03 ${time}`);
+      expect(view.eventText("placed")).toBe(`2026/10/03 ${time}`);
+      expect(view.eventText("paid")).toBe(`2026/10/03 ${time.slice(0, -2)}32`);
       expect(view.eventText("activated")).toBe("");
       expect(dateText(midnight)).toBe(midnightDate);
       expect(view.dt(midnight)).toBe(`${midnightDate} ${midnightTime}`);
@@ -62,7 +62,7 @@ describe("BUG 412 order date consumers", () => {
     });
   }
 
-  it("shows unknown for non-finite and out-of-range epochs while retaining epoch zero", () => {
+  it("shows unknown for non-finite and out-of-range epochs including zero timestamps", () => {
     vi.stubEnv("TZ", "Asia/Tokyo");
     for (const invalid of [NaN, Infinity, -Infinity, 8.64e15 + 1, -8.64e15 - 1]) {
       const view = detail([{ status: "placed", ts: invalid }]);
@@ -70,8 +70,8 @@ describe("BUG 412 order date consumers", () => {
       expect(view.dt(invalid)).toBe("—");
       expect(view.eventText("placed")).toBe("—");
     }
-    expect(dateText(0)).toBe("1970-01-01");
-    expect(detail([]).dt(0)).toBe("1970-01-01 09:00:00");
+    expect(dateText(0)).toBe("—");
+    expect(detail([]).dt(0)).toBe("—");
   });
 
   it("routes the list, all summary timestamps and the timeline through the numeric consumers", () => {

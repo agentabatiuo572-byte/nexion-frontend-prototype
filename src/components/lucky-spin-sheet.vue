@@ -157,6 +157,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatDisplayDateTime } from "@/lib/display-date";
 import { platformDisplayText } from "@/lib/brand-copy";
 
 import { navTo } from "@/lib/route";
@@ -318,7 +319,7 @@ const historyRows = computed(() => {
   return spin.history.slice(0, 5).flatMap((h) => {
     const sp = SPIN_PRIZES.find((p) => p.id === h.prizeId);
     if (!sp) return [];
-    return [{ ts: h.ts, label: ls(sp), time: new Date(h.ts).toISOString().slice(5, 16).replace("T", " ") }];
+    return [{ ts: h.ts, label: ls(sp), time: formatDisplayDateTime(h.ts, locale.code) }];
   });
 });
 

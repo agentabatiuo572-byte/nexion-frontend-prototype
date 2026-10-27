@@ -7,6 +7,7 @@ import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
 import { vi as vietnamese } from "@/i18n/messages/vi";
 import { fmt } from "@/i18n/format";
+import * as dates from "@/lib/display-date";
 import { displayGenesisHoldingId } from "@/lib/genesis-holding-id";
 import * as presentation from "@/lib/genesis-marketplace-presentation";
 import listing from "./listing-card.vue?raw";
@@ -23,7 +24,8 @@ async function render(source: string, props: Record<string, unknown>, copy: type
     vue: Vue, "@/lib/genesis-marketplace-presentation": presentation,
     "@/components/genesis/genesis-artwork.vue": { default: { render: () => null } },
     "@/lib/genesis-holding-id": { displayGenesisHoldingId },
-    "@/i18n/use-t": { useT: () => Vue.ref(copy) }, "@/i18n/format": { fmt },
+    "@/i18n/use-t": { useT: () => Vue.ref(copy) }, "@/i18n/format": { fmt, dateLocale: () => copy === zh ? "zh" : copy === vietnamese ? "vi" : "en" },
+    "@/lib/display-date": dates,
   };
   const exports = { default: {} as Vue.Component };
   new Function("require", "exports", code)((id: string) => {

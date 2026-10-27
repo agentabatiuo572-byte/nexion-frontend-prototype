@@ -1,6 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ApiClient } from "./api-client";
-import { createProofApi } from "./proof-api";
+import { createProofApi, parseProofSnapshot } from "./proof-api";
+
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 const valid = {
   source: "server", sourceEnvironment: "PRODUCTION", runId: "", serverCanonical: true, generatedAt: "2026-08-15T00:00:00Z",
@@ -13,6 +15,46 @@ const valid = {
 };
 
 describe("proof API", () => {
+  for (const nativeMode of ["missing Intl", "ignored locale/timeZone"]) {
+    it(`${nativeMode}: validates Vietnam calendar days independently of the device and native formatter`, () => {
+      vi.stubEnv("TZ", "America/Los_Angeles");
+      expect(new Date("2026-12-31T17:00:00Z").getTimezoneOffset()).toBe(480);
+      vi.stubGlobal("Intl", nativeMode === "missing Intl" ? undefined : {
+        DateTimeFormat: class { format() { return "Thu Dec 31 2026 09:00:00 GMT-0800"; } },
+      });
+      for (const [serverTime, asOf] of [
+        ["2026-12-31T16:59:59Z", "2026-12-31"],
+        ["2026-12-31T17:00:00Z", "2027-01-01"],
+        ["2027-01-01T02:00:00+09:00", "2027-01-01"],
+        ["2027-01-01 01:00:00", "2027-01-01"],
+      ]) {
+        expect(parseProofSnapshot({ ...valid, serverTime, asOf })).toMatchObject({ serverTime, asOf });
+      }
+      for (const asOf of ["2026-12-31", "2027-01-02", "2027/01/01", "2027-02-30"]) {
+        expect(() => parseProofSnapshot({ ...valid, serverTime: "2026-12-31T17:00:00Z", asOf }))
+          .toThrow("PROOF_RESPONSE_INVALID");
+      }
+    });
+  }
+
+  it.each(["not-a-date", "2026-02-30T00:00:00Z", "2026-10-26T24:00:00Z"])("rejects invalid server time %s without normalizing it into a date", serverTime => {
+    vi.stubGlobal("Intl", undefined);
+    expect(() => parseProofSnapshot({ ...valid, serverTime })).toThrow("PROOF_RESPONSE_INVALID");
+  });
+
+  it("retains source, provenance and fact validation without native Intl", () => {
+    vi.stubGlobal("Intl", undefined);
+    for (const change of [
+      { serverCanonical: false }, { sourceEnvironment: "SANDBOX" },
+      { provenance: { ...valid.provenance, timeZone: "UTC" } },
+      { provenance: { ...valid.provenance, environment: "SANDBOX" } },
+      { provenance: { ...valid.provenance, runId: "different-run" } },
+      { currentStreak: 8, longestStreak: 7 }, { topPercentile: -1 },
+      { generatedAt: "not-a-date" }, { joinedAt: "not-a-date" },
+      { team: { totalMembers: null, activeMembers: 1 } },
+    ]) expect(() => parseProofSnapshot({ ...valid, ...change })).toThrow("PROOF_RESPONSE_INVALID");
+  });
+
   it("accepts the server proof projection", async () => {
     const request = vi.fn().mockResolvedValue(valid);
     const api = createProofApi({ request } as unknown as ApiClient);

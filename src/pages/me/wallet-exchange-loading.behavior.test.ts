@@ -1,3 +1,4 @@
+import * as displayDate from "@/lib/display-date";
 import { platformDisplayText } from "@/lib/brand-copy";
 import { formatAmount } from "@/lib/amount-display";
 import { formatFinanceAmount } from "@/lib/finance-amount-display";
@@ -12,6 +13,7 @@ import { remoteAuthorityStatus } from "@/lib/remote-authority-display";
 import { createRemoteAuthorityCoordinator } from "@/lib/remote-authority-coordinator";
 import { canShowExchangeToast } from "@/lib/exchange-scope-toast";
 import * as exchangeInput from "@/lib/exchange-input-amount";
+import { resolveWithdrawalUseMax } from "@/lib/withdrawal-use-max";
 import * as exchangeCancel from "@/lib/exchange-cancel";
 import * as exchangePending from "@/lib/exchange-pending-mutation";
 import type { ExchangeSnapshot } from "@/api/exchange-api";
@@ -103,7 +105,7 @@ async function mount(direction = "nex2usdt") {
     "@/components/sub-page-header.vue": { default: header },
     "@/lib/route": { navTo }, "@/lib/exchange-quote": { exchangeQuote },
     "@/i18n/use-t": { useT: () => Vue.ref(en) },
-    "@/i18n/format": { dateLocale: () => "en", fmt: (text: string, values: Record<string, string>) => text.replace(/\{(\w+)\}/g, (_match, key) => values[key]) },
+    "@/lib/display-date": displayDate, "@/i18n/format": { dateLocale: () => "en", fmt: (text: string, values: Record<string, string>) => text.replace(/\{(\w+)\}/g, (_match, key) => values[key]) },
     "@/api/geo-policy-error": { geoPolicyUserMessage: vi.fn() },
     "@/lib/remote-authority-display": { remoteAuthorityStatus },
     "@/store/ui": { toast, confirm },
@@ -113,6 +115,7 @@ async function mount(direction = "nex2usdt") {
     "@/lib/account-scope": { captureAccountScope: () => ({ accountKey, epoch: 1 }), isCurrentAccountScope: () => true },
     "@/api/order-api": { captureRuntimeRevision: () => ({ epoch: 1 }), isCurrentRuntimeRevision: () => true, subscribeRuntimeRevision: () => () => {} },
     "@/lib/exchange-scope-toast": { canShowExchangeToast }, "@/lib/exchange-input-amount": exchangeInput,
+    "@/lib/withdrawal-use-max": { resolveWithdrawalUseMax },
     "@/lib/remote-authority-coordinator": { createRemoteAuthorityCoordinator },
     "@/lib/remote-commerce-refresh": { refreshWalletAfterCommittedExchange: vi.fn() },
     "@/api/runtime": { remoteApiEnabled: true, exchangeApi: { fetchState, swap } },
@@ -157,6 +160,46 @@ afterEach(() => {
 });
 
 describe("mounted exchange balance authority", () => {
+  it.each([
+    ["nex2usdt", false], ["nex2usdt", true], ["usdt2nex", false], ["usdt2nex", true],
+  ] as const)("Max stays within a fractional authoritative balance without changing the pause gate: %s enabled=%s", async (direction, enabled) => {
+    const s = await mount(direction), state = snapshot(); state.caps.swapEnabled = enabled;
+    const field = direction === "nex2usdt" ? "nexAvailable" : "usdtAvailable";
+    state.wallet[field] = 4268.316285;
+    const before = JSON.stringify(state); await s.settle(state);
+    s.button(en.uiChrome.max).props.onClick(); await flush();
+    expect(s.amount()).toBe("4268.31"); expect(Number(s.amount())).toBeLessThanOrEqual(state.wallet[field]);
+    expect(s.text()).not.toContain(insufficient(direction === "nex2usdt" ? "NEX" : "USDT"));
+    expect(s.button(en.exchange.confirm).props["aria-disabled"]).toBe(enabled ? "false" : "true");
+    expect(s.text().includes(en.exchange.swapPaused)).toBe(!enabled);
+    expect(JSON.stringify(state)).toBe(before); expect(s.confirm).not.toHaveBeenCalled(); expect(s.swap).not.toHaveBeenCalled();
+    if (!enabled) { s.button(en.exchange.confirm).props.onClick(); await flush(); expect(s.confirm).not.toHaveBeenCalled(); expect(s.swap).not.toHaveBeenCalled(); }
+  });
+
+  it.each([1.15, 1.005, 0.009, 0, 1e-7])("Max floors decimal text safely at the existing input precision: %s", async balance => {
+    const s = await mount("usdt2nex"), state = snapshot(); state.wallet.usdtAvailable = balance;
+    await s.settle(state); s.button(en.uiChrome.max).props.onClick(); await flush();
+    expect(Number(s.amount())).toBeLessThanOrEqual(balance);
+    if (balance === 1.15) expect(Number(s.amount())).toBe(1.15);
+    expect(s.text()).not.toContain(insufficient("USDT")); expect(s.swap).not.toHaveBeenCalled();
+  });
+
+  it("Max remains disabled as a money command when authority is unknown or failed", async () => {
+    const s = await mount(); s.button(en.uiChrome.max).props.onClick(); await flush();
+    expect(s.button(en.exchange.confirm).props["aria-disabled"]).toBe("true");
+    s.requests.at(-1)!.reject(new Error("authority unavailable")); await flush();
+    s.button(en.uiChrome.max).props.onClick(); s.button(en.exchange.confirm).props.onClick(); await flush();
+    expect(s.confirm).not.toHaveBeenCalled(); expect(s.swap).not.toHaveBeenCalled();
+  });
+
+  it("Max cannot change the snapshotted input while a confirmation is pending", async () => {
+    const s = await mount(), state = snapshot(); state.caps.swapEnabled = true;
+    await s.settle(state); await s.enter("10"); const answer = deferred<boolean>(); s.confirm.mockReturnValue(answer.promise);
+    const pending = s.button(en.exchange.confirm).props.onClick(); await flush();
+    const frozenInput = s.amount(); s.button(en.uiChrome.max).props.onClick(); await flush(); expect(s.amount()).toBe(frozenInput); expect(Number(s.amount())).toBe(10);
+    answer.resolve(false); await pending; expect(s.swap).not.toHaveBeenCalled();
+  });
+
   it.each(["nex2usdt", "usdt2nex"])("retains input without false validation during pending, unavailable and recovery: %s", async direction => {
     const s = await mount(direction), sym = direction === "nex2usdt" ? "NEX" : "USDT";
     await s.settle(snapshot()); await s.enter("10");

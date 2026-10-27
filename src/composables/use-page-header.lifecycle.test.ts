@@ -1,4 +1,5 @@
 import * as Vue from "vue";
+import * as pageEvents from "@dcloudio/uni-app";
 import type { Component, ComponentInternalInstance } from "vue";
 import { createPinia, setActivePinia } from "pinia";
 import { compileScript, parse } from "@vue/compiler-sfc";
@@ -77,6 +78,7 @@ function chassis(translations: Vue.Ref<typeof en>, back: ReturnType<typeof vi.fn
     "@/lib/chassis-scroll": { resolveChassisScrollElement: () => null },
     "@/lib/liquid-glass-core": { rememberGlassNavigation: idle, consumeGlassNavigation: idle },
     "@/lib/voucher-popup-scheduler": { createVoucherPopupScheduler: () => ({ cancel: idle, schedule: idle }) },
+    "@dcloudio/uni-app": pageEvents,
     "@/lib/account-scope": { captureAccountScope: () => ({}), isCurrentAccountScope: () => true },
     "@/api/order-api": { captureRuntimeRevision: () => ({}), isCurrentRuntimeRevision: () => true, subscribeRuntimeRevision: idle },
     "@/services/behavior-analytics": { isAcceptanceObservationModalOpen: () => false },
@@ -86,7 +88,7 @@ function chassis(translations: Vue.Ref<typeof en>, back: ReturnType<typeof vi.fn
   descriptor.script = null;
   const script = compileScript(descriptor, { id: "header-chassis", inlineTemplate: true,
     templateOptions: { compilerOptions: { isCustomElement: tag => tag === "view" || tag === "text" } } });
-  const code = ts.transpileModule(script.content, { compilerOptions: {
+  const code = ts.transpileModule(script.content.replaceAll('import.meta.env.VITE_UVEL_SCROLL_DEBUG', '"false"'), { compilerOptions: {
     target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS,
   } }).outputText;
   const exports = { default: {} as Component };

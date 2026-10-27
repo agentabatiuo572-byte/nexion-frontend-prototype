@@ -11,7 +11,7 @@
   `active` prop is an optional fallback for the very first frame.
 -->
 <template>
-  <view v-bind="$attrs" :id="chassisHostId" class="nx-chassis" style="background: var(--v5-bg)" :chrome-config="chromeConfiguration" :change:chrome-config="chromeView.update">
+  <view v-bind="$attrs" :id="chassisHostId" class="nx-chassis" :data-tab-key="tabHost ? tabLocationKey : undefined" :data-tab-revision="tabHost ? tabRevision : undefined" :data-page-visible="pageVisible && hostVisible ? 'true' : 'false'" style="background: var(--v5-bg)" :chrome-config="chromeConfiguration" :change:chrome-config="chromeView.update">
     <view class="nx-top-chrome" :style="{ height: statusBarHeight + 'px' }" />
 
     <!-- Status bar safe area (real on device, ~0 on desktop H5) -->
@@ -164,6 +164,7 @@
 <script setup lang="ts">
 import { rememberGlassNavigation, consumeGlassNavigation } from "@/lib/liquid-glass-core";
 import { ref, computed, watch, onMounted, onUnmounted, onActivated, nextTick, provide, type CSSProperties, getCurrentInstance } from "vue";
+import { onShow, onHide } from "@dcloudio/uni-app";
 import BrandLockup from "@/components/brand-lockup.vue";
 // #ifdef APP-PLUS
 import InviteScanEntry from "@/components/team/invite-scan-entry.vue";
@@ -508,10 +509,7 @@ watch(() => [props.logicalRoute, props.tabLocationKey], () => {
   scrollMemKey = pageScrollKey();
   dropScrollPos(scrollMemKey);
   startY = null; pullY.value = 0; pulling.value = false; pullActive.value = false;
-  void nextTick(() => {
-    const pages = getCurrentPages();
-    scrollNativeCurrentTabToTop(pages[pages.length - 1]);
-  });
+  // The view controller restores each tab after its retained content is visible.
 });
 watch(() => [route.value, props.hostVisible], ([current], [previous]) => {
   if (autoPushMounted && props.tabHost) beginHomeAutoPush(current !== previous);
@@ -686,8 +684,17 @@ import LiquidGlass from "@/components/liquid-glass.vue";
 import GlassSegments from "@/components/glass-segments.vue";
 
 const chassisHostId = `nx-chassis-host-${getCurrentInstance()!.uid}`;
-const chromeConfiguration = { hostId: chassisHostId };
-declare const chromeView: { update(value: { hostId: string }): void };
+const pageVisible = ref(true);
+const tabRevision = ref(0);
+watch(() => props.tabLocationKey, () => { tabRevision.value += 1; }, { flush: "sync" });
+onShow(() => { pageVisible.value = true; });
+onHide(() => { pageVisible.value = false; });
+let scrollDiagnostics = false;
+// #ifdef APP-PLUS
+scrollDiagnostics = import.meta.env.VITE_UVEL_SCROLL_DEBUG === "true";
+// #endif
+const chromeConfiguration = computed(() => ({ hostId: chassisHostId, tabKey: props.tabHost ? props.tabLocationKey : undefined, tabRevision: props.tabHost ? tabRevision.value : undefined, visible: pageVisible.value && props.hostVisible, debug: scrollDiagnostics }));
+declare const chromeView: { update(value: { hostId: string; tabKey?: string; tabRevision?: number; visible?: boolean; debug?: boolean }): void };
 const navigationOptions = computed(() => tabs.value.map(tab => ({ ...tab, value: tab.key })));
 const navigationFrom = consumeGlassNavigation(activeTab.value);
 let navigationPending = false;

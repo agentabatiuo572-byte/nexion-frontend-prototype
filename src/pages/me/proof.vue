@@ -183,6 +183,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatDisplayDate } from "@/lib/display-date";
 import { formatAmount } from "@/lib/amount-display";
 import { computed, nextTick, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onShow, onUnload } from "@dcloudio/uni-app";
@@ -331,8 +332,7 @@ const streakHeroValue = computed(() => longestOrCurrent.value === null
 const joined = computed(() => {
   const raw = remoteApiEnabled ? remoteSnapshot.value?.joinedAt : app.user.joinedAt;
   if (!raw) return "—";
-  const ts = typeof raw === "string" ? Date.parse(raw) : raw;
-  return Number.isFinite(ts) ? new Date(ts).toLocaleDateString(dateLocale(), { month: "short", year: "numeric" }) : "—";
+  return formatDisplayDate(raw, dateLocale());
 });
 const activeDays = computed<number | null>(() => remoteApiEnabled ? remoteSnapshot.value?.activeDays ?? null
   : Math.max(1, Math.floor((Date.now() - app.user.joinedAt) / (24 * 3600 * 1000))));

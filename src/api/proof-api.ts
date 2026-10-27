@@ -2,6 +2,7 @@ import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
 import type { ApiEnvironment } from "./runtime-config";
 import { matchesRuntimeProvenance } from "./runtime-provenance";
+import { parseServerTimestamp } from "./server-time";
 
 export interface ProofSnapshot {
   source: "server"; sourceEnvironment: "PRODUCTION" | "SANDBOX"; runId: string; serverCanonical: true; generatedAt: string;
@@ -24,11 +25,12 @@ export function parseProofSnapshot(value: unknown, mode: ApiEnvironment = "prod"
   const runIdValue = source.runId;
   const generatedAt = text(source.generatedAt); const joinedAt = text(source.joinedAt);
   const serverTime = text(source.serverTime); const asOf = text(source.asOf);
+  const serverTimeMs = parseServerTimestamp(serverTime);
   if (!Number.isFinite(Date.parse(generatedAt)) || !Number.isFinite(Date.parse(joinedAt))
-    || !Number.isFinite(Date.parse(serverTime)) || !/^\d{4}-\d{2}-\d{2}$/.test(asOf)) return invalid();
-  const serverDate = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit",
-  }).format(new Date(serverTime));
+    || serverTimeMs === null || !/^\d{4}-\d{2}-\d{2}$/.test(asOf)) return invalid();
+  // Protocol calendar: Vietnam is UTC+7; native Intl may ignore locale/timeZone.
+  const vietnamTime = new Date(serverTimeMs + 7 * 60 * 60 * 1000);
+  const serverDate = `${String(vietnamTime.getUTCFullYear()).padStart(4, "0")}-${String(vietnamTime.getUTCMonth() + 1).padStart(2, "0")}-${String(vietnamTime.getUTCDate()).padStart(2, "0")}`;
   if (serverDate !== asOf) return invalid();
   const provenance = row(source.provenance);
   if (provenance.source !== "server" || provenance.environment !== environment || provenance.runId !== runIdValue

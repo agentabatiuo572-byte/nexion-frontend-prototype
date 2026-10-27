@@ -24,7 +24,7 @@
         <text class="nx-conv-empty-t">{{ emptyHint }}</text>
       </view>
 
-      <view v-for="m in messages" :key="messageKey(m)" class="nx-conv-msg-row" :class="{ 'nx-conv-msg-row--joined': compactGroups[m.id] }">
+      <view v-for="m in messages" :key="messageKey(m)" :id="messageRowId(m.id) + '-preview'" class="nx-conv-msg-row" :class="{ 'nx-conv-msg-row--joined': compactGroups[m.id] }" :style="{ minHeight: previewRowHeights[m.id] ? previewRowHeights[m.id] + 'px' : undefined }">
         <view v-if="timeGroups[m.id]" class="nx-conv-time-divider" role="separator" :aria-label="messageTimes[m.id]?.full">
           <text>{{ timeGroups[m.id] }}</text>
         </view>
@@ -40,7 +40,7 @@
             <view class="nx-conv-bubble-body">
               <view v-if="m.imageSrc" class="nx-conv-image-open" role="button" tabindex="0" :aria-label="imageLabels?.view"
                 @click="openPreview(m.imageSrc)" @keydown.enter.prevent="openPreview(m.imageSrc)" @keydown.space.prevent="openPreview(m.imageSrc)">
-                <image class="nx-conv-image" :src="m.imageSrc" mode="widthFix" @load="scheduleBubblePositions" />
+                <image class="nx-conv-image" :id="messageRowId(m.id) + '-preview-image'" :src="m.imageSrc" mode="widthFix" :style="{ minHeight: previewImageHeights[m.id] ? previewImageHeights[m.id] + 'px' : undefined, maxHeight: previewImageHeights[m.id] ? previewImageHeights[m.id] + 'px' : undefined }" :onLoad="imageLoadHandler(m.id, m.imageSrc)" />
                 <text class="nx-conv-image-caption">{{ imageLabels?.view }}</text>
               </view>
               <text v-else-if="m.imageLoading" class="nx-conv-image-caption">{{ imageLabels?.loading }}</text>
@@ -338,7 +338,14 @@ watch(() => [props.composerKey, props.revealTick, app.accountKey, app.accountBin
 const previewImage = ref("");
 function openPreview(src: string) {
   // #ifdef APP-PLUS
-  uni.previewImage({ current: src, urls: [src], fail: () => { previewImage.value = src; } });
+  const launch = (reading: PreviewReading) => uni.previewImage({ current: src, urls: [src], fail: () => {
+    if (nativePreviewReading !== reading || reading.owner !== previewReadingOwner() || historyDisposed) return;
+    nativePreviewReading = null;
+    clearPreviewRowHeights();
+    if (props.attachmentPreviewSrc === src || props.messages.some(message => message.imageSrc === src)) previewImage.value = src;
+  } });
+  if (typeof listRoot()?.querySelectorAll === 'function') launch(rememberNativePreviewReading());
+  else prepareNativePreviewReading(src, launch);
   return;
   // #endif
   previewImage.value = src;
@@ -440,6 +447,159 @@ let pendingPosition: PositionAdjustment | null = null;
 let historyPreparation = 0;
 const historyOwner = () => JSON.stringify([app.accountKey, app.accountBindingEpoch, props.composerKey, props.revealTick]);
 const listRoot = () => (listHost.value as { $el?: HTMLElement } | null)?.$el ?? listHost.value as HTMLElement | null;
+type PreviewReading = { owner: string; host: unknown; root: unknown; top: number; inset: number; tail: boolean; returning: boolean };
+let nativePreviewReading: PreviewReading | null = null;
+const previewRowHeights = ref<Record<string, number>>({});
+const previewImageHeights = ref<Record<string, number>>({});
+const previewImageFrames = ref<Record<string, number>>({});
+let previewReservationGeneration = 0;
+let previewPreparation = 0;
+let stopPreviewPreparation: (() => void) | undefined;
+function cancelPreviewPreparation() { previewPreparation++; stopPreviewPreparation?.(); stopPreviewPreparation = undefined; }
+function clearPreviewRowHeights() { cancelPreviewPreparation(); previewReservationGeneration++; previewRowHeights.value = {}; previewImageHeights.value = {}; previewImageFrames.value = {}; }
+const previewReadingOwner = () => JSON.stringify([app.accountKey, app.accountBindingEpoch, props.composerKey]);
+function rememberNativePreviewReading(measured?: Record<string, number>, images: Record<string, number> = {}): PreviewReading {
+  const node = scroller();
+  const rows = Array.from(listRoot()?.querySelectorAll?.('.nx-conv-msg-row') ?? []);
+  const heights: Record<string, number> = {};
+  props.messages.forEach((message, index) => {
+    const height = message.imageSrc ? rows[index]?.getBoundingClientRect?.().height : undefined;
+    if (height !== undefined && Number.isFinite(height) && height > 0) heights[message.id] = height;
+  });
+  previewReservationGeneration++;
+  previewImageFrames.value = {};
+  previewRowHeights.value = measured ?? heights;
+  previewImageHeights.value = images;
+  return nativePreviewReading = { owner: previewReadingOwner(), host: listHost.value, root: listRoot(),
+    top: node?.scrollTop ?? lastScrollTop, inset: positionInset.value,
+    tail: node ? node.scrollHeight - node.clientHeight - node.scrollTop <= 24 : followingTail, returning: false };
+}
+// App's logic-layer host has no DOM. Measure real view rows, then confirm that
+// their numeric reservation reached the view before a preview can hide the page.
+function prepareNativePreviewReading(src: string, launch: (reading: PreviewReading) => void) {
+  nativePreviewReading = null; clearPreviewRowHeights();
+  const ticket = previewPreparation, owner = historyOwner(), host = listHost.value, root = listRoot();
+  let generation = previewReservationGeneration, reading: PreviewReading | null = null;
+  const current = () => ticket === previewPreparation && generation === previewReservationGeneration
+    && !historyDisposed && threadVisible.value && owner === historyOwner() && host === listHost.value && root === listRoot()
+    && (!reading || reading === nativePreviewReading)
+    && (props.attachmentPreviewSrc === src || props.messages.some(message => message.imageSrc === src));
+  const cancel = () => { if (ticket === previewPreparation) { nativePreviewReading = null; clearPreviewRowHeights(); } };
+  const fallback = () => { const usable = current(); cancel(); if (usable) previewImage.value = src; };
+  if (!current()) return;
+  stopPreviewPreparation = watch([() => props.messages, () => props.attachmentPreviewSrc, historyOwner], cancel, { deep: true, flush: 'sync' });
+  const queryRows = (committed: boolean, done: (rows: UniApp.NodeInfo[], images: UniApp.NodeInfo[]) => void) => {
+    try {
+      if (typeof uni === 'undefined' || !uni.createSelectorQuery) { fallback(); return; }
+      const query = uni.createSelectorQuery().in(threadInstance);
+      query.selectAll('.nx-conv-msg-row').fields({ id: true, size: true, ...(committed ? { computedStyle: ['min-height'] } : {}) }, () => {});
+      query.selectAll('.nx-conv-image').fields({ id: true, size: true, ...(committed ? { computedStyle: ['min-height', 'max-height'] } : {}) }, () => {});
+      query.exec(result => {
+        if (!current()) return;
+        done(Array.isArray(result) && Array.isArray(result[0]) ? result[0] : [], Array.isArray(result) && Array.isArray(result[1]) ? result[1] : []);
+      });
+    } catch { fallback(); }
+  };
+  queryRows(false, (rows, images) => {
+    const heights: Record<string, number> = {}, imageHeights: Record<string, number> = {};
+    for (const message of props.messages) if (message.imageSrc) {
+      const matches = rows.filter(row => row.id === messageRowId(message.id) + '-preview');
+      const height = matches.length === 1 ? matches[0].height : undefined;
+      if (typeof height !== 'number' || !Number.isFinite(height) || height <= 0) { fallback(); return; }
+      heights[message.id] = height;
+      const imageMatches = images.filter(image => image.id === messageRowId(message.id) + '-preview-image');
+      const imageHeight = imageMatches.length === 1 ? imageMatches[0].height : undefined;
+      if (typeof imageHeight !== 'number' || !Number.isFinite(imageHeight) || imageHeight <= 0) { fallback(); return; }
+      imageHeights[message.id] = imageHeight;
+    }
+    reading = rememberNativePreviewReading(heights, imageHeights); generation = previewReservationGeneration;
+    void nextTick(() => {
+      if (!current()) return;
+      queryRows(true, (committed, images) => {
+        for (const [id, height] of Object.entries(heights)) {
+          const matches = committed.filter(row => row.id === messageRowId(id) + '-preview');
+          const row = matches.length === 1 ? matches[0] : undefined;
+          const minimum = parseFloat(String((row as unknown as Record<string, unknown> | undefined)?.['min-height'] ?? ''));
+          if (!row || typeof row.height !== 'number' || !Number.isFinite(row.height) || row.height < height - .5
+            || !Number.isFinite(minimum) || minimum < height - .5) { fallback(); return; }
+          const imageMatches = images.filter(image => image.id === messageRowId(id) + '-preview-image');
+          const image = imageMatches.length === 1 ? imageMatches[0] : undefined, imageHeight = imageHeights[id];
+          const styles = image as unknown as Record<string, unknown> | undefined;
+          const imageMin = parseFloat(String(styles?.['min-height'] ?? '')), imageMax = parseFloat(String(styles?.['max-height'] ?? ''));
+          if (!image || typeof image.height !== 'number' || !Number.isFinite(image.height) || Math.abs(image.height - imageHeight) > .5
+            || !Number.isFinite(imageMin) || Math.abs(imageMin - imageHeight) > .5
+            || !Number.isFinite(imageMax) || Math.abs(imageMax - imageHeight) > .5) { fallback(); return; }
+        }
+        cancelPreviewPreparation(); launch(reading!);
+      });
+    });
+  });
+}
+onShow(() => { if (nativePreviewReading) nativePreviewReading.returning = true; });
+onHide(() => {
+  if (stopPreviewPreparation || !nativePreviewReading || nativePreviewReading.returning) { nativePreviewReading = null; clearPreviewRowHeights(); }
+});
+watch(() => [previewReadingOwner(), listHost.value, listRoot()], () => { nativePreviewReading = null; clearPreviewRowHeights(); }, { flush: 'sync' });
+onScopeDispose(() => { nativePreviewReading = null; clearPreviewRowHeights(); });
+watch(() => props.messages.map(message => [message.id, message.imageSrc] as const), (messages, previous) => {
+  if (!Object.keys(previewRowHeights.value).length) return;
+  const frames = { ...previewImageFrames.value };
+  let changed = false;
+  for (const [id, src] of messages) if (id in previewRowHeights.value && previous?.find(row => row[0] === id)?.[1] !== src) {
+    frames[id] = (frames[id] ?? 0) + 1; changed = true;
+  }
+  if (changed) previewImageFrames.value = frames;
+}, { flush: 'sync' });
+type ImageLoad = { detail?: { width?: number; height?: number } };
+function imageLoadHandler(id: string, src: string | undefined) {
+  const generation = previewReservationGeneration, frame = previewImageFrames.value[id] ?? 0;
+  return (event?: Event) => onMessageImageLoad(id, src, generation, frame, event as ImageLoad | undefined);
+}
+function onMessageImageLoad(id: string, src: string | undefined, generation: number, frame: number, event?: ImageLoad) {
+  scheduleBubblePositions();
+  const owner = previewReadingOwner(), host = listHost.value, root = listRoot();
+  const current = () => threadVisible.value && (!nativePreviewReading || nativePreviewReading.returning)
+    && owner === previewReadingOwner() && generation === previewReservationGeneration
+    && host === listHost.value && root === listRoot()
+    && frame === (previewImageFrames.value[id] ?? 0)
+    && typeof src === 'string' && props.messages.some(message => message.id === id && message.imageSrc === src)
+    && id in previewRowHeights.value;
+  if (!current()) return;
+  void nextTick(() => {
+    if (!current()) return;
+    const release = () => {
+      if (!current()) return;
+      const heights = { ...previewRowHeights.value }; delete heights[id]; previewRowHeights.value = heights;
+      const images = { ...previewImageHeights.value }; delete images[id]; previewImageHeights.value = images;
+    };
+    if (!(id in previewImageHeights.value)) { release(); return; }
+    const width = event?.detail?.width, height = event?.detail?.height;
+    if (typeof width !== 'number' || !Number.isFinite(width) || width <= 0
+      || typeof height !== 'number' || !Number.isFinite(height) || height <= 0) return;
+    // App emits load before its queued widthFix writes inline height. This
+    // view round trip runs after that load task/microtasks. Only remove our
+    // min/max constraints; never clear the height owned by Uni's Image.
+    try {
+      const query = uni.createSelectorQuery().in(threadInstance), imageId = messageRowId(id) + '-preview-image';
+      query.select('#' + imageId).fields({ id: true, size: true }, () => {});
+      query.exec(result => {
+        const image = Array.isArray(result) ? result[0] as UniApp.NodeInfo | undefined : undefined;
+        if (image?.id === imageId && typeof image.width === 'number' && Number.isFinite(image.width) && image.width > 0
+          && typeof image.height === 'number' && Number.isFinite(image.height) && image.height > 0) release();
+      });
+    } catch { /* Keep numeric bounds until a current view load can be confirmed. */ }
+  });
+}
+function resumeNativePreviewReading(): boolean {
+  const reading = nativePreviewReading;
+  nativePreviewReading = null;
+  if (!reading?.returning || reading.tail || reading.owner !== previewReadingOwner()
+    || reading.host !== listHost.value || reading.root !== listRoot()) return false;
+  followingTail = false;
+  pendingPosition = { ...beginPosition(reading.inset), top: reading.top, tail: false };
+  preservePosition(reading.inset);
+  return true;
+}
 function settlePosition(applied = false) {
   const position = pendingPosition;
   pendingPosition = null;
@@ -462,6 +622,7 @@ function scroller(): HTMLElement | undefined {
     (node as HTMLElement).scrollHeight - (node as HTMLElement).clientHeight > 4) as HTMLElement | undefined;
 }
 function onThreadScroll(event: { detail: { scrollTop: number; scrollHeight?: number } }) {
+  if (stopPreviewPreparation) { nativePreviewReading = null; clearPreviewRowHeights(); }
   pendingTailGeneration = undefined;
   // Mirror the native position so a later prepend can reapply the same target.
   if (pendingPosition) pendingPosition.top += event.detail.scrollTop - lastScrollTop;
@@ -471,6 +632,9 @@ function onThreadScroll(event: { detail: { scrollTop: number; scrollHeight?: num
   if (node) followingTail = node.scrollHeight - node.clientHeight - node.scrollTop <= 24;
   else if (event.detail.scrollHeight !== undefined && measuredViewportHeight > 0)
     followingTail = event.detail.scrollHeight - measuredViewportHeight - lastScrollTop <= 24;
+  if (threadVisible.value && nativePreviewReading?.returning) {
+    nativePreviewReading.top = lastScrollTop; nativePreviewReading.inset = positionInset.value; nativePreviewReading.tail = followingTail;
+  }
   scheduleBubblePositions();
 }
 function messageRowId(id: string) { return 'nx-conv-message-' + Array.from(id).map(char=>char.charCodeAt(0).toString(16)).join('-'); }
@@ -608,7 +772,8 @@ watch(
   () => [props.messages.map(message => message.id), props.typing, props.revealTick, props.composerKey, positionInset.value] as const,
   ([ids, typing, reveal, key, inset], previous) => {
     if (!threadVisible.value) { cancelScroll(); return; }
-    if (!previous || reveal !== previous[2] || key !== previous[3]) { scrollToEnd(); return; }
+    if (!previous || key !== previous[3]) { nativePreviewReading = null; scrollToEnd(); return; }
+    if (reveal !== previous[2]) { if (!resumeNativePreviewReading()) scrollToEnd(); return; }
     if (inset !== previous[4]) historyPreparation++;
     const change = conversationScrollChange(previous[0], ids);
     if (change === 'prepend' || pendingPosition || inset !== previous[4])

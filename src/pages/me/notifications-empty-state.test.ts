@@ -1,3 +1,4 @@
+import * as displayDate from "@/lib/display-date";
 import { notificationCategory } from "@/lib/notification-category";
 import { isDirectNotificationSummary } from "@/lib/notification-summary";
 import { notificationActionsCopy } from "@/i18n/notification-actions";
@@ -34,7 +35,7 @@ function mountPage() {
     "@/store/pending-checkout-core": { PENDING_BAR_INSET_KEY: Symbol() },
     "@/store/locale": { useLocaleStore: () => ({ code: "zh" }) },
     "@/i18n/use-t": { useT: () => vue.ref(zh) },
-    "@/i18n/format": { fmt },
+    "@/lib/display-date": displayDate, "@/i18n/format": { fmt },
     "@/lib/unread-badge": { formatUnreadBadge },
     "@/store/notifications": { useNotifications: () => notifs },
     "@/store/message-drawer": { useMessageDrawer: () => vue.reactive({ section: "notifications", totalUnread: 1, serviceUnread: 0, refresh: () => notifs.refreshRemote() }) },
@@ -59,6 +60,15 @@ function evaluateBinding(expression: string, values: Record<string, unknown>) {
 }
 
 describe("notification empty-state context", () => {
+  it('selected warm notification results keep busy state without a loading flow block, while empty selection keeps it', () => {
+    const { page, notifs } = mountPage(), context = vue.proxyRefs(page);
+    const loading = source.match(/<view v-if="([^\"]+)" class="message-state" role="status" aria-live="polite"/)![1];
+    notifs.loading = true; expect(Boolean(evaluateBinding(loading, context))).toBe(false);
+    const busy = source.match(/class="notification-feed" :aria-busy="([^\"]+)"/)![1]; expect(evaluateBinding(busy, context)).toBe(true);
+    page.filter.value = 'finance'; expect(page.filtered.value).toHaveLength(0); expect(Boolean(evaluateBinding(loading, context))).toBe(true);
+    notifs.items = []; page.filter.value = 'all'; expect(Boolean(evaluateBinding(loading, context))).toBe(true);
+    notifs.loading = false; expect(evaluateBinding(busy, context)).toBe(false); expect(Boolean(evaluateBinding(loading, context))).toBe(false);
+  });
   it("does not offer retired ticket filtering in the service message parent page", () => {
     expect(mountPage().page.serviceFilters.value.map((item: { value: string }) => item.value)).toEqual(["all", "advisor"]);
   });

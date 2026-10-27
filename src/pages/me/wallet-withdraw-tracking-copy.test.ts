@@ -1,3 +1,4 @@
+import * as displayDate from "@/lib/display-date";
 import { describe, expect, it } from "vitest";
 // @ts-expect-error Node-only SFC contract; the application tsconfig omits Node globals.
 import { readFileSync } from "node:fs";
@@ -44,7 +45,7 @@ function actualPage(dictionary: typeof zh | typeof en | typeof vi) {
     "@/store/withdrawal-eligibility-core": { platformDayIndex: () => 1 },
     "@/store/withdrawal-eligibility": { dailyLimitStatus: () => ({ reached: false, resetAt: now + 86_400_000 }) },
     "@/i18n/use-t": { useT: () => Vue.ref(dictionary) },
-    "@/i18n/format": { fmt },
+    "@/lib/display-date": displayDate, "@/i18n/format": { fmt, dateLocale: () => dictionary === zh ? "zh" : dictionary === vi ? "vi" : "en" },
     "@/store/app": { useApp: () => app },
     "@/lib/route": { navTo: () => {}, navReplace: async () => true },
     "@/lib/risk-reason-text": { riskReasonLines, terminalReasonLine },

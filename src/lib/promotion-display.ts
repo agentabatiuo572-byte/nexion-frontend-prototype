@@ -1,5 +1,6 @@
 import { platformDisplayText } from "./brand-copy";
 import { formatAmount } from "./amount-display";
+import { formatDisplayDateTime } from "./display-date";
 import type { LocalizedText, RewardState, PublicRewardSpec, RewardSpec } from '../api/promotion-contracts';
 export function localized(value: LocalizedText | null | undefined, language: string): string { return platformDisplayText(value?.[language === 'zh' || language === 'vi' ? language : 'en'] ?? ''); }
 /** Decimal string multiplication is display-only; eligibility and groups come from the server. */
@@ -19,10 +20,6 @@ export function rewardStateKey(state: RewardState): 'rewardPending'|'rewardGrant
   return ({PENDING:'rewardPending',READY:'ready',PROCESSING:'processing',ISSUED:'rewardGranted',RETRYABLE_FAILED:'retrying',OUTCOME_UNKNOWN:'outcomeUnknown',CANCELLED:'rewardCancelled',REVERSAL_PENDING:'rewardRevoking',REVERSED:'reversed',MANUAL_REVIEW:'review'} as const)[state];
 }
 export function displayDeadline(value: string, language: string): string {
-  const date=new Date(value);if(!Number.isFinite(date.getTime()))return '';
-  // Native runtimes may ignore Intl's timeZone and return the device's local time.
-  const two=(part:number)=>String(part).padStart(2,'0');
-  const year=date.getUTCFullYear(),month=two(date.getUTCMonth()+1),day=two(date.getUTCDate());
-  const calendar=language==='zh'?`${year}-${month}-${day}`:`${day}/${month}/${year}`;
-  return `${calendar} ${two(date.getUTCHours())}:${two(date.getUTCMinutes())} · UTC`;
+  const date = formatDisplayDateTime(value, language, false, 0);
+  return date === '—' ? date : `${date} · UTC`;
 }

@@ -1,3 +1,4 @@
+import * as displayDate from "@/lib/display-date";
 import { teamLogicCopy } from '@/i18n/team-logic-copy';
 import * as Vue from "vue";
 import { teamRedesignCopy } from "@/i18n/team-redesign";
@@ -190,7 +191,7 @@ async function mount(platform: "h5" | "native" = "h5", messages = en) {
     "@/lib/profile-date": { formatJoinedDate },
     "@/store/locale": { useLocaleStore }, "@/i18n/team-redesign": { teamRedesignCopy },
     "@/components/liquid-glass.vue": { default: { render: () => Vue.h("decoration") } },
-    vue: Vue, "qrcode-generator": { default: qrcode }, "@/i18n/use-t": { useT: () => Vue.ref(messages) }, "@/i18n/format": { fmt },
+    vue: Vue, "qrcode-generator": { default: qrcode }, "@/i18n/use-t": { useT: () => Vue.ref(messages) }, "@/lib/display-date": displayDate, "@/i18n/format": { fmt },
     "@/lib/brand-copy": { displayNickname }, "@/api/runtime": remote, "@/lib/device-slot-policy": { isActiveSlotDevice },
     "@/store/app": { useApp }, "@/store/config": { useConfig }, "@/store/profile": { useProfile },
     "@/store/ui": { toast },
@@ -471,7 +472,7 @@ describe("mounted native save callbacks use the same operation fence", () => {
 describe("approved decorative art and real poster QR", () => {
   for (const platform of ["h5", "native"] as const) {
     it.each([
-      [zh, "2026/10/22"], [en, "Oct 22, 2026"], [vietnamese, "22 thg 10, 2026"],
+      [zh, "2026/10/22"], [en, "Oct 22, 2026"], [vietnamese, "22/10/2026"],
     ] as const)(`formats the actual ${platform} reward effective date by the selected language without native Intl`, async (messages, date) => {
       vi.spyOn(Date.prototype, "toLocaleDateString").mockReturnValue("Thu Oct 22 2026");
       const s = await mount(platform, messages);

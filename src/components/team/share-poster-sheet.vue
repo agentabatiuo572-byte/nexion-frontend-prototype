@@ -96,12 +96,12 @@
 </template>
 
 <script setup lang="ts">
+import { formatDisplayDate, formatDisplayDateTime } from "@/lib/display-date";
 import LiquidGlass from '@/components/liquid-glass.vue';
 import { useLocaleStore } from '@/store/locale';
 import { teamLogicCopy } from '@/i18n/team-logic-copy';
 import { teamRedesignCopy } from '@/i18n/team-redesign';
 import { formatAmount } from "@/lib/amount-display";
-import { formatJoinedDate } from "@/lib/profile-date";
 import { computed, getCurrentInstance, nextTick, onUnmounted, ref, watch } from "vue";
 import qrcode from "qrcode-generator";
 import { useT } from "@/i18n/use-t";
@@ -147,9 +147,9 @@ const posterRewardLine = computed(() => welcomeGiftAvailable.value
   : t.value.team.sharingStillAvailable);
 const rewardEffectiveAtText = computed(() => {
   if (!welcomeGiftAvailable.value || !cfg.config.rewards.effectiveAt) return "";
-  const at = new Date(cfg.config.rewards.effectiveAt);
-  if (Number.isNaN(at.getTime())) return "";
-  return fmt(t.value.share.posterRewardEffectiveAt, { date: formatJoinedDate(at.getTime(), locale.code) });
+  const date = formatDisplayDate(cfg.config.rewards.effectiveAt, locale.code);
+  if (date === "—") return "";
+  return fmt(t.value.share.posterRewardEffectiveAt, { date });
 });
 
 // 与 Earn 的设备位口径一致；远端设备清单未确认时不展示产出模板。
@@ -310,9 +310,7 @@ function paintQr(ctx: UniApp.CanvasContext, x: number, y: number, size: number, 
 }
 
 function ts(): string {
-  const d = new Date();
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  return formatDisplayDateTime(Date.now(), locale.code);
 }
 
 function paint(link: string, myToken: number) {

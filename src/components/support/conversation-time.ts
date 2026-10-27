@@ -20,7 +20,6 @@ const MINUTE = 60_000;
 const DAY = 86_400_000;
 export const CONVERSATION_TIME_GROUP_GAP_MS = DAY;
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const FULL_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const COPY = {
   zh: { today: "今天", yesterday: "昨天", weekdays: ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"] },
   en: { today: "Today", yesterday: "Yesterday", weekdays: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] },
@@ -79,11 +78,11 @@ function calendarDay(value: CalendarTime): number {
   return Date.UTC(value.year, value.month - 1, value.day) / DAY;
 }
 
-function dateLabel(value: CalendarTime, locale: ConversationTimeOptions["locale"], withYear: boolean, full = false): string {
+function dateLabel(value: CalendarTime, locale: ConversationTimeOptions["locale"]): string {
   const { year, month, day } = value;
-  if (locale === "zh") return `${withYear ? `${year}年` : ""}${month}月${day}日`;
-  if (locale === "vi") return `${day} ${full ? "tháng" : "thg"} ${month}${withYear ? `, ${year}` : ""}`;
-  return `${(full ? FULL_MONTHS : MONTHS)[month - 1]} ${day}${withYear ? `, ${year}` : ""}`;
+  if (locale === "zh") return `${year}/${pad(month)}/${pad(day)}`;
+  if (locale === "vi") return `${pad(day)}/${pad(month)}/${year}`;
+  return `${MONTHS[month - 1]} ${day}, ${year}`;
 }
 
 function offsetLabel(offsetMinutes: number): string {
@@ -97,20 +96,20 @@ function timeFormatter(options: ConversationTimeOptions) {
   return (date: Date) => {
     const value = read(date), clock = `${pad(value.hour)}:${pad(value.minute)}`;
     const day = calendarDay(value);
-    let groupDate = dateLabel(value, options.locale, true);
+    let groupDate = dateLabel(value, options.locale);
     // Future instants and other years remain explicit, including around New Year.
     if (current && now && date.getTime() <= now.getTime() && value.year === current.year) {
       const daysAgo = calendarDay(current) - day, copy = COPY[options.locale];
       if (daysAgo === 0) groupDate = copy.today;
       else if (daysAgo === 1) groupDate = copy.yesterday;
       else if (daysAgo >= 2 && daysAgo <= 6) groupDate = copy.weekdays[new Date(day * DAY).getUTCDay()];
-      else groupDate = dateLabel(value, options.locale, false);
+      else groupDate = dateLabel(value, options.locale);
     }
     return {
       day,
       labels: {
         clock,
-        full: `${dateLabel(value, options.locale, true, true)} ${clock}:${pad(value.second)} ${offsetLabel(value.offsetMinutes)}`,
+        full: `${dateLabel(value, options.locale)} ${clock}:${pad(value.second)} ${offsetLabel(value.offsetMinutes)}`,
         group: `${groupDate} ${clock}`,
       },
     };

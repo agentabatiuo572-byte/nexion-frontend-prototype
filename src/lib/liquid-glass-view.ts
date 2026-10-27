@@ -271,14 +271,35 @@ function mountSegments(root: HTMLElement, initial: SegmentsConfiguration) {
   };
 }
 
-export function mountChassis(root: HTMLElement) {
+export function mountChassis(root: HTMLElement, initial: { tabKey?: string; tabRevision?: number; visible?: boolean; debug?: boolean } = {}) {
   const scroll = root.querySelector<HTMLElement>(".nx-content")!;
+  let tabKey = initial.tabKey;
+  let tabRevision = initial.tabRevision;
+  let visible = initial.visible ?? true;
+  let pageTop = scroll.scrollTop;
+  let pendingTop: number | null = null;
+  let restoreFrame = 0;
+  const tabPositions = new Map<string, { href: string; top: number }>();
   let hidden = scroll.scrollTop > 8;
   let idle: ReturnType<typeof setTimeout> | undefined;
+  const trace = (event: string) => {
+    if (initial.debug) console.info("UvelScroll", JSON.stringify({ event, visible, pending: pendingTop !== null,
+      target: pendingTop, top: scroll.scrollTop, max: Math.max(0, scroll.scrollHeight - scroll.clientHeight) }));
+  };
+  const viewReady = () => visible && root.dataset.pageVisible !== "false"
+    && (root.dataset.tabKey === undefined || root.dataset.tabKey === tabKey)
+    && (root.dataset.tabRevision === undefined || root.dataset.tabRevision === String(tabRevision))
+    && (!root.getClientRects || root.getClientRects().length > 0)
+    && (typeof document === "undefined" || document.visibilityState !== "hidden");
   const markScroll = () => {
+    // The DOM marker changes with v-show, before the renderjs adapter's next rAF.
+    // A short incoming page must not save its clamped zero against the old tab.
+    if (!viewReady() || pendingTop !== null) return;
+    pageTop = scroll.scrollTop;
+    if (tabKey) tabPositions.set(tabKey.split("?")[0], { href: tabKey, top: scroll.scrollTop });
     root.dataset.scrolling = "true";
     clearTimeout(idle);
-    idle = setTimeout(() => { root.dataset.scrolling = "false"; }, 200);
+    idle = setTimeout(() => { root.dataset.scrolling = "false"; trace("capture"); }, 200);
     onScroll();
   };
   function onScroll() {
@@ -292,11 +313,57 @@ export function mountChassis(root: HTMLElement) {
       if (title.getAttribute("aria-hidden") !== value) title.setAttribute("aria-hidden", value);
     }
   }
+  function attemptRestore() {
+    if (pendingTop === null || !viewReady()) return;
+    const target = pendingTop;
+    scroll.scrollTop = target;
+    if (Math.abs(scroll.scrollTop - target) < 1) pendingTop = null;
+    trace(pendingTop === null ? "restored" : "restore-pending");
+    onScroll();
+  }
+  function scheduleRestore() {
+    if (pendingTop === null || restoreFrame) return;
+    if (typeof requestAnimationFrame === "undefined") { attemptRestore(); return; }
+    restoreFrame = requestAnimationFrame(() => { restoreFrame = 0; attemptRestore(); });
+  }
+  const restore = () => {
+    const saved = tabKey ? tabPositions.get(tabKey.split("?")[0]) : undefined;
+    pendingTop = tabKey ? (saved && saved.href === tabKey ? saved.top : 0) : pageTop;
+    if (tabKey && (!saved || saved.href !== tabKey)) tabPositions.set(tabKey.split("?")[0], { href: tabKey, top: pendingTop });
+    scheduleRestore();
+  };
+  const cancelRestore = () => {
+    if (pendingTop === null) return;
+    pendingTop = null;
+    if (restoreFrame && typeof cancelAnimationFrame !== "undefined") cancelAnimationFrame(restoreFrame);
+    restoreFrame = 0;
+    markScroll(); trace("user-cancel");
+  };
+  const keyScroll = (event: KeyboardEvent) => { if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes(event.key)) cancelRestore(); };
   scroll.addEventListener("scroll", markScroll, { passive: true });
-  const observer = typeof MutationObserver === "undefined" ? undefined : new MutationObserver(onScroll);
-  observer?.observe(root, { childList: true, subtree: true });
+  for (const event of ["wheel", "touchstart", "pointerdown"]) scroll.addEventListener(event, cancelRestore, { passive: true });
+  root.addEventListener?.("keydown", keyScroll);
+  const layoutChanged = () => { onScroll(); scheduleRestore(); };
+  const observer = typeof MutationObserver === "undefined" ? undefined : new MutationObserver(layoutChanged);
+  observer?.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-page-visible", "data-tab-key", "data-tab-revision", "style", "class"] });
+  const resize = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(layoutChanged);
+  resize?.observe(scroll);
+  const body = scroll.querySelector?.<HTMLElement>(".nx-page-enter");
+  if (body && body !== scroll) resize?.observe(body);
   onScroll();
-  return { update: onScroll, destroy() { clearTimeout(idle); scroll.removeEventListener("scroll", markScroll); observer?.disconnect(); } };
+  const documentVisibility = () => { if (document.visibilityState === "visible" && visible) restore(); };
+  if (typeof document !== "undefined") document.addEventListener?.("visibilitychange", documentVisibility);
+  return { update(value: { tabKey?: string; tabRevision?: number; visible?: boolean; debug?: boolean } = {}) {
+    const shown = (value.visible ?? true) && !visible;
+    visible = value.visible ?? true;
+    if (value.tabKey !== tabKey || value.tabRevision !== tabRevision || shown) {
+      tabKey = value.tabKey;
+      tabRevision = value.tabRevision;
+      restore();
+    }
+    trace(visible ? "show-update" : "hide-update");
+    onScroll();
+  }, destroy() { clearTimeout(idle); if (restoreFrame && typeof cancelAnimationFrame !== "undefined") cancelAnimationFrame(restoreFrame); tabPositions.clear(); scroll.removeEventListener("scroll", markScroll); for (const event of ["wheel", "touchstart", "pointerdown"]) scroll.removeEventListener(event, cancelRestore); root.removeEventListener?.("keydown", keyScroll); observer?.disconnect(); resize?.disconnect(); if (typeof document !== "undefined") document.removeEventListener?.("visibilitychange", documentVisibility); } };
 }
 
 // App renderjs mounts a separate empty Vue instance: its $el is a comment.
@@ -330,4 +397,4 @@ function viewAdapter<T extends { hostId?: string }>(mount: (host: HTMLElement, v
 }
 export default viewAdapter<GlassConfiguration>(mountLiquidGlass);
 export const segmentsView = viewAdapter<SegmentsConfiguration>(mountSegments);
-export const chassisView = viewAdapter<{ hostId: string }>(mountChassis);
+export const chassisView = viewAdapter<{ hostId: string; tabKey?: string; tabRevision?: number; visible?: boolean; debug?: boolean }>(mountChassis);

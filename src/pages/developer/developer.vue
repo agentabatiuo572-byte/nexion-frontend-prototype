@@ -72,7 +72,7 @@
           <text v-if="remoteApiEnabled && latestLoading" role="status" class="developer-loading">{{ t.developer.loading }}</text>
           <view v-if="remoteApiEnabled && latestRequest" class="nx-glass-inset rounded-xl" :style="requestStatusStyle">
             <text class="block font-mono-tabular" style="font-size: 12px; color: var(--v5-tech-cyan)">{{ latestRequest.requestNo }} · {{ latestRequestStatusLabel }}</text>
-            <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px">{{ new Date(latestRequest.submittedAt).toLocaleString(dateLocale()) }}</text>
+            <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px">{{ formatDisplayDateTime(latestRequest.submittedAt, dateLocale(), true) }}</text>
             <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px">{{ latestRequestStatusDetail }}</text>
             <text v-if="requestReviewReason" class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px">{{ developerCopy[requestReviewReason] }}</text>
           </view>
@@ -197,6 +197,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatDisplayDateTime } from "@/lib/display-date";
 import { ref, computed, nextTick, onUnmounted, watch, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";

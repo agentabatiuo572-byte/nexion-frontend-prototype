@@ -1,3 +1,4 @@
+import * as displayDate from "@/lib/display-date";
 import * as Vue from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import ts from "typescript";
@@ -53,7 +54,7 @@ test.each(["en", "zh", "vi"] as const)("flat roster expands actual member facts 
     "@/i18n/compute-points": { formatComputePoints }, "@/i18n/network-reaudit": { networkReauditCopy },
     "@/lib/v-rank-copy": { rankLabel }, "@/store/locale": { useLocaleStore: () => ({ code: language }) },
     "./team-rank-emblem.vue": slot, "@/store/commission": { UNILEVEL_USDT: {} },
-    "@/i18n/use-t": { useT: () => Vue.ref(copy) }, "@/i18n/format": { fmt },
+    "@/i18n/use-t": { useT: () => Vue.ref(copy) }, "@/lib/display-date": displayDate, "@/i18n/format": { fmt },
   });
   const page = mountEntry('<template><Roster v-bind="state" @toggle="state.isOpen = !state.isOpen" /></template><script setup lang="ts">import Roster from "./roster.vue"; import { state } from "./state";</script>',
     { "./roster.vue": roster, "./state": { state } });
@@ -101,7 +102,7 @@ test.each(["en", "zh", "vi"] as const)("ranking keeps server order, actual curre
     "@/components/app-chassis.vue": slot, "@/components/sub-page-header.vue": slot,
     "@/components/team/team-art.vue": slot, "@/components/team/team-rank-emblem.vue": slot,
     "@/lib/v-rank-copy": { rankLabel }, "@/store/locale": { useLocaleStore: () => ({ code: language }) },
-    "@/i18n/use-t": { useT: () => Vue.ref(dictionaries[language]) }, "@/i18n/format": { fmt },
+    "@/i18n/use-t": { useT: () => Vue.ref(dictionaries[language]) }, "@/lib/display-date": displayDate, "@/i18n/format": { fmt },
     "@/mock/leaderboard": { LEADERBOARD: {}, MY_RANK: {} }, "@/api/runtime": { remoteApiEnabled: true, teamInsightsApi: { leaderboard: read } },
     "@/api/errors": { asApiError: (error: unknown) => error }, "@/store/app": { useApp: () => Vue.reactive({ accountKey: "account" }) },
     "@/lib/account-scope": { captureAccountScope: () => "account", isCurrentAccountScope: () => true },

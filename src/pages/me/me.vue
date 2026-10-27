@@ -6,8 +6,8 @@
 
       <WalletCard compact />
 
-      <NxListGroup v-if="twoFactorEnabled === false" class="me-security-hint">
-        <NxListRow :title="t.me.secNoTwoFa" :value="t.me.security" @click="navTo('/pages/me/security')" />
+      <NxListGroup class="me-security-hint">
+        <NxListRow :title="t.security.twoFactorTitle" :value="twoFactorSummary" @click="navTo('/pages/me/security')" />
       </NxListGroup>
       <NxSection :title="t.me.frequentFunctions" :action="t.me.deviceAddLabel" class="me-shortcuts" @action="navTo('/pages/store/store')">
         <view class="me-shortcut-grid">
@@ -89,7 +89,7 @@ import { useOrders } from "@/store/orders";
 import { useLocaleStore } from "@/store/locale";
 import { trialReservesSlotNow, useFreeTrial } from "@/store/free-trial";
 import { useSecurity } from "@/store/security";
-import { rebindAccountScopedStores } from "@/lib/account-scope";
+import { captureAccountScope, isCurrentAccountScope, rebindAccountScopedStores } from "@/lib/account-scope";
 import { useNotifications } from "@/store/notifications";
 import { useConversations } from "@/store/conversations";
 import { useMessageDrawer } from "@/store/message-drawer";
@@ -261,6 +261,8 @@ const myGenesisValue = computed(() => fmt(t.value.me.myGenesisNodeValue, { n: St
 const twoFactorEnabled = computed<boolean | null>(() => remoteApiEnabled
   ? remoteSecurity.value?.twoFactorEnabled ?? null
   : security.twoFactorEnabled);
+const twoFactorSummary = computed(() => twoFactorEnabled.value === null ? "—"
+  : twoFactorEnabled.value ? t.value.security.twoFactorOn : t.value.security.twoFactorOff);
 // The Me entry and both bells share the notification + human + ticket unread total.
 const messageUnread = computed(() => messageCenter.actionableUnread);
 // My Rewards unread dot — unused valid vouchers keep it lit (state-based)
@@ -299,7 +301,7 @@ const quickSections = computed<QuickSection[]>(() => [
       { key: "genesis", label: t.value.me.genesisNode, href: ownsGenesis.value ? "/genesis/holder" : "/genesis", icon: "crown", meta: ownsGenesis.value ? myGenesisValue.value : undefined, tone: "orange" },
       { key: "cards", label: t.value.me.walletCardsRow, href: "/me/wallet-cards", icon: "card", meta: t.value.me.walletCardsMeta, tone: "muted" },
       { key: "profile", label: t.value.me.profile, href: "/me/profile", icon: "user", meta: profileName.value, tone: "muted" },
-      { key: "security", label: t.value.me.security, href: "/me/security", icon: "lock", meta: twoFactorEnabled.value === null ? "—" : twoFactorEnabled.value ? t.value.me.secWithPasskey : t.value.me.secNoTwoFa, tone: twoFactorEnabled.value === null ? "muted" : twoFactorEnabled.value ? "muted" : "orange" },
+      { key: "security", label: t.value.me.security, href: "/me/security", icon: "lock", meta: twoFactorSummary.value, tone: twoFactorEnabled.value === null ? "muted" : twoFactorEnabled.value ? "muted" : "orange" },
     ],
   },
   {
@@ -354,16 +356,23 @@ async function refreshRemoteOrders() {
 }
 
 async function refreshRemoteSecurity() {
-  if (!remoteApiEnabled) return;
+  if (!remoteApiEnabled || !remoteMeActive || !binarySessionReady({
+    remote: remoteApiEnabled, authenticated: auth.isAuthenticated,
+    accountId: auth.accountId, appAccountKey: app.accountKey,
+    sessionUserId: sessionVault.read()?.user.userId ?? null,
+  })) return;
   const request = ++remoteSecurityRequest;
   const accountKey = app.accountKey;
-  remoteSecurity.value = null;
+  const binding = app.accountBindingEpoch;
+  const scope = captureAccountScope();
+  const current = () => remoteMeActive && request === remoteSecurityRequest
+    && accountKey === app.accountKey && binding === app.accountBindingEpoch && isCurrentAccountScope(scope);
   try {
     const snapshot = await accountApi.securityOverview();
-    if (request !== remoteSecurityRequest || accountKey !== app.accountKey) return;
+    if (!current()) return;
     remoteSecurity.value = snapshot;
   } catch {
-    if (request === remoteSecurityRequest && accountKey === app.accountKey) remoteSecurity.value = null;
+    if (current()) remoteSecurity.value = null;
   }
 }
 
@@ -396,6 +405,10 @@ async function refreshRemoteMe() {
   ]);
 }
 
+watch([() => app.accountKey, () => app.accountBindingEpoch, () => auth.accountId, () => auth.isAuthenticated], () => {
+  remoteSecurityRequest += 1;
+  remoteSecurity.value = null;
+}, { flush: "sync" });
 watch(() => [app.accountKey, app.accountBindingEpoch] as const, () => {
   if (remoteApiEnabled) void refreshRemoteMe();
 });
@@ -405,6 +418,7 @@ onShow(() => {
 });
 onHide(() => {
   remoteMeActive = false;
+  remoteSecurityRequest += 1;
   remoteOrdersRequest += 1;
 });
 // Catalog replacement clears the shared order list even without an account change.
@@ -419,6 +433,7 @@ const unsubscribeOrdersRevision = subscribeRuntimeRevision(() => {
 });
 onUnmounted(() => {
   remoteMeActive = false;
+  remoteSecurityRequest += 1;
   remoteOrdersRequest += 1;
   unsubscribeOrdersRevision();
 });

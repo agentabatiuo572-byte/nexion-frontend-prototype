@@ -4,6 +4,7 @@ import { computed, effectScope, nextTick, reactive, ref, watch } from "vue";
 import type { ComputedRef, Ref } from "vue";
 import ts from "typescript";
 import source from "./order-detail.vue?raw";
+import chatSource from "../support/chat.vue?raw";
 import { captureRuntimeRevision, createOrderApi, isCurrentRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 import type { ApiClient } from "@/api/api-client";
 import { createRemoteAccountEpoch } from "@/lib/remote-account-epoch";
@@ -45,9 +46,10 @@ const receipt = { orderNo: original.orderNo, paymentNo: "PAY-OLD", paymentStatus
 // cleanup. Real Pinia orders, catalog invalidation, and API parsing remain live.
 const body = source.slice(source.indexOf('const id = ref("");'), source.indexOf("const fullyVoucherSettled"))
   + source.slice(source.indexOf("const walletPaymentConfirmed"), source.indexOf("const isProvisioning"))
+  + source.slice(source.indexOf("const needsRecovery"), source.indexOf("const STATUS_COLORS"))
   + source.slice(source.indexOf("async function offerWalletTopup"), source.indexOf("function goOrders"))
   + source.slice(source.indexOf("function cleanup()"), source.indexOf("// ─── styles"));
-const js = ts.transpileModule(body + "\nreturn { order, refundChannelLabel, showRemoteOrderLoading, showOrderNotFound, remoteOrderError, refreshOrder, handleWalletPayment, payingFromWallet, canPayFromWallet, cancellable };",
+const js = ts.transpileModule(body + "\nreturn { order, refundChannelLabel, showRemoteOrderLoading, showOrderNotFound, remoteOrderError, refreshOrder, handleWalletPayment, payingFromWallet, canPayFromWallet, cancellable, contactOrderSupport };",
   { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 const disposals: (() => void)[] = [];
 async function settle() { for (let i = 0; i < 12; i++) await Promise.resolve(); await nextTick(); }
@@ -70,7 +72,9 @@ function harness(mode: "dev" | "prod" = "prod") {
   const app = { user: reactive({ usdtBalance: 100 }), captureRemoteAccountRequest: account.snapshot,
     adoptCommerceWallet: vi.fn().mockReturnValue(true), refreshRemoteFleet: vi.fn().mockResolvedValue(true) };
   const toast = { warn: vi.fn() };
+  const clipboard: Array<{ data: string; success: () => void; fail?: () => void }> = [];
   const deps = { ref, computed, watch, orders, auth, remoteApiEnabled: true, app, toast,
+    uni: { setClipboardData: (args: typeof clipboard[number]) => clipboard.push(args) },
     t: ref(en), asApiError, orderApi: remote.orderApi, uiConfirm: vi.fn().mockResolvedValue(true),
     navTo: vi.fn(), takeNavigationQuery: () => "", detailNow: ref(Date.now()),
     captureAccountScope: account.snapshot, isCurrentAccountScope: account.isCurrent,
@@ -82,7 +86,7 @@ function harness(mode: "dev" | "prod" = "prod") {
   const page = scope.run(() => new Function(...Object.keys(deps), js)(...Object.values(deps))) as {
     order: ComputedRef<unknown>; refundChannelLabel: ComputedRef<string>; showRemoteOrderLoading: ComputedRef<boolean>;
     showOrderNotFound: ComputedRef<boolean>; remoteOrderError: Ref<boolean>;
-    refreshOrder(): Promise<void>; handleWalletPayment(): Promise<void>;
+    refreshOrder(): Promise<void>; handleWalletPayment(): Promise<void>; contactOrderSupport(): void;
     payingFromWallet: Ref<boolean>; canPayFromWallet: ComputedRef<boolean>; cancellable: ComputedRef<boolean>;
   };
   hooks.load.forEach(fn => fn({ id: original.orderNo }));
@@ -91,7 +95,8 @@ function harness(mode: "dev" | "prod" = "prod") {
   const unload = () => hooks.unload.forEach(fn => fn());
   disposals.push(() => { unload(); scope.stop(); orders.$dispose(); });
   show();
-  return { page, requests, payments, request, orders, account, auth, app, toast, show, hide, unload };
+  return { page, requests, payments, request, orders, account, auth, app, toast, show, hide, unload, clipboard, navTo: deps.navTo,
+    load: (id: string) => hooks.load.forEach(fn => fn({ id })) };
 }
 beforeEach(() => {
   remote.orderApi.list.mockReset();
@@ -259,4 +264,29 @@ describe("real order detail after catalogue runtime invalidation", () => {
     expect(h.payments).toHaveLength(1);
     expect(h.toast.warn).not.toHaveBeenCalled();
   });
+});
+
+
+describe("order recovery support navigation", () => {
+  const expired = { ...original, canonicalStatus: "expired", orderStatus: "EXPIRED", paymentStatus: "EXPIRED", activationStatus: "WAITING_PAYMENT", paidAt: null, activatedAt: null };
+  async function recovery() { const h = harness(); h.requests[0].resolve(list([expired])); await settle(); expect(h.orders.orders[0]?.status).toBe("expired"); return h; }
+  it("copies the actual recovery order before opening the unified existing service list", async () => { const h = await recovery(); h.page.contactOrderSupport(); expect(h.clipboard).toHaveLength(1); expect(h.clipboard[0].data).toBe(original.orderNo); expect(h.navTo).not.toHaveBeenCalled(); h.clipboard[0].success(); expect(h.navTo).toHaveBeenCalledExactlyOnceWith('/pages/me/notifications?section=service'); expect(h.payments).toHaveLength(0); });
+  it("does not navigate when clipboard copy fails", async () => { const h = await recovery(); h.page.contactOrderSupport(); h.clipboard[0].fail?.(); expect(h.navTo).not.toHaveBeenCalled(); });
+  it.each(["a", "b"])("rejects old clipboard success after account epoch binds %s", async account => { const h = await recovery(); h.page.contactOrderSupport(); h.account.bind(account); h.auth.accountId = account; h.orders.bindAccount(account); h.clipboard[0].success(); expect(h.navTo).not.toHaveBeenCalled(); });
+  it.each(["hide", "unload"] as const)("rejects old clipboard success after page %s", async event => { const h = await recovery(); h.page.contactOrderSupport(); h[event](); h.clipboard[0].success(); expect(h.navTo).not.toHaveBeenCalled(); });
+  it("does not revive a callback after leaving and returning to the same page", async () => { const h = await recovery(); h.page.contactOrderSupport(); h.hide(); h.show(); h.clipboard[0].success(); expect(h.navTo).not.toHaveBeenCalled(); });
+  it("rejects old clipboard success after a different order id loads", async () => { const h = await recovery(); h.page.contactOrderSupport(); h.load('OTHER-ORDER'); h.clipboard[0].success(); expect(h.navTo).not.toHaveBeenCalled(); });
+  it.each(["absent", "normal"])("does not copy or navigate for %s order state", async state => { const h = harness(); h.requests[0].resolve(list(state === "absent" ? [] : [original])); await settle(); h.page.contactOrderSupport(); expect(h.clipboard).toHaveLength(0); expect(h.navTo).not.toHaveBeenCalled(); });
+});
+
+it("legacy start=support selects new composition rather than loading an existing conversation", () => {
+  const start = chatSource.indexOf("onLoad((q) => {");
+  const end = chatSource.indexOf("// onShow/onHide track", start);
+  const conversation = chatSource.slice(chatSource.indexOf("const conv = computed("), chatSource.indexOf("watch([cid,", chatSource.indexOf("const conv = computed(")));
+  const code = ts.transpileModule(chatSource.slice(start, end) + conversation + "\nreturn conv;", { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  let load!: (query: {start:string}) => void;
+  const cid = ref(""), startType = ref<string|null>(null), get = vi.fn(() => ({id:"existing-server-conversation", messages:[]}));
+  const dependencies = { computed, cid, startType, onLoad: (fn: typeof load) => { load=fn; }, convStore:{get}, humanHistory:ref([]), isAi:ref(false), initialPrompt:ref(""), hiddenAiRoute:ref(false), NOVA_SUPPORT_VISIBLE:true, navReplace:vi.fn() };
+  const conv = new Function(...Object.keys(dependencies),code)(...Object.values(dependencies));
+  load({start:"support"}); expect(startType.value).toBe("support"); expect(cid.value).toBe(""); expect(conv.value).toBeUndefined(); expect(get).not.toHaveBeenCalled();
 });

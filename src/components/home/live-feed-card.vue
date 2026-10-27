@@ -30,10 +30,10 @@
         v-for="(r, i) in displayActivityRows"
         :key="r.k"
         data-home-live-activity-row="true"
-        class="grid items-center gap-2.5 py-2 whitespace-nowrap"
-        :style="{ gridTemplateColumns: whoColTemplate, borderBottom: i < displayActivityRows.length - 1 ? '1px solid var(--v5-border)' : 'none', animation: i === 0 ? 'v5-ledger-fade 0.5s ease' : 'none' }"
+        class="grid items-center gap-2.5 py-2"
+        :style="{ gridTemplateColumns: whoColTemplate, minHeight: '56px', rowGap: '4px', borderBottom: i < displayActivityRows.length - 1 ? '1px solid var(--v5-border)' : 'none', animation: i === 0 ? 'v5-ledger-fade 0.5s ease' : 'none' }"
       >
-        <text class="tabular-nums" style="font-size: 12px; color: var(--v5-ink-4)">{{ r.ts }}</text>
+        <text data-home-live-time="true" class="tabular-nums" style="grid-column: 1 / -1; min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 18px; font-size: 12px; color: var(--v5-ink-4)">{{ r.ts }}</text>
         <text class="text-center" :style="whoBadgeStyle(r)">{{ whoLabel(r.who) }}</text>
         <!-- 《02》§4 判定线:动态流是「浏览型」内容且设计上单行截断,归 caption 12
              (原 12.5→13 迁移使截断加剧,溢出探针实测 +6px,数据驱动回到 12) -->
@@ -53,9 +53,10 @@
           v-for="(it, i) in displayEarningsItems"
           :key="it.id"
           data-home-live-earnings-row="true"
-          class="px-0.5 py-2 flex items-center gap-2"
-          :style="{ fontSize: '12px', borderBottom: i < displayEarningsItems.length - 1 ? '1px solid var(--v5-border)' : 'none', animation: i === 0 ? 'v5-ledger-fade 0.5s ease' : 'none' }"
+          class="px-0.5 py-2 grid items-center gap-2"
+          :style="{ gridTemplateColumns: '5px auto minmax(0, 1fr) auto', minHeight: '56px', rowGap: '4px', fontSize: '12px', borderBottom: i < displayEarningsItems.length - 1 ? '1px solid var(--v5-border)' : 'none', animation: i === 0 ? 'v5-ledger-fade 0.5s ease' : 'none' }"
         >
+          <text data-home-live-earnings-time="true" class="tabular-nums" style="grid-column: 1 / -1; min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 18px; color: var(--v5-ink-4)">{{ it.ts }}</text>
           <view style="width: 5px; height: 5px; border-radius: 50%; background: var(--v5-success); flex-shrink: 0" />
           <text style="font-family: var(--font-v5); font-weight: 600; color: var(--v5-ink)">{{ it.name }}</text>
           <text class="truncate flex-1" style="color: var(--v5-ink-3)">{{ it.product }}</text>
@@ -93,6 +94,7 @@ interface EarningsItem {
   name: string;
   product: string;
   amount: number;
+  ts: string;
 }
 
 const t = useT();
@@ -114,7 +116,7 @@ const displayActivityRows = computed<FeedRow[]>(() => {
     who: "You",
     msg: `${row.model} @ ${row.client}`,
     val: `+${formatAmount(row.rewardUsdt)}`,
-    ts: formatHomeFeedTime(row.completedAt),
+    ts: formatHomeFeedTime(row.completedAt, localeStore.code),
   }));
 });
 const displayEarningsItems = computed<EarningsItem[]>(() => {
@@ -123,6 +125,7 @@ const displayEarningsItems = computed<EarningsItem[]>(() => {
     name: row.model,
     product: row.client,
     amount: row.amountUsdt,
+    ts: formatHomeFeedTime(row.completedAt, localeStore.code),
   }));
 });
 const remoteFeedStatusText = computed(() => {
@@ -134,7 +137,7 @@ const remoteFeedStatusText = computed(() => {
 // 身份徽章列宽按语言取值(包 G P2#2 选项 a):en「Peer」/zh「同伴」进 38px,
 // vi「Thành viên」实测 ~62px,固定 38px 溢出 5px+;列宽仍是常量 → 跨行对齐不破。
 const localeStore = useLocaleStore();
-const whoColTemplate = computed(() => `44px ${localeStore.code === "vi" ? "66px" : "38px"} 1fr auto`);
+const whoColTemplate = computed(() => `${localeStore.code === "vi" ? "66px" : "38px"} minmax(0, 1fr) auto`);
 
 function whoBadgeStyle(r: FeedRow): CSSProperties {
   const bg = r.lvl === "ok" ? "var(--v5-success-soft)" : r.lvl === "live" ? "var(--v5-tech-cyan-soft)" : "var(--v5-warning-soft)";

@@ -1,3 +1,4 @@
+import * as displayDate from "@/lib/display-date";
 import * as Vue from "vue";
 import qrcode from "qrcode-generator";
 import { afterEach, expect, it, vi } from "vitest";
@@ -54,7 +55,7 @@ function setup(language = "zh") {
     "qrcode-generator": { default: qrcode }, "@/components/app-chassis.vue": slot,
     "@/components/brand-lockup.vue": { default: { render: () => null } }, "@/components/sub-page-header.vue": { default: { render: () => null } },
     "@/components/team/v-badge.vue": { default: { render: () => null } }, "@/components/glass-segments.vue": { default: { render: () => null } },
-    "@/i18n/use-t": { useT: () => Vue.ref(copy) }, "@/i18n/format": { fmt, dateLocale: () => "en-US" },
+    "@/i18n/use-t": { useT: () => Vue.ref(copy) }, "@/lib/display-date": displayDate, "@/i18n/format": { fmt, dateLocale: () => "en-US" },
     "@/store/ui": { toast }, "@/store/app": { useApp: () => app }, "@/store/profile": { useProfile: () => ({ displayName: "Test Reader" }) },
     "@/lib/share": { buildShareLink: (code: string) => linkBase.value && code.trim() ? linkBase.value + code.trim() : "", copyText },
     "@/lib/brand-copy": { displayNickname: (value: string) => value }, "@/lib/hashpower": { isDeviceOnline: vi.fn() },

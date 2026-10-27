@@ -107,7 +107,8 @@
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
-import { computed, ref, onMounted, onUnmounted } from "vue";
+import { computed, ref } from "vue";
+import { useVisibleInterval } from "@/composables/use-tab-page-lifecycle";
 import { useFreeTrial, liveShadowUSD, liveShadowNEX, remainingMs } from "@/store/free-trial";
 import { useTrialConfig, computeDiscountedPrice } from "@/store/trial-config";
 import { useT } from "@/i18n/use-t";
@@ -122,15 +123,7 @@ const trialCfg = useTrialConfig();
 const t = useT();
 
 const now = ref(Date.now());
-let timer: ReturnType<typeof setInterval> | null = null;
-onMounted(() => {
-  timer = setInterval(() => {
-    now.value = Date.now();
-  }, 1000);
-});
-onUnmounted(() => {
-  if (timer) clearInterval(timer);
-});
+useVisibleInterval(() => { now.value = Date.now(); }, 1000);
 
 const visible = computed(() => trial.status === "active" || trial.status === "grace");
 const trialLabels = computed(() => trialCardLabels(trial.status, t.value.trial));

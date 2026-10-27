@@ -5,6 +5,9 @@ import { computed, effectScope, nextTick, reactive, ref, watch, type Ref } from 
 import { ApiError } from "@/api/errors";
 import { isConversationDeliveryAmbiguous } from '@/lib/conversation-delivery-policy';
 import { isSupportAttachmentNotReady } from "@/api/support-api";
+import { fmt } from '@/i18n/format';
+import { MESSAGE_MAX_LENGTH, normalizeMessageText } from '@/lib/message-length-policy';
+import { createConversationSendBudgets } from '@/lib/send-limiter';
 import type { TicketCreationPolicy } from "@/api/support-ticket-policy";
 import appSource from "../App.vue?raw";
 import meSource from "../pages/me/me.vue?raw";
@@ -21,10 +24,13 @@ function extractChat(names: string[]) {
     return node!.getText(chatAst);
   }).join('\n'), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 }
+const sendPolicyDeps = { ApiError, fmt, MESSAGE_MAX_LENGTH, normalizeMessageText };
 function humanSendHarness(inputs: Record<string, unknown>) {
-  const deps = { ref, isSupportAttachmentNotReady, isConversationDeliveryAmbiguous, t: ref(zh),
+  const deps = { ref, computed, ...sendPolicyDeps, isSupportAttachmentNotReady, isConversationDeliveryAmbiguous, t: ref(zh),
+    conversationSendLimiter: createConversationSendBudgets(), isAi: ref(false),
     chatDisposed: false, novaPageVisible: true, ...inputs };
-  const code = extractChat(['localHumanSend', 'localHumanSequence', 'sendSuccessRevision', 'noteSendSuccess',
+  const code = extractChat(['localHumanSend', 'localHumanSequence', 'sendSuccessRevision', 'sendSuccessOwner', 'threadComposerKey', 'noteSendSuccess',
+    'SEND_MAX', 'SEND_WINDOW_MS', 'SEND_MIN_GAP_MS', 'sendLimiter', 'bindHumanDispatchKey',
     'onSend', 'retryHumanSend', 'sendHumanMessage', 'stageHumanSend', 'humanSendFailed']);
   return new Function('deps', `const {${Object.keys(deps).join(',')}} = deps; ${code}
     return { onSend, retryHumanSend, sendHumanMessage, sendSuccessRevision, localHumanSend };`)(deps);
@@ -306,8 +312,8 @@ it("retires an opening send waiting for category admission after support transfe
   const store = { scopeInvalidated: 0, categoryAvailabilityStatus: "loading", hasPendingHumanCreate: vi.fn().mockResolvedValue(false), refreshCategories: vi.fn(() => held), categoryEnabled: () => true };
   const send = vi.fn(), busy = ref(false), slot = vi.fn(() => true), restore = vi.fn();
   const toast = { error: vi.fn(), info: vi.fn(), warn: vi.fn() };
-  const onSend = new Function("isAi", "remoteApiEnabled", "humanSendBusy", "humanOpenRequest", "cid", "startType", "app", "convStore", "novaPageVisible", "acquireSendSlot", "imageDraft", "sendHumanMessage", "supportSessionReady", "toast", "t",
-    code + "\nreturn onSend;")(ref(false), true, busy, ref(null), ref(""), ref("support"), { accountBindingEpoch: 1 }, store, true, slot, ref(null), send, ref(true), toast, ref(zh));
+  const onSend = new Function("isAi", "remoteApiEnabled", "humanSendBusy", "humanOpenRequest", "cid", "startType", "app", "convStore", "novaPageVisible", "acquireSendSlot", "imageDraft", "sendHumanMessage", "supportSessionReady", "toast", "t", "policy",
+    `const { ApiError, fmt, MESSAGE_MAX_LENGTH, normalizeMessageText } = policy;\n${code}\nreturn onSend;`)(ref(false), true, busy, ref(null), ref(""), ref("support"), { accountBindingEpoch: 1 }, store, true, slot, ref(null), send, ref(true), toast, ref(zh), sendPolicyDeps);
   const work = onSend("old opening intent", restore);
   await vi.waitFor(() => expect(store.refreshCategories).toHaveBeenCalledOnce());
   expect(store.hasPendingHumanCreate).toHaveBeenCalledExactlyOnceWith("support", "old opening intent", undefined);
@@ -353,7 +359,7 @@ it.each(["binding", "scope", "current"])("failed pending preflight restores only
   const ast = ts.createSourceFile("chat.ts", script, ts.ScriptTarget.ES2022, true);
   const node = ast.statements.find(statement => ts.isFunctionDeclaration(statement) && statement.name?.text === "onSend")!;
   const code = ts.transpileModule(node.getText(ast), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-  const deps = { app, convStore: store, isAi: ref(false), remoteApiEnabled: true, supportSessionReady: ref(true),
+  const deps = { ...sendPolicyDeps, app, convStore: store, isAi: ref(false), remoteApiEnabled: true, supportSessionReady: ref(true),
     humanSendBusy: ref(false), humanOpenRequest: ref(null), cid: ref(""), startType: ref("support"), imageDraft: ref(null),
     novaPageVisible: true, acquireSendSlot: vi.fn(() => true), sendHumanMessage: vi.fn(),
     toast: { error: vi.fn(), info: vi.fn(), warn: vi.fn() }, t: ref(zh) };

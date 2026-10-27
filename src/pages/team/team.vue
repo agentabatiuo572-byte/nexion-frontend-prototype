@@ -24,6 +24,7 @@
         <view class="team-overview-grid">
         <TeamSummaryCard
           :status="teamSummaryStatus"
+          :has-snapshot="network.hasRemoteSnapshot"
           :total="network.totalMembers"
           :direct="byLayerBuckets[1].length"
           @invite="inviteCard?.openShare()"
@@ -116,7 +117,7 @@
               </view>
             </view>
             <view :style="quickRowValueWrapStyle">
-              <view class="team-estimate"><text v-if="leadershipPoolUnlocked && (!remoteApiEnabled || remotePoolState === 'ready')" class="team-estimate__label">{{ designCopy.estimated }}</text><text class="font-display tabular-nums" :style="quickRowValueStyle">{{ leadershipPoolPrimary }}</text></view>
+              <view class="team-estimate"><text v-if="leadershipPoolUnlocked && remotePoolReadable" class="team-estimate__label">{{ designCopy.estimated }}</text><text class="font-display tabular-nums" :style="quickRowValueStyle">{{ leadershipPoolPrimary }}</text></view>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
             </view>
           </view>
@@ -179,10 +180,14 @@ const ledgerLoading = computed(() => remoteApiEnabled && !ledgerFailed.value
   && (network.remoteStatus !== "ready" || commission.eventsStatus !== "ready"));
 const ledgerVisible = computed(() => !remoteApiEnabled || (!ledgerFailed.value
   && network.hasRemoteSnapshot && commission.eventsEvidence !== null));
+const networkReadable = computed(() => !remoteApiEnabled || network.remoteStatus === "ready"
+  || (network.remoteStatus === "loading" && network.hasRemoteSnapshot));
 const pool = useLeadershipPool();
 const referralRewards = useReferralReward();
 const remotePool = ref<TeamLeadershipPoolSnapshot | null>(null);
 const remotePoolState = ref<"idle" | "loading" | "ready" | "error" | "hold">(remoteApiEnabled ? "idle" : "ready");
+const remotePoolReadable = computed(() => !remoteApiEnabled || remotePoolState.value === "ready"
+  || (remotePoolState.value === "loading" && remotePool.value !== null));
 let remotePoolRequest = 0;
 let remotePoolMounted = true;
 
@@ -218,10 +223,10 @@ const directCountText = computed(() => {
   return String(byLayerBuckets.value[1].length);
 });
 const extendedCountText = computed(() => {
-  if (remoteApiEnabled && network.remoteStatus !== "ready") return "—";
+  if (!networkReadable.value) return "—";
   return String(([2, 3, 4, 5, 6, 7] as const).reduce((s, L) => s + byLayerBuckets.value[L].length, 0));
 });
-const totalMembersCountText = computed(() => remoteApiEnabled && network.remoteStatus !== "ready" ? "—" : String(localTotalMembersCount.value));
+const totalMembersCountText = computed(() => !networkReadable.value ? "—" : String(localTotalMembersCount.value));
 
 // Calendar-month totals and lifetime direct/extended split.
 const ledger = computed(() => {
@@ -285,10 +290,10 @@ const projectedPayout = computed(() => remoteApiEnabled ? remotePool.value?.proj
 const leadershipPoolUnlocked = computed(() => myVotes.value > 0);
 const leadershipPoolTotal = computed(() => remoteApiEnabled ? remotePool.value?.currentWeekPoolUSDT ?? 0 : pool.currentWeekPoolUSDT);
 const leadershipPoolPrimary = computed(() =>
-  remoteApiEnabled && remotePoolState.value !== "ready" ? "—" : formatUsd(leadershipPoolUnlocked.value ? projectedPayout.value : leadershipPoolTotal.value),
+  !remotePoolReadable.value ? "—" : formatUsd(leadershipPoolUnlocked.value ? projectedPayout.value : leadershipPoolTotal.value),
 );
 const leadershipPoolLineA = computed(() =>
-  remoteApiEnabled && remotePoolState.value !== "ready" ? (remotePoolState.value === "hold" ? t.value.pool.settlementHoldShort : remotePoolState.value === "loading" ? t.value.pool.loading : t.value.network.projectionErrorDesc) : leadershipPoolUnlocked.value ? `${myVotes.value} ${t.value.teamV3.votes}` : `V${leadershipUnlockRank.value}`,
+  !remotePoolReadable.value ? (remotePoolState.value === "hold" ? t.value.pool.settlementHoldShort : remotePoolState.value === "loading" ? t.value.pool.loading : t.value.network.projectionErrorDesc) : leadershipPoolUnlocked.value ? `${myVotes.value} ${t.value.teamV3.votes}` : `V${leadershipUnlockRank.value}`,
 );
 const poolThisWeekText = computed(() => {
   const rate = remoteApiEnabled ? remotePool.value?.injectRate : 0.05;
@@ -300,7 +305,7 @@ const poolThisWeekText = computed(() => {
 // lineA,操作入口是整行点击进详情页;此前这里塞过 t.network.retry(「重新加载」),把一个
 // 动作标签放进了状态位,还留下一个悬空的「/」(zentao #206)。
 const leadershipPoolLineB = computed(() =>
-  remoteApiEnabled && remotePoolState.value !== "ready" ? "" : leadershipPoolUnlocked.value ? `${(myShare.value * 100).toFixed(2)}%` : poolThisWeekText.value,
+  !remotePoolReadable.value ? "" : leadershipPoolUnlocked.value ? `${(myShare.value * 100).toFixed(2)}%` : poolThisWeekText.value,
 );
 
 function go(url: string) {
@@ -312,12 +317,14 @@ function openReferralNetwork() {
 
 // unlockMatured at mount + every 60s.
 let unlockTimer: ReturnType<typeof setInterval> | null = null;
+let remotePoolVisible = false;
 onMounted(() => {
   if (remoteApiEnabled) return;
   commission.unlockMatured();
   unlockTimer = setInterval(() => commission.unlockMatured(), 60_000);
 });
 onShow(() => {
+  remotePoolVisible = true;
   if (!remoteApiEnabled) return;
   void vrank.refreshCanonicalVRank();
   void commission.refreshCanonicalBinary();
@@ -325,15 +332,15 @@ onShow(() => {
   void network.refreshCanonicalNetwork();
   void refreshRemotePool();
 });
+onHide(() => { remotePoolVisible = false; remotePoolRequest += 1; });
 async function refreshRemotePool() {
-  if (!remoteApiEnabled) return;
+  if (!remoteApiEnabled || !remotePoolVisible) return;
   const request = ++remotePoolRequest;
   const accountKey = app.accountKey;
   const accountScope = captureAccountScope();
   const runScope = captureRuntimeRevision();
   remotePoolState.value = "loading";
-  remotePool.value = null;
-  const current = () => remotePoolMounted && request === remotePoolRequest
+  const current = () => remotePoolMounted && remotePoolVisible && request === remotePoolRequest
     && accountKey === app.accountKey && isCurrentAccountScope(accountScope)
     && isCurrentRuntimeRevision(runScope);
   try {
@@ -352,7 +359,7 @@ async function refreshRemoteLedger() {
 }
 watch(() => app.accountKey, () => { if (remoteApiEnabled) { remotePool.value = null; void refreshRemotePool(); } });
 const unsubscribeRemotePoolRun = subscribeRuntimeRevision(() => {
-  if (!remoteApiEnabled || !remotePoolMounted) return;
+  if (!remoteApiEnabled || !remotePoolMounted || !remotePoolVisible) return;
   remotePoolRequest += 1;
   remotePool.value = null;
   remotePoolState.value = "loading";

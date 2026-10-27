@@ -82,6 +82,7 @@
 </template>
 
 <script setup lang="ts">
+import { dateLocale } from "@/i18n/format";
 import { commerceOrderTitle } from "@/lib/commerce-review";
 import { useLocaleStore } from "@/store/locale";
 import { commerceAmount as formatAmount } from "@/lib/commerce-review";
@@ -319,7 +320,7 @@ function badge(status: OrderStatus): Badge {
 
 function dateText(ts: number): string {
   return Number.isFinite(ts) && Number.isFinite(new Date(ts).getTime())
-    ? formatTrialDate(ts)
+    ? formatTrialDate(ts, dateLocale())
     : "—";
 }
 

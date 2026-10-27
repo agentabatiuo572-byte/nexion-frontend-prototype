@@ -1,10 +1,10 @@
 <template>
   <AppChassis :key="accountScope" :active="location.tab" :logical-route="location.route" :tab-location-key="location.href" :tab-host="true" :host-visible="visible">
-    <NativeTabContent :key="contentKey" :content="content" :query="location.query" :visible="visible" />
+    <NativeTabContent v-for="entry in visited" :key="`${accountScope}:${entry.href}`" :content="components[entry.tab]" :query="entry.query" :visible="visible && entry.href === location.href" />
   </AppChassis>
 </template>
 <script setup lang="ts">
-import { computed, onBeforeUnmount, provide, ref, shallowRef } from "vue";
+import { computed, onBeforeUnmount, provide, ref, shallowRef, watch } from "vue";
 import { onLoad, onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import NativeTabContent from "@/components/native-tab-content.vue";
@@ -16,13 +16,22 @@ import Me from "@/pages/me/me.vue";
 import { TAB_HOST } from "@/composables/use-tab-page-lifecycle";
 import { nativeTabEntry, registerNativeTabHost } from "@/lib/native-tab-navigation";
 import { useApp } from "@/store/app";
+import { useLocaleStore } from "@/store/locale";
+import { apiRuntimeConfig } from "@/api/runtime";
 const app = useApp();
+const locale = useLocaleStore();
 const location = shallowRef(nativeTabEntry());
 const visible = ref(true);
 const components = { home: Home, earn: Earn, store: Store, team: Team, me: Me };
-const content = computed(() => components[location.value.tab]);
-const accountScope = computed(() => `${app.accountKey}:${app.accountBindingEpoch}`);
-const contentKey = computed(() => `${accountScope.value}:${location.value.href}`);
+const accountScope = computed(() => JSON.stringify([app.accountKey, app.accountBindingEpoch, locale.code, apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl]));
+// Only the latest query of each visited tab survives; scope changes discard all five.
+const visited = shallowRef([location.value]);
+watch([accountScope, location], ([scope, current], [previousScope]) => {
+  visited.value = scope !== previousScope ? [current]
+    : visited.value.some(entry => entry.tab === current.tab)
+      ? visited.value.map(entry => entry.tab === current.tab ? current : entry)
+      : [...visited.value, current];
+}, { flush: "sync" });
 provide(TAB_HOST, true);
 let unregister = () => {};
 onLoad(options => {

@@ -56,6 +56,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatDisplayDateTime } from "@/lib/display-date";
 import { formatAmount } from "@/lib/amount-display";
 import { formatUsd } from '@/lib/usd-display';
 import { navTo } from "@/lib/route";
@@ -102,7 +103,7 @@ watch(() => app.accountKey, () => {
 const rows = computed(() => remoteApiEnabled ? (remoteSnapshot.value?.period === period.value ? remoteSnapshot.value.rows : []) : LEADERBOARD[period.value]);
 const paused = computed(() => remoteApiEnabled && remoteSnapshot.value?.period === period.value && remoteSnapshot.value.paused === true);
 const snapshotAvailable = computed(() => !paused.value || (remoteSnapshot.value?.snapshotState === "FROZEN" && remoteSnapshot.value?.dataAvailable === true));
-const pauseCapturedAt = computed(() => remoteSnapshot.value?.pauseCapturedAt ?? "");
+const pauseCapturedAt = computed(() => formatDisplayDateTime(remoteSnapshot.value?.pauseCapturedAt, locale.code, true));
 // Only show a supplied pool as historical context; no payout or reset promotion.
 const prize = computed(() => ({ poolUSD: remoteApiEnabled ? remoteSnapshot.value?.poolUsd ?? 0 : 0 }));
 const me = computed(() => remoteApiEnabled ? { rank: remoteSnapshot.value?.myRank ?? null,

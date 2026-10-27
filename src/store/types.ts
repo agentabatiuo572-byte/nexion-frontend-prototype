@@ -307,6 +307,8 @@ export interface Withdrawal {
    *  都还原不出「这单当时免了哪几道」,等于没做。与 riskReasons 同源同去处。 */
   waivedGates?: string[];
   submittedAt: number;
+  /** Read-only server creation time for display; absent legacy evidence stays unknown. */
+  displaySubmittedAt?: number | null;
   estimatedCompletion: number;
   /** FEAT-WD01b:实际到账时刻(仅 confirmed 态有值)。推进逻辑见 withdrawal-arrival-core。 */
   confirmedAt?: number;

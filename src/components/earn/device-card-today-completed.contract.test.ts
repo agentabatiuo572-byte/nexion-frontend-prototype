@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+vi.mock("@dcloudio/uni-app", () => ({ onLoad: vi.fn(), onShow: vi.fn(), onHide: vi.fn(), onUnload: vi.fn() }));
 import source from "./device-card-pc.vue?raw";
+import * as tabLifecycle from "@/composables/use-tab-page-lifecycle";
 import zh from "../../i18n/messages/zh.ts?raw";
 import en from "../../i18n/messages/en.ts?raw";
 import viSource from "../../i18n/messages/vi.ts?raw";
@@ -208,6 +210,7 @@ async function setup(name: string) {
     '@/components/ui/nx-button.vue': { __esModule: true, default: blank },
   };
   const imports = (id: string) => {
+    if (id === '@/composables/use-tab-page-lifecycle') return tabLifecycle;
     if (!(id in deps)) throw new Error('UNEXPECTED_IMPORT ' + id);
     return deps[id];
   };

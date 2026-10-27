@@ -11,6 +11,9 @@ import { vi as vietnamese } from "@/i18n/messages/vi";
 import { catalogSkuBrandText, catalogSkuRecommendationBody } from "@/lib/brand-copy";
 import { localizedIdleClose } from "@/lib/support-idle-message";
 import { formatUnreadBadge } from "@/lib/unread-badge";
+import { groupConversationThreads } from "@/api/conversation-threads";
+import { conversationActionsCopy } from "@/i18n/conversation-actions";
+import type { Conversation } from "@/domain/support";
 import { installSupportStorage } from "@/test/storage-setup";
 import * as conversationEntrance from '@/components/support/conversation-entrance';
 import * as conversationScroll from '@/components/support/conversation-scroll';
@@ -44,45 +47,71 @@ const renderer = Vue.createRenderer<Element, Element>({
 const mounted: Vue.App<Element>[] = [];
 afterEach(() => { mounted.splice(0).forEach(app => app.unmount()); });
 const flatten = (node: Element): Element[] => [node, ...node.children.flatMap(flatten)];
+const deleteScript = ts.transpileModule(readFileSync(new URL("../../composables/use-conversation-delete.ts", import.meta.url), "utf8"), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
+}).outputText;
+const Swipe = Vue.defineComponent({
+  inheritAttrs: false, props: ["open", "label", "deleteLabel", "disabled", "busy"], emits: ["delete", "update:open"],
+  setup(props, { slots, emit }) {
+    return () => Vue.h("swipe-row", { ...props,
+      onReveal: () => emit("update:open", true), onDelete: () => emit("delete"),
+    }, slots.default?.());
+  },
+});
+const swipes = (root: Element) => flatten(root).filter(node => node.tag === "swipe-row");
+const inboxRows = (root: Element) => flatten(root).filter(node => String(node.props.class).split(/\s+/).includes("nx-conv-row"));
+const renderedText = (node: Element): string => node.text + node.children.map(renderedText).join("");
+async function settleInbox() { await Promise.resolve(); await Promise.resolve(); await Vue.nextTick(); }
 
 function mount(type: "advisor" | "support", state: "empty" | "ended" | "active" | "failed" | "loading" = "empty", locale = zh, providedStore?: ReturnType<typeof useConversations>) {
-  const rows = Vue.reactive(state === "ended" || state === "active" ? [{ id: "CV-1", type, status: state === "ended" ? "closed" : "open", agentName: "Unassigned", messages: [], lastMessage: "Hello", lastTs: Date.now(), unread: 0, sessionStatus: state, roleKey: "roleAdvisor", avatarTint: "blue" }] : []);
+  const rows = Vue.reactive<Conversation[]>(state === "ended" || state === "active" ? [{ id: "CV-1", type, status: state === "ended" ? "closed" : "open", version: 1,
+    ownerAgentId: "7", agentName: "Advisor A", messages: [], lastMessage: "Hello", lastTs: Date.now(), unread: 0,
+    sessionStatus: state === "ended" ? "closed" : "active", roleKey: "roleAdvisor", avatarTint: "blue" }] : []);
   const store = Vue.reactive({
     categoryAvailabilityStatus: state === "loading" ? "loading" : state === "failed" ? "failed" : "ready",
     error: state === "failed" ? "unavailable" : null, enabled: true, typingIds: {},
-    advisor: { assignmentState: "UNBOUND", availability: "UNBOUND", currentAdvisorName: null },
+    advisor: { assignmentState: "BOUND", availability: "ONLINE", currentAdvisorId: 7, currentAdvisorName: "Advisor A" },
     advisorLoading: false, advisorError: false,
-    conversations: rows, dismissingIds: {}, dismissalAvailable: true, dismissConversation: vi.fn(async () => undefined),
-    hidden: false,
-    byType: (key: string) => key === type && !store.hidden ? rows : [],
+    conversations: rows, deletingIds: {} as Record<string, boolean>, deletionAvailable: true, deleteConversation: vi.fn(async (_id: string) => undefined),
+    get humanThreads() { return groupConversationThreads(rows); },
+    byType: (key: string) => key === type ? rows : [],
     categoryReadable: (key: string) => key === type && (state !== "loading" || rows.length > 0),
     categoryEnabled: (key: string): boolean => (key === "advisor" || key === "support") && store.enabled && store.categoryAvailabilityStatus === "ready",
-    refresh: vi.fn(), refreshCategories: vi.fn(), startConversation: vi.fn(),
+    refresh: vi.fn(), refreshCategories: vi.fn(), refreshAdvisor: vi.fn(), startConversation: vi.fn(),
   });
   const navTo = vi.fn();
   const account = Vue.reactive({ accountKey: "user:1", accountBindingEpoch: 1 });
   const currentLocale = Vue.ref(locale);
   const shown: Array<() => Promise<void>> = [];
-  const modules: Record<string, unknown> = {
-    vue: Vue, "@dcloudio/uni-app": { onShow: (fn: () => Promise<void>) => shown.push(fn), onHide: vi.fn() },
+  const hidden: Array<() => void> = [];
+  const confirm = vi.fn(async (_options: any) => false), toast = { error: vi.fn() }, clearConfirmsBy = vi.fn();
+  const modules: Record<string, any> = {
+    vue: Vue, "@dcloudio/uni-app": { onShow: (fn: () => Promise<void>) => shown.push(fn), onHide: (fn: () => void) => hidden.push(fn) },
     "@/i18n/use-t": { useT: () => currentLocale }, "@/i18n/format": { fmt: (value: string) => value },
     "@/lib/support-idle-message": { localizedIdleClose },
     "@/lib/brand-copy": { catalogSkuBrandText, catalogSkuRecommendationBody },
     "@/lib/unread-badge": { formatUnreadBadge },
+    "@/i18n/conversation-actions": { conversationActionsCopy },
+    "@/store/locale": { useLocaleStore: () => ({ code: locale === en ? "en" : locale === vietnamese ? "vi" : "zh" }) },
+    "@/store/ui": { confirm, toast, useUI: () => ({ clearConfirmsBy }) },
     "@/lib/nova-visibility": { NOVA_SUPPORT_VISIBLE: false },
     "@/lib/route": { navTo }, "@/store/conversations": { useConversations: () => providedStore ?? store },
     "@/store/nova": { useNova: () => ({ messages: [], unread: 0 }) }, "@/store/app": { useApp: () => account },
     "@/api/runtime": { remoteApiEnabled: true }, "@/lib/active-page-refresh": { registerActivePageRefresh: vi.fn(() => () => {}) },
     "@/components/app-chassis.vue": { default: { setup: (_props: unknown, { slots }: any) => () => Vue.h("main", slots.default?.()) } },
     "@/components/empty-state.vue": { default: { props: ["title", "desc", "ctaLabel"], setup: (props: any) => () => Vue.h("empty-state", props, [props.title, props.desc]) } },
+    "@/components/support/conversation-swipe-row.vue": { default: Swipe },
   };
+  modules["@/composables/use-conversation-delete"] = new Function("require", "exports", deleteScript + ";return exports;")(
+    (name: string) => { if (name in modules) return modules[name]; throw new Error("Unexpected delete dependency " + name); }, {});
   const component = new Function("require", "exports", `${script}; return exports.default;`)((name: string) => {
     if (name in modules) return modules[name];
     if (name.endsWith(".vue")) return { default: { render: () => null } };
     throw new Error(`Unexpected dependency: ${name}`);
   }, {});
   const root = element("root"); const app = renderer.createApp(component); app.mount(root); mounted.push(app);
-  return { root, store, navTo, account, rows, currentLocale, show: async () => { for (const fn of shown) await fn(); await Vue.nextTick(); } };
+  return { root, store, navTo, account, rows, currentLocale, confirm, toast, clearConfirmsBy,
+    hide: () => hidden.forEach(fn => fn()), show: async () => { for (const fn of shown) await fn(); await Vue.nextTick(); } };
 }
 
 describe("human conversation contact entry", () => {
@@ -156,11 +185,12 @@ describe("human conversation contact entry", () => {
     expect(preview).toContain("会话已因用户闲置 5 分钟自动结束");
     expect(preview).not.toContain("5 phút");
   });
-  it.each(["same-user rebind", "A to B to A"])("ignores an old removal failure after %s", async scenario => {
+  it.each(["same-user rebind", "A to B to A"])("ignores an old user-history clear failure after %s", async scenario => {
     const current = mount("advisor", "active");
+    current.confirm.mockResolvedValue(true);
     let reject!: (error: Error) => void;
-    current.store.dismissConversation.mockImplementationOnce(() => new Promise<undefined>((_resolve, fail) => { reject = fail; }));
-    const pending = flatten(current.root).find(node => String(node.props["aria-label"]).startsWith("从列表移除 · "))!.props.onClick();
+    current.store.deleteConversation.mockImplementationOnce(() => new Promise<undefined>((_resolve, fail) => { reject = fail; }));
+    swipes(current.root)[0].props.onDelete(); await settleInbox();
     if (scenario === "A to B to A") {
       current.account.accountKey = "user:2";
       current.account.accountBindingEpoch += 1;
@@ -170,54 +200,97 @@ describe("human conversation contact entry", () => {
     current.account.accountBindingEpoch += 1;
     await Vue.nextTick();
     reject(new Error("old removal network failure"));
-    await pending; await Vue.nextTick();
-    expect(flatten(current.root).some(node => node.props.role === "alert")).toBe(false);
+    await settleInbox();
+    expect(current.toast.error).not.toHaveBeenCalled();
+    expect(inboxRows(current.root)).toHaveLength(1);
   });
 
-  it("clears an already displayed removal error on same-account session rebinding", async () => {
+  it("cancels an outstanding clear confirmation on same-account session rebinding", async () => {
     const current = mount("advisor", "active");
-    current.store.dismissConversation.mockRejectedValueOnce(new Error("offline"));
-    await flatten(current.root).find(node => String(node.props["aria-label"]).startsWith("从列表移除 · "))!.props.onClick();
-    await Vue.nextTick();
-    expect(flatten(current.root).some(node => node.props.role === "alert")).toBe(true);
+    let accept!: (accepted: boolean) => void;
+    current.confirm.mockReturnValueOnce(new Promise<boolean>(resolve => { accept = resolve; }));
+    swipes(current.root)[0].props.onDelete(); await Vue.nextTick();
+    const owner = current.confirm.mock.calls[0][0].owner;
     current.account.accountBindingEpoch += 1; await Vue.nextTick();
-    expect(flatten(current.root).some(node => node.props.role === "alert")).toBe(false);
+    expect(current.clearConfirmsBy).toHaveBeenCalledWith(owner);
+    accept(true); await settleInbox();
+    expect(current.store.deleteConversation).not.toHaveBeenCalled();
+    expect(inboxRows(current.root)).toHaveLength(1);
   });
 
-  it.each(["loading", "failed", "ready"])("keeps a dismissed ongoing thread reachable when new entry is unavailable (%s)", async status => {
-    const current = mount("advisor", "active"); current.store.hidden = true; current.store.enabled = false;
+  it.each(["loading", "failed", "ready"])("keeps a historical thread reachable through its own row when new entry is unavailable (%s)", async status => {
+    const current = mount("advisor", "active"); current.store.enabled = false;
     current.store.categoryAvailabilityStatus = status; await Vue.nextTick();
     const contact = flatten(current.root).find(node => node.props["aria-label"] === zh.conversations.contactAdvisor);
-    expect(contact).toBeDefined(); contact!.props.onClick();
+    expect(contact).toBeUndefined(); inboxRows(current.root)[0].props.onClick();
     expect(current.navTo).toHaveBeenCalledExactlyOnceWith("/pages/support/chat?cid=CV-1");
     expect(current.store.startConversation).not.toHaveBeenCalled();
   });
 
-  it("keeps existing conversations usable while an older backend lacks removal support", async () => {
-    const current = mount("advisor", "active"); current.store.dismissalAvailable = false; await Vue.nextTick();
-    expect(flatten(current.root).some(node => String(node.props["aria-label"]).startsWith("从列表移除 · "))).toBe(false);
-    expect(flatten(current.root).some(node => node.props["aria-label"] === zh.conversations.image.unassigned)).toBe(true);
+  it("keeps rows usable but cannot offer a local-only clear when the server capability is absent", async () => {
+    const current = mount("advisor", "active"); current.store.deletionAvailable = false; await Vue.nextTick();
+    expect(swipes(current.root)[0].props.disabled).toBe(true);
+    swipes(current.root)[0].props.onDelete(); await settleInbox();
+    expect(current.confirm).not.toHaveBeenCalled(); expect(current.store.deleteConversation).not.toHaveBeenCalled();
+    inboxRows(current.root)[0].props.onClick(); expect(current.navTo).toHaveBeenCalledExactlyOnceWith("/pages/support/chat?cid=CV-1");
   });
-  it("removes via the row action without opening the chat and exposes the retained-history explanation", async () => {
+  it("asks before clearing the selected peer's user view and cancellation keeps every message", async () => {
     const current = mount("advisor", "active");
-    const button = flatten(current.root).find(node => String(node.props["aria-label"]).startsWith("从列表移除 · "));
-    expect(button).toBeDefined(); await button!.props.onClick();
-    expect(current.store.dismissConversation).toHaveBeenCalledExactlyOnceWith("CV-1");
+    current.rows[0].messages.push({ id: "1", ts: 1, sender: "agent", text: "User history" });
+    const before = JSON.stringify(current.rows);
+    swipes(current.root)[0].props.onDelete(); await settleInbox();
+    expect(current.confirm).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+      message: conversationActionsCopy.zh.message, confirmLabel: conversationActionsCopy.zh.confirm,
+      cancelLabel: conversationActionsCopy.zh.cancel, danger: true,
+    }));
+    expect(current.store.deleteConversation).not.toHaveBeenCalled();
+    expect(JSON.stringify(current.rows)).toBe(before);
     expect(current.navTo).not.toHaveBeenCalled();
-    expect(flatten(current.root).some(node => node.text.includes("移除后聊天记录仍保留"))).toBe(true);
+    expect(renderedText(current.root)).not.toContain("移除后聊天记录仍保留");
   });
-  it("reuses an ongoing removed conversation when the user contacts the advisor again", async () => {
-    const current = mount("advisor", "active"); current.store.hidden = true; await Vue.nextTick();
+  it("contacts the current advisor without opening another peer's ongoing conversation", async () => {
+    const current = mount("advisor", "active"); current.store.advisor.currentAdvisorId = 9; await Vue.nextTick();
     const button = flatten(current.root).find(node => node.props["aria-label"] === zh.conversations.contactAdvisor);
     expect(button).toBeDefined(); button!.props.onClick();
-    expect(current.navTo).toHaveBeenCalledExactlyOnceWith("/pages/support/chat?cid=CV-1");
+    expect(current.navTo).toHaveBeenCalledExactlyOnceWith("/pages/support/chat?start=advisor");
     expect(current.store.startConversation).not.toHaveBeenCalled();
   });
-  it("shows a retryable explanation if the removal fails", async () => {
-    const current = mount("advisor", "active"); current.store.dismissConversation.mockRejectedValueOnce(new Error("offline"));
-    await flatten(current.root).find(node => String(node.props["aria-label"]).startsWith("从列表移除 · "))!.props.onClick();
+  it("keeps the row and unread count when a confirmed clear fails, then allows an explicit retry", async () => {
+    const current = mount("advisor", "active"); current.rows[0].unread = 3;
+    current.confirm.mockResolvedValue(true); current.store.deleteConversation.mockRejectedValueOnce(new Error("offline"));
+    await Vue.nextTick(); const before = JSON.stringify(current.rows);
+    swipes(current.root)[0].props.onDelete(); await settleInbox();
+    expect(current.store.deleteConversation).toHaveBeenCalledExactlyOnceWith("CV-1");
+    expect(current.toast.error).toHaveBeenCalledExactlyOnceWith(conversationActionsCopy.zh.failed);
+    expect(JSON.stringify(current.rows)).toBe(before); expect(inboxRows(current.root)).toHaveLength(1);
+    expect(flatten(current.root).find(node => node.props.class === "nx-conv-unread-t")!.text).toBe("3");
+    expect(current.navTo).not.toHaveBeenCalled();
+    swipes(current.root)[0].props.onDelete(); await settleInbox();
+    expect(current.store.deleteConversation).toHaveBeenCalledTimes(2);
+  });
+  it("renders one row per staff ID, merges same-peer history and shows the group's badge after the preview", async () => {
+    const current = mount("advisor", "active");
+    current.rows[0].unread = 2;
+    current.rows.push({ ...current.rows[0], id: "CV-A-history", status: "closed", sessionStatus: "closed", lastTs: Date.now() + 1000, unread: 3 });
+    current.rows.push({ ...current.rows[0], id: "CV-B", ownerAgentId: "9", unread: 7 });
     await Vue.nextTick();
-    expect(flatten(current.root).some(node => node.props.role === "alert" && node.text.includes("移除未确认"))).toBe(true);
+    expect(inboxRows(current.root)).toHaveLength(2);
+    expect(current.store.humanThreads[0].conversationIds).toEqual(["CV-A-history", "CV-1"]);
+    const badges = inboxRows(current.root).map(row => flatten(row).find(node => node.props.class === "nx-conv-unread-t")!.text);
+    expect(badges).toEqual(["5", "7"]);
+    for (const row of inboxRows(current.root)) {
+      const bottom = flatten(row).find(node => node.props.class === "nx-conv-rowbot")!;
+      expect(bottom.children.map(node => node.props.class)).toEqual(["nx-conv-rowprev", "nx-conv-unread"]);
+      expect(flatten(row).find(node => node.props.class === "nx-conv-ava")!.children.some(node => node.props.class === "nx-conv-unread")).toBe(false);
+    }
+    inboxRows(current.root)[0].props.onClick();
+    expect(current.navTo).toHaveBeenCalledExactlyOnceWith("/pages/support/chat?cid=CV-1");
+  });
+  it("matches numeric currentAdvisorId with the parsed string ownerAgentId and exposes only the existing row", () => {
+    const current = mount("advisor", "active");
+    expect(current.store.advisor.currentAdvisorId).toBe(7); expect(current.rows[0].ownerAgentId).toBe("7");
+    expect(flatten(current.root).some(node => node.props["aria-label"] === zh.conversations.contactAdvisor)).toBe(false);
+    expect(inboxRows(current.root)).toHaveLength(1);
   });
   it.each(["advisor", "support"] as const)("lets a new user contact %s without any existing conversation", async type => {
     const current = mount(type);
@@ -228,9 +301,11 @@ describe("human conversation contact entry", () => {
     expect(current.navTo).toHaveBeenCalledExactlyOnceWith("/pages/support/chat?start=advisor");
     expect(current.store.startConversation).not.toHaveBeenCalled();
   });
-  it.each(["advisor", "support"] as const)("keeps contact %s available when every prior conversation has ended", type => {
+  it.each(["advisor", "support"] as const)("keeps the ended same-peer %s history in its row instead of offering a duplicate entry", type => {
     const current = mount(type, "ended");
-    expect(flatten(current.root).some(node => node.props["aria-label"] === zh.conversations.contactAdvisor)).toBe(true);
+    expect(flatten(current.root).some(node => node.props["aria-label"] === zh.conversations.contactAdvisor)).toBe(false);
+    inboxRows(current.root)[0].props.onClick();
+    expect(current.navTo).toHaveBeenCalledExactlyOnceWith("/pages/support/chat?cid=CV-1");
   });
   it.each(["active", "failed", "loading"] as const)("does not expose a duplicate or unauthorised contact entry in %s state", state => {
     const current = mount("advisor", state);
@@ -267,8 +342,11 @@ import { createSessionVault } from "@/api/session-vault";
 import { binarySessionReady } from "@/lib/binary-session-ready";
 
 const chatTransport = vi.hoisted(() => ({
-  authorityRevision: vi.fn(async () => "canonical-v1"), commandResult: vi.fn(async () => null),
+  authorityRevision: vi.fn(async () => "canonical-v1"), commandResult: vi.fn(async (_key: string): Promise<any> => null),
   conversation: vi.fn(), replyConversation: vi.fn(), startConversation: vi.fn(), convertConversationToTicket: vi.fn(),
+  conversationManagement: vi.fn(async (): Promise<any> => ({ clearUserHistory: false, clearedPeers: [] })),
+  deleteConversation: vi.fn(),
+  markConversationRead: vi.fn(async (row: any) => ({ ...row, unread: 0 })),
   conversationCategories: vi.fn(async () => ({ advisor: true, support: true, ai: false })),
   conversations: vi.fn(async () => ({ items: [] as ReturnType<typeof humanSnapshot>[] })), conversationDismissals: vi.fn(async () => []),
   advisor: vi.fn(async (): Promise<CurrentAdvisor> => ({ assignmentId: null, currentAdvisorId: null, currentAdvisorName: null, assignmentState: "UNBOUND", availability: "UNBOUND" })),
@@ -279,7 +357,7 @@ vi.mock("@/api/runtime", () => ({ supportApi: chatTransport, remoteApiEnabled: t
 
 const humanChatSource = readFileSync(new URL("./chat.vue", import.meta.url), "utf8").split('<script setup lang="ts">')[1].split("</script>")[0];
 const humanChatScript = ts.transpileModule(humanChatSource, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
-const humanSnapshot = () => ({ id: "CV-cold", type: "support", status: "open", version: 1, lastTs: 1,
+const humanSnapshot = () => ({ id: "CV-cold", type: "support", status: "open", version: 1, lastTs: 1, ownerAgentId: "7",
   messages: [{ id: "1", sender: "agent", text: "History", ts: 1, status: "sent" }], unread: 0,
   agentName: "Fixture", roleKey: "roleSupport", avatarTint: "blue", lastMessage: "History", sessionStatus: "active" });
 function chatDeferred() {
@@ -292,7 +370,10 @@ function mountRealHumanChat(query: Record<string, string> = { cid: "CV-cold" }, 
   setActivePinia(createPinia()); vi.clearAllMocks();
   chatTransport.conversations.mockReset().mockResolvedValue({ items: [] });
   chatTransport.conversationDismissals.mockReset().mockResolvedValue([]);
+  chatTransport.conversationManagement.mockReset().mockResolvedValue({ clearUserHistory: false, clearedPeers: [] });
+  chatTransport.deleteConversation.mockReset();
   chatTransport.conversation.mockReset().mockResolvedValue(humanSnapshot());
+  chatTransport.markConversationRead.mockReset().mockImplementation(async row => ({ ...row, unread: 0 }));
   chatTransport.replyConversation.mockReset().mockResolvedValue(humanSnapshot());
   chatTransport.startConversation.mockReset().mockResolvedValue(humanSnapshot());
   chatTransport.commandResult.mockReset().mockResolvedValue(null);
@@ -438,7 +519,7 @@ describe('scrolling history controls', () => {
   it.each([zh, en, vietnamese])('preserves localized disclosure and the actual loading/retry handlers in the scrolling slot', async copy => {
     const current = mountRealHumanChat({ cid: 'CV-cold' }, copy); await current.show();
     const row = current.store.get('CV-cold')!; row.historyNextCursor = 1; row.historyTruncated = true;
-    const load = vi.spyOn(current.store, 'loadEarlier').mockResolvedValue(undefined);
+    const load = vi.spyOn(current.store, 'loadEarlierThread').mockResolvedValue(undefined);
     const refresh = vi.spyOn(current.store, 'refresh').mockResolvedValue(undefined);
     current.page.conversationThread.value = { prepareHistoryPrepend: vi.fn(async () => true) };
     const render = new Function('Vue', compileTemplate(slot.children.map((child: any) => child.loc.source).join(''), {
@@ -456,7 +537,7 @@ describe('scrolling history controls', () => {
     expect(actions()[0].props['aria-disabled']).toBe(true);
     await actions()[0].props.onClick(); expect(load).not.toHaveBeenCalled();
     current.page.humanEarlierBusy.value = false; await Vue.nextTick();
-    await actions()[0].props.onClick(); expect(load).toHaveBeenCalledOnce();
+    await actions()[0].props.onClick(); expect(load).toHaveBeenCalledExactlyOnceWith('CV-cold', expect.any(Function));
     current.page.humanHistoryListError.value = true; await Vue.nextTick();
     expect(allText()).toContain(copy.conversations.loadError);
     expect(allText()).toContain(copy.conversations.retry);
@@ -543,14 +624,14 @@ describe('attachment policy and native history read ownership', () => {
   it('keeps history intact when premeasurement fails and allows exactly one later retry', async () => {
     const current = mountRealHumanChat(); chatTransport.conversation.mockResolvedValue({ ...humanSnapshot(), historyNextCursor: 1 });
     await current.show();
-    const loadEarlier = vi.spyOn(current.store, 'loadEarlier').mockResolvedValue(undefined);
+    const loadEarlier = vi.spyOn(current.store, 'loadEarlierThread').mockResolvedValue(undefined);
     const prepare = vi.fn(async () => false); current.page.conversationThread.value = { prepareHistoryPrepend: prepare };
     await current.page.loadEarlierHumanHistory(); expect(loadEarlier).not.toHaveBeenCalled();
     expect(current.page.humanEarlierBusy.value).toBe(false); expect(current.toast.warn).toHaveBeenCalled();
     const measurement = chatDeferred(); prepare.mockImplementationOnce(() => measurement.promise);
     const retry = current.page.loadEarlierHumanHistory(); await current.page.loadEarlierHumanHistory();
     expect(prepare).toHaveBeenCalledTimes(2); expect(loadEarlier).not.toHaveBeenCalled();
-    measurement.resolve(true); await retry; expect(loadEarlier).toHaveBeenCalledTimes(1);
+    measurement.resolve(true); await retry; expect(loadEarlier).toHaveBeenCalledExactlyOnceWith('CV-cold', expect.any(Function));
   });
 });
 
@@ -652,6 +733,91 @@ describe("human chat assignment belongs to the current conversation", () => {
 });
 
 describe("real chat and store account recovery", () => {
+  it("settles a late original clear receipt without clearing a newer same-cid message", async () => {
+    const current = mountRealHumanChat({});
+    const original = { ...humanSnapshot(), lastTs: 20, lastPublicMessageId: 20,
+      messages: [{ id: "20", sender: "user", text: "Before original clear", ts: 20, status: "read" }] };
+    const clearance = { scope: "USER_VIEW" as const, userScopeCleared: true as const, peerKey: "agent:7",
+      throughMessageId: 20, conversationNos: ["CV-cold"] };
+    chatTransport.conversations.mockResolvedValue({ items: [original] });
+    chatTransport.conversationManagement.mockResolvedValue({ clearUserHistory: true, clearedPeers: [] });
+    await current.store.refresh();
+    // The server committed the original clear; both its response and first readback are unavailable.
+    chatTransport.deleteConversation.mockRejectedValue(new chatApiErrors.ApiError({ kind: "network", message: "lost clear response" }));
+    await expect(current.store.deleteConversation("CV-cold")).rejects.toThrow("lost clear response");
+    const originalKey = chatTransport.deleteConversation.mock.calls[0][3];
+    expect(chatTransport.deleteConversation.mock.calls[0][2][0].lastPublicMessageId).toBe(20);
+
+    const renewed = { ...original, version: 2, unread: 1, lastTs: 30, lastPublicMessageId: 30, userClearedThroughMessageId: 20,
+      messages: [{ id: "30", sender: "agent", text: "After original clear", ts: 30, status: "sent" }] };
+    chatTransport.conversations.mockResolvedValue({ items: [renewed] });
+    chatTransport.conversationManagement.mockResolvedValue({ clearUserHistory: true, clearedPeers: [clearance] });
+    await current.store.refresh();
+    chatTransport.commandResult.mockImplementation(async key => key === originalKey
+      ? { kind: "conversation-user-clear", clearance } as any : null);
+    await expect(current.store.deleteConversation("CV-cold")).resolves.toBeUndefined();
+    const retried = chatTransport.deleteConversation.mock.calls[1];
+    expect(retried[3]).toBe(originalKey);
+    expect(retried[2][0].lastPublicMessageId).toBe(30);
+    expect(chatTransport.commandResult).toHaveBeenLastCalledWith(originalKey);
+    expect(current.store.get("CV-cold")!.messages.map(message => message.id)).toEqual(["30"]);
+    expect(current.store.get("CV-cold")!.unread).toBe(1);
+    expect(current.store.get("CV-cold")!.userClearedThroughMessageId).toBe(20);
+  });
+  it("applies a clear from another device when the first fresh watermark arrives on an older page", async () => {
+    const current = mountRealHumanChat();
+    const snapshot = { ...humanSnapshot(), lastTs: 30, lastPublicMessageId: 30, historyNextCursor: 10, historyTruncated: true,
+      messages: [
+        { id: "10", sender: "user", text: "Cleared image", ts: 10, kind: "IMAGE", attachmentId: "old-image", status: "read" },
+        { id: "30", sender: "agent", text: "Visible after boundary", ts: 30, status: "read" },
+      ] };
+    chatTransport.conversation.mockResolvedValue(snapshot); await current.show();
+    expect(current.store.get("CV-cold")!.messages.map(message => message.id)).toEqual(["10", "30"]);
+    chatTransport.conversation.mockResolvedValue({ ...snapshot, userClearedThroughMessageId: 20,
+      messages: [], historyNextCursor: null, historyTruncated: false });
+    current.page.conversationThread.value = { prepareHistoryPrepend: vi.fn(async () => true) };
+    await current.page.loadEarlierHumanHistory();
+    expect(chatTransport.conversation).toHaveBeenLastCalledWith("CV-cold", 10);
+    expect(current.store.get("CV-cold")!.messages.map(message => message.id)).toEqual(["30"]);
+    expect(current.store.get("CV-cold")!.userClearedThroughMessageId).toBe(20);
+    expect(current.page.threadMessages.value.some((message: any) => message.attachmentId === "old-image")).toBe(false);
+    expect(current.store.get("CV-cold")!.historyNextCursor).toBeNull();
+  });
+  it("carries a clear watermark found during gap catch-up through the final merged snapshot", async () => {
+    const current = mountRealHumanChat();
+    const snapshot = { ...humanSnapshot(), lastTs: 30, lastPublicMessageId: 30,
+      messages: [
+        { id: "10", sender: "user", text: "Cleared old history", ts: 10, status: "read" },
+        { id: "30", sender: "agent", text: "Visible after boundary", ts: 30, status: "read" },
+      ] };
+    chatTransport.conversation.mockResolvedValue(snapshot); await current.show();
+    chatTransport.conversation.mockImplementation(async (_id, before) => before
+      ? { ...snapshot, userClearedThroughMessageId: 20, messages: [snapshot.messages[1]], historyNextCursor: null, historyTruncated: false }
+      : { ...snapshot, version: 2, lastTs: 40, lastPublicMessageId: 40, historyNextCursor: 40, historyTruncated: true,
+          messages: [{ id: "40", sender: "agent", text: "Newest message", ts: 40, status: "read" }] });
+    await current.store.open("CV-cold");
+    expect(chatTransport.conversation).toHaveBeenLastCalledWith("CV-cold", 40);
+    expect(current.store.get("CV-cold")!.messages.map(message => message.id)).toEqual(["30", "40"]);
+    expect(current.store.get("CV-cold")!.userClearedThroughMessageId).toBe(20);
+  });
+  it("loads and acknowledges only same-peer segments without reading or clearing another peer's unread", async () => {
+    const current = mountRealHumanChat();
+    const own = humanSnapshot();
+    const old = { ...humanSnapshot(), id: "CV-old", lastTs: 0, unread: 2,
+      messages: [{ id: "2", sender: "agent", text: "Same peer history", ts: 0, status: "sent" }] };
+    const other = { ...humanSnapshot(), id: "CV-other", ownerAgentId: "9", unread: 4,
+      messages: [{ id: "3", sender: "agent", text: "Other peer history", ts: 2, status: "sent" }] };
+    const data = [own, old, other];
+    chatTransport.conversations.mockResolvedValue({ items: data.map(row => ({ ...row, messages: [] })) });
+    chatTransport.conversation.mockImplementation(async id => data.find(row => row.id === id)!);
+    await current.show();
+    await vi.waitFor(() => expect(current.page.conv.value.messages.map((row: any) => row.text))
+      .toEqual(["Same peer history", "History"]));
+    expect(chatTransport.conversation.mock.calls.map(([id]) => id)).not.toContain("CV-other");
+    expect(chatTransport.markConversationRead).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ id: "CV-old" }), 2);
+    expect(current.store.get("CV-other")!.unread).toBe(4);
+    expect(current.store.get("CV-other")!.messages).toHaveLength(0);
+  });
   it("retains a cold list failure after the current thread opens, then retries the missing history", async () => {
     const current = mountRealHumanChat();
     chatTransport.conversations.mockRejectedValueOnce(new Error("list offline"));

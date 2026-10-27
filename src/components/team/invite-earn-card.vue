@@ -36,7 +36,8 @@
 </template>
 <script setup lang="ts">
 import { formatAmount } from '@/lib/amount-display';
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onUnmounted } from 'vue';
+import { onShow, onHide } from '@/composables/use-tab-page-lifecycle';
 import ShareChannelSheet from './share-channel-sheet.vue';
 import SharePosterSheet from './share-poster-sheet.vue';
 import InviteDetailSheet from './invite-detail-sheet.vue';
@@ -125,8 +126,10 @@ function openShare() {
 defineExpose({ openShare });
 
 
-onMounted(()=>void rewards.refresh());
-const stopRuntimeRefresh=subscribeRuntimeRevision(()=>{if(remoteApiEnabled)void rewards.refresh();});
+let visible = false;
+onShow(()=>{visible = true; void rewards.refresh();});
+onHide(()=>{visible = false;});
+const stopRuntimeRefresh=subscribeRuntimeRevision(()=>{if(remoteApiEnabled && visible)void rewards.refresh();});
 onUnmounted(stopRuntimeRefresh);
 </script>
 <style scoped>

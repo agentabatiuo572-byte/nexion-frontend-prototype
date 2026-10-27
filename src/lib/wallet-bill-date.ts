@@ -1,3 +1,5 @@
+import { formatDisplayDateTime } from "./display-date";
+
 const EN_MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
@@ -6,11 +8,13 @@ const EN_MONTHS = [
 // Native Android can ignore toLocaleString's locale and options, returning Date.toString().
 // Use local calendar fields so the group and row remain consistent with the device time zone.
 export function walletBillMonthKey(ts: number): string {
+  if (typeof ts !== "number" || !Number.isFinite(ts) || ts <= 0) return "invalid";
   const date = new Date(ts);
   return Number.isNaN(date.getTime()) ? "invalid" : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
 export function walletBillMonthLabel(ts: number, locale: string): string {
+  if (typeof ts !== "number" || !Number.isFinite(ts) || ts <= 0) return "—";
   const date = new Date(ts);
   if (Number.isNaN(date.getTime())) return "—";
   const year = date.getFullYear();
@@ -21,12 +25,5 @@ export function walletBillMonthLabel(ts: number, locale: string): string {
 }
 
 export function walletBillTimeLabel(ts: number, locale: string): string {
-  const date = new Date(ts);
-  if (Number.isNaN(date.getTime())) return "—";
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  const time = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
-  if (locale.startsWith("vi")) return `${day} thg ${month}, ${time}`;
-  if (locale.startsWith("zh")) return `${String(month).padStart(2, "0")}/${String(day).padStart(2, "0")} ${time}`;
-  return `${EN_MONTHS[month - 1].slice(0, 3)} ${day}, ${time}`;
+  return typeof ts === "number" ? formatDisplayDateTime(ts, locale) : "—";
 }

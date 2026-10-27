@@ -1,13 +1,21 @@
 import type { Conversation } from '../domain/support';
 /** Preserve loaded history and monotonically merge durable message receipts by database id. */
 export function mergeConversationMessages(prior:Conversation|undefined,next:Conversation):Conversation {
-  if(!prior?.messages.length)return next;
-  const messages=new Map(prior.messages.map(m=>[m.id,m]));
-  for(const m of next.messages){const old=messages.get(m.id);messages.set(m.id,old?.status==='read'?{...m,status:'read'}:m);}
-  const keptOlder=Number(prior.messages[0].id)<Number(next.messages[0]?.id??Infinity);
-  return {...next,messages:[...messages.values()].sort((a,b)=>Number(a.id)-Number(b.id)),
-    historyTruncated:keptOlder?prior.historyTruncated:next.historyTruncated,
-    historyNextCursor:keptOlder?prior.historyNextCursor:next.historyNextCursor};
+  let merged=next;
+  if(prior?.messages.length){
+    const messages=new Map(prior.messages.map(m=>[m.id,m]));
+    for(const m of next.messages){const old=messages.get(m.id);messages.set(m.id,old?.status==='read'?{...m,status:'read'}:m);}
+    const keptOlder=Number(prior.messages[0].id)<Number(next.messages[0]?.id??Infinity);
+    merged={...next,messages:[...messages.values()].sort((a,b)=>Number(a.id)-Number(b.id)),
+      historyTruncated:keptOlder?prior.historyTruncated:next.historyTruncated,
+      historyNextCursor:keptOlder?prior.historyNextCursor:next.historyNextCursor};
+  }
+  const clearedThrough=Math.max(prior?.userClearedThroughMessageId??-1,next.userClearedThroughMessageId??-1);
+  if(clearedThrough<0)return merged;
+  const cursor=merged.historyNextCursor!=null&&merged.historyNextCursor>clearedThrough?merged.historyNextCursor:null;
+  return {...merged,userClearedThroughMessageId:clearedThrough,
+    messages:merged.messages.filter(message=>Number(message.id)>clearedThrough),
+    historyNextCursor:cursor,historyTruncated:cursor!==null&&merged.historyTruncated};
 }
 export async function catchUpConversation(next:Conversation,prior:Conversation|undefined,
   fetchPage:(id:string,before:number)=>Promise<Conversation>,active:()=>boolean):Promise<Conversation> {
@@ -25,7 +33,9 @@ export async function catchUpConversation(next:Conversation,prior:Conversation|u
     const cursor=page.historyNextCursor;
     if(seen.has(cursor))throw new Error('SUPPORT_HISTORY_CURSOR_STALLED');seen.add(cursor);
     page=await fetchPage(next.id,cursor);
-    next={...next,messages:[...page.messages,...next.messages],historyTruncated:page.historyTruncated,historyNextCursor:page.historyNextCursor};
+    const clearedThrough=Math.max(next.userClearedThroughMessageId??-1,page.userClearedThroughMessageId??-1);
+    next={...next,messages:[...page.messages,...next.messages],historyTruncated:page.historyTruncated,historyNextCursor:page.historyNextCursor,
+      ...(clearedThrough>=0?{userClearedThroughMessageId:clearedThrough}:{})};
   }
   if(!active())throw new Error('SUPPORT_ACCOUNT_SCOPE_CHANGED');
   return mergeConversationMessages(prior,next);

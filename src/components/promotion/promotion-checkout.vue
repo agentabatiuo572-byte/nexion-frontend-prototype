@@ -16,7 +16,7 @@
         <view v-for="item in items" :key="item.productNo" class="promotion-row checkout-product-line">
           <view class="checkout-product-art"><image v-if="getProduct(item.productNo)?.imageUrl" :src="getProduct(item.productNo)!.imageUrl" class="promotion-image" mode="aspectFit" aria-hidden="true" /></view>
           <view class="promotion-grow"><text class="checkout-item-name">{{ selectedItemName(item) }}</text><text class="promotion-copy">{{ p.quantity }} · {{ item.quantity }}</text>
-            <text v-if="quote||order" class="promotion-price checkout-line-price">{{ formatAmount(itemSubtotal(item)) }} USDT</text>
+            <text v-if="displayQuote||order" class="promotion-price checkout-line-price">{{ formatAmount(itemSubtotal(item)) }} USDT</text>
           </view>
           <view class="checkout-item-quantity" :aria-label="selectedItemName(item)+' · '+p.quantity">
             <view class="checkout-item-quantity-button" data-testid="checkout-item-decrease" role="button" :tabindex="canChangeQuantity(item.productNo,-1)?0:-1" :aria-disabled="!canChangeQuantity(item.productNo,-1)" :aria-label="t.uiChrome.decreaseQty" @click="changeQuantity(item.productNo,-1)" @keydown.enter.prevent="changeQuantity(item.productNo,-1,$event)" @keydown.space.prevent="changeQuantity(item.productNo,-1,$event)">−</view>
@@ -25,7 +25,7 @@
           </view>
         </view>
       </view>
-      <view v-if="quote||order||eventVoucherId" class="checkout-section" data-testid="checkout-discounts">
+      <view v-if="displayQuote||order||eventVoucherId" class="checkout-section" data-testid="checkout-discounts">
         <text class="checkout-section-heading">{{ p.discount }}</text>
         <view class="checkout-group">
           <view v-if="eventVoucherId&&!order&&!openedOriginal&&!session.record.pending" class="checkout-discount-row" data-testid="checkout-event-voucher">
@@ -56,12 +56,12 @@
               <view class="checkout-discount-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7z" /></svg></view>
               <view class="promotion-grow"><text class="checkout-discount-title">{{ rewardsReleased ? p.rewardCancelled : order ? (order.paymentStatus==='PENDING'?p.locked:p.orderRewards) : p.expected }}</text><text class="checkout-discount-description">{{ rewardsReleased ? reviewCopy.releasedRewards : p.rewardNote }}</text></view>
             </view>
-            <RewardRows v-if="!compactGift&&!rewardsReleased" :expected="rewards" :lines="order?.items??quote?.items" />
+            <RewardRows v-if="!compactGift&&!rewardsReleased" :expected="rewards" :lines="order?.items??displayQuote?.items" />
             <view v-if="!compactGift&&hasRewardTerms" class="promotion-link checkout-reward-terms" role="button" tabindex="0" @click="termsOpen=true" @keydown.enter.prevent="termsOpen=true" @keydown.space.prevent="termsOpen=true"><text>{{ p.rulesLink }}</text></view>
           </view>
         </view>
       </view>
-      <view v-if="quote || order" class="checkout-section" data-testid="checkout-payment">
+      <view v-if="displayQuote || order" class="checkout-section" data-testid="checkout-payment">
         <text class="checkout-section-heading">{{ t.store.coPaymentMethod }}</text>
         <view class="checkout-group">
           <view class="checkout-wallet">
@@ -85,7 +85,7 @@
         </view>
         <view v-if="order ? order.paymentStatus==='PENDING'&&order.payBy : promotion?.endsAt" class="promotion-row"><text aria-hidden="true">◷</text><view class="promotion-grow"><text class="promotion-copy">{{ order ? p.payBy : p.deadline }}</text><text class="promotion-copy">{{ displayDeadline(order?.payBy??promotion!.endsAt,locale.code) }}</text></view></view>
       </view>
-      <view v-if="quote?.warnings.length" class="promotion-notice"><text v-for="(warning,index) in quote.warnings" :key="index" class="promotion-copy">{{ localized(warning,locale.code) }}</text></view>
+      <view v-if="displayQuote?.warnings.length" class="promotion-notice"><text v-for="(warning,index) in displayQuote.warnings" :key="index" class="promotion-copy">{{ localized(warning,locale.code) }}</text></view>
       <template v-if="auth.isAuthenticated">
         <template v-if="order">
           <text class="promotion-copy">{{ p.orderNo }} · {{ order.orderNo }}</text>
@@ -144,7 +144,7 @@ import type { LocalizedText,RewardDisclosure,Quote } from '@/api/promotion-contr
 import { useT } from '@/i18n/use-t';import { useLocaleStore } from '@/store/locale';import { useApp } from '@/store/app';import { useAuth } from '@/store/auth';
 import { useVoucher } from '@/store/voucher';
 import { computeVoucherDiscount,isVoucherValid,voucherAppliesToSku,type VoucherDef } from '@/mock/vouchers';
-import { asApiError } from '@/api/errors';
+import { ApiError,asApiError } from '@/api/errors';
 import { getProduct as readProduct } from '@/mock/products';import { refreshProductCatalog,productCatalogState,productCatalogPresentation } from '@/store/product-catalog';
 import { navTo,navBack } from '@/lib/route';import { confirm,useUI } from '@/store/ui';
 import { fmt } from '@/i18n/format';
@@ -198,7 +198,11 @@ try{records=readAccountRow<Record<string,PromotionCheckoutRecord>>(TABLE,account
 // A changed route cannot bypass an unresolved command from this same account.
 const {intent,record:stored,openedOriginal}=selectPromotionCheckoutRecord(records,props);
 const session=new PromotionCheckoutSession({api:promotionApi,current,key:key=>acquireAccountCommandKey('nexgrid-promotion-commands-v1',account,key,'promotion'),save:record=>{if(!storageReadable)throw new Error('STORAGE_UNAVAILABLE');const rows=readAccountRow<Record<string,PromotionCheckoutRecord>>(TABLE,account,true)??{};if(!writeAccountRow(TABLE,account,{...rows,[intent]:record}))throw new Error('STORAGE_UNAVAILABLE');}},stored);
-const freshQuoteReady=ref(false),revision=ref(0),quote=computed(()=>{revision.value;return session.record.pending||session.record.order||freshQuoteReady.value?session.record.quote:null;}),order=computed(()=>{revision.value;return session.record.order;}),unknown=computed(()=>{revision.value;return session.unknown;});
+const quotePresentation=shallowRef<{key:string;quote:Quote}|null>(null);
+const freshQuoteReady=ref(false),revision=ref(0),quote=computed(()=>{revision.value;return session.record.pending||session.record.order||(freshQuoteReady.value&&quotePresentation.value?.key===quotePresentationKey())?session.record.quote:null;}),order=computed(()=>{revision.value;return session.record.order;}),unknown=computed(()=>{revision.value;return session.unknown;});
+// Display memory never enters the executable session; refresh still invalidates that quote.
+const displayQuote=computed(()=>current()&&visible&&auth.isAuthenticated ? quote.value??(quotePresentation.value?.key===quotePresentationKey()?quotePresentation.value.quote:null):null);
+function quotePresentationKey(){return JSON.stringify([app.accountKey,app.accountBindingEpoch,auth.isAuthenticated,props.activityId,selection.value,eventVoucherId,props.upgradeActivityId??'',manualVoucher()?['manual',voucherId.value]:['auto'],locale.code]);}
 // Payment receipts do not carry activation status. Keep activation unconfirmed;
 // ended orders must never imply that payment or activation is in progress.
 const checkoutStep=computed(()=>!order.value?0:['PENDING','PAID'].includes(order.value.paymentStatus)?1:-1);
@@ -208,10 +212,10 @@ const summary=computed(()=>order.value?{
   subtotalUsdt:order.value.subtotalUsdt??receiptQuote.value?.subtotalUsdt,
   discountUsdt:order.value.discountUsdt??receiptQuote.value?.discountUsdt,
   amountUsdt:order.value.amountUsdt,
-}:quote.value);
+}:displayQuote.value);
 function itemSubtotal(item:{productNo:string;quantity:number;subtotalUsdt?:string}) {
   if(item.subtotalUsdt!==undefined)return item.subtotalUsdt;
-  return (order.value?receiptQuote.value:quote.value)?.items.find(line=>line.productNo===item.productNo&&line.quantity===item.quantity)?.subtotalUsdt;
+  return (order.value?receiptQuote.value:displayQuote.value)?.items.find(line=>line.productNo===item.productNo&&line.quantity===item.quantity)?.subtotalUsdt;
 }
 const promotion=shallowRef<PublicPromotion|null>(null),loading=ref(true),busy=ref(false),error=ref(''),termsOpen=ref(false),leaveOpen=ref(false);
 const eventVoucherId=props.voucherId?.trim()??'';
@@ -221,8 +225,8 @@ const voucherId=ref(session.record.voucherId??(openedOriginal?null:eventVoucherI
 // voucher only when this quote explicitly reports zero promotion discount.
 const voucherOnlyDiscount=computed(()=>!order.value&&!openedOriginal&&!!voucherId.value&&session.record.voucherId===voucherId.value
   &&items.value.length===1&&!(eventVoucherId&&session.record.pending)
-  &&quote.value?.promotionDiscountUsdt!==undefined&&formatAmount(quote.value.promotionDiscountUsdt)==='0.00'
-  ?quote.value.discountUsdt:undefined);
+  &&displayQuote.value?.promotionDiscountUsdt!==undefined&&formatAmount(displayQuote.value.promotionDiscountUsdt)==='0.00'
+  ?displayQuote.value.discountUsdt:undefined);
 const voucherOpen=ref(false);
 const manualVoucher=()=>session.record.voucherMode==='manual'||(session.record.voucherMode===undefined&&session.record.voucherId!==undefined);
 function eligibleVouchers(subtotal:number) {
@@ -237,7 +241,7 @@ function voucherCondition(def:VoucherDef):string {
 }
 const selection=ref(props.items.map(({productNo,quantity})=>({productNo,quantity})));
 const rewardsReleased=computed(()=>!!order.value&&['CANCELLED','EXPIRED','REFUNDED'].includes(order.value.paymentStatus));
-const items=computed(()=>order.value?.items??quote.value?.items??selection.value);const rewards=computed(()=>order.value?.rewards??quote.value?.expectedRewards??[]);
+const items=computed(()=>order.value?.items??displayQuote.value?.items??selection.value);const rewards=computed(()=>order.value?.rewards??displayQuote.value?.expectedRewards??[]);
 // Match the published device FAQ's scope in store/detail; do not extend it to SHARE.
 const hasDevicePolicy=computed(()=>items.value.some(item=>{const product=getProduct(item.productNo);return !!product&&product.productType!=='SHARE';}));
 function canChangeQuantity(productNo:string,delta:-1|1):boolean {
@@ -267,6 +271,9 @@ const compactGift=computed(()=>{
 });
 const compactGiftSummary=computed(()=>compactGift.value?rewardSummary(compactGift.value.reward,p.value,compactGift.value.disclosure.deviceName,compactGift.value.groups):'');
 let receivedAt:number|null=null,promotionReceivedAt:number|null=null,orderClock:{serverNow:number;at:number}|null=null,clockGeneration=0;const quoteFresh=ref(false),payWindow=ref<boolean|null>(null);let timer:ReturnType<typeof setInterval>|undefined;
+watch(quotePresentationKey,()=>{
+  quotePresentation.value=null;freshQuoteReady.value=false;receivedAt=null;quoteFresh.value=false;readGeneration++;
+},{flush:'sync'});
 function updateClock(){
   const now=readTrustedMonotonicNowMs();quoteFresh.value=!!quote.value&&receivedAt!==null&&now!==null&&projectServerNow(Date.parse(quote.value.serverTime),receivedAt,now)<Date.parse(quote.value.expiresAt);
   const sample=receivedAt!==null&&quote.value?{serverNow:Date.parse(quote.value.serverTime),at:receivedAt}:promotionReceivedAt!==null&&promotion.value?{serverNow:Date.parse(promotion.value.serverTime),at:promotionReceivedAt}:orderClock;
@@ -280,20 +287,21 @@ async function loadOrderClock(){
   const fleet=await deviceE3Api.fleet();if(!current()||generation!==clockGeneration)return;
   orderClock={serverNow:fleet.serverNow,at:sampledAt};updateClock();
 }
-const canCreate=computed(()=>!busy.value&&!unknown.value&&completeTerms.value&&(quoteFresh.value||session.retryOriginal)&&quote.value?.eligibility==='ELIGIBLE'&&session.canExecute(quote.value.items.length>1?'createBundle':'createOrder'));
+const canCreate=computed(()=>current()&&visible&&auth.isAuthenticated&&!busy.value&&!unknown.value&&completeTerms.value&&(quoteFresh.value||session.retryOriginal)&&quote.value?.eligibility==='ELIGIBLE'&&session.canExecute(quote.value.items.length>1?'createBundle':'createOrder'));
 const canPay=computed(()=>(Number(order.value?.amountUsdt)===0||walletState.value==='ready')&&!busy.value&&!unknown.value&&completeTerms.value&&session.confirmed&&order.value?.paymentStatus==='PENDING'&&payWindow.value===true&&session.canExecute('payOrder'));
 const canCancel=computed(()=>{revision.value;return !busy.value&&!unknown.value&&session.confirmed&&order.value?.paymentStatus==='PENDING'&&session.canExecute('cancelOrder');});
 const canStartNew=computed(()=>{revision.value;return !busy.value&&!unknown.value&&session.confirmed&&!session.record.pending&&!!order.value&&['PAID','CANCELLED','EXPIRED','REFUNDED'].includes(order.value.paymentStatus);});
 async function run(action:()=>Promise<void>){if(busy.value||!current())return;busy.value=true;error.value='';try{await action();}catch(cause){if(current()){const message=asApiError(cause).message;error.value=message==='PROMOTION_NOT_ELIGIBLE_OR_UNAVAILABLE'?p.value.disabledNote:message.includes('CAPACITY_UNAVAILABLE')?p.value.capacityUnavailable:message==='PROMOTION_ACCOUNT_UNAVAILABLE'?p.value.accountUnavailable:message.includes('QUOTE_EXPIRED')||message.includes('QUOTE_INPUT_CHANGED')?p.value.quoteExpired:message.includes('INSUFFICIENT')?p.value.balanceInsufficient:p.value.errorNote;}}finally{if(current()){busy.value=false;revision.value++;updateClock();}}}
 async function loadQuote(){
   if(busy.value||!visible||!current()||openedOriginal||props.orderNo||session.record.pending||session.record.order||!auth.isAuthenticated)return;
-  const generation=++readGeneration;
-  voucherOpen.value=false;freshQuoteReady.value=false;promotion.value=null;promotionReceivedAt=null;termsOpen.value=false;receivedAt=null;quoteFresh.value=false;
+  const generation=++readGeneration,inputKey=quotePresentationKey();
+  if(quotePresentation.value?.key!==inputKey){quotePresentation.value=null;promotion.value=null;}
+  voucherOpen.value=false;freshQuoteReady.value=false;promotionReceivedAt=null;termsOpen.value=false;receivedAt=null;quoteFresh.value=false;
   await run(async()=>{
-    session.invalidateQuote();revision.value++;
+    try{session.invalidateQuote();revision.value++;}catch(cause){quotePresentation.value=null;throw cause;}
     const sampledAt=readTrustedMonotonicNowMs();
     if(props.activityId)void promotionApi.get(props.activityId,auth.isAuthenticated).then(value=>{
-      if(readCurrent(generation)&&value.state==='ACTIVE'){promotion.value=value;promotionReceivedAt=sampledAt;updateClock();}
+      if(readCurrent(generation)){promotion.value=value.state==='ACTIVE'?value:null;promotionReceivedAt=sampledAt;updateClock();}
     }).catch(()=>{});
     try{
       const requestedItems=selection.value.map(item=>({...item}));
@@ -307,7 +315,7 @@ async function loadQuote(){
         const available=voucher.claimedUnused.some(offer=>offer.id===eventVoucherId);
         const claimable=voucher.claimableVouchers.some(offer=>offer.id===eventVoucherId&&(!offer.claimSurfaces.length||offer.claimSurfaces.includes('store')));
         eventVoucherStatus.value=requestedItems.length!==1?'unavailable':available?'available':claimable?'claimable':'unavailable';
-        if(eventVoucherStatus.value!=='available')return;
+        if(eventVoucherStatus.value!=='available'){quotePresentation.value=null;promotion.value=null;return;}
         voucherId.value=eventVoucherId;activityId=null;
         if(props.upgradeActivityId){
           const candidate=await promotionApi.get(props.upgradeActivityId,true);if(!readCurrent(generation))return;
@@ -341,11 +349,11 @@ async function loadQuote(){
           }
         }
       }
-      if(!readCurrent(generation))return;
+      if(!readCurrent(generation)||inputKey!==quotePresentationKey())return;
       if(result.items.length!==requestedItems.length||requestedItems.some(item=>!result.items.some(line=>line.productNo===item.productNo&&line.quantity===item.quantity)))throw new Error('QUOTE_INPUT_CHANGED');
       voucherId.value=selectedId;
-      session.setQuote(result,selectedId);freshQuoteReady.value=true;receivedAt=sampledAt;revision.value++;updateClock();
-    }catch(cause){if(readCurrent(generation))throw cause;}
+      session.setQuote(result,selectedId);quotePresentation.value={key:quotePresentationKey(),quote:result};freshQuoteReady.value=true;receivedAt=sampledAt;revision.value++;updateClock();
+    }catch(cause){if(readCurrent(generation)){if(!(cause instanceof ApiError&&cause.kind==='network')){quotePresentation.value=null;promotion.value=null;}throw cause;}}
   });
 }
 async function claimEventVoucher(){
@@ -415,7 +423,7 @@ onBeforeRouteLeave(()=>requestCheckoutLeave());
 let nativeBackApproved=false;
 function back():boolean{if(nativeBackApproved){nativeBackApproved=false;return false;}void requestLeave().then(ok=>{if(ok&&current()){nativeBackApproved=true;navBack('/store');}});return true;}
 function hide(){
-  visible=false;readGeneration++;walletGeneration++;walletState.value='idle';refreshOnIdle=false;termsOpen.value=false;voucherOpen.value=false;promotion.value=null;promotionReceivedAt=null;
+  visible=false;quotePresentation.value=null;readGeneration++;walletGeneration++;walletState.value='idle';refreshOnIdle=false;termsOpen.value=false;voucherOpen.value=false;promotion.value=null;promotionReceivedAt=null;
   useUI().clearConfirmsBy(paymentDialogOwner);
   if(current()&&!session.record.pending&&!session.record.order){
     freshQuoteReady.value=false;receivedAt=null;quoteFresh.value=false;
@@ -433,7 +441,7 @@ function show(){
 watch(busy,value=>{if(!value&&refreshOnIdle){refreshOnIdle=false;if(visible&&current())show();}});
 const footer = computed(() => {
   if (loading.value || !auth.isAuthenticated || unknown.value) return null;
-  const rawAmount = order.value?.amountUsdt ?? quote.value?.amountUsdt;
+  const rawAmount = order.value?.amountUsdt ?? displayQuote.value?.amountUsdt;
   const amount = rawAmount == null ? '-' : formatAmount(rawAmount)+' USDT';
   if (order.value?.paymentStatus === 'PENDING') return { amount, label: p.value.pay, disabled: !canPay.value, action: pay };
   if (!order.value) return { amount, label: p.value.confirmOrder, disabled: !canCreate.value, action: createOrder };

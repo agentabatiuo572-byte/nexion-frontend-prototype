@@ -36,8 +36,8 @@ afterEach(() => {
 
 describe("BUG 417 staking unlock date", () => {
   for (const [zone, expectedDate] of [
-    ["Asia/Tokyo", "2026-11-03"],
-    ["Asia/Ho_Chi_Minh", "2026-11-02"],
+    ["Asia/Tokyo", "2026/11/03"],
+    ["Asia/Ho_Chi_Minh", "2026/11/02"],
   ]) {
     it.each(["missing Intl", "ignored locale"])(`${zone} keeps the local numeric date with Android %s`, (mode) => {
       vi.stubEnv("TZ", zone);

@@ -2,6 +2,11 @@ import { formatFinanceAmount } from '@/lib/finance-amount-display';
 import * as Vue from 'vue';
 import { afterEach, expect, it, vi } from 'vitest';
 import source from './quota.vue?raw';
+import tierSource from '@/components/team/quota-tier-card.vue?raw';
+import { teamLogicCopy } from '@/i18n/team-logic-copy';
+import { formatLegacyUSD } from '@/lib/v-rank-copy';
+import { formatComputePoints } from '@/i18n/compute-points';
+import { nexGridBrandText } from '@/lib/brand-copy';
 import { mountEntry, all, text, flush, slot } from '@/lib/entry-review.test-support';
 import { formatAmount } from '@/lib/amount-display';
 import { getProductMedia } from '@/lib/product-media';
@@ -29,7 +34,7 @@ function page(locale: keyof typeof dictionaries = 'en', product = '') {
   const show: Array<() => void> = [], hide: Array<() => void> = [], load: Array<(query: object) => void> = [];
   const navTo = vi.fn(), api = { snapshot: vi.fn(async () => snapshot()) }, refreshCatalog = vi.fn(async () => {});
   const app = Vue.reactive({ accountKey: 'user:A', accountBindingEpoch: 1 });
-  const catalogState = Vue.reactive({ status: 'ready' });
+  const catalogState = Vue.reactive({ status: 'ready', serverCanonical: true });
   const presentation = Vue.ref({ products: snapshot().tiers.map((tier, i) => ({ id: tier.productId, name: `Catalog product ${i + 1}`,
     price: 1299 + i * 1000, dailyEarnNEX: 80.125, dailyEarn: 1.5, productType: 'DEVICE', gpu: 'GPU', vram: 'VRAM' })) });
   // UniApp image is native; preserve its attributes in the in-memory host.
@@ -40,7 +45,7 @@ function page(locale: keyof typeof dictionaries = 'en', product = '') {
     '@dcloudio/uni-app': { onLoad: (fn: (q: object) => void) => load.push(fn), onShow: (fn: () => void) => show.push(fn), onHide: (fn: () => void) => hide.push(fn), onUnload: vi.fn() },
     '@/components/app-chassis.vue': slot, '@/components/sub-page-header.vue': { default: Vue.defineComponent({ props: ['back'], setup: props => () => Vue.h('view', { 'data-back': props.back }) }) },
     '@/components/team/team-art.vue': slot, '@/components/ui/nx-button.vue': button,
-    '@/components/team/quota-tier-card.vue': { default: Vue.defineComponent({ props: ['tier'], setup: props => () => Vue.h('view', { 'data-tier': props.tier.productId, 'data-facts': props.tier }, props.tier.name) }) },
+    '@/components/team/quota-tier-card.vue': { default: Vue.defineComponent({ props: ['tier', 'pending'], setup: props => () => Vue.h('view', { 'data-tier': props.tier.productId, 'data-facts': props.tier, 'data-pending': props.pending }, props.tier.name) }) },
     '@/i18n/use-t': { useT: () => Vue.ref(dictionaries[locale]) }, '@/store/locale': { useLocaleStore: () => ({ code: locale }) },
     '@/i18n/network-reaudit': { networkReauditCopy }, '@/i18n/format': { fmt }, '@/api/runtime': { remoteApiEnabled: true, teamQuotaApi: api },
     '@/mock/products': { getProduct: () => undefined, annualRoiPct: () => 5 },
@@ -89,10 +94,43 @@ it('clears account-owned rows and ignores old-account and hidden-page responses'
   resolveA({ ...snapshot(), tiers: [] }); await flush(); expect(p.tiers()).toHaveLength(2);
   let resolveHidden!: (value: TeamQuotaSnapshot) => void;
   p.api.snapshot.mockImplementationOnce(() => new Promise(resolve => { resolveHidden = resolve; }));
-  await p.show(); await p.hide(); resolveHidden(snapshot()); await flush(); expect(p.tiers()).toHaveLength(0);
+  await p.show(); await p.hide(); resolveHidden({ ...snapshot(), tiers: [] }); await flush(); expect(p.tiers()).toHaveLength(2);
+});
+it('preserves quota rows through a slow return and visible error without treating old stock as current', async () => {
+  const p = page(); await p.show(); await p.hide();
+  expect(p.tiers()).toHaveLength(2);
+  let reject!: (reason: unknown) => void;
+  p.api.snapshot.mockImplementationOnce(() => new Promise((_yes, no) => { reject = no; }));
+  p.catalogState.status = 'loading'; await p.show();
+  expect(p.tiers()).toHaveLength(2); expect(p.tiers().every(n => n.props['data-pending'])).toBe(true);
+  reject(new Error('offline')); await flush();
+  expect(p.tiers()).toHaveLength(2); expect(p.tiers().every(n => n.props['data-pending'])).toBe(true);
+  expect(text(p.root)).toContain(networkReauditCopy('en').quotaLoadError);
+  p.catalogState.serverCanonical = false; await flush(); expect(p.tiers()).toHaveLength(0);
 });
 it('shows an empty snapshot without substituting catalog products or invented eligibility', async () => {
   const p = page(); p.api.snapshot.mockResolvedValueOnce({ ...snapshot(), tiers: [] }); await p.show();
   expect(p.tiers()).toHaveLength(0); expect(text(p.root)).toContain(en.empty.listTitle);
   expect(all(p.root).filter(n => n.props['data-native-image'])).toHaveLength(0);
+});
+it('retains the real tier layout while masking stock and qualification and disabling the stale purchase action', () => {
+  const navigate = vi.fn();
+  const p = mountEntry(tierSource.replace(/<image\b/g, '<view data-native-image="true"'), {
+    '@/lib/finance-amount-display': { formatFinanceAmount }, '@/i18n/team-logic-copy': { teamLogicCopy },
+    '@/lib/v-rank-copy': { formatLegacyUSD }, '@/i18n/compute-points': { formatComputePoints },
+    '@/store/locale': { useLocaleStore: () => ({ code: 'en' }) }, '@/i18n/network-reaudit': { networkReauditCopy },
+    './quota-condition-bar.vue': { default: Vue.defineComponent({ props: ['met', 'valueText'], setup: props => () => Vue.h('view', { 'data-met': props.met }, props.valueText) }) },
+    '@/components/ui/nx-button.vue': { default: Vue.defineComponent({ props: ['label', 'disabled', 'busy'], emits: ['click'], setup: (props, { emit }) => () => Vue.h('view', { 'data-action-disabled': props.disabled, onClick: () => { if (!props.disabled) emit('click'); } }, props.label) }) },
+    '@/i18n/use-t': { useT: () => Vue.ref(en) }, '@/i18n/format': { fmt }, '@/lib/brand-copy': { nexGridBrandText },
+    '@/lib/product-media': { getProductMedia }, '@/composables/use-scroll-grow-progress': { useScrollGrowProgress: () => ({ elRef: Vue.ref(null), inView: Vue.ref(true) }), PROGRESS_GROW_TRANSITION: 'none' },
+  }, { pending: true, onNavigate: navigate, tier: { ...snapshot().tiers[0], name: 'Existing product', unlockKind: 'all',
+    conditions: [{ kind: 'invites', label: 'Rank', current: 5, required: 1 }], perks: [] } });
+  stop.push(p.unmount);
+  expect(text(p.root)).toContain('Existing product'); expect(text(p.root)).toContain('— / —');
+  expect(text(p.root)).not.toContain(en.quota.unlocked);
+  expect(all(p.root).find(n => n.props['data-met'] !== undefined)!.props['data-met']).toBe(false);
+  const action = all(p.root).find(n => n.props['data-action-disabled'] !== undefined)!;
+  expect(action.props['data-action-disabled']).toBe(true); action.props.onClick(); expect(navigate).not.toHaveBeenCalled();
+  const track = all(p.root).find(n => String(n.props.class).includes('quota-stock__track'))!;
+  expect(track.children[0].props.style).toMatchObject({ width: '0%', transition: 'none' });
 });

@@ -83,6 +83,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatDisplayDateTime } from "@/lib/display-date";
 import { formatAmount, formatGroupedAmount } from "@/lib/amount-display";
 import { computed, ref, onUnmounted, type CSSProperties } from "vue";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
@@ -470,9 +471,7 @@ function fmtDuration(sec: number): string {
   return `${m} ${units[0]} ${s.toString().padStart(2, "0")} ${units[1]} (${sec} ${units[1]})`;
 }
 function fmtDate(ts: number): string {
-  const d = new Date(ts);
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  return formatDisplayDateTime(ts, receiptLocale.value);
 }
 
 // ── styles ──

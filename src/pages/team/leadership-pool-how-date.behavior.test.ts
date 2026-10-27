@@ -8,7 +8,7 @@ import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
 import { vi as vietnamese } from "@/i18n/messages/vi";
 import { fmt } from "@/i18n/format";
-import { formatTrialDateTime } from "@/lib/trial-date";
+import { formatDisplayDateTime } from "@/lib/display-date";
 import { leadershipHowFacts } from "@/lib/leadership-how-facts";
 import { leadershipPoolFailureState } from "@/lib/leadership-pool-state";
 import { networkReauditCopy } from "@/i18n/network-reaudit";
@@ -60,7 +60,7 @@ async function mount(nextPayoutAt: unknown, remoteRead?: () => Promise<unknown>,
     "@/store/locale": { useLocaleStore: () => Vue.reactive({ get code() { return locale.value; } }) },
     "@/i18n/network-reaudit": { networkReauditCopy },
     "@/i18n/format": { fmt, dateLocale: () => ({ en: "en-US", zh: "zh-CN", vi: "vi-VN" })[locale.value] },
-    "@/lib/trial-date": { formatTrialDateTime },
+    "@/lib/display-date": { formatDisplayDateTime },
     "@/lib/route": { navBack },
     "@/api/runtime": { remoteApiEnabled: true, teamInsightsApi: { leadershipPool: api } },
     "@/store/app": { useApp: () => Vue.reactive({ accountKey: "user:3778" }) },
@@ -98,7 +98,7 @@ for (const [zone, expected] of zones) {
     const page = await mount("2026-10-11T23:59:00Z"); await page.show();
     for (const language of ["zh", "en", "vi"] as const) {
       page.locale.value = language; await Vue.nextTick();
-      expect(text(page.root)).toContain(fmt(dictionaries[language].poolHowItWorks.nextPayout, { time: expected }));
+      expect(text(page.root)).toContain(fmt(dictionaries[language].poolHowItWorks.nextPayout, { time: `${{ zh: "2026/10/12", en: "Oct 12, 2026", vi: "12/10/2026" }[language]} ${expected.slice(11)}` }));
       expect(text(page.root)).toContain(fmt(dictionaries[language].poolHowItWorks.currentRules, { rank: 3 }));
       expect(text(page.root)).not.toMatch(/Mon Oct|GMT\+|Invalid Date|NaN/);
     }
@@ -110,7 +110,7 @@ for (const [zone, expected] of zones) {
   test.each(["2026-10-11T23:59:00Z", "2026-10-12T08:59:00+09:00"])(`481 ${zone} preserves normal equivalent instant %s`, async value => {
     vi.stubEnv("TZ", zone);
     const page = await mount(value); await page.show();
-    expect(text(page.root)).toContain(fmt(zh.poolHowItWorks.nextPayout, { time: expected }));
+    expect(text(page.root)).toContain(fmt(zh.poolHowItWorks.nextPayout, { time: expected.replace(/-/g, "/") }));
     expect(page.snapshot.nextPayoutAt).toBe(value);
   });
 }

@@ -1,5 +1,9 @@
 <template>
-  <view v-if="enabled" class="nx-glass-card compute-share-entry" :class="{ 'mx-4': context === 'devices' }" :style="rootStyle" data-proof="compute-share-entry">
+  <EarnWayCard v-if="enabled && context === 'earn'" eyebrow="DESKTOP" :title="remainderCopy.earnWays.gpuTitle"
+    :body="remainderCopy.earnWays.gpuBody" :action="remainderCopy.earnWays.gpuAction"
+    image="/static/img/earn-20261027/gpu.webp" :notice="slotsFull ? t.computeShare.entryFull : undefined"
+    data-proof="compute-share-entry" @click="goDownload" />
+  <view v-else-if="enabled" class="nx-glass-card compute-share-entry" :class="{ 'mx-4': context === 'devices' }" :style="rootStyle" data-proof="compute-share-entry">
     <view :style="iconStyle">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="4" width="18" height="12" rx="2" />
@@ -20,17 +24,20 @@
 <script setup lang="ts">
 import { navTo } from "@/lib/route";
 import NxButton from "@/components/ui/nx-button.vue";
+import EarnWayCard from "./earn-way-card.vue";
 import { computed, type CSSProperties } from "vue";
 import { useApp } from "@/store/app";
 import { useConfig } from "@/store/config";
 import { trialReservesSlotNow } from "@/store/free-trial";
 import { useT } from "@/i18n/use-t";
+import { useRemainderUiCopy } from "@/i18n/remainder-ui";
 
 withDefaults(defineProps<{ context?: "earn" | "devices" }>(), { context: "earn" });
 
 const app = useApp();
 const cfg = useConfig();
 const t = useT();
+const remainderCopy = useRemainderUiCopy();
 
 const enabled = computed(() => cfg.configStatus === "ready" && cfg.isEnabled("computeShareEnabled"));
 const trialSlot = computed(() => (trialReservesSlotNow() ? 1 : 0));

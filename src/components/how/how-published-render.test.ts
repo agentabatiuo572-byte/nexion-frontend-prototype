@@ -6,6 +6,7 @@ import * as Vue from "vue";
 import { renderToString } from "@vue/server-renderer";
 import { describe, expect, it } from "vitest";
 import ts from "typescript";
+import { ApiError } from "@/api/errors";
 import { PublishedContentRequestFence } from "./p3-14-published-request-fence";
 import { en } from "@/i18n/messages/en";
 import { vi } from "@/i18n/messages/vi";
@@ -47,7 +48,7 @@ async function show(blocks: Array<Record<string, unknown>>, document: Record<str
 function loader(published: (contentKey: string, locale: string) => Promise<Record<string, unknown>>, requestedLocale = "zh") {
   const state = {
     props: { contentKey: "wallet-repurchase-how" }, locale: Vue.reactive({ code: requestedLocale }),
-    requestFence: new PublishedContentRequestFence(),
+    requestFence: new PublishedContentRequestFence(), ApiError,
     loading: Vue.ref(false), error: Vue.ref(false), content: Vue.ref<unknown>(null),
     howContentApi: { published }, emit: () => undefined,
   };
@@ -172,7 +173,7 @@ describe("unresolved published rules", () => {
   async function load(block: Record<string, unknown>) {
     const state = {
       props: { contentKey: "wallet-exchange-how" }, locale: { code: "zh" },
-      requestFence: new PublishedContentRequestFence(),
+      requestFence: new PublishedContentRequestFence(), ApiError,
       loading: Vue.ref(false), error: Vue.ref(false), content: Vue.ref<unknown>(null),
       howContentApi: { published: async () => ({ blocks: [block] }) },
       emit: () => undefined,

@@ -126,6 +126,14 @@ test("phone action is absent from all H5 inventory groups and the hidden row can
   }
 });
 test("native login deep-link and cookie error cannot render browser-only recovery copy", () => {
+  const sponsorshipSource = read("src/store/sponsorship.ts");
+  const sponsorshipAst = ts.createSourceFile("sponsorship.ts", sponsorshipSource, ts.ScriptTarget.Latest, true);
+  const refPattern = sponsorshipAst.statements.find((node) => ts.isVariableStatement(node)
+    && node.declarationList.declarations.some((declaration) => declaration.name.getText(sponsorshipAst) === "REF_CODE_RE"));
+  const sponsorship = { exports: {} };
+  execute(`${refPattern.getText(sponsorshipAst)}\n${functions(sponsorshipSource, ["normalizeRefCode"])}\nexports.normalizeRefCode=normalizeRefCode;`, sponsorship);
+  const sponsor = { exports: {}, require: () => sponsorship.exports };
+  execute(read("src/auth/registration-sponsor.ts"), sponsor);
   for (const platform of ["h5", "app-plus"]) {
     const compiled = compile("src/pages/login/login.vue", platform);
     if (platform === "h5") assert.match(compiled, /browserUnsupportedNotice|secureBrowserUnsupported/);
@@ -139,7 +147,8 @@ test("native login deep-link and cookie error cannot render browser-only recover
       URLSearchParams, takeNavigationQuery: () => "",
       exports: {}, onLoad: (handler) => { sandbox.load = handler; },
       returnParam: { value: null }, refOnLogin: { value: null }, serverSessionReloadNotice: { value: false },
-      browserUnsupportedNotice: { value: false }, normalizeRefCode: () => null,
+      browserUnsupportedNotice: { value: false }, remoteApiEnabled: true,
+      normalizeRegistrationSponsorCode: sponsor.exports.normalizeRegistrationSponsorCode,
       authApi: { pendingLoginContext: () => null, pendingLogin: () => false },
       retryContext: { value: null }, loginResultUnknown: { value: false },
       loginRecoveryPending: { value: false }, replayAvailable: { value: false },

@@ -375,6 +375,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatDisplayDateTime } from "@/lib/display-date";
 import { formatFinanceAmount as formatAmount } from "@/lib/finance-amount-display";
 import { ref, computed, nextTick, onMounted, onUnmounted, watch, type CSSProperties } from "vue";
 import { platformDayIndex } from "@/store/withdrawal-eligibility-core";
@@ -383,7 +384,7 @@ import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import StakeAlternativeCard from "@/components/me/stake-alternative-card.vue";
 import { useT } from "@/i18n/use-t";
-import { fmt } from "@/i18n/format";
+import { dateLocale, fmt } from "@/i18n/format";
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
 import { forgetWithdrawAttempt, newWithdrawKey, readWithdrawAttempt, rememberWithdrawAttempt } from "@/lib/withdraw-attempt";
 import { navTo } from "@/lib/route";
@@ -772,9 +773,7 @@ const dailyLimitReachedText = computed(() => {
   // 🔴 给「MM-DD HH:mm」绝对时刻,不写「明日」。平台日按越南时区(UTC+7)切,
   // 用户本地时钟未必同一天 —— 独立验收实测本地 08-01 02:00 时重置点也在 08-01,
   // 文案却说「明日」。绝对时刻在任何时区都不会说错。
-  const at = new Date(eligibility.value.dailyCountResetAt);
-  const p2 = (n: number) => String(n).padStart(2, "0");
-  const stamp = `${p2(at.getMonth() + 1)}-${p2(at.getDate())} ${p2(at.getHours())}:${p2(at.getMinutes())}`;
+  const stamp = formatDisplayDateTime(eligibility.value.dailyCountResetAt, dateLocale());
   return fmt(t.value.walletV3.dailyLimitReached, { time: stamp });
 });
 // 重放时撞上日限,话术必须与首次提交不同:首次是「今天不能提了」,

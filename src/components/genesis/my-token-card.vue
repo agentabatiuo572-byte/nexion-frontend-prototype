@@ -48,7 +48,8 @@ import { formatGenesisPrice } from "@/lib/genesis-marketplace-presentation";
 import { displayGenesisHoldingId } from "@/lib/genesis-holding-id";
 import { ref, computed, watch, getCurrentInstance, onUnmounted, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
-import { fmt } from "@/i18n/format";
+import { fmt, dateLocale } from "@/i18n/format";
+import { formatDisplayDateTime } from "@/lib/display-date";
 import { useGenesis } from "@/store/genesis";
 import { useGenesisConfig } from "@/store/genesis-config";
 import { useGenesisSaleGate } from "@/composables/use-genesis-sale-gate";
@@ -113,7 +114,7 @@ const askingChipText = computed(() =>
   existing.value ? fmt(t.value.marketplace.askingChip, { amount: formatGenesisPrice(existing.value.askPriceUSDT) }) : "",
 );
 const listedAgoText = computed(() =>
-  existing.value ? fmt(t.value.marketplace.listedAgo, { time: relativeTime(existing.value.listedAt) }) : "",
+  existing.value ? fmt(t.value.marketplace.listedAgo, { time: formatDisplayDateTime(existing.value.listedAt, dateLocale()) }) : "",
 );
 const floorHintText = computed(() => floor.value === null
   ? "—"
@@ -140,14 +141,6 @@ function confirmationStillCurrent(
     frozenListing,
     currentListing: listingSnapshot(),
   });
-}
-
-function relativeTime(ts: number): string {
-  const ms = Date.now() - ts;
-  if (ms < 60_000) return "<1m";
-  if (ms < 3600_000) return `${Math.floor(ms / 60_000)}m`;
-  if (ms < 86_400_000) return `${Math.floor(ms / 3600_000)}h`;
-  return `${Math.floor(ms / 86_400_000)}d`;
 }
 
 function onAskInput(e: Event) {
@@ -307,6 +300,7 @@ const askLabelStyle: CSSProperties = {
   letterSpacing: "0.04em",
 };
 const askPriceStyle: CSSProperties = {
+  overflowWrap: "anywhere",
   marginTop: "2px",
   fontFamily: "var(--font-v5)",
   fontWeight: 600,
@@ -316,6 +310,9 @@ const askPriceStyle: CSSProperties = {
   lineHeight: 1,
 };
 const listedAgoStyle: CSSProperties = {
+  whiteSpace: "normal",
+  overflowWrap: "anywhere",
+  lineHeight: 1.5,
   marginTop: "4px",
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "12px",

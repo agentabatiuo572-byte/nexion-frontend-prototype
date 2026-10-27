@@ -20,10 +20,6 @@
         <view v-if="financialMetrics.length" class="trust-summary">
           <view v-for="metric in financialMetrics.slice(0,3)" :key="metric.key"><text class="trust-summary__value">{{ metric.value }}</text><text class="trust-summary__label">{{ metric.label }}</text></view>
         </view>
-        <view v-if="refreshing || refreshError" class="trust-refresh-status" role="status" aria-live="polite">
-          <text>{{ refreshing ? continuity.trustRefreshing : continuity.trustRefreshFailed }}</text>
-          <NxButton v-if="refreshError" variant="text" :label="t.ui.retry" @click="loadTrustSections" />
-        </view>
         <NxSection :title="resources.disclosures">
           <view class="trust-categories"><view v-for="item in categories" :key="item.key" class="trust-category">
             <view class="trust-category-toggle" role="button" tabindex="0" :aria-expanded="openCategory === item.key" @click="openCategory = openCategory === item.key ? '' : item.key" @keydown.enter.prevent="openCategory = openCategory === item.key ? '' : item.key" @keydown.space.prevent="openCategory = openCategory === item.key ? '' : item.key">
@@ -53,7 +49,7 @@
                 </view>
               </template>
               <text v-else>{{ resources.pending }}</text>
-              <NxButton v-if="item.key === 'warranty'" variant="text" :label="auditCopy.afterSales" @click="openHref('/pages/support/chat')" />
+              <NxButton v-if="item.key === 'warranty'" variant="text" :label="auditCopy.afterSales" @click="navTo('/pages/me/notifications?section=service')" />
               <template v-if="item.key === 'security'">
                 <NxButton variant="text" :label="auditCopy.securitySettings" @click="openHref('/pages/me/security')" />
               </template>
@@ -103,6 +99,12 @@
           </template>
 
         </template>
+        <!-- Refresh feedback follows the retained content: its insertion/removal
+             must not move the reader's anchor while a hidden page returns. -->
+        <view v-if="refreshing || refreshError" class="trust-refresh-status" role="status" aria-live="polite">
+          <text>{{ refreshing ? continuity.trustRefreshing : continuity.trustRefreshFailed }}</text>
+          <NxButton v-if="refreshError" variant="text" :label="t.ui.retry" @click="loadTrustSections" />
+        </view>
       </view>
     </CardStagger>
   </AppChassis>

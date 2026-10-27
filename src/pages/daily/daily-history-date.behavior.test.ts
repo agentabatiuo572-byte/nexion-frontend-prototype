@@ -44,8 +44,9 @@ describe("Daily actual history date formatter", () => {
         if (mode === "throw") throw new Error("Android locale unavailable");
         return this.toString();
       });
-      expect(formatTs(new Date(2026, 9, 3, 16, 34, 40).getTime())).toBe("2026-10-03 16:34:40");
-      expect(formatTs(new Date(2026, 9, 3, 2, 7, 54).getTime())).toBe("2026-10-03 02:07:54");
+      const day = { en: "Oct 3, 2026", zh: "2026/10/03", vi: "03/10/2026" }[language];
+      expect(formatTs(new Date(2026, 9, 3, 16, 34, 40).getTime())).toBe(`${day} 16:34:40`);
+      expect(formatTs(new Date(2026, 9, 3, 2, 7, 54).getTime())).toBe(`${day} 02:07:54`);
       expect(locale).not.toHaveBeenCalled();
     });
   }
@@ -56,10 +57,10 @@ describe("Daily actual history date formatter", () => {
 
   it("keeps the device's date across midnight and time zones", () => {
     vi.stubEnv("TZ", "Asia/Tokyo");
-    expect(formatTs(Date.parse("2026-10-03T14:59:59Z"))).toBe("2026-10-03 23:59:59");
-    expect(formatTs(Date.parse("2026-10-03T15:00:02Z"))).toBe("2026-10-04 00:00:02");
-    expect(formatTs(0)).toBe("1970-01-01 09:00:00");
+    expect(formatTs(Date.parse("2026-10-03T14:59:59Z"))).toBe("2026/10/03 23:59:59");
+    expect(formatTs(Date.parse("2026-10-03T15:00:02Z"))).toBe("2026/10/04 00:00:02");
+    expect(formatTs(0)).toBe("—");
     vi.stubEnv("TZ", "America/Los_Angeles");
-    expect(formatTs(Date.parse("2026-10-03T15:00:02Z"))).toBe("2026-10-03 08:00:02");
+    expect(formatTs(Date.parse("2026-10-03T15:00:02Z"))).toBe("2026/10/03 08:00:02");
   });
 });

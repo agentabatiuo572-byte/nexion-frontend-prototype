@@ -76,7 +76,7 @@ const app=useApp(),locale=useLocaleStore(),theme=useTheme(),t=useT();
 const items=ref<PublicPromotion[]>([]),status=ref<'idle'|'loading'|'ready'|'error'>('idle');
 const cursor=ref<string|null>(null),hasMore=ref(false),activeIndex=ref(0),termsActivity=ref<PublicPromotion|null>(null);
 const loadedBanners=ref(new Set<string>()),imageRefresh=ref(0);
-const catalogRefreshKey=computed(()=>JSON.stringify([productCatalogState.status,productCatalogState.revision,imageRefresh.value]));
+const catalogRefreshKey=computed(()=>imageRefresh.value);
 // Presentation follows published reward types. Purchase rewards do not imply
 // a claimed voucher or a completed milestone; those have separate event data.
 function activityKind(activity:PublicPromotion):'gift'|'coupon'|'spark'|'plain' {
@@ -88,7 +88,7 @@ function activityKind(activity:PublicPromotion):'gift'|'coupon'|'spark'|'plain' 
 function activityArt(activity:PublicPromotion){const kind=activityKind(activity);return kind==='plain'?'spark':kind;}
 function promoSlots(activity:PublicPromotion) {
   void app.accountKey;void app.accountBindingEpoch;void productCatalogState.revision;
-  const ready=productCatalogState.status==='ready'&&!!sessionVault.read();
+  const ready=(productCatalogState.status==='ready'||(productCatalogState.status==='loading'&&productCatalogState.serverCanonical))&&!!sessionVault.read();
   return promotionMachineSlots(activity).map(slot=>({...slot,imageUrl:ready?getProduct(slot.sku)?.imageUrl:undefined}));
 }
 const fence=createPromotionReadFence();let visible=true;
@@ -129,19 +129,20 @@ const termsText=computed(()=>termsActivity.value?[localized(termsActivity.value.
 async function load(reset:boolean,preserveImages=false){
   if(!visible)return;
   if(!reset&&(status.value==='loading'||!hasMore.value)) return;
+  if(reset&&!preserveImages){imageRefresh.value++;loadedBanners.value.clear();termsActivity.value=null;}
   // Join a shared read already in flight; otherwise explicitly revalidate the catalog.
   const catalogRead=reset&&remoteApiEnabled&&sessionVault.read()
     ?refreshProductCatalog(productCatalogState.status!=='loading'):Promise.resolve();
-  if(props.activities!==undefined){fence.invalidate();clear(!preserveImages);items.value=props.activities.filter(isPromotionActive);status.value='ready';await catalogRead;return;}
+  if(props.activities!==undefined){fence.invalidate();items.value=props.activities.filter(isPromotionActive);cursor.value=null;hasMore.value=false;activeIndex.value=Math.min(activeIndex.value,Math.max(0,items.value.length-1));status.value='ready';await catalogRead;return;}
   const ticket=fence.next(),identity=`${app.accountKey}:${app.accountBindingEpoch}:${locale.code}`;
   status.value='loading';
-  if(reset)clear();
   if(!remoteApiEnabled){clear();status.value=props.mode==='home'?'ready':'error';return;}
   try{
     const [page]=await Promise.all([promotionApi.list({limit:20,cursor:reset?null:cursor.value,...(props.mode==='home'?{placement:'home.purchase-promotion' as const}:{})},!!sessionVault.read()),catalogRead]);
     if(!visible||!fence.current(ticket)||identity!==`${app.accountKey}:${app.accountBindingEpoch}:${locale.code}`)return;
     const rows=reset?[]:items.value;
     items.value=[...new Map([...rows,...page.items.filter(isPromotionActive)].map(item=>[item.activityId,item])).values()];
+    activeIndex.value=Math.min(activeIndex.value,Math.max(0,items.value.length-1));
     cursor.value=page.nextCursor;hasMore.value=page.hasMore;status.value='ready';
   }catch{if(visible&&fence.current(ticket)&&identity===`${app.accountKey}:${app.accountBindingEpoch}:${locale.code}`){clear();status.value='error';}}
 }
@@ -156,8 +157,8 @@ watch([()=>app.accountKey,()=>app.accountBindingEpoch,()=>locale.code],()=>{
 });
 watch(()=>props.activities,(next,previous)=>{if(visible&&(next!==undefined||previous!==undefined))void load(true,true);},{immediate:true});
 watch(()=>theme.resolved,()=>{imageRefresh.value++;loadedBanners.value.clear();});
-onMounted(()=>{void load(true);});onShow(()=>{visible=true;void load(true);});
-onHide(()=>{visible=false;fence.invalidate();clear();status.value='idle';});
+onMounted(()=>{void load(true,true);});onShow(()=>{visible=true;void load(true,true);});
+onHide(()=>{visible=false;fence.invalidate();termsActivity.value=null;});
 onBeforeUnmount(()=>{visible=false;fence.invalidate();clear();});
 </script>
 <style src="./promotion.css"></style>

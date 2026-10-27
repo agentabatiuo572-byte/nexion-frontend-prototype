@@ -202,7 +202,7 @@
             </view>
             <view class="flex-1 min-w-0">
               <text class="block tabular-nums" :style="historyMainStyle">{{ swapLine(h) }}</text>
-              <text class="block" :style="historySubStyle">@ {{ h.rate.toFixed(5) }} · {{ new Date(h.ts).toLocaleString(dateLocale()) }}</text>
+              <text class="block" :style="historySubStyle">@ {{ h.rate.toFixed(5) }} · {{ formatDisplayDateTime(h.ts, dateLocale(), true) }}</text>
             </view>
           </view>
         </view>
@@ -215,6 +215,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatDisplayDateTime } from "@/lib/display-date";
 import { platformDisplayText } from "@/lib/brand-copy";
 
 import { formatFinanceAmount as formatAmount } from "@/lib/finance-amount-display";
@@ -238,6 +239,7 @@ import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope"
 import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision, type RuntimeRevisionScope } from "@/api/order-api";
 import { canShowExchangeToast } from "@/lib/exchange-scope-toast";
 import { canonicalExchangeAmount, sanitizeExchangeAmountInput } from "@/lib/exchange-input-amount";
+import { resolveWithdrawalUseMax } from "@/lib/withdrawal-use-max";
 import { createRemoteAuthorityCoordinator } from "@/lib/remote-authority-coordinator";
 import { refreshWalletAfterCommittedExchange } from "@/lib/remote-commerce-refresh";
 import { exchangeApi, remoteApiEnabled } from "@/api/runtime";
@@ -703,7 +705,8 @@ function setMax() {
   // 提交在途时输入面整体冻结(输入框有 :disabled,这两个裸 <view @click> 入口没有)。
   // 快照已让改动动不了钱,但页面会立刻显示与刚确认的弹窗不同的数字,同一笔出现两个口径。
   if (submitting.value) return;
-  input.value = String(fromBal.value);
+  // Reuse decimal flooring so Max cannot round above the authoritative balance.
+  input.value = resolveWithdrawalUseMax(fromBal.value, 0).amount ?? "";
 }
 function flip() {
   if (submitting.value) return;

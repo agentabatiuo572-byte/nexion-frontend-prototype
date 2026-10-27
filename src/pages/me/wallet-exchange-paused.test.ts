@@ -4,6 +4,7 @@ import { createSSRApp, computed, ref } from "vue";
 import { renderToString } from "@vue/server-renderer";
 import { describe, expect, it, vi } from "vitest";
 import ts from "typescript";
+import { platformDisplayText } from "@/lib/brand-copy";
 import page from "./wallet-exchange.vue?raw";
 
 const calculationStart = page.indexOf("const minFrom = computed");
@@ -72,12 +73,12 @@ function confirmationThatPausesWhilePrompted() {
     "submitting", "exchangeSubmissionAllowed", "input", "canonicalExchangeAmount", "valid", "captureExchangeScope", "captureRuntimeRevision",
     "direction", "fromSym", "toSym", "fromAmount", "toAmount", "rate", "swapUSDValue", "app", "remoteState", "remoteQuote", "remoteApiEnabled",
     "confirm", "t", "amtLabel", "remoteScopeCurrent", "toastIfRemoteScopeCurrent", "remoteAuthority", "executeExchangeSwap", "pendingExchangeMutations",
-    "exchangeApi", "remoteError", "remoteSnapshotReceivedAt", "refreshCommittedExchangeWalletProjection", "notifyRemoteSwapResult", "pendingExchangeRevision", confirmationHandler,
+    "exchangeApi", "remoteError", "remoteSnapshotReceivedAt", "refreshCommittedExchangeWalletProjection", "notifyRemoteSwapResult", "pendingExchangeRevision", "platformDisplayText", confirmationHandler,
   )(
     ref(false), computed(() => allowed.value), ref("10"), (value: string) => value, ref(true), () => ({ accountKey: "user:1" }), () => ({}),
     ref("nex2usdt"), ref("NEX"), ref("USDT"), ref(10), ref(9.5), ref(1), ref(10), { accountKey: "user:1" }, ref(snapshot), ref({ feeUsdt: 0.5 }), true,
     confirm, { value: { exchange: { confirm: "Confirm", netReceive: "Receive", exchangeFee: "Fee", quoteEstimate: "Estimate" } } }, (value: number) => String(value),
-    () => true, () => true, { beginMutation: () => ({ finish() {} }) }, executeExchangeSwap, {}, { swap }, ref(null), ref(0), () => {}, () => {}, ref(0),
+    () => true, () => true, { beginMutation: () => ({ finish() {} }) }, executeExchangeSwap, {}, { swap }, ref(null), ref(0), () => {}, () => {}, ref(0), platformDisplayText,
   ) as () => Promise<void>;
   return { allowed, answer, confirm, swap, executeExchangeSwap, handler };
 }

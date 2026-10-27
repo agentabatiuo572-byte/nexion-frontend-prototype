@@ -1,3 +1,4 @@
+import * as displayDate from "@/lib/display-date";
 import * as Vue from "vue";
 import type { Component } from "vue";
 import { createPinia, setActivePinia } from "pinia";
@@ -77,7 +78,7 @@ function mount(messages = en, throughEntry = false) {
   const account = Vue.reactive({ accountKey: "user:1", accountBindingEpoch: 1, user: { referralCode: "UNCONFIRMED_LOCAL_CODE" } });
   const dependencies: Record<string, unknown> = {
     "@/lib/route": { navTo: vi.fn() },
-    vue: Vue, "@/lib/amount-display": { formatAmount }, "@/i18n/format": { fmt, dateLocale },
+    vue: Vue, "@/lib/amount-display": { formatAmount }, "@/lib/display-date": displayDate, "@/i18n/format": { fmt, dateLocale },
     "@/lib/profile-date": { formatJoinedDate },
     "@/i18n/use-t": { useT: () => Vue.ref(messages) },
     "@/composables/use-product-phase": { useProductPhase: () => Vue.ref({ inviteBonusMultiplier: 1 }) },

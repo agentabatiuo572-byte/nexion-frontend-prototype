@@ -5,6 +5,7 @@ import { zh } from "@/i18n/messages/zh";
 import { en } from "@/i18n/messages/en";
 import { vi as vietnamese } from "@/i18n/messages/vi";
 import { fmt } from "@/i18n/format";
+import { displayTimestamp, formatDisplayDate } from "@/lib/display-date";
 
 // Execute the page's actual date functions with a controlled clock, including
 // midnight/month/year boundaries. No copied formatting implementation.
@@ -14,8 +15,8 @@ const functions = ast.statements.filter(node => ts.isFunctionDeclaration(node)
   && ['timeAgo', 'dateHeading'].includes(node.name?.text ?? '')).map(node => node.getText(ast)).join('\n');
 const output = ts.transpileModule(functions, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
 function formatter(translations: typeof zh | typeof en | typeof vietnamese, code: string) {
-  return new Function('t', 'locale', 'fmt', output + '; return { timeAgo, dateHeading };')(
-    { value: translations }, { code }, fmt,
+  return new Function('t', 'locale', 'fmt', 'displayTimestamp', 'formatDisplayDate', output + '; return { timeAgo, dateHeading };')(
+    { value: translations }, { code }, fmt, displayTimestamp, formatDisplayDate,
   ) as { timeAgo(ts: number): string; dateHeading(ts: number): string };
 }
 afterEach(() => { vi.useRealTimers(); });

@@ -1,3 +1,4 @@
+import * as displayDate from "@/lib/display-date";
 import { notificationCategory } from "@/lib/notification-category";
 import { advanceMessageHeader, createMessageHeaderState } from "@/lib/message-header-scroll";
 import ts from "typescript";
@@ -51,7 +52,7 @@ function mount(remote = true, realQueue = false, navigationQuery = "", initialAc
   const confirm = vi.fn((options: Parameters<typeof ui.confirm>[0]) => realQueue ? ui.confirm(options) : confirmation.promise);
   const modules: Record<string, unknown> = {
     vue: { ...vue, inject: (_key: unknown, fallback: unknown) => fallback, onMounted: (fn: () => void) => hooks.mounted.push(fn), onUnmounted: (fn: () => void) => hooks.unmount.push(fn) },
-    "@dcloudio/uni-app": { onResize: vi.fn(), onLoad: (fn: (...args: any[]) => void) => hooks.load.push(fn), onShow: (fn: () => void) => hooks.show.push(fn), onHide: (fn: () => void) => hooks.hide.push(fn) },
+    "@dcloudio/uni-app": { onBackPress: vi.fn(), onResize: vi.fn(), onLoad: (fn: (...args: any[]) => void) => hooks.load.push(fn), onShow: (fn: () => void) => hooks.show.push(fn), onHide: (fn: () => void) => hooks.hide.push(fn) },
     "@/lib/notification-category": { notificationCategory },
     "@/lib/notification-summary": { isDirectNotificationSummary },
     "@/i18n/notification-actions": { notificationActionsCopy },
@@ -59,7 +60,7 @@ function mount(remote = true, realQueue = false, navigationQuery = "", initialAc
     "@/lib/device-preview": { h5DevicePreviewStatusBarHeight: () => 0 },
     "@/store/pending-checkout-core": { PENDING_BAR_INSET_KEY: Symbol() },
     "@/store/locale": { useLocaleStore: () => ({ code: "zh" }) },
-    "@/i18n/use-t": { useT: () => vue.ref(zh) }, "@/i18n/format": { fmt },
+    "@/i18n/use-t": { useT: () => vue.ref(zh) }, "@/lib/display-date": displayDate, "@/i18n/format": { fmt },
     "@/lib/unread-badge": { formatUnreadBadge },
     "@/store/notifications": { useNotifications: () => notifs },
     "@/store/preferences": { usePreferences: () => ({}), isMandatoryNotifKind: (kind: string) => kind === "system" },

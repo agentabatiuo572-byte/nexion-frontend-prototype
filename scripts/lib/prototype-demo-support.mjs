@@ -1,6 +1,27 @@
 // Local-only conversation samples; no message leaves the preview server.
 import { createHash } from 'node:crypto';
 
+// The preview has one authenticated demo account. Tests may switch that server
+// identity; the browser never supplies the account used to select a marker.
+export const supportAccountId=state=>String(state.supportAccountId??900001);
+const peerKey=detail=>detail.conversation.ownerAgentId?'agent:'+detail.conversation.ownerAgentId:'conversation:'+detail.conversation.conversationNo;
+const clearMarker=(state,detail)=>state.supportUserClearMarkers?.find(row=>row.accountId===supportAccountId(state)&&row.peerKey===peerKey(detail));
+
+/** Project the app view only. The stored transcript remains the staff archive. */
+export function supportUserView(state,detail) {
+  const result=structuredClone(detail),marker=clearMarker(state,detail);
+  if(!marker)return result;
+  result.messages=result.messages.filter(message=>message.id>marker.throughMessageId);
+  const last=result.messages.at(-1);
+  Object.assign(result.conversation,{userClearedThroughMessageId:marker.throughMessageId,
+    lastMessage:last?.content??'',lastPublicMessageId:last?.id??0,
+    unreadCount:Math.min(result.conversation.unreadCount,result.messages.filter(message=>message.senderType==='agent').length)});
+  if(last)result.conversation.lastMessageAt=last.createdAt;
+  if(!result.messages.some(message=>message.clientMessageId===result.clientMessageId))delete result.clientMessageId;
+  if(!last||!(result.nextCursor>marker.throughMessageId)){result.nextCursor=null;result.historyTruncated=false;}
+  return result;
+}
+
 // Match the live preview transport's intent tuple; versions are deliberately excluded.
 const commandFingerprint=(operation,target,input)=>createHash('sha256').update(JSON.stringify([
   operation,target,input.conversationType,operation==='create'?input.openingText:input.body,input.kind||'TEXT',
@@ -40,8 +61,9 @@ function replayCommand(state,key,fingerprint) {
   const saved=state.supportMessageCommands.find(command=>command.key===key);
   if(!saved)return;
   const detail=state.supportConversations.find(row=>row.conversation.conversationNo===saved.conversationNo);
-  if(!saved.fingerprint||saved.fingerprint!==fingerprint||!detail)
+  if(!saved.fingerprint||saved.fingerprint!==fingerprint)
     throw Object.assign(new Error('消息请求标识已被使用'),{status:409});
+  if(!detail)throw Object.assign(new Error('演示会话不存在'),{status:404});
   return detail;
 }
 
@@ -54,6 +76,7 @@ function prepareMessageIds(state) {
     for(const message of detail.messages)sequence=Math.max(sequence,message.id);
   }
   for(const marker of state.supportDismissals||[])sequence=Math.max(sequence,marker.throughMessageId);
+  for(const marker of state.supportUserClearMarkers||[])sequence=Math.max(sequence,marker.throughMessageId);
   state.supportMessageSequence=sequence;
   const nextId=()=>++state.supportMessageSequence;
   const used=new Set();
@@ -93,7 +116,9 @@ export function supportDemo(url,locale,state,request) {
   if(!p.startsWith(root))return undefined;
   const method=request.method(),input=method==='GET'?{}:request.postDataJSON(),now=new Date().toISOString();
   const text=(zh,en,vi)=>locale==='zh'?zh:locale==='vi'?vi:en;
-  if(p===root+'/advisor')return {assignmentId:1,currentAdvisorId:1,currentAdvisorName:text('演示顾问','Demo advisor','Cố vấn mẫu'),assignmentState:'ASSIGNED',availability:'BUSY'};
+  if(p===root+'/advisor')return {assignmentId:1,currentAdvisorId:state.supportAdvisorId??1,currentAdvisorName:text('演示顾问','Demo advisor','Cố vấn mẫu'),assignmentState:'ASSIGNED',availability:'BUSY'};
+  if(p===root+'/conversation-management')return {clearUserHistory:true,
+    clearedPeers:(state.supportUserClearMarkers||[]).filter(row=>row.accountId===supportAccountId(state)).map(({accountId,...marker})=>structuredClone(marker))};
   if(p===root+'/attachments/policy')return {available:false,allowedMimeTypes:[],maxBytes:null,maxPixels:null,ttlSeconds:null,unavailableReason:text('演示暂不上传附件','Attachments are unavailable in this demo','Bản mẫu chưa hỗ trợ tệp đính kèm')};
   if(p===root+'/conversation-categories')return [{type:'advisor',enabled:true},{type:'support',enabled:true},{type:'ai',enabled:false}];
   const scenario=state.messageState||'normal';
@@ -101,14 +126,19 @@ export function supportDemo(url,locale,state,request) {
     const content=text('你好，这里是原型演示会话。','Hello, this is a prototype conversation.','Xin chào, đây là hội thoại mẫu.');
     // Replacement scenarios start directly at message 1, retaining their existing pages.
     const messages=['history','timeline','receipts'].includes(scenario)?[]:[{id:1,senderType:'agent',senderName:text('演示客服','Demo support','Hỗ trợ mẫu'),content,createdAt:now}];
-    state.supportConversations=[{conversation:{id:1,conversationNo:'DEMO-SUPPORT-1',conversationType:'support',status:'OPEN',version:1,ownerAgentName:text('演示客服','Demo support','Hỗ trợ mẫu'),unreadCount:1,lastMessage:content,lastMessageAt:now,lastPublicMessageId:messages.length},messages,historyTruncated:false,nextCursor:null}];
+    state.supportConversations=[{conversation:{id:1,conversationNo:'DEMO-SUPPORT-1',conversationType:'support',status:'OPEN',version:1,ownerAgentId:'1',ownerAgentName:text('演示客服','Demo support','Hỗ trợ mẫu'),unreadCount:1,lastMessage:content,lastMessageAt:now,lastPublicMessageId:messages.length},messages,historyTruncated:false,nextCursor:null}];
   }
+  // These legacy DEMO rows were all authored for the one demo advisor. Retain
+  // their cids/messages and add its identity; never infer identity from a name.
+  for(const detail of state.supportConversations)if(detail.conversation.ownerAgentId===undefined
+      &&/^DEMO-SUPPORT-\d+$/.test(detail.conversation.conversationNo))detail.conversation.ownerAgentId='1';
+  state.supportConversationSequence=Math.max(state.supportConversationSequence||0,...state.supportConversations.map(row=>row.conversation.id));
   const nextMessageId=prepareMessageIds(state);
   // Recover before a user-selected scenario can replace the source messages.
   // Only completed intent hashes are exported; no timers, promises or extra body copies.
   restoreMessageCommands(state);
   // Every receipt here is an explicit server fixture, never inferred by the UI.
-  if(state.supportScenario!==scenario) {
+  if(state.supportScenario!==scenario&&state.supportConversations.length) {
     const detail=state.supportConversations[0];
     state.supportHistory=['history','timeline'].includes(scenario)||scenario==='incoming'&&state.supportHistory;
     if(['history','timeline'].includes(scenario)) {
@@ -154,18 +184,64 @@ export function supportDemo(url,locale,state,request) {
   state.supportDismissals??=[];
   if(p===root+'/conversation-dismissals')return state.supportDismissals;
   if(p===root+'/tickets/cursor')return {records:[],pageSize:100,total:0};
-  if(p===root+'/conversations/cursor')return {records:state.dataState==='empty'?[]:state.supportConversations.map(item=>item.conversation),pageSize:100,total:state.dataState==='empty'?0:state.supportConversations.length};
+  if(p===root+'/conversations/cursor') {
+    const records=state.dataState==='empty'?[]:state.supportConversations.map(item=>supportUserView(state,item).conversation)
+      .filter(row=>row.userClearedThroughMessageId==null||row.lastPublicMessageId>row.userClearedThroughMessageId);
+    return {records,pageSize:100,total:records.length};
+  }
   if(p===root+'/conversations'&&method==='POST') {
     const fingerprint=commandFingerprint('create',undefined,input);
-    const existing=replayCommand(state,input.clientMessageId,fingerprint);if(existing)return existing;
-    const id=state.supportConversations.length+1,messageId=nextMessageId(),detail={clientMessageId:input.clientMessageId,conversation:{id,conversationNo:'DEMO-SUPPORT-'+id,conversationType:input.conversationType.toLowerCase(),status:'OPEN',version:1,ownerAgentName:'Demo support',unreadCount:0,lastMessage:input.openingText,lastMessageAt:now,lastPublicMessageId:messageId},messages:[{id:messageId,clientMessageId:input.clientMessageId,senderType:'user',content:input.openingText,createdAt:now,receiptStatus:'sent'}],historyTruncated:false,nextCursor:null};
-    state.supportConversations.unshift(detail);
+    const existing=replayCommand(state,input.clientMessageId,fingerprint);if(existing)return supportUserView(state,existing);
+    const ownerAgentId=String(state.supportAdvisorId??1),messageId=nextMessageId();
+    let detail=state.supportConversations.filter(row=>row.conversation.ownerAgentId===ownerAgentId)
+      .sort((a,b)=>b.conversation.id-a.conversation.id)[0];
+    const message={id:messageId,clientMessageId:input.clientMessageId,senderType:'user',content:input.openingText,createdAt:now,receiptStatus:'sent'};
+    if(detail) {
+      detail.messages.push(message);
+      Object.assign(detail.conversation,{status:'OPEN',version:detail.conversation.version+1,lastMessage:input.openingText,lastMessageAt:now,lastPublicMessageId:messageId});
+    } else {
+      const id=++state.supportConversationSequence;
+      detail={clientMessageId:input.clientMessageId,conversation:{id,conversationNo:'DEMO-SUPPORT-'+id,conversationType:input.conversationType.toLowerCase(),status:'OPEN',version:1,ownerAgentId,ownerAgentName:'Demo support',unreadCount:0,lastMessage:input.openingText,lastMessageAt:now,lastPublicMessageId:messageId},messages:[message],historyTruncated:false,nextCursor:null};
+      state.supportConversations.unshift(detail);
+    }
     state.supportMessageCommands.push({key:input.clientMessageId,fingerprint,conversationNo:detail.conversation.conversationNo});
-    return detail;
+    return supportUserView(state,detail);
   }
   const match=p.match(/^\/api\/app\/support\/conversations\/(DEMO-SUPPORT-\d+)(?:\/(read|replies|dismiss))?$/);
   if(match) {
-    const detail=state.supportConversations.find(item=>item.conversation.conversationNo===match[1]);if(!detail)throw new Error('Demo conversation not found');
+    if(method==='DELETE'&&!match[2]) {
+      const headers=request.headers?.()||{},key=headers['idempotency-key']||headers['Idempotency-Key'];
+      if(typeof key!=='string'||key.length<8||input.scope!=='USER_VIEW'||!Array.isArray(input.conversationIds)
+          ||!input.conversationIds.length||new Set(input.conversationIds).size!==input.conversationIds.length
+          ||!input.expectedVersions||typeof input.peerKey!=='string')
+        throw Object.assign(new Error('清空请求无效'),{status:400});
+      const fingerprint=createHash('sha256').update(JSON.stringify([match[1],input])).digest('hex');
+      const accountId=supportAccountId(state);
+      const replay=state.supportClearCommands?.find(row=>row.accountId===accountId&&row.key===key);
+      if(replay) {
+        if(replay.fingerprint!==fingerprint)throw Object.assign(new Error('清空请求标识已被使用'),{status:409});
+        return structuredClone(replay.result);
+      }
+      const members=state.supportConversations.filter(row=>peerKey(row)===input.peerKey);
+      const ids=members.map(row=>row.conversation.conversationNo).sort();
+      const visible=members.filter(row=>!clearMarker(state,row)||supportUserView(state,row).messages.length);
+      if(!input.conversationIds.includes(match[1])||input.conversationIds.some(id=>!ids.includes(id))
+          ||visible.some(row=>!input.conversationIds.includes(row.conversation.conversationNo))
+          ||members.some(row=>input.conversationIds.includes(row.conversation.conversationNo)
+            &&input.expectedVersions[row.conversation.conversationNo]!==row.conversation.version))
+        throw Object.assign(new Error('会话已更新，请刷新后重试'),{status:409});
+      const throughMessageId=Math.max(0,...members.flatMap(row=>row.messages.map(message=>message.id)),
+        ...members.map(row=>row.conversation.lastPublicMessageId??0),
+        ...members.map(row=>clearMarker(state,row)?.throughMessageId??0));
+      const result={scope:'USER_VIEW',userScopeCleared:true,peerKey:input.peerKey,throughMessageId,conversationNos:ids};
+      state.supportUserClearMarkers=(state.supportUserClearMarkers||[])
+        .filter(row=>row.accountId!==accountId||row.peerKey!==input.peerKey).concat({accountId,...result});
+      (state.supportClearCommands??=[]).push({accountId,key,fingerprint,result});
+      state.supportScenario=scenario;
+      return structuredClone(result);
+    }
+    const detail=state.supportConversations.find(item=>item.conversation.conversationNo===match[1]);
+    if(!detail)throw Object.assign(new Error('演示会话不存在'),{status:404});
     if(match[2]==='read')detail.conversation.unreadCount=0;
     if(match[2]==='dismiss') {const marker={conversationNo:match[1],throughMessageId:input.throughMessageId};state.supportDismissals=state.supportDismissals.filter(item=>item.conversationNo!==match[1]).concat(marker);return marker;}
     if(match[2]==='replies') {
@@ -176,7 +252,7 @@ export function supportDemo(url,locale,state,request) {
         state.supportMessageCommands.push({key:input.clientMessageId,fingerprint,conversationNo:match[1]});
       }
     }
-    const result=structuredClone(detail);
+    const result=supportUserView(state,detail);
     if(state.supportHistory) {
       const cursor=Number(url.searchParams.get('beforeMessageId'))||Infinity;
       const available=result.messages.filter(item=>item.id<cursor);result.messages=available.slice(-8);

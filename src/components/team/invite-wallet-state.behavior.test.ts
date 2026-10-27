@@ -1,3 +1,4 @@
+import * as displayDate from "@/lib/display-date";
 import { formatFinanceAmount } from "@/lib/finance-amount-display";
 import * as Vue from "vue";
 import { createPinia, setActivePinia } from "pinia";
@@ -19,6 +20,8 @@ import { useLocaleStore } from "@/store/locale";
 import { remoteAuthorityStatus } from "@/lib/remote-authority-display";
 import type { ReferralRewardSnapshot } from "@/api/referral-reward-api";
 import { advanceRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
+import * as tabLifecycle from "@/composables/use-tab-page-lifecycle";
+vi.mock("@dcloudio/uni-app", () => ({ onLoad: vi.fn(), onShow: vi.fn(), onHide: vi.fn(), onUnload: vi.fn() }));
 
 // Run the production SFC scripts and templates. These isolated read states
 // supplement the device acceptance; they are not evidence of a live backend.
@@ -46,6 +49,7 @@ const accessibleText = (root: Host): string => root.props['aria-hidden'] === tru
 const hasClass = (target: Host, name: string) => Vue.normalizeClass(target.props.class).split(" ").includes(name);
 const find = (root: Host, name: string) => all(root).find(target => hasClass(target, name))!;
 const unmounts: Array<() => void> = [];
+const lifecycles = new WeakMap<Host, ReturnType<typeof tabLifecycle.createTabLifecycle>>();
 
 function compile(source: string, dependencies: Record<string, unknown>) {
   const { descriptor } = parse(source);
@@ -60,6 +64,7 @@ function compile(source: string, dependencies: Record<string, unknown>) {
     if (id === "@/lib/finance-amount-display") return { formatFinanceAmount };
     if (id === "@/lib/amount-display") return { formatAmount };
     if (id === "vue") return Vue;
+    if (id === "@/composables/use-tab-page-lifecycle") return tabLifecycle;
     if (id in dependencies) return dependencies[id];
     if (id === "@/lib/route") return { navTo: vi.fn() };
     if (id === "./invite-detail-sheet.vue") return { default: compile(detailSource, dependencies) };
@@ -70,7 +75,13 @@ function compile(source: string, dependencies: Record<string, unknown>) {
 }
 async function mount(source: string, dependencies: Record<string, unknown>) {
   const root = node("root");
-  const app = renderer.createApp(compile(source, dependencies));
+  const content = compile(source, dependencies);
+  const lifecycle = tabLifecycle.createTabLifecycle({}, true);
+  lifecycles.set(root, lifecycle);
+  const app = renderer.createApp({ setup() {
+    Vue.provide(tabLifecycle.TAB_LIFECYCLE, lifecycle);
+    return () => Vue.h(content);
+  } });
   app.mount(root); unmounts.push(() => app.unmount());
   await Vue.nextTick();
   return root;
@@ -93,7 +104,7 @@ async function invitation(copy = en) {
   const notifyUnavailableShareLink = vi.fn();
   const toast = { info: vi.fn(), success: vi.fn() };
   const root = await mount(inviteSource, {
-    "@/i18n/use-t": { useT: () => Vue.ref(copy) }, "@/i18n/format": { fmt, dateLocale },
+    "@/i18n/use-t": { useT: () => Vue.ref(copy) }, "@/lib/display-date": displayDate, "@/i18n/format": { fmt, dateLocale },
     "@/store/locale": { useLocaleStore }, "@/i18n/team-redesign": { teamRedesignCopy, referralSettlementStatus },
     "@/composables/use-dialog-a11y": { useDialogA11y: () => {} },
     "@/store/app": { useApp: () => ({ user: { referralCode: "STALE_LOCAL_CODE" } }) },
@@ -112,6 +123,16 @@ afterEach(() => { unmounts.splice(0).forEach(unmount => unmount()); setActivePin
 test('visible invitation refreshes after a catalog revision invalidates its snapshot', async () => {
   const card=await invitation();const before=card.rewards.refresh.mock.calls.length;
   advanceRuntimeRevision();await Vue.nextTick();expect(card.rewards.refresh.mock.calls.length).toBe(before+1);
+});
+
+test("hidden invitation defers catalog refresh until it becomes visible again", async () => {
+  const card = await invitation();
+  const before = card.rewards.refresh.mock.calls.length;
+  lifecycles.get(card.root)!.setVisible(false);
+  advanceRuntimeRevision(); await Vue.nextTick();
+  expect(card.rewards.refresh.mock.calls.length).toBe(before);
+  lifecycles.get(card.root)!.setVisible(true); await Vue.nextTick();
+  expect(card.rewards.refresh.mock.calls.length).toBe(before + 1);
 });
 
 test.each([en, zh, vietnamese])("disabled invitation rewards keep sharing without reward or cooldown promises", async copy => {
@@ -301,7 +322,7 @@ async function wallet(copy = en, initialBalance = 11, confirmed = true) {
       confirmed ? { serverCanonical: true, buckets: { pending_review: 0, bonus_locked: 0 } } : null),
   };
   const root = await mount(walletSource, {
-    "@/i18n/use-t": { useT: () => Vue.ref(copy) }, "@/i18n/format": { fmt, fmtMoney, openSlotsTemplate },
+    "@/i18n/use-t": { useT: () => Vue.ref(copy) }, "@/lib/display-date": displayDate, "@/i18n/format": { fmt, fmtMoney, openSlotsTemplate },
     "@/i18n/audit-ui": { useAuditUiCopy },
     "@/store/app": { useApp: () => app },
     "@/store/earning-release": release,

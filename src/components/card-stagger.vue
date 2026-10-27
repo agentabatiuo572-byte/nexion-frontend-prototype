@@ -7,20 +7,22 @@
   you'd give the parent <view>; the cadence is driven by --nx-cs-step (the
   `stagger` prop, seconds) via per-nth-child animation-delay.
 
-  Simplification vs source: the back-nav skip optimization (useNavMemory) is
-  dropped — not essential for the sample, and it avoided porting an extra store.
+  Retained pages skip repeat entrance after their first hide. The flag belongs
+  to this instance, so a newly opened page keeps its first entrance.
   prefers-reduced-motion is honored via CSS (animation disabled).
 -->
 <template>
-  <view class="nx-card-stagger" :class="{ 'nx-card-stagger--instant': hosted }" :style="staggerVar">
+  <view class="nx-card-stagger" :class="{ 'nx-card-stagger--instant': hosted || returned }" :style="staggerVar">
     <slot />
   </view>
 </template>
 
 <script setup lang="ts">
-import { computed, inject } from "vue";
-import { TAB_HOST } from "@/composables/use-tab-page-lifecycle";
+import { computed, inject, ref } from "vue";
+import { onHide, TAB_HOST } from "@/composables/use-tab-page-lifecycle";
 const hosted = inject(TAB_HOST, false);
+const returned = ref(false);
+onHide(() => { returned.value = true; });
 
 const props = withDefaults(defineProps<{ stagger?: number }>(), { stagger: 0.05 });
 

@@ -1,4 +1,5 @@
 import * as Vue from "vue";
+import * as tabLifecycle from "@/composables/use-tab-page-lifecycle";
 import { formatAmount } from "@/lib/amount-display";
 import { formatUsd } from "@/lib/usd-display";
 import { deviceStatisticsCapabilityCopy } from "@/i18n/device-statistics-capability";
@@ -6,6 +7,7 @@ import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import ts from "typescript";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
+vi.mock("@dcloudio/uni-app", () => ({ onLoad: vi.fn(), onShow: vi.fn(), onHide: vi.fn(), onUnload: vi.fn() }));
 import source from "./device-card-pc.vue?raw";
 import { useCapacityExplainer } from "@/composables/use-capacity-explainer";
 import * as deadline from "@/lib/server-deadline-clock";
@@ -67,6 +69,7 @@ async function mount(copy: Messages = zh, device = cloudDevice(), expanded = fal
   const app = Vue.reactive({ accountKey: "render-only", visibleDevices: [device], remotePhoneBindingInvalid: false, setPhoneRuntime });
   const blank = Vue.defineComponent({ setup: () => () => Vue.h("view") });
   const dependencies: Record<string, unknown> = {
+    "@/composables/use-tab-page-lifecycle": tabLifecycle,
     "@/lib/amount-display": { formatAmount },
     "@/lib/usd-display": { formatUsd },
     "@/i18n/device-statistics-capability": { useDeviceStatisticsCapabilityCopy: () => Vue.ref(deviceStatisticsCapabilityCopy[copy === zh ? "zh" : copy === vietnamese ? "vi" : "en"]) },
@@ -97,14 +100,27 @@ async function mount(copy: Messages = zh, device = cloudDevice(), expanded = fal
     return dependencies[key];
   }, module, module.exports);
   const root = node();
-  const instance = renderer.createApp(module.exports.default, { device, expanded, onToggle: toggle });
+  const tabVisit = tabLifecycle.createTabLifecycle({}, true);
+  const instance = renderer.createApp({ setup() {
+    Vue.provide(tabLifecycle.TAB_LIFECYCLE, tabVisit);
+    return () => Vue.h(module.exports.default, { device, expanded, onToggle: toggle });
+  } });
   instance.mount(root);
   let mounted = true;
   const unmount = () => { if (mounted) { instance.unmount(); mounted = false; } };
   unmounts.push(unmount);
   await Vue.nextTick();
-  return { root, device, toggle, navTo, setPhoneRuntime, unmount };
+  return { root, device, toggle, navTo, setPhoneRuntime, unmount, hide: () => tabVisit.setVisible(false), show: () => tabVisit.setVisible(true) };
 }
+
+test("the retained device clock stops while hidden and resumes without duplicate intervals", async () => {
+  const card = await mount();
+  const shown = vi.getTimerCount();
+  card.hide(); expect(vi.getTimerCount()).toBe(shown - 1);
+  card.show(); expect(vi.getTimerCount()).toBe(shown);
+  card.show(); expect(vi.getTimerCount()).toBe(shown);
+  card.unmount(); expect(vi.getTimerCount()).toBe(shown - 1);
+});
 
 for (const copy of [en, zh, vietnamese]) {
   test(`${copy.earn.hashCapability}: missing server phone capacity is compact and a later valid value recovers`, async () => {

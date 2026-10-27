@@ -9,9 +9,9 @@ afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe("conversation time labels", () => {
   it.each([
-    ["zh", "今天", "昨天", "星期六", "星期二", "10月19日", "2025年10月19日", "2026年10月26日"],
-    ["en", "Today", "Yesterday", "Saturday", "Tuesday", "Oct 19", "Oct 19, 2025", "October 26, 2026"],
-    ["vi", "Hôm nay", "Hôm qua", "Thứ Bảy", "Thứ Ba", "19 thg 10", "19 thg 10, 2025", "26 tháng 10, 2026"],
+    ["zh", "今天", "昨天", "星期六", "星期二", "2026/10/19", "2025/10/19", "2026/10/26"],
+    ["en", "Today", "Yesterday", "Saturday", "Tuesday", "Oct 19, 2026", "Oct 19, 2025", "Oct 26, 2026"],
+    ["vi", "Hôm nay", "Hôm qua", "Thứ Bảy", "Thứ Ba", "19/10/2026", "19/10/2025", "26/10/2026"],
   ] as const)("formats all age bands and a complete accessible date in %s", (locale, today, yesterday, twoDays, sixDays, older, otherYear, fullDate) => {
     for (const [date, label] of [
       ["2026-10-26", today], ["2026-10-25", yesterday], ["2026-10-24", twoDays],
@@ -42,7 +42,7 @@ describe("conversation time labels", () => {
 
   it("treats second-sized numbers as milliseconds rather than silently rescaling", () => {
     expect(formatConversationTime(1_700_000_000, options)).toEqual({
-      clock: "16:13", full: "January 20, 1970 16:13:20 GMT+00:00", group: "Jan 20, 1970 16:13",
+      clock: "16:13", full: "Jan 20, 1970 16:13:20 GMT+00:00", group: "Jan 20, 1970 16:13",
     });
   });
 
@@ -67,7 +67,7 @@ describe("conversation time labels", () => {
   it("uses the requested calendar rather than the UTC date and includes non-hour offsets", () => {
     expect(formatConversationTime(instant("2026-10-25T18:30:05Z"), {
       ...options, now: instant("2026-10-25T19:00:00Z"), timeZone: "Asia/Kathmandu",
-    })).toEqual({ clock: "00:15", full: "October 26, 2026 00:15:05 GMT+05:45", group: "Today 00:15" });
+    })).toEqual({ clock: "00:15", full: "Oct 26, 2026 00:15:05 GMT+05:45", group: "Today 00:15" });
   });
 
   it.each([
@@ -85,8 +85,8 @@ describe("conversation time labels", () => {
     const early = formatConversationTime(instant("2026-11-01T05:30:00Z"), reference)!;
     const late = formatConversationTime(instant("2026-11-01T06:30:00Z"), reference)!;
     expect(early.clock).toBe("01:30"); expect(late.clock).toBe("01:30");
-    expect(early.full).toBe("November 1, 2026 01:30:00 GMT-04:00");
-    expect(late.full).toBe("November 1, 2026 01:30:00 GMT-05:00");
+    expect(early.full).toBe("Nov 1, 2026 01:30:00 GMT-04:00");
+    expect(late.full).toBe("Nov 1, 2026 01:30:00 GMT-05:00");
   });
 
   it.each(["zh", "en", "vi"] as const)("defaults to the device calendar independently of Intl in %s", locale => {

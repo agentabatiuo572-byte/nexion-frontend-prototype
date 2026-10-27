@@ -564,6 +564,9 @@ export function toCanonicalWithdrawal(
     riskRoute: canonicalRiskRoute(submission.riskRoute),
     riskReasons: [],
     submittedAt,
+    displaySubmittedAt: typeof submission.createdAt === "number"
+      && submission.createdAt > 0 && Number.isFinite(submission.createdAt)
+      && Number.isFinite(new Date(submission.createdAt).getTime()) ? submission.createdAt : null,
     estimatedCompletion,
     // 🔴 顶层带出,不进 `fee`(fee 是报价快照,请求/响应同构;退款是事后事件)。
     // 提交回执上它**几乎恒为 0** —— 提交那一刻就被拒的单按规格是「零副作用、不烧 NEX」,

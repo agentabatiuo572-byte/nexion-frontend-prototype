@@ -13,7 +13,7 @@ describe("profile joined date", () => {
     const joinedAt = new Date(2026, 8, 11, 12).getTime();
     const spy = vi.spyOn(Date.prototype, "toLocaleDateString").mockImplementation(() => "Fri Sep 11 2026");
     try {
-      expect(formatJoinedDate(joinedAt, "vi-VN")).toBe("11 thg 9, 2026");
+      expect(formatJoinedDate(joinedAt, "vi-VN")).toBe("11/09/2026");
       expect(formatJoinedDate(joinedAt, "zh-CN")).toBe("2026/09/11");
       expect(formatJoinedDate(joinedAt, "en-US")).toBe("Sep 11, 2026");
     } finally {

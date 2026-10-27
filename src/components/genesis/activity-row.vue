@@ -1,6 +1,6 @@
 <!-- ActivityRow — marketplace activity feed row (marketplace/page.tsx ActivityRow). -->
 <template>
-  <view class="flex items-center" :style="rowStyle">
+  <view class="genesis-activity-row" :style="rowStyle">
     <view class="grid place-items-center shrink-0" :style="iconBoxStyle">
       <!-- sale -->
       <svg v-if="e.kind === 'sale'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1" /><circle cx="19" cy="21" r="1" /><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" /></svg>
@@ -16,14 +16,14 @@
         <text v-if="e.tokenId !== undefined" :style="tokenStyle" :title="String(e.tokenId)" :aria-label="String(e.tokenId)">#{{ displayGenesisHoldingId(e.tokenId) }}</text>
         <text :style="kindBadgeStyle">{{ kindLabel }}</text>
       </view>
-      <text class="block truncate" :style="addrStyle">{{ e.description ?? `${fromLabel} → ${toLabel}` }}</text>
+      <text class="block genesis-activity-description" :style="addrStyle">{{ e.description ?? `${fromLabel} → ${toLabel}` }}</text>
     </view>
-    <view class="text-right shrink-0">
+    <view class="text-right genesis-activity-value">
       <text v-if="e.priceUSDT !== undefined" class="block tabular-nums" :style="priceStyle">${{ priceText }}</text>
-      <view class="flex items-center justify-end" :style="timeStyle">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 3px"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
-        <text>{{ timeAgo }}</text>
-      </view>
+    </view>
+    <view class="flex items-center justify-end genesis-activity-time-row" :style="timeStyle">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 3px; flex-shrink: 0"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+      <text class="genesis-activity-time">{{ timeText }}</text>
     </view>
   </view>
 </template>
@@ -33,7 +33,8 @@ import { formatGenesisPrice } from "@/lib/genesis-marketplace-presentation";
 import { displayGenesisHoldingId } from "@/lib/genesis-holding-id";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
-import { fmt } from "@/i18n/format";
+import { dateLocale } from "@/i18n/format";
+import { formatDisplayDateTime } from "@/lib/display-date";
 
 export interface ActivityEvent {
   id: string;
@@ -68,15 +69,11 @@ const fromLabel = computed(() => (props.e.from === "—" ? t.value.marketplace.a
 const toLabel = computed(() =>
   props.e.to === "—" ? t.value.marketplace.actKind.list.toLowerCase() : shortAddr(props.e.to),
 );
-const timeAgo = computed(() => {
-  const mins = Math.max(1, Math.floor((Date.now() - props.e.ts) / 60_000));
-  if (mins < 60) return fmt(t.value.marketplace.timeMinAgo, { n: mins });
-  if (mins < 1440) return fmt(t.value.marketplace.timeHrAgo, { n: Math.floor(mins / 60) });
-  return fmt(t.value.marketplace.timeDayAgo, { n: Math.floor(mins / 1440) });
-});
+const timeText = computed(() => formatDisplayDateTime(props.e.ts, dateLocale()));
 
 const rowStyle = computed<CSSProperties>(() => ({
-  gap: "12px",
+  columnGap: "12px",
+  rowGap: "4px",
   padding: "12px 16px",
   borderBottom: props.isLast ? "none" : "1px solid var(--v5-border)",
 }));
@@ -123,3 +120,11 @@ const timeStyle: CSSProperties = {
   color: "var(--v5-ink-3)",
 };
 </script>
+
+<style scoped>
+.genesis-activity-row { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; }
+.genesis-activity-value { min-width: 0; max-width: 120px; overflow-wrap: anywhere; }
+.genesis-activity-time-row { grid-column: 2 / -1; min-width: 0; }
+.genesis-activity-description, .genesis-activity-time { white-space: normal; overflow-wrap: anywhere; }
+.genesis-activity-time { min-width: 0; }
+</style>

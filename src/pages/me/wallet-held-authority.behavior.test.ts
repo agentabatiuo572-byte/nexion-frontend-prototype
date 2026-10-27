@@ -6,7 +6,8 @@ import { compileScript, parse } from "@vue/compiler-sfc";
 import ts from "typescript";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { en } from "@/i18n/messages/en";
-import { fmt } from "@/i18n/format";
+import { fmt, dateLocale } from "@/i18n/format";
+import { formatDisplayDateTime } from "@/lib/display-date";
 import type { EarningsReleaseStatus } from "@/api/earnings-release-api";
 import { resolveWalletTodayEarnings } from "@/lib/wallet-today-earnings";
 import source from "./wallet.vue?raw";
@@ -79,7 +80,7 @@ async function mount(remoteApiEnabled = true) {
     "@/components/app-chassis.vue": { default: chassis },
     "@/components/sub-page-header.vue": { default: { render: () => null } },
     "@/lib/route": { navTo: vi.fn() }, "@/i18n/use-t": { useT: () => Vue.ref(en) },
-    "@/i18n/format": { fmt }, "@/store/app": { useApp: () => app },
+    "@/i18n/format": { fmt, dateLocale }, "@/lib/display-date": { formatDisplayDateTime }, "@/store/app": { useApp: () => app },
     "@/store/commission": { useCommission: () => commission },
     "@/store/cards": { useCards: () => ({ cards: [] }) }, "@/store/config": { useConfig: () => ({ syncFailed: false, isEnabled: () => true, load: vi.fn(async () => {}) }) },
     "@/store/ui": { confirm: vi.fn() }, "@/api/runtime": { remoteApiEnabled, developmentPaymentEnabled: false },

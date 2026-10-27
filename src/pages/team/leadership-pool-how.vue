@@ -80,7 +80,7 @@ import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
 import { networkReauditCopy } from "@/i18n/network-reaudit";
 import { fmt } from "@/i18n/format";
-import { formatTrialDateTime } from "@/lib/trial-date";
+import { formatDisplayDateTime } from "@/lib/display-date";
 import { navBack } from "@/lib/route";
 import { remoteApiEnabled, teamInsightsApi } from "@/api/runtime";
 import type { TeamLeadershipPoolSnapshot } from "@/api/team-insights-api";
@@ -121,8 +121,7 @@ const currentRulesText = computed(() => facts.value
   : w.value.localRules);
 const nextPayoutText = computed(() => {
   if (!facts.value) return "";
-  const timestamp = facts.value.nextPayoutAt ? new Date(facts.value.nextPayoutAt).getTime() : NaN;
-  return fmt(w.value.nextPayout, { time: Number.isFinite(timestamp) ? formatTrialDateTime(timestamp) : "—" });
+  return fmt(w.value.nextPayout, { time: formatDisplayDateTime(facts.value.nextPayoutAt, locale.code, true) });
 });
 async function loadRemotePool() {
   if (!remoteApiEnabled) return;

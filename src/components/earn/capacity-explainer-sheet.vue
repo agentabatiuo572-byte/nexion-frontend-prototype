@@ -48,7 +48,7 @@ import { navTo } from "@/lib/route";
 const t = useT();
 const { visible, close } = useCapacityExplainer();
 
-useDialogA11y(computed(() => visible.value), ".nx-capacity-explainer-root", close);
+useDialogA11y(computed(() => visible.value), ".nx-capacity-explainer-root", close, true);
 
 function goStore() {
   close();

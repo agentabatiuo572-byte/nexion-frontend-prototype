@@ -79,7 +79,7 @@
               </view>
               <view class="text-right shrink-0" style="margin-left: 8px">
                 <text class="block tabular-nums" :style="remoteReceiptAmountStyle(r)">{{ remoteReceiptAmount(r) }}</text>
-                <text class="block" :style="rowDateStyle">{{ shortDate(Date.parse(r.createdAt)) }}</text>
+                <text class="block" :style="rowDateStyle">{{ shortDate(r.createdAt) }}</text>
               </view>
             </view>
           </template>
@@ -172,6 +172,7 @@
 </template>
 
 <script setup lang="ts">
+import { displayTimestamp, formatDisplayDate, formatDisplayTime } from "@/lib/display-date";
 import { formatAmount } from "@/lib/amount-display";
 import { computed, nextTick, ref, watchEffect, watch, onUnmounted, type CSSProperties } from "vue";
 import { onHide, onLoad, onShow } from "@dcloudio/uni-app";
@@ -181,7 +182,7 @@ import SubPageHeader from "@/components/sub-page-header.vue";
 import ReceiptCatIcon from "@/components/me/receipt-cat-icon.vue";
 import ReceiptModal from "@/components/me/receipt-modal.vue";
 import { useT } from "@/i18n/use-t";
-import { fmt } from "@/i18n/format";
+import { dateLocale, fmt } from "@/i18n/format";
 import { workloadLabel } from "@/lib/workload-label";
 import { useReceipts, filterByCategory } from "@/store/receipts";
 import type { Receipt, ReceiptCategory } from "@/mock/receipt";
@@ -572,14 +573,11 @@ function copySig(r: Receipt) {
 function rowAmount(r: Receipt): string {
   return r.category === "KY" ? `✓ ${formatAmount(r.netPaid)}` : `+${formatAmount(r.netPaid)}`;
 }
-function shortDate(ts: number): string {
-  const d = new Date(ts);
-  const today = new Date();
-  const sameDay = d.toDateString() === today.toDateString();
-  if (sameDay) {
-    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-  }
-  return `${d.getMonth() + 1}/${d.getDate()}`;
+function shortDate(ts: number | string): string {
+  const timestamp = displayTimestamp(ts);
+  if (timestamp === null) return "—";
+  const sameDay = new Date(timestamp).toDateString() === new Date().toDateString();
+  return sameDay ? formatDisplayTime(timestamp) : formatDisplayDate(timestamp, dateLocale());
 }
 
 // ── styles ──

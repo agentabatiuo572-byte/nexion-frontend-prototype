@@ -110,7 +110,7 @@
         <WalletListRow icon-bg="var(--v5-surface-2)" :label="t.cards.listTitle" :sublabel="cardsSub" chevron href="/pages/me/wallet-cards">
           <template #icon><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2" /><path d="M2 10h20" /></svg></template>
         </WalletListRow>
-        <WalletListRow v-if="showWithdrawal" icon-bg="color-mix(in srgb, var(--v5-warning) 22%, transparent)" :label="withdrawalRowLabel" :sublabel="withdrawalRowSub" chevron href="/pages/me/wallet-withdraw-tracking">
+        <WalletListRow v-if="showWithdrawal" class="wallet-withdrawal-activity" icon-bg="color-mix(in srgb, var(--v5-warning) 22%, transparent)" :label="withdrawalRowLabel" :sublabel="withdrawalRowSub" chevron href="/pages/me/wallet-withdraw-tracking">
           <template #icon><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v14" /><path d="m6 9 6-6 6 6" /><path d="M19 21H5" /></svg></template>
           <template #value><text class="tabular-nums" style="font-family: var(--font-v5); font-size: 15px; color: var(--v5-danger)">-${{ formatAmount(latestWithdrawal!.amount) }}</text></template>
         </WalletListRow>
@@ -128,7 +128,8 @@ import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import WalletListRow from "@/components/me/wallet-list-row.vue";
 import { useT } from "@/i18n/use-t";
-import { fmt } from "@/i18n/format";
+import { fmt, dateLocale } from "@/i18n/format";
+import { formatDisplayDateTime } from "@/lib/display-date";
 import { useApp } from "@/store/app";
 import { earningsReleaseSnapshot, earningsReleaseHasSnapshot, earningsReleaseStatus, refreshEarningsReleaseStatus, type LedgerRoute } from "@/store/earning-release";
 import { useCommission } from "@/store/commission";
@@ -289,7 +290,7 @@ const withdrawalRowLabel = computed(() =>
 const withdrawalRowSub = computed(() => {
   const w = latestWithdrawal.value;
   if (!w) return "";
-  return `${statusLabel(w.status, w.network)} · ${fmtTime(w.submittedAt)}`;
+  return `${statusLabel(w.status, w.network)} · ${fmtTime(remoteApiEnabled ? w.displaySubmittedAt : w.submittedAt, w.network)}`;
 });
 
 function statusLabel(s: WithdrawalStatus, network: string): string {
@@ -308,14 +309,10 @@ function statusLabel(s: WithdrawalStatus, network: string): string {
   };
   return labels[s];
 }
-function fmtTime(ts: number): string {
-  const diff = Date.now() - ts;
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return t.value.wallet.timeJustNow;
-  if (m < 60) return fmt(t.value.wallet.timeMinutesAgo, { n: m });
-  const h = Math.floor(m / 60);
-  if (h < 24) return fmt(t.value.wallet.timeHoursAgo, { n: h });
-  return fmt(t.value.wallet.timeDaysAgo, { n: Math.floor(h / 24) });
+function fmtTime(ts: number | null | undefined, network: string): string {
+  const bank = network === "BANK-VND";
+  const date = formatDisplayDateTime(ts, dateLocale(), false, bank ? 7 * 60 : undefined);
+  return bank && date !== "—" ? `${date} UTC+7` : date;
 }
 
 function goNex() {
@@ -414,3 +411,7 @@ const retryFundsStyle: CSSProperties = {
   fontWeight: 600,
 };
 </script>
+
+<style>
+.wallet-withdrawal-activity .truncate { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+</style>
