@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { collectNativePhoneRuntime, hasNativeAndroidPhoneRuntime, readAndroidBattery } from "./native-phone-runtime";
+import { collectNativePhoneRuntime, hasNativeAndroidPhoneRuntime, hasNativePhoneRuntime, nativePhonePlatform, readAndroidBattery,
+  readIosBattery } from "./native-phone-runtime";
 
 function androidBridge(level: unknown = 81, charging: unknown = true, constantsAvailable = true) {
   const context = constantsAvailable ? { BATTERY_SERVICE: "batterymanager" } : {};
@@ -21,14 +22,47 @@ function androidBridge(level: unknown = 81, charging: unknown = true, constantsA
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe("Android phone runtime observation", () => {
-  it("offers phone binding only with the native Android runtime", () => {
+function iosBridge(level: unknown = 0.83, state: unknown = 2, monitoring = false) {
+  const device = {
+    isBatteryMonitoringEnabled: vi.fn(() => monitoring),
+    setBatteryMonitoringEnabled: vi.fn(),
+    batteryLevel: vi.fn(() => level),
+    batteryState: vi.fn(() => state),
+  };
+  return { device, bridge: {
+    importClass: vi.fn((name: string) => name === "UIDevice" ? { currentDevice: () => device } : null),
+    deleteObject: vi.fn(),
+  } as unknown as Parameters<typeof readIosBattery>[0] };
+}
+
+describe("native phone runtime observation", () => {
+  it("offers phone binding with the native Android and iOS runtimes only", () => {
     vi.stubGlobal("plus", undefined);
-    expect(hasNativeAndroidPhoneRuntime()).toBe(false);
+    expect(hasNativePhoneRuntime()).toBe(false);
+    expect(nativePhonePlatform()).toBeNull();
     vi.stubGlobal("plus", { os: { name: "Android" } });
-    expect(hasNativeAndroidPhoneRuntime()).toBe(true);
+    expect([hasNativePhoneRuntime(), hasNativeAndroidPhoneRuntime(), nativePhonePlatform()]).toEqual([true, true, "android"]);
     vi.stubGlobal("plus", { os: { name: "iOS" } });
-    expect(hasNativeAndroidPhoneRuntime()).toBe(false);
+    expect([hasNativePhoneRuntime(), hasNativeAndroidPhoneRuntime(), nativePhonePlatform()]).toEqual([true, false, "ios"]);
+    vi.stubGlobal("plus", { os: { name: "HarmonyOS" } });
+    expect(hasNativePhoneRuntime()).toBe(false);
+  });
+  it("reads iOS UIDevice battery, enabling monitoring and releasing the native object", () => {
+    const { device, bridge } = iosBridge();
+    expect(readIosBattery(bridge)).toEqual({ batteryLevel: 83, isCharging: true });
+    expect(device.setBatteryMonitoringEnabled).toHaveBeenCalledWith(true);
+    expect(bridge.deleteObject).toHaveBeenCalledWith(device);
+    expect(readIosBattery(iosBridge(1, 3, true).bridge)).toEqual({ batteryLevel: 100, isCharging: true });
+    expect(readIosBattery(iosBridge(0.2, 1).bridge)).toEqual({ batteryLevel: 20, isCharging: false });
+    expect(readIosBattery(iosBridge(0.5, 0).bridge)).toEqual({ batteryLevel: 50, isCharging: null });
+  });
+  it.each([-1, 1.2, "0.8", null])("rejects an unknown iOS battery level %s", (level) => {
+    expect(readIosBattery(iosBridge(level).bridge)).toBeNull();
+  });
+  it("combines iOS battery with the observed network", async () => {
+    vi.stubGlobal("plus", { os: { name: "iOS" }, ios: iosBridge(0.64, 1).bridge });
+    vi.stubGlobal("uni", { getNetworkType: ({ success }: { success: (value: { networkType: string }) => void }) => success({ networkType: "wifi" }) });
+    expect(await collectNativePhoneRuntime()).toEqual({ batteryLevel: 64, isCharging: false, networkReachable: true });
   });
   it("reads BatteryManager static constants directly when getAttribute returns null", () => {
     expect(readAndroidBattery(androidBridge())).toEqual({ batteryLevel: 81, isCharging: true });
@@ -73,7 +107,7 @@ describe("Android phone runtime observation", () => {
     expect(await collectNativePhoneRuntime()).toBeNull();
   });
 
-  it("does not fabricate a heartbeat without the Android bridge", async () => {
+  it("does not fabricate a heartbeat without a native bridge", async () => {
     vi.stubGlobal("plus", undefined);
     expect(await collectNativePhoneRuntime()).toBeNull();
   });

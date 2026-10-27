@@ -32,7 +32,8 @@ const record = { userId: 42, deviceId: "phone-1", serverCanonical: true, source:
   score: 62, tier: 1, tierName: "Tier 1", tops: 8, baseRateUsdt: 0.04, baseRateNex: 6, signals: raw, comparisonConfig: [] };
 const missing = () => new ApiError({ kind: "http", status: 404, message: "ONBOARDING_CALIBRATION_NOT_FOUND" });
 const cleanups: Array<() => void> = [];
-afterEach(() => { cleanups.splice(0).forEach(fn => fn()); vi.useRealTimers(); vi.unstubAllGlobals(); });
+let nativePlatform: "android" | "ios" | null = null;
+afterEach(() => { cleanups.splice(0).forEach(fn => fn()); nativePlatform = null; vi.useRealTimers(); vi.unstubAllGlobals(); });
 async function settle() { for (let n = 0; n < 15; n++) await vue.nextTick(); }
 
 function mount(name: "connect" | "estimator", api: any, query: Record<string, string> = {}, nativePhone = true, h5 = !nativePhone) {
@@ -45,20 +46,21 @@ function mount(name: "connect" | "estimator", api: any, query: Record<string, st
   const app = vue.reactive({ accountKey: "user:42", devices: [],
     refreshRemoteFleet: vi.fn(async () => {}), resumeMining: vi.fn(), acceptPhoneActivation: vi.fn() });
   const navReset = vi.fn();
+  const navTo = vi.fn();
   const confirmDeferredPhoneActivation = vi.fn();
   const requireCryptoUuid = vi.fn(() => "fixed-unique-command");
   let epoch = 0;
   const modules: Record<string, unknown> = {
     vue: { ...vue, onMounted: (fn: () => void) => { hooks.mount = fn; }, onUnmounted: (fn: () => void) => { hooks.unmount = fn; } },
     "@dcloudio/uni-app": { onLoad: (fn: any) => { hooks.load = fn; }, onBackPress: (fn: any) => { hooks.back = fn; } },
-    "@/lib/route": { navReset }, "@/store/auth": { useAuth: () => auth }, "@/store/app": { useApp: () => app },
+    "@/lib/route": { navReset, navTo }, "@/store/auth": { useAuth: () => auth }, "@/store/app": { useApp: () => app },
     "@/i18n/use-t": { useT: () => vue.ref(zh) }, "@/i18n/format": format,
     "@/store/ui": { confirm: uiConfirm, useUI: () => ({ clearConfirmsBy: vi.fn() }) },
     "@/store/session": { useSession: () => ({ markCalibrated: () => true, markPhoneActivationDeferred: () => true }) },
     "@/store/auth-account": { markAuthAccountOnboardingComplete: () => true },
     "@/lib/secure-command-id": { requireCryptoUuid },
     "@/lib/device-id": { getDeviceId: () => "phone-1" },
-    "@/lib/native-phone-runtime": { hasNativeAndroidPhoneRuntime: () => nativePhone },
+    "@/lib/native-phone-runtime": { hasNativeAndroidPhoneRuntime: () => nativePhone, hasNativePhoneRuntime: () => nativePhone, nativePhonePlatform: () => nativePlatform },
     "@/lib/phone-activation-guidance": compileGuidance(h5),
     "@/lib/native-gpu-request": { createNativeGpuRequest: (send: (id: number) => void) => {
       const reader = createNativeGpuRequest(id => { send(id); queueMicrotask(() => reader.receive({ id, status: "observed", renderer: "Actual test renderer" })); });
@@ -75,7 +77,7 @@ function mount(name: "connect" | "estimator", api: any, query: Record<string, st
   initPreContext(h5 ? "h5" : "app-plus");
   const compiled = preJs(preHtml(readFileSync(new URL(`./${name}.vue`, import.meta.url), "utf8"), `${name}.vue`), `${name}.vue`);
   const source = compiled.split('<script setup lang="ts">')[1].split("</script>")[0];
-  const fields = name === "connect" ? "phase, canonical, activationBusy, titleText, isRecal, failureTitle, failureDetail, retryCalibration, activate, leaveConnect, deferPhoneActivation" : "detected, loadFailed, deferred, deferFailed, calibration, failureDetail, retryCalibration, goConnect, leaveEstimator, deferPhoneActivation";
+  const fields = name === "connect" ? "phase, canonical, activationBusy, titleText, subText, isRecal, failureTitle, failureDetail, retryCalibration, activate, leaveConnect, deferPhoneActivation, iosPending, iosModel, iosSteps, contactSupport" : "detected, loadFailed, deferred, deferFailed, calibration, failureDetail, retryCalibration, goConnect, leaveEstimator, deferPhoneActivation";
   const code = ts.transpileModule(`${source}\nexport const page = { ${fields}, phoneActivationGuidance };`, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
   }).outputText;
@@ -84,7 +86,7 @@ function mount(name: "connect" | "estimator", api: any, query: Record<string, st
   scope.run(() => new Function("require", "exports", code)((id: string) => modules[id] ?? {}, exports));
   hooks.load?.(query); hooks.mount?.();
   cleanups.push(() => { hooks.unmount?.(); scope.stop(); });
-  return { page: exports.page, auth, app, navReset, confirmDeferredPhoneActivation, requireCryptoUuid, uiConfirm, back: hooks.back, invalidate: () => { epoch++; } };
+  return { page: exports.page, auth, app, navReset, navTo, confirmDeferredPhoneActivation, requireCryptoUuid, uiConfirm, back: hooks.back, invalidate: () => { epoch++; } };
 }
 
 describe("real onboarding page workers", () => {
@@ -330,6 +332,43 @@ describe("real onboarding page workers", () => {
       page.retryCalibration(); await settle();
       expect(api.calibrate).toHaveBeenCalledOnce();
     }
+  });
+  it("an iPhone shows identifying steps, then its model and stored value, using the product copy only", async () => {
+    nativePlatform = "ios";
+    const iphone = { ...record, computeValue: 113.42, tops: 113.42, tierName: "T5", ruleId: "ios-iphone-16-pro",
+      modelRange: { method: "IOS_MODEL_RANGE", model: "iPhone 16 Pro", minComputeValue: 100, maxComputeValue: 120, valueSource: "OPERATOR_PRESET" },
+      signals: { ...raw, platform: "ios", model: "iPhone17,1", brand: "Apple" } };
+    let resolve!: (value: unknown) => void;
+    const api = { result: vi.fn().mockRejectedValue(missing()), calibrate: vi.fn(() => new Promise(done => { resolve = done; })), activate: vi.fn() };
+    const { page } = mount("connect", api, { mode: "recalibrate" }); await settle();
+    page.phase.value = "calibrating"; await settle();
+    expect(page.titleText.value).toBe(zh.onboarding.iosCalibrationTitle);
+    expect(page.subText.value).toBe(zh.onboarding.iosIdentifying);
+    expect(page.iosSteps.value.map((step: { label: string; state: string }) => `${step.label}:${step.state}`)).toEqual([
+      `${zh.onboarding.iosStepIdentify}:${zh.onboarding.iosStepRunning}`, `${zh.onboarding.iosStepResult}:${zh.onboarding.iosStepWaiting}`,
+      `${zh.onboarding.iosStepActivate}:${zh.onboarding.iosStepWaiting}`]);
+    resolve(iphone); await settle();
+    expect(page.phase.value).toBe("result");
+    expect(page.titleText.value).toBe(zh.onboarding.resultTitle);
+    expect(page.iosModel.value).toBe("iPhone 16 Pro");
+    expect(api.activate).not.toHaveBeenCalled();
+  });
+  it("an unknown iPhone shows the reported model with recalibrate, support and defer, and no award", async () => {
+    nativePlatform = "ios";
+    const pending = { ...record, calibrationAvailable: false, calibrationStatus: "PENDING_VERIFICATION", pendingReason: "MODEL_UNKNOWN",
+      computeValue: null, tier: null, tops: null, score: null, tierName: null, baseRateUsdt: null, baseRateNex: null,
+      signals: { ...raw, platform: "ios", model: "iPhone19,9", brand: "Apple" } };
+    const api = { result: vi.fn().mockResolvedValue(pending), calibrate: vi.fn().mockResolvedValue(pending), activate: vi.fn() };
+    const { page, navTo } = mount("connect", api); await settle();
+    expect(page.phase.value).toBe("error");
+    expect(page.iosPending.value).toBe(true);
+    expect(page.failureTitle.value).toBe(zh.onboarding.phoneCalibrationPendingIosTitle);
+    expect(page.failureDetail.value).toBe(zh.onboarding.phoneCalibrationPendingIosBody);
+    expect(page.iosModel.value).toBe("iPhone19,9");
+    page.contactSupport();
+    expect(navTo).toHaveBeenCalledWith("/pages/support/messages");
+    await page.activate();
+    expect(api.activate).not.toHaveBeenCalled();
   });
   it("does not calibrate or activate a browser installation, while Android can", async () => {
     const browserApi = { result: vi.fn(), calibrate: vi.fn(), activate: vi.fn() };

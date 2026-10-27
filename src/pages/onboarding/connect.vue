@@ -40,6 +40,14 @@
       </view>
 
       <!-- Phase: calibrating -->
+      <view v-else-if="phase === 'calibrating' && iosPhone" key="calibrating-ios" class="cn-phase">
+        <view class="cn-steps nx-glass-card" role="list">
+          <view v-for="step in iosSteps" :key="step.label" class="cn-steps__row" role="listitem">
+            <text class="cn-steps__label" :class="{ 'cn-steps__label--idle': !step.running }">{{ step.label }}</text>
+            <text class="cn-steps__state" :class="{ 'cn-steps__state--running': step.running }">{{ step.state }}</text>
+          </view>
+        </view>
+      </view>
       <view v-else-if="phase === 'calibrating'" key="calibrating" class="cn-phase">
         <view class="cn-prog-row">
           <svg class="cn-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
@@ -49,6 +57,17 @@
       </view>
 
       <!-- Phase: result: the server score is the only public calibration figure. -->
+      <view v-else-if="phase === 'result' && iosPhone" key="result-ios" class="cn-phase anim-up">
+        <view class="cn-ios-card nx-glass-card nx-glass-hero" role="group" :aria-label="`${t.onboarding.iosModelIs} ${iosModel} · ${t.onboarding.iosComputeEstimate} ${finalScore} ${t.onboarding.phoneComputeUnit}`">
+          <text class="cn-ios-card__k">{{ t.onboarding.iosModelIs }}</text>
+          <text class="cn-ios-card__model">{{ iosModel }}</text>
+          <text class="cn-ios-card__k cn-ios-card__k--gap">{{ t.onboarding.iosComputeEstimate }}</text>
+          <view class="cn-ios-card__value">
+            <text class="cn-ios-card__v">{{ shownScore }}</text>
+            <text class="cn-ios-card__u">{{ t.onboarding.phoneComputeUnit }}<template v-if="canonical?.tierName"> · {{ canonical.tierName }}</template></text>
+          </view>
+        </view>
+      </view>
       <view v-else-if="phase === 'result'" key="result" class="cn-phase anim-up">
         <view class="cn-score cn-score--hex" role="img" :aria-label="`${t.onboarding.resultTitle} ${finalScore} ${t.onboarding.phoneComputeUnit}`">
           <view class="cn-score__aurora" aria-hidden="true" />
@@ -63,6 +82,15 @@
         </view>
       </view>
 
+      <!-- An unrecognised iPhone: what the system reported and where to go next. -->
+      <view v-else-if="iosPending" key="error-ios" class="cn-phase anim-up">
+        <text class="cn-ios-body">{{ t.onboarding.phoneCalibrationPendingIosBody }}</text>
+        <view class="cn-ios-card nx-glass-card">
+          <text class="cn-ios-card__k">{{ t.onboarding.iosReportedModel }}</text>
+          <text class="cn-ios-card__raw">{{ canonical?.signals?.model || "—" }}</text>
+          <text class="cn-ios-card__k">{{ t.onboarding.iosPendingHint }}</text>
+        </view>
+      </view>
       <!-- A failed calibration is a real terminal state until the user retries. -->
       <view v-else key="error" class="cn-phase anim-up">
         <view class="cn-policy">
@@ -83,9 +111,26 @@
       </view>
     </view>
     <view v-if="nativePhoneAvailable" class="cn-cta">
-      <view v-if="phase === 'result'" class="cn-go cn-go--on active:scale-[0.98]" role="button" :tabindex="activationBusy ? -1 : 0" :aria-disabled="activationBusy" data-system-chrome-primary @click="activate" @keydown.enter.prevent="activate" @keydown.space.prevent="activate">
-        <text class="cn-go__t cn-go__t--on" aria-live="polite">{{ activationBusy ? t.onboarding.activationProcessing : activateText }}</text>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
+      <view v-if="phase === 'result'" :class="{ 'cn-error-actions': iosPhone }">
+        <view class="cn-go cn-go--on active:scale-[0.98]" role="button" :tabindex="activationBusy ? -1 : 0" :aria-disabled="activationBusy" data-system-chrome-primary @click="activate" @keydown.enter.prevent="activate" @keydown.space.prevent="activate">
+          <text class="cn-go__t cn-go__t--on" aria-live="polite">{{ activationBusy ? t.onboarding.activationProcessing : activateText }}</text>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
+        </view>
+        <view v-if="iosPhone" class="cn-go cn-go--secondary active:scale-[0.98]" role="button" :tabindex="activationBusy ? -1 : 0" :aria-disabled="activationBusy" @click="deferPhoneActivation" @keydown.enter.prevent="deferPhoneActivation" @keydown.space.prevent="deferPhoneActivation">
+          <text class="cn-go__t cn-go__t--secondary">{{ t.onboarding.iosActivateLater }}</text>
+        </view>
+      </view>
+      <view v-else-if="phase === 'error' && iosPending" class="cn-error-actions">
+        <view class="cn-go cn-go--on active:scale-[0.98]" role="button" :tabindex="activationBusy ? -1 : 0" :aria-disabled="activationBusy" data-system-chrome-primary @click="retryCalibration" @keydown.enter.prevent="retryCalibration" @keydown.space.prevent="retryCalibration">
+          <text class="cn-go__t cn-go__t--on" aria-live="polite">{{ activationBusy ? t.onboarding.activationProcessing : t.onboarding.iosRecalibrate }}</text>
+        </view>
+        <view class="cn-go cn-go--secondary active:scale-[0.98]" role="button" :tabindex="activationBusy ? -1 : 0" :aria-disabled="activationBusy" @click="contactSupport" @keydown.enter.prevent="contactSupport" @keydown.space.prevent="contactSupport">
+          <text class="cn-go__t cn-go__t--secondary">{{ t.onboarding.iosContactSupport }}</text>
+        </view>
+        <!-- Onboarding must still be able to continue without a phone. -->
+        <view v-if="failedAction !== 'defer'" class="cn-link active:opacity-60" role="button" :tabindex="activationBusy ? -1 : 0" :aria-disabled="activationBusy" @click="deferPhoneActivation" @keydown.enter.prevent="deferPhoneActivation" @keydown.space.prevent="deferPhoneActivation">
+          <text class="cn-link__t">{{ t.onboarding.activationDefer }}</text>
+        </view>
       </view>
       <view v-else-if="phase === 'error'" class="cn-error-actions">
         <view class="cn-go cn-go--on active:scale-[0.98]" role="button" :tabindex="activationBusy ? -1 : 0" :aria-disabled="activationBusy" data-system-chrome-primary @click="retryCalibration" @keydown.enter.prevent="retryCalibration" @keydown.space.prevent="retryCalibration">
@@ -110,8 +155,8 @@
 </template>
 
 <script setup lang="ts">
-import { navReset } from "@/lib/route";
-import { hasNativeAndroidPhoneRuntime } from "@/lib/native-phone-runtime";
+import { navReset, navTo } from "@/lib/route";
+import { hasNativeAndroidPhoneRuntime, hasNativePhoneRuntime, nativePhonePlatform } from "@/lib/native-phone-runtime";
 import { resolvePhoneActivationGuidance } from "@/lib/phone-activation-guidance";
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { onLoad, onBackPress } from "@dcloudio/uni-app";
@@ -212,12 +257,24 @@ watch(authenticatedAccountKey, (next, previous) => {
 // Copy swaps: recalibrate vs first-time onboarding.
 const stepText = computed(() => (isRecal.value ? t.value.onboarding.recalStep : t.value.onboarding.step3of3));
 const titleText = computed(() => phase.value === "error" ? failureTitle.value
+  : iosPhone && phase.value === "calibrating" ? t.value.onboarding.iosCalibrationTitle
+  : iosPhone && phase.value === "result" ? t.value.onboarding.resultTitle
   : loginCheckNeeded.value ? t.value.onboarding.phoneBindingCheckTitle
   : isRecal.value ? t.value.onboarding.recalTitle : t.value.onboarding.calibrationTitle);
-const subText = computed(() => loginCheckNeeded.value ? t.value.onboarding.phoneBindingCheckBody
+const subText = computed(() => iosPhone && phase.value === "calibrating" ? t.value.onboarding.iosIdentifying
+  : loginCheckNeeded.value ? t.value.onboarding.phoneBindingCheckBody
   : isRecal.value ? t.value.onboarding.recalSubtitle : t.value.onboarding.calibrationSubtitle);
 const activateText = computed(() => (isRecal.value ? t.value.onboarding.recalActivate : t.value.onboarding.activatePhone));
-const failureDetail = computed(() => canonical.value?.calibrationStatus === "PENDING_VERIFICATION"
+const iosPending = computed(() => canonical.value?.calibrationStatus === "PENDING_VERIFICATION" && canonical.value.signals?.platform === "ios");
+const iosModel = computed(() => canonical.value?.modelRange?.model ?? canonical.value?.signals?.model ?? "");
+const iosSteps = computed(() => [t.value.onboarding.iosStepIdentify, t.value.onboarding.iosStepResult, t.value.onboarding.iosStepActivate]
+  .map((label, index) => ({ label, running: index === 0, state: index === 0 ? t.value.onboarding.iosStepRunning : t.value.onboarding.iosStepWaiting })));
+function contactSupport() {
+  if (!activationBusy.value) navTo("/pages/support/messages");
+}
+const failureDetail = computed(() => iosPending.value
+  ? t.value.onboarding.phoneCalibrationPendingIosBody
+  : canonical.value?.calibrationStatus === "PENDING_VERIFICATION"
   ? t.value.onboarding.phoneCalibrationPendingBody
   : failureCode.value === "PHONE_REPLACEMENT_DISABLED" ? t.value.onboarding.phoneReplacementDisabled
   : failureCode.value === "PHONE_REPLACEMENT_COOLDOWN" ? t.value.onboarding.phoneReplacementCooldown
@@ -226,7 +283,8 @@ const failureDetail = computed(() => canonical.value?.calibrationStatus === "PEN
   : failedAction.value === "defer" ? t.value.onboarding.activationDeferFailed
   : failedAction.value === "calibration" ? t.value.onboarding.calibrationRetry
   : t.value.onboarding.activationBindRetry);
-const failureTitle = computed(() => canonical.value?.calibrationStatus === "PENDING_VERIFICATION"
+const failureTitle = computed(() => iosPending.value ? t.value.onboarding.phoneCalibrationPendingIosTitle
+  : canonical.value?.calibrationStatus === "PENDING_VERIFICATION"
   ? t.value.onboarding.phoneCalibrationPendingTitle
   : loginCheckNeeded.value ? t.value.onboarding.phoneBindingReadUnavailableTitle
   : failedAction.value === "calibration"
@@ -241,14 +299,15 @@ const ICON = {
 };
 
 const whyPoints = computed(() => [
-  { icon: ICON.cpu2, color: "var(--v5-brand)", text: t.value.onboarding.calibrationWhyLine1 },
+  { icon: ICON.cpu2, color: "var(--v5-brand)", text: iosPhone ? t.value.onboarding.calibrationWhyLineIos : t.value.onboarding.calibrationWhyLine1 },
 ]);
 
 // Initial onboarding reuses the estimator's canonical result. Only an explicit
 // warehouse remeasurement/resume can replace an existing calibration.
 const calibrationFlow = createPhoneCalibrationFlow({ api: onboardingCalibrationApi,
   collect: collectCalibrationSignals, key: () => `onboarding:${requireCryptoUuid()}` });
-const nativePhoneAvailable = hasNativeAndroidPhoneRuntime();
+const nativePhoneAvailable = hasNativePhoneRuntime();
+const iosPhone = nativePhonePlatform() === "ios";
 const phoneActivationGuidance = computed(() => resolvePhoneActivationGuidance(nativePhoneAvailable, t.value.myDevices));
 let activationIntent: { target: "ACTIVE" | "DEFERRED"; revision: number; idempotencyKey: string; versions?: PhoneActivationVersions } | null = null;
 const activationBusy = ref(false);
@@ -602,6 +661,24 @@ onUnmounted(() => {
 .cn-policy__dot { flex-shrink: 0; margin-top: 6px; width: 4px; height: 4px; border-radius: 9999px; background: color-mix(in oklab, var(--v5-warning) 55%, transparent); }
 .cn-policy__t { flex: 1; font-size: 12px; line-height: 1.375; color: var(--v5-ink-2); }
 .cn-policy__t--spaced { display: block; margin-top: 8px; }
+/* iPhone calibration: flat content card for steps, glass hero only for the key result. */
+.cn-steps { display: flex; flex-direction: column; gap: 14px; padding: 18px; }
+.cn-steps__row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.cn-steps__label { font-size: 14px; color: var(--v5-ink); }
+.cn-steps__label--idle, .cn-steps__state { color: var(--v5-ink-3); }
+.cn-steps__state { flex: none; font-size: 13px; }
+.cn-steps__state--running { color: var(--v5-brand); font-weight: 600; }
+.cn-ios-body { display: block; margin-bottom: 16px; font-size: 13px; line-height: 1.5; color: var(--v5-ink-2); }
+.cn-ios-card { display: flex; flex-direction: column; gap: 6px; padding: 18px; }
+.cn-ios-card__k { display: block; font-size: 12px; color: var(--v5-ink-3); }
+.cn-ios-card__k--gap { margin-top: 10px; }
+.cn-ios-card__model { display: block; font-size: 18px; font-weight: 650; color: var(--v5-ink); overflow-wrap: anywhere; }
+.cn-ios-card__raw { display: block; font-size: 16px; font-weight: 600; color: var(--v5-ink); overflow-wrap: anywhere; }
+.cn-ios-card__value { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.cn-ios-card__v { font-family: var(--font-v5); font-variant-numeric: tabular-nums; font-size: 34px; font-weight: 700; color: var(--v5-ink); }
+.cn-ios-card__u { font-size: 13px; color: var(--v5-ink-2); }
+.cn-link { min-height: 44px; display: flex; align-items: center; justify-content: center; }
+.cn-link__t { font-size: 13px; color: var(--v5-ink-3); text-decoration: underline; text-underline-offset: 3px; }
 
 .cn-cta { margin-top: auto; padding-top: 24px; }
 .cn-go { width: 100%; height: 48px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--v5-brand); transition: transform 0.15s ease; }

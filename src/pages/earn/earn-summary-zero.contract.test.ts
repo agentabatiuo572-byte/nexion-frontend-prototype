@@ -41,7 +41,7 @@ function hero(range: Range, homeTruth: unknown, realized: { usdt: number; nex: n
     if (id === "@/lib/usd-display") return { formatUsdOverviewParts };
     if (id === "@/i18n/remainder-ui") return { useRemainderUiCopy: () => Vue.ref(remainderUiCopy[copy === zh ? "zh" : copy === vietnamese ? "vi" : "en"]) };
     if (id === "@/store/config") return { useConfig: () => ({ configStatus: "ready", isEnabled: () => false }) };
-    if (id === "@/lib/native-phone-runtime") return { hasNativeAndroidPhoneRuntime: () => true };
+    if (id === "@/lib/native-phone-runtime") return { hasNativeAndroidPhoneRuntime: () => true, hasNativePhoneRuntime: () => true, nativePhonePlatform: () => null };
     if (id === "@/lib/route") return { navTo: () => {} };
     if (id === "@/lib/day-one-page-observation") return dayOnePageObservationFixture();
     if (id === "vue") return { ...Vue, onUnmounted: () => {} };

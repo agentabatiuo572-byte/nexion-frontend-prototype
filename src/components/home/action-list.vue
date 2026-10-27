@@ -17,7 +17,7 @@ import { useVoucher } from '@/store/voucher';
 import { useFreeTrial } from '@/store/free-trial';
 import { useConfig } from '@/store/config';
 import { accountApi, remoteApiEnabled } from '@/api/runtime';
-import { hasNativeAndroidPhoneRuntime } from '@/lib/native-phone-runtime';
+import { hasNativePhoneRuntime } from '@/lib/native-phone-runtime';
 import { navTo } from '@/lib/route';
 import { fmt } from '@/i18n/format';
 import { useT } from '@/i18n/use-t';
@@ -38,7 +38,7 @@ const detailCopy = computed(() => homeActionsCopy[locale.code === 'zh' || locale
 let visible = true, generation = 0;
 const rows = computed<HomeActionRow[]>(() => {
   const list: HomeActionRow[] = [];
-  if (remoteApiEnabled && hasNativeAndroidPhoneRuntime() && app.accountKey !== 'default' && (app.remotePhoneBindingInvalid || !session.isCurrentDeviceCalibrated(app.accountKey))) list.push({ key:'phone', title:copy.value.bind, subtitle:detailCopy.value.bindHint, action:copy.value.bindAction, href:'/pages/onboarding/connect?mode=recalibrate' });
+  if (remoteApiEnabled && hasNativePhoneRuntime() && app.accountKey !== 'default' && (app.remotePhoneBindingInvalid || !session.isCurrentDeviceCalibrated(app.accountKey))) list.push({ key:'phone', title:copy.value.bind, subtitle:detailCopy.value.bindHint, action:copy.value.bindAction, href:'/pages/onboarding/connect?mode=recalibrate' });
   const task = quest.remoteStatus === 'ready' ? homeTaskSummary({ quests: quest.remoteQuests, dayOneRequiredTaskCount: quest.dayOneRequiredTaskCount, dayOneSnapshotStatus: quest.dayOneSnapshotStatus, dayOneRewardNex: quest.dayOneRewardNex }, now.value * 1000) : null;
   if (config.isEnabled('homeNewcomerTasksEnabled') && task) list.push({ key:'quest', title:copy.value.newcomer, href:'/pages/missions/missions', progress:{ done:task.done, total:task.total }, progressLabel:task.total ? fmt(copy.value.questProgress,{done:task.done!,total:task.total}) : detailCopy.value.viewTasks, subtitle:detailCopy.value.viewTasks, reward:task.reward ? formatAmount(task.reward).replace(/\.00$/, '') : undefined, rewardLabel:task.claimable ? detailCopy.value.claimReward : detailCopy.value.completeReward, remaining:task.remainingHours !== null ? fmt(detailCopy.value.hours,{n:task.remainingHours}) : task.remainingMinutes !== null ? fmt(detailCopy.value.minutes,{n:task.remainingMinutes}) : undefined });
   const unpaid = ordersReady.value ? orders.orders.filter(order => order.status === 'placed' || order.status === 'payment_failed') : [];

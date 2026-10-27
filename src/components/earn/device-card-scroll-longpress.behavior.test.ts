@@ -79,7 +79,7 @@ async function mount(copy: Messages = zh, device = cloudDevice(), expanded = fal
     "@/store/session": { useSession: () => ({ isCurrentDeviceCalibrated: () => calibrated }) },
     "@/store/config": { useConfig: () => ({ config: { onlineBonus: {} } }) },
     "@/store/earn-config": { prepareEarnConfig: () => {}, useEarnConfig: () => ({ lockedTeasers: () => [], averageEligibleReward: () => 1 }) },
-    "@/lib/native-phone-runtime": { hasNativeAndroidPhoneRuntime: () => native },
+    "@/lib/native-phone-runtime": { hasNativeAndroidPhoneRuntime: () => native, hasNativePhoneRuntime: () => native, nativePhonePlatform: () => null },
     "@/api/runtime": { remoteApiEnabled: true }, "@/i18n/use-t": { useT: () => Vue.ref(copy) },
     "@/lib/route": { navTo }, "@/composables/use-capacity-explainer": { useCapacityExplainer },
     "@/lib/server-deadline-clock": deadline, "@/lib/phone-activation-guidance": phoneGuidance,

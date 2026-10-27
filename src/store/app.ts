@@ -9,7 +9,7 @@ import { readMonotonicNowMs } from "../lib/server-deadline-clock";
 import { interruptInfo } from "./interrupt";
 import { continuityFactor, thermalFactor, isDeviceOnline } from "@/lib/hashpower";
 import { phoneRuntimePauseReason } from "@/lib/phone-runtime";
-import { collectNativePhoneRuntime, hasNativeAndroidPhoneRuntime } from "@/lib/native-phone-runtime";
+import { collectNativePhoneRuntime, hasNativePhoneRuntime } from "@/lib/native-phone-runtime";
 import { getDeviceId } from "@/lib/device-id";
 import { accountTotalHashrate } from "@/lib/account-hashrate";
 import { isActiveSlotDevice, occupiesDeviceSlot } from "@/lib/device-slot-policy";
@@ -458,7 +458,7 @@ export const useApp = defineStore("app", () => {
     const request = remoteAccountEpoch.snapshot();
     try {
       await enqueuePhoneRuntimeReport(async () => {
-        if (!hasNativeAndroidPhoneRuntime() || !remoteAccountEpoch.isCurrent(request)) return;
+        if (!hasNativePhoneRuntime() || !remoteAccountEpoch.isCurrent(request)) return;
         await taskAssignmentApi.reportPhoneRuntime(getDeviceId(), null, false, null);
       });
     } catch { /* Offline logout falls back to the server's 120-second timeout. */ }
@@ -812,9 +812,9 @@ export const useApp = defineStore("app", () => {
             if (!remoteTaskForeground || foregroundEpoch !== remoteTaskForegroundEpoch
               || !remoteAccountEpoch.isCurrent(request)) return;
             if (!signals) {
-              // Only Android can recover a temporarily missing native sample.
-              // H5/iOS have no bridge, so their read-only refresh stays at 60s.
-              if (hasNativeAndroidPhoneRuntime()) {
+              // A native App can recover a temporarily missing sample.
+              // H5 has no bridge, so its read-only refresh stays at 60s.
+              if (hasNativePhoneRuntime()) {
                 remoteTaskSyncAfter = Math.min(remoteTaskSyncAfter, Date.now() + REMOTE_TASK_RETRY_MS);
               }
               return;

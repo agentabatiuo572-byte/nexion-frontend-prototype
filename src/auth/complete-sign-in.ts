@@ -9,7 +9,7 @@ import { refreshEarningsReleaseStatus } from "@/store/earning-release";
 import { refreshRemoteFleetAfterCatalog } from "@/lib/e3-fleet-bootstrap";
 import { useProfile } from "@/store/profile";
 import { authApi, onboardingCalibrationApi, remoteApiEnabled, sessionVault } from "@/api/runtime";
-import { hasNativeAndroidPhoneRuntime } from "@/lib/native-phone-runtime";
+import { hasNativePhoneRuntime } from "@/lib/native-phone-runtime";
 import { getDeviceId } from "@/lib/device-id";
 import { hydrateCurrentProfileLocale } from "@/lib/locale-profile-sync-runtime";
 import { afterLegalTermsAcknowledged } from "@/lib/legal-terms-gate-runtime";
@@ -183,7 +183,7 @@ export function completeSignIn(options: CompleteSignInOptions): CompleteSignInRe
     afterLegalTermsAcknowledged(async () => {
       const current = sessionVault.read();
       if (!current || current.user.userId !== expectedUserId) return;
-      if (hasNativeAndroidPhoneRuntime()) {
+      if (hasNativePhoneRuntime()) {
         const phoneScope = captureAccountScope();
         let phoneStatus = "UNAVAILABLE";
         try { phoneStatus = await onboardingCalibrationApi.phoneLogin(getDeviceId()); } catch { /* The phone screen owns retry; other assets remain available. */ }

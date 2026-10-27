@@ -68,7 +68,7 @@ describe("registration proceeds directly without a legal gate", () => {
       scheduleLegalTermsGate: gate.scheduleLegalTermsGate, hasPendingLegalTermsRequirement: gate.hasPendingLegalTermsRequirement,
       afterLegalTermsAcknowledged: gate.afterLegalTermsAcknowledged,
       sessionVault: { read: () => ({ user: { userId: 7 } }), revision: () => 1, isRefreshContinuation: () => false }, refreshRemoteFleetAfterCatalog: vi.fn(),
-      hasNativeAndroidPhoneRuntime: () => false, refreshEarningsReleaseStatus: vi.fn().mockResolvedValue(undefined), resolvePostSignInRoute, navReset: state.nav,
+      hasNativeAndroidPhoneRuntime: () => false, hasNativePhoneRuntime: () => false, nativePhonePlatform: () => null, refreshEarningsReleaseStatus: vi.fn().mockResolvedValue(undefined), resolvePostSignInRoute, navReset: state.nav,
     }, "completeSignIn");
     const conditionalSource = registerSource
       .replace(/\/\/ #ifdef H5\r?\n([\s\S]*?)\/\/ #endif/g, (_all, body) => h5 ? body : "")

@@ -22,7 +22,7 @@ describe('home action priority', () => {
       '@/store/orders': { useOrders: () => orders }, '@/store/voucher': { useVoucher: () => ({ claimedUnused: [{}], refreshRemote: vi.fn() }) },
       '@/store/free-trial': { useFreeTrial: () => ({ status: 'active', refreshRemote: vi.fn() }) }, '@/store/config': { useConfig: () => ({ isEnabled: () => true }) },
       '@/api/runtime': { remoteApiEnabled: true, accountApi: { securityOverview: async () => ({ twoFactorEnabled: false }) } },
-      '@/lib/native-phone-runtime': { hasNativeAndroidPhoneRuntime: () => true }, '@/lib/route': { navTo: vi.fn() },
+      '@/lib/native-phone-runtime': { hasNativeAndroidPhoneRuntime: () => true, hasNativePhoneRuntime: () => true, nativePhonePlatform: () => null }, '@/lib/route': { navTo: vi.fn() },
       '@/i18n/format': { fmt }, '@/i18n/use-t': { useT: () => vue.ref(zh) }, '@/i18n/home-actions': { homeActionsCopy },
       '@/i18n/audit-ui': { useAuditUiCopy: () => vue.ref({ orders: '{n} orders', questProgress: '{done}/{total}', voucherCount: '{n} vouchers' }) },
       '@/store/locale': { useLocaleStore: () => ({ code: 'en' }) }, '@/composables/use-now': { useNow: () => vue.ref(now / 1000) },

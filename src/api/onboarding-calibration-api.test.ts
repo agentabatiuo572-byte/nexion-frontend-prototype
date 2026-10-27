@@ -114,6 +114,22 @@ describe("onboarding calibration API", () => {
     expect(() => parseOnboardingCalibration({ ...matched, ruleId: null })).toThrow();
   });
 
+  it("reads the stored iPhone allocation with its operator-preset range and rejects one outside it", () => {
+    const iphone = { ...valid, calibrationStatus: "MATCHED", computeUnit: "platform", computeValue: 113.42, tops: 113.42, score: 113,
+      tier: 5, ruleId: "ios-iphone-16-pro", ruleVersion: 4, calibrationMethod: "IOS_MODEL_RANGE", model: "iPhone 16 Pro",
+      minComputeValue: 100, maxComputeValue: 120, valueSource: "OPERATOR_PRESET",
+      signals: { ...valid.signals, platform: "ios", soc: "", memGB: null, cores: null, model: "iPhone17,1", brand: "Apple", gpu: "" } };
+    expect(parseOnboardingCalibration(iphone)).toMatchObject({ computeValue: 113.42,
+      modelRange: { method: "IOS_MODEL_RANGE", model: "iPhone 16 Pro", minComputeValue: 100, maxComputeValue: 120, valueSource: "OPERATOR_PRESET" } });
+    expect(parseOnboardingCalibration({ ...iphone, minComputeValue: 12.5, maxComputeValue: 12.5, computeValue: 12.5, tops: 12.5 }).computeValue).toBe(12.5);
+    for (const change of [{ computeValue: 120.01, tops: 120.01 }, { computeValue: 99.99, tops: 99.99 }, { computeValue: 113.425, tops: 113.425 },
+      { valueSource: "MEASURED" }, { calibrationMethod: "GPU_BENCHMARK" }, { model: "" }, { minComputeValue: 130 }]) {
+      expect(() => parseOnboardingCalibration({ ...iphone, ...change }), JSON.stringify(change)).toThrow();
+    }
+    expect(parseOnboardingCalibration({ ...valid, calibrationStatus: "MATCHED", computeUnit: "platform", computeValue: 28.3,
+      ruleId: "fixture", ruleVersion: 2 }).modelRange).toBeUndefined();
+  });
+
   it("rejects a client/mock projection or out-of-range raw signal", () => {
     expect(() => parseOnboardingCalibration({ ...valid, source: "mock" })).toThrow("ONBOARDING_CALIBRATION_RESPONSE_INVALID");
     expect(() => parseOnboardingCalibration({ ...valid, signals: { ...valid.signals, batteryLevel: 101 } })).toThrow();

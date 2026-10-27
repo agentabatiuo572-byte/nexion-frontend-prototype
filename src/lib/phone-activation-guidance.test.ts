@@ -22,29 +22,29 @@ function compiledFunctions(platform: "h5" | "app-plus") {
   };
   return {
     resolve: load("phone-activation-guidance").resolvePhoneActivationGuidance as typeof resolvePhoneActivationGuidance,
-    available: load("native-phone-runtime").hasNativeAndroidPhoneRuntime as () => boolean,
+    available: load("native-phone-runtime").hasNativePhoneRuntime as () => boolean,
   };
 }
 afterEach(() => vi.unstubAllGlobals());
 
 describe.each([["en", en], ["zh", zh], ["vi", vietnamese]] as const)("%s phone activation guidance after real UniApp preprocessing", (_locale, messages) => {
   const copy = messages.myDevices;
-  it("keeps H5 browser guidance even when a native Android bridge or true capability flag is injected", () => {
-    vi.stubGlobal("plus", { os: { name: "Android" } });
+  it.each(["Android", "iOS"])("keeps H5 browser guidance even when a native %s bridge or true capability flag is injected", (os) => {
+    vi.stubGlobal("plus", { os: { name: os } });
     const platform = compiledFunctions("h5");
     expect(platform.available()).toBe(false);
     for (const nativeAvailable of [false, true]) {
       expect(platform.resolve(nativeAvailable, copy)).toEqual({ title: copy.phoneActivationAppOnlyTitle, body: copy.phoneActivationAppOnlyBody });
     }
   });
-  it("retains Android activation guidance without browser or download copy", () => {
-    vi.stubGlobal("plus", { os: { name: "Android" } });
+  it.each(["Android", "iOS"])("gives the native %s App activation guidance without browser or download copy", (os) => {
+    vi.stubGlobal("plus", { os: { name: os } });
     const platform = compiledFunctions("app-plus");
     expect(platform.available()).toBe(true);
     expect(platform.resolve(platform.available(), copy)).toEqual({ title: copy.phoneActivationTitle, body: copy.phoneActivationBody });
   });
   it("gives unsupported native devices their own guidance instead of the H5 instruction", () => {
-    vi.stubGlobal("plus", { os: { name: "iOS" } });
+    vi.stubGlobal("plus", { os: { name: "HarmonyOS" } });
     const platform = compiledFunctions("app-plus");
     expect(platform.available()).toBe(false);
     const guidance = platform.resolve(platform.available(), copy);

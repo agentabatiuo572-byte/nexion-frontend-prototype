@@ -141,7 +141,7 @@ test('to-do waits for its initial reads and trial progress opens the trial page'
     '@/store/free-trial': { useFreeTrial: () => ({ status: 'active', refreshRemote: async () => true }) },
     '@/store/config': { useConfig: () => ({ isEnabled: () => false }) },
     '@/api/runtime': { remoteApiEnabled: true, accountApi: { securityOverview: async () => ({ twoFactorEnabled: true }) } },
-    '@/lib/native-phone-runtime': { hasNativeAndroidPhoneRuntime: () => false }, '@/lib/route': { navTo },
+    '@/lib/native-phone-runtime': { hasNativeAndroidPhoneRuntime: () => false, hasNativePhoneRuntime: () => false, nativePhonePlatform: () => null }, '@/lib/route': { navTo },
     '@/i18n/audit-ui': { useAuditUiCopy: () => Vue.ref(auditUiCopy.zh) }, '@/i18n/home-actions': { homeActionsCopy },
     '@/store/locale': { useLocaleStore: () => ({ code: 'zh' }) }, '@/composables/use-now': { useNow: () => Vue.ref(1) },
     './home-task-summary': { homeTaskSummary }, '@/components/ui/nx-section.vue': group, '@/components/ui/nx-list-group.vue': group,

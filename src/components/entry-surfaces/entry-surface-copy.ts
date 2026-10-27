@@ -6,16 +6,16 @@ export type EntrySurfaceKey = "signed" | "h5" | "white";
 const copy = {
   zh: {
     navTitle: "使用指南", eyebrow: "开始使用", title: "选择使用方式",
-    body: "在 Android App 中管理手机算力，或通过网页查看收益、设备与账户。",
+    body: "在手机 App 中管理手机算力，或通过网页查看收益、设备与账户。",
     otherWays: "其他使用方式",
     surfaces: {
       signed: {
-        linkLabel: "Android 手机", summary: "校准、绑定并启用手机算力",
-        kicker: "手机算力", title: "从 Android 手机开始",
-        body: "手机算力需在 Android App 中完成校准与激活。完成后，可在设备页查看设备状态。",
+        linkLabel: "手机 App", summary: "校准、绑定并启用手机算力",
+        kicker: "手机算力", title: "从手机 App 开始",
+        body: "在手机 App 中完成校准与激活，之后可在设备页查看状态。",
         primaryLabel: "打开首页", secondaryLabel: "管理设备",
         steps: [
-          { title: "登录 Android App", body: "使用你的账户登录，并按提示完成手机校准。" },
+          { title: "登录手机 App", body: "使用你的账户登录，并按提示完成手机校准。" },
           { title: "绑定并激活", body: "前往设备页完成绑定，再按页面提示激活。" },
           { title: "查看记录", body: "设备激活后，可在收益页查看已完成作业与收益记录。" },
         ],
@@ -23,12 +23,12 @@ const copy = {
       h5: {
         linkLabel: "网页查看", summary: "查看收益记录与设备状态",
         kicker: "随时查看", title: "用网页查看账户",
-        body: "在浏览器中查看收益和设备。手机校准与激活需在 Android App 中完成。",
+        body: "在浏览器中查看收益和设备。手机校准与激活需在手机 App 中完成。",
         primaryLabel: "查看收益", secondaryLabel: "管理设备",
         steps: [
           { title: "查看收益", body: "打开收益页，查看已完成作业和收益记录。" },
           { title: "查看设备", body: "在设备页查看已绑定设备及其最新状态。" },
-          { title: "启用手机算力", body: "如需校准或激活手机，请前往 Android App。" },
+          { title: "启用手机算力", body: "如需校准或激活手机，请前往手机 App。" },
         ],
       },
       white: {
@@ -46,16 +46,16 @@ const copy = {
   },
   en: {
     navTitle: "Getting started", eyebrow: "Get started", title: "Choose how to use UVEL",
-    body: "Manage phone computing in the Android app, or view earnings, devices and your account on the web.",
+    body: "Manage phone computing in the phone app, or view earnings, devices and your account on the web.",
     otherWays: "Other ways to use UVEL",
     surfaces: {
       signed: {
-        linkLabel: "Android phone", summary: "Calibrate, link and activate phone computing",
-        kicker: "Phone computing", title: "Start with an Android phone",
-        body: "Phone computing requires calibration and activation in the Android app. Then check its status on the devices page.",
+        linkLabel: "Phone app", summary: "Calibrate, link and activate phone computing",
+        kicker: "Phone computing", title: "Start with the phone app",
+        body: "Calibrate and activate in the phone app, then check its status on the devices page.",
         primaryLabel: "Open home", secondaryLabel: "Manage devices",
         steps: [
-          { title: "Sign in on Android", body: "Sign in to your account and follow the phone calibration steps." },
+          { title: "Sign in on your phone", body: "Sign in to your account and follow the phone calibration steps." },
           { title: "Link and activate", body: "Open the devices page to link your phone, then follow the activation steps." },
           { title: "View records", body: "After activation, check completed jobs and earnings on the earnings page." },
         ],
@@ -63,12 +63,12 @@ const copy = {
       h5: {
         linkLabel: "Web access", summary: "View earnings records and device status",
         kicker: "Check anytime", title: "View your account on the web",
-        body: "Check earnings and devices in your browser. Phone calibration and activation require the Android app.",
+        body: "Check earnings and devices in your browser. Phone calibration and activation require the phone app.",
         primaryLabel: "View earnings", secondaryLabel: "Manage devices",
         steps: [
           { title: "View earnings", body: "Open the earnings page to check completed jobs and earnings records." },
           { title: "View devices", body: "Check your linked devices and their latest status on the devices page." },
-          { title: "Activate phone computing", body: "Use the Android app to calibrate or activate your phone." },
+          { title: "Activate phone computing", body: "Use the phone app to calibrate or activate your phone." },
         ],
       },
       white: {
@@ -86,16 +86,16 @@ const copy = {
   },
   vi: {
     navTitle: "Hướng dẫn sử dụng", eyebrow: "Bắt đầu", title: "Chọn cách sử dụng UVEL",
-    body: "Quản lý năng lực tính toán của điện thoại trong ứng dụng Android, hoặc xem thu nhập, thiết bị và tài khoản trên web.",
+    body: "Quản lý năng lực tính toán của điện thoại trong ứng dụng điện thoại, hoặc xem thu nhập, thiết bị và tài khoản trên web.",
     otherWays: "Cách sử dụng khác",
     surfaces: {
       signed: {
-        linkLabel: "Điện thoại Android", summary: "Hiệu chuẩn, liên kết và kích hoạt điện thoại",
-        kicker: "Tính toán trên điện thoại", title: "Bắt đầu với điện thoại Android",
-        body: "Cần hiệu chuẩn và kích hoạt điện thoại trong ứng dụng Android. Sau đó, xem trạng thái tại trang thiết bị.",
+        linkLabel: "Ứng dụng điện thoại", summary: "Hiệu chuẩn, liên kết và kích hoạt điện thoại",
+        kicker: "Tính toán trên điện thoại", title: "Bắt đầu với ứng dụng điện thoại",
+        body: "Hiệu chuẩn và kích hoạt trong ứng dụng điện thoại, sau đó xem trạng thái tại trang thiết bị.",
         primaryLabel: "Mở trang chủ", secondaryLabel: "Quản lý thiết bị",
         steps: [
-          { title: "Đăng nhập trên Android", body: "Đăng nhập tài khoản và làm theo hướng dẫn hiệu chuẩn điện thoại." },
+          { title: "Đăng nhập trên điện thoại", body: "Đăng nhập tài khoản và làm theo hướng dẫn hiệu chuẩn điện thoại." },
           { title: "Liên kết và kích hoạt", body: "Mở trang thiết bị để liên kết điện thoại, rồi làm theo hướng dẫn kích hoạt." },
           { title: "Xem lịch sử", body: "Sau khi kích hoạt, xem tác vụ đã hoàn thành và thu nhập tại trang thu nhập." },
         ],
@@ -103,12 +103,12 @@ const copy = {
       h5: {
         linkLabel: "Truy cập web", summary: "Xem lịch sử thu nhập và trạng thái thiết bị",
         kicker: "Xem bất cứ lúc nào", title: "Xem tài khoản trên web",
-        body: "Xem thu nhập và thiết bị trong trình duyệt. Cần ứng dụng Android để hiệu chuẩn và kích hoạt điện thoại.",
+        body: "Xem thu nhập và thiết bị trong trình duyệt. Cần ứng dụng điện thoại để hiệu chuẩn và kích hoạt điện thoại.",
         primaryLabel: "Xem thu nhập", secondaryLabel: "Quản lý thiết bị",
         steps: [
           { title: "Xem thu nhập", body: "Mở trang thu nhập để xem tác vụ đã hoàn thành và lịch sử thu nhập." },
           { title: "Xem thiết bị", body: "Xem thiết bị đã liên kết và trạng thái mới nhất tại trang thiết bị." },
-          { title: "Kích hoạt điện thoại", body: "Dùng ứng dụng Android để hiệu chuẩn hoặc kích hoạt điện thoại." },
+          { title: "Kích hoạt điện thoại", body: "Dùng ứng dụng điện thoại để hiệu chuẩn hoặc kích hoạt." },
         ],
       },
       white: {

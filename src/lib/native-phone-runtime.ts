@@ -6,11 +6,26 @@ export interface NativePhoneRuntime {
 
 type BatteryObservation = Pick<NativePhoneRuntime, "batteryLevel" | "isCharging">;
 
-export function hasNativeAndroidPhoneRuntime(): boolean {
+export type NativePhonePlatform = "android" | "ios";
+
+/** The native App platform; H5 compiles this to null, so an injected bridge cannot unlock phone actions. */
+export function nativePhonePlatform(): NativePhonePlatform | null {
   // #ifdef APP-PLUS
-  return typeof plus !== "undefined" && plus.os?.name === "Android";
+  if (typeof plus === "undefined") return null;
+  const name = plus.os?.name;
+  return name === "Android" ? "android" : name === "iOS" ? "ios" : null;
   // #endif
-  return false;
+  return null;
+}
+
+/** Phone compute runs in the native Android and iOS Apps. */
+export function hasNativePhoneRuntime(): boolean {
+  return nativePhonePlatform() !== null;
+}
+
+/** Android-only native APIs (Build, BatteryManager, the GPU observer). */
+export function hasNativeAndroidPhoneRuntime(): boolean {
+  return nativePhonePlatform() === "android";
 }
 
 /** Android BatteryManager through the built-in HTML5+ Native.js bridge. */
@@ -41,6 +56,26 @@ export function readAndroidBattery(android: Pick<PlusAndroid, "importClass" | "r
   }
 }
 
+/** UIDevice battery through the HTML5+ Native.js iOS bridge; level is 0–1, or -1 when unknown. */
+export function readIosBattery(ios: Pick<PlusIos, "importClass" | "deleteObject">): BatteryObservation | null {
+  try {
+    const device = ios.importClass("UIDevice")?.currentDevice?.();
+    if (!device) return null;
+    try {
+      if (!device.isBatteryMonitoringEnabled()) device.setBatteryMonitoringEnabled(true);
+      const level = device.batteryLevel();
+      if (typeof level !== "number" || !Number.isFinite(level) || level < 0 || level > 1) return null;
+      // UIDeviceBatteryState: 1 unplugged, 2 charging, 3 full (still plugged in), 0 unknown.
+      const state = device.batteryState();
+      return { batteryLevel: Math.round(level * 100), isCharging: state === 2 || state === 3 ? true : state === 1 ? false : null };
+    } finally {
+      ios.deleteObject(device);
+    }
+  } catch {
+    return null;
+  }
+}
+
 function observed<T>(start: (resolve: (value: T | null) => void) => void): Promise<T | null> {
   return new Promise((resolve) => {
     const timer = setTimeout(() => resolve(null), 2_000);
@@ -65,8 +100,9 @@ export async function collectNativePhoneRuntime(): Promise<NativePhoneRuntime | 
 }
 
 async function collectNativePhoneRuntimeImpl(): Promise<NativePhoneRuntime | null> {
-  const battery = hasNativeAndroidPhoneRuntime()
-    ? readAndroidBattery(plus.android) : null;
+  const platform = nativePhonePlatform();
+  const battery = platform === "android" ? readAndroidBattery(plus.android)
+    : platform === "ios" ? readIosBattery(plus.ios) : null;
   if (!battery) return null;
   const network = await observed<string>((resolve) => {
     uni.getNetworkType({

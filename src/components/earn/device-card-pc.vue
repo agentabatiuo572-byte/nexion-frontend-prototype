@@ -402,7 +402,7 @@ import { onHide, useVisibleInterval } from "@/composables/use-tab-page-lifecycle
 import { advanceMonotonicHighWater, deadlineRemainingDays, deadlineRemainingMs, projectServerNow, readMonotonicNowMs } from "@/lib/server-deadline-clock";
 import { useApp } from "@/store/app";
 import { useSession } from "@/store/session";
-import { hasNativeAndroidPhoneRuntime } from "@/lib/native-phone-runtime";
+import { hasNativePhoneRuntime } from "@/lib/native-phone-runtime";
 import { resolvePhoneActivationGuidance } from "@/lib/phone-activation-guidance";
 import { useConfig } from "@/store/config";
 import { derivePromoUpgrade } from "@/store/device-types";
@@ -427,7 +427,7 @@ const props = defineProps<{ device: Device; expanded?: boolean; divider?: boolea
 const emit = defineEmits<{ toggle: []; statistics: [] }>();
 const app = useApp();
 const session = useSession();
-const nativePhoneAvailable = hasNativeAndroidPhoneRuntime();
+const nativePhoneAvailable = hasNativePhoneRuntime();
 const t = useT();
 const statisticsCopy = useDeviceStatisticsCapabilityCopy();
 const phoneActivationGuidance = computed(() => resolvePhoneActivationGuidance(nativePhoneAvailable, t.value.myDevices));

@@ -29,7 +29,7 @@ afterEach(()=>{cleanups.splice(0).forEach(f=>f());vi.useRealTimers();vi.unstubAl
 async function settle(){for(let i=0;i<20;i++)await Vue.nextTick();}
 const record={userId:42,deviceId:"phone-1",serverCanonical:true,source:"server",sourceEnvironment:"PRODUCTION",runId:"",revision:3,
  activationStatus:"CALIBRATED",calibrationAvailable:true,calibrationStatus:"MATCHED",computeValue:8,tierName:"Tier 1",baseRateUsdt:0.04,comparisonConfig:[]};
-function mount(api:any,native=true){
+function mount(api:any,native=true,platform:"android"|"ios"|null=null){
  initPreContext(native?"app-plus":"h5");
  const {descriptor}=parse(preJs(preHtml(source,"estimator.vue"),"estimator.vue"));
  const compiled=compileScript(descriptor,{id:"estimator-native-render",inlineTemplate:true});
@@ -44,7 +44,7 @@ function mount(api:any,native=true){
   "@/store/app":{useApp:()=>app},"@/store/auth":{useAuth:()=>auth},
   "@/store/session":{useSession:()=>({markPhoneActivationDeferred:()=>true})},"@/store/auth-account":{markAuthAccountOnboardingComplete:()=>true},
   "@/lib/device-id":{getDeviceId:()=>"phone-1"},"@/lib/secure-command-id":{requireCryptoUuid:()=>"fixture-command"},
-  "@/lib/native-phone-runtime":{hasNativeAndroidPhoneRuntime:()=>native},
+  "@/lib/native-phone-runtime":{hasNativeAndroidPhoneRuntime: ()=>native, hasNativePhoneRuntime: ()=>native, nativePhonePlatform: () => platform},
   "@/lib/phone-activation-guidance":{resolvePhoneActivationGuidance:()=>({title:zh.myDevices.phoneActivationAppOnlyTitle,body:zh.myDevices.phoneActivationAppOnlyBody})},
   "@/api/runtime":{onboardingCalibrationApi:api,remoteApiEnabled:true},
   "@/lib/account-scope":{captureAccountScope:()=>({key:app.accountKey}),isCurrentAccountScope:(s:any)=>s.key===app.accountKey},
@@ -89,4 +89,20 @@ it("H5 remains download-only and never requests or activates a phone",async()=>{
  const api={result:vi.fn(),calibrate:vi.fn(),activate:vi.fn()};const p=mount(api,false);await settle();
  expect(p.errors).toEqual([]);expect(text(p.root)).toContain(zh.myDevices.phoneActivationAppOnlyTitle);expect(p.navReset).toHaveBeenCalledWith(expect.objectContaining({url:"/pages/register/success?download=1"}));
  expect(api.result).not.toHaveBeenCalled();expect(api.calibrate).not.toHaveBeenCalled();expect(api.activate).not.toHaveBeenCalled();
+});
+it("an iPhone shows its model and stored value only, never ranges, rules or benchmarks",async()=>{
+ vi.useFakeTimers();
+ const iphone={...record,computeValue:113.42,tierName:"Tier 5",modelRange:{method:"IOS_MODEL_RANGE",model:"iPhone 16 Pro",minComputeValue:100,maxComputeValue:120,valueSource:"OPERATOR_PRESET"}};
+ const api={result:vi.fn().mockResolvedValue(iphone),calibrate:vi.fn(),activate:vi.fn()};const p=mount(api,true,"ios");await settle();
+ await vi.advanceTimersByTimeAsync(1200);await settle();
+ expect(p.errors).toEqual([]);const shown=text(p.root);
+ expect(shown).toContain("iPhone 16 Pro");expect(shown).toContain("113.42");
+ expect(shown).not.toMatch(/100[–-]120|运营|预设|GPU|压测|跑分|TOPS/);
+});
+it("an unknown iPhone model stays pending with its own guidance and no compute value",async()=>{
+ const pending={...record,calibrationAvailable:false,calibrationStatus:"PENDING_VERIFICATION",computeValue:null,signals:{platform:"ios",model:"iPhone99,1"}};
+ const api={result:vi.fn().mockResolvedValue(pending),calibrate:vi.fn()};const p=mount(api,true,"ios");await settle();
+ expect(p.errors).toEqual([]);const shown=text(p.root);
+ expect(shown).toContain(zh.onboarding.phoneCalibrationPendingIosTitle);expect(shown).toContain(zh.onboarding.phoneCalibrationPendingIosBody);
+ expect(shown).toContain(zh.onboarding.activationRetry);expect(shown).not.toContain(zh.onboarding.phoneCalibrationPendingTitle);
 });

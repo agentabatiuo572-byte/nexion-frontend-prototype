@@ -42,7 +42,7 @@ function mount(source: string) {
     "@/api/runtime": { remoteApiEnabled: true, apiRuntimeConfig: { environment: "dev" }, deviceE3Api: { activate: vi.fn() } },
     "@/lib/device-slot-policy": slotPolicy, "@/lib/hashpower": { deviceOnlineState: () => "online" },
     "@/store/session": { useSession: () => ({ isCurrentDeviceCalibrated: () => true }) },
-    "@/lib/native-phone-runtime": { hasNativeAndroidPhoneRuntime: () => false },
+    "@/lib/native-phone-runtime": { hasNativeAndroidPhoneRuntime: () => false, hasNativePhoneRuntime: () => false, nativePhonePlatform: () => null },
     "@/lib/phone-activation-guidance": { resolvePhoneActivationGuidance: () => ({ title: "Phone", body: "Connect" }) },
     "@/lib/device-control-platform": { canControlDevice: () => true },
     "@/lib/device-copy": { deviceName: () => "Paid device" },

@@ -115,7 +115,7 @@ async function setup() {
     if(id==='@/i18n/remainder-ui')return{useRemainderUiCopy:()=>Vue.ref(remainderUiCopy.zh)};
     if(id==='@/i18n/audit-ui')return{useAuditUiCopy:()=>Vue.ref(auditUiCopy.zh)};
     if(id==='@/store/config')return{useConfig:()=>({configStatus:'ready',isEnabled:()=>false})};
-    if(id==='@/lib/native-phone-runtime')return{hasNativeAndroidPhoneRuntime:()=>true};
+    if(id==='@/lib/native-phone-runtime')return{hasNativeAndroidPhoneRuntime: ()=>true, hasNativePhoneRuntime: ()=>true, nativePhonePlatform: () => null};
     if(id==='vue')return Vue;
     if(id==='@/composables/use-tab-page-lifecycle')return tabLifecycle;
     if(id==='@dcloudio/uni-app')return{onShow:(f:Function)=>shows.push(f),onHide:(f:Function)=>hides.push(f)};

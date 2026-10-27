@@ -27,7 +27,7 @@ const remote = vi.hoisted(() => ({
 vi.mock("@/api/runtime", () => remote);
 vi.mock("@/lib/native-phone-runtime", () => ({
   collectNativePhoneRuntime: local.collect,
-  hasNativeAndroidPhoneRuntime: () => local.nativeAvailable,
+  hasNativeAndroidPhoneRuntime: () => local.nativeAvailable, hasNativePhoneRuntime: () => local.nativeAvailable, nativePhonePlatform: () => null,
 }));
 vi.mock("./session", () => ({ useSession: () => ({ clearCalibrated: local.clearCalibrated,
   isCurrentDeviceCalibrated: () => local.calibrated }) }));

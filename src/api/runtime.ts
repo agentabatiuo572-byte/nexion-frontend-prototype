@@ -73,7 +73,7 @@ import { createRuntimeSessionVault } from "./session-vault";
 import type { RefreshCredentialMode } from "./session-vault";
 import { createNativeSessionStorage, type NativeSessionStorage } from "./native-session-storage";
 import { getDeviceId } from "@/lib/device-id";
-import { hasNativeAndroidPhoneRuntime } from "@/lib/native-phone-runtime";
+import { hasNativePhoneRuntime } from "@/lib/native-phone-runtime";
 
 export const apiRuntimeConfig = readApiRuntimeConfig();
 export const expectedApiEnvironment: ApiEnvironment = apiRuntimeConfig.environment;
@@ -134,7 +134,7 @@ export const apiClient = createRuntimeApiClient({
 // selects the development challenge or production provider flow.
 export const authApi = createAuthApi(apiClient, sessionVault, { refreshCredentialMode, clientSurface,
   installationId: () => clientSurface === "APP" ? getDeviceId() : "",
-  executionSupported: () => clientSurface === "APP" && hasNativeAndroidPhoneRuntime(),
+  executionSupported: () => clientSurface === "APP" && hasNativePhoneRuntime(),
   attemptStorage: nativeAttemptStorage ?? (typeof sessionStorage !== "undefined" ? {
     get: () => { const value = sessionStorage.getItem("uvel-login-attempt"); return value ? JSON.parse(value) : null; },
     set: value => sessionStorage.setItem("uvel-login-attempt", JSON.stringify(value)),

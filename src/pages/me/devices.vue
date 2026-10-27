@@ -206,7 +206,7 @@ import { deviceName } from "@/lib/device-copy";
 import { fmt } from "@/i18n/format";
 import { useApp } from "@/store/app";
 import { useSession } from "@/store/session";
-import { hasNativeAndroidPhoneRuntime } from "@/lib/native-phone-runtime";
+import { hasNativePhoneRuntime } from "@/lib/native-phone-runtime";
 import { resolvePhoneActivationGuidance } from "@/lib/phone-activation-guidance";
 import { canControlDevice } from "@/lib/device-control-platform";
 import { useFreeTrial } from "@/store/free-trial";
@@ -230,7 +230,7 @@ import { isActivatableInventoryDevice, occupiesDeviceSlot, requiresActivationCon
 const t = useT();
 const app = useApp();
 const session = useSession();
-const nativePhoneAvailable = hasNativeAndroidPhoneRuntime();
+const nativePhoneAvailable = hasNativePhoneRuntime();
 const phoneActivationGuidance = computed(() => resolvePhoneActivationGuidance(nativePhoneAvailable, t.value.myDevices));
 const trial = useFreeTrial();
 const trialPresentation = useTrialPresentation();

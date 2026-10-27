@@ -120,7 +120,7 @@ async function mount(copy: Messages, device = serverDevice()) {
     "@/store/session": { useSession: () => ({ isCurrentDeviceCalibrated: () => true }) },
     "@/store/config": { useConfig: () => ({ config: { onlineBonus: {} } }) },
     "@/store/earn-config": { prepareEarnConfig: () => {}, useEarnConfig: () => ({ lockedTeasers: () => [], averageEligibleReward: () => 1 }) },
-    "@/lib/native-phone-runtime": { hasNativeAndroidPhoneRuntime: () => true },
+    "@/lib/native-phone-runtime": { hasNativeAndroidPhoneRuntime: () => true, hasNativePhoneRuntime: () => true, nativePhonePlatform: () => null },
     "@/api/runtime": { remoteApiEnabled: true }, "@/i18n/use-t": { useT: () => Vue.ref(copy) },
     "@/lib/route": { navTo, navBack: vi.fn(), takeNavigationQuery: () => "" },
     "@/composables/use-capacity-explainer": { useCapacityExplainer },

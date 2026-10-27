@@ -32,7 +32,7 @@ function fixture(platform: "h5" | "app", nativeAvailable: boolean) {
     return { stakingVisible, goStaking, nativePhoneAvailable,
       ...(typeof goPhoneCompute === "function" ? { goPhoneCompute } : { goPhoneDownload }),
       phone: typeof goPhoneCompute === "function" ? goPhoneCompute : goPhoneDownload };`, {
-    computed, useConfig: () => config, hasNativeAndroidPhoneRuntime: () => nativeAvailable, navTo,
+    computed, useConfig: () => config, hasNativeAndroidPhoneRuntime: () => nativeAvailable, hasNativePhoneRuntime: () => nativeAvailable, nativePhonePlatform: () => null, navTo,
   });
   return { actions, config, navTo, template: descriptor.template!.content };
 }

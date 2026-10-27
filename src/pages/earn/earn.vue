@@ -131,7 +131,7 @@ import EarningsLedgerCard from "@/components/home/earnings-ledger-card.vue";
 import { useAuditUiCopy } from "@/i18n/audit-ui";
 import { useRemainderUiCopy } from "@/i18n/remainder-ui";
 import { useConfig } from "@/store/config";
-import { hasNativeAndroidPhoneRuntime } from "@/lib/native-phone-runtime";
+import { hasNativePhoneRuntime } from "@/lib/native-phone-runtime";
 import { navTo } from "@/lib/route";
 import { useTrialPresentation } from "@/composables/use-trial-presentation";
 import DeviceCardPC from "@/components/earn/device-card-pc.vue";
@@ -160,7 +160,7 @@ const auditCopy = useAuditUiCopy();
 const remainderCopy = useRemainderUiCopy();
 const config = useConfig();
 const stakingVisible = computed(() => config.configStatus === "ready" && config.isEnabled("stakingVisible"));
-const nativePhoneAvailable = hasNativeAndroidPhoneRuntime();
+const nativePhoneAvailable = hasNativePhoneRuntime();
 
 // H5 exposes a download guide, never a phone calibration or execution action.
 // #ifdef H5
