@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-review-fix",
+  "sourcePath": "/Volumes/HD1/Projects/UVEL/nexion-uniapp-riskdoc",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "e19352a425d2f2a4a43dc77ece821950dea76b08",
-  "sourceRef": "e19352a425d2f2a4a43dc77ece821950dea76b08",
+  "sourceHead": "f875d090396938327cc58c22643eb347e520b737",
+  "sourceRef": "f875d090396938327cc58c22643eb347e520b737",
   "sourceRefKind": "commit",
-  "sourceTree": "1da3c3d3896c07b8869ac4caabbe3e19630788e7",
+  "sourceTree": "61143f31b42e14eb53d927952ef068801c1102ea",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -12277,10 +12277,10 @@
       "mode": "100644"
     },
     "docs/plans/2026-10-28-iphone-model-risk-control.md": {
-      "sourceBlob": "455e43968f810124edbc51b2b073adc29c8a5573",
-      "sourceSha256": "5521864a61e879e573d1feaab1f16d495c40f451dc70a84b12b69497fd40f2ed",
-      "targetBlob": "455e43968f810124edbc51b2b073adc29c8a5573",
-      "targetSha256": "5521864a61e879e573d1feaab1f16d495c40f451dc70a84b12b69497fd40f2ed",
+      "sourceBlob": "54f3a4988751c1dcb5ad2dff79a62ccf7cad0c39",
+      "sourceSha256": "6e41a7558af329466a03e5c82fb5a32049f2f1065a3638e5efad50c799e74fb0",
+      "targetBlob": "54f3a4988751c1dcb5ad2dff79a62ccf7cad0c39",
+      "targetSha256": "6e41a7558af329466a03e5c82fb5a32049f2f1065a3638e5efad50c799e74fb0",
       "mode": "100644"
     },
     "docs/specs/PAY-NexGrid_越南支付架构规格_v1.0.md": {
