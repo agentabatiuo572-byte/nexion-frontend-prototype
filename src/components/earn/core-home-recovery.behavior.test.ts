@@ -128,7 +128,7 @@ test('a confirmed check-in row stays visible while its next visit reads, without
   const before = text(root);
   faucet.remoteReadState = 'loading'; await Vue.nextTick();
   expect(text(root)).toBe(before);
-  const click = all(root).find(n => n.props.onClick)!.props.onClick;
+  const click = classNode(root, 'daily-check-in-row__action')!.props.onClick;
   (Array.isArray(click) ? click : [click]).forEach(fn => fn());
   expect(faucet.checkInRemote).not.toHaveBeenCalled(); expect(navTo).toHaveBeenCalledWith('/pages/daily/daily');
   faucet.remoteHasSnapshot = false; await Vue.nextTick(); expect(text(root)).not.toBe(before);

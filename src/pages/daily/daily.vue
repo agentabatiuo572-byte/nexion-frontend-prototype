@@ -29,7 +29,6 @@
       </view>
 
       <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
-        <template>
         <!-- Streak hero -->
         <view class="nx-glass-card relative overflow-hidden text-center" :style="heroStyle">
           <view aria-hidden="true" :style="fireStyle"><svg width="140" height="140" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3.5 5 5 5 9.5A5 5 0 0 1 7 12.5C7 10 9 8.5 9 6.5 10.5 7.5 11 9 11 9s1-2.5 1-6z"/></svg></view>
@@ -133,7 +132,6 @@
           <text class="block px-4" :style="leaderSubStyle">{{ t.daily.topStreakers.sub }}</text>
         </view>
 
-        </template>
         <!-- Stats grid -->
         <view class="grid grid-cols-3" style="gap: 8px">
           <view class="text-center" :style="statStyle">

@@ -1,6 +1,41 @@
 <!-- Wallet detail information lives below the existing balance card in Me. -->
 <template>
-  <view class="me-wallet-overview">
+  <view v-if="props.section !== 'recovery' || hasReadRecovery" class="me-wallet-overview">
+    <template v-if="props.section !== 'recovery'">
+    <view class="nx-glass-card wallet-overview-card">
+      <text class="wallet-section-title">{{ t.wallet.earningsSection }}</text>
+      <view class="wallet-earnings">
+        <view class="wallet-metric wallet-metric--today" data-wallet-metric="today">
+          <text class="wallet-metric-label">{{ t.wallet.todayLabel }}</text>
+          <text class="wallet-metric-amount tabular-nums" :style="amountStyle(todayEarningsText, 22, true)">{{ todayEarningsText }}</text>
+        </view>
+        <view class="wallet-metric" data-wallet-metric="all-time">
+          <text class="wallet-metric-label">{{ t.wallet.allTimeEarnings }}</text>
+          <text class="wallet-metric-amount tabular-nums" :style="amountStyle(visibility.mask(allTimeEarned === null ? '-' : `$${formatAmount(allTimeEarned)}`), 22, true)">{{ visibility.mask(allTimeEarned === null ? '-' : `$${formatAmount(allTimeEarned)}`) }}</text>
+          <view class="wallet-metric-sub wallet-metric-breakdown" role="group" :aria-label="allTimeSublabel">
+            <text v-for="(part, index) in allTimeSublabelParts" :key="index" aria-hidden="true" class="wallet-metric-breakdown__part" :class="{ 'wallet-metric-breakdown__amount': part.amount }" :style="part.amount ? amountStyle(part.text, 12, true) : undefined">{{ part.text }}</text>
+          </view>
+        </view>
+        <view class="wallet-metric" data-wallet-metric="reviewing" role="button" tabindex="0" @click="showPendingSheet" @keydown.enter.prevent="showPendingSheet" @keydown.space.prevent="showPendingSheet">
+          <text class="wallet-metric-label">{{ t.wallet.reviewingEarnings }}</text>
+          <text class="wallet-metric-amount tabular-nums" :style="amountStyle(visibility.mask(bucketsReadable ? `$${formatAmount(pendingReview)}` : '—'), 22, true)">{{ visibility.mask(bucketsReadable ? `$${formatAmount(pendingReview)}` : "—") }}</text>
+          <text class="wallet-metric-sub">{{ t.wallet.reviewingEarningsSub }}</text>
+        </view>
+        <view class="wallet-metric" data-wallet-metric="locked" role="button" tabindex="0" @click="showLockedSheet" @keydown.enter.prevent="showLockedSheet" @keydown.space.prevent="showLockedSheet">
+          <text class="wallet-metric-label">{{ t.wallet.lockedRewards }}</text>
+          <text class="wallet-metric-amount tabular-nums" :style="amountStyle(visibility.mask(bucketsReadable ? `$${formatAmount(lockedRewards)}` : '—'), 22, true)">{{ visibility.mask(bucketsReadable ? `$${formatAmount(lockedRewards)}` : "—") }}</text>
+          <text class="wallet-metric-sub">{{ t.wallet.lockedRewardsSub }}</text>
+        </view>
+      </view>
+
+    </view>
+        <view v-if="showWithdrawal" class="wallet-activity-row wallet-withdrawal-activity" role="link" tabindex="0" @click="navTo('/pages/me/wallet-withdraw-tracking')" @keydown.enter.prevent="navTo('/pages/me/wallet-withdraw-tracking')">
+          <view class="wallet-row-icon"><svg class="wallet-activity-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v14m-6-8 6-6 6 6M19 21H5" /></svg></view>
+          <view class="wallet-activity-copy"><text class="wallet-activity-label">{{ withdrawalRowLabel }}</text><text class="wallet-activity-sub">{{ withdrawalRowSub }}</text><text class="wallet-withdrawal-amount tabular-nums">{{ visibility.mask(`-$${formatAmount(latestWithdrawal!.amount)}`) }}</text></view>
+          <svg class="wallet-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+        </view>
+    </template>
+    <template v-if="props.section !== 'summary'">
       <!-- SPEC-7 FEAT-RISK02 异常3: 配置同步失败 → 结算暂停提示(不回退写死默认) -->
       <view v-if="configSyncFailed" class="wallet-recovery">
         <text class="block wallet-recovery-title">{{ t.wallet.syncFailedTitle }}</text>
@@ -26,41 +61,12 @@
         </view>
       </view>
 
-    <view class="nx-glass-card wallet-overview-card">
-      <text class="wallet-section-title">{{ t.wallet.earningsSection }}</text>
-      <view class="wallet-earnings">
-        <view class="wallet-metric wallet-metric--today" data-wallet-metric="today">
-          <text class="wallet-metric-label">{{ t.wallet.todayLabel }}</text>
-          <text class="wallet-metric-amount tabular-nums" :style="amountStyle(todayEarningsText, 22, true)">{{ todayEarningsText }}</text>
-        </view>
-        <view class="wallet-metric" data-wallet-metric="all-time">
-          <text class="wallet-metric-label">{{ t.wallet.allTimeEarnings }}</text>
-          <text class="wallet-metric-amount tabular-nums" :style="amountStyle(visibility.mask(allTimeEarned === null ? '-' : `$${formatAmount(allTimeEarned)}`), 22, true)">{{ visibility.mask(allTimeEarned === null ? '-' : `$${formatAmount(allTimeEarned)}`) }}</text>
-          <text class="wallet-metric-sub">{{ allTimeSublabel }}</text>
-        </view>
-        <view class="wallet-metric" data-wallet-metric="reviewing" role="button" tabindex="0" @click="showPendingSheet" @keydown.enter.prevent="showPendingSheet" @keydown.space.prevent="showPendingSheet">
-          <text class="wallet-metric-label">{{ t.wallet.reviewingEarnings }}</text>
-          <text class="wallet-metric-amount tabular-nums" :style="amountStyle(visibility.mask(bucketsReadable ? `$${formatAmount(pendingReview)}` : '—'), 22, true)">{{ visibility.mask(bucketsReadable ? `$${formatAmount(pendingReview)}` : "—") }}</text>
-          <text class="wallet-metric-sub">{{ t.wallet.reviewingEarningsSub }}</text>
-        </view>
-        <view class="wallet-metric" data-wallet-metric="locked" role="button" tabindex="0" @click="showLockedSheet" @keydown.enter.prevent="showLockedSheet" @keydown.space.prevent="showLockedSheet">
-          <text class="wallet-metric-label">{{ t.wallet.lockedRewards }}</text>
-          <text class="wallet-metric-amount tabular-nums" :style="amountStyle(visibility.mask(bucketsReadable ? `$${formatAmount(lockedRewards)}` : '—'), 22, true)">{{ visibility.mask(bucketsReadable ? `$${formatAmount(lockedRewards)}` : "—") }}</text>
-          <text class="wallet-metric-sub">{{ t.wallet.lockedRewardsSub }}</text>
-        </view>
-      </view>
-
-    </view>
     <view v-if="remoteApiEnabled && app.remoteWithdrawalListStatus === 'error'" class="wallet-recovery">
       <text class="block wallet-recovery-title">{{ t.wallet.withdrawalStatusSubtitle }}</text>
       <text class="block wallet-recovery-body">{{ t.empty.errorDesc }}</text>
       <view class="nx-card-recovery-action active:opacity-70" role="button" tabindex="0" :aria-label="t.ui.retry" @click="app.refreshRemoteWithdrawalList()" @keydown.enter.prevent="app.refreshRemoteWithdrawalList()" @keydown.space.prevent="app.refreshRemoteWithdrawalList()"><text>{{ t.ui.retry }}</text></view>
     </view>
-        <view v-if="showWithdrawal" class="wallet-activity-row wallet-withdrawal-activity" role="link" tabindex="0" @click="navTo('/pages/me/wallet-withdraw-tracking')" @keydown.enter.prevent="navTo('/pages/me/wallet-withdraw-tracking')">
-          <view class="wallet-row-icon"><svg class="wallet-activity-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v14m-6-8 6-6 6 6M19 21H5" /></svg></view>
-          <view class="wallet-activity-copy"><text class="wallet-activity-label">{{ withdrawalRowLabel }}</text><text class="wallet-activity-sub">{{ withdrawalRowSub }}</text><text class="wallet-withdrawal-amount tabular-nums">{{ visibility.mask(`-$${formatAmount(latestWithdrawal!.amount)}`) }}</text></view>
-          <svg class="wallet-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
-        </view>
+    </template>
   </view>
 </template>
 <script setup lang="ts">
@@ -81,6 +87,7 @@ import type { WithdrawalStatus } from "@/store/types";
 import { remoteApiEnabled } from "@/api/runtime";
 import { resolveWalletTodayEarnings } from "@/lib/wallet-today-earnings";
 
+const props = withDefaults(defineProps<{ section?: 'all' | 'summary' | 'recovery' }>(), { section: 'all' });
 const t = useT();
 const visibility = useDataVisibility();
 const app = useApp();
@@ -167,12 +174,26 @@ const teamLifetimeUSD = computed(() => !remoteApiEnabled ? commission.totalUSDTL
   : commission.eventsStatus === "ready" || commission.eventsStatus === "loading" ? commission.eventsEvidence?.aggregate.totalUSDT ?? null : null);
 const allTimeEarned = computed(() => miningLifetimeUSD.value === null || teamLifetimeUSD.value === null
   ? null : miningLifetimeUSD.value + teamLifetimeUSD.value);
+const hasReadRecovery = computed(() => configSyncFailed.value || fundsAuthorityUnavailable.value || releaseAuthorityUnavailable.value
+  || (remoteApiEnabled && !earningsReadPending.value && allTimeEarned.value === null)
+  || (remoteApiEnabled && app.remoteWithdrawalListStatus === "error"));
 const allTimeSublabel = computed(() =>
   fmt(t.value.wallet.allTimeSublabel, {
     c: visibility.mask(miningLifetimeUSD.value === null ? "-" : `$${formatAmount(miningLifetimeUSD.value)}`),
     tm: visibility.mask(teamLifetimeUSD.value === null ? "-" : `$${formatAmount(teamLifetimeUSD.value)}`),
   }),
 );
+const allTimeSublabelParts = computed(() => {
+  const amounts: Record<string, string> = {
+    "{c}": visibility.mask(miningLifetimeUSD.value === null ? "-" : `$${formatAmount(miningLifetimeUSD.value)}`),
+    "{tm}": visibility.mask(teamLifetimeUSD.value === null ? "-" : `$${formatAmount(teamLifetimeUSD.value)}`),
+  };
+  return t.value.wallet.allTimeSublabel.split(/(\{c\}|\{tm\})/).filter(Boolean)
+    .map(part => {
+      const amount = part === "{c}" || part === "{tm}";
+      return { text: amount ? amounts[part] : part, amount };
+    });
+});
 // 🔴 用**主单**(优先最早的在途单)而不是「最新一笔」:一张在途 + 一张更新的已到账时,
 // 问「最新一笔」会拿到已到账那张 → 入口整行消失,在审核的那笔钱用户再也看不到。
 const latestWithdrawal = computed(() => app.primaryWithdrawal);
@@ -223,9 +244,11 @@ function amountStyle(value: string, size: number, half = false): CSSProperties {
 .wallet-metric { min-width: 0; }
 .wallet-metric:nth-child(n+3) { padding-top: var(--v5-space-3); border-top: 1px solid var(--v5-border); }
 .wallet-metric-label { display: block; color: var(--v5-ink-3); font-size: var(--v5-type-caption); line-height: 1.5; }
-.wallet-metric-amount { display: block; margin-top: var(--v5-space-1); font-weight: 500; line-height: 1.2; letter-spacing: -.025em; white-space: nowrap; }
+.wallet-metric-amount { display: block; min-height: 26.4px; margin-top: var(--v5-space-1); font-weight: 500; line-height: 1.2; letter-spacing: -.025em; white-space: nowrap; }
 .wallet-metric--today .wallet-metric-amount { color: var(--v5-brand); }
 .wallet-metric-sub { display: block; margin-top: var(--v5-space-1); font-size: var(--v5-type-caption); color: var(--v5-ink-3); line-height: 1.5; overflow-wrap: anywhere; }
+.wallet-metric-breakdown__part { display: block; }
+.wallet-metric-breakdown__amount { min-height: 18px; line-height: 18px; white-space: nowrap; }
 .wallet-activity-row { display: flex; gap: var(--v5-space-3); align-items: center; padding: var(--v5-space-3) var(--v5-space-4); margin-top: var(--v5-space-3); border-radius: var(--v5-radius-l); background: var(--v5-surface); }
 .wallet-row-icon { flex-shrink: 0; color: var(--v5-warning); }
 .wallet-activity-copy { flex: 1; min-width: 0; }

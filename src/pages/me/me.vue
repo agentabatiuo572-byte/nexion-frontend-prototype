@@ -5,7 +5,7 @@
       <ProfileRow />
 
       <WalletCard compact />
-      <WalletOverview />
+      <WalletOverview section="summary" />
 
       <NxSection :title="t.me.frequentFunctions" :action="t.me.deviceAddLabel" class="me-shortcuts" @action="navTo('/pages/store/store')">
         <view class="me-shortcut-grid">
@@ -54,6 +54,7 @@
 
       <!-- i18n-en-ok: 品牌、平台及当前资源版本指纹，报障时逐字保留；? 表示未知 -->
       <text class="block text-center font-mono-tabular" style="margin-top: 16px; font-size: 12px; color: var(--v5-ink-4)">{{ versionFooter }}</text>
+      <WalletOverview section="recovery" />
     </CardStagger>
   </AppChassis>
 

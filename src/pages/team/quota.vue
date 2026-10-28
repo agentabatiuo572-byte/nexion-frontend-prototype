@@ -16,12 +16,12 @@
 
         <view v-if="remoteApiEnabled && remoteError" class="quota-state nx-inline-recovery" role="alert"><text class="quota-body nx-inline-recovery__copy">{{ auditCopy.quotaLoadError }}</text><NxButton class="nx-inline-recovery__action" variant="text" :label="t.store.catalogRetry" :busy="remoteRefreshing" @click="refreshRemoteQuota" /></view>
         <view v-else-if="remoteApiEnabled && !remoteSnapshot" class="quota-state" role="status" aria-live="polite" aria-busy="true"><text>{{ auditCopy.loading }}</text></view>
-        <view v-if="remoteApiEnabled && !catalogDisplayReady" class="quota-state" :class="{ 'nx-inline-recovery': productCatalogState.status === 'error' }" :role="productCatalogState.status === 'error' ? 'alert' : 'status'">
+        <view v-if="remoteApiEnabled && (!catalogDisplayReady || productCatalogState.status === 'error')" class="quota-state" :class="{ 'nx-inline-recovery': productCatalogState.status === 'error' }" :role="productCatalogState.status === 'error' ? 'alert' : 'status'">
           <text class="quota-body nx-inline-recovery__copy">{{ productCatalogState.status === 'error' ? t.store.catalogErrorTitle : t.store.catalogLoadingTitle }}</text>
           <NxButton v-if="productCatalogState.status === 'error'" class="nx-inline-recovery__action" variant="text" :label="t.store.catalogRetry" @click="retryCatalog" />
         </view>
         <view v-if="quotaReady && !focusedTiers.length" class="quota-state" role="status"><text>{{ t.empty.listTitle }}</text></view>
-        <QuotaTierCard v-for="tier in focusedTiers" :key="tier.productId" :tier="tier" :pending="remoteApiEnabled && !quotaReady" @navigate="go" />
+        <QuotaTierCard v-for="tier in focusedTiers" :key="tier.productId" :tier="tier" :pending="remoteApiEnabled && !remoteSnapshot" :action-blocked="!quotaReady" @navigate="go" />
 
         <view class="quota-footer">
           <NxButton variant="secondary" :label="t.empty.devicesCta" @click="go('/pages/store/store')"><text>{{ t.empty.devicesCta }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
@@ -49,10 +49,11 @@ import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
 import { networkReauditCopy } from "@/i18n/network-reaudit";
 import { fmt } from "@/i18n/format";
-import { remoteApiEnabled, teamQuotaApi } from "@/api/runtime";
+import { remoteApiEnabled, teamQuotaApi, apiRuntimeConfig } from "@/api/runtime";
+import { subscribeRuntimeRevision } from "@/api/order-api";
 import type { TeamQuotaSnapshot } from "@/api/team-quota-api";
 import { getProduct as getMockProduct, annualRoiPct as mockAnnualRoiPct, type Product } from "@/mock/products";
-import { productCatalogPresentation, productCatalogState, refreshProductCatalog } from "@/store/product-catalog";
+import { productCatalogPresentation, productCatalogDisplayProof, isProductCatalogDisplayCurrent, productCatalogState, refreshProductCatalog } from "@/store/product-catalog";
 import { specText } from "@/lib/product-copy";
 import { useNetwork } from "@/store/network";
 import { useVRank } from "@/store/v-rank";
@@ -71,8 +72,8 @@ const app = useApp();
 const remoteSnapshot = ref<TeamQuotaSnapshot | null>(null);
 const remoteError = ref<string | null>(null);
 const remoteRefreshing = ref(false);
-const catalogDisplayReady = computed(() => productCatalogState.status === "ready"
-  || (productCatalogState.status === "loading" && productCatalogState.serverCanonical && productCatalogPresentation.value !== null));
+// A retained catalog proof permits presentation only; it never enables actions.
+const catalogDisplayReady = computed(() => isProductCatalogDisplayCurrent() && productCatalogPresentation.value !== null);
 let quotaMounted = true;
 let quotaRequestGeneration = 0;
 function captureQuotaRequest(): TeamP31718Request {
@@ -120,7 +121,7 @@ watch([() => app.accountKey, () => app.accountBindingEpoch], () => {
 watch(() => locale.code, () => {
   resetQuotaPageState();
   if (quotaMounted && remoteApiEnabled) void refreshRemoteQuota();
-});
+}, { flush: 'sync' });
 onLoad((options) => {
   const fallback = new URLSearchParams(takeNavigationQuery("/pages/team/quota")).get("product");
   const requested = typeof options?.product === "string" ? options.product.trim() : fallback?.trim() ?? "";
@@ -129,8 +130,6 @@ onLoad((options) => {
 
 onShow(() => {
   quotaMounted = true;
-  quotaRequestGeneration += 1;
-  remoteRefreshing.value = false;
   // The tier cards render catalog-owned names/perks (BUG 34/33), so the
   // catalog must be observed here too — a direct entry never visits the store.
   void refreshProductCatalog();
@@ -143,6 +142,7 @@ onHide(() => {
 });
 onUnload(() => {
   quotaMounted = false;
+  stopQuotaRuntime();
   resetQuotaPageState();
 });
 function retryCatalog(): void {
@@ -169,6 +169,18 @@ const activeDirectText = computed(() => remoteApiEnabled && !remoteSnapshot.valu
  * 现在带上 id 并据此定位;若该商品根本不在配额档位里,页面**明说**,而不是静默展示无关档位。
  */
 const focusedProductId = ref("");
+// Clear synchronously, including A→B→A, before a scheduled account read can run.
+watch([() => app.accountKey, () => app.accountBindingEpoch,
+  () => apiRuntimeConfig.environment, () => apiRuntimeConfig.baseUrl, focusedProductId], resetQuotaPageState, { flush: 'sync' });
+watch(() => productCatalogDisplayProof.value && JSON.stringify([
+  productCatalogDisplayProof.value.bindingEpoch, productCatalogDisplayProof.value.revision,
+]), (proof, previous) => {
+  if (previous && proof !== previous) resetQuotaPageState();
+  if (proof && proof !== previous && quotaMounted && remoteApiEnabled && !remoteSnapshot.value) void refreshRemoteQuota();
+}, { flush: 'sync' });
+const stopQuotaRuntime = subscribeRuntimeRevision(scope => {
+  if (!isProductCatalogDisplayCurrent(scope)) resetQuotaPageState();
+});
 const focusedProductHref = computed(() => `/pages/store/detail?id=${encodeURIComponent(focusedProductId.value)}`);
 const focusedProductName = computed(() => catalogProduct(focusedProductId.value)?.name ?? focusedProductId.value);
 
@@ -282,7 +294,7 @@ function go(url: string) {
 
 const heroTier = computed(() => focusedTiers.value[0]);
 const heroImage = computed(() => heroTier.value ? getProductMedia(heroTier.value.productId)?.src ?? heroTier.value.imageUrl : undefined);
-const quotaReady = computed(() => !remoteApiEnabled || (remoteSnapshot.value !== null && !remoteRefreshing.value && !remoteError.value && productCatalogState.status === 'ready'));
+const quotaReady = computed(() => !remoteApiEnabled || (catalogDisplayReady.value && remoteSnapshot.value !== null && !remoteRefreshing.value && !remoteError.value && productCatalogState.status === 'ready'));
 </script>
 
 <style scoped>

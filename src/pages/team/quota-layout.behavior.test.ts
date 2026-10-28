@@ -45,11 +45,13 @@ function page(locale: keyof typeof dictionaries = 'en', product = '') {
     '@dcloudio/uni-app': { onLoad: (fn: (q: object) => void) => load.push(fn), onShow: (fn: () => void) => show.push(fn), onHide: (fn: () => void) => hide.push(fn), onUnload: vi.fn() },
     '@/components/app-chassis.vue': slot, '@/components/sub-page-header.vue': { default: Vue.defineComponent({ props: ['back'], setup: props => () => Vue.h('view', { 'data-back': props.back }) }) },
     '@/components/team/team-art.vue': slot, '@/components/ui/nx-button.vue': button,
-    '@/components/team/quota-tier-card.vue': { default: Vue.defineComponent({ props: ['tier', 'pending'], setup: props => () => Vue.h('view', { 'data-tier': props.tier.productId, 'data-facts': props.tier, 'data-pending': props.pending }, props.tier.name) }) },
+    '@/components/team/quota-tier-card.vue': { default: Vue.defineComponent({ props: ['tier', 'pending', 'actionBlocked'], setup: props => () => Vue.h('view', { 'data-tier': props.tier.productId, 'data-facts': props.tier, 'data-pending': props.pending, 'data-action-blocked': props.actionBlocked }, props.tier.name) }) },
     '@/i18n/use-t': { useT: () => Vue.ref(dictionaries[locale]) }, '@/store/locale': { useLocaleStore: () => ({ code: locale }) },
-    '@/i18n/network-reaudit': { networkReauditCopy }, '@/i18n/format': { fmt }, '@/api/runtime': { remoteApiEnabled: true, teamQuotaApi: api },
+    '@/i18n/network-reaudit': { networkReauditCopy }, '@/i18n/format': { fmt }, '@/api/runtime': { remoteApiEnabled: true, teamQuotaApi: api, apiRuntimeConfig: { environment: 'dev', baseUrl: 'https://test.invalid' } },
+    '@/api/order-api': { subscribeRuntimeRevision: () => () => {} },
     '@/mock/products': { getProduct: () => undefined, annualRoiPct: () => 5 },
-    '@/store/product-catalog': { productCatalogState: catalogState, productCatalogPresentation: presentation, refreshProductCatalog: refreshCatalog },
+    '@/store/product-catalog': { productCatalogState: catalogState, productCatalogPresentation: presentation, refreshProductCatalog: refreshCatalog,
+      productCatalogDisplayProof: Vue.ref({ bindingEpoch: 1, revision: 'one' }), isProductCatalogDisplayCurrent: () => catalogState.serverCanonical && catalogState.status !== 'error' },
     '@/lib/product-copy': { specText: (_: unknown, value: string) => value }, '@/store/network': { useNetwork: () => ({ members: [] }) },
     '@/store/v-rank': { useVRank: () => ({ myRank: 2 }) }, '@/store/config': { useConfig: () => ({}) }, '@/store/app': { useApp: () => app },
     '@/lib/team-p3-17-18-request-scope': requestScope, '@/lib/quota-perk': { isAnnualizedQuotaPerk },
@@ -102,9 +104,9 @@ it('preserves quota rows through a slow return and visible error without treatin
   let reject!: (reason: unknown) => void;
   p.api.snapshot.mockImplementationOnce(() => new Promise((_yes, no) => { reject = no; }));
   p.catalogState.status = 'loading'; await p.show();
-  expect(p.tiers()).toHaveLength(2); expect(p.tiers().every(n => n.props['data-pending'])).toBe(true);
+  expect(p.tiers()).toHaveLength(2); expect(p.tiers().every(n => !n.props['data-pending'] && n.props['data-action-blocked'])).toBe(true);
   reject(new Error('offline')); await flush();
-  expect(p.tiers()).toHaveLength(2); expect(p.tiers().every(n => n.props['data-pending'])).toBe(true);
+  expect(p.tiers()).toHaveLength(2); expect(p.tiers().every(n => !n.props['data-pending'] && n.props['data-action-blocked'])).toBe(true);
   expect(text(p.root)).toContain(networkReauditCopy('en').quotaLoadError);
   p.catalogState.serverCanonical = false; await flush(); expect(p.tiers()).toHaveLength(0);
 });

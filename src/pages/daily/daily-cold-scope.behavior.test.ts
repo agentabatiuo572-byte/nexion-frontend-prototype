@@ -22,6 +22,7 @@ import { dailyCheckInSuccessCopy } from "./daily-success-copy";
 
 const remote = vi.hoisted(() => ({
   remoteApiEnabled: true,
+  apiRuntimeConfig: { environment: "dev", baseUrl: "https://fixture.invalid" },
   userId: null as number | null,
   sessionVault: { read: (): { user: { userId: number } } | null => remote.userId === null ? null : { user: { userId: remote.userId } } },
   pointsApi: { state: vi.fn(), checkIn: vi.fn(), claimMilestone: vi.fn(), useSaver: vi.fn() },

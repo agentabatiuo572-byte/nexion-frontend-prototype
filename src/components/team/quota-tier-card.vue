@@ -18,12 +18,12 @@
     </view>
     <text v-if="tier.conditions.some(condition => condition.kind === 'legacyUSD') && !tier.conditions.some(condition => condition.kind === 'volume')" class="quota-unavailable">{{ logicCopy.pointsUnavailable }}</text>
     <view v-if="tier.perks.length" class="quota-perks"><text v-for="(perk, index) in tier.perks" :key="index">{{ perk }}</text></view>
-    <view class="quota-actions">
+    <view class="quota-actions" :class="{ 'quota-pending-action': actionBlocked }">
       <NxButton v-if="pending" class="quota-pending-action" variant="secondary" :label="fmt(t.quota.buyCta, { name: displayName })" :disabled="true"><text>{{ fmt(t.quota.buyCta, { name: displayName }) }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
-      <NxButton v-else-if="unlocked && stockLeft > 0 && tier.available !== false" variant="secondary" :label="fmt(t.quota.buyCta, { name: displayName })" @click="openProduct"><text>{{ fmt(t.quota.buyCta, { name: displayName }) }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
+      <NxButton v-else-if="unlocked && stockLeft > 0 && tier.available !== false" variant="secondary" :label="fmt(t.quota.buyCta, { name: displayName })" :disabled="actionBlocked" @click="openAction"><text>{{ fmt(t.quota.buyCta, { name: displayName }) }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
       <text v-else-if="stockLeft <= 0" class="quota-unavailable" aria-disabled="true">{{ t.quota.stockUnavailable }}</text>
       <text v-else-if="unlocked && tier.available === false" class="quota-unavailable" aria-disabled="true">{{ auditCopy.quotaUnavailable }}</text>
-      <NxButton v-else variant="secondary" :label="t.store.purchaseEligibilityIneligible" @click="openProduct"><text>{{ t.store.purchaseEligibilityIneligible }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
+      <NxButton v-else variant="secondary" :label="t.store.purchaseEligibilityIneligible" :disabled="actionBlocked" @click="openAction"><text>{{ t.store.purchaseEligibilityIneligible }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
     </view>
   </view>
 </template>
@@ -69,7 +69,7 @@ export interface QuotaTier {
 }
 
 
-const props = defineProps<{ tier: QuotaTier; pending?: boolean }>();
+const props = defineProps<{ tier: QuotaTier; pending?: boolean; actionBlocked?: boolean }>();
 const emit = defineEmits<{ navigate: [url: string] }>();
 const t = useT();
 const locale = useLocaleStore();
@@ -97,6 +97,7 @@ function conditionValue(condition: QuotaCondition) {
     : `${condition.current} / ${condition.required}`;
 }
 function openProduct() { emit('navigate', `/pages/store/detail?id=${encodeURIComponent(props.tier.productId)}`); }
+function openAction() { if (!props.pending && !props.actionBlocked) openProduct(); }
 </script>
 <style scoped>
 .quota-pending-action :deep(.nx-button--disabled), .quota-pending-action { opacity: 1; }

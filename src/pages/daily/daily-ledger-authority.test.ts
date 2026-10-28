@@ -20,6 +20,8 @@ import * as rewardView from "./daily-reward-view";
 
 const remote = vi.hoisted(() => ({
   fundsServerEnabled: true, remoteApiEnabled: true, expectedApiEnvironment: "dev",
+  apiRuntimeConfig: { environment: "dev", baseUrl: "https://fixture.invalid" },
+  apiRuntimeClientOrigin: { environment: "dev", baseUrl: "https://fixture.invalid" },
   walletBillsApi: { list: vi.fn(), summary: vi.fn() }, sessionVault: { read: vi.fn() },
   pointsApi: { state: vi.fn(), checkIn: vi.fn(), claimMilestone: vi.fn(), useSaver: vi.fn() },
   deviceE3Api: { fleet: vi.fn() }, taskAssignmentApi: { state: vi.fn() },
