@@ -62,7 +62,7 @@ const passive=createPassiveTabReadFixture(()=>JSON.stringify([app.accountKey,app
 const activate=(route:string,tabSwitch=false)=>{notifyPageActivation(route,{tabSwitch});passive.notifyPageActivation(route,{tabSwitch});};
 const normalVisit=()=>{activate('/pages/me/preferences');activate('/pages/team/team');};
 const modules:Record<string,any>={'@/lib/passive-tab-read':passive,'@test/ledger-probe':{record:(state:any)=>ledgerStates.push(state)},'@test/team-probe':{record:(state:any)=>syncStates.push(state)},vue:Vue,'@/composables/use-tab-page-lifecycle':{onLoad:(fn:any)=>{const old=runtimeHooks.load;runtimeHooks.load=fn;void old},onShow:(fn:any)=>runtimeHooks.show.push(fn),onHide:(fn:any)=>runtimeHooks.hide.push(fn)},
- '@/lib/route':{navTo,takeNavigationQuery:()=>''},'@/i18n/use-t':{useT:()=>Vue.ref(copy)},'@/i18n/format':{fmt,dateLocale:()=>locale.code},'@/i18n/team-redesign':{teamRedesignCopy},'@/store/locale':{useLocaleStore:()=>locale},'@/store/app':{useApp:()=>app},'@/store/commission':{useCommission:()=>commission},'@/store/v-rank':{useVRank:()=>vrank,nextRankProgress},'@/store/network':{useNetwork:()=>network},'@/store/referral-reward':{useReferralReward:()=>rewards},'@/store/leadership-pool':{useLeadershipPool:()=>({})},'@/api/runtime':remote,'@/store/product-catalog':{productCatalogState,productCatalogDisplayProof,isProductCatalogDisplayCurrent},'@/api/order-api':runtimeRevision,
+ '@/lib/route':{navTo,takeNavigationQuery:()=>''},'@/i18n/use-t':{useT:()=>Vue.ref(copy)},'@/i18n/format':{fmt,dateLocale:()=>locale.code},'@/i18n/team-redesign':{teamRedesignCopy},'@/store/locale':{useLocaleStore:()=>locale},'@/store/app':{useApp:()=>app},'@/store/commission':{useCommission:()=>commission},'@/store/v-rank':{useVRank:()=>vrank,nextRankProgress},'@/store/network':{useNetwork:()=>network},'@/store/referral-reward':{useReferralReward:()=>rewards},'@/store/leadership-pool':{useLeadershipPool:()=>({})},'@/api/runtime':remote,'@/store/product-catalog':{productCatalogState,productCatalogDisplayProof,productCatalogPresentation,isProductCatalogDisplayCurrent},'@/api/order-api':runtimeRevision,
  '@/lib/account-scope':{captureAccountScope:()=>({account:app.accountKey,epoch:app.accountBindingEpoch}),isCurrentAccountScope:(s:any)=>s.account===app.accountKey&&s.epoch===app.accountBindingEpoch},'@/lib/leadership-pool-state':{leadershipPoolFailureState},'@/lib/v-rank-copy':{rankLabel},'@/i18n/compute-points':{formatComputePoints,sumComputePoints},'@/lib/amount-display':{formatAmount},'@/lib/usd-display':{formatUsd,formatUsdOverviewParts},'@/store/ui':{toast:{info:vi.fn(),success:vi.fn()}},'@/lib/share':{copyText,buildShareLink:(code:string)=>code?'https://test.invalid/'+code:'',recordShareEvent:vi.fn()},
  '@/components/tab-page-frame.vue':{default:{setup:(_:unknown,{slots}:any)=>()=>Vue.h('view',slots.default?.())}}};
 const runtimeHooks={load:null as any,show:[] as Array<()=>void>,hide:[] as Array<()=>void>};
@@ -662,4 +662,94 @@ it.each([en,zh,vietnamese])('keeps first cold ledger pending silent and unknown 
  const s=await screen(copy);expect(s.amounts()[0]).toBe('—');expect(s.network.remoteStatus).toBe('loading');expect(s.commission.eventsStatus).toBe('loading');
  expect(s.find('team-ledger__feedback-item').props.class).not.toContain('is-active');expect(s.find('team-ledger__breakdown').props.class).toContain('is-hidden');expect(s.ledgerStates.every(state=>!state.failed)).toBe(true);
  network.resolve({...proof,totalMembers:0,members:[],monthVolumeUsdt:0,lifetimeVolumeUsdt:0});events.resolve(commissions(23));await flush();expect(s.amounts()[0]).toContain('23');expect(s.find('team-ledger__feedback-item').props.class).not.toContain('is-active');
+});
+
+// Team reward summaries: run the complete Team SFC and actual commission/catalog
+// stores. The transport promises below do not bypass their canonical reset.
+const binaryFacts=(amount=19.75)=>({...proof,runId:null,estimatedAmountUsdt:amount,trackA:500,trackB:300});
+it.each([['en',en],['zh',zh],['vi',vietnamese]] as const)('keeps binary amount and A/B facts through a legitimate catalog publication pending in %s',async(_language,copy)=>{
+ remote.commissionConfigApi.binary.mockResolvedValue(binaryFacts());
+ const s=await screen(copy),binaryText=text(s.find('nx-team-binary-link')),poolText=text(s.find('nx-team-leadership-pool-link'));
+ expect(binaryText).toContain(formatUsd(19.75));expect(binaryText).toContain(`A · ${formatUsd(500)} / B · ${formatUsd(300)}`);
+ const binary=deferred(),pool=deferred();remote.commissionConfigApi.binary.mockReturnValueOnce(binary.promise);remote.teamInsightsApi.leadershipPool.mockReturnValueOnce(pool.promise);
+ remote.productCatalogApi.catalog.mockResolvedValue({...proof,products:[],revision:'republished',publishedAt:'2026-10-29T00:00:00Z'});
+ await refreshProductCatalog(true);await Vue.nextTick();
+ expect(productCatalogDisplayProof.value).not.toBeNull();expect(s.commission.binarySnapshot).toBeNull();expect(s.commission.binaryStatus).toBe('loading');
+ expect(text(s.find('nx-team-binary-link'))).toBe(binaryText);expect(text(s.find('nx-team-leadership-pool-link'))).toBe(poolText);
+ s.find('nx-team-binary-link').props.onClick();expect(s.navTo).toHaveBeenLastCalledWith('/pages/team/binary');
+ s.find('nx-team-leadership-pool-link').props.onClick();expect(s.navTo).toHaveBeenLastCalledWith('/pages/team/leadership-pool');
+ expect(s.commission.binarySnapshot).toBeNull(); // Navigation/display never restores raw authority.
+ binary.resolve({...binaryFacts(0),trackA:0,trackB:0});pool.resolve({...proof,myVotes:0,currentWeekPoolUSDT:0,unlockRank:3,injectRate:.05});await flush();
+ expect(s.commission.binaryStatus).toBe('ready');expect(text(s.find('nx-team-binary-link'))).toContain(`A · ${formatUsd(0)} / B · ${formatUsd(0)}`);expect(text(s.find('nx-team-binary-link'))).not.toContain(formatUsd(19.75));
+});
+it('already keeps a normal binary refresh without clearing the actual store snapshot',async()=>{
+ remote.commissionConfigApi.binary.mockResolvedValue(binaryFacts());const s=await screen(),before=text(s.find('nx-team-binary-link')),old=s.commission.binarySnapshot;
+ const read=deferred();remote.commissionConfigApi.binary.mockReturnValueOnce(read.promise);const pending=s.commission.refreshCanonicalBinary();await Vue.nextTick();
+ expect(s.commission.binarySnapshot).toBe(old);expect(s.commission.binaryStatus).toBe('loading');expect(text(s.find('nx-team-binary-link'))).toBe(before);
+ read.resolve(binaryFacts(2.5));await pending;await flush();expect(text(s.find('nx-team-binary-link'))).toContain(formatUsd(2.5));
+});
+it.each([new ApiError({kind:'network',message:'offline'}),new ApiError({kind:'http',status:403,message:'denied'}),new ApiError({kind:'protocol',message:'invalid'})])('clears the binary presentation on actual %s and only a confirmed retry restores it',async cause=>{
+ remote.commissionConfigApi.binary.mockResolvedValue(binaryFacts());const s=await screen(),read=deferred();remote.commissionConfigApi.binary.mockReturnValueOnce(read.promise);
+ await refreshProductCatalog(true);await Vue.nextTick();expect(s.commission.binarySnapshot).toBeNull();read.reject(cause);await flush();
+ expect(s.commission.binaryStatus).toBe('error');expect(text(s.find('nx-team-binary-link'))).not.toContain(formatUsd(19.75));expect(text(s.find('nx-team-binary-link'))).toContain('—');
+ const retry=deferred();remote.commissionConfigApi.binary.mockReturnValueOnce(retry.promise);const pending=s.commission.refreshCanonicalBinary();await Vue.nextTick();
+ expect(text(s.find('nx-team-binary-link'))).not.toContain(formatUsd(19.75));retry.resolve(binaryFacts(4.25));await pending;await flush();expect(text(s.find('nx-team-binary-link'))).toContain(formatUsd(4.25));
+});
+it('keeps the first binary read unknown instead of substituting zero',async()=>{
+ const first=deferred();remote.commissionConfigApi.binary.mockReturnValue(first.promise);const s=await screen();
+ expect(s.commission.binarySnapshot).toBeNull();expect(s.commission.binaryStatus).toBe('loading');expect(text(s.find('nx-team-binary-link'))).toContain('—');expect(text(s.find('nx-team-binary-link'))).not.toContain(formatUsd(0));
+ first.resolve(binaryFacts(0));await flush();expect(text(s.find('nx-team-binary-link'))).toContain(formatUsd(0));
+});
+it.each(['account','binding','locale','environment','baseUrl','write','hidden-write','permission','prepare'])('revokes binary presentation at a strict %s boundary and ignores old facts',async boundary=>{
+ remote.commissionConfigApi.binary.mockResolvedValue(binaryFacts());const s=await screen(),old=deferred(),current=deferred();remote.commissionConfigApi.binary.mockReturnValueOnce(old.promise).mockReturnValue(current.promise);
+ const pending=s.commission.refreshCanonicalBinary();await Vue.nextTick();
+ if(boundary==='account'){s.app.accountKey='user:B';s.app.accountKey='user:fixture';s.app.accountBindingEpoch++;s.commission.bindAccount(s.app.accountKey)}
+ if(boundary==='binding'){s.app.accountBindingEpoch++;s.commission.bindAccount(s.app.accountKey)}
+ if(boundary==='locale'){s.locale.code='vi';s.locale.code='en'}
+ if(boundary==='environment'){remote.apiRuntimeConfig.environment='prod';remote.apiRuntimeConfig.environment='dev'}
+ if(boundary==='baseUrl'){remote.apiRuntimeConfig.baseUrl='https://other.invalid';remote.apiRuntimeConfig.baseUrl='https://test.invalid'}
+ if(boundary==='hidden-write'){s.hooks.hide.forEach(fn=>fn());runtimeRevision.advanceRuntimeRevision('business-write')}
+ if(boundary==='write')runtimeRevision.advanceRuntimeRevision('business-write');if(boundary==='permission')runtimeRevision.advanceRuntimeRevision('permission-change');if(boundary==='prepare')prepareProductCatalog();
+ await Vue.nextTick();expect(text(s.find('nx-team-binary-link'))).not.toContain(formatUsd(19.75));expect(text(s.find('nx-team-binary-link'))).toContain('—');
+ old.resolve(binaryFacts(999));await pending;await flush();expect(text(s.find('nx-team-binary-link'))).not.toContain(formatUsd(999));
+ expect(text(s.find('nx-team-binary-link'))).toContain('—');
+});
+it.each(['price','stock','qualification','permission','source'])('clears binary display when catalog business %s changes even if its version string is unchanged',async field=>{
+ const product={id:'device',name:'Device',price:1199,stock:8,purchaseBlocked:false,purchaseGate:{rankMin:2}};
+ remote.productCatalogApi.catalog.mockResolvedValue({...proof,products:[product],revision:'SAME'});remote.commissionConfigApi.binary.mockResolvedValue(binaryFacts());
+ const s=await screen();expect(text(s.find('nx-team-binary-link'))).toContain(formatUsd(19.75));const old=deferred(),fresh=deferred();remote.commissionConfigApi.binary.mockReturnValueOnce(old.promise).mockReturnValueOnce(fresh.promise);
+ const previous=s.commission.refreshCanonicalBinary();
+ const changed={...product,price:field==='price'?1499:product.price,stock:field==='stock'?0:product.stock,purchaseBlocked:field==='permission',purchaseGate:{rankMin:field==='qualification'?3:2}};
+ remote.productCatalogApi.catalog.mockResolvedValue({...proof,source:field==='source'?'changed-authority':proof.source,products:[changed],revision:'SAME'});await refreshProductCatalog(true);await Vue.nextTick();
+ expect(isProductCatalogDisplayCurrent()).toBe(true);expect(productCatalogDisplayProof.value?.revision).toBe('SAME');expect(s.commission.binaryStatus).toBe('loading');expect(s.commission.binarySnapshot).toBeNull();
+ expect(text(s.find('nx-team-binary-link'))).not.toContain(formatUsd(19.75));expect(text(s.find('nx-team-binary-link'))).toContain('—');
+ old.resolve(binaryFacts(999));await previous;await flush();expect(s.commission.binarySnapshot).toBeNull();expect(text(s.find('nx-team-binary-link'))).not.toContain(formatUsd(999));
+ fresh.resolve(binaryFacts(3.25));await flush();expect(s.commission.binaryStatus).toBe('ready');expect(text(s.find('nx-team-binary-link'))).toContain(formatUsd(3.25));
+});
+it('masks and reveals the retained binary display through the real privacy store while raw authority stays absent',async()=>{
+ remote.commissionConfigApi.binary.mockResolvedValue(binaryFacts());const s=await screen(),read=deferred();remote.commissionConfigApi.binary.mockReturnValueOnce(read.promise);await refreshProductCatalog(true);await Vue.nextTick();
+ expect(s.commission.binarySnapshot).toBeNull();const visibility=useDataVisibility();visibility.toggle();await Vue.nextTick();expect(text(s.find('nx-team-binary-link'))).not.toContain(formatUsd(19.75));
+ visibility.toggle();await Vue.nextTick();expect(text(s.find('nx-team-binary-link'))).toContain(formatUsd(19.75));expect(s.commission.binarySnapshot).toBeNull();
+ read.resolve(binaryFacts(0));await flush();expect(text(s.find('nx-team-binary-link'))).toContain(formatUsd(0));
+});
+it.each(['hold','error'])('preserves the existing leadership pending summary but removes it on actual %s',async state=>{
+ const s=await screen(),before=text(s.find('nx-team-leadership-pool-link')),read=deferred();remote.teamInsightsApi.leadershipPool.mockReturnValueOnce(read.promise);
+ await refreshProductCatalog(true);await Vue.nextTick();expect(text(s.find('nx-team-leadership-pool-link'))).toBe(before);
+ read.reject(state==='hold'?new ApiError({kind:'business',message:'F4_LEADERSHIP_POOL_HOLD'}):new Error('failed'));await flush();
+ expect(text(s.find('nx-team-leadership-pool-link'))).not.toContain(formatUsd(17.25));expect(text(s.find('nx-team-leadership-pool-link'))).toContain('—');
+});
+
+
+it.each([['en',en],['zh',zh],['vi',vietnamese]] as const)('keeps binary presentation when only the catalog imageUrl rotates in %s',async(_language,copy)=>{
+ const product={id:'device',name:'Device',price:1199,stock:8,purchaseBlocked:false,purchaseGate:{rankMin:2},imageUrl:'https://images.example/api/store/media/images/device/asset?expires=100&signature=old'};
+ remote.productCatalogApi.catalog.mockResolvedValue({...proof,products:[product],revision:'SAME'});remote.commissionConfigApi.binary.mockResolvedValue(binaryFacts());
+ const s=await screen(copy),before=text(s.find('nx-team-binary-link')),poolBefore=text(s.find('nx-team-leadership-pool-link'));
+ expect(before).toContain(formatUsd(19.75));const read=deferred(),pool=deferred();remote.commissionConfigApi.binary.mockReturnValueOnce(read.promise);remote.teamInsightsApi.leadershipPool.mockReturnValueOnce(pool.promise);
+ remote.productCatalogApi.catalog.mockResolvedValue({...proof,products:[{...product,imageUrl:'https://images.example/api/store/media/images/device/asset?expires=200&signature=new'}],revision:'SAME'});
+ await refreshProductCatalog(true);await Vue.nextTick();
+ expect(isProductCatalogDisplayCurrent()).toBe(true);expect(productCatalogDisplayProof.value?.revision).toBe('SAME');expect(s.commission.binaryStatus).toBe('loading');expect(s.commission.binarySnapshot).toBeNull();
+ expect(text(s.find('nx-team-binary-link'))).toBe(before);expect(text(s.find('nx-team-leadership-pool-link'))).toBe(poolBefore);
+ s.find('nx-team-binary-link').props.onClick();expect(s.navTo).toHaveBeenLastCalledWith('/pages/team/binary');expect(s.commission.binarySnapshot).toBeNull();
+ read.resolve(binaryFacts(0));pool.resolve({...proof,myVotes:0,currentWeekPoolUSDT:0,unlockRank:3,injectRate:.05});await flush();
+ expect(s.commission.binaryStatus).toBe('ready');expect(text(s.find('nx-team-binary-link'))).toContain(formatUsd(0));expect(text(s.find('nx-team-binary-link'))).not.toContain(formatUsd(19.75));
 });

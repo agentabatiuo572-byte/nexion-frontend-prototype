@@ -3,10 +3,10 @@
   "sourcePath": "D:\\workspace\\.worktrees\\h9-display-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "65105557b2f1fe65c9e9f59f74daddd7bb4fe831",
-  "sourceRef": "65105557b2f1fe65c9e9f59f74daddd7bb4fe831",
+  "sourceHead": "9d06e56bd10eebee916de614cd01a9fff381ca1a",
+  "sourceRef": "9d06e56bd10eebee916de614cd01a9fff381ca1a",
   "sourceRefKind": "commit",
-  "sourceTree": "e909d0d3ae7ee6f934ba9b6dc458e48d981c9d9e",
+  "sourceTree": "078ba9b68126f43481b5508105a9e4e6ed1fc2ff",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -171,6 +171,13 @@
       "sourceSha256": "02f823dc9173a78932124ba52eff4817650d9307830bb25fea773af2a6008efb",
       "targetBlob": "0633041c5928aaba0543c97d66981d7656de3684",
       "targetSha256": "02f823dc9173a78932124ba52eff4817650d9307830bb25fea773af2a6008efb",
+      "mode": "100644"
+    },
+    "PRD/UVEL_团队双区预估暖返回_20261029.md": {
+      "sourceBlob": "7fb4a034a9f1b1e6d82a096bc615c4ae82966d22",
+      "sourceSha256": "612c7c28131099191ae5c953024727a60a669f1206874af36eda8ec9d4606ec9",
+      "targetBlob": "7fb4a034a9f1b1e6d82a096bc615c4ae82966d22",
+      "targetSha256": "612c7c28131099191ae5c953024727a60a669f1206874af36eda8ec9d4606ec9",
       "mode": "100644"
     },
     "PRD/UVEL_团队次页静默与静态展示_20261027.md": {
@@ -26438,17 +26445,17 @@
       "mode": "100644"
     },
     "src/pages/team/team-warm-display.behavior.test.ts": {
-      "sourceBlob": "7dcb630b23a9d67d7e536b9ba3cd081a0c727271",
-      "sourceSha256": "90e1a64689231c1ed59bca96b9e9efbe05d54d8b912a48c0ba498482d974ae58",
-      "targetBlob": "7dcb630b23a9d67d7e536b9ba3cd081a0c727271",
-      "targetSha256": "90e1a64689231c1ed59bca96b9e9efbe05d54d8b912a48c0ba498482d974ae58",
+      "sourceBlob": "030176242079a0a0240ea9eb439e53c29e960c41",
+      "sourceSha256": "82b32beb0b6c58d2543d1c021b56d4cacb4b789523a37d481da628de5d510038",
+      "targetBlob": "030176242079a0a0240ea9eb439e53c29e960c41",
+      "targetSha256": "82b32beb0b6c58d2543d1c021b56d4cacb4b789523a37d481da628de5d510038",
       "mode": "100644"
     },
     "src/pages/team/team.vue": {
-      "sourceBlob": "9a8cc3c5be15287dd8507ffe9a6dc45ac74ee843",
-      "sourceSha256": "706f0c8d84f6f500ff387832e71a964a36ba964fadd9ad3dccdff95121c09a65",
-      "targetBlob": "9a8cc3c5be15287dd8507ffe9a6dc45ac74ee843",
-      "targetSha256": "706f0c8d84f6f500ff387832e71a964a36ba964fadd9ad3dccdff95121c09a65",
+      "sourceBlob": "1bf7bcd89ed62b807817f30815011d976dad6aec",
+      "sourceSha256": "32e370fdd26c3421d1409dbf356d32f21f968f85d8db1178bccb64d8d25ca94e",
+      "targetBlob": "1bf7bcd89ed62b807817f30815011d976dad6aec",
+      "targetSha256": "32e370fdd26c3421d1409dbf356d32f21f968f85d8db1178bccb64d8d25ca94e",
       "mode": "100644"
     },
     "src/pages/team/tree.vue": {
