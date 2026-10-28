@@ -54,7 +54,7 @@
             </svg>
           </view>
           <view class="est-phone__body">
-            <text class="est-phone__name">{{ calibration?.modelRange?.model ?? t.onboarding.yourPhone }}</text>
+            <text class="est-phone__name">{{ calibration?.iosModel?.model ?? t.onboarding.yourPhone }}</text>
             <text class="est-phone__spec">{{ calibration?.computeValue }} {{ t.onboarding.phoneComputeUnit }} · {{ calibration?.tierName }}</text>
           </view>
           <view class="est-phone__rate">

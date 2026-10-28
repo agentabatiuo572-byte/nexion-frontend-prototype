@@ -30,18 +30,15 @@ export interface CalibrationComparison {
   sortOrder: number;
 }
 
-/** iPhone calibration: the server drew computeValue once from this operator-preset range and stored it. */
-export interface IosModelRange {
+/** iPhone calibration: matched by model; the server drew computeValue once and keeps the range to itself. */
+export interface IosModelMatch {
   method: "IOS_MODEL_RANGE";
   model: string;
-  minComputeValue: number;
-  maxComputeValue: number;
-  valueSource: "OPERATOR_PRESET";
 }
 
 interface OnboardingCalibrationBase {
   userDeviceId?: number | null;
-  modelRange?: IosModelRange;
+  iosModel?: IosModelMatch;
   calibrationStatus?: "MATCHED" | "PENDING_VERIFICATION";
   pendingReason?: string;
   computeValue?: number | null;
@@ -203,21 +200,19 @@ export function parseOnboardingCalibration(
       dailyNex: number(item.dailyNex, Number.MIN_VALUE, 999_999_999_999.999999),
       sortOrder: integer(item.sortOrder) };
   }) : invalid();
-  let modelRange: IosModelRange | undefined;
+  let iosModel: IosModelMatch | undefined;
   if (row.calibrationMethod !== undefined) {
-    if (row.calibrationMethod !== "IOS_MODEL_RANGE" || status !== "MATCHED" || row.valueSource !== "OPERATOR_PRESET") return invalid();
-    const min = number(row.minComputeValue, Number.MIN_VALUE, 1_000_000);
-    const max = number(row.maxComputeValue, min, 1_000_000);
-    const value = number(row.computeValue, min, max);
+    if (row.calibrationMethod !== "IOS_MODEL_RANGE" || status !== "MATCHED") return invalid();
+    const value = number(row.computeValue, Number.MIN_VALUE, 1_000_000);
     if (Math.abs(Math.round(value * 100) - value * 100) > 1e-6) return invalid(); // drawn with two decimals
-    modelRange = { method: "IOS_MODEL_RANGE", model: text(row.model), minComputeValue: min, maxComputeValue: max, valueSource: "OPERATOR_PRESET" };
+    iosModel = { method: "IOS_MODEL_RANGE", model: text(row.model) };
   }
   const common = {
     userId: integer(row.userId, 1), deviceId: text(row.deviceId), serverCanonical: true, source: "server",
     sourceEnvironment, runId,
     revision: integer(row.revision), configRevision: integer(row.configRevision), activationStatus: row.activationStatus,
     userDeviceId: row.userDeviceId == null ? null : integer(row.userDeviceId, 1),
-    ...(modelRange ? { modelRange } : {}),
+    ...(iosModel ? { iosModel } : {}),
     ...(status ? {
       calibrationStatus: status as "MATCHED" | "PENDING_VERIFICATION", computeUnit: "platform" as const,
       computeValue: row.computeValue === null ? null : number(row.computeValue, Number.MIN_VALUE, 1_000_000),

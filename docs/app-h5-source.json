@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\WORKS\\PLAN\\.wt\\janus-retirement-20261028\\app",
+  "sourcePath": "/Volumes/HD1/Projects/UVEL/nexion-uniapp-ios-private",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "60ca2a62440015743193da694b2205cbdcd1a1fd",
-  "sourceRef": "60ca2a62440015743193da694b2205cbdcd1a1fd",
+  "sourceHead": "e2415ddd3dc162495c82908a30831aa21b2784d9",
+  "sourceRef": "e2415ddd3dc162495c82908a30831aa21b2784d9",
   "sourceRefKind": "commit",
-  "sourceTree": "6bc95becd358dd20042bb36ec4846d2df575dee8",
+  "sourceTree": "8ddf1e91e0d72d4d51adbe9e196709b2987db25e",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -12382,10 +12382,10 @@
       "mode": "100644"
     },
     "docs/前端产品更新日志.md": {
-      "sourceBlob": "8d8cf7c2489e4651aab0919fab8cfe972972c9fc",
-      "sourceSha256": "ab1cba007b814a59c9a9d5b36e238d6a060d73c110b7aaa9a7a5336f0fec42f5",
-      "targetBlob": "8d8cf7c2489e4651aab0919fab8cfe972972c9fc",
-      "targetSha256": "ab1cba007b814a59c9a9d5b36e238d6a060d73c110b7aaa9a7a5336f0fec42f5",
+      "sourceBlob": "1889307205d30b659c90381ad3e7ab3eb00ed687",
+      "sourceSha256": "f251b63fa7ed1642a167a7126587b5777feecd3abcf81637a5aa29b22d59d4b6",
+      "targetBlob": "1889307205d30b659c90381ad3e7ab3eb00ed687",
+      "targetSha256": "f251b63fa7ed1642a167a7126587b5777feecd3abcf81637a5aa29b22d59d4b6",
       "mode": "100644"
     },
     "index.html": {
@@ -15791,17 +15791,17 @@
       "mode": "100644"
     },
     "src/api/onboarding-calibration-api.test.ts": {
-      "sourceBlob": "9c687b1f312386cebd3f247f9eea57efeea96759",
-      "sourceSha256": "08afa1dc32b4eb4f332cd87b22e9fc7673f5989fc8761e35686d75dcc519323c",
-      "targetBlob": "9c687b1f312386cebd3f247f9eea57efeea96759",
-      "targetSha256": "08afa1dc32b4eb4f332cd87b22e9fc7673f5989fc8761e35686d75dcc519323c",
+      "sourceBlob": "8d9862b9dd5c6265fac5a1dc753b7e6090109163",
+      "sourceSha256": "2228266f7f243d187eb573f6b6e56f5f82f343d47a41dd22b826de1f81cf0e84",
+      "targetBlob": "8d9862b9dd5c6265fac5a1dc753b7e6090109163",
+      "targetSha256": "2228266f7f243d187eb573f6b6e56f5f82f343d47a41dd22b826de1f81cf0e84",
       "mode": "100644"
     },
     "src/api/onboarding-calibration-api.ts": {
-      "sourceBlob": "8df84459ee3d29bf8d161282ed475b6988d44212",
-      "sourceSha256": "93b08d83c9f9b2c1ee2c6625cfceeed2317db53d7f5940b022ae8769f352275c",
-      "targetBlob": "8df84459ee3d29bf8d161282ed475b6988d44212",
-      "targetSha256": "93b08d83c9f9b2c1ee2c6625cfceeed2317db53d7f5940b022ae8769f352275c",
+      "sourceBlob": "7c09199c7ccb8cd74fe429dd06cc93c577c48eee",
+      "sourceSha256": "1ec157f27c81b98a8d2c4b5f3842359f739abfc56793ad7798a9123c5cca4f02",
+      "targetBlob": "7c09199c7ccb8cd74fe429dd06cc93c577c48eee",
+      "targetSha256": "1ec157f27c81b98a8d2c4b5f3842359f739abfc56793ad7798a9123c5cca4f02",
       "mode": "100644"
     },
     "src/api/order-api-cancel.test.ts": {
@@ -25262,10 +25262,10 @@
       "mode": "100644"
     },
     "src/pages/onboarding/connect.vue": {
-      "sourceBlob": "79ebf46c23dd5bac7f8627f2da4bfaa7ef6a3159",
-      "sourceSha256": "08345ee09be5fc6af9a21c2ab59cd544743cf949692b5a0c10d13a239c5159c5",
-      "targetBlob": "79ebf46c23dd5bac7f8627f2da4bfaa7ef6a3159",
-      "targetSha256": "08345ee09be5fc6af9a21c2ab59cd544743cf949692b5a0c10d13a239c5159c5",
+      "sourceBlob": "23f70a07aba5d24e4ce1fb59532c8e9d6bd62648",
+      "sourceSha256": "8f5f63da79f921ac967d1218167d10b87fc7fe71e24cf75a308548cba5a7a5ee",
+      "targetBlob": "23f70a07aba5d24e4ce1fb59532c8e9d6bd62648",
+      "targetSha256": "8f5f63da79f921ac967d1218167d10b87fc7fe71e24cf75a308548cba5a7a5ee",
       "mode": "100644"
     },
     "src/pages/onboarding/estimator-first-registration.test.ts": {
@@ -25276,17 +25276,17 @@
       "mode": "100644"
     },
     "src/pages/onboarding/estimator-native-render.test.ts": {
-      "sourceBlob": "1c377fa6c65aa154c223669330618e29977b1634",
-      "sourceSha256": "d5b540a8ca34fe58539f1cd875395c8120a7b74078cc25f5b047f1550c021ec1",
-      "targetBlob": "1c377fa6c65aa154c223669330618e29977b1634",
-      "targetSha256": "d5b540a8ca34fe58539f1cd875395c8120a7b74078cc25f5b047f1550c021ec1",
+      "sourceBlob": "324b204b78895204ad6523183ef078037357a96f",
+      "sourceSha256": "dc67847e70449d3b6d34c3b434d346c0eb453b99e3af08d7805596b1bf32f318",
+      "targetBlob": "324b204b78895204ad6523183ef078037357a96f",
+      "targetSha256": "dc67847e70449d3b6d34c3b434d346c0eb453b99e3af08d7805596b1bf32f318",
       "mode": "100644"
     },
     "src/pages/onboarding/estimator.vue": {
-      "sourceBlob": "ce0b870f2b2d55fed0b471c2d99a977d5e564eb4",
-      "sourceSha256": "f0372a5826c28d52a18e9fa00ae6045f23d71bcd4cc7bd65e77feb3fe1dc5c8c",
-      "targetBlob": "ce0b870f2b2d55fed0b471c2d99a977d5e564eb4",
-      "targetSha256": "f0372a5826c28d52a18e9fa00ae6045f23d71bcd4cc7bd65e77feb3fe1dc5c8c",
+      "sourceBlob": "e43d4127344cc3dff077a1398bef6780a3cf100e",
+      "sourceSha256": "b2e1e71302362588f20e1146fa021c4e27c16d4d8708a30e5bb4a095f01b3807",
+      "targetBlob": "e43d4127344cc3dff077a1398bef6780a3cf100e",
+      "targetSha256": "b2e1e71302362588f20e1146fa021c4e27c16d4d8708a30e5bb4a095f01b3807",
       "mode": "100644"
     },
     "src/pages/onboarding/intro-motion.behavior.test.ts": {
@@ -25332,10 +25332,10 @@
       "mode": "100644"
     },
     "src/pages/onboarding/phone-calibration-pages.test.ts": {
-      "sourceBlob": "2f518a1758bfad166cf136cab57e48571f4c5532",
-      "sourceSha256": "7b223754385cf6bcc544535129f053b037b289384df833c7bb663a72bbd3f37c",
-      "targetBlob": "2f518a1758bfad166cf136cab57e48571f4c5532",
-      "targetSha256": "7b223754385cf6bcc544535129f053b037b289384df833c7bb663a72bbd3f37c",
+      "sourceBlob": "74599664a454b3c8ff27614611ae6863fb54b82e",
+      "sourceSha256": "eae2666a5d1990c99625347438007a1cb39fb3cbda6d099242cc2572e2d6e024",
+      "targetBlob": "74599664a454b3c8ff27614611ae6863fb54b82e",
+      "targetSha256": "eae2666a5d1990c99625347438007a1cb39fb3cbda6d099242cc2572e2d6e024",
       "mode": "100644"
     },
     "src/pages/onboarding/privacy.vue": {

@@ -92,7 +92,7 @@ it("H5 remains download-only and never requests or activates a phone",async()=>{
 });
 it("an iPhone shows its model and stored value only, never ranges, rules or benchmarks",async()=>{
  vi.useFakeTimers();
- const iphone={...record,computeValue:113.42,tierName:"Tier 5",modelRange:{method:"IOS_MODEL_RANGE",model:"iPhone 16 Pro",minComputeValue:100,maxComputeValue:120,valueSource:"OPERATOR_PRESET"}};
+ const iphone={...record,computeValue:113.42,tierName:"Tier 5",iosModel:{method:"IOS_MODEL_RANGE",model:"iPhone 16 Pro"}};
  const api={result:vi.fn().mockResolvedValue(iphone),calibrate:vi.fn(),activate:vi.fn()};const p=mount(api,true,"ios");await settle();
  await vi.advanceTimersByTimeAsync(1200);await settle();
  expect(p.errors).toEqual([]);const shown=text(p.root);

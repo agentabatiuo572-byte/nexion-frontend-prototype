@@ -336,7 +336,7 @@ describe("real onboarding page workers", () => {
   it("an iPhone shows identifying steps, then its model and stored value, using the product copy only", async () => {
     nativePlatform = "ios";
     const iphone = { ...record, computeValue: 113.42, tops: 113.42, tierName: "T5", ruleId: "ios-iphone-16-pro",
-      modelRange: { method: "IOS_MODEL_RANGE", model: "iPhone 16 Pro", minComputeValue: 100, maxComputeValue: 120, valueSource: "OPERATOR_PRESET" },
+      iosModel: { method: "IOS_MODEL_RANGE", model: "iPhone 16 Pro" },
       signals: { ...raw, platform: "ios", model: "iPhone17,1", brand: "Apple" } };
     let resolve!: (value: unknown) => void;
     const api = { result: vi.fn().mockRejectedValue(missing()), calibrate: vi.fn(() => new Promise(done => { resolve = done; })), activate: vi.fn() };

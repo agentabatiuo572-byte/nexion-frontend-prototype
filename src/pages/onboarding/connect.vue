@@ -266,7 +266,7 @@ const subText = computed(() => iosPhone && phase.value === "calibrating" ? t.val
   : isRecal.value ? t.value.onboarding.recalSubtitle : t.value.onboarding.calibrationSubtitle);
 const activateText = computed(() => (isRecal.value ? t.value.onboarding.recalActivate : t.value.onboarding.activatePhone));
 const iosPending = computed(() => canonical.value?.calibrationStatus === "PENDING_VERIFICATION" && canonical.value.signals?.platform === "ios");
-const iosModel = computed(() => canonical.value?.modelRange?.model ?? canonical.value?.signals?.model ?? "");
+const iosModel = computed(() => canonical.value?.iosModel?.model ?? canonical.value?.signals?.model ?? "");
 const iosSteps = computed(() => [t.value.onboarding.iosStepIdentify, t.value.onboarding.iosStepResult, t.value.onboarding.iosStepActivate]
   .map((label, index) => ({ label, running: index === 0, state: index === 0 ? t.value.onboarding.iosStepRunning : t.value.onboarding.iosStepWaiting })));
 function contactSupport() {
