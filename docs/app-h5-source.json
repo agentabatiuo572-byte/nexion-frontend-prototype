@@ -3,10 +3,10 @@
   "sourcePath": "/Volumes/HD1/Projects/UVEL/nexion-uniapp-soc",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "4938bf76e03f4ece8a434efd14b9205e753645f6",
-  "sourceRef": "4938bf76e03f4ece8a434efd14b9205e753645f6",
+  "sourceHead": "20a3557e87d5f359b073f30c6c1b3b08900e2b1a",
+  "sourceRef": "20a3557e87d5f359b073f30c6c1b3b08900e2b1a",
   "sourceRefKind": "commit",
-  "sourceTree": "b7c9b514716e8b27490c3a67fbb206014b3d9c4e",
+  "sourceTree": "b75bc283cd6bce446b9a1385ba89727d4ff240ef",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -111,10 +111,10 @@
       "mode": "100644"
     },
     "PRD/NexGrid_产品功能架构设计文档_v3.7.md": {
-      "sourceBlob": "ea546357f86276da63feff8142b85b02b35a63c6",
-      "sourceSha256": "1e3d33eb26f2bcce3b08701b68a73947df671aff0c991059e78f3fa1385ede12",
-      "targetBlob": "ea546357f86276da63feff8142b85b02b35a63c6",
-      "targetSha256": "1e3d33eb26f2bcce3b08701b68a73947df671aff0c991059e78f3fa1385ede12",
+      "sourceBlob": "8d5ce029f4f1d32c0079866675c4c466c9629509",
+      "sourceSha256": "66e6c8e1e613c5e71a04236d05ceeb06e8808be78792105d28233491eb4f5106",
+      "targetBlob": "8d5ce029f4f1d32c0079866675c4c466c9629509",
+      "targetSha256": "66e6c8e1e613c5e71a04236d05ceeb06e8808be78792105d28233491eb4f5106",
       "mode": "100644"
     },
     "PRD/UVEL_Goals绑定返回恢复_20261027.md": {
@@ -12291,10 +12291,10 @@
       "mode": "100644"
     },
     "docs/plans/2026-10-28-android-soc-calibration.md": {
-      "sourceBlob": "28d10890be2ed1598e91a48d0bfcab87bc9156b5",
-      "sourceSha256": "20ba329ba60888cbd120f4b851be24ac1024003b05ccf89f913a8933d3b81770",
-      "targetBlob": "28d10890be2ed1598e91a48d0bfcab87bc9156b5",
-      "targetSha256": "20ba329ba60888cbd120f4b851be24ac1024003b05ccf89f913a8933d3b81770",
+      "sourceBlob": "9947447203725d750ae081e81db5a0008af5008c",
+      "sourceSha256": "8395edd870558f7b687bb286f750029170ba1d53c361a86212b2fd50f51d256c",
+      "targetBlob": "9947447203725d750ae081e81db5a0008af5008c",
+      "targetSha256": "8395edd870558f7b687bb286f750029170ba1d53c361a86212b2fd50f51d256c",
       "mode": "100644"
     },
     "docs/plans/2026-10-28-iphone-model-risk-control.md": {
