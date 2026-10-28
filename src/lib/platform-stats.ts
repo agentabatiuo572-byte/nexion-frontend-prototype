@@ -41,7 +41,8 @@ export interface PublicStatsShape {
   registeredUsersAnchorAt: number;
   /** Optional until the public estimate settings are published. Seconds / users. */
   registeredUsersTickIntervalSec?: number;
-  registeredUsersTickStep?: number;
+  registeredUsersTickStepMin?: number;
+  registeredUsersTickStepMax?: number;
   realUserCount: number;
   virtualUserCount: number;
   hashratePercentileTable: ReadonlyArray<{ tops: number; cumPct: number }>;
@@ -68,8 +69,11 @@ export function publicStatsHealth(ps: PublicStatsShape | undefined | null): {
     && Number.isInteger(ps.registeredUsersBase)
     && inRange(ps.registeredUsersTickIntervalSec, 1, 86_400)
     && Number.isInteger(ps.registeredUsersTickIntervalSec)
-    && inRange(ps.registeredUsersTickStep, 0, 100_000_000)
-    && Number.isInteger(ps.registeredUsersTickStep)
+    && inRange(ps.registeredUsersTickStepMin, 0, 100_000_000)
+    && Number.isInteger(ps.registeredUsersTickStepMin)
+    && inRange(ps.registeredUsersTickStepMax, 0, 100_000_000)
+    && Number.isInteger(ps.registeredUsersTickStepMax)
+    && ps.registeredUsersTickStepMin! <= ps.registeredUsersTickStepMax!
     && fin(ps.registeredUsersAnchorAt) && ps.registeredUsersAnchorAt >= 0;
   const rankOk = inRange(ps.realUserCount, 0, 100_000_000)
     && inRange(ps.virtualUserCount, 0, 10_000_000);
@@ -95,16 +99,34 @@ export function monthlyPayoutUsdOf(ps: PublicStatsShape): number { return dailyP
  * 该值只用于营销展示；排名分母使用服务端 realUserCount，避免公布基数影响真实资格口径。
  */
 export function derivedRegisteredUsers(
-  ps: Pick<PublicStatsShape, 'registeredUsersBase' | 'registeredUsersAnchorAt' | 'registeredUsersTickIntervalSec' | 'registeredUsersTickStep'>,
+  ps: Pick<PublicStatsShape, 'registeredUsersBase' | 'registeredUsersAnchorAt' | 'registeredUsersTickIntervalSec' | 'registeredUsersTickStepMin' | 'registeredUsersTickStepMax'>,
   now: number,
 ): number {
-  const { registeredUsersBase: base, registeredUsersAnchorAt: anchor, registeredUsersTickIntervalSec: interval, registeredUsersTickStep: step } = ps;
+  const { registeredUsersBase: base, registeredUsersAnchorAt: anchor, registeredUsersTickIntervalSec: interval } = ps;
+  const { registeredUsersTickStepMin: min, registeredUsersTickStepMax: max } = ps;
   if (!Number.isFinite(now) || !Number.isFinite(anchor) || anchor < 0
       || !Number.isInteger(base) || base < 0 || base > 100_000_000
       || interval == null || !Number.isInteger(interval) || interval < 1 || interval > 86_400
-      || step == null || !Number.isInteger(step) || step < 0 || step > 100_000_000) return Number.NaN;
-  const value = base + Math.floor(Math.max(0, now - anchor) / (interval * 1000)) * step;
+      || min == null || max == null || !Number.isInteger(min) || !Number.isInteger(max)
+      || min < 0 || max > 100_000_000 || min > max) return Number.NaN;
+  // Same function as the server's GrowthPublicStatsService.tickedMembers: start + floor(n × (min + max) / 2)
+  // + offset(n). The offset keeps every tick within [min, max] while any tick count stays O(1).
+  const ticks = Math.floor(Math.max(0, now - anchor) / (interval * 1000));
+  const sum = min + max;
+  const spread = Math.min(Math.floor(sum / 2) - min, max - Math.ceil(sum / 2));
+  const value = base + Math.floor(ticks * sum / 2) + (ticks === 0 || spread === 0 ? 0 : tickOffset(anchor, ticks, spread));
   return Number.isSafeInteger(value) ? value : Number.NaN;
+}
+
+/** Seeded 32-bit hash in [0, spread]; bit-identical to the server (wrapping multiply, unsigned shifts). */
+export function tickOffset(anchorAt: number, tick: number, spread: number): number {
+  let h = (anchorAt % 4294967296) ^ Math.imul(tick, 0x9E3779B1);
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x7FEB352D);
+  h ^= h >>> 15;
+  h = Math.imul(h, 0x846CA68B);
+  h ^= h >>> 16;
+  return (h >>> 0) % (spread + 1);
 }
 
 /** ≈ $20.5M — the "this month" round expression (30-day anchor month). */

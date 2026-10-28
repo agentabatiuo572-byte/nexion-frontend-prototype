@@ -340,6 +340,8 @@ function parseVerifiedStats(value: unknown): PlatformVerifiedStats | null {
   };
 }
 
+const optionalNumber = (value: unknown): number | undefined => (typeof value === "number" ? value : undefined);
+
 function parsePublicStats(value: unknown): PublicStatsConfig {
   const projection = record(value);
   const estimateValues = projection.values && typeof projection.values === "object" && !Array.isArray(projection.values) ? projection.values as Record<string,unknown> : projection;
@@ -357,7 +359,9 @@ function parsePublicStats(value: unknown): PublicStatsConfig {
     registeredUsersMonthlyGrowthPct: -1,
     registeredUsersAnchorAt: typeof estimateValues.registeredUsersAnchorAt === "number" ? estimateValues.registeredUsersAnchorAt : -1,
     registeredUsersTickIntervalSec: typeof estimateValues.registeredUsersTickIntervalSec === "number" ? estimateValues.registeredUsersTickIntervalSec : undefined,
-    registeredUsersTickStep: typeof estimateValues.registeredUsersTickStep === "number" ? estimateValues.registeredUsersTickStep : undefined,
+    // A server from the first cadence release sends one fixed step; read it as min = max.
+    registeredUsersTickStepMin: optionalNumber(estimateValues.registeredUsersTickStepMin ?? estimateValues.registeredUsersTickStep),
+    registeredUsersTickStepMax: optionalNumber(estimateValues.registeredUsersTickStepMax ?? estimateValues.registeredUsersTickStep),
     realUserCount,
     virtualUserCount: -1,
     hashratePercentileTable: [],

@@ -23,7 +23,7 @@ function mount(copy = zh) {
   const visibility = useDataVisibility(createPinia());
   vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-25T12:00:09Z'));
   const cfg = vue.reactive({ loading: false, syncFailed: false, load: vi.fn(), config: {
-    publicStats: { registeredUsersBase: 100, registeredUsersAnchorAt: Date.now() - 9000, registeredUsersTickIntervalSec: 10, registeredUsersTickStep: 1 },
+    publicStats: { registeredUsersBase: 100, registeredUsersAnchorAt: Date.now() - 9000, registeredUsersTickIntervalSec: 10, registeredUsersTickStepMin:1,registeredUsersTickStepMax:1 },
     networkPulse: { registeredUsers: 99999, onlineDevices: 200 },
   } });
   const rank = vue.reactive({ status: 'ready', snapshot: { state: 'ranked', currentRank: 12 } as { state: string; currentRank: number | null } | null, bindAccount: vi.fn(), ensure: vi.fn(), refresh: vi.fn() });
