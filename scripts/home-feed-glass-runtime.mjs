@@ -49,7 +49,7 @@ const overview = {
   onboarding: { cumulativePaidUsdt: 0, activeDevices: 0 }, onGrid: { clients: [], activeDevices: 0, activeJobs: 0, perSecUsdt: 0 },
 };
 function fixture(url, request, locale) {
-  if (url.pathname === "/api/app/profile") return { nickname: "UI Fixture", avatarUrl: "", avatarRevision: "", language: locale };
+  if (url.pathname === "/api/app/profile") return { nickname: "UI Fixture", avatarUrl: "", avatarRevision: "", profileChangeIntervalDays: 7, nicknameChangeAvailableAt: null, avatarChangeAvailableAt: null, language: locale };
   if (url.pathname === "/api/app/home/overview") return overview;
   if (url.pathname === "/api/devices/earnings") return { ...authority, source: "nx_user_device + nx_compute_receipt + nx_compute_e3_config", dailyUsdt: 0, dailyNex: 0, realizedTodayUsdt: .1, realizedTodayNex: 0, walletUsdt: 0, walletNex: 0, userJoinedAt: now, serverNow: now, timezone: "UTC", slotCap: 1, devices: [], capacitySchedule: {} };
   if (url.pathname === "/api/config/platform") return { featureFlags: { computeShareEnabled: false, homeNewcomerTasksEnabled: false, homeWeeklyPromoEnabled: false }, share: { baseUrl: "", channels: [], appDownload: { officialUrl: "", iosUrl: "", androidUrl: "", apkUrl: "", version: "", releaseNotes: { zh: "", en: "" }, source: "unavailable" } }, publicStats: { version: 1, ...authority, source: "server:nx_config_item,nx_user", realUserCount: 0 }, updatedAt: iso };

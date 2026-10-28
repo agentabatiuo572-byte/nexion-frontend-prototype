@@ -123,7 +123,7 @@ async function open(ctx, landing, auth) {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({ code: 0, message: "OK", data: {
-          nickname: "Guard Witness", avatarUrl: "", avatarRevision: "", language: "en",
+          nickname: "Guard Witness", avatarUrl: "", avatarRevision: "", profileChangeIntervalDays: 7, nicknameChangeAvailableAt: null, avatarChangeAvailableAt: null, language: "en",
         } }),
       });
     }

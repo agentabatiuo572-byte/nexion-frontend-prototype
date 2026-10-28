@@ -359,7 +359,7 @@ describe('isolated prototype data uses the real read contracts',()=>{
     expect((await receipts.receipts()).items).toHaveLength(3);expect((await receipts.receipt('DEMO-RECEIPT-1')).rewardUsdt).toBe(2.34);
     expect((await createPaymentMethodApi(d.client).list())[0].last4).toBe('4242');
     expect(await createProfileApi(d.client).nicknameCandidates()).toHaveLength(6);
-    expect(await createProfileApi(d.client).profile()).toEqual({nickname:'Alex',avatarUrl:'',avatarRevision:'',language:'zh'});
+    expect(await createProfileApi(d.client).profile()).toEqual({nickname:'Alex',avatarUrl:'',avatarRevision:'',language:'zh',changeIntervalDays:7,nicknameChangeAvailableAt:null,avatarChangeAvailableAt:null});
     expect((await createPayoutAddressApi(d.client,'prod').list()).addresses).toHaveLength(1);
     const preferences=createNotificationPreferencesApi(d.client);expect((await preferences.get()).market).toBe(true);
     await preferences.patch({market:false});expect((await preferences.get()).market).toBe(false);

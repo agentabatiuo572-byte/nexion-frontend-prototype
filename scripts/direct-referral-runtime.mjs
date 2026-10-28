@@ -58,7 +58,7 @@ const guide = { ...proof, runId: null, coolingDays: 17, network: { depthGateLaye
   leadership: { rate: .05, minRank: 3, monthlyCap: 1000 }, capabilities: { peer: false, genesis: false } };
 function fixture(url, locale, state) {
   const p = url.pathname;
-  if (p === "/api/app/profile") return { nickname: "Direct fixture", avatarUrl: "", avatarRevision: "", language: locale };
+  if (p === "/api/app/profile") return { nickname: "Direct fixture", avatarUrl: "", avatarRevision: "", profileChangeIntervalDays: 7, nicknameChangeAvailableAt: null, avatarChangeAvailableAt: null, language: locale };
   if (p === "/api/config/commission/direct-referral") return state.policy === "unconfigured" ? { ...policy, configured: false, policyVersion: 0, effectiveAt: null, purchaseSplit: { enabled: false, usdtSharePct: 50 }, deviceEarning: { enabled: false, totalRatePct: 0, usdtSharePct: 50, coolingDays: 0 } }
     : state.policy === "no-price" ? { ...policy, nexUsdtPrice: null } : state.policy === "disabled" ? { ...policy, purchaseSplit: { ...policy.purchaseSplit, enabled: false }, deviceEarning: { ...policy.deviceEarning, enabled: false } } : policy;
   if (p === "/api/app/team/insights/direct-referral" || p === "/api/app/team/insights/unilevel") {

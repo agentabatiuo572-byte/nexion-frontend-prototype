@@ -162,7 +162,7 @@ try {
       await installFormalProbeSession(page, {
         authenticated: authenticatedRoutes.has(route),
         responseFor: (url, request) => authenticatedRoutes.has(route) && url.pathname === "/api/app/profile" && request.method() === "GET"
-          ? { nickname: "Formal Probe", avatarUrl: "", avatarRevision: "", language: locale }
+          ? { nickname: "Formal Probe", avatarUrl: "", avatarRevision: "", profileChangeIntervalDays: 7, nicknameChangeAvailableAt: null, avatarChangeAvailableAt: null, language: locale }
           : undefined,
       });
       page.on("console", collectAppConsoleErrors(consoleErrors, baseUrl));

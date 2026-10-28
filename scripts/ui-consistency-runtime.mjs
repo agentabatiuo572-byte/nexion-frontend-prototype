@@ -61,7 +61,7 @@ export function uiFixture(url, request, locale = "en") {
   if (url.pathname === "/api/app/support/conversation-categories") return [{ type: "advisor", enabled: false }, { type: "support", enabled: true }, { type: "ai", enabled: false }];
   if (url.pathname === "/api/app/support/advisor") return { assignmentId: null, currentAdvisorId: null, currentAdvisorName: null, assignmentState: "UNBOUND", availability: "UNBOUND" };
   if (url.pathname === "/api/app/support/attachments/policy") return { available: false, allowedMimeTypes: [], maxBytes: null, maxPixels: null, ttlSeconds: null, unavailableReason: "UI fixture" };
-  if (url.pathname === "/api/app/profile") return { nickname: "UI Fixture", avatarUrl: "", avatarRevision: "", language: locale };
+  if (url.pathname === "/api/app/profile") return { nickname: "UI Fixture", avatarUrl: "", avatarRevision: "", profileChangeIntervalDays: 7, nicknameChangeAvailableAt: null, avatarChangeAvailableAt: null, language: locale };
   if (url.pathname === "/api/devices/earnings") return fleet;
   if (url.pathname === "/api/app/home/overview") return overview;
   if (url.pathname === "/api/store/catalog") return { ...AUTHORITY, source: "nx_product", revision: null, products: [product] };

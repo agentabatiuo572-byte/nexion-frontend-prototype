@@ -43,7 +43,7 @@ function mountProfile(remote: boolean, payoutFixture: PayoutFixture) {
       PAYOUT_NETWORKS: ["usdt-trc20"],
       maskAddressMid: (address: string) => `masked:${address}`,
     },
-    "@/store/ui": { toast: {} },
+    "@/store/ui": { toast: {}, confirm: vi.fn(), useUI: () => ({ clearConfirmsBy: vi.fn() }) },
     "@/lib/account-scope": { captureAccountScope: vi.fn(), isCurrentAccountScope: vi.fn(() => true) },
     "@/lib/remote-profile-quest": { claimSetupProfileQuest: vi.fn() },
     "@/lib/profile-save-flow": { reconcileProfileEdit: vi.fn() },

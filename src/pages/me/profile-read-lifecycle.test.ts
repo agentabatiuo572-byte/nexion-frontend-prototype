@@ -14,7 +14,8 @@ import { rankName } from "@/lib/v-rank-copy";
 import { createP318AccountPageFence } from "./p3-18-account-page-fence";
 import { reconcileProfileEdit } from "@/lib/profile-save-flow";
 import { displayNickname } from "@/lib/brand-copy";
-import { ApiError } from "@/api/errors";
+import { ApiError, asApiError } from "@/api/errors";
+import { formatDisplayDateTime } from "@/lib/display-date";
 
 const remote = vi.hoisted(() => ({ remoteApiEnabled: true, apiRuntimeConfig: { environment: "dev", baseUrl: "https://test.invalid" }, vRankApi: { ladder: vi.fn(), current: vi.fn() } }));
 vi.mock("@/api/runtime", () => remote);
@@ -54,6 +55,8 @@ function mount(localeCode: "zh" | "en" | "vi" = "zh", platform: "app" | "h5" = "
   const profileRead = vi.fn(() => { const request = deferred(); profileReads.push(request); return request.promise; });
   const hooks: Record<string, Array<() => void>> = { mount: [], show: [], hide: [], unmount: [] };
   const toast = { error: vi.fn(), success: vi.fn(), info: vi.fn() };
+  const confirm = vi.fn(async () => true);
+  const ui = { clearConfirmsBy: vi.fn() };
   const chooseImage = vi.fn();
   const uploadAvatar = vi.fn();
   const cryptoUuid = vi.fn(() => "avatar-fixture-id");
@@ -67,7 +70,7 @@ function mount(localeCode: "zh" | "en" | "vi" = "zh", platform: "app" | "h5" = "
     "@/store/payout-address": { usePayoutAddress: () => payout }, "@/store/quest": { useQuest: () => ({}) },
     "@/store/v-rank": { useVRank: () => rank }, "@/store/locale": { useLocaleStore: () => ({ code: localeCode }) },
     "@/store/payout-address-core": { PAYOUT_NETWORKS: ["usdt-trc20"], maskAddressMid: (address: string) => address },
-    "@/store/ui": { toast }, "@/lib/account-scope": {
+    "@/store/ui": { toast, confirm, useUI: () => ui }, "@/lib/account-scope": {
       captureAccountScope: () => ({ account: app.accountKey, epoch: app.accountBindingEpoch }),
       isCurrentAccountScope: (scope: { account: string; epoch: number }) => scope.account === app.accountKey && scope.epoch === app.accountBindingEpoch,
     },
@@ -77,12 +80,13 @@ function mount(localeCode: "zh" | "en" | "vi" = "zh", platform: "app" | "h5" = "
     "@/lib/v-rank-copy": { rankName },
     "@/lib/brand-copy": { displayNickname },
     "@/api/order-api": runtimeRevision, "./p3-18-account-page-fence": { createP318AccountPageFence },
+    "@/api/errors": { asApiError }, "@/lib/display-date": { formatDisplayDateTime },
   };
   const script = source.split('<script setup lang="ts">')[1].split("</script>")[0];
   initPreContext(platform);
   const output = ts.transpileModule(preJs(script, "profile.vue"), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
   const scope = vue.effectScope();
-  const page = scope.run(() => new Function("require", "exports", "uni", output + ";return {refreshVRankForCurrentAccount,loadRemoteProfile,handleRegen,tierLabel,tierProgressLine,walletSub,walletAction,name,dirty,displayName,avatarUrl,avatarRevision,avatarUploading};")((id: string) => {
+  const page = scope.run(() => new Function("require", "exports", "uni", output + ";return {refreshVRankForCurrentAccount,loadRemoteProfile,handleRegen,openNicknameSheet,handleSave,nicknameHint,nicknameSheetOpen,tierLabel,tierProgressLine,walletSub,walletAction,name,dirty,displayName,avatarUrl,avatarRevision,avatarUploading};")((id: string) => {
     if (id.endsWith(".vue")) return {};
     if (!(id in modules)) throw Error(`Unexpected dependency ${id}`);
     return modules[id];
@@ -96,7 +100,7 @@ function mount(localeCode: "zh" | "en" | "vi" = "zh", platform: "app" | "h5" = "
     }) });
     reads[index].current.resolve({ rankCode: `V${value}`, progress: { selfBuyUSD: 0, directRefs: 0, teamVolumeUSD: 0, vDownlineCounts: {} } });
   };
-  return { page, rank, reads, accept, app, auth, session, payout, profile, profileReads, toast, fire, chooseImage, uploadAvatar, cryptoUuid };
+  return { page, rank, reads, accept, app, auth, session, payout, profile, profileReads, toast, confirm, fire, chooseImage, uploadAvatar, cryptoUuid };
 }
 
 // Execute the installed native chooser's actionSheet cancel and its real failure
@@ -201,10 +205,10 @@ describe("profile avatar picker cancellation", () => {
   });
   it("preserves successful uploads and authoritative read recovery", async () => {
     const h = mount(); pickFile(h); h.uploadAvatar.mockResolvedValue({ avatarUrl: "saved.png", avatarRevision: "r1" });
-    await h.page.handleRegen(); expect(h.page.avatarUrl.value).toBe("saved.png"); expect(h.toast.success).toHaveBeenCalledWith(zh.profile.avatar, zh.profile.avatarHint);
+    await h.page.handleRegen(); expect(h.page.avatarUrl.value).toBe("saved.png"); expect(h.toast.success).toHaveBeenCalledWith(zh.profile.avatarSavedToast, undefined);
     expect(h.uploadAvatar).toHaveBeenCalledWith("fixture-only.png", "app-profile:avatar:avatar-fixture-id");
     h.uploadAvatar.mockRejectedValue(Error("upload result lost")); const recovery = h.page.handleRegen(); await flush();
-    h.profileReads[0].resolve({ avatarUrl: "recovered.png", avatarRevision: "r2" }); await recovery;
+    h.profileReads[h.profileReads.length - 1].resolve({ avatarUrl: "recovered.png", avatarRevision: "r2" }); await recovery;
     expect(h.page.avatarUrl.value).toBe("recovered.png"); expect(h.toast.error).not.toHaveBeenCalled();
   });
   it.each(["hide", "account", "rebind", "unmount"])("discards a late selected file after %s", async event => {
@@ -339,4 +343,54 @@ describe("profile authoritative read lifecycle", () => {
       expect(h.profile.projectServerNickname).not.toHaveBeenCalled(); expect(h.toast.error).not.toHaveBeenCalled();
     });
   }
+});
+
+describe("profile change interval", () => {
+  const later = Date.now() + 3 * 86400000;
+  async function load(h: ReturnType<typeof mount>, nicknameChangeAvailableAt: number | null, avatarChangeAvailableAt: number | null) {
+    const read = h.page.loadRemoteProfile();
+    h.profileReads[h.profileReads.length - 1].resolve({ nickname: "Confirmed", avatarUrl: "", avatarRevision: "", language: "zh",
+      changeIntervalDays: 7, nicknameChangeAvailableAt, avatarChangeAvailableAt });
+    await read;
+  }
+  it("tells the user the interval before a change and the date while locked", async () => {
+    const h = mount(); await load(h, null, null);
+    expect(h.page.nicknameHint.value).toBe(`${zh.profile.displayNameHint} · ${zh.profile.changeIntervalHint.replace("{days}", "7")}`);
+    await load(h, later, null);
+    const date = formatDisplayDateTime(later, "zh-CN");
+    expect(h.page.nicknameHint.value).toBe(`${zh.profile.displayNameHint} · ${zh.profile.nicknameLockedHint.replace("{date}", date)}`);
+    await h.page.openNicknameSheet();
+    expect(h.page.nicknameSheetOpen.value).toBe(false);
+    expect(h.toast.info).toHaveBeenCalledWith(zh.profile.nicknameLockedTitle, zh.profile.nicknameLockedHint.replace("{date}", date));
+  });
+  it("blocks the avatar picker while locked and asks before an allowed change", async () => {
+    const h = mount(); await load(h, null, later);
+    await h.page.handleRegen();
+    expect(h.chooseImage).not.toHaveBeenCalled(); expect(h.confirm).not.toHaveBeenCalled();
+    expect(h.toast.info).toHaveBeenCalledWith(zh.profile.avatarLockedTitle,
+      zh.profile.avatarLockedHint.replace("{date}", formatDisplayDateTime(later, "zh-CN")));
+    await load(h, null, null); h.confirm.mockResolvedValueOnce(false);
+    await h.page.handleRegen();
+    expect(h.confirm).toHaveBeenCalledWith(expect.objectContaining({ title: zh.profile.avatarConfirmTitle,
+      message: zh.profile.avatarConfirmMessage.replace("{days}", "7") }));
+    expect(h.chooseImage).not.toHaveBeenCalled();
+    h.chooseImage.mockImplementation((options: { success: (result: unknown) => void }) => options.success({ tempFilePaths: ["fixture-only.png"] }));
+    h.uploadAvatar.mockResolvedValue({ avatarUrl: "saved.png", avatarRevision: "r1" });
+    await h.page.handleRegen();
+    expect(h.toast.success).toHaveBeenCalledWith(zh.profile.avatarSavedToast, zh.profile.avatarSavedHint.replace("{days}", "7"));
+  });
+  it("asks before saving a nickname and explains a refused early change", async () => {
+    const h = mount(); await load(h, null, null);
+    h.page.name.value = "Silver River 42";
+    h.profile.setDisplayName.mockRejectedValueOnce(new ApiError({ kind: "business", message: "USER_NICKNAME_CHANGE_TOO_SOON", status: 409 }));
+    const save = h.page.handleSave(); await flush();
+    expect(h.confirm).toHaveBeenCalledWith(expect.objectContaining({ title: zh.profile.nicknameConfirmTitle,
+      message: zh.profile.nicknameConfirmMessage.replace("{days}", "7") }));
+    h.profileReads[h.profileReads.length - 1].resolve({ nickname: "Confirmed", avatarUrl: "", avatarRevision: "", language: "zh",
+      changeIntervalDays: 7, nicknameChangeAvailableAt: later, avatarChangeAvailableAt: null });
+    await save;
+    expect(h.page.name.value).toBe("Confirmed"); expect(h.toast.error).not.toHaveBeenCalled();
+    expect(h.toast.info).toHaveBeenCalledWith(zh.profile.nicknameLockedTitle,
+      zh.profile.nicknameLockedHint.replace("{date}", formatDisplayDateTime(later, "zh-CN")));
+  });
 });
