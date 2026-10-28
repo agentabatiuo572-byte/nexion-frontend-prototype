@@ -72,7 +72,7 @@ const bodyStyle: CSSProperties = {
   marginLeft: "40px",
   fontSize: "var(--ui-type-long-form)",
   color: "var(--v5-ink-2)",
-  lineHeight: 1.62,
+  lineHeight: "var(--ui-type-long-form-lh)",
 };
 </script>
 

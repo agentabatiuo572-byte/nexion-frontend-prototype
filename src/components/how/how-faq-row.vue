@@ -34,6 +34,6 @@ const aStyle: CSSProperties = {
   marginTop: "5px",
   fontSize: "var(--ui-type-long-form)",
   color: "var(--v5-ink-2)",
-  lineHeight: 1.62,
+  lineHeight: "var(--ui-type-long-form-lh)",
 };
 </script>

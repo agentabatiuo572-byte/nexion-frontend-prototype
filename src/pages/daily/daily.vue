@@ -738,7 +738,7 @@ const signInBtnStyle = computed<CSSProperties>(() => {
     color: inert ? disabledSignInColor : "var(--v5-on-brand)",
     fontFamily: "var(--font-v5)",
     fontWeight: 600,
-    fontSize: "15px",
+    fontSize: "var(--ui-type-button)",
   };
 });
 const nextClaimStyle: CSSProperties = {
