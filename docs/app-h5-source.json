@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-trial05-live",
+  "sourcePath": "D:\\WORKS\\PLAN\\.wt\\uvel-design-20261028-integrate",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "a134cb3dd60ce0cc77c70e53e00f215395f31ef2",
-  "sourceRef": "a134cb3dd60ce0cc77c70e53e00f215395f31ef2",
+  "sourceHead": "e4fc1caf3ab84a3ebf4cace10a8292c4291d6ab8",
+  "sourceRef": "e4fc1caf3ab84a3ebf4cace10a8292c4291d6ab8",
   "sourceRefKind": "commit",
-  "sourceTree": "7556299a9cd7b19ccd58dc72729d13eea730e672",
+  "sourceTree": "8c1e3163c05ff6c2a5d59e4f66e488c6bb21e99e",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -279,10 +279,10 @@
       "mode": "100644"
     },
     "PRD/proposals/UVEL_试用提前转购权益衔接_20261027.md": {
-      "sourceBlob": "d9ac0c73d8e27e7823449b784955fd30dec0fcca",
-      "sourceSha256": "3403316bf6bea339151454560d69da0b7676956948236c5c74a229d6a552db9c",
-      "targetBlob": "d9ac0c73d8e27e7823449b784955fd30dec0fcca",
-      "targetSha256": "3403316bf6bea339151454560d69da0b7676956948236c5c74a229d6a552db9c",
+      "sourceBlob": "713ea9b8b7104036873dba40c73d3a0f3174bea4",
+      "sourceSha256": "f1731e41a3f81771ff0cbdeee9aaf332815615ff1be70bb0f4dcae1ca0612e49",
+      "targetBlob": "713ea9b8b7104036873dba40c73d3a0f3174bea4",
+      "targetSha256": "f1731e41a3f81771ff0cbdeee9aaf332815615ff1be70bb0f4dcae1ca0612e49",
       "mode": "100644"
     },
     "checks/lucky-spin-remote-contract.test.mjs": {
@@ -1140,10 +1140,10 @@
       "mode": "100644"
     },
     "docs/audit/2026-10-27-restart-handoff.md": {
-      "sourceBlob": "3c70266bdd1545b4507b4617a5a9bdc3a9992971",
-      "sourceSha256": "4c5ce95a4375676746fc42947a22afb647d1617e22d88292bc6d18b7835d5ddd",
-      "targetBlob": "3c70266bdd1545b4507b4617a5a9bdc3a9992971",
-      "targetSha256": "4c5ce95a4375676746fc42947a22afb647d1617e22d88292bc6d18b7835d5ddd",
+      "sourceBlob": "1a311ae4a79276731d3b41361c21deba500acce7",
+      "sourceSha256": "31faac5171585f0cca81fb69e47e0cc7811aa52b078076ae26ca67cb217fa40b",
+      "targetBlob": "1a311ae4a79276731d3b41361c21deba500acce7",
+      "targetSha256": "31faac5171585f0cca81fb69e47e0cc7811aa52b078076ae26ca67cb217fa40b",
       "mode": "100644"
     },
     "docs/audit/2026-10-27-service-earn.md": {
@@ -5354,10 +5354,10 @@
       "mode": "100644"
     },
     "docs/audit/2026-10-27-unified-delivery.md": {
-      "sourceBlob": "c343b6f50b7d0487569547163493f75e6f9a841e",
-      "sourceSha256": "2e22281c8a8d5c7a4055990e0ca8e156f6aa32d01523aa9bb86ae86efc39e02a",
-      "targetBlob": "c343b6f50b7d0487569547163493f75e6f9a841e",
-      "targetSha256": "2e22281c8a8d5c7a4055990e0ca8e156f6aa32d01523aa9bb86ae86efc39e02a",
+      "sourceBlob": "963164c5ad05c235848bcaf6495dce0b9c04041f",
+      "sourceSha256": "1d558cc906c381f73c541b033f20e75916b422d6c75d1dd62116ceb606409d76",
+      "targetBlob": "963164c5ad05c235848bcaf6495dce0b9c04041f",
+      "targetSha256": "1d558cc906c381f73c541b033f20e75916b422d6c75d1dd62116ceb606409d76",
       "mode": "100644"
     },
     "docs/audit/2026-10-27-unified-delivery/interaction-b/01-home-before-trial.png": {
@@ -12277,10 +12277,10 @@
       "mode": "100644"
     },
     "docs/plans/2026-10-28-android-soc-calibration.md": {
-      "sourceBlob": "40e7dea703d04d9824ed35e2018a5b57801b3c50",
-      "sourceSha256": "0bf4b7bc4779174434718a93204c83af51990fbcc59359c1b36dcd1d71e8a5f2",
-      "targetBlob": "40e7dea703d04d9824ed35e2018a5b57801b3c50",
-      "targetSha256": "0bf4b7bc4779174434718a93204c83af51990fbcc59359c1b36dcd1d71e8a5f2",
+      "sourceBlob": "6505f33eee9f6338bf866b919085484330ad8188",
+      "sourceSha256": "430771c53b03e6b74ef4f6bce939d15d1fdde670249f310611621fb504c4b48c",
+      "targetBlob": "6505f33eee9f6338bf866b919085484330ad8188",
+      "targetSha256": "430771c53b03e6b74ef4f6bce939d15d1fdde670249f310611621fb504c4b48c",
       "mode": "100644"
     },
     "docs/plans/2026-10-28-iphone-model-risk-control.md": {
