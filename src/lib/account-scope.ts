@@ -26,7 +26,6 @@ import { useNotifications } from "@/store/notifications";
 import { useMessageDrawer } from "@/store/message-drawer";
 import { usePreferences } from "@/store/preferences";
 import { useReceipts } from "@/store/receipts";
-import { useTickets } from "@/store/tickets";
 import { useCart } from "@/store/cart";
 import { usePendingCheckout } from "@/store/pending-checkout";
 import { useProfile } from "@/store/profile";
@@ -135,7 +134,6 @@ export function rebindAccountScopedStores(accountKey: string): void {
   useNotifications().bindAccount(accountKey);
   usePreferences().bindAccount(accountKey);
   useReceipts().bindAccount(accountKey);
-  useTickets().bindAccount(accountKey);
   useCart().bindAccount(accountKey);
   usePendingCheckout().bindAccount(accountKey); // 待支付会话(结算扫码步的发票):换号必换行
   useProfile().bindAccount(accountKey);

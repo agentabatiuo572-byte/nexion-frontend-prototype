@@ -2,7 +2,7 @@ const PREFIX = "support-pending-commands";
 const SLOT = /^sha256:[a-f0-9]{64}$/;
 const KEY = /^support-[a-z0-9-]+-/;
 
-function storageKey(accountKey: string, runId: string, kind: "tickets" | "conversations"): string {
+function storageKey(accountKey: string, runId: string, kind: "conversations"): string {
   return `${PREFIX}:${accountKey}:${runId}:${kind}`;
 }
 
@@ -37,7 +37,7 @@ function write(key: string, value: string): void {
   }
 }
 
-export function restoreSupportPending(accountKey: string, runId: string, kind: "tickets" | "conversations"): Map<string, string> {
+export function restoreSupportPending(accountKey: string, runId: string, kind: "conversations"): Map<string, string> {
   const raw = read(storageKey(accountKey, runId, kind));
   if (raw === null) return new Map();
   try {
@@ -51,12 +51,12 @@ export function restoreSupportPending(accountKey: string, runId: string, kind: "
   }
 }
 
-export function persistSupportPending(accountKey: string, runId: string, kind: "tickets" | "conversations", values: Map<string, string>): void {
+export function persistSupportPending(accountKey: string, runId: string, kind: "conversations", values: Map<string, string>): void {
   write(storageKey(accountKey, runId, kind), JSON.stringify(Object.fromEntries(values)));
 }
 
 /** Retire only this account's commands when it voluntarily leaves this carrier. */
-export function clearSupportPending(accountKey: string, kind: "tickets" | "conversations"): void {
+export function clearSupportPending(accountKey: string, kind: "conversations"): void {
   const matches = (key: string) => key.startsWith(`${PREFIX}:${accountKey}:`) && key.endsWith(`:${kind}`);
   if (typeof plus !== "undefined") {
     try {

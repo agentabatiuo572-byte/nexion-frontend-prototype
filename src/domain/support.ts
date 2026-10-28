@@ -1,51 +1,3 @@
-export type TicketStatus = "open" | "in_progress" | "pending_user" | "resolved" | "closed";
-export type TicketCategory = "account" | "withdrawal" | "deposit" | "hardware" | "earnings" | "genesis" | "technical" | "other";
-export type TicketPriority = "low" | "normal" | "high" | "urgent";
-
-export interface TicketMessage {
-  id: string;
-  ts: number;
-  author: "user" | "agent";
-  agentName?: string;
-  body: string;
-}
-
-export interface Ticket {
-  id: string;
-  subject: string;
-  category: TicketCategory;
-  status: TicketStatus;
-  priority: TicketPriority;
-  version: number;
-  createdAt: number;
-  updatedAt: number;
-  lastReplyAt: number;
-  /** Authoritative header projection; list rows do not hydrate the timeline. */
-  messageCount: number;
-  unread: number;
-  owner: string;
-  messages: TicketMessage[];
-  /** True when the server intentionally returned only the newest message window. */
-  historyTruncated?: boolean;
-  /** Opaque-to-the-view cursor for the next older server-owned ticket page. */
-  historyNextCursor?: number | null;
-}
-
-export const CATEGORY_LABEL: Record<TicketCategory, string> = {
-  account: "Account", withdrawal: "Withdrawal", deposit: "Deposit", hardware: "Hardware",
-  earnings: "Earnings", genesis: "Genesis", technical: "Technical", other: "Other",
-};
-export const STATUS_LABEL: Record<TicketStatus, string> = {
-  open: "Open", in_progress: "In progress", pending_user: "Awaiting you", resolved: "Resolved", closed: "Closed",
-};
-export const STATUS_COLOR: Record<TicketStatus, string> = {
-  open: "var(--v5-warning)", in_progress: "var(--v5-tech-cyan)", pending_user: "var(--v5-brand-2)",
-  resolved: "var(--v5-brand)", closed: "var(--v5-ink-4)",
-};
-export const PRIORITY_LABEL: Record<TicketPriority, string> = {
-  low: "Low", normal: "Normal", high: "High", urgent: "Urgent",
-};
-
 export type ConversationType = "ai" | "advisor" | "support";
 export type ConversationCategoryAvailability = Record<ConversationType, boolean>;
 export type ConvRoleKey = "roleAi" | "roleAdvisor" | "roleSupport";
@@ -108,9 +60,3 @@ export interface SupportFaq {
 }
 
 /** A configured M4 service target. It is deliberately separate from historical response statistics. */
-export interface SupportSlaTarget {
-  category: TicketCategory;
-  firstResponseMins: number;
-  resolutionHours: number;
-  statisticsAvailable: boolean;
-}

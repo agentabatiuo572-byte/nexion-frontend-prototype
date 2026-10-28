@@ -38,11 +38,8 @@ if (scenario === 'history') {
     active=false;return page(102,201);
   },()=>active),/SUPPORT_ACCOUNT_SCOPE_CHANGED/);
 } else {
-  const row=id=>scenario==='tickets'
-    ? {id,ticketNo:'TK-'+id,title:'Fixture',category:'technical',status:'OPEN',priority:'NORMAL',version:1,
-       createdAt:1,updatedAt:2,lastMessageAt:3,messageCount:1,userUnreadCount:0,assignedAdminName:''}
-    : {id,conversationNo:'CV-'+id,conversationType:'support',status:'CLOSED',version:1,
-       lastMessageAt:3,unreadCount:0,ownerAgentName:'',lastMessage:'fixture'};
+  const row=id=>({id,conversationNo:'CV-'+id,conversationType:'support',status:'CLOSED',version:1,
+       lastMessageAt:3,unreadCount:0,ownerAgentName:'',lastMessage:'fixture'});
   for(const length of [0,3,100]) {
     const paths=[],first=Array.from({length},(_,i)=>row(200-i)),second=[row(100),row(99)];
     const total=length===100?102:length;
@@ -58,7 +55,7 @@ if (scenario === 'history') {
 }
 `;
 
-it.each(['history', 'tickets', 'conversations'])('keeps %s recovery working without native Array.at', scenario => {
+it.each(['history', 'conversations'])('keeps %s recovery working without native Array.at', scenario => {
   const nodeProcess = (globalThis as unknown as { process: { execPath: string; cwd(): string } }).process;
   try { execFileSync(nodeProcess.execPath, ['--experimental-strip-types',
     '--import', './scripts/lib/ts-ext-resolve.mjs', '--input-type=module', '-e', script, scenario],

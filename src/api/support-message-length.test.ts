@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { Conversation, Ticket } from '@/domain/support';
+import type { Conversation } from '@/domain/support';
 import { MessageTextValidationError } from '@/lib/message-length-policy';
 import { isConversationDeliveryAmbiguous } from '@/lib/conversation-delivery-policy';
 import { ApiError } from './errors';
@@ -9,23 +9,16 @@ import type { ConversationRealtime } from './conversation-realtime';
 
 const key = 'original-message-key';
 const conversation = { id: 'CV-1', status: 'open', version: 7 } as Conversation;
-const ticket = { id: 'TK-1', status: 'pending_user', version: 9 } as Ticket;
 const conversationDetail = {
   conversation: { conversationNo: 'CV-1', conversationType: 'advisor', status: 'OPEN', version: 8,
     ownerAgentName: 'Agent', unreadCount: 0, lastMessage: 'Message', lastMessageAt: 1_777_000_000_000 },
-  messages: [], historyTruncated: false, nextCursor: null,
-};
-const ticketDetail = {
-  ticket: { ticketNo: 'TK-1', title: 'Subject', category: 'technical', status: 'OPEN', priority: 'NORMAL', version: 10,
-    createdAt: 1_777_000_000_000, updatedAt: 1_777_000_000_001, lastMessageAt: 1_777_000_000_001,
-    messageCount: 0, userUnreadCount: 0, assignedAdminName: 'Agent' },
   messages: [], historyTruncated: false, nextCursor: null,
 };
 type Entry = {
   name: string;
   path: string;
   field: 'openingText' | 'body';
-  response: typeof conversationDetail | typeof ticketDetail;
+  response: typeof conversationDetail;
   send(api: SupportApi, text: string, attachmentId?: string): Promise<unknown>;
 };
 const conversationEntries: Entry[] = [
@@ -34,12 +27,7 @@ const conversationEntries: Entry[] = [
   { name: 'conversation reply', path: '/api/app/support/conversations/CV-1/replies', field: 'body', response: conversationDetail,
     send: (api, text, attachmentId) => api.replyConversation(conversation, text, key, attachmentId) },
 ];
-const entries: Entry[] = [...conversationEntries,
-  { name: 'ticket create', path: '/api/app/support/tickets', field: 'body', response: ticketDetail,
-    send: (api, text) => api.createTicket({ category: 'technical', subject: 'Subject', body: text }, key) },
-  { name: 'ticket reply', path: '/api/app/support/tickets/TK-1/replies', field: 'body', response: ticketDetail,
-    send: (api, text) => api.replyTicket(ticket, text, key) },
-];
+const entries: Entry[] = [...conversationEntries];
 
 afterEach(() => { setAppConversationRealtime(null); });
 

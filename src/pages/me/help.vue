@@ -135,7 +135,7 @@
           <view class="shrink-0 inline-flex items-center justify-center active:opacity-80" :style="botFallbackBtnStyle" data-help-action="bot-retry" role="button" tabindex="0" :aria-label="w.botRetry" @click="retryBot"  @keydown.enter.prevent="retryBot" @keydown.space.prevent="retryBot">
             <text>{{ w.botRetry }}</text>
           </view>
-          <view class="shrink-0 inline-flex items-center justify-center active:opacity-80" :style="botFallbackTicketStyle" data-help-action="bot-ticket" role="button" tabindex="0" :aria-label="w.contactCta" @click="goTicketCreate"  @keydown.enter.prevent="goTicketCreate" @keydown.space.prevent="goTicketCreate">
+          <view class="shrink-0 inline-flex items-center justify-center active:opacity-80" :style="botFallbackContactStyle" data-help-action="bot-contact" role="button" tabindex="0" :aria-label="w.contactCta" @click="goContactSupport"  @keydown.enter.prevent="goContactSupport" @keydown.space.prevent="goContactSupport">
             <text>{{ w.contactCta }}</text>
           </view>
         </view>
@@ -151,7 +151,7 @@
             <text class="block" :style="contactTitleStyle">{{ w.contactSupport }}</text>
             <text class="block" :style="contactHintStyle">{{ w.contactHint }}</text>
           </view>
-          <view class="active:opacity-90 transition-opacity" :style="contactCtaStyle" role="button" tabindex="0" :aria-label="w.contactCta" @click="goTicketCreate"  @keydown.enter.prevent="goTicketCreate" @keydown.space.prevent="goTicketCreate">
+          <view class="active:opacity-90 transition-opacity" :style="contactCtaStyle" role="button" tabindex="0" :aria-label="w.contactCta" @click="goContactSupport"  @keydown.enter.prevent="goContactSupport" @keydown.space.prevent="goContactSupport">
             <text>{{ w.contactCta }}</text>
           </view>
         </view>
@@ -515,7 +515,7 @@ async function sendToBot(retryPending = false) {
 function goSupport() {
   navTo("/pages/me/support");
 }
-function goTicketCreate() {
+function goContactSupport() {
   navTo("/pages/support/messages");
 }
 /** Retry the same server turn while its outcome is unknown. */
@@ -628,7 +628,7 @@ const botInputStyle: CSSProperties = { flex: "1", background: "transparent", fon
 const botFallbackRowStyle: CSSProperties = { gap: "8px", padding: "8px 12px 12px", flexWrap: "wrap" };
 const botFallbackHintStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-warning)", lineHeight: 1.4, minWidth: "140px" };
 const botFallbackBtnStyle: CSSProperties = { minHeight: "32px", padding: "0 12px", borderRadius: "999px", background: "color-mix(in srgb, var(--v5-brand) 12%, transparent)", color: "var(--v5-brand)", fontSize: "12px", fontWeight: 600 };
-const botFallbackTicketStyle: CSSProperties = { minHeight: "32px", padding: "0 12px", borderRadius: "999px", border: "1px solid var(--v5-border)", color: "var(--v5-ink-2)", fontSize: "12px", fontWeight: 600 };
+const botFallbackContactStyle: CSSProperties = { minHeight: "32px", padding: "0 12px", borderRadius: "999px", border: "1px solid var(--v5-border)", color: "var(--v5-ink-2)", fontSize: "12px", fontWeight: 600 };
 function sendBtnStyle(active: boolean): CSSProperties {
   return { width: "32px", height: "32px", borderRadius: "8px", background: active ? "var(--v5-brand-2)" : "var(--v5-surface-2)" };
 }

@@ -23,7 +23,6 @@ const runtime = vi.hoisted(() => ({
     markConversationRead: vi.fn(),
     startConversation: vi.fn(),
     replyConversation: vi.fn(),
-    convertConversationToTicket: vi.fn(),
     conversationCategories: vi.fn(),
   },
 }));
@@ -196,21 +195,6 @@ describe("conversation list refresh generation fence", () => {
     expect(runtime.supportApi.replyConversation.mock.calls[2][2]).toBe(originalKey);
   });
 
-  it.each(["loading", "failed", "disabled"])("keeps existing human replies and ticket conversion available when entry is %s", async state => {
-    const store = useConversations(); store.conversations.push(human() as never);
-    if (state === "failed") runtime.supportApi.conversationCategories.mockRejectedValueOnce(new Error("unavailable"));
-    if (state === "disabled") runtime.supportApi.conversationCategories.mockResolvedValue({ advisor: false, support: false, ai: false });
-    if (state !== "loading") await store.refreshCategories();
-    expect(store.categoryEnabled("support")).toBe(false); expect(store.categoryReadable("support")).toBe(true);
-    await expect(store.startConversation("support", "new")).rejects.toThrow("SUPPORT_CATEGORY_UNAVAILABLE");
-    runtime.supportApi.replyConversation.mockResolvedValue(human());
-    runtime.supportApi.convertConversationToTicket.mockResolvedValue({ conversation: human(), ticket: { id: "TK-existing" } });
-    await expect(store.sendUser("CV-cold", "hello")).resolves.toBe(true);
-    await expect(store.convertToTicket("CV-cold", "technical", "Need help")).resolves.toBe("TK-existing");
-    expect(runtime.supportApi.replyConversation).toHaveBeenCalledTimes(1);
-    expect(runtime.supportApi.convertConversationToTicket).toHaveBeenCalledTimes(1);
-    expect(runtime.supportApi.startConversation).not.toHaveBeenCalled();
-  });
 
   it("clears list loading on account rebind while an old refresh is pending", async () => {
     const old = deferred<any>(); runtime.supportApi.conversations.mockReturnValueOnce(old.promise);
@@ -345,15 +329,13 @@ describe("conversation list refresh generation fence", () => {
     expect(store.categoryLoading).toBe(false);
   });
 
-  it.each(["reply", "ticket"] as const)("never submits a stale opened conversation after an account switch (%s)", async (operation) => {
+  it("never submits a stale opened conversation after an account switch", async () => {
     const opened = deferred<any>();
     runtime.supportApi.conversation.mockReturnValue(opened.promise);
     const store = useConversations();
     store.bindAccount("account-a");
 
-    const pending = operation === "reply"
-      ? store.sendUser("account-a-conversation", "hello")
-      : store.convertToTicket("account-a-conversation", "technical", "Need help");
+    const pending = store.sendUser("account-a-conversation", "hello");
     await vi.waitFor(() => expect(runtime.supportApi.conversation).toHaveBeenCalledTimes(1));
 
     store.bindAccount("account-b");
@@ -365,6 +347,5 @@ describe("conversation list refresh generation fence", () => {
 
     await expect(pending).rejects.toThrow("SUPPORT_ACCOUNT_SCOPE_CHANGED");
     expect(runtime.supportApi.replyConversation).not.toHaveBeenCalled();
-    expect(runtime.supportApi.convertConversationToTicket).not.toHaveBeenCalled();
   });
 });

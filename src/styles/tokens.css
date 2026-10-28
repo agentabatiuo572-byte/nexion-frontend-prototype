@@ -1078,16 +1078,16 @@ uni-input .uni-input-placeholder {
   .nx-header__r .invite-scan__button > .nx-liquid-glass,
   .message-nav .message-icon-button > .nx-liquid-glass,
   .cp-head .cp-back > .nx-liquid-glass,
-  .cp-head .cp-ticket > .nx-liquid-glass { inset: var(--ui-header-glass-inset); }
+  .cp-head .cp-restart > .nx-liquid-glass { inset: var(--ui-header-glass-inset); }
   .nx-header__r .nx-icon-btn > svg, .nx-header__r .nx-icon-btn > .nx-native-svg,
   .nx-header-scan-icon > svg, .nx-header-scan-icon > .nx-native-svg,
   .message-nav .message-icon-button > svg, .message-nav .message-icon-button > .nx-native-svg,
   .cp-head .cp-back > svg, .cp-head .cp-back > .nx-native-svg,
-  .cp-head .cp-ticket > svg, .cp-head .cp-ticket > .nx-native-svg { max-width: var(--ui-header-icon-size); max-height: var(--ui-header-icon-size); }
+  .cp-head .cp-restart > svg, .cp-head .cp-restart > .nx-native-svg { max-width: var(--ui-header-icon-size); max-height: var(--ui-header-icon-size); }
   .nx-header__r .nx-native-svg svg,
   .message-nav .message-icon-button .nx-native-svg svg,
   .cp-head .cp-back .nx-native-svg svg,
-  .cp-head .cp-ticket .nx-native-svg svg { width: 100%; height: 100%; display: block; }
+  .cp-head .cp-restart .nx-native-svg svg { width: 100%; height: 100%; display: block; }
 }
 @media (max-width: 350px) {
   .nx-header__r, .message-nav, .cp-head { --ui-header-glass-inset: 3px; --ui-header-icon-size: 18px; }

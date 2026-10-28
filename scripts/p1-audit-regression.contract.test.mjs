@@ -32,13 +32,6 @@ test("bundle order detail uses the canonical subtotal and all-item projection", 
   assert.doesNotMatch(detail, /order\.unitPrice \* order\.quantity/);
 });
 
-test("Ticket Create reads its own PC-published knowledge surface", async () => {
-  const page = await source("src/pages/me/support-tickets.vue");
-  const api = await source("src/api/support-api.ts");
-  assert.match(page, /faqPage\([^)]*"Ticket Create"/);
-  assert.match(api, /surface/);
-});
-
 
 test("binary UI renders a server block reason instead of a positive estimate", async () => {
   const page = await source("src/pages/team/binary.vue");

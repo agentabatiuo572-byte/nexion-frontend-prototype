@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import type { CanonicalNotificationPage } from "@/api/notification-api";
-import type { Conversation, Ticket } from "@/domain/support";
+import type { Conversation } from "@/domain/support";
 import { installSupportStorage } from "@/test/storage-setup";
 import { navBack, navTo, takeNavigationQuery } from "@/lib/route";
 import { nativeTabUrl } from "@/lib/native-tab-navigation";
@@ -15,14 +15,13 @@ import ts from "typescript";
 installSupportStorage();
 const runtime = vi.hoisted(() => ({ remoteApiEnabled: true,
   notificationApi: { page: vi.fn(), markRead: vi.fn() },
-  supportApi: { authorityRevision: vi.fn(), commandResult: vi.fn(), tickets: vi.fn(),
-    ticket: vi.fn(), markTicketRead: vi.fn(), conversations: vi.fn(), conversationDismissals: vi.fn(),
+  supportApi: { authorityRevision: vi.fn(), commandResult: vi.fn(),
+    conversations: vi.fn(), conversationDismissals: vi.fn(),
     conversationCategories: vi.fn() },
 }));
 vi.mock("@/api/runtime", () => runtime);
 const { useMessageDrawer } = await import("./message-drawer");
 const { useNotifications } = await import("./notifications");
-const { useTickets } = await import("./tickets");
 const { useConversations } = await import("./conversations");
 
 const notificationPage = (unread = 0): CanonicalNotificationPage => ({
@@ -32,10 +31,6 @@ const notificationPage = (unread = 0): CanonicalNotificationPage => ({
 function human(id: string, type: Conversation["type"], unread: number): Conversation {
   return { id, type, unread, status: "open", version: 1, lastTs: 1, lastPublicMessageId: 5, messages: [],
     agentName: "Agent", roleKey: "roleSupport", avatarTint: "blue", lastMessage: "Reply", sessionStatus: "active" };
-}
-function ticket(unread = 2, version = 1): Ticket {
-  return { id: "TK-1", unread, version, subject: "Question", category: "technical", status: "open", priority: "normal",
-    createdAt: 1, updatedAt: version, lastReplyAt: 1, messageCount: 1, owner: "Agent", messages: [] };
 }
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -59,7 +54,6 @@ beforeEach(() => {
   runtime.notificationApi.page.mockResolvedValue(notificationPage());
   runtime.supportApi.authorityRevision.mockResolvedValue("run-1");
   runtime.supportApi.commandResult.mockResolvedValue(null);
-  runtime.supportApi.tickets.mockResolvedValue({ items: [], total: 0 });
   runtime.supportApi.conversations.mockResolvedValue({ items: [], total: 0 });
   runtime.supportApi.conversationDismissals.mockResolvedValue([]);
   runtime.supportApi.conversationCategories.mockResolvedValue({ advisor: true, support: true, ai: false });
@@ -67,9 +61,8 @@ beforeEach(() => {
 afterEach(() => { useMessageDrawer().stopRefresh(); vi.useRealTimers(); });
 
 describe("shared message center", () => {
-  it("sums notifications and visible human conversations without fetching retired tickets", async () => {
+  it("sums notifications and visible human conversations", async () => {
     runtime.notificationApi.page.mockResolvedValue(notificationPage(11));
-    useTickets().tickets.push(ticket());
     runtime.supportApi.conversations.mockResolvedValue({ items: [human("advisor", "advisor", 3), human("support", "support", 4),
       human("ai", "ai", 50), human("dismissed", "support", 20)], total: 4 });
     runtime.supportApi.conversationDismissals.mockResolvedValue([{ conversationNo: "dismissed", throughMessageId: 5 }]);
@@ -77,13 +70,10 @@ describe("shared message center", () => {
     await center.refresh(); center.show("service");
     expect(center.section).toBe("service"); expect(pages[1].route).toBe("pages/me/notifications");
     expect(center.advisorUnread).toBe(3); expect(center.supportUnread).toBe(4);
-    expect(center.humanUnread).toBe(7); expect(center.ticketUnread).toBe(0);
+    expect(center.humanUnread).toBe(7);
     expect(center.serviceUnread).toBe(7); expect(center.totalUnread).toBe(18);
     expect(runtime.notificationApi.markRead).not.toHaveBeenCalled();
-    expect(runtime.supportApi.markTicketRead).not.toHaveBeenCalled();
-    expect(runtime.supportApi.tickets).not.toHaveBeenCalled();
-    expect(useTickets().tickets[0]).toMatchObject({ id: "TK-1", unread: 2 });
-    expect(center.ticketUnread).toBe(0); expect(center.totalUnread).toBe(18);
+    expect(center).not.toHaveProperty("ticketUnread");
   });
 
   it("updates each human category from visible conversations while preserving sibling unread", async () => {
@@ -104,7 +94,6 @@ describe("shared message center", () => {
 
   it("keeps the last successful counts and exposes source failures for retry", async () => {
     runtime.notificationApi.page.mockResolvedValueOnce(notificationPage(4)).mockRejectedValueOnce(new Error("offline"));
-    runtime.supportApi.tickets.mockResolvedValueOnce({ items: [ticket()], total: 1 }).mockRejectedValueOnce(new Error("offline"));
     const center = useMessageDrawer();
     await center.refresh(); await center.refresh();
     expect(center.totalUnread).toBe(4); expect(center.error).toBe("offline"); expect(center.loading).toBe(false);
@@ -128,7 +117,6 @@ describe("shared message center", () => {
     center.startRefresh(); center.startRefresh(); await flush();
     await vi.advanceTimersByTimeAsync(45_000);
     expect(runtime.notificationApi.page).toHaveBeenCalledTimes(1);
-    expect(runtime.supportApi.tickets).not.toHaveBeenCalled();
     expect(runtime.supportApi.conversations).not.toHaveBeenCalled();
     slow.resolve(notificationPage(1)); await flush();
     await vi.advanceTimersByTimeAsync(15_000);
@@ -139,26 +127,22 @@ describe("shared message center", () => {
 
   it("rejects hidden responses and refreshes immediately when restored", async () => {
     const oldNotifications = deferred<CanonicalNotificationPage>();
-    const oldTickets = deferred<{ items: Ticket[]; total: number }>();
     runtime.notificationApi.page.mockReturnValueOnce(oldNotifications.promise).mockResolvedValueOnce(notificationPage(2));
-    runtime.supportApi.tickets.mockReturnValueOnce(oldTickets.promise).mockResolvedValueOnce({ items: [ticket(3)], total: 1 });
     const center = useMessageDrawer();
     center.startRefresh(); await flush(); center.stopRefresh(); center.startRefresh(); await flush();
     expect(center.totalUnread).toBe(2);
-    oldNotifications.resolve(notificationPage(40)); oldTickets.resolve({ items: [ticket(20)], total: 1 });
+    oldNotifications.resolve(notificationPage(40));
     await flush(); expect(center.totalUnread).toBe(2);
     expect(runtime.notificationApi.page).toHaveBeenCalledTimes(2);
   });
 
   it("resets the section and rejects old-account sources after binding", async () => {
     const oldNotifications = deferred<CanonicalNotificationPage>();
-    const oldTickets = deferred<{ items: Ticket[]; total: number }>();
     runtime.notificationApi.page.mockReturnValueOnce(oldNotifications.promise);
-    runtime.supportApi.tickets.mockReturnValueOnce(oldTickets.promise);
     const center = useMessageDrawer();
     center.show("service"); const pending = center.refresh(); await flush();
-    center.bindAccount(); useNotifications().bindAccount("default"); useTickets().bindAccount("default"); useConversations().bindAccount("default");
-    oldNotifications.resolve(notificationPage(40)); oldTickets.resolve({ items: [ticket(20)], total: 1 });
+    center.bindAccount(); useNotifications().bindAccount("default"); useConversations().bindAccount("default");
+    oldNotifications.resolve(notificationPage(40));
     await pending;
     expect(center.section).toBe("notifications"); expect(center.totalUnread).toBe(0);
   });
@@ -240,7 +224,6 @@ describe("shared message center", () => {
       navBack("/pages/me/me"); expect(pages).toEqual([{ route: origin }]);
     }
     expect(runtime.notificationApi.markRead).not.toHaveBeenCalled();
-    expect(runtime.supportApi.markTicketRead).not.toHaveBeenCalled();
     expect(supportSource).not.toContain('href: "/pages/me/support-tickets?mode=create"');
   });
 });

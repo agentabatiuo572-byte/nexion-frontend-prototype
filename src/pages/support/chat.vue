@@ -39,7 +39,7 @@
           </view>
         </view>
       </view>
-      <view v-if="isAi && remoteApiEnabled" class="cp-ticket active:opacity-70" role="button" tabindex="0" :aria-label="t.conversations.restartSession" @click="onStartNewConversation"  @keydown.enter.prevent="onKeyboardActivate($event, onStartNewConversation)" @keydown.space.prevent="onKeyboardActivate($event, onStartNewConversation)"><LiquidGlass rendering="frosted" :radius="22" />
+      <view v-if="isAi && remoteApiEnabled" class="cp-restart active:opacity-70" role="button" tabindex="0" :aria-label="t.conversations.restartSession" @click="onStartNewConversation"  @keydown.enter.prevent="onKeyboardActivate($event, onStartNewConversation)" @keydown.space.prevent="onKeyboardActivate($event, onStartNewConversation)"><LiquidGlass rendering="frosted" :radius="22" />
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12v6a2 2 0 0 1-2 2H6l-3 2V6a2 2 0 0 1 2-2h6" /><path d="M17 2v8m-4-4h8" /></svg>
       </view>
       <view v-else class="cp-head-spacer" aria-hidden="true" />
@@ -184,7 +184,6 @@ import type { ConversationType, ConvMessage } from "@/domain/support";
 import { ApiError, asApiError } from "@/api/errors";
 import { isConversationDeliveryAmbiguous, isConversationPeerChanged } from '@/lib/conversation-delivery-policy';
 import { isSupportAttachmentNotReady, type SupportAttachmentPolicy } from "@/api/support-api";
-import type { TicketCreationPolicy } from '@/api/support-ticket-policy';
 import { novaFailure } from "@/lib/nova-failure";
 import { useLocaleStore } from "@/store/locale";
 import { requireCryptoUuid } from "@/lib/secure-command-id";
@@ -245,17 +244,6 @@ function settleQueuedSendVisuals() {
 }
 watch(() => nova.pendingRemote.map(row => [row.turnId, row.delivery]), settleQueuedSendVisuals, { flush: 'sync' });
 watch(() => [app.accountKey, app.accountBindingEpoch, nova.conversationBoundary], clearQueuedSendVisuals, { flush: 'sync' });
-const ticketCreationBlock = ref<TicketCreationPolicy | null>(null);
-const ticketCreationBlockText = computed(() => {
-  const policy = ticketCreationBlock.value;
-  if (!policy) return '';
-  switch (policy.reasonCode) {
-    case 'SUPPORT_TICKET_CREATE_ACTIVE_LIMIT': return fmt(t.value.tickets.policyActiveLimit, { n: policy.activeTickets });
-    case 'SUPPORT_TICKET_CREATE_DAILY_LIMIT': return fmt(t.value.tickets.policyDailyLimit, { hours: policy.windowHours });
-    case 'SUPPORT_TICKET_CREATE_DUPLICATE': return t.value.tickets.policyDuplicate;
-    default: return t.value.tickets.policyCooldown;
-  }
-});
 const draftText = ref("");
 const attachmentPolicy = ref<SupportAttachmentPolicy | null>(null);
 const attachmentPolicyError = ref(false);
@@ -283,7 +271,6 @@ watch(() => [app.accountBindingEpoch, convStore.scopeInvalidated], ([binding], [
   try {
     clearPrivateImages(); imageDraft.value = null; resetAttachmentPolicy();
     if (binding !== previousBinding) { failedHumanSend.value = null; draftText.value = ""; }
-    ticketCreationBlock.value = null;
   } finally { humanComposerResetting = false; }
   if (novaPageVisible && !isAi.value && remoteApiEnabled && supportSessionReady.value) { void convStore.refreshAdvisor(); void loadAttachmentPolicy(); }
 }, { flush: "sync" });
@@ -528,7 +515,6 @@ let categoryGate: {
 } | null = null;
 const novaRequestControl = createLatestAbortableRequest();
 const startType = ref<Exclude<ConversationType, "ai"> | null>(null);
-watch([cid, startType], () => { ticketCreationBlock.value = null; });
 const humanComposerKey = computed(() => cid.value ? `conversation:${cid.value}` : startType.value ? `start:${startType.value}` : "");
 watch(() => [app.accountBindingEpoch, humanComposerKey.value, convStore.clearedComposerThrough[humanComposerKey.value]] as const,
   ([binding, key, through], [previousBinding, previousKey, previousThrough]) => {
@@ -992,7 +978,7 @@ const quickChips = computed<QuickChip[]>(() =>
     ? [
         ...(initialPrompt.value ? [{ key: "search-query", emoji: "🔎", label: initialPrompt.value }] : []),
         { key: "explain-today", emoji: "📦", label: quickLabel("explain-today") },
-        { key: "how-to-boost", emoji: "🎫", label: quickLabel("how-to-boost") },
+        { key: "how-to-boost", emoji: "💸", label: quickLabel("how-to-boost") },
         { key: "whats-hot", emoji: "🔐", label: quickLabel("whats-hot") },
         { key: "show-top-jobs", emoji: "💬", label: quickLabel("show-top-jobs") },
       ]
@@ -1216,7 +1202,7 @@ function quickLabel(k: QuickPromptKey): string {
   if (remoteApiEnabled) {
     switch (k) {
       case "explain-today": return t.value.nova.localQOrder;
-      case "how-to-boost": return t.value.nova.localQTicket;
+      case "how-to-boost": return t.value.nova.localQWithdraw;
       case "whats-hot": return t.value.nova.localQSecurity;
       case "show-top-jobs": return t.value.nova.localQHuman;
     }
@@ -1793,8 +1779,6 @@ import LiquidGlass from "@/components/liquid-glass.vue";
 </script>
 
 <style scoped>
-.cp-ticket-limit { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 16px; padding: 12px 0; color: var(--v5-ink-3); font-size: 13px; line-height: 1.6; border-bottom: 1px solid var(--v5-border); }
-.cp-ticket-limit > text { flex-basis: 100%; }
 .cp-root {
   position: fixed;
   inset: 0;
@@ -1847,7 +1831,7 @@ import LiquidGlass from "@/components/liquid-glass.vue";
   line-height: 1.45;
   color: var(--v5-ink-2);
 }
-.cp-back, .cp-ticket {
+.cp-back, .cp-restart {
   width: 44px;
   height: 44px;
   margin-left: 0;
@@ -1912,8 +1896,8 @@ import LiquidGlass from "@/components/liquid-glass.vue";
   z-index: 110;
   pointer-events: none;
 }
-.cp-back, .cp-ticket { overflow: visible; }
-.cp-back > svg, .cp-ticket > svg { position: relative; z-index: 1; }
+.cp-back, .cp-restart { overflow: visible; }
+.cp-back > svg, .cp-restart > svg { position: relative; z-index: 1; }
 .cp-root .cp-ai-history-action { background: transparent; border: none; margin: 6px 16px; }
 .cp-root .cp-ai-history-action .cp-ai-history-t { position: relative; }
 .cp-history-error { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:12px; padding:7px 16px; text-align:start; color:var(--v5-ink-3); font-size:12px; }

@@ -11,7 +11,6 @@ export const reviewedCopyR2 = [
   {"key":"tx.detailUnavailableBody","placeholders":[],"consumers":[{"file":"src/pages/tx/hash.vue","expression":"w.detailUnavailableBody"}]},
   {"key":"tradein.remoteQuoteCreditLabel","placeholders":[],"consumers":[{"file":"src/components/tradein-sheets.vue","expression":"t.value.tradein.remoteQuoteCreditLabel"},{"file":"src/pages/me/devices.vue","expression":"t.value.tradein.remoteQuoteCreditLabel"}]},
   {"key":"tradein.remoteQuoteBandLabel","placeholders":["pct"],"consumers":[{"file":"src/components/tradein-sheets.vue","expression":"t.value.tradein.remoteQuoteBandLabel"}]}, // i18n-raw-ok: non-rendered test expression string
-  {"key":"tickets.historyTruncated","placeholders":[],"consumers":[{"file":"src/pages/me/support-tickets.vue","expression":"t.tickets.historyTruncated"}]},
   {"key":"trial.claimUnknownInline","placeholders":[],"consumers":[{"file":"src/components/trial-claim-sheet.vue","expression":"t.value.trial.claimUnknownInline"}]},
   {"key":"trial.eligReasonUnknown","placeholders":[],"consumers":[{"file":"src/components/trial-claim-sheet.vue","expression":"w.eligReasonUnknown"}]},
   {"key":"computeShare.pairingPending","placeholders":[],"consumers":[{"file":"src/pages/compute-share/download.vue","expression":"t.value.computeShare.pairingPending"}]},

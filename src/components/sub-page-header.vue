@@ -128,7 +128,7 @@ import LiquidGlass from "@/components/liquid-glass.vue";
   right: 0;
   z-index: 50;
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr) 72px;
+  grid-template-columns: minmax(72px, max-content) minmax(0, 1fr) minmax(72px, max-content);
   align-items: center;
   gap: 0;
   padding: 6px;
@@ -219,7 +219,7 @@ import LiquidGlass from "@/components/liquid-glass.vue";
 </style>
 
 <style scoped>
-.spv--design { display:grid;grid-template-columns:72px minmax(0,1fr) 72px;gap:0;margin:0 0 12px;padding:6px;border-radius:0; }
+.spv--design { display:grid;grid-template-columns:minmax(72px,max-content) minmax(0,1fr) minmax(72px,max-content);gap:0;margin:0 0 12px;padding:6px;border-radius:0; }
 .spv--design .spv-back { margin-left:6px; }
 .spv--design .spv-glass { width:44px;height:44px;border-radius:50%; }
 .spv--design .spv-glass svg { width:20px;height:20px; }

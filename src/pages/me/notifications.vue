@@ -230,10 +230,10 @@ function timeAgo(ts: number): string {
   // Compare local calendar dates, not elapsed 24-hour periods (including DST).
   const days = Math.round((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
     - Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())) / 86_400_000);
-  if (days > 1) return fmt(t.value.tickets.timeDaysAgo, { n: days });
+  if (days > 1) return fmt(t.value.notifs.timeDaysAgo, { n: days });
   const mins = Math.max(1, Math.floor((now.getTime() - ts) / 60_000));
-  if (mins < 60) return fmt(t.value.tickets.timeMinutesAgo, { n: mins });
-  return fmt(t.value.tickets.timeHoursAgo, { n: Math.floor(mins / 60) });
+  if (mins < 60) return fmt(t.value.notifs.timeMinutesAgo, { n: mins });
+  return fmt(t.value.notifs.timeHoursAgo, { n: Math.floor(mins / 60) });
 }
 
 async function onTap(n: Notification) {

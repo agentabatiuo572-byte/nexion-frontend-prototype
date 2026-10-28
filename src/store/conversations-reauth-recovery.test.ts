@@ -8,7 +8,6 @@ import { isSupportAttachmentNotReady } from "@/api/support-api";
 import { fmt } from '@/i18n/format';
 import { MESSAGE_MAX_LENGTH, normalizeMessageText } from '@/lib/message-length-policy';
 import { createConversationSendBudgets } from '@/lib/send-limiter';
-import type { TicketCreationPolicy } from "@/api/support-ticket-policy";
 import appSource from "../App.vue?raw";
 import meSource from "../pages/me/me.vue?raw";
 import securitySource from "../pages/me/security.vue?raw";
@@ -145,9 +144,6 @@ it("same-account epoch reset clears private Blob/input without writing empties o
   const app = reactive({ accountBindingEpoch: 1 });
   const draft = ref("next draft"), failed = ref(store.composer("conversation:CV-1").failedSend);
   const images = ref({ image: "blob:private" }), failures = ref({}), imageDraft = ref(null);
-  const ticketCreationBlock = ref<TicketCreationPolicy | null>({ allowed: false, reasonCode: "SUPPORT_TICKET_CREATE_ACTIVE_LIMIT",
-    retryAfterSeconds: 0, retryAt: null, existingTicketNo: "TK-old-account", cooldownSeconds: 60,
-    windowHours: 24, maxCreatedInWindow: 10, maxActiveTickets: 3, createdInWindow: 3, activeTickets: 3 });
   const revoke = vi.fn(); vi.stubGlobal("URL", { revokeObjectURL: revoke });
   const clearStart = chatSource.indexOf("let imageEpoch = 0;");
   const clearEnd = chatSource.indexOf("async function loadPrivateImages", clearStart);
@@ -157,12 +153,11 @@ it("same-account epoch reset clears private Blob/input without writing empties o
     { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
   const scope = effectScope();
   scope.run(() => new Function("watch", "app", "convStore", "imageSources", "imageFailures", "imageDraft", "failedHumanSend", "draftText",
-    "attachmentPolicy", "attachmentPolicyError", "novaPageVisible", "isAi", "remoteApiEnabled", "loadAttachmentPolicy", "humanComposerKey", "humanSendBusy", "restoreRecoveredComposer", "ticketCreationBlock",
-    code)(watch, app, store, images, failures, imageDraft, failed, draft, ref(null), ref(false), false, ref(false), true, vi.fn(), ref("conversation:CV-1"), ref(false), vi.fn(), ticketCreationBlock));
+    "attachmentPolicy", "attachmentPolicyError", "novaPageVisible", "isAi", "remoteApiEnabled", "loadAttachmentPolicy", "humanComposerKey", "humanSendBusy", "restoreRecoveredComposer",
+    code)(watch, app, store, images, failures, imageDraft, failed, draft, ref(null), ref(false), false, ref(false), true, vi.fn(), ref("conversation:CV-1"), ref(false), vi.fn()));
   try {
     app.accountBindingEpoch++;
     expect(draft.value).toBe(""); expect(failed.value).toBeNull(); expect(images.value).toEqual({});
-    expect(ticketCreationBlock.value).toBeNull();
     expect(revoke).toHaveBeenCalledWith("blob:private");
     expect(store.composer("conversation:CV-1").text).toBe("next draft");
     store.bindAccount("user:1"); await nextTick();

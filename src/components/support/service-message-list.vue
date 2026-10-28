@@ -55,12 +55,12 @@ import { navTo } from "@/lib/route";
 import { localizedIdleClose } from "@/lib/support-idle-message";
 import { formatUnreadBadge } from "@/lib/unread-badge";
 
-const props = withDefaults(defineProps<{ filter?: "all" | "advisor" | "support" | "ticket"; hideFilters?: boolean }>(), { filter: "all", hideFilters: false });
+const props = withDefaults(defineProps<{ filter?: "all" | "advisor" | "support"; hideFilters?: boolean }>(), { filter: "all", hideFilters: false });
 const emit = defineEmits<{ (event: "navigate"): void }>();
 const conversations = useConversations(), center = useMessageDrawer();
 const t = useT();
 const actions = useConversationDelete();
-type ServiceKind = "advisor" | "support" | "ticket";
+type ServiceKind = "advisor" | "support";
 type Row = { key: string; id: string; kind: ServiceKind; title: string; preview: string; ts: number; unread: number };
 function unreadUnavailable(row: Row) { return !Number.isSafeInteger(row.unread) || row.unread < 0 || !!(conversations.error || conversations.categoryAvailabilityStatus === "failed"); }
 const filter = ref<"all" | ServiceKind>("all");

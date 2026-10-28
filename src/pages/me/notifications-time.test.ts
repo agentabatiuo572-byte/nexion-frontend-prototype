@@ -39,11 +39,11 @@ describe('notification calendar-day timestamps', () => {
     it(`${code}: retains today's relative time and uses calendar days for older messages`, () => {
       vi.useFakeTimers(); vi.setSystemTime(new Date(2026, 9, 25, 12));
       const page = formatter(translations, code);
-      expect(page.timeAgo(new Date(2026, 9, 25, 11, 58).getTime())).toBe(fmt(translations.tickets.timeMinutesAgo, { n: 2 }));
-      expect(page.timeAgo(new Date(2026, 9, 25, 9).getTime())).toBe(fmt(translations.tickets.timeHoursAgo, { n: 3 }));
+      expect(page.timeAgo(new Date(2026, 9, 25, 11, 58).getTime())).toBe(fmt(translations.notifs.timeMinutesAgo, { n: 2 }));
+      expect(page.timeAgo(new Date(2026, 9, 25, 9).getTime())).toBe(fmt(translations.notifs.timeHoursAgo, { n: 3 }));
       expect(page.dateHeading(new Date(2026, 9, 25, 9).getTime())).toBe(translations.notifs.today);
       // Only 36 hours elapsed, but the message belongs to two calendar days ago.
-      expect(page.timeAgo(new Date(2026, 9, 23, 23, 59).getTime())).toBe(fmt(translations.tickets.timeDaysAgo, { n: 2 }));
+      expect(page.timeAgo(new Date(2026, 9, 23, 23, 59).getTime())).toBe(fmt(translations.notifs.timeDaysAgo, { n: 2 }));
       expect(page.dateHeading(new Date(2026, 9, 23, 23, 59).getTime())).not.toBe(translations.notifs.yesterday);
     });
   }

@@ -148,7 +148,7 @@ const bodyStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
   fontSize: "var(--ui-type-long-form)",
   color: "var(--v5-ink-3)",
-  lineHeight: 1.55,
+  lineHeight: "var(--ui-type-long-form-lh)",
 };
 const okBtnStyle: CSSProperties = {
   marginTop: "16px",

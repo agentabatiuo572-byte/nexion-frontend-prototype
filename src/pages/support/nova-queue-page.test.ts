@@ -22,7 +22,6 @@ import * as apiErrors from "@/api/errors";
 import * as deliveryPolicy from '@/lib/conversation-delivery-policy';
 import * as realtimePage from "./conversation-realtime-page";
 import { createSupportApi } from "@/api/support-api";
-import * as ticketPolicy from '@/api/support-ticket-policy';
 import { useAuth } from "@/store/auth";
 import { createSessionVault } from "@/api/session-vault";
 import { binarySessionReady } from "@/lib/binary-session-ready";
@@ -121,7 +120,6 @@ function mount(query: Record<string, string> = { type: "ai" }, conversation?: {
     "@/api/errors": apiErrors,
     '@/lib/conversation-delivery-policy': deliveryPolicy,
     "@/api/support-api": { isSupportAttachmentNotReady: () => false },
-    '@/api/support-ticket-policy': ticketPolicy,
     "@/lib/nova-failure": failure,
     "@/store/locale": { useLocaleStore: () => locale },
     "@/lib/secure-command-id": secureId,

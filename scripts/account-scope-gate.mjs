@@ -4,7 +4,7 @@
 // 现场(2026-08-13 对齐轮):verify.sh 里这一族哨兵钉的是**具体函数名**
 //   `useConversations().reset()` / `writeAccountRow` / `useXxx().bindAccount(accountKey)`。
 // 而实现换了机制之后,同一条不变量用**更严**的方式满足了,哨兵却全红:
-//   · tickets —— 改成按「账号 + 运行会话」双维拼持久化键(比单账号维更严);
+//   · tickets —— 用户工单已退役(2026-10-28),不再有客户端 store;
 //   · weekly-quest —— 改成服务端权威 + 版次围栏(切号清内存重取,本地不落盘);
 //   · conversations —— 从 reset() 改成 bindAccount(accountKey)。
 // 钉函数名 = 钉「我以为它会长的那个样子」,换一种更好的写法就误报。
@@ -35,7 +35,7 @@ check(`① 切号收口面非空(实测 ${rebound.length} 个 store)`, rebound.l
   `只找到 ${rebound.length} 个 —— 判据失效,判红`);
 
 // ② 三个本轮点名的 store 必须在收口面里(不管用 bindAccount 还是 reset)
-for (const want of ["Conversations", "Tickets", "WeeklyQuest"]) {
+for (const want of ["Conversations", "WeeklyQuest"]) {
   const hit = rebound.find((r) => r.store === want);
   check(`② ${want} 在切号收口面里(实测 ${hit ? hit.how : "缺席"})`, !!hit,
     `account-scope.ts 里没有 use${want}().bindAccount/reset —— 切号会串账`);
@@ -49,7 +49,7 @@ for (const want of ["Conversations", "Tickets", "WeeklyQuest"]) {
 //    强行留下它 = 45 条常驻误报 = 这道门的信号价值归零。故撤回,不写进判据。
 //    「按账号存的东西不许漏账号维」这条不变量,由 account-scoped-storage 的行级 API 自身保证。
 
-const FLOOR = 4;
+const FLOOR = 3; // tickets store retired with user tickets (2026-10-28)
 if (total < FLOOR) {
   console.log(`FAIL  只跑了 ${total} 格,低于登记的 ${FLOOR} 格 —— 靶被删或没执行`);
   process.exit(1);

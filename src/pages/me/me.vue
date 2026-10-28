@@ -197,7 +197,6 @@ const iconPaths = {
   help: ["M9.1 9a3 3 0 1 1 5.8 1c0 2-3 3-3 3", "M12 17h.01", "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20"],
   chat: ["M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"],
   code: ["m16 18 6-6-6-6", "m8 6-6 6 6 6"],
-  ticket: ["M2 9a3 3 0 0 0 0 6v3h20v-3a3 3 0 0 0 0-6V6H2z", "M9 9h6", "M9 15h6"],
   messages: ["M4 4h16v11H7l-3 3z", "M8 8h8", "M8 11h5"],
   card: ["M2 7h20v10H2z", "M2 11h20", "M6 15h4"],
 } as const;
@@ -269,7 +268,7 @@ const twoFactorEnabled = computed<boolean | null>(() => remoteApiEnabled
   : security.twoFactorEnabled);
 const twoFactorSummary = computed(() => twoFactorEnabled.value === null ? "—"
   : twoFactorEnabled.value ? t.value.security.twoFactorOn : t.value.security.twoFactorOff);
-// The Me entry and both bells share the notification + human + ticket unread total.
+// The Me entry and both bells share the notification + human conversation unread total.
 const messageUnread = computed(() => messageCenter.actionableUnread);
 // My Rewards unread dot — unused valid vouchers keep it lit (state-based)
 // OR reward credits newer than the seen-watermark (cleared on page open).

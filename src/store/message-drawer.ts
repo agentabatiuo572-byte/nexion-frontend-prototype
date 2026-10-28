@@ -13,8 +13,7 @@ export const useMessageDrawer = defineStore("messageDrawer", () => {
   const advisorUnread = computed(() => conversations.byType("advisor").reduce((sum, row) => sum + row.unread, 0));
   const supportUnread = computed(() => conversations.byType("support").reduce((sum, row) => sum + row.unread, 0));
   const humanUnread = computed(() => advisorUnread.value + supportUnread.value);
-  const ticketUnread = computed(() => 0);
-  const serviceUnread = computed(() => humanUnread.value + ticketUnread.value);
+  const serviceUnread = computed(() => humanUnread.value);
   const totalUnread = computed(() => notifications.unread + serviceUnread.value);
   // The inbox still shows reading-unread. Bells use only the separate authority.
   // Never count loaded notification rows or reinterpret unreadByKind as backend policy.
@@ -86,6 +85,6 @@ export const useMessageDrawer = defineStore("messageDrawer", () => {
     section.value = "notifications";
   }
 
-  return { section, show, advisorUnread, supportUnread, humanUnread, ticketUnread, serviceUnread, totalUnread, actionableUnread,
+  return { section, show, advisorUnread, supportUnread, humanUnread, serviceUnread, totalUnread, actionableUnread,
     loading, error, refresh, startRefresh, stopRefresh, bindAccount };
 });

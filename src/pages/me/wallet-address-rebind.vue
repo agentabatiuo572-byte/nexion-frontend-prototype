@@ -908,8 +908,8 @@ const successRowValStyle: CSSProperties = {
 
 :deep(.nx-rebind-address-input .uni-input-input),
 :deep(.nx-rebind-otp-input .uni-input-input) {
-  min-height: 22px;
-  height: 22px;
-  line-height: 22px;
+  min-height: var(--ui-type-input-lh);
+  height: var(--ui-type-input-lh);
+  line-height: var(--ui-type-input-lh);
 }
 </style>

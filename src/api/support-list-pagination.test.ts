@@ -1,22 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createSupportApi } from "./support-api";
 
-const ticket = (id: number) => ({
-  id,
-  ticketNo: `TK-${id}`,
-  title: `Ticket ${id}`,
-  category: "technical",
-  status: "OPEN",
-  priority: "NORMAL",
-  version: 1,
-  createdAt: "2026-09-01T00:00:00Z",
-  updatedAt: "2026-09-01T00:00:00Z",
-  lastMessageAt: "2026-09-01T00:00:00Z",
-  messageCount: 1,
-  userUnreadCount: 0,
-  assignedAdminName: "",
-});
-
 const faq = (id: number) => ({
   id: `FAQ-${id}`,
   category: "technical",
@@ -26,27 +10,6 @@ const faq = (id: number) => ({
   sortOrder: id,
   version: 1,
   updatedAt: "2026-09-01T00:00:00Z",
-});
-
-describe("support list cursor pagination", () => {
-  it("drains more than 100 tickets by immutable database id instead of mutable offsets", async () => {
-    const first = Array.from({ length: 100 }, (_, index) => ticket(200 - index));
-    const second = Array.from({ length: 50 }, (_, index) => ticket(100 - index));
-    const request = vi.fn(async ({ path }: { path: string }) => {
-      if (path.includes("beforeId=101")) return { total: 150, pageNum: 1, pageSize: 100, records: second };
-      return { total: 150, pageNum: 1, pageSize: 100, records: first };
-    });
-
-    const result = await createSupportApi({ request } as never).tickets();
-
-    expect(result.items).toHaveLength(150);
-    expect(new Set(result.items.map((row) => row.id)).size).toBe(150);
-    expect(result.total).toBe(150);
-    expect(request.mock.calls.map(([input]) => input.path)).toEqual([
-      "/api/app/support/tickets/cursor?pageSize=100",
-      "/api/app/support/tickets/cursor?pageSize=100&beforeId=101",
-    ]);
-  });
 });
 
 describe("support FAQ pagination", () => {

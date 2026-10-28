@@ -2010,17 +2010,17 @@ sentinel_present "P2-8 achievements store is account-scoped" src/store/achieveme
 sentinel_present "P2-8 goals store is account-scoped" src/store/goals.ts 'writeAccountRow'
 sentinel_present "P2-8 lucky-spin store is account-scoped" src/store/lucky-spin.ts 'writeAccountRow|createAccountRowCommit'
 sentinel_present "P2-8 daily-powerup store is account-scoped" src/store/daily-powerup.ts 'writeAccountRow|createAccountRowCommit'
-# P2-8 batch-4 记录/账户:通知/凭证/工单/购物车/资料/安全/奖励水位线按账号隔离(摘任一行必红)
+# P2-8 batch-4 记录/账户:通知/凭证/购物车/资料/安全/奖励水位线按账号隔离(摘任一行必红);用户工单已退役
 sentinel_present "P2-8 account-scope helper rebinds notifications" src/lib/account-scope.ts 'useNotifications\(\)\.bindAccount\(accountKey\)'
 sentinel_present "P2-8 account-scope helper rebinds receipts" src/lib/account-scope.ts 'useReceipts\(\)\.bindAccount\(accountKey\)'
-sentinel_present "P2-8 account-scope helper rebinds tickets" src/lib/account-scope.ts 'useTickets\(\)\.bindAccount\(accountKey\)'
+sentinel_absent "retired support tickets have no client store" 'useTickets|store/tickets'
 # 🔴 2026-08-13 三条钉函数名的哨兵已退役,换成 account-scope-gate.mjs:
 #   它们钉的是 `writeAccountRow` / `useConversations().reset()` 这类**具体写法**,
 #   而实现换了更严的机制之后全红 —— tickets 改按「账号+运行会话」双维拼键、
 #   weekly-quest 改服务端权威+版次围栏(本地不落盘)、conversations 从 reset 改 bindAccount。
 #   新门改钉**不变量本身**:收口面从 account-scope.ts 的真实调用派生(不手写清单),
 #   三个 store 必须在收口面里(bindAccount / reset 都算),收口面塌空即判红。
-#   红测:摘掉 tickets → 红;把 bindAccount 全改名(收口面塌空)→ 红。
+#   红测:摘掉 conversations → 红;把 bindAccount 全改名(收口面塌空)→ 红。(tickets 已随用户工单退役)
 if "$NODE_BIN" scripts/account-scope-gate.mjs > "${VERIFY_LOG_PREFIX}-uniapp-account-scope.log" 2>&1; then
   ok "账号隔离门 — $(tail -1 "${VERIFY_LOG_PREFIX}-uniapp-account-scope.log")"
 else

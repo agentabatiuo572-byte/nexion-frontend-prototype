@@ -183,13 +183,6 @@ describe("Me page 5174 normal-state UI parity", () => {
     expect(block(shared + "\n" + local, "style")).toBe(shared + "\n" + local);
     expect(block(shared + "\n" + local.replace("center", "left"), "style")).not.toBe(block(shared + "\n" + local, "style"));
   });
-  it("detects ticket layout changes after its shared stylesheet import", () => {
-    const ticket = readFileSync(new URL("./support-tickets.vue", import.meta.url), "utf8");
-    const changed = ticket.replace("grid-template-columns: repeat(3, minmax(0, 1fr))", "grid-template-columns: repeat(1, minmax(0, 1fr))");
-    expect(changed).not.toBe(ticket);
-    const digest = (value: string) => createHash("sha256").update(block(value, "style")).digest("hex");
-    expect(digest(changed)).not.toBe(digest(ticket));
-  });
   it("checks the message center stylesheet content", () => {
     const css = readFileSync(new URL("../../styles/message-center.css", import.meta.url), "utf8").replace(/\r\n/g, "\n");
     const digest = (value: string) => createHash("sha256").update(value).digest("hex");
@@ -198,20 +191,6 @@ describe("Me page 5174 normal-state UI parity", () => {
     const changed = css.replace("font-size: 34px", "font-size: 44px");
     expect(changed).not.toBe(css);
     expect(digest(changed)).not.toBe(expected);
-  });
-  it("pins the approved ticket timeline component and its account-scoped disclosure wiring", () => {
-    const record = readFileSync(new URL("../../components/me/ticket-message.vue", import.meta.url), "utf8");
-    const ticket = readFileSync(new URL("./support-tickets.vue", import.meta.url), "utf8");
-    const surface = (value: string) => createHash("sha256").update(block(value, "template")).update("\0").update(block(value, "style")).digest("hex");
-    expect(surface(record)).toBe("4c88bb8dde28774be8d7a67c81cb7edd3f921679cbc5e0d222b9e3bec54477d8");
-    expect(ticket).toContain(':scope="`${app.accountKey}:${detailTicket.id}`"');
-    expect(ticket).toContain(':key="`${app.accountKey}:${detailTicket.id}:${m.id}`"');
-    expect(ticket).toContain(':show-date="index === 0 || messageDay(m.ts) !== messageDay(detailTicket.messages[index - 1].ts)"');
-    expect(record).toContain('@keydown.enter.prevent="toggle"');
-    expect(record).toContain('@keydown.space.prevent="toggle"');
-    const changed = record.replace("font-size: 15px; font-weight: 400", "font-size: 13px; font-weight: 400");
-    expect(changed).not.toBe(record);
-    expect(surface(changed)).not.toBe(surface(record));
   });
   it("keeps 16px inline padding on message text actions and both segment layouts", () => {
     const rules = [

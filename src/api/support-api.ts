@@ -2,16 +2,13 @@ import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
 import { MESSAGE_ACK_TIMEOUT_MS } from '@/lib/conversation-delivery-policy';
 import { normalizeMessageText } from '@/lib/message-length-policy';
-import { parseTicketCreationCapability, requireTicketCreationResult, ticketCreationDenials, type TicketCreationCapability } from './support-ticket-policy';
 import { parseServerTimestamp } from "./server-time";
 import { createConversationManagement, parseConversationUserClear, type ConversationUserClear, type ConversationManagement } from './conversation-management';
-import type { Conversation, ConversationCategoryAvailability, ConvMessage, SupportFaq, SupportSlaTarget, Ticket, TicketCategory, TicketMessage, TicketPriority, TicketStatus } from "@/domain/support";
+import type { Conversation, ConversationCategoryAvailability, ConvMessage, SupportFaq } from "@/domain/support";
 
 interface Page<T> { items: T[]; total: number }
 interface CursorPage<T> extends Page<T> { nextCursor: number | null }
 export interface SupportFaqPage extends Page<SupportFaq> { pageNum: number; pageSize: number }
-interface TicketInput { category: TicketCategory; subject: string; body: string }
-interface ConversationTicketResult { conversation: Conversation; ticket: Ticket }
 export interface ConversationDismissal { conversationNo: string; throughMessageId: number }
 export interface SupportAttachmentPolicy { available: boolean; allowedMimeTypes: string[]; maxBytes: number | null; maxPixels: number | null; ttlSeconds: number | null; unavailableReason?: string | null }
 export interface SupportAttachment { id: string; mime: string; bytes: number; width: number; height: number; state: "READY" | "ATTACHED" | "REJECTED" | "EXPIRED"; expiresAt?: string | null }
@@ -27,21 +24,12 @@ export interface CurrentAdvisor {
 }
 export type SupportCommandResult =
   | { kind: "conversation-user-clear"; clearance: ConversationUserClear }
-  | { kind: "ticket"; ticket: Ticket }
-  | { kind: "conversation"; conversation: Conversation }
-  | { kind: "conversation-ticket"; conversation: Conversation; ticket: Ticket };
+  | { kind: "conversation"; conversation: Conversation };
 export interface SupportApi {
   conversationManagement(): Promise<ConversationManagement>;
   deleteConversation(id: string, peerKey: string, members: Conversation[], key: string): Promise<ConversationUserClear>;
   authorityRevision(): Promise<string>;
   advisor(): Promise<CurrentAdvisor>;
-  tickets(): Promise<Page<Ticket>>;
-  ticketCreationPolicy(): Promise<TicketCreationCapability>;
-  ticket(id: string, beforeMessageId?: number): Promise<Ticket>;
-  markTicketRead(ticket: Ticket): Promise<Ticket>;
-  createTicket(input: TicketInput, key: string): Promise<Ticket>;
-  replyTicket(ticket: Ticket, body: string, key: string): Promise<Ticket>;
-  closeTicket(ticket: Ticket, key: string): Promise<Ticket>;
   conversations(): Promise<Page<Conversation>>;
   /** null means the backend has not installed this optional inbox capability yet. */
   conversationDismissals(): Promise<ConversationDismissal[] | null>;
@@ -56,11 +44,9 @@ export interface SupportApi {
   attachmentContent(id: string, signal?: AbortSignal): Promise<string>;
   authorAvatarContent(authorId: number, signal?: AbortSignal): Promise<string>;
   cancelAttachment(id: string, key: string): Promise<void>;
-  convertConversationToTicket(conversation: Conversation, category: TicketCategory, title: string, key: string): Promise<ConversationTicketResult>;
   commandResult(key: string): Promise<SupportCommandResult | null>;
-  slaTargets(): Promise<SupportSlaTarget[]>;
-  faqPage(language: string, category?: string, surface?: "Help Center" | "Ticket Create", pageNum?: number, pageSize?: number): Promise<SupportFaqPage>;
-  faqs(language: string, category?: string, surface?: "Help Center" | "Ticket Create"): Promise<SupportFaq[]>;
+  faqPage(language: string, category?: string, surface?: "Help Center", pageNum?: number, pageSize?: number): Promise<SupportFaqPage>;
+  faqs(language: string, category?: string, surface?: "Help Center"): Promise<SupportFaq[]>;
 }
 
 function invalid(message: string): never { throw new ApiError({ kind: "protocol", message }); }
@@ -83,40 +69,6 @@ function pathCursor(beforeMessageId?: number): string {
     ? `?beforeMessageId=${beforeMessageId}` : invalid("SUPPORT_HISTORY_CURSOR_INVALID");
 }
 
-const ticketStatuses = ["open", "in_progress", "pending_user", "resolved", "closed"] as const;
-const ticketPriorities = ["low", "normal", "high", "urgent"] as const;
-const ticketCategories = ["account", "withdrawal", "deposit", "hardware", "earnings", "genesis", "technical", "other"] as const;
-
-function parseTicketHeader(value: unknown): Ticket {
-  const v = row(value); const id = text(v?.ticketNo); const subject = text(v?.title);
-  const category = enumValue(v?.category, ticketCategories); const status = enumValue(v?.status, ticketStatuses);
-  const priority = enumValue(v?.priority, ticketPriorities) as TicketPriority | null; const version = integer(v?.version);
-  const createdAt = time(v?.createdAt); const updatedAt = time(v?.updatedAt); const lastReplyAt = time(v?.lastMessageAt);
-  const messageCount = integer(v?.messageCount); const unread = integer(v?.userUnreadCount); const owner = text(v?.assignedAdminName, true);
-  if (!v || !id || !subject || !category || !status || !priority || version === null || createdAt === null || updatedAt === null || lastReplyAt === null || messageCount === null || unread === null || owner === null) invalid("SUPPORT_TICKET_RESPONSE_INVALID");
-  return { id, subject, category, status, priority, version, createdAt, updatedAt, lastReplyAt, messageCount, unread, owner: owner || "Unassigned", messages: [], historyTruncated: false, historyNextCursor: null };
-}
-function parseTicketMessage(value: unknown): TicketMessage {
-  const v = row(value); const id = integer(v?.id, 1); const ts = time(v?.createdAt); const body = text(v?.content);
-  const senderType = text(v?.senderType)?.toLowerCase(); const author = senderType === "user" ? "user" : senderType === "agent" ? "agent" : null;
-  const agentName = author === "agent" ? text(v?.senderName, true) ?? undefined : undefined;
-  if (!v || id === null || ts === null || !body || !author) invalid("SUPPORT_TICKET_RESPONSE_INVALID");
-  return { id: String(id), ts, body, author, agentName };
-}
-function parseTicketDetail(value: unknown): Ticket {
-  const v = row(value); const nextCursor = cursor(v?.nextCursor); if (!v || !Array.isArray(v.messages) || typeof v.historyTruncated !== "boolean" || (v.nextCursor !== null && v.nextCursor !== undefined && nextCursor === null)) invalid("SUPPORT_TICKET_RESPONSE_INVALID");
-  const ticket = parseTicketHeader(v.ticket); const messages = v.messages.map(parseTicketMessage);
-  if (messages.length > ticket.messageCount) invalid("SUPPORT_TICKET_RESPONSE_INVALID");
-  return { ...ticket, messages, historyTruncated: v.historyTruncated, historyNextCursor: nextCursor };
-}
-function parseTicketPage(value: unknown): CursorPage<Ticket> {
-  const v = row(value); const total = integer(v?.total); const pageSize = integer(v?.pageSize, 1);
-  if (!v || !Array.isArray(v.records) || total === null || pageSize === null || pageSize > 100 || v.records.length > pageSize) invalid("SUPPORT_TICKET_RESPONSE_INVALID");
-  const databaseIds = v.records.map(item => integer(row(item)?.id, 1));
-  if (databaseIds.some(id => id === null) || new Set(databaseIds).size !== databaseIds.length) invalid("SUPPORT_TICKET_RESPONSE_INVALID");
-  const items = v.records.map(parseTicketHeader); if (new Set(items.map(i => i.id)).size !== items.length) invalid("SUPPORT_TICKET_RESPONSE_INVALID");
-  return { items, total, nextCursor: items.length === pageSize ? databaseIds[databaseIds.length-1]! : null };
-}
 
 function parseConversationHeader(value: unknown): Conversation {
   const v = row(value); const id = text(v?.conversationNo); const type = enumValue(v?.conversationType, ["advisor", "support"] as const);
@@ -235,13 +187,6 @@ function parseCurrentAdvisor(value: unknown): CurrentAdvisor {
   if (!v || !id || !category || !question || !answer || !language || sortOrder === null || version === null || updatedAt === null) invalid("SUPPORT_FAQ_RESPONSE_INVALID");
     return { id, category, question, answer, language, sortOrder, version, updatedAt };
   }
-  function parseSlaTarget(value: unknown): SupportSlaTarget {
-    const v = row(value); const category = enumValue(v?.category, ticketCategories);
-    const firstResponseMins = integer(v?.firstResponseMins, 1); const resolutionHours = integer(v?.resolutionHours, 1);
-    if (!v || !category || firstResponseMins === null || resolutionHours === null || v.statisticsAvailable !== false) invalid("SUPPORT_SLA_TARGET_RESPONSE_INVALID");
-    return { category, firstResponseMins, resolutionHours, statisticsAvailable: false };
-  }
-
   function parseFaqPage(value: unknown): SupportFaqPage {
     const v = row(value); const total = integer(v?.total); const pageNum = integer(v?.pageNum, 1); const pageSize = integer(v?.pageSize, 1);
     if (!v || !Array.isArray(v.records) || total === null || pageNum === null || pageSize === null || pageSize > 50 || v.records.length > pageSize) invalid("SUPPORT_FAQ_RESPONSE_INVALID");
@@ -258,26 +203,8 @@ export function createSupportApi(client: ApiClient): SupportApi {
     const v = row(value); const type = text(v?.resultType)?.toLowerCase();
     if (!v || !type) invalid("SUPPORT_COMMAND_RESULT_INVALID");
     if (type === 'conversation_user_clear') return { kind: 'conversation-user-clear', clearance: parseConversationUserClear(v.result) };
-    if (type === "ticket") return { kind: "ticket", ticket: parseTicketDetail(v.result) };
     if (type === "conversation") return { kind: "conversation", conversation: parseConversationDetail(v.result) };
-    if (type === "conversation-ticket") {
-      const result = row(v.result); if (!result) invalid("SUPPORT_COMMAND_RESULT_INVALID");
-      return { kind: "conversation-ticket", conversation: parseConversationHeader(result.conversation), ticket: parseTicketDetail(result.ticket) };
-    }
     invalid("SUPPORT_COMMAND_RESULT_INVALID");
-  }
-  async function allTickets(): Promise<Page<Ticket>> {
-    const items: Ticket[] = []; const seen = new Set<string>(); let beforeId: number | null = null;
-    do {
-      const suffix = beforeId === null ? "" : `&beforeId=${beforeId}`;
-      const page = parseTicketPage(await client.request({ method: "GET", path: `${await supportPath("/tickets/cursor")}?pageSize=100${suffix}` }));
-      if (page.items.some(item => seen.has(item.id))) invalid("SUPPORT_TICKET_PAGE_INCOMPLETE");
-      page.items.forEach(item => seen.add(item.id));
-      items.push(...page.items);
-      if (page.nextCursor !== null && beforeId !== null && page.nextCursor >= beforeId) invalid("SUPPORT_TICKET_PAGE_INCOMPLETE");
-      beforeId = page.nextCursor;
-    } while (beforeId !== null);
-    return { items, total: items.length };
   }
   async function allConversations(): Promise<Page<Conversation>> {
     const items: Conversation[] = []; const seen = new Set<string>(); let beforeId: number | null = null;
@@ -292,7 +219,7 @@ export function createSupportApi(client: ApiClient): SupportApi {
     } while (beforeId !== null);
     return { items, total: items.length };
   }
-  async function faqPage(language: string, category?: string, surface: "Help Center" | "Ticket Create" = "Help Center", pageNum = 1, pageSize = 20): Promise<SupportFaqPage> {
+  async function faqPage(language: string, category?: string, surface: "Help Center" = "Help Center", pageNum = 1, pageSize = 20): Promise<SupportFaqPage> {
     if (!Number.isSafeInteger(pageNum) || pageNum < 1 || !Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 50) invalid("SUPPORT_FAQ_PAGE_INVALID");
     const params = new URLSearchParams({ language: language.trim() || "en-US", surface });
     if (category?.trim()) params.set("category", category.trim());
@@ -306,19 +233,6 @@ export function createSupportApi(client: ApiClient): SupportApi {
     ...createConversationManagement(client),
     authorityRevision: async () => "canonical-v1",
     advisor: async () => parseCurrentAdvisor(await client.request({ method: "GET", path: `${supportRoot}/advisor` })),
-    tickets: allTickets,
-    ticketCreationPolicy: async () => parseTicketCreationCapability(await client.request({ method: 'GET', path: await supportPath('/tickets/creation-policy') })),
-    ticket: async (id, beforeMessageId) => parseTicketDetail(await client.request({ method: "GET", path: `${await supportPath(`/tickets/${pathId(id)}`)}${pathCursor(beforeMessageId)}` })),
-    markTicketRead: async ticket => parseTicketDetail(await client.request({ method: "POST", path: await supportPath(`/tickets/${pathId(ticket.id)}/read`), body: { expectedStatus: ticket.status.toUpperCase(), expectedVersion: ticket.version } })),
-    createTicket: async (input, key) => {
-      const body = normalizeMessageText(input.body);
-      return parseTicketDetail(requireTicketCreationResult(await client.request({ method: "POST", path: await supportPath("/tickets"), idempotencyKey: requiredKey(key), body: { category: input.category, title: input.subject.trim(), body, clientMessageId: key }, acceptedResponses: ticketCreationDenials })));
-    },
-    replyTicket: async (ticket, body, key) => {
-      const text = normalizeMessageText(body);
-      return parseTicketDetail(await client.request({ method: "POST", path: await supportPath(`/tickets/${pathId(ticket.id)}/replies`), idempotencyKey: requiredKey(key), body: { body: text, expectedStatus: ticket.status.toUpperCase(), expectedVersion: ticket.version, clientMessageId: key } }));
-    },
-    closeTicket: async (ticket, key) => parseTicketDetail(await client.request({ method: "POST", path: await supportPath(`/tickets/${pathId(ticket.id)}/close`), idempotencyKey: requiredKey(key), body: { expectedStatus: ticket.status.toUpperCase(), expectedVersion: ticket.version, clientMessageId: key } })),
     conversations: allConversations,
     conversationDismissals: async () => {
       let value: unknown;
@@ -369,10 +283,6 @@ export function createSupportApi(client: ApiClient): SupportApi {
       return client.download({ path: `${supportRoot}/advisor/avatar/${authorId}`, signal });
     },
     cancelAttachment: async (id, key) => { parseAttachment(await client.request({ method: "DELETE", path: `${supportRoot}/attachments/${pathId(id)}`, idempotencyKey: requiredKey(key) })); },
-    convertConversationToTicket: async (conversation, category, title, key) => {
-      const v = row(requireTicketCreationResult(await client.request({ method: "POST", path: await supportPath(`/conversations/${pathId(conversation.id)}/ticket`), idempotencyKey: requiredKey(key), body: { category, title: title.trim(), expectedStatus: conversation.status.toUpperCase(), expectedVersion: conversation.version, clientMessageId: key }, acceptedResponses: ticketCreationDenials })));
-      if (!v) invalid("SUPPORT_CONVERSATION_RESPONSE_INVALID"); return { conversation: parseConversationHeader(v.conversation), ticket: parseTicketDetail(v.ticket) };
-    },
     commandResult: async key => {
       try {
         return parseCommandResult(await client.request({ method: "GET", path: await supportPath(`/commands/${pathId(requiredKey(key))}`) }));
@@ -380,11 +290,6 @@ export function createSupportApi(client: ApiClient): SupportApi {
         if (cause instanceof ApiError && cause.status === 404) return null;
         throw cause;
       }
-    },
-    slaTargets: async () => {
-      const value = await client.request({ method: "GET", path: await supportPath("/sla-targets") });
-      if (!Array.isArray(value)) invalid("SUPPORT_SLA_TARGET_RESPONSE_INVALID");
-      return value.map(parseSlaTarget);
     },
     faqPage,
     faqs: async (language, category, surface = "Help Center") => (await faqPage(language, category, surface, 1, 50)).items,

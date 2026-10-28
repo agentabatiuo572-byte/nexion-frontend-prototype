@@ -8,13 +8,17 @@ import { catchUpConversation,mergeConversationMessages } from '@/api/conversatio
 import { conversationPeerKey, groupConversationThreads, type ConversationThread } from '@/api/conversation-threads';
 import type { ConversationUserClear } from '@/api/conversation-management';
 import { remoteApiEnabled } from "@/api/runtime";
-import { asApiError } from "@/api/errors";
+import { ApiError, asApiError } from "@/api/errors";
 import { awaitMessageOutcome, isConversationDeliveryAmbiguous, isConversationPeerChanged, isConversationUserClearRejected, MESSAGE_ACK_TIMEOUT_MS, MESSAGE_READBACK_TIMEOUT_MS } from '@/lib/conversation-delivery-policy';
-import { isTicketReplyRequired } from '@/api/support-ticket-policy';
 import { isSupportAttachmentNotReady, type ConversationDismissal, type CurrentAdvisor } from "@/api/support-api";
-import type { Conversation, ConversationCategoryAvailability, ConversationType, TicketCategory } from "@/domain/support";
+import type { Conversation, ConversationCategoryAvailability, ConversationType } from "@/domain/support";
 import { opaqueSupportIntentSlot } from "@/lib/support-intent-slot";
 import { restoreSupportPending, persistSupportPending, clearSupportPending } from "@/lib/support-pending-storage";
+
+/** The server asks for a customer reply before this send; not an ambiguous delivery. */
+function isSupportReplyRequired(cause: unknown): boolean {
+  return cause instanceof ApiError && cause.status === 409 && cause.message === 'SUPPORT_REPLY_REQUIRED';
+}
 
 function mutationKey(scope: string): string {
   const label = scope.split(":", 1)[0].replace(/[^a-z0-9-]/gi, "").slice(0, 24) || "command";
@@ -397,7 +401,7 @@ export const useConversations = defineStore("conversations", () => {
 
   function mustReadBack(cause: unknown): boolean {
     return !isSupportAttachmentNotReady(cause)
-      && !isTicketReplyRequired(cause)
+      && !isSupportReplyRequired(cause)
       && isConversationDeliveryAmbiguous(cause);
   }
 
@@ -754,8 +758,7 @@ export const useConversations = defineStore("conversations", () => {
           applyUserClear(result.clearance); completePending(scope, fingerprint); continue;
         }
         if (scopeIsCurrent(scope) && result.kind === "conversation") replace(result.conversation);
-        if (scopeIsCurrent(scope) && result.kind === "conversation-ticket") replace(result.conversation);
-        if (result.kind !== "conversation" && result.kind !== "conversation-ticket") continue;
+        if (result.kind !== "conversation") continue;
         completePending(scope, fingerprint);
         for (const [composerKey, saved] of Object.entries(humanComposers.value)) {
           const failed = saved.failedSend;
@@ -833,28 +836,6 @@ export const useConversations = defineStore("conversations", () => {
     return true;
   }
 
-  async function convertToTicket(id: string, category: TicketCategory, title: string): Promise<string> {
-    const account = { epoch: accountEpoch, accountKey: accountKeyValue };
-    const current = get(id) ?? await open(id);
-    if (!accountScopeIsCurrent(account)) throw new Error("SUPPORT_ACCOUNT_SCOPE_CHANGED");
-    const epoch = accountEpoch;
-    let result: { conversation: Conversation; ticket: { id: string } };
-    try {
-      result = await command(`conversation-ticket:${id}:${category}:${title.trim()}`,
-        key => supportApi.convertConversationToTicket(current, category, title, key), async key => {
-          const commandResult = await supportApi.commandResult(key);
-          return commandResult?.kind === "conversation-ticket"
-            ? { conversation: commandResult.conversation, ticket: commandResult.ticket }
-            : null;
-        }, account);
-    } catch (cause) {
-      if (accountScopeIsCurrent(account) && mustReadBack(cause)) await reconcile(id, account);
-      throw cause;
-    }
-    if (epoch === accountEpoch) replace(result.conversation);
-    return result.ticket.id;
-  }
-
   function reset() {
     stopRealtime();watchedId=null;
     advisorRequestGeneration += 1;
@@ -896,5 +877,5 @@ export const useConversations = defineStore("conversations", () => {
     if (remoteApiEnabled) void preparePendingRun().then(reconcilePending).catch(() => undefined);
   }
 
-  return { conversations, humanThreads, getThread, openThread, loadEarlierThread, deleteConversation, deletionAvailable, deletingIds, dismissConversation, dismissingIds, dismissalAvailable, typingIds, onlineIds,realtimeReady,realtimeFallback,scopeInvalidated,peerChangedIds,advisor,advisorLoading,advisorError,humanComposers,clearedComposerThrough,composer,saveComposer,clearComposer,suspendForReauthentication,discardHumanOutbox,hasPendingHumanSend,hasPendingHumanCreate,refreshAdvisor,startRealtime,stopRealtime,watchRealtime,setTyping, categoryAvailability, categoryAvailabilityStatus, categoryLoading, totalUnread, loading, mutating, error, refresh, refreshCategories, categoryEnabled, categoryReadable, byType, get, open, loadEarlier, startConversation, startSupportSession, sendUser, convertToTicket, reset, bindAccount };
+  return { conversations, humanThreads, getThread, openThread, loadEarlierThread, deleteConversation, deletionAvailable, deletingIds, dismissConversation, dismissingIds, dismissalAvailable, typingIds, onlineIds,realtimeReady,realtimeFallback,scopeInvalidated,peerChangedIds,advisor,advisorLoading,advisorError,humanComposers,clearedComposerThrough,composer,saveComposer,clearComposer,suspendForReauthentication,discardHumanOutbox,hasPendingHumanSend,hasPendingHumanCreate,refreshAdvisor,startRealtime,stopRealtime,watchRealtime,setTyping, categoryAvailability, categoryAvailabilityStatus, categoryLoading, totalUnread, loading, mutating, error, refresh, refreshCategories, categoryEnabled, categoryReadable, byType, get, open, loadEarlier, startConversation, startSupportSession, sendUser, reset, bindAccount };
 });
