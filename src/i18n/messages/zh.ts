@@ -543,7 +543,7 @@ sandboxSponsorEnvironmentMismatch: "该邀请码不可用,请核对后重试",
     addBoxPayback: "约 {n} 天回本",
     estPerDay: "预计 /d",
     // OnGridSection + NetworkPulseCard (structural labels keyed; dense mock stat subs kept faithful)
-    onGridTitle: "UVEL 网格实时",
+    onGridTitle: "UVEL 网络动态",
     onGridNow: "实时",
     onGridMap: "地图",
     onGridGpus: "{n} GPU",
@@ -1703,7 +1703,7 @@ catalog: {
   trial: {
     // Home TrialHeroBanner — coupon ticket form (100% v5 BzBtJ design port).
     // Paired with SVG star icon; CSS handles uppercase + letter-spacing.
-    heroBadge: "免费试用",
+    heroBadge: "限时福利",
     heroDeviceName: "UVELBox S1",
     homeFreeTrial: "免费体验",
     homeNoPayment: "无需付款",

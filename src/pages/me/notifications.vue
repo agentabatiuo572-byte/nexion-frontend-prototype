@@ -360,8 +360,8 @@ watch(section, () => { resetHeader(); preserveSectionInH5(); });
 .notification-management { display: flex; justify-content: flex-end; padding: 4px 0 8px; }
 /* One glass rail, one flat moving selection; shared spring/drag behavior stays active. */
 .message-center .message-primary { height: 50px; box-sizing: border-box; padding: 3px; gap: 4px; border: 0; background: transparent; box-shadow: none; }
-.message-center .message-primary :deep(.nx-glass-backdrop) { --v5-liquid-shadow: none; }
-.message-center .message-filters :deep(.nx-glass-indicator) { --v5-liquid-selected: transparent; --v5-liquid-selection-shadow: none; }
+.message-center .message-primary :deep(.nx-glass-backdrop) { --v5-liquid-shadow: 0 0 0 transparent; }
+.message-center .message-filters :deep(.nx-glass-indicator) { --v5-liquid-selected: transparent; --v5-liquid-selection-shadow: 0 0 0 transparent; }
 .message-option-label, .message-category-dot { position: relative; z-index: 1; }
 .message-center .message-primary :deep(.nx-glass-option) { min-height: 44px; height: 44px; padding: 0 10px; gap: 6px; border: 1px solid transparent; border-radius: 999px; color: var(--v5-ink-2); font-size: var(--ui-type-list-title); line-height: 20px; font-weight: 500; }
 .message-center .message-primary :deep(.nx-glass-option--selected) { color: var(--v5-brand); font-weight: 600; }

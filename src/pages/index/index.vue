@@ -8,10 +8,10 @@
       <DailyCheckInRow />
       <HomeBenefits />
       <HomeActionList />
-      <LiveFeedCard />
       <MyFleetSection />
       <PromotionEntry v-if="homePromotions.length" mode="home" :activities="homePromotions" />
       <view v-else-if="!homePromotionRead && (homePromotionStatus === 'idle' || homePromotionStatus === 'loading')" class="home-promotion-skeleton" role="status" aria-busy="true" :aria-label="t.coreReview.loadingOffers"><view /><view /></view>
+      <LiveFeedCard />
       <OnGridSection />
       <HomeNetworkSnapshot />
       <DoTheMathCard />

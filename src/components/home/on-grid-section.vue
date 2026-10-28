@@ -56,6 +56,7 @@
 
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
+import { networkPopulationBand } from "@/lib/platform-stats";
 import { navTo } from "@/lib/route";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -82,7 +83,7 @@ const gridClients = computed(() => (app.homeTruth?.onGrid.clients ?? [])
   .map((client) => ({ ...client, color: "var(--v5-brand)" })));
 const activeDevicesText = computed(() => {
   const value = app.homeTruth?.onGrid.activeDevices;
-  return value === null || value === undefined ? "—" : value.toLocaleString();
+  return value === null || value === undefined ? "—" : networkPopulationBand(value);
 });
 
 function gpusText(i: number) {

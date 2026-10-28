@@ -3,11 +3,11 @@
   三格:注册用户 / 在线设备 / 设备排名。
 -->
 <template>
-  <NxSection v-if="compactView && compactAvailable" :title="t.home.networkPulseTitle" :action="copy.details" @action="navTo('/pages/globe/globe')" data-home-section="network">
+  <NxSection v-if="compactView && compactAvailable" :title="t.home.networkPulseTitle" :action="copy.details" action-icon-only @action="navTo('/pages/globe/globe')" data-home-section="network">
     <view class="network-compact">
       <view v-for="(m,i) in metrics" :key="m.k" class="network-compact__cell" :role="m.tap ? 'button' : undefined" :tabindex="m.tap ? 0 : -1" @click="activate(m.tap)" @keydown.enter.prevent="activate(m.tap)" @keydown.space.prevent="activate(m.tap)">
         <text class="network-compact__label">{{ m.k }}</text>
-        <text class="network-compact__value" :style="m.vSize ? {fontSize:m.vSize} : {}">{{ i === 0 && registeredDisplay != null ? registeredDisplay.toLocaleString() : m.v }}</text>
+        <text class="network-compact__value" :style="m.vSize ? {fontSize:m.vSize} : {}">{{ m.v }}</text>
         <text v-if="m.subTap" class="network-compact__retry" role="button" tabindex="0" @click.stop="m.subTap()" @keydown.enter.stop.prevent="m.subTap()" @keydown.space.stop.prevent="m.subTap()">{{ m.sub }}</text>
         <text v-else-if="m.v === '-'" class="network-compact__retry">{{ m.sub }}</text>
       </view>
@@ -79,7 +79,7 @@ import { useConfig } from "@/store/config";
 import { useNetworkRank } from "@/store/network-rank";
 import { useDataVisibility } from "@/store/data-visibility";
 import { remoteApiEnabled } from "@/api/runtime";
-import { compactNumber as compact } from "@/lib/platform-stats";
+import { compactNumber as compact, networkPopulationBand } from "@/lib/platform-stats";
 import { confirm } from "@/store/ui";
 import { navTo } from "@/lib/route";
 
@@ -186,10 +186,10 @@ const metrics = computed<Cell[]>(() => {
   const failed = cfg.syncFailed;
   const pulse = failed ? null : cfg.config.networkPulse;
   // H9 supplies the published counts and the server supplies the device estimate.
-  const displayCell = (label: string, value: number | null | undefined, color: string): Cell =>
-    value === null || value === undefined || !Number.isSafeInteger(value) || value < 0
-      ? placeholderCell(label)
-      : { k: label, v: compact(value), tone: "var(--v5-ink)", sub: "", data: null, color };
+  const displayCell = (label: string, value: number | null | undefined, color: string): Cell => {
+    if (value === null || value === undefined || !Number.isSafeInteger(value) || value < 0) return placeholderCell(label);
+    return { k: label, v: props.compactView ? networkPopulationBand(value) : compact(value), tone: "var(--v5-ink)", sub: "", data: null, color };
+  };
   const memberValue = props.compactView && props.estimated ? props.registeredDisplay : pulse?.registeredUsers;
   const members = displayCell(t.value.home.networkMembers, memberValue, "var(--v5-brand)");
   const devices = displayCell(t.value.home.networkDevices, pulse?.onlineDevices, "var(--v5-tech-cyan-ink)");

@@ -2,14 +2,14 @@
   <view class="nx-section">
     <view v-if="title" class="nx-section__heading">
       <view class="nx-section__titles"><text class="nx-section__title" role="heading" aria-level="2">{{ title }}</text><text v-if="meta" class="nx-section__meta">{{ meta }}</text></view>
-      <NxButton v-if="action" :label="action" variant="text" size="medium" @click="$emit('action')"><text>{{ action }}</text><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg></NxButton>
+      <NxButton v-if="action" :label="action" :class="{ 'nx-section__icon-action': actionIconOnly }" variant="text" size="medium" @click="$emit('action')"><text v-if="!actionIconOnly">{{ action }}</text><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg></NxButton>
     </view>
     <slot />
   </view>
 </template>
 <script setup lang="ts">
 import NxButton from './nx-button.vue';
-defineProps<{ title?: string; meta?: string; action?: string }>();
+defineProps<{ title?: string; meta?: string; action?: string; actionIconOnly?: boolean }>();
 defineEmits<{ (event: 'action'): void }>();
 </script>
 <style scoped>
@@ -19,6 +19,8 @@ defineEmits<{ (event: 'action'): void }>();
 .nx-section__title { font: 600 var(--ui-type-section)/var(--ui-type-section-lh) var(--font-v5); letter-spacing: -.02em; }
 .nx-section__meta { font: 500 13px/18px var(--font-v5); color: var(--v5-ink-3); }
 .nx-section__heading :deep(.nx-button) {font-size:13px;gap:2px;padding:0;min-height:44px;color:var(--v5-ink-2);}
+.nx-section__heading :deep(.nx-section__icon-action) { width:44px;min-width:44px; }
+.nx-section__heading :deep(.nx-section__icon-action .nx-button__surface) { justify-content:flex-end; }
 @media (max-width: 374px) {
   .nx-section__meta { font-size: 12px; line-height: 16px; }
   .nx-section__heading :deep(.nx-button) { font-size: 13px; }

@@ -128,7 +128,7 @@
     <view class="nx-tabbar-wrap">
       <!-- Anchor to the actual navigation height, including its safe area. -->
       <NovaBubble v-if="showFloatingSupport" :dimmed="scrolling" />
-      <GlassSegments v-if="isTabRoute" :key="navigationReset" class="nx-tabbar-pill" variant="navigation" :options="navigationOptions" :model-value="activeTab" :from-value="navigationReset ? undefined : navigationFrom" :navigation-on-arrival="tabHost ? false : undefined" @select="selectNavigation">
+      <GlassSegments v-if="isTabRoute" :key="navigationReset" class="nx-tabbar-pill" variant="navigation" selection="flat" :options="navigationOptions" :model-value="activeTab" :from-value="navigationReset ? undefined : navigationFrom" :navigation-on-arrival="tabHost ? false : undefined" @select="selectNavigation">
         <template #option="{ option: tab, selected }">
           <view class="nx-tab__icon" aria-hidden="true">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none"

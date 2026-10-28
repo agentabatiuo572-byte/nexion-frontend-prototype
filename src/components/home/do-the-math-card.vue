@@ -3,8 +3,7 @@
   projection selects the user's highest-yield active device and the next
   purchasable E1 catalog product. Headline segments preserve the 5174 layout
   so word order works in any locale), two rate bars, a 3-stat grid, and a CTA.
-  Hidden at top tier (multiplier 0). Grid bg uses the brand token (theme-aware)
-  rather than the source's hardcoded light-blue rgba (would leak in dark).
+  Hidden at top tier (multiplier 0). Uses the shared plain card background.
 -->
 <template>
   <view v-if="calculator" data-home-section="do-the-math">
@@ -13,7 +12,6 @@
     </view>
 
     <view class="nx-glass-card relative overflow-hidden" style="background: var(--nx-glass-fill); box-shadow: var(--nx-glass-edge); border-radius: var(--nx-glass-radius); padding: 16px">
-      <view :style="gridBgStyle" />
       <view class="relative">
         <view style="font-family: var(--font-v5); font-weight: 600; font-size: 20px; color: var(--v5-ink); letter-spacing: -0.018em; line-height: 1.35">
           <text v-for="(s, i) in headlineSegs" :key="i" :style="s.color ? { color: s.color } : {}">{{ s.text }}</text>
@@ -74,7 +72,7 @@
 import { useDataVisibility } from "@/store/data-visibility";
 import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
-import { computed, type CSSProperties } from "vue";
+import { computed } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useApp } from "@/store/app";
@@ -125,16 +123,6 @@ const stats = computed(() => calculator.value ? [
   { k: t.value.home.doMathDaily, v: formatAmount(calculator.value.target.dailyUsdt), tone: "var(--v5-ink)" },
   { k: fmt(t.value.home.doMathVs, { base: baseShort.value }), v: visibility.mask(`${calculator.value.multiplier}×`), tone: "var(--v5-success)" },
 ] : []);
-
-const gridBgStyle: CSSProperties = {
-  position: "absolute",
-  inset: "0",
-  backgroundImage:
-    "linear-gradient(to right, color-mix(in oklab, var(--v5-brand) 6%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in oklab, var(--v5-brand) 6%, transparent) 1px, transparent 1px)",
-  backgroundSize: "24px 24px",
-  pointerEvents: "none",
-  opacity: 0.6,
-};
 
 function goStore() {
   const productNo = calculator.value?.target.productNo;

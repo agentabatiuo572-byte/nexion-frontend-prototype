@@ -559,7 +559,7 @@ sandboxSponsorEnvironmentMismatch: "This invitation code can't be used. Check it
     addBoxPayback: "Pays back in ~{n} days",
     estPerDay: "est. /d",
     // OnGridSection + NetworkPulseCard (structural labels keyed; dense mock stat subs kept faithful)
-    onGridTitle: "On UVEL grid",
+    onGridTitle: "UVEL Network Activity",
     onGridNow: "now",
     onGridMap: "Map",
     onGridGpus: "{n} GPUs",
@@ -1719,7 +1719,7 @@ catalog: {
   trial: {
     // Home TrialHeroBanner — coupon ticket form (100% v5 BzBtJ design port).
     // Paired with SVG star icon; CSS handles uppercase + letter-spacing.
-    heroBadge: "Free trial",
+    heroBadge: "Limited-time offer",
     heroDeviceName: "UVELBox S1",
     homeFreeTrial: "Free trial",
     homeNoPayment: "No payment needed",

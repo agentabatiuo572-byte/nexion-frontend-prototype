@@ -37,7 +37,7 @@ export default glassViewImplementation;
 .nx-liquid-optics { overflow: hidden; }
 .nx-liquid-tint { background: var(--v5-liquid-tint); box-shadow: var(--v5-liquid-shadow); }
 .nx-liquid-specular { background-size: 100% 100%; mix-blend-mode: screen; opacity: .38; filter: blur(.35px); }
-.nx-liquid-rim { box-shadow: inset 0 0 0 .5px var(--v5-liquid-rim), inset 0 1px 1px var(--v5-liquid-highlight), inset 0 -1px 1px var(--v5-liquid-bottom); }
+.nx-liquid-rim { border:none;box-shadow:var(--ui-glass-edge-shadow); }
 .nx-liquid-glass--selection .nx-liquid-tint { background-color: color-mix(in srgb, var(--v5-liquid-tint) 45%, var(--v5-surface)); background-image: linear-gradient(var(--v5-liquid-selected), var(--v5-liquid-selected)); box-shadow: var(--v5-liquid-selection-shadow); }
 .nx-liquid-glass--selection .nx-liquid-specular { opacity: .46; }
 .nx-liquid-glass[data-glass-strategy="webgl"], .nx-liquid-glass[data-glass-strategy="solid"] { backdrop-filter: none; -webkit-backdrop-filter: none; }
@@ -51,7 +51,7 @@ export default glassViewImplementation;
   -webkit-backdrop-filter: blur(var(--nx-material-blur, 18px)) saturate(135%);
   background-color: var(--v5-liquid-tint);
   background-image: linear-gradient(155deg, rgba(255,255,255,.1), transparent 22%, transparent 78%, rgba(255,255,255,.038));
-  box-shadow: var(--v5-liquid-shadow), inset 0 0 0 .5px var(--v5-liquid-rim), inset 0 1px 1px var(--v5-liquid-highlight), inset 0 -1px 1px var(--v5-liquid-bottom);
+  box-shadow: var(--v5-liquid-shadow), var(--ui-glass-edge-shadow);
 }
 .nx-liquid-glass--frosted > .nx-liquid-optics,
 .nx-liquid-glass--frosted > .nx-liquid-tint,
@@ -60,7 +60,7 @@ export default glassViewImplementation;
 .nx-liquid-glass--frosted.nx-liquid-glass--selection {
   background-color: color-mix(in srgb, var(--v5-liquid-tint) 45%, var(--v5-surface));
   background-image: linear-gradient(var(--v5-liquid-selected), var(--v5-liquid-selected));
-  box-shadow: var(--v5-liquid-selection-shadow), inset 0 0 0 .5px var(--v5-liquid-rim), inset 0 1px 1px var(--v5-liquid-highlight);
+  box-shadow: var(--v5-liquid-selection-shadow), var(--ui-glass-edge-shadow);
 }
 .nx-liquid-glass--frosted[data-glass-strategy="solid"] { background: var(--v5-surface); }
 .nx-liquid-glass--frosted.nx-liquid-glass--selection[data-glass-strategy="solid"] {
@@ -75,4 +75,8 @@ export default glassViewImplementation;
 .nx-liquid-glass--sampled > .nx-liquid-rim { display: block; }
 .nx-liquid-glass--sampled > .nx-liquid-specular { background-image: linear-gradient(155deg, rgba(255,255,255,.26), transparent 22%, transparent 78%, rgba(255,255,255,.1)); }
 .nx-liquid-glass--sampled[data-glass-strategy="solid"] > .nx-liquid-sample { display: none; }
+@media (forced-colors: active) {
+  .nx-liquid-glass, .nx-liquid-glass.nx-liquid-glass--frosted { box-shadow:none;outline:1px solid ButtonText;outline-offset:-1px; }
+  .nx-liquid-glass > .nx-liquid-rim { box-shadow:none; }
+}
 </style>

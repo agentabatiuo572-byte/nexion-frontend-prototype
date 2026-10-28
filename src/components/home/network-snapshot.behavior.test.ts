@@ -8,6 +8,7 @@ import { parse } from '@vue/compiler-sfc';
 import { renderToString } from '@vue/server-renderer';
 import snapshotSource from './network-snapshot.vue?raw';
 import pulseSource from './network-pulse-card.vue?raw';
+import gridSource from './on-grid-section.vue?raw';
 import * as stats from '@/lib/platform-stats';
 import { zh } from '@/i18n/messages/zh';
 import { en } from '@/i18n/messages/en';
@@ -28,13 +29,15 @@ function mount(copy = zh) {
   } });
   const rank = vue.reactive({ status: 'ready', snapshot: { state: 'ranked', currentRank: 12 } as { state: string; currentRank: number | null } | null, bindAccount: vi.fn(), ensure: vi.fn(), refresh: vi.fn() });
   const props = vue.reactive({ compactView: true, estimated: true, registeredDisplay: 100 as number | null });
+  const app = vue.reactive({ accountKey: 'a', homeTruth: { onGrid: { activeDevices: 3206 as number | null, perSecUsdt: 0.03, clients: [] } } });
   const hooks = { show: [] as Array<() => void>, hide: [] as Array<() => void>, unmount: [] as Array<() => void> };
   const modules: Record<string, unknown> = {
     '@/store/data-visibility': { useDataVisibility: () => visibility },
     vue: { ...vue, onMounted: vi.fn(), onUnmounted: (fn: () => void) => hooks.unmount.push(fn) },
     '@/composables/use-tab-page-lifecycle': { onShow: (fn: () => void) => hooks.show.push(fn), onHide: (fn: () => void) => hooks.hide.push(fn) },
     '@/store/config': { useConfig: () => cfg }, '@/lib/platform-stats': stats,
-    '@/store/app': { useApp: () => vue.reactive({ accountKey: 'a' }) }, '@/store/network-rank': { useNetworkRank: () => rank },
+    '@/store/app': { useApp: () => app }, '@/store/network-rank': { useNetworkRank: () => rank },
+    '@/lib/amount-display': { formatAmount: String }, '@/i18n/format': { fmt: vi.fn() },
     '@/api/runtime': { remoteApiEnabled: true }, '@/i18n/use-t': { useT: () => vue.ref(copy) },
     '@/i18n/audit-ui': { useAuditUiCopy: () => vue.ref({}) }, '@/store/ui': { confirm: vi.fn() }, '@/lib/route': { navTo: vi.fn() },
   };
@@ -52,7 +55,7 @@ function mount(copy = zh) {
     app.component('NxSection', { setup: (_props: unknown, context: { slots: vue.Slots }) => () => vue.h('view', context.slots.default?.()) });
     return renderToString(app);
   };
-  return { cfg, rank, props, hooks, visibility, html, snapshot: run(snapshotSource, '{ available, memberCount }'), pulse };
+  return { cfg, rank, props, hooks, visibility, html, app, grid: run(gridSource, '{ activeDevicesText }'), snapshot: run(snapshotSource, '{ available, memberCount }'), pulse };
 }
 
 describe('optional compact network summary', () => {
@@ -102,7 +105,7 @@ describe('optional compact network summary', () => {
   it('does not show a retry placeholder for a valid estimate when the independent published member count is absent', () => {
     const h = mount(); Object.assign(h.cfg.config.networkPulse, { registeredUsers: null });
     expect(h.pulse.compactAvailable.value).toBe(true);
-    expect(h.pulse.metrics.value[0]).toMatchObject({ v: '100', sub: '' });
+    expect(h.pulse.metrics.value[0]).toMatchObject({ v: '100+', sub: '' });
     expect(h.pulse.metrics.value[0].tap).toBeUndefined();
     h.props.estimated = false;
     expect(h.pulse.compactAvailable.value).toBe(false);
@@ -119,7 +122,7 @@ it.each([zh, en, vietnamese].flatMap(copy => [true, false].map(compactView => ({
     const values = (html: string) => [...html.matchAll(compactView
       ? /class="network-compact__value"[^>]*>([^<]*)<\/text>/g
       : /class="block mt-0.5 tabular-nums"[^>]*>([^<]*)<\/text>/g)].map(match => match[1]);
-    const publicValues = [compactView ? h.props.registeredDisplay.toLocaleString() : stats.compactNumber(23841), stats.compactNumber(4876)];
+    const publicValues = compactView ? ['1.9W+', '4.8K+'] : [stats.compactNumber(23841), stats.compactNumber(4876)];
     expect(values(await h.html())).toEqual([...publicValues, '#184']);
     h.visibility.toggle();
     const hidden = await h.html();
@@ -132,6 +135,34 @@ it.each([zh, en, vietnamese].flatMap(copy => [true, false].map(compactView => ({
     expect(JSON.stringify(h.cfg.config.networkPulse)).toBe(originalCounts);
   },
 );
+
+it.each([zh, en, vietnamese])('renders population bands without exposing exact counts or changing rank', async copy => {
+  const h = mount(copy);
+  h.props.registeredDisplay = 13045;
+  h.cfg.config.networkPulse.onlineDevices = 3206;
+  h.rank.snapshot = { state: 'ranked', currentRank: 184 };
+  const html = await h.html();
+  expect(h.pulse.metrics.value.map((cell: { v: string }) => cell.v)).toEqual(['1.3W+', '3.2K+', '#184']);
+  expect(html).toContain('1.3W+'); expect(html).toContain('3.2K+');
+  expect(html).not.toMatch(/13,?045|3,?206/);
+  expect(h.grid.activeDevicesText.value).toBe(h.pulse.metrics.value[1].v);
+  h.app.homeTruth.onGrid.activeDevices = h.cfg.config.networkPulse.onlineDevices = 9999;
+  expect(h.grid.activeDevicesText.value).toBe('9.9K+');
+  expect(h.grid.activeDevicesText.value).toBe(h.pulse.metrics.value[1].v);
+  h.app.homeTruth.onGrid.activeDevices = null;
+  expect(h.grid.activeDevicesText.value).toBe('—');
+  h.props.registeredDisplay = 12999;
+  expect(h.pulse.metrics.value[0].v).toBe('1.2W+');
+  h.props.registeredDisplay = null;
+  expect(h.pulse.compactAvailable.value).toBe(false);
+  expect(h.pulse.metrics.value[0].v).toBe('-');
+});
+
+it.each([0, 99, 100, 999, 1000, 9999, 10000])('uses a coarse lower band for %s', value => {
+  const h = mount(); h.props.registeredDisplay = value;
+  const expected = new Map([[0, '<100'], [99, '<100'], [100, '100+'], [999, '900+'], [1000, '1K+'], [9999, '9.9K+'], [10000, '1W+']]);
+  expect(h.pulse.metrics.value[0].v).toBe(expected.get(value));
+});
 
 it.each([zh, en, vietnamese])('retains unranked and unknown explanations with privacy enabled', async copy => {
   const h = mount(copy); h.props.compactView = false; h.visibility.toggle();

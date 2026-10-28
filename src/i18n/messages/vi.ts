@@ -554,7 +554,7 @@ sandboxSponsorEnvironmentMismatch: "Mã mời này không dùng được. Kiểm
     addBoxPayback: "Hoàn vốn trong ~{n} ngày",
     estPerDay: "ước tính /ngày",
     // OnGridSection + NetworkPulseCard (structural labels keyed; dense mock stat subs kept faithful)
-    onGridTitle: "Trên lưới UVEL",
+    onGridTitle: "Hoạt động mạng UVEL",
     onGridNow: "ngay lúc này",
     onGridMap: "Bản đồ",
     onGridGpus: "{n} GPU",
@@ -1715,7 +1715,7 @@ catalog: {
     },
   },
   trial: {
-    heroBadge: "Miễn phí",
+    heroBadge: "Ưu đãi có hạn",
     heroDeviceName: "UVELBox S1",
     homeFreeTrial: "Dùng thử miễn phí",
     homeNoPayment: "Không cần thanh toán",

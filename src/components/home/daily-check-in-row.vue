@@ -9,7 +9,7 @@
       <text v-if="rewardHint || milestoneHint" class="daily-check-in-row__meta">{{ rewardHint }}<text v-if="milestoneHint" class="daily-check-in-row__gift-hint">{{ rewardHint ? ' · ' : '' }}{{ milestoneHint }}</text></text>
 
     </view>
-    <NxButton class="daily-check-in-row__action" :class="{ 'daily-check-in-row__action--checked': checked }" variant="primary" :label="checkInLabel" size="medium" :busy="submitting" @click="checkIn">
+    <NxButton class="daily-check-in-row__action" :class="{ 'daily-check-in-row__action--checked': checked }" variant="secondary" :label="checkInLabel" size="medium" :busy="submitting" @click="checkIn">
       <svg v-if="checked" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5 12 5 5 9-10" /></svg>
       <text v-else>{{ checkInLabel }}</text>
     </NxButton>
@@ -99,7 +99,7 @@ async function checkIn() {
 .daily-check-in-row__flame :deep(.nx-native-svg svg) { display:block; width:100%; height:100%; }
 .daily-check-in-row__copy,.daily-check-in-row__days { position:relative; z-index:1; }
 .daily-check-in-row :deep(.nx-button) { min-height:44px;min-width:44px;padding:2px 0;font-size:14px;box-sizing:border-box; }
-.daily-check-in-row :deep(.nx-button__surface) { min-height:40px;padding:8px 18px;box-shadow:0 6px 18px color-mix(in srgb,var(--v5-brand) 28%,transparent),inset 0 1px 0 rgba(255,255,255,.45); }
+.daily-check-in-row :deep(.nx-button__surface) { min-height:40px;padding:8px 18px;--ui-button-fill:color-mix(in srgb,var(--v5-brand) 18%,transparent);--ui-button-ink:var(--v5-brand); }
 .daily-check-in-row :deep(.daily-check-in-row__action) { justify-self:end;align-self:start; }
 .daily-check-in-row :deep(.daily-check-in-row__action--checked) { width:44px;height:44px;padding:4px; }
 .daily-check-in-row :deep(.daily-check-in-row__action--checked .nx-button__surface) { flex:none;width:36px;min-height:36px;height:36px;padding:0; }
@@ -122,7 +122,7 @@ async function checkIn() {
 @media(max-width:374px) {
   .daily-check-in-row { gap:0 8px;padding-inline:12px;align-items:start; }
   .daily-check-in-row :deep(.nx-button) { font-size:12px;padding-block:6px;justify-self:end;align-self:start; }
-  .daily-check-in-row :deep(.nx-button__surface) { min-height:32px;padding:6px 10px;box-shadow:0 3px 10px color-mix(in srgb,var(--v5-brand) 15%,transparent),inset 0 1px 0 rgba(255,255,255,.45); }
+  .daily-check-in-row :deep(.nx-button__surface) { min-height:32px;padding:6px 10px; }
   .daily-check-in-row :deep(.nx-button__content) { gap:4px;white-space:nowrap; }
   .daily-check-in-row :deep(.daily-check-in-row__action--checked) { padding:6px; }
   .daily-check-in-row :deep(.daily-check-in-row__action--checked .nx-button__surface) { width:32px;min-height:32px;height:32px; }

@@ -6,22 +6,20 @@
 -->
 <template>
   <view class="nx-home-live-feed" data-home-section="live-feed" data-feed-mode="CANONICAL">
-    <!-- Tab switcher + see-all shortcut -->
-    <view class="px-0.5 pt-1 pb-2.5 flex items-center justify-between gap-2">
+    <!-- Compact switcher aligned to the card's right edge. -->
+    <view class="nx-home-feed-heading px-0.5 pt-1 pb-2.5 flex items-center justify-between">
+      <view class="nx-home-feed-mark" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-7 4 14 3-7h4" /></svg>
+      </view>
       <GlassSegments
         v-model="tab"
         class="nx-home-feed-tabs"
+        :class="{ 'nx-home-feed-tabs--vi': localeStore.code === 'vi' }"
         :options="feedTabOptions"
         :label="`${t.home.liveFeedTabActivity} / ${t.home.liveFeedTabEarnings}`"
         @keydown.up.stop.prevent="activateAdjacentTab(tab, -1)"
         @keydown.down.stop.prevent="activateAdjacentTab(tab, 1)"
       />
-      <view v-if="tab === 'earnings'" class="inline-flex items-center gap-1 font-mono-tabular active:opacity-70 transition-opacity" style="min-height: 44px; font-size: 12px; color: var(--v5-ink-3)" role="link" tabindex="0" @click.stop="goEarnings" @keydown.enter.stop.prevent="goEarnings">
-        <text style="color: var(--v5-ink-3)">{{ t.home.liveFeedSeeAll }}</text>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 18l6-6-6-6" />
-        </svg>
-      </view>
     </view>
 
     <!-- Activity tab -->
@@ -66,6 +64,14 @@
       <view v-else class="flex items-center justify-between px-1 py-3" style="gap: 12px">
         <text style="font-size: 12px; color: var(--v5-ink-3)">{{ remoteFeedStatusText }}</text>
         <text v-if="app.homeTruthStatus === 'error'" class="active:opacity-70" role="button" tabindex="0" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font: 600 13px/20px var(--font-v5); color: var(--v5-brand)" @click="retryHome"  @keydown.enter.stop.prevent="retryHome" @keydown.space.stop.prevent="retryHome">{{ t.ui.retry }}</text>
+      </view>
+    </view>
+    <view v-if="tab === 'earnings'" class="nx-home-feed-footer flex justify-end px-0.5">
+      <view class="inline-flex items-center gap-1 font-mono-tabular active:opacity-70 transition-opacity" style="min-height: 44px; font-size: 12px; color: var(--v5-ink-3)" role="link" tabindex="0" @click.stop="goEarnings" @keydown.enter.stop.prevent="goEarnings">
+        <text>{{ t.home.liveFeedSeeAll }}</text>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 18l6-6-6-6" />
+        </svg>
       </view>
     </view>
   </view>
@@ -177,6 +183,11 @@ function goEarnings() {
 
 <style scoped>
 .nx-home-live-feed { padding: 12px 16px 6px; border-radius: var(--ui-radius-surface); background: var(--v5-surface); }
-.nx-home-feed-tabs { flex: 0 1 180px; width: 180px; min-width: 0; }
-.nx-home-feed-tabs :deep(.nx-glass-option__label) { white-space: nowrap; }
+.nx-home-feed-heading { min-height:44px; }
+.nx-home-feed-mark { display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:color-mix(in srgb,var(--v5-brand) 10%,transparent);color:var(--v5-brand); }
+.nx-home-feed-tabs { flex:0 0 90px;width:90px;height:26px;min-width:0;padding:2px;gap:1px; }
+.nx-home-feed-tabs :deep(.nx-glass-option) { min-height:22px;padding:0; }
+.nx-home-feed-tabs :deep(.nx-glass-option::after) { content:"";position:absolute;inset:-11px 0; }
+.nx-home-feed-tabs :deep(.nx-glass-option__label) { font-size:10px;line-height:12px;white-space:nowrap; }
+.nx-home-feed-tabs--vi :deep(.nx-glass-option__label) { font-size:9px;letter-spacing:-.4px; }
 </style>

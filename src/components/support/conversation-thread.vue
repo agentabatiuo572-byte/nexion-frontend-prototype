@@ -1362,7 +1362,7 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
   position: relative;
   display: flex; align-items: center; justify-content: center;
   background: transparent; color: var(--v5-ink-3);
-  --v5-liquid-shadow: inset 0 0 0 .5px var(--v5-border);
+  --v5-liquid-shadow: 0 0 0 transparent;
   transition: transform 80ms ease-out, color 120ms ease-out;
 }
 .nx-conv-send-face > svg { position: relative; z-index: 1; }

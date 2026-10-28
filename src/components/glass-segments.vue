@@ -50,7 +50,7 @@ const props = withDefaults(defineProps<{
   semantics?: "radio" | "tab";
 }>(), { layout: "equal", variant: "filter", label: "", fromValue: undefined, semantics: "tab" });
 // Primary segmented tabs have one glass track; secondary filters stay open.
-// Bottom navigation keeps its existing glass selection and touch animation.
+// Selection material is explicit where the host needs a flat navigation pill.
 const resolvedSurface = computed(() => props.surface ?? (props.layout === 'equal' ? 'glass' : 'open'));
 const resolvedSelection = computed(() => props.selection ?? (props.variant !== 'navigation' && resolvedSurface.value === 'glass' ? 'flat' : 'glass'));
 // Values originate from the caller's typed options, including narrow string unions.
@@ -142,6 +142,8 @@ export default viewImplementation;
 .nx-glass-segments--vertical .nx-glass-option { flex: 0 0 auto; }
 .nx-glass-segments--navigation { --nx-tab-icon-scale: 1.09; height: var(--nx-tabbar-height, 56px); padding: 5px; gap: 2px; box-sizing: border-box; background: transparent; border-radius: 34px; }
 .nx-glass-segments--navigation .nx-glass-option { gap: 0; padding: 4px 2px; border-radius: 28px; }
+.nx-glass-segments--navigation .nx-flat-indicator { border-radius:999px; }
+@media (forced-colors: active) { .nx-flat-indicator { outline:1px solid Highlight;outline-offset:-1px; } }
 .nx-glass-segments--navigation :deep(.nx-tab__icon) { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; flex-shrink: 0; line-height: 0; filter: drop-shadow(0 1px 1px var(--v5-tabbar-ink-halo)); transition: transform 160ms cubic-bezier(.2,.8,.2,1); transform-origin: center; }
 .nx-glass-segments--navigation .nx-glass-option--selected :deep(.nx-tab__icon) { transform: translateY(-1px); }
 @keyframes nx-tab-select {

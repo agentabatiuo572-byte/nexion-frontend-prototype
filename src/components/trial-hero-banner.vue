@@ -88,7 +88,7 @@ const badgeText = computed(() => {
   if (status.value === 'grace') return lifecycleCopy.value.graceTitle;
   if (status.value === 'ended') return lifecycleCopy.value.endedTitle;
   if (status.value === 'converted') return lifecycleCopy.value.convertedTitle;
-  return fmt(copy.value.freeTrialDays, { n: trialDays.value });
+  return t.value.trial.heroBadge;
 });
 const taglineText = computed(() => fmt(t.value.trial.heroTagline, { days: locale.code === 'zh' && trialDays.value === 3 ? '三' : trialDays.value }));
 // CTA text follows the RETAINED offer state (BUG 14): an in-flight poll must

@@ -89,7 +89,7 @@ function demoEvents(locale,state,now) {
     const mode=state.eventState, eventCode='demo-'+code;
     const eventState=['upcoming','ended'].includes(mode)?mode:mode==='mixed'?baseState:'ongoing';
     const userStatus=state.eventStatuses?.[eventCode] || (['available','joined','claimable','claimed'].includes(mode)?mode.toUpperCase():baseStatus);
-    return {eventCode,kind,state:eventState,title:localized(locale,zh,en,vi),subtitle:localized(locale,'完成活动条件，查看进度并领取奖励。','Complete the activity goals and claim your reward.','Hoàn thành mục tiêu và nhận thưởng.'),rewardName:'UVT',rewardType:'NEX',rewardAmount,featured:i===0&&eventState==='ongoing',trackable:!['wheel','discount'].includes(kind),targetValue:5,progressValue:['CLAIMABLE','CLAIMED'].includes(userStatus)?5:userStatus==='JOINED'?2:0,userStatus,geo:'GLOBAL',href,startsAt:new Date(eventState==='upcoming'?now+day:now-3*day).toISOString(),endsAt:new Date(eventState==='ended'?now-day:now+7*day).toISOString()};
+    return {eventCode,kind,state:eventState,title:localized(locale,zh,en,vi),subtitle:localized(locale,'完成活动条件，查看进度并领取奖励。','Complete the activity goals and claim your reward.','Hoàn thành mục tiêu và nhận thưởng.'),rewardName:'UVT',rewardType:'UVT',rewardAmount,featured:i===0&&eventState==='ongoing',trackable:!['wheel','discount'].includes(kind),targetValue:5,progressValue:['CLAIMABLE','CLAIMED'].includes(userStatus)?5:userStatus==='JOINED'?2:0,userStatus,geo:'GLOBAL',href,startsAt:new Date(eventState==='upcoming'?now+day:now-3*day).toISOString(),endsAt:new Date(eventState==='ended'?now-day:now+7*day).toISOString()};
   });
 }
 
@@ -170,7 +170,7 @@ export function demoFixture(url,locale,state,request) {
   if(pathname==='/api/config/v-ranks') {
     const data=structuredClone(base());
     const own=[0,320,640,2000,4000,8000,16000,32000,64000],team=[0,1280,6400,20000,64000,160000,480000,1280000,3200000];
-    data.ranks=data.ranks.map((rank,index)=>({...rank,cultivationBonus:rank.rewards.filter(reward=>reward.type==='NEX').reduce((sum,reward)=>sum+reward.amount,0),selfComputePoints:own[index],teamComputePoints:team[index]}));
+    data.ranks=data.ranks.map((rank,index)=>({...rank,cultivationBonus:rank.rewards.filter(reward=>reward.type==='UVT').reduce((sum,reward)=>sum+reward.amount,0),selfComputePoints:own[index],teamComputePoints:team[index]}));
     return data;
   }
   if(pathname==='/api/team/rank') {
@@ -208,7 +208,7 @@ export function demoFixture(url,locale,state,request) {
   }
   if(pathname==='/api/genesis/state') return url.searchParams.has('history')?{...authority,items:[],nextCursor:null}:genesisPublic(now);
   if(pathname==='/api/genesis/account') return url.searchParams.has('history')?{...authority,items:[],nextCursor:null}:{...authority,series:null,sale:null,eligibility:null,marketEnabled:false,emissionOpen:false,holdings:[],emissions:[],orders:[],walletBalanceUsdt:5280};
-  if(pathname==='/api/genesis/eligibility') return {...authority,eligible:false,reasons:['SALE_NOT_OPEN'],ownedCount:0,maxPerUser:2,remainingCap:2,minAccountAgeDays:0,accountAgeDays:42,status:'NOT_ELIGIBLE',reservedAllocation:null,reservedAllocationUnit:'NEX',priorityRank:null,priorityTier:'NONE',qualificationReasonCodes:['NO_ACTIVE_HOLDINGS'],policyVersion:null,effectiveAt:null,asOf:iso,serverTime:iso,provenance:{source:'nx_genesis_holding+nx_config_item',environment:'PRODUCTION',runId:''},halted:false};
+  if(pathname==='/api/genesis/eligibility') return {...authority,eligible:false,reasons:['SALE_NOT_OPEN'],ownedCount:0,maxPerUser:2,remainingCap:2,minAccountAgeDays:0,accountAgeDays:42,status:'NOT_ELIGIBLE',reservedAllocation:null,reservedAllocationUnit:'UVT',priorityRank:null,priorityTier:'NONE',qualificationReasonCodes:['NO_ACTIVE_HOLDINGS'],policyVersion:null,effectiveAt:null,asOf:iso,serverTime:iso,provenance:{source:'nx_genesis_holding+nx_config_item',environment:'PRODUCTION',runId:''},halted:false};
   if(pathname==='/api/orders'&&(!request?.method||request.method()==='GET')) return {...authority,runId:null,source:'server',orders:empty?[]:[...(state.createdOrders||[]),...demoOrders(products,state,now)],nextCursor:null};
   if(['/api/orders','/api/orders/bundle'].includes(pathname)&&request.method()==='POST'){
     const input=request.postDataJSON(),quote=state.quotes?.[input.promotionQuoteId];
@@ -256,7 +256,7 @@ export function demoFixture(url,locale,state,request) {
         reward.disclosure.deviceName=giftName;
         reward.disclosure.benefitDescription={zh:'送 '+giftName+' 1 份',en:'Get 1 '+giftName,vi:'Tặng 1 '+giftName};
       }
-      if(i>0){const d=item.rewardRules[0].buyerReward.disclosure;d.deviceName=null;d.title={zh:'购机奖励',en:'Purchase reward',vi:'Thưởng mua hàng'};d.benefitDescription={zh:'领取 '+(i*50)+' UVT',en:'Receive '+(i*50)+' UVT',vi:'Nhận '+(i*50)+' UVT'};item.rewardRules[0].buyerReward={rewardRuleId:'demo-reward-'+i,beneficiaryRole:'BUYER',type:'NEX',amount:String(i*50),disclosure:d};}
+      if(i>0){const d=item.rewardRules[0].buyerReward.disclosure;d.deviceName=null;d.title={zh:'购机奖励',en:'Purchase reward',vi:'Thưởng mua hàng'};d.benefitDescription={zh:'领取 '+(i*50)+' UVT',en:'Receive '+(i*50)+' UVT',vi:'Nhận '+(i*50)+' UVT'};item.rewardRules[0].buyerReward={rewardRuleId:'demo-reward-'+i,beneficiaryRole:'BUYER',type:'UVT',amount:String(i*50),disclosure:d};}
       if(state.eventState==='upcoming'){item.state='SCHEDULED';item.startsAt=new Date(now+day).toISOString();}else if(state.eventState==='ended'){item.state='ENDED';item.endsAt=new Date(now-day).toISOString();}
       if(state.machineImageState==='banner'&&item.state==='ACTIVE')item.bannerImageUrl=`/api/promotions/${item.activityId}/banner/${item.version}`;
       return item;
@@ -298,11 +298,11 @@ export function demoFixture(url,locale,state,request) {
   if(eventRoute) {
     const [,id,action]=eventRoute,event=events.find(item=>item.eventCode===id);
     if(!event) return {};
-    if(action==='detail') return {event,rules:{description:event.subtitle,terms:localized(locale,'完成对应活动条件即可领取；每个账号限领一次。','Complete the activity goals. One reward per account.','Hoàn thành mục tiêu. Mỗi tài khoản nhận một lần.')},enabled:event.state!=='ended',eligible:event.state==='ongoing',eligibilityReason:event.state==='upcoming'?'NOT_STARTED':event.state==='ended'?'ENDED':event.userStatus==='CLAIMED'?'CLAIMED':event.userStatus==='CLAIMABLE'?'READY':'IN_PROGRESS',progressValue:event.progressValue,targetValue:event.targetValue,rewards:[{type:'NEX',amount:event.rewardAmount}],results:[],userStatus:event.userStatus,claimKeys:[],reminderSubscribed:!!state.reminders?.includes(id)};
+    if(action==='detail') return {event,rules:{description:event.subtitle,terms:localized(locale,'完成对应活动条件即可领取；每个账号限领一次。','Complete the activity goals. One reward per account.','Hoàn thành mục tiêu. Mỗi tài khoản nhận một lần.')},enabled:event.state!=='ended',eligible:event.state==='ongoing',eligibilityReason:event.state==='upcoming'?'NOT_STARTED':event.state==='ended'?'ENDED':event.userStatus==='CLAIMED'?'CLAIMED':event.userStatus==='CLAIMABLE'?'READY':'IN_PROGRESS',progressValue:event.progressValue,targetValue:event.targetValue,rewards:[{type:'UVT',amount:event.rewardAmount}],results:[],userStatus:event.userStatus,claimKeys:[],reminderSubscribed:!!state.reminders?.includes(id)};
     if(action==='join'){state.eventStatuses||={};state.eventStatuses[id]='JOINED';return {eventId:id,status:'JOINED'};}
-    if(action==='claim'){state.eventStatuses||={};state.eventStatuses[id]='CLAIMED';return {eventId:id,rewardType:'NEX',rewardAmount:event.rewardAmount,badgeCode:null};}
+    if(action==='claim'){state.eventStatuses||={};state.eventStatuses[id]='CLAIMED';return {eventId:id,rewardType:'UVT',rewardAmount:event.rewardAmount,badgeCode:null};}
     if(action==='reminder'){state.reminders||=[];state.reminders.push(id);return {eventId:id,status:'SUBSCRIBED'};}
-    const segments=[5,10,20,50,100,200].map((amount,index)=>({tierId:'demo-tier-'+index,rewardType:'NEX',rewardAmount:amount,rewardName:amount+' UVT',realOutflow:false,displayOrder:index}));
+    const segments=[5,10,20,50,100,200].map((amount,index)=>({tierId:'demo-tier-'+index,rewardType:'UVT',rewardAmount:amount,rewardName:amount+' UVT',realOutflow:false,displayOrder:index}));
     if(action==='spin/state') return {eventCode:id,eventId:id,serverDate:iso.slice(0,10),nextResetAtUtc:new Date(now+day).toISOString(),freeAvailable:!state.spun,bonusTickets:0,availableSpins:state.spun?0:1,segments,history:state.spinHistory||[],source:'nx_event_spin'};
     state.spun=true;const result={spinId:'demo-spin-'+now,eventId:id,spinDate:iso.slice(0,10),sourceType:'DAILY',...segments[2],downgraded:false,downgradeReason:'NONE'};state.spinHistory=[{...result,awardedAt:iso}];return result;
   }
@@ -312,7 +312,7 @@ export function demoFixture(url,locale,state,request) {
     const unlocked=state.taskState==='claimed'||state.taskState==='complete';
     if(state.streakState==='broken'&&!state.saverUsed)data.streak={...data.streak,currentStreak:state.checkedIn?1:0,longestStreak:7,streakSavers:state.checkedIn?0:1,lastCheckInDate:new Date(state.checkedIn?now:now-3*day).toISOString().slice(0,10),checkedInToday:!!state.checkedIn};
     if(state.saverUsed)data.streak={...data.streak,currentStreak:state.checkedIn?8:7,longestStreak:state.checkedIn?8:7,streakSavers:0,lastCheckInDate:new Date(state.checkedIn?now:now-day).toISOString().slice(0,10),checkedInToday:!!state.checkedIn};
-    data.dailyMilestones=[3,7,14,30].map((milestoneDay,i)=>({milestoneId:i+1,milestoneDay,rewardType:'NEX',rewardAmount:(i+1)*20,badgeCode:null,status:state.milestoneClaims?.includes(i+1)?'CLAIMED':data.streak.currentStreak>=milestoneDay?'CLAIMABLE':'LOCKED'}));
+    data.dailyMilestones=[3,7,14,30].map((milestoneDay,i)=>({milestoneId:i+1,milestoneDay,rewardType:'UVT',rewardAmount:(i+1)*20,badgeCode:null,status:state.milestoneClaims?.includes(i+1)?'CLAIMED':data.streak.currentStreak>=milestoneDay?'CLAIMABLE':'LOCKED'}));
     data.earningMilestones=[10,100,1000].map((amount,i)=>({milestoneId:'demo-earning-'+i,thresholdUsdt:amount,rewardNex:amount,lifetimeEarningsUsdt:128.5,status:i===0||i===1&&state.earningClaimed?'FIRED':i===1?'CLAIMABLE':'LOCKED',achievedAt:i===0||i===1&&state.earningClaimed?iso:null}));
     const names=locale==='zh'?['首次签到','连续签到一周','第一台设备','学习达人','邀请伙伴','算力新星']:locale==='vi'?['Điểm danh đầu tiên','Chuỗi một tuần','Thiết bị đầu tiên','Người học giỏi','Mời bạn bè','Ngôi sao tính toán']:['First check-in','One-week streak','First device','Dedicated learner','Invite a partner','Compute rising star'];
     data.badgeAchievements=names.map((name,i)=>({achievementCode:'demo-achievement-'+i,name,description:name,category:['STREAK','STREAK','EARNING','LEARNING','SOCIAL','EARNING'][i],iconKey:['flame','calendar','cpu','book','users','zap'][i],accentColor:['#9EDC1D','#B47FFF','#FFCB4D'][i%3],rewardPoints:50*(i+1),status:i<2||unlocked?'UNLOCKED':'LOCKED',unlockedAt:i<2||unlocked?iso:null}));
@@ -321,7 +321,7 @@ export function demoFixture(url,locale,state,request) {
     return data;
   }
   const milestoneClaim=pathname.match(/^\/api\/points\/milestones\/(\d+)\/claim$/);
-  if(milestoneClaim){const id=Number(milestoneClaim[1]);state.milestoneClaims||=[];state.milestoneClaims.push(id);return {...authority,milestoneId:id,milestoneDay:[3,7,14,30][id-1],rewardType:'NEX',rewardAmount:id*20,badgeCode:null,spinTickets:0};}
+  if(milestoneClaim){const id=Number(milestoneClaim[1]);state.milestoneClaims||=[];state.milestoneClaims.push(id);return {...authority,milestoneId:id,milestoneDay:[3,7,14,30][id-1],rewardType:'UVT',rewardAmount:id*20,badgeCode:null,spinTickets:0};}
   if(pathname==='/api/points/power-ups/1/activate'){state.powerUp=true;return {...authority,powerUpId:1,powerUpCode:'demo-checkin-boost',badgeCode:null,status:'ACTIVATED'};}
   if(pathname==='/api/points/sign-in'&&(state.saverUsed||state.streakState==='broken')){state.checkedIn=true;return {...authority,checkInDate:iso.slice(0,10),baseNex:5,rewardNex:5,streakBonusNex:0,multiplier:1,streakDays:state.saverUsed?8:1};}
   if(pathname==='/api/points/streak-saver/use'){if(state.streakState!=='broken'||state.saverUsed||state.checkedIn)throw new Error('No interrupted streak to restore');state.saverUsed=true;return {...authority,restoredStreak:7,streakSavers:0,effectiveLastCheckInDate:new Date(now-day).toISOString().slice(0,10)};}
@@ -344,8 +344,8 @@ export function demoFixture(url,locale,state,request) {
     return data;
   }
   if(pathname==='/api/app/wallet/bills'||pathname==='/api/app/wallet/bills/summary') {
-    const bills=empty?[]:[['COMPUTE_EARNING','NEX','IN',15,'earn'],['REFERRAL_REWARD','NEX','IN',10,'refer'],['DEVICE_PURCHASE','USDT','OUT',1299,'purchase'],['CHECK_IN','NEX','IN',5,'bonus'],['COMPUTE_EARNING','USDT','IN',128.5,'earn'],['COMPUTE_EARNING','USDT','IN',0.00032,'earn']].map(([bizType,asset,direction,amount,category],i)=>({id:'demo-bill-'+i,bizNo:'DEMO-'+(1000+i),bizType,asset,direction,amount,balanceAfter:asset==='NEX'?1280:5280.64,status:'SUCCESS',remark:'',createdAt:new Date(now-i*day).toISOString(),category}));
-    if(pathname.endsWith('/summary')) return {source:'server',sourceEnvironment:'PRODUCTION',timeZone:'UTC',asOf:iso,rewardsUsdt:empty?0:128.5,rewardsNex:empty?0:150,settledRewardsNex:empty?0:140,withdrawalOffsetNexSpent:empty?0:10,latestRewardAt:empty?null:iso,todayNexEarn:empty?0:15,pendingNex:empty?0:10,monthBillCount:bills.length,recentNexBills:bills.filter(b=>b.asset==='NEX')};
+    const bills=empty?[]:[['COMPUTE_EARNING','UVT','IN',15,'earn'],['REFERRAL_REWARD','UVT','IN',10,'refer'],['DEVICE_PURCHASE','USDT','OUT',1299,'purchase'],['CHECK_IN','UVT','IN',5,'bonus'],['COMPUTE_EARNING','USDT','IN',128.5,'earn'],['COMPUTE_EARNING','USDT','IN',0.00032,'earn']].map(([bizType,asset,direction,amount,category],i)=>({id:'demo-bill-'+i,bizNo:'DEMO-'+(1000+i),bizType,asset,direction,amount,balanceAfter:asset==='UVT'?1280:5280.64,status:'SUCCESS',remark:'',createdAt:new Date(now-i*day).toISOString(),category}));
+    if(pathname.endsWith('/summary')) return {source:'server',sourceEnvironment:'PRODUCTION',timeZone:'UTC',asOf:iso,rewardsUsdt:empty?0:128.5,rewardsNex:empty?0:150,settledRewardsNex:empty?0:140,withdrawalOffsetNexSpent:empty?0:10,latestRewardAt:empty?null:iso,todayNexEarn:empty?0:15,pendingNex:empty?0:10,monthBillCount:bills.length,recentNexBills:bills.filter(b=>b.asset==='UVT')};
     const filtered=bills.filter(bill=>['asset','direction'].every(key=>!url.searchParams.get(key)||url.searchParams.get(key)===bill[key])&&(url.searchParams.get('category')!=='REWARD'||bill.direction==='IN'));
     return {source:'server',sourceEnvironment:'PRODUCTION',bills:filtered,page:1,pageSize:20,total:filtered.length,nextPage:null,nextCursor:null};
   }

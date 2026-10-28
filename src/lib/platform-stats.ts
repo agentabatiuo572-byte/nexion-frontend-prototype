@@ -168,3 +168,10 @@ export function compactNumber(n: number): string {
   if (n >= 99_950) return `${(n / 1_000).toFixed(1)}K`;
   return n.toLocaleString();
 }
+
+/** Public population display: floor validated counts to a shared approximate band. */
+export function networkPopulationBand(value: number): string {
+  return value >= 10000 ? `${Math.floor(value / 1000) / 10}W+`
+    : value >= 1000 ? `${Math.floor(value / 100) / 10}K+`
+    : value >= 100 ? `${Math.floor(value / 100) * 100}+` : '<100';
+}
