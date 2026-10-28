@@ -23,7 +23,9 @@ export interface LeaderEntry {
   /** Total team size (all 7 layers) */
   teamSize: number;
   /** Total commission earned in this period (USDT) */
-  earnedUSDT: number;
+  earnedUSDT: number | null;
+  /** Independent platform compute-point count for this period; never derived from USDT. */
+  computePoints: number | null;
   /** Rank delta vs previous snapshot (positive = climbing) */
   delta: number;
   /** V-rank badge level (V0-V12) */
@@ -69,6 +71,7 @@ const FLAGS: Array<[string, string]> = [
 
 function buildList(seed: number, multiplier: number, count = 100): LeaderEntry[] {
   const rng = mulberry32(seed);
+  const pointsRng = mulberry32(seed ^ 0x26c0ffee);
   const out: LeaderEntry[] = [];
   for (let i = 0; i < count; i++) {
     const rank = i + 1;
@@ -78,15 +81,17 @@ function buildList(seed: number, multiplier: number, count = 100): LeaderEntry[]
     // Top earners taper hard (long-tail) — top 3 ~10x median
     const decay = Math.pow(0.965, i);
     const earnedUSDT = Math.round((90000 * decay + rng() * 1200) * multiplier);
+    const computePoints = Math.round((12000 * decay + pointsRng() * 1800) * multiplier);
     const directs = Math.max(3, Math.round(60 * decay + rng() * 18));
     const teamSize = directs * (35 + Math.floor(rng() * 25));
     const delta = Math.floor((rng() - 0.45) * 14);
     const vRank = Math.min(12, Math.max(2, 12 - Math.floor(i / 8) + Math.floor(rng() * 2)));
     const hasDevice = rng() > 0.18;
 
-    out.push({ rank, handle, flag, cc, directs, teamSize, earnedUSDT, delta, vRank, hasDevice });
+    out.push({ rank, handle, flag, cc, directs, teamSize, earnedUSDT, computePoints, delta, vRank, hasDevice });
   }
-  return out;
+  return out.sort((a, b) => b.computePoints! - a.computePoints! || a.rank - b.rank)
+    .map((entry, index) => ({ ...entry, rank: index + 1 }));
 }
 
 export const LEADERBOARD: Record<LeaderPeriod, LeaderEntry[]> = {
@@ -116,9 +121,8 @@ export const PODIUM_PRIZE = [
 ];
 
 /** My current rank (mock — would come from server) */
-export const MY_RANK: Record<LeaderPeriod, { rank: number; gapToNext: number }> = {
-  today: { rank: 237, gapToNext: 84 },
-  week: { rank: 412, gapToNext: 1183 },
-  month: { rank: 689, gapToNext: 2841 },
-  all: { rank: 1247, gapToNext: 8902 },
-};
+export const MY_RANK = Object.fromEntries(
+  (Object.entries({ today: 24, week: 42, month: 69, all: 87 }) as [LeaderPeriod, number][]).map(([period, rank]) => [period, {
+    rank, gapToNextComputePoints: LEADERBOARD[period][rank - 2].computePoints! - LEADERBOARD[period][rank - 1].computePoints!,
+  }]),
+) as Record<LeaderPeriod, { rank: number; gapToNextComputePoints: number }>;

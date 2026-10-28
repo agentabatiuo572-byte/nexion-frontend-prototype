@@ -6,6 +6,8 @@ import { compileScript, parse } from "@vue/compiler-sfc";
 import ts from "typescript";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { en } from "@/i18n/messages/en";
+import { zh } from "@/i18n/messages/zh";
+import { vi as vietnamese } from "@/i18n/messages/vi";
 import { fmt, dateLocale } from "@/i18n/format";
 import { formatDisplayDateTime } from "@/lib/display-date";
 import type { EarningsReleaseStatus } from "@/api/earnings-release-api";
@@ -52,7 +54,7 @@ const receipt = (review = 0, locked = 0): EarningsReleaseStatus => ({
   releaseMode: "attest_or_manual", attestedOnlineSeconds: 0, requiredAttestationSeconds: 7200,
   clusterRestricted: false, serverCanonical: true,
 });
-async function mount(remoteApiEnabled = true) {
+async function mount(remoteApiEnabled = true, messages = en) {
   const visibility = Vue.reactive({ hidden: false, mask: (value: string | number) => visibility.hidden ? "••••" : String(value) });
   const app = Vue.reactive({
     remoteFleetHasSnapshot: true, remoteFleetStatus: "ready", remoteWalletReceiptHasSnapshot: false,
@@ -82,7 +84,7 @@ async function mount(remoteApiEnabled = true) {
     "@/components/app-chassis.vue": { default: chassis },
     "@/components/liquid-glass.vue": { default: { render: () => null } },
     "@/components/sub-page-header.vue": { default: { render: () => null } },
-    "@/lib/route": { navTo: vi.fn() }, "@/i18n/use-t": { useT: () => Vue.ref(en) },
+    "@/lib/route": { navTo: vi.fn() }, "@/i18n/use-t": { useT: () => Vue.ref(messages) },
     "@/i18n/format": { fmt, dateLocale }, "@/lib/display-date": { formatDisplayDateTime }, "@/store/app": { useApp: () => app },
     "@/store/commission": { useCommission: () => commission },
     "@/store/cards": { useCards: () => ({ cards: [] }) }, "@/store/config": { useConfig: () => ({ syncFailed: false, isEnabled: () => true, load: vi.fn(async () => {}) }) },
@@ -112,19 +114,22 @@ async function mount(remoteApiEnabled = true) {
     return textContent(amount);
   };
   const value = (label: string) => amountIn(labelNode(label).parent!, "wallet-metric-amount");
-  const held = () => [value(en.wallet.reviewingEarnings), value(en.wallet.lockedRewards)];
+  const held = () => [value(messages.wallet.reviewingEarnings), value(messages.wallet.lockedRewards)];
+  const breakdown = () => descendants(labelNode(messages.wallet.allTimeEarnings).parent!)
+    .find(item => item.props.role === "group")!;
   const confirmRelease = (review = 0, locked = 0) => {
     earningsReleaseSnapshot.value = receipt(review, locked);
     earningsReleaseHasSnapshot.value = true; earningsReleaseStatus.value = "ready";
   };
   const clickRetry = () => {
-    const click = labelNode(en.ui.retry).parent!.props.onClick as () => void;
+    const click = labelNode(messages.ui.retry).parent!.props.onClick as () => void;
     click();
   };
   return { app, visibility, commission, earningsReleaseSnapshot, earningsReleaseHasSnapshot, earningsReleaseStatus,
-    refreshEarningsReleaseStatus, shown, held, confirmRelease, clickRetry, value,
-    allTimeSublabel: () => textContent(labelNode(en.wallet.allTimeEarnings).parent!),
-    retryEarnings: () => { (labelNode(en.ui.retry).parent!.props.onClick as () => void)(); },
+    refreshEarningsReleaseStatus, shown, held, confirmRelease, clickRetry, value, root, breakdown,
+    allTimeSublabel: () => String(breakdown().props["aria-label"]),
+    breakdownValues: () => descendants(breakdown()).filter(item => String(item.props.class ?? "").split(" ").includes("wallet-metric-breakdown__amount")).map(textContent),
+    retryEarnings: () => { (labelNode(messages.ui.retry).parent!.props.onClick as () => void)(); },
     text: () => textContent(root) };
 }
 afterEach(() => { unmounts.splice(0).forEach(unmount => unmount()); vi.restoreAllMocks(); });
@@ -137,7 +142,7 @@ describe("actual wallet held authority", () => {
     if (status === "loading") s.app.homeTruth.earnings.all.usdt = null;
     await Vue.nextTick();
     expect(s.value(en.wallet.allTimeEarnings)).toBe("-");
-    expect(s.allTimeSublabel()).toContain("Compute - · Team $5.00");
+    expect(s.allTimeSublabel()).toContain("Compute: - · Team: $5.00");
     if (status === "idle" || status === "loading") expect(s.text()).not.toContain(en.wallet.earningsUnavailable);
     else expect(s.text()).toContain(en.wallet.earningsUnavailable);
   });
@@ -149,7 +154,7 @@ describe("actual wallet held authority", () => {
     if (status === "loading") s.commission.eventsEvidence = null;
     await Vue.nextTick();
     expect(s.value(en.wallet.allTimeEarnings)).toBe("-");
-    expect(s.allTimeSublabel()).toContain("Compute $10.00 · Team -");
+    expect(s.allTimeSublabel()).toContain("Compute: $10.00 · Team: -");
   });
 
   it("keeps confirmed cumulative values through the actual warm onShow reads and replaces each fresh result", async () => {
@@ -170,7 +175,7 @@ describe("actual wallet held authority", () => {
     });
     void s.app.refreshHomeTruth(); void s.commission.refreshCanonicalEvents(); await Vue.nextTick();
     expect(s.value(en.wallet.allTimeEarnings)).toBe("$15.00");
-    expect(s.allTimeSublabel()).toContain("Compute $10.00 · Team $5.00");
+    expect(s.allTimeSublabel()).toContain("Compute: $10.00 · Team: $5.00");
     expect(s.text()).not.toContain(en.wallet.earningsUnavailable);
     // Today's amount and all funds/held authority keep their separate rules.
     expect(s.text()).not.toContain("+$2.00");
@@ -187,12 +192,12 @@ describe("actual wallet held authority", () => {
     await Vue.nextTick(); expect(s.value(en.wallet.allTimeEarnings)).toBe("$15.00");
     s.app.homeTruthStatus = "error"; s.commission.eventsStatus = "error";
     await Vue.nextTick(); expect(s.value(en.wallet.allTimeEarnings)).toBe("-");
-    expect(s.allTimeSublabel()).toContain("Compute - · Team -");
+    expect(s.allTimeSublabel()).toContain("Compute: - · Team: -");
     expect(s.text()).toContain(en.wallet.earningsUnavailable);
     s.app.homeTruth.earnings.all.usdt = null; s.commission.eventsEvidence = null;
     s.app.homeTruthStatus = "loading"; s.commission.eventsStatus = "loading";
     await Vue.nextTick(); expect(s.value(en.wallet.allTimeEarnings)).toBe("-");
-    expect(s.allTimeSublabel()).toContain("Compute - · Team -");
+    expect(s.allTimeSublabel()).toContain("Compute: - · Team: -");
   });
 
   it("keeps a confirmed zero through loading but never fills a missing Home snapshot with zero", async () => {
@@ -203,7 +208,7 @@ describe("actual wallet held authority", () => {
     await Vue.nextTick(); expect(s.value(en.wallet.allTimeEarnings)).toBe("$0.00");
     Object.assign(s.app, { homeTruth: null });
     await Vue.nextTick(); expect(s.value(en.wallet.allTimeEarnings)).toBe("-");
-    expect(s.allTimeSublabel()).toContain("Compute - · Team $0.00");
+    expect(s.allTimeSublabel()).toContain("Compute: - · Team: $0.00");
   });
 
   it("preserves real lifetime zero and refreshes both missing sources through the actual retry", async () => {
@@ -223,7 +228,7 @@ describe("actual wallet held authority", () => {
     });
     await Vue.nextTick();
     expect(s.value(en.wallet.allTimeEarnings)).toBe("-");
-    expect(s.allTimeSublabel()).toContain("Compute - · Team -");
+    expect(s.allTimeSublabel()).toContain("Compute: - · Team: -");
     s.retryEarnings(); s.retryEarnings(); await Vue.nextTick();
     expect(s.app.refreshHomeTruth).toHaveBeenCalledOnce(); expect(s.commission.refreshCanonicalEvents).toHaveBeenCalledOnce();
     expect(s.app.refreshRemoteFleet).not.toHaveBeenCalled();
@@ -232,7 +237,7 @@ describe("actual wallet held authority", () => {
     expect(s.value(en.wallet.allTimeEarnings)).toBe("-");
     team(); await Promise.resolve(); await Vue.nextTick();
     expect(s.value(en.wallet.allTimeEarnings)).toBe("$0.00");
-    expect(s.allTimeSublabel()).toContain("Compute $0.00 · Team $0.00");
+    expect(s.allTimeSublabel()).toContain("Compute: $0.00 · Team: $0.00");
     expect(s.text()).not.toContain(en.wallet.earningsUnavailable);
     s.app.homeTruth.earnings.all.usdt = 12.25; s.commission.eventsEvidence!.aggregate.totalUSDT = 4.5;
     await Vue.nextTick(); expect(s.value(en.wallet.allTimeEarnings)).toBe("$16.75");
@@ -319,11 +324,79 @@ it("masks wallet earnings and breakdowns reactively without mutating financial v
   for (const label of [en.wallet.todayLabel, en.wallet.allTimeEarnings, en.wallet.reviewingEarnings, en.wallet.lockedRewards]) {
     expect(s.value(label)).toBe("••••");
   }
-  expect(s.allTimeSublabel()).toContain("Compute •••• · Team ••••");
+  expect(s.allTimeSublabel()).toContain("Compute: •••• · Team: ••••");
   expect(s.text()).not.toContain("$4.50");
   expect(s.app.user.usdtBalance).toBe(42.25);
   s.visibility.hidden = false;
   await Vue.nextTick();
   expect(s.held()).toEqual(["$4.50", "$7.00"]);
   expect(s.value(en.wallet.allTimeEarnings)).toBe("$15.00");
+});
+
+describe.each([["zh", zh], ["en", en], ["vi", vietnamese]] as const)("wallet detail icons in %s", (_language, messages) => {
+  it("keeps both long amounts and localized accessible names through hide and show", async () => {
+    const s = await mount(true, messages);
+    s.app.homeTruth.earnings.all.usdt = 123456789.12;
+    s.commission.eventsEvidence!.aggregate.totalUSDT = 9876543210.98;
+    s.confirmRelease(4.5, 7);
+    await Vue.nextTick();
+
+    const amounts = ["$123,456,789.12", "$9,876,543,210.98"];
+    expect(s.breakdownValues()).toEqual(amounts);
+    expect(textContent(s.breakdown())).toBe(amounts.join(""));
+    expect(s.allTimeSublabel()).toBe(fmt(messages.wallet.allTimeSublabel, { c: amounts[0], tm: amounts[1] }));
+    expect(s.breakdown().props.tabindex).toBe("0");
+    const icons = descendants(s.breakdown()).filter(item => item.tag === "svg");
+    expect(icons).toHaveLength(2);
+    for (const icon of icons) {
+      expect(icon.props["aria-hidden"]).toBe("true");
+      expect(icon.parent!.props["aria-hidden"]).toBe("true");
+    }
+    expect(s.text()).toContain(messages.wallet.reviewingEarningsSub);
+    expect(s.text()).toContain(messages.wallet.lockedRewardsSub);
+
+    s.visibility.hidden = true;
+    await Vue.nextTick();
+    expect(s.breakdownValues()).toEqual(["••••", "••••"]);
+    expect(s.allTimeSublabel()).toBe(fmt(messages.wallet.allTimeSublabel, { c: "••••", tm: "••••" }));
+    const hiddenDisplay = JSON.stringify(descendants(s.root).map(item => ({ text: item.text, props: item.props })));
+    expect(hiddenDisplay).not.toContain("$");
+    expect(s.app.homeTruth.earnings.all.usdt).toBe(123456789.12);
+    expect(s.commission.eventsEvidence!.aggregate.totalUSDT).toBe(9876543210.98);
+    expect(s.earningsReleaseSnapshot.value!.buckets).toEqual(receipt(4.5, 7).buckets);
+
+    s.visibility.hidden = false;
+    await Vue.nextTick();
+    expect(s.breakdownValues()).toEqual(amounts);
+    expect(s.allTimeSublabel()).toBe(fmt(messages.wallet.allTimeSublabel, { c: amounts[0], tm: amounts[1] }));
+    expect(s.held()).toEqual(["$4.50", "$7.00"]);
+  });
+
+  it("distinguishes unknown and zero when either source changes while hidden", async () => {
+    const s = await mount(true, messages);
+    s.visibility.hidden = true;
+    s.app.homeTruthStatus = "error";
+    s.commission.eventsEvidence!.aggregate.totalUSDT = 0;
+    await Vue.nextTick();
+    expect(s.breakdownValues()).toEqual(["••••", "••••"]);
+    expect(s.allTimeSublabel()).toBe(fmt(messages.wallet.allTimeSublabel, { c: "••••", tm: "••••" }));
+    s.visibility.hidden = false;
+    await Vue.nextTick();
+    expect(s.breakdownValues()).toEqual(["-", "$0.00"]);
+    expect(s.allTimeSublabel()).toBe(fmt(messages.wallet.allTimeSublabel, { c: "-", tm: "$0.00" }));
+    expect(s.value(messages.wallet.allTimeEarnings)).toBe("-");
+
+    s.visibility.hidden = true;
+    s.app.homeTruthStatus = "ready";
+    s.app.homeTruth.earnings.all.usdt = 0;
+    s.commission.eventsStatus = "error";
+    await Vue.nextTick();
+    expect(s.breakdownValues()).toEqual(["••••", "••••"]);
+    expect(s.allTimeSublabel()).toBe(fmt(messages.wallet.allTimeSublabel, { c: "••••", tm: "••••" }));
+    s.visibility.hidden = false;
+    await Vue.nextTick();
+    expect(s.breakdownValues()).toEqual(["$0.00", "-"]);
+    expect(s.allTimeSublabel()).toBe(fmt(messages.wallet.allTimeSublabel, { c: "$0.00", tm: "-" }));
+    expect(s.value(messages.wallet.allTimeEarnings)).toBe("-");
+  });
 });

@@ -1,6 +1,12 @@
 import * as displayDate from "@/lib/display-date";
 import { formatFinanceAmount } from "@/lib/finance-amount-display";
 import * as Vue from "vue";
+import { renderToString } from '@vue/server-renderer';
+import { chromium } from 'playwright';
+// @ts-expect-error Node builtins are used only by the test runner.
+import { readFileSync, writeFileSync } from 'node:fs';
+// @ts-expect-error Node builtins are used only by the test runner.
+import { env } from 'node:process';
 import { createPinia, setActivePinia } from "pinia";
 import { useDataVisibility } from '@/store/data-visibility';
 import { formatAmount } from "@/lib/amount-display";
@@ -128,6 +134,99 @@ async function invitation(copy = en, initial: ReferralRewardSnapshot | null = sn
 
 beforeEach(() => { vi.stubGlobal('uni', { getStorageSync: () => undefined, setStorageSync: vi.fn() }); vi.useFakeTimers(); setActivePinia(createPinia()); });
 afterEach(() => { unmounts.splice(0).forEach(unmount => unmount()); setActivePinia(undefined); vi.useRealTimers(); vi.unstubAllGlobals(); });
+test.each([
+  { dictionary: zh, language: 'zh', label: '奖励' },
+  { dictionary: en, language: 'en', label: 'Rewards' },
+  { dictionary: vietnamese, language: 'vi', label: 'Thưởng' },
+])('033 $language receipt entry retains records, rules and retry through pointer and keyboard actions', async ({ dictionary, language, label }) => {
+  const card = await invitation(dictionary, snapshot(true)), copy = teamRedesignCopy(language);
+  const before = JSON.stringify(card.rewards.snapshot);
+  const reward = find(card.root, 'invite-card__history');
+  expect(text(reward)).toBe(label); expect(reward.props['aria-label']).toBe(label);
+  expect(reward.props.role).toBe('button'); expect(Number(reward.props.tabindex)).toBe(0);
+  const icon = reward.children.find(child => child.tag === 'svg')!;
+  expect(icon.props).toMatchObject({ width: '18', height: '18', 'aria-hidden': 'true' });
+  expect(icon.children.filter(child => child.tag === 'path')).toHaveLength(2);
+
+  for (const activation of ['click', 'Enter', ' ']) {
+    for (const [entry, title] of [['invite-card__history', copy.rewardRecords], ['invite-card__rules', copy.inviteRules]]) {
+      const target = find(card.root, entry);
+      if (activation === 'click') target.props.onClick();
+      else [target.props.onKeydown].flat().forEach(handler => handler({ key: activation, preventDefault: vi.fn() }));
+      await Vue.nextTick();
+      expect(find(card.root, 'invite-detail').props['aria-label']).toBe(title);
+      find(card.root, 'invite-detail__close').props.onClick(); await Vue.nextTick();
+      expect(find(card.root, 'invite-detail')).toBeUndefined();
+    }
+  }
+  expect(card.rewards.refresh).not.toHaveBeenCalled();
+  card.rewards.error = 'read failed'; await Vue.nextTick();
+  const retry = find(card.root, 'invite-card__retry');
+  expect(retry.props['aria-label']).toBe(dictionary.network.retry);
+  expect(text(retry)).not.toContain(label);
+  retry.props.onClick();
+  for (const key of ['Enter', ' ']) [retry.props.onKeydown].flat().forEach(handler => handler({ key, preventDefault: vi.fn() }));
+  expect(card.rewards.refresh).toHaveBeenCalledTimes(3);
+  find(card.root, 'invite-card__rules').props.onClick(); await Vue.nextTick();
+  expect(find(card.root, 'invite-detail').props['aria-label']).toBe(copy.inviteRules);
+  expect(JSON.stringify(card.rewards.snapshot)).toBe(before);
+});
+
+test('033 localized header fits 320/360/390 with 44px controls in both themes and retry state', async () => {
+  vi.useRealTimers();
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  const tokens = readFileSync(new URL('../../styles/tokens.css', import.meta.url), 'utf8').replace(/@import[^;]+;/g, '');
+  const css = parse(inviteSource).descriptor.styles.map(style => style.content).join('\n');
+  const fonts = [400, 600].map(weight => `@font-face { font-family: 'General Sans'; font-weight: ${weight}; src: url(data:font/woff2;base64,${readFileSync(new URL(`../../static/fonts/GeneralSans-${weight}.woff2`, import.meta.url)).toString('base64')}); }`).join('\n');
+  const renderHost = (host: Host): Vue.VNode => host.tag === '#text' ? Vue.createTextVNode(host.text)
+    : host.tag === '#comment' ? Vue.createCommentVNode('') : Vue.h(host.tag, host.props, [host.text, ...host.children.map(renderHost)]);
+  const measurements: unknown[] = [];
+  try {
+    for (const [language, dictionary] of [['zh', zh], ['en', en], ['vi', vietnamese]] as const) {
+      const card = await invitation(dictionary, snapshot(true));
+      for (const retry of [false, true]) {
+        card.rewards.error = retry ? 'read failed' : ''; await Vue.nextTick();
+        const html = await renderToString(Vue.createSSRApp({ render: () => renderHost(find(card.root, 'invite-card__header')) }));
+        for (const width of [320, 360, 390]) for (const theme of ['light', 'dark']) {
+          await page.setViewportSize({ width, height: 180 });
+          await page.setContent(`<html data-theme="${theme}" lang="${language}"><style>${tokens}\n${fonts}\n${css}
+            * { box-sizing: border-box; } body { margin: 0; padding: 16px; background: var(--v5-bg); font-family: var(--font-v5); } view { display: block; }
+          </style><body><div class="invite-card">${html}</div></body></html>`);
+          await page.evaluate(async () => { await document.fonts.ready; });
+          const geometry = await page.evaluate(() => {
+            const box = (selector: string) => {
+              const el = document.querySelector<HTMLElement>(selector)!, rect = el.getBoundingClientRect();
+              return { x: rect.x, y: rect.y, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height,
+                overflow: el.scrollWidth > el.clientWidth + 1 };
+            };
+            return { title: box('.invite-card__title'), actions: box('.invite-card__header-actions'),
+              reward: box('.invite-card__history'), rules: box('.invite-card__rules'), icon: box('.invite-card__history svg'),
+              header: box('.invite-card__header'), pageOverflow: document.documentElement.scrollWidth > innerWidth,
+              titleFont: getComputedStyle(document.querySelector('.invite-card__title')!).fontFamily,
+              columnGap: getComputedStyle(document.querySelector('.invite-card__header')!).columnGap };
+          });
+          const { title, actions, reward, rules, icon, header } = geometry;
+          expect(title.right <= actions.x + 1 || title.bottom <= actions.y + 1).toBe(true);
+          expect(reward.right).toBeLessThanOrEqual(rules.x);
+          for (const control of [reward, rules]) {
+            expect(control.width).toBeGreaterThanOrEqual(44); expect(control.height).toBeGreaterThanOrEqual(44);
+            expect(control.right).toBeLessThanOrEqual(header.right + 1); expect(control.bottom).toBeLessThanOrEqual(header.bottom + 1);
+            expect(control.overflow).toBe(false);
+          }
+          expect(icon.width).toBe(18); expect(icon.height).toBe(18);
+          expect(geometry.titleFont).toContain('General Sans'); expect(geometry.columnGap).toBe('12px');
+          expect(title.overflow).toBe(false); expect(geometry.pageOverflow).toBe(false);
+          measurements.push({ language, width, theme, retry, ...geometry });
+          if (env.UI_OPT_033_EVIDENCE_DIR && width === 320 && !retry) await page.screenshot({ path: `${env.UI_OPT_033_EVIDENCE_DIR}/invite-reward-033-header-${language}-${theme}-320.png` });
+        }
+      }
+    }
+    expect(measurements).toHaveLength(36);
+    if (env.UI_OPT_033_EVIDENCE_DIR) writeFileSync(`${env.UI_OPT_033_EVIDENCE_DIR}/invite-reward-033-layout.json`, JSON.stringify(measurements, null, 2));
+  } finally { await browser.close(); }
+}, 30000);
+
 test.each([en, zh, vietnamese])('shared hiding masks personal reward records but retains the public reward and dates', async copy => {
   const card = await invitation(copy), visibility = useDataVisibility();
   card.rewards.snapshot = { ...snapshot(true), inviterRewardNex: 10, lifetimeInviterNex: 876.54, invitedCount: 55, settledCount: 34, pendingCount: 21,

@@ -51,6 +51,7 @@ function fixture() {
   function actions() {
     const lifecycle = hooks();
     const modules: Record<string, any> = {
+      '@/store/data-visibility': { useDataVisibility: () => ({ hidden: false, mask: String }) },
       vue: { ...Vue, onMounted: (fn: () => void) => lifecycle.mount.push(fn), onUnmounted: () => {}, watch: () => {} },
       '@/lib/passive-tab-read': helper, '@/composables/use-tab-page-lifecycle': { onShow: (fn: () => void) => lifecycle.show.push(fn), onHide: (fn: () => void) => lifecycle.hide.push(fn) },
       '@/store/app': { useApp: () => app }, '@/store/session': { useSession: () => ({ isCurrentDeviceCalibrated: () => true }) }, '@/store/quest': { useQuest: () => quest },
@@ -68,6 +69,7 @@ function fixture() {
     const lifecycle = hooks();
     const okay = read('catalog', true), done = vi.fn(async () => {});
     const dependencies = { ...helper, app, orders, trial, voucher, auth: { isAuthenticated: true, accountId: 'user:7' }, remoteApiEnabled: true,
+      profile: { refreshAvatar: read('profile-avatar', undefined) },
       accountApi: { securityOverview: securityRead }, sessionVault: { read: () => ({ user: { userId: 7 } }) },
       deposits: { remoteReceiptInitialStatus: 'ready', refreshRemoteVietQrDeposits: read('deposits', undefined) }, commission: { ensureCanonicalEvents: () => helper.runPassiveTabRead('commission-events', read('commission', undefined)) }, notifications: { hasRemoteSnapshot: true, refreshRemote: read('notifications', undefined) }, conversations: { refresh: read('conversations', undefined) },
       vrank: { ensureCanonicalVRank: () => helper.runPassiveTabRead('v-rank', read('rank', undefined)) }, genesis: { remotePublicReadState: 'ready', remoteAccountReadState: 'ready', syncRemote: read('genesis', true) }, bills: { summaryStatus: 'ready', refreshSummary: read('bills', undefined) }, market: { syncRemote: read('market', undefined) }, config: { revalidate: () => helper.runPassiveTabRead('config', read('config', undefined)) },
@@ -174,6 +176,7 @@ function referral() {
   const list = vi.fn(async () => ({ items: [{ activityId: 'A', template: 'DIRECT_REFERRAL', state: 'ACTIVE' }], nextCursor: null as string | null, hasMore: false }));
   const progress = vi.fn(async (id: string) => ({ activityId: id, qualifyingOrders: 1 }));
   const modules: Record<string, any> = { vue: { ...Vue, onBeforeUnmount: () => {} }, '@/lib/passive-tab-read': f.helper,
+    '@/store/data-visibility': { useDataVisibility: () => ({ hidden: false, mask: String }) },
     '@/composables/use-tab-page-lifecycle': { onShow: (fn: () => void) => shows.push(fn), onHide: (fn: () => void) => hides.push(fn) },
     '@/api/runtime': { promotionApi: { list, referral: progress }, remoteApiEnabled: true, sessionVault: { read: () => ({ user: { userId: 7 } }) } },
     '@/store/app': { useApp: () => f.app }, '@/store/auth': { useAuth: () => ({ isAuthenticated: true }) }, '@/store/locale': { useLocaleStore: () => f.locale },

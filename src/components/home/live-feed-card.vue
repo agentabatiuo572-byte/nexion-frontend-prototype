@@ -5,7 +5,7 @@
   by Java. High-fidelity Mock data remains isolated in the 5174 prototype repo.
 -->
 <template>
-  <view data-home-section="live-feed" data-feed-mode="CANONICAL">
+  <view class="nx-home-live-feed" data-home-section="live-feed" data-feed-mode="CANONICAL">
     <!-- Tab switcher + see-all shortcut -->
     <view class="px-0.5 pt-1 pb-2.5 flex items-center justify-between gap-2">
       <GlassSegments
@@ -33,7 +33,7 @@
         class="grid items-center gap-2.5 py-2"
         :style="{ gridTemplateColumns: whoColTemplate, minHeight: '56px', rowGap: '4px', borderBottom: i < displayActivityRows.length - 1 ? '1px solid var(--v5-border)' : 'none', animation: i === 0 ? 'v5-ledger-fade 0.5s ease' : 'none' }"
       >
-        <text data-home-live-time="true" class="tabular-nums" style="grid-column: 1 / -1; min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 18px; font-size: 12px; color: var(--v5-ink-4)">{{ r.ts }}</text>
+        <text data-home-live-time="true" class="tabular-nums" style="grid-column: 1 / -1; min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 18px; font-size: 12px; color: var(--v5-ink-2)">{{ r.ts }}</text>
         <text class="text-center" :style="whoBadgeStyle(r)">{{ whoLabel(r.who) }}</text>
         <!-- 《02》§4 判定线:动态流是「浏览型」内容且设计上单行截断,归 caption 12
              (原 12.5→13 迁移使截断加剧,溢出探针实测 +6px,数据驱动回到 12) -->
@@ -56,11 +56,11 @@
           class="px-0.5 py-2 grid items-center gap-2"
           :style="{ gridTemplateColumns: '5px auto minmax(0, 1fr) auto', minHeight: '56px', rowGap: '4px', fontSize: '12px', borderBottom: i < displayEarningsItems.length - 1 ? '1px solid var(--v5-border)' : 'none', animation: i === 0 ? 'v5-ledger-fade 0.5s ease' : 'none' }"
         >
-          <text data-home-live-earnings-time="true" class="tabular-nums" style="grid-column: 1 / -1; min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 18px; color: var(--v5-ink-4)">{{ it.ts }}</text>
+          <text data-home-live-earnings-time="true" class="tabular-nums" style="grid-column: 1 / -1; min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 18px; color: var(--v5-ink-2)">{{ it.ts }}</text>
           <view style="width: 5px; height: 5px; border-radius: 50%; background: var(--v5-success); flex-shrink: 0" />
           <text style="font-family: var(--font-v5); font-weight: 600; color: var(--v5-ink)">{{ it.name }}</text>
           <text class="truncate flex-1" style="color: var(--v5-ink-3)">{{ it.product }}</text>
-          <text class="font-mono-tabular tabular-nums whitespace-nowrap" style="color: var(--v5-success-ink); font-weight: 500">+${{ earningsAmount(it) }}</text>
+          <text class="font-mono-tabular tabular-nums whitespace-nowrap" style="color: var(--v5-success-ink); font-weight: 500">{{ earningsAmount(it) }}</text>
         </view>
       </view>
       <view v-else class="flex items-center justify-between px-1 py-3" style="gap: 12px">
@@ -72,13 +72,14 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { formatUsd } from "@/lib/usd-display";
 import { navTo } from "@/lib/route";
 import { computed, nextTick, ref, type CSSProperties } from "vue";
 import GlassSegments from "@/components/glass-segments.vue";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
 import { useApp } from "@/store/app";
+import { useDataVisibility } from "@/store/data-visibility";
 import { buildCanonicalHomeFeed, formatHomeFeedTime } from "./home-live-feed";
 
 interface FeedRow {
@@ -99,6 +100,7 @@ interface EarningsItem {
 
 const t = useT();
 const app = useApp();
+const visibility = useDataVisibility();
 const tab = ref<"activity" | "earnings">("activity");
 
 const canonicalFeed = computed(() => buildCanonicalHomeFeed(app.homeTruth?.earningsLedger ?? []));
@@ -115,7 +117,7 @@ const displayActivityRows = computed<FeedRow[]>(() => {
     lvl: "ok",
     who: "You",
     msg: `${row.model} @ ${row.client}`,
-    val: `+${formatAmount(row.rewardUsdt)}`,
+    val: visibility.mask(formatUsd(row.rewardUsdt, 'detail', true)),
     ts: formatHomeFeedTime(row.completedAt, localeStore.code),
   }));
 });
@@ -161,7 +163,7 @@ function activateTabFromKeyboard(nextTab: "activity" | "earnings") {
   });
 }
 function earningsAmount(it: EarningsItem): string {
-  return formatAmount(it.amount);
+  return visibility.mask(formatUsd(it.amount, 'detail', true));
 }
 function retryHome() {
   void app.refreshHomeTruth();
@@ -174,6 +176,7 @@ function goEarnings() {
 </script>
 
 <style scoped>
-.nx-home-feed-tabs { flex: 0 0 auto; width: 180px; min-width: 0; }
+.nx-home-live-feed { padding: 12px 16px 6px; border-radius: var(--ui-radius-surface); background: var(--v5-surface); }
+.nx-home-feed-tabs { flex: 0 1 180px; width: 180px; min-width: 0; }
 .nx-home-feed-tabs :deep(.nx-glass-option__label) { white-space: nowrap; }
 </style>

@@ -1,4 +1,5 @@
 import { formatDisplayDateTime } from "@/lib/display-date";
+import { parseServerTimestamp } from "@/api/server-time";
 import type { AppHomeEarningsLedgerRow } from "@/api/app-home-api";
 
 export interface CanonicalHomeActivityRow {
@@ -28,7 +29,7 @@ export function buildCanonicalHomeFeed(
 ): { activityRows: CanonicalHomeActivityRow[]; earningsItems: CanonicalHomeEarningsItem[] } {
   const capped = ledger
     .slice()
-    .sort((left, right) => Date.parse(right.completedAt) - Date.parse(left.completedAt))
+    .sort((left, right) => (parseServerTimestamp(right.completedAt) ?? 0) - (parseServerTimestamp(left.completedAt) ?? 0))
     .slice(0, Math.max(0, limit));
 
   return {

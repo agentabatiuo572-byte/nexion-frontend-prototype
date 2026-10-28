@@ -146,10 +146,12 @@ it("keeps the weekly navigation label stable without unlocking its loading comma
 
 it.each([["zh", zh], ["en", en], ["vi", vi]] as const)("uses actual retained earnings subtitle logic in %s without inventing a positive settlement", (_locale, t) => {
   const app = Vue.reactive({ homeTruthStatus: "loading", homeTruth: {} as object | null });
-  const value = computedValue("components/home/tech-money-card.vue", "earningsSubtitle", {
+  const deps = {
     computed: Vue.computed, homeEarningsSubtitle, remoteApiEnabled: true, app, remoteToday: Vue.ref(0), remoteJobCount: Vue.ref(0),
-    remoteTodayVsYesterdayPct: Vue.ref(null), t: Vue.ref(t), fmt,
-  });
+    remoteTodayVsYesterdayPct: Vue.ref(null), t: Vue.ref(t), fmt, visibility: { hidden: false, mask: (value: unknown) => value },
+  };
+  const settledSubtitle = computedValue("components/home/tech-money-card.vue", "settledSubtitle", deps);
+  const value = computedValue("components/home/tech-money-card.vue", "earningsSubtitle", { ...deps, settledSubtitle });
   expect(value.value).toBe(t.home.techEarningsEmpty);
   app.homeTruth = null; expect(value.value).toBe(t.home.techEarningsLoading);
 });

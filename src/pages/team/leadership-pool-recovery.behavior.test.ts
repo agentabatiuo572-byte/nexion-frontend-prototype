@@ -1,3 +1,4 @@
+import { teamPrivacyFixture } from './team-privacy.test-support';
 import { formatFinanceAmount } from '@/lib/finance-amount-display';
 import { afterEach, expect, it, vi } from 'vitest';
 import { reactive, ref } from 'vue';
@@ -38,7 +39,7 @@ function mount(language: 'zh' | 'en' | 'vi' = 'en') {
     '@/components/team/v-badge.vue': slot, '@/components/team/v-badge-icon.vue': slot,
     '@/i18n/use-t': { useT: () => ref(dictionary) }, '@/i18n/format': { fmt },
     '@/i18n/network-reaudit': { networkReauditCopy }, '@/lib/amount-display': { formatAmount }, '@/lib/finance-amount-display': { formatFinanceAmount },
-    '@/store/locale': { useLocaleStore: () => ({ code: language }) },
+    '@/store/data-visibility': teamPrivacyFixture().dependency, '@/store/locale': { useLocaleStore: () => ({ code: language }) },
     '@/store/app': { useApp: () => app }, '@/store/auth': { useAuth: () => reactive({ isAuthenticated: true }) },
     '@/store/v-rank': { useVRank: () => ({ remoteReady: true, ladder: [], refreshCanonicalVRank: vi.fn() }) },
     '@/store/leadership-pool': { useLeadershipPool: () => ({}), V_VOTES: {}, POOL_TOP_N: 100 },

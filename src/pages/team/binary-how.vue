@@ -1,12 +1,12 @@
 <template>
   <AppChassis active="team">
     <RewardPageSurface>
-      <HowPublishedContent v-if="howMode === 'published'" :back-label="w.ctaBack" kind="balance" content-key="team-binary-how" back="/pages/team/binary" />
+      <HowPublishedContent v-if="howMode === 'published'" :heading="t.headerTitles.teamBinary + t.headerTitles.howItWorksSuffix" :back-label="w.ctaBack" kind="balance" content-key="team-binary-how" back="/pages/team/binary" />
       <view v-if="howMode === 'local'" class="pb-8" style="color: var(--v5-ink)">
         <SubPageHeader :title="t.headerTitles.teamBinary + t.headerTitles.howItWorksSuffix" back="/pages/team/binary" />
         <HowHero kind="balance" :label="w.heroLabel" :title="w.heroTitle" :sub="w.heroSub" />
 
-        <HowSection :title="w.s1Title">
+        <HowSection :title="w.s1Title" initial-open>
           <text class="block">{{ w.s1Para1 }}</text>
           <text class="block" style="margin-top: 10px">{{ t.binary.spilloverHint }}</text>
         </HowSection>
@@ -40,13 +40,13 @@
 import { computed } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import RewardPageSurface from "@/components/team/reward-page-surface.vue";
-import HowPublishedContent from "@/components/team/reward-published-guide.vue";
+import HowPublishedContent from "@/components/team/team-rule-published.vue";
 import { remoteApiEnabled } from "@/api/runtime";
 import { howContentMode } from "@/lib/team-how-content-mode";
 import SubPageHeader from "@/components/sub-page-header.vue";
-import HowHero from "@/components/team/reward-compact-hero.vue";
-import HowSection from "@/components/team/reward-rule-block.vue";
-import HowFaqRow from "@/components/team/reward-rule-block.vue";
+import HowHero from "@/components/team/team-rule-hero.vue";
+import HowSection from "@/components/team/team-rule-section.vue";
+import HowFaqRow from "@/components/team/team-rule-section.vue";
 import { useT } from "@/i18n/use-t";
 import { navBack } from "@/lib/route";
 

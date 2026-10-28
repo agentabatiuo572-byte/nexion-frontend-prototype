@@ -29,7 +29,7 @@ export const demoOptions = {
   realtimeState:[['online','客服在线'],['offline','客服离线'],['reconnecting','正在恢复连接']],
   messageSendState:[['normal','正常确认'],['delayed','发送延迟（约 2 秒）'],['failed','确认失败（未发送）'],['unknown','结果待确认（重试原消息）'],['timeout','确认超时（15 秒转待确认）']],
   messageState:[['normal','普通会话 · 1条未读'],['receipts','双向回执样例'],['history','三页历史与图文消息'],['timeline','时间分组 · 24小时间隔'],['incoming','追加客服消息（原页刷新）'],['long-count','长未读计数 · 1298'],['read','会话全部已读']],
-  machineImageState:[['normal','原活动机型'],['alternate','后台换机型（Pro 赠 S1）'],['missing-main','主购缺图（赠品保持原位）'],['missing','目录未发布图片'],['broken','图片加载失败']],
+  machineImageState:[['normal','原活动机型'],['alternate','后台换机型（Pro 赠 S1）'],['banner','后台自定义活动海报'],['missing-main','主购缺图（赠品保持原位）'],['missing','目录未发布图片'],['broken','图片加载失败']],
   catalogState:[['phased','完整目录（含即将上线）'],['available','全部 SKU 可购'],['soldout','S1 售罄'],['restricted','购买条件未满足']],
   taskState:[['pending','任务进行中'],['complete','全部完成·待领取'],['claimed','奖励已领取'],['expired','任务已过期'],['empty','暂无任务'],['legacy','任务信息待补全']],
   eventState:[['mixed','全部活动状态'],['available','可参与'],['joined','已参与'],['claimable','奖励待领取'],['claimed','奖励已领取'],['upcoming','即将开始'],['ended','已结束'],['empty','暂无活动']],
@@ -55,7 +55,7 @@ export function demoProducts(state,origin='http://127.0.0.1:5190',locale='zh') {
   return skuDefinitions.map(([id,name,tier,price,dailyEarn,dailyEarnNEX,gpu,vram,watts],index)=>{
     const share=tier==='Share', upcoming=state.catalogState==='phased'&&[2,4].includes(index);
     return {id,name,tier,price,dailyEarn,dailyEarnNEX,gpu:share?localized(locale,'分布式','Distributed','Phân tán'):gpu,vram,power:watts?watts+' W':null,hashRate:null,
-      tagline:localized(locale,['入门款 · 70B 大模型推理','旗舰款 · 训练与 405B 推理','进阶款 · 高性能推理','机架款 · 多任务并行','旗舰机架 · 大型算力作业','云算力 · 灵活参与'][index],['Starter · 70B model inference','Flagship · Training & 405B inference','Advanced · High-performance inference','Rack · Parallel workloads','Flagship rack · Large compute jobs','Cloud compute · Flexible access'][index],['Cơ bản · Suy luận mô hình 70B','Cao cấp · Huấn luyện và suy luận 405B','Nâng cao · Suy luận hiệu năng cao','Máy chủ · Tác vụ song song','Máy chủ cao cấp · Tác vụ tính toán lớn','Điện toán đám mây · Tham gia linh hoạt'][index]),badge:null,imageUrl:new URL(index<2||share?'/static/img/home-glass-20260928/'+(share?'cloud':index===0?'s1':'pro')+'.webp':'/static/img/products/uvel-pedestal/'+id+'.webp',origin).href,
+      tagline:localized(locale,['入门款 · 70B 大模型推理','旗舰款 · 训练与 405B 推理','进阶款 · 高性能推理','机架款 · 多任务并行','旗舰机架 · 大型算力作业','云算力 · 灵活参与'][index],['Starter · 70B model inference','Flagship · Training & 405B inference','Advanced · High-performance inference','Rack · Parallel workloads','Flagship rack · Large compute jobs','Cloud compute · Flexible access'][index],['Cơ bản · Suy luận mô hình 70B','Cao cấp · Huấn luyện và suy luận 405B','Nâng cao · Suy luận hiệu năng cao','Máy chủ · Tác vụ song song','Máy chủ cao cấp · Tác vụ tính toán lớn','Điện toán đám mây · Tham gia linh hoạt'][index]),badge:index===0?localized(locale,'推荐','Recommended','Đề xuất'):index===1?localized(locale,'热销','Best seller','Bán chạy'):null,imageUrl:new URL(index<2||share?'/static/img/home-glass-20260928/'+(share?'cloud':index===0?'s1':'pro')+'.webp':'/static/img/products/uvel-pedestal/'+id+'.webp',origin).href,
       productType:share?'SHARE':'DEVICE',inventoryMode:share?'UNLIMITED':'FINITE',stock:share?null:state.catalogState==='soldout'&&index===0?0:60-index*7,sold:42+index*13,
       features:[],ai:null,datacenter:localized(locale,'新加坡','Singapore','Singapore'),uptime:'99.9%',warranty:share?undefined:localized(locale,'36 个月','36 months','36 tháng'),status:'active',available:!upcoming,
       releaseState:upcoming?'LOCKED':'RELEASED',releasePhaseId:upcoming?'phase-next':'phase-current',unlocksAtPhase:null,purchaseGate:null,
@@ -106,6 +106,18 @@ export function demoFixture(url,locale,state,request) {
   const now=Date.now(),iso=new Date(now).toISOString(),pathname=url.pathname;
   const empty=state.dataState==='empty';
   const products=demoProducts(state,url.origin,locale);
+  if (pathname === '/api/config/phone-tiers') return { tiers: [1,2,3,4,5].map(tier => ({
+    tier, name:`Tier ${tier}`, baseRateUsdt:[.02,.04,.06,.09,.12][tier-1], baseRateNex:tier*.1, effectiveAt:iso,
+  })), sources:['Local prototype demo'] };
+  const socialProduct = pathname.match(/^\/api\/storefront\/products\/([^/]+)\/social-proof$/);
+  if (socialProduct) {
+    const product = products.find(item => item.id === decodeURIComponent(socialProduct[1]));
+    if (!product) return undefined;
+    return { ...authority, source:'nx_product/nx_order/nx_order_item', productName:product.name,
+      cumulativeSales:empty?0:product.sold, windowDays:Number(url.searchParams.get('windowDays') || 30),
+      windowSales:empty?0:Math.floor(product.sold / 3),
+      liveActivity: { viewers:empty?0:24+Math.floor(Math.random()*92), sales24h:empty?0:8+Math.floor(Math.random()*30), sales30m:empty?0:1+Math.floor(Math.random()*7) } };
+  }
   const base=(pathnameOverride=pathname)=>reviewFixture(new URL(pathnameOverride,url.origin),locale,state,request);
   const trial=trialDemo(url,locale,state,request);if(trial!==undefined)return trial;
   const commandKey=request.headers?.()['idempotency-key']||request.headers?.()['Idempotency-Key'];
@@ -131,6 +143,19 @@ export function demoFixture(url,locale,state,request) {
   if(pathname==='/api/app/home/overview') {
     const overview=structuredClone(base());
     overview.earningsLedger=empty?[]:[['DEMO-EARNING-1','Demo Studio','SDXL',2.34],['DEMO-EARNING-2','Demo Lab','Llama',.00032],['DEMO-EARNING-3','Demo Lab','Whisper',.00005]].map(([id,client,model,rewardUsdt],index)=>({id,client,model,rewardUsdt,completedAt:new Date(now-(index+1)*600000).toISOString(),synthetic:false}));
+    if(!empty){
+      overview.marketBoard={workloads:[
+        {code:'IG',name:'SDXL Turbo',unit:null,price:.003,deltaPct:4.2,sparkline:[.4,.5,.42,.55,.6,.7,.72],flagshipDeltaPct:null},
+        {code:'LL',name:'Llama 70B',unit:null,price:.0024,deltaPct:18.7,sparkline:[.3,.35,.4,.42,.6,.78,.88],flagshipDeltaPct:32.1},
+        {code:'VG',name:'Video generation',unit:null,price:.1,deltaPct:-1.2,sparkline:[.8,.75,.78,.72,.7,.72,.69],flagshipDeltaPct:null},
+      ],deviceRankings:[
+        {rank:1,kind:'stellarbox-pro',name:'UVELBox Pro',dailyUsdt:22.4,bestFor:null},
+        {rank:2,kind:'stellarbox-s1',name:'UVELBox S1',dailyUsdt:6.2,bestFor:null},
+        {rank:3,kind:'phone',name:null,dailyUsdt:.06,bestFor:null},
+      ]};
+      overview.doTheMath={basis:'OWNED_DEVICE_TO_NEXT_CATALOG_PRODUCT',base:{kind:'stellarbox-s1',name:'UVELBox S1',dailyUsdt:6.2},target:{kind:'stellarbox-pro',productNo:'stellarbox-pro',name:'UVELBox Pro',dailyUsdt:22.4,priceUsdt:4999},multiplier:4,paybackDays:223};
+      overview.onGrid={clients:[{id:'demo-grid-1',name:'Demo Studio',model:'SDXL Turbo',city:'Tokyo',gpus:30},{id:'demo-grid-2',name:'Demo Lab',model:'Llama 70B',city:'Singapore',gpus:57}],activeDevices:3206,activeJobs:128,perSecUsdt:.028};
+    }
     return overview;
   }
   if(pathname==='/api/store/bundle-discount')return {source:'server',serverCanonical:true,policyVersion:1,tiers:[{minItems:2,rate:.04},{minItems:3,rate:.07},{minItems:4,rate:.11}]};
@@ -233,6 +258,7 @@ export function demoFixture(url,locale,state,request) {
       }
       if(i>0){const d=item.rewardRules[0].buyerReward.disclosure;d.deviceName=null;d.title={zh:'购机奖励',en:'Purchase reward',vi:'Thưởng mua hàng'};d.benefitDescription={zh:'领取 '+(i*50)+' UVT',en:'Receive '+(i*50)+' UVT',vi:'Nhận '+(i*50)+' UVT'};item.rewardRules[0].buyerReward={rewardRuleId:'demo-reward-'+i,beneficiaryRole:'BUYER',type:'NEX',amount:String(i*50),disclosure:d};}
       if(state.eventState==='upcoming'){item.state='SCHEDULED';item.startsAt=new Date(now+day).toISOString();}else if(state.eventState==='ended'){item.state='ENDED';item.endsAt=new Date(now-day).toISOString();}
+      if(state.machineImageState==='banner'&&item.state==='ACTIVE')item.bannerImageUrl=`/api/promotions/${item.activityId}/banner/${item.version}`;
       return item;
     });
     if(pathname!=='/api/promotions') return items.find(item=>item.activityId===pathname.split('/').pop())||{};

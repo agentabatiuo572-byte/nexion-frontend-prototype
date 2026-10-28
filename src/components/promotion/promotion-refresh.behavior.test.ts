@@ -51,7 +51,7 @@ beforeEach(() => {
   vi.stubGlobal('uni', { getStorageSync: () => undefined, setStorageSync: vi.fn() });
   setActivePinia(createPinia());
 });
-afterEach(() => { cleanups.splice(0).forEach(fn => fn()); vi.unstubAllGlobals(); });
+afterEach(() => { cleanups.splice(0).forEach(fn => fn()); vi.useRealTimers(); vi.unstubAllGlobals(); });
 function deferred<T>() {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>(yes => { resolve = yes; });
@@ -170,25 +170,29 @@ it('the actual Home page and Store advert share one placement read while hidden 
   expect(p.list).toHaveBeenCalledTimes(1);expect(p.catalogApi).toHaveBeenCalledTimes(1);
 });
 
-it('the actual team refresh button re-reads list rules, catalog and progress and preserves expansion', async () => {
+it('team automatically refreshes progress while visible without resetting rules, catalog or expansion', async () => {
+  vi.useFakeTimers();
   const p = platform(), team = p.mount('team'); await flush();
+  team.show(); await flush();
   team.view.expandedActivity.value = 'A';
   expect(team.view.referralImageProps(team.view.activities.value[0])).toMatchObject({ sku: 'old-sku', imageUrl: 'https://images.example/old' });
-  p.list.mockResolvedValueOnce(page([activity('new-sku', { version: 2 })]));
-  p.catalogApi.mockResolvedValueOnce(snapshot('new-sku', 'https://images.example/new'));
-  const refresh = find(await team.node(), node => node.props?.label === promotionZH.refresh)!;
-  await refresh.props!.onClick(); await flush();
-  expect(p.list).toHaveBeenCalledTimes(2); expect(p.list).toHaveBeenLastCalledWith({ cursor: null, limit: 20 }, true);
-  expect(p.catalogApi).toHaveBeenCalledTimes(2); expect(p.referral).toHaveBeenCalledTimes(2);
-  expect(team.view.referralImageProps(team.view.activities.value[0])).toMatchObject({ sku: 'new-sku', imageUrl: 'https://images.example/new' });
+  p.referral.mockResolvedValueOnce({ activityId: 'A', qualifyingOrders: 2, ownRewards: [] });
+  expect(find(await team.node(), node => node.props?.label === promotionZH.refresh)).toBeUndefined();
+  await vi.advanceTimersByTimeAsync(30_000); await flush();
+  expect(p.list).toHaveBeenCalledTimes(1);
+  expect(p.catalogApi).toHaveBeenCalledTimes(1); expect(p.referral).toHaveBeenCalledTimes(2);
+  expect(team.view.qualifyingCount('A')).toBe(2);
+  expect(team.view.referralImageProps(team.view.activities.value[0])).toMatchObject({ sku: 'old-sku', imageUrl: 'https://images.example/old' });
   expect(team.view.expandedActivity.value).toBe('A');
 });
 
 it('team first-purchase progress masks the actual count and own rewards without changing reads or the underlying result', async () => {
+  vi.useFakeTimers();
   const p = platform(), team = p.mount('team'), visibility = useDataVisibility();
   const ownRewards = [{ obligationId: 'personal-reward', reward: { type: 'UVT', amount: '123.450000' }, state: 'ISSUED' }];
   p.referral.mockResolvedValue({ activityId: 'A', qualifyingOrders: 271, ownRewards });
   await flush();
+  team.show(); await flush();
   const open = find(await team.node(), node => node.props?.label === teamRedesignCopy('zh').viewProgress)!;
   open.props!.onClick(); await flush();
   const count = (node: Vue.VNode) => find(node, item => item.props?.class === 'referral-number')!;
@@ -209,8 +213,7 @@ it('team first-purchase progress masks the actual count and own rewards without 
   expect(find(hidden, node => node.props?.label === teamRedesignCopy('zh').viewProgress)?.props?.disabled).toBe(false);
 
   p.referral.mockResolvedValueOnce({ activityId: 'A', qualifyingOrders: 282, ownRewards });
-  const refresh = find(hidden, node => node.props?.label === promotionZH.refresh)!;
-  await refresh.props!.onClick(); await flush();
+  await vi.advanceTimersByTimeAsync(30_000); await flush();
   expect(count(await team.node()).children).toBe('••••');
   visibility.toggle(); await Vue.nextTick();
   const revealed = await team.node();

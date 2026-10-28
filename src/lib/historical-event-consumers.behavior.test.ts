@@ -1,3 +1,4 @@
+import { teamPrivacyFixture } from '@/pages/team/team-privacy.test-support';
 import * as Vue from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import { compile, baseParse as parseTemplate } from "@vue/compiler-dom";
@@ -55,7 +56,7 @@ function screen(kind: "token" | "roster" | "achievements" | "security", timestam
     "@/lib/genesis-market-floor": { genesisMarketFloor }, "@/lib/command-amount": { formatCommandAmount }, "@/lib/genesis-listing-price": { parseGenesisListingPrice },
     "@/lib/genesis-listing-confirmation": { canExecuteGenesisListingConfirmation }, "@/lib/account-scope": { captureAccountScope: io, isCurrentAccountScope: () => true },
     "@/lib/brand-copy": { displayNickname }, "@/lib/amount-display": { formatAmount, formatGroupedAmount }, "@/i18n/compute-points": { formatComputePoints },
-    "@/i18n/network-reaudit": { networkReauditCopy }, "@/lib/v-rank-copy": { rankLabel }, "@/store/locale": { useLocaleStore: () => locale }, "@/store/commission": { UNILEVEL_USDT: {} },
+    "@/i18n/network-reaudit": { networkReauditCopy }, "@/lib/v-rank-copy": { rankLabel }, "@/store/data-visibility": teamPrivacyFixture().dependency, "@/store/locale": { useLocaleStore: () => locale }, "@/store/commission": { UNILEVEL_USDT: {} },
     "@/i18n/use-t": { useT: () => t }, "@/i18n/format": { fmt, dateLocale: () => locale.code }, "@/store/genesis": { useGenesis: () => genesis },
     "@/store/genesis-config": { useGenesisConfig: () => ({ config: { marketStats: { floor: 10 } } }) }, "@/composables/use-genesis-sale-gate": { useGenesisSaleGate: () => ({ secondaryBlock: Vue.ref(null), blockText: Vue.ref(null) }) },
     "@/api/runtime": { remoteApiEnabled: kind !== "achievements", sessionVault: { read: () => null }, pointsApi: {} }, "@/store/ui": { toast: { success: io, error: io, info: io }, confirm: io, useUI: () => ({ clearConfirmsBy: io }) },

@@ -16,10 +16,10 @@
         />
         <template v-if="!remoteApiEnabled || ledger !== null">
 
-        <RewardHero kind="ledger" panel :label="t.commissions.thisMonth">
+        <RewardHero class="commission-overview" kind="ledger" panel :label="t.commissions.thisMonth">
           <text class="reward-amount">{{ assetTotal(monthTotals.usdt, 'usdt') }}</text>
           <text class="block reward-income-uvt">{{ assetTotal(monthTotals.nex, 'uvt') }}</text>
-          <template #footer><view class="reward-cta reward-rule-link nx-commissions-focusable" role="link" tabindex="0" :aria-label="t.commissions.howItWorksEntry" @click="go('/pages/team/commissions-how')" @keydown.enter.prevent="go('/pages/team/commissions-how')" @keydown.space.prevent="go('/pages/team/commissions-how')"><text>{{ t.commissions.howItWorksEntry }}</text></view></template>
+          <template #footer><view class="commission-overview__rules nx-commissions-focusable" role="link" tabindex="0" :aria-label="t.commissions.howItWorksEntry" @click="go('/pages/team/commissions-how')" @keydown.enter.prevent="go('/pages/team/commissions-how')" @keydown.space.prevent="go('/pages/team/commissions-how')"><text>{{ t.commissions.howItWorksEntry }}</text></view></template>
         </RewardHero>
         <view class="reward-income-summary">
           <view>
@@ -36,9 +36,14 @@
         <view class="reward-income-lifetime"><text>{{ t.commissions.lifetime }}</text><view class="reward-income-lifetime__amounts"><text>{{ assetTotal(lifetimeTotals.usdt, 'usdt') }}</text><text>{{ assetTotal(lifetimeTotals.nex, 'uvt') }}</text></view></view>
 
 
-        <GlassSegments :label="t.commissions.pageTitle" v-model="filter" :options="filterOptions" layout="scroll"  />
+        <view class="commission-filter-bar">
+          <text>{{ filterCopy.title }}</text>
+          <view class="commission-filter-trigger" role="button" tabindex="0" aria-haspopup="dialog" :aria-expanded="filterOpen" @click="filterOpen = true" @keydown.enter.prevent="filterOpen = true" @keydown.space.prevent="filterOpen = true">
+            <text>{{ selectedFilterLabel }}</text><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+          </view>
+        </view>
 
-        <view v-if="filter !== 'all'" class="commission-filter-summary"><text>{{ t.commissions.kind[filter] }}</text><text>${{ formatAmount(byKind[filter].usdt) }} · {{ formatAmount(byKind[filter].nex) }} UVT</text></view>
+        <view v-if="filter !== 'all'" class="commission-filter-summary"><text>{{ t.commissions.kind[filter] }}</text><text>${{ visibility.mask(formatAmount(byKind[filter].usdt)) }} · {{ visibility.mask(formatAmount(byKind[filter].nex)) }} UVT</text></view>
 
         <EmptyState v-if="filtered.length === 0 && !hasMoreEvents" :kind="filter === 'all' ? 'empty-list' : 'no-filter-results'" :title="filter === 'all' ? t.empty.commissionsTitle : t.empty.filterTitle" :desc="filter === 'all' ? t.empty.commissionsDesc : t.empty.filterDesc" />
         <view v-if="filtered.length > 0" :style="listGroupStyle">
@@ -69,7 +74,7 @@
                 <text v-else-if="e.status === 'rejected'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-danger)', marginTop: '2px' }">{{ t.commissions.rejectedTag }}</text>
                 <text v-else-if="e.status === 'waiting_calculation'" class="block" style="font-size: 12px; color: var(--v5-warning)">{{ t.directReferral.waitingCalculation }}</text>
                 <text v-else-if="e.status === 'recovery_pending'" class="block" style="font-size: 12px; color: var(--v5-warning)">{{ t.directReferral.recoveryPending }}</text>
-                <text v-if="e.status === 'recovery_pending' && e.recoveryPendingUSDT !== undefined && e.recoveryPendingNEX !== undefined" class="block" style="font-size: 12px; color: var(--v5-warning)">{{ fmt(t.directReferral.pendingAmounts, { usdt: formatAmount(e.recoveryPendingUSDT), nex: formatAmount(e.recoveryPendingNEX) }) }}</text>
+                <text v-if="e.status === 'recovery_pending' && e.recoveryPendingUSDT !== undefined && e.recoveryPendingNEX !== undefined" class="block" style="font-size: 12px; color: var(--v5-warning)">{{ fmt(t.directReferral.pendingAmounts, { usdt: visibility.mask(formatAmount(e.recoveryPendingUSDT)), nex: visibility.mask(formatAmount(e.recoveryPendingNEX)) }) }}</text>
               </view>
             </view>
         </view>
@@ -88,6 +93,13 @@
         </template>
       </view>
     </view>
+    <NxSheet :open="filterOpen" :title="filterCopy.title" @close="filterOpen = false">
+      <view class="commission-filter-options">
+        <view v-for="option in filterOptions" :key="option.value" class="commission-filter-option" :class="{ 'commission-filter-option--selected': filter === option.value }" role="button" tabindex="0" :aria-pressed="filter === option.value" :aria-label="option.fullLabel" @click="selectFilter(option.value)" @keydown.enter.prevent="selectFilter(option.value)" @keydown.space.prevent="selectFilter(option.value)">
+          <text>{{ option.label }}</text><text class="commission-filter-option__count">{{ visibility.mask(option.count ?? '—') }}</text>
+        </view>
+      </view>
+    </NxSheet>
     </RewardPageSurface>
   </AppChassis>
 </template>
@@ -95,16 +107,19 @@
 <script setup lang="ts">
 import { formatAmount, formatGroupedAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
-import { ref, computed, watch, nextTick, onMounted, type CSSProperties } from "vue";
+import { ref, computed, watch, onMounted, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import RewardHero from "@/components/team/reward-compact-hero.vue";
 import RewardPageSurface from "@/components/team/reward-page-surface.vue";
 import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
+import NxSheet from "@/components/ui/nx-sheet.vue";
+import { commissionFilterCopy } from '@/i18n/commission-filter-copy';
 import { useApp } from '@/store/app';
 import { useAuth } from '@/store/auth';
 import { useLocaleStore } from '@/store/locale';
+import { useDataVisibility } from '@/store/data-visibility';
 import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
 import { formatTrialDate } from "@/lib/trial-date";
@@ -116,6 +131,7 @@ const commission = useCommission();
 const app = useApp();
 const auth = useAuth();
 const locale = useLocaleStore();
+const visibility = useDataVisibility();
 const displayEnvironment = [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const;
 let environmentInvalidated = false;
 watch(() => [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const, () => { environmentInvalidated = true; }, { flush: 'sync' });
@@ -134,6 +150,10 @@ const ledger = computed(() => commission.eventsStatus === 'error' ? null : ledge
 
 type Filter = "all" | CommissionKind;
 const filter = ref<Filter>("all");
+const filterOpen = ref(false);
+const filterCopy = computed(() => commissionFilterCopy(locale.code));
+const selectedFilterLabel = computed(() => filter.value === 'all' ? filterCopy.value.all : filterCopy.value.kinds[filter.value]);
+function selectFilter(value: Filter) { filter.value = value; filterOpen.value = false; }
 
 const KIND_ORDER: CommissionKind[] = ["direct_purchase", "direct_device_earning", "unilevel", "binary", "peer", "cultivation", "leadership", "genesis", "promotion", "other"];
 
@@ -175,11 +195,11 @@ const lifetimeTotals = computed(() => remoteApiEnabled
   : { usdt: commission.totalUSDTLifetime(), nex: commission.totalNEXLifetime() });
 function assetNumber(key: 'unlockedUSDT' | 'unlockedNEX' | 'coolingUSDT', mock: number): string {
   const value = remoteApiEnabled ? ledger.value?.aggregate[key] : mock;
-  return typeof value === 'number' && Number.isFinite(value) ? formatAmount(value) : '—';
+  return visibility.mask(typeof value === 'number' && Number.isFinite(value) ? formatAmount(value) : '—');
 }
 function assetTotal(value: number | null | undefined, asset: 'usdt' | 'uvt'): string {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return asset === 'uvt' ? '— UVT' : '— USD';
-  return asset === 'usdt' ? `$${formatAmount(value)}` : `${formatAmount(value)} UVT`;
+  if (typeof value !== 'number' || !Number.isFinite(value)) return asset === 'uvt' ? `${visibility.mask('—')} UVT` : `${visibility.mask('—')} USD`;
+  return asset === 'usdt' ? `$${visibility.mask(formatAmount(value))}` : `${visibility.mask(formatAmount(value))} UVT`;
 }
 function loadMoreEvents() {
   if (commission.eventsStatus !== 'ready' || !hasMoreEvents.value || commission.eventsLoadMoreStatus === 'loading') return;
@@ -205,7 +225,7 @@ const noKindText = computed(() =>
 
 function eventMeta(e: CommissionEvent): string {
   const kindLabel = t.value.commissions.kind[e.kind];
-  const order = e.sourceRef ? ` · ${e.kind === "direct_purchase" ? t.value.directReferral.order : t.value.directReferral.receipt} ${e.sourceRef}` : e.orderAmountUSD ? ` · ${t.value.commissions.orderPrefix}${formatGroupedAmount(e.orderAmountUSD)}` : "";
+  const order = e.sourceRef ? ` · ${e.kind === "direct_purchase" ? t.value.directReferral.order : t.value.directReferral.receipt} ${e.sourceRef}` : e.orderAmountUSD ? ` · ${t.value.commissions.orderPrefix}${visibility.mask(formatGroupedAmount(e.orderAmountUSD))}` : "";
   const device = e.sourceDeviceId ? ` · ${t.value.directReferral.device}: ${e.sourceDeviceId}` : "";
   const date = formatTrialDate(e.ts, dateLocale());
   return `${kindLabel}${order}${device} · ${date}`;
@@ -216,14 +236,14 @@ function coolingTag(e: CommissionEvent): string {
 }
 
 function commissionAmountLabel(e: CommissionEvent): string {
-  const amount = `$${formatAmount(e.amountUSDT)}`;
+  const amount = `$${visibility.mask(formatAmount(e.amountUSDT))}`;
   if (e.status === "reversed") return `−${amount}`;
   if (e.status === "frozen" || e.status === "rejected" || e.status === "recovery_pending") return amount;
   return `+${amount}`;
 }
 
 function commissionNexLabel(e: CommissionEvent): string {
-  const amount = `${formatAmount(e.amountNEX)} UVT`;
+  const amount = `${visibility.mask(formatAmount(e.amountNEX))} UVT`;
   if (e.status === "reversed") return `−${amount}`;
   if (e.status === "frozen" || e.status === "rejected" || e.status === "recovery_pending") return amount;
   return `+${amount}`;
@@ -247,39 +267,7 @@ function go(url: string) {
 // Reward summary cards double as filter controls: name them with the kind label
 // + current amount/count so a screen reader hears what the tile selects.
 function kindCardLabel(k: CommissionKind): string {
-  return `${t.value.commissions.kind[k]} · ${formatAmount(byKind.value[k].usdt)} · ${byKind.value[k].count} ${t.value.commissions.events}`;
-}
-
-// Filter pills are one roving-tabindex tablist (same idiom as leaderboard/unilevel):
-// arrows move selection and the focus ring follows the newly selected tab.
-const FILTER_ORDER: Filter[] = ["all", ...KIND_ORDER];
-function moveFilter(delta: -1 | 1) {
-  const currentIndex = FILTER_ORDER.indexOf(filter.value);
-  filter.value = FILTER_ORDER[(currentIndex + delta + FILTER_ORDER.length) % FILTER_ORDER.length];
-  void nextTick(() => {
-    if (typeof document === "undefined") return;
-    document.querySelector<HTMLElement>(".nx-commissions-pill[tabindex='0']")?.focus();
-  });
-}
-
-/**
- * 六张 kind 卡的左右方向键。
- *
- * 卡片与下方 pill 行驱动**同一个** filter,但它们是两个独立的单选组:卡组只有 6 个成员
- * (没有「全部」),所以方向键必须在**卡组内部**环转,不能复用 moveFilter —— 那会把选中项
- * 移到「全部」,而卡组里没有对应成员,焦点随即无处可去。
- *
- * 焦点目标按 tabindex 而不是 aria-checked 取:filter 为「全部」时卡组无成员被选中,
- * 此时可 Tab 进入的是第一张卡(tabindex=0),按 aria-checked 会取到 null 而丢失焦点。
- */
-function moveKindCard(index: number, delta: -1 | 1) {
-  const next = KIND_ORDER[(index + delta + KIND_ORDER.length) % KIND_ORDER.length];
-  if (!next || next === filter.value) return;
-  filter.value = next;
-  void nextTick(() => {
-    if (typeof document === "undefined") return;
-    document.querySelector<HTMLElement>('[role="radio"][tabindex="0"]')?.focus();
-  });
+  return `${t.value.commissions.kind[k]} · ${visibility.mask(formatAmount(byKind.value[k].usdt))} · ${visibility.mask(byKind.value[k].count)} ${t.value.commissions.events}`;
 }
 
 function activateLoadMore(event: KeyboardEvent) {
@@ -314,14 +302,18 @@ const extendedBadgeStyle: CSSProperties = {
 };
 const eventMetaStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginTop: "2px" };
 
-import GlassSegments from "@/components/glass-segments.vue";
+
 const filterOptions = computed(() => [
-  { value: "all", label: t.value.commissions.all, count: remoteApiEnabled ? ledger.value?.totalRows : commission.events.length },
-  ...KIND_ORDER.map(value => ({ value, label: t.value.commissions.kind[value], count: byKind.value[value].count })),
+  { value: "all" as Filter, label: filterCopy.value.all, fullLabel: t.value.commissions.all, count: remoteApiEnabled ? ledger.value?.totalRows : commission.events.length },
+  ...KIND_ORDER.map(value => ({ value, label: filterCopy.value.kinds[value], fullLabel: t.value.commissions.kind[value], count: byKind.value[value].count })),
 ]);
 </script>
 
 <style scoped>
+.commission-overview.reward-hero--panel { position: relative; box-sizing: border-box; min-height: 136px; padding: 14px 16px 18px; }
+.commission-overview :deep(.reward-hero__art) { --team-art-size: 64px; flex-basis: 64px; align-self: flex-start; }
+.commission-overview .reward-income-uvt { padding-right: 48px; }
+.commission-overview__rules { position: absolute; right: 10px; bottom: 2px; display: flex; align-items: center; justify-content: flex-end; box-sizing: border-box; min-width: 44px; min-height: 44px; padding: 0 6px; background: transparent; color: var(--v5-ink-3); font-size: 12px; font-weight: 400; line-height: 16px; cursor: pointer; }
 .reward-income-summary { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 24px; padding: var(--ui-space-inline) 0; border-bottom: 1px solid var(--v5-border); }
 .reward-income-summary__amount { margin: 6px 0 4px; font-size: 23px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .reward-income-uvt { margin-top: 6px; font-size: 16px; font-variant-numeric: tabular-nums; }
@@ -330,6 +322,14 @@ const filterOptions = computed(() => [
 .reward-income-icon { width: 32px; height: 32px; color: var(--v5-ink-2); }
 .reward-income-event { align-items: flex-start; }
 .commission-filter-summary { display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;color:var(--v5-ink-2);font-size:12px; }
+.commission-filter-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--v5-ink-3); font-size: var(--ui-type-list-subtitle); }
+.commission-filter-trigger { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-height: 44px; max-width: 70%; color: var(--v5-ink); font-weight: 500; cursor: pointer; }
+.commission-filter-trigger svg { flex: none; }
+.commission-filter-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.commission-filter-option { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; min-height: 44px; box-sizing: border-box; border-radius: 12px; background: var(--v5-surface-2); font-size: var(--ui-type-list-subtitle); line-height: 1.4; overflow-wrap: anywhere; cursor: pointer; }
+.commission-filter-option--selected { color: var(--v5-brand); background: var(--v5-brand-soft); }
+.commission-filter-option__count { flex: none; font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); font-variant-numeric: tabular-nums; }
+.commission-filter-trigger:focus-visible, .commission-filter-option:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
 /* Keyboard focus must be visible on the self-drawn tiles/pills — they are
    focusable now (role+tabindex), and without this the focus ring is the
    browser default outline clipped by the scroll-view on the pill row. */

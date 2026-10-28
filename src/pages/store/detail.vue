@@ -14,7 +14,7 @@
   disclosures; unavailable material is shown as unavailable.
 -->
 <template>
-  <AppChassis active="store">
+  <AppChassis active="store" class="product-detail-page">
     <!-- Chassis-nav pages (useSetPageHeader) don't get sub-page-header.vue's global
          24px .spv gap, so the nav→content breathing is supplied here once. -->
     <view style="color: var(--v5-ink); padding-top: 24px">
@@ -66,17 +66,17 @@
       <!-- Full detail -->
       <template v-else>
         <!-- === Section 1: Hero === -->
-        <view class="mx-4 nx-glass-card overflow-hidden relative">
+        <view class="mx-4 nx-glass-card overflow-hidden relative detail-hero">
           <view aria-hidden :style="auroraStyle" />
 
           <view class="relative border-b" style="border-color: var(--v5-border)">
-            <ProductRender :product-id="product.id" :tier="product.tier" :image-url="product.imageUrl" :video-url="product.videoUrl" />
+            <ProductRender class="detail-product-render" :product-id="product.id" :tier="product.tier" :image-url="product.imageUrl" :video-url="product.videoUrl" />
             <!-- Folded-corner ribbon -->
             <view v-if="copy.badge" class="absolute" :style="ribbonStyle">
               <text>{{ copy.badge }}</text>
             </view>
             <!-- Live activity danmaku -->
-
+            <LiveSocialProof :product="product" />
           </view>
 
           <view class="relative" style="padding: 20px">
@@ -92,7 +92,7 @@
             <view class="flex flex-wrap" style="margin-top: 14px; gap: 8px">
               <text class="font-mono-tabular" :style="codeChip('success')">✓ {{ soldText }} {{ t.store.liveProof.cumulativeSalesLabel }}</text>
               <text v-if="stockUnavailable" class="font-mono-tabular" :style="codeChip('amber')">{{ t.store.temporarilyOutOfStock }}</text>
-              <text v-if="stockLow" class="font-mono-tabular" :style="codeChip('amber')">{{ product.stock }} {{ t.store.onlyXLeft }}</text>
+              <text v-if="!isShare && product.stock != null && product.stock > 0" class="font-mono-tabular" :style="codeChip('amber')">{{ product.stock }} {{ t.store.onlyXLeft }}</text>
             </view>
           </view>
         </view>
@@ -141,7 +141,7 @@
           <view style="padding: 22px 16px 4px"><SectionHeader :title="t.store.detEstReturns" :count="t.store.detEstReturnsMeta" /></view>
           <view class="mx-4 nx-glass-card" :style="roiCardStyle">
             <!-- Daily and monthly estimates from the current catalog; no hardware payback promise. -->
-            <view class="grid" style="margin-top: 16px; grid-template-columns: 1fr 1fr">
+            <view class="grid" style="grid-template-columns: 1fr 1fr">
               <view :style="roiCellStyle(0)">
                 <text class="block font-mono-tabular" :style="roiLabelStyle">{{ t.bundle.estimatedDaily }}</text>
                 <text class="block tabular-nums" :style="roiValStyle('success')">${{ dailyYieldText }}</text>
@@ -161,11 +161,8 @@
 
         <!-- === Section 6: AI performance spec === -->
         <template v-if="aiPerfRows.length">
-          <view v-if="hasAiPerformance" style="padding: 22px 16px 4px"><SectionHeader :title="t.store.detAiPerf" /></view>
-          <view v-else style="margin: 12px 16px 0; min-height: 44px; display: flex; align-items: center; justify-content: space-between" role="button" tabindex="0" :aria-expanded="aiExpanded" @click="aiExpanded=!aiExpanded" @keydown.enter.prevent="aiExpanded=!aiExpanded" @keydown.space.prevent="aiExpanded=!aiExpanded">
-            <SectionHeader :title="t.store.detAiPerf" /><text aria-hidden="true">{{ aiExpanded ? '−' : '+' }}</text>
-          </view>
-          <SpecTable v-if="hasAiPerformance || aiExpanded" :rows="aiPerfRows" brand-value />
+          <view style="padding: 22px 16px 4px"><SectionHeader :title="t.store.detAiPerf" /></view>
+          <SpecTable :rows="aiPerfRows" brand-value />
         </template>
 
         <!-- === Section 7: Trust material === -->
@@ -202,15 +199,15 @@
         </template>
 
         <!-- === Section 8: FAQ accordion === -->
-        <view style="padding: 22px 16px 4px"><SectionHeader :title="t.store.detFaq" /></view>
-        <view class="mx-4" :style="faqCardStyle">
+        <view class="detail-faq mx-4" :style="faqCardStyle">
+          <text class="block" style="padding-top: 14px; font-size: 13px; font-weight: 400; color: var(--v5-ink-2)">{{ t.store.detFaq }}</text>
           <view v-for="(f, i) in faqs" :key="i" :style="faqItemStyle(i)">
             <view class="w-full flex items-center justify-between text-left active:opacity-80" :style="faqQStyle" role="button" tabindex="0" :aria-label="f.q" :aria-expanded="openFaq === i" @click.stop="toggleFaq(i)">
               <text class="flex-1" style="padding-right: 8px">{{ f.q }}</text>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0" :style="{ transform: openFaq === i ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }"><path d="m9 18 6-6-6-6" /></svg>
             </view>
             <view v-if="openFaq === i" style="padding-bottom: 12px; padding-right: 24px; margin-top: -4px">
-              <text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); line-height: 1.625; white-space: pre-line">{{ f.a }}</text>
+              <text style="font-size: 12px; font-weight: 400; color: var(--v5-ink-2); line-height: 1.625; white-space: pre-line">{{ f.a }}</text>
             </view>
           </view>
         </view>
@@ -513,8 +510,6 @@ const aiPerfRows = computed<{ k: string; v: string }[]>(() => {
 });
 const bundleActivityVisible = computed(()=>(productCatalogPresentation.value?.products??[]).filter(p=>p.productType!=='SHARE'&&activity.value?.productNos.includes(p.id)&&isProductAvailable(p,phase.value)).length>=2);
 const canBundleActivity = computed(() => promotionAvailable.value && bundleActivityVisible.value);
-const aiExpanded = ref(false);
-const hasAiPerformance = computed(() => aiPerfRows.value.some(row => row.v !== '-'));
 
 const productAuditSection = computed(() => trustSections.value.find((section) => section.sectionKey === "auditsReserves"));
 const productTrustTitle = computed(() => t.value.store.detTrustedBy);
@@ -732,15 +727,13 @@ const heroCardStyle: CSSProperties = {
 };
 const auroraStyle: CSSProperties = {
   position: "absolute",
-  inset: "-20%",
+  inset: 0,
   background:
     "radial-gradient(40% 50% at 80% 20%, var(--v5-tech-cyan-soft) 0%, transparent 60%)," +
     "radial-gradient(40% 50% at 10% 80%, var(--v5-brand-soft) 0%, transparent 60%)," +
     "radial-gradient(35% 45% at 70% 90%, rgba(255,203,148,0.18) 0%, transparent 60%)",
-  filter: "blur(10px)",
   pointerEvents: "none",
   opacity: 0.7,
-  animation: "v5-aurora-drift 14s ease-in-out infinite",
 };
 const ribbonStyle: CSSProperties = {
   top: 0,
@@ -778,9 +771,7 @@ function codeChip(tone: "success" | "amber"): CSSProperties {
       ? { bg: "var(--v5-success-soft)", color: "var(--v5-success)" }
       : { bg: "var(--v5-brand-2-soft)", color: "var(--v5-brand-2)" };
   return {
-    padding: "3px 9px",
-    borderRadius: "4px",
-    background: palette.bg,
+    padding: "0",
     color: palette.color,
     fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
     fontSize: "12px",
@@ -807,6 +798,7 @@ const vsMultChipStyle: CSSProperties = {
 };
 const roiCardStyle: CSSProperties = {
   padding: "16px",
+  background: "var(--v5-surface)",
 };
 const stepperStyle: CSSProperties = {
   borderRadius: "999px",
@@ -837,7 +829,6 @@ function roiCellStyle(index: number): CSSProperties {
   return {
     padding: "14px 16px",
     borderRight: index % 2 === 0 ? "1px solid color-mix(in srgb, var(--v5-border) 50%, transparent)" : "none",
-    borderBottom: index < 2 ? "1px solid color-mix(in srgb, var(--v5-border) 50%, transparent)" : "none",
   };
 }
 const roiLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-4)" };
@@ -878,21 +869,23 @@ const trustDisclosureRowStyle: CSSProperties = { padding: "12px 0", borderBottom
 const trustDisclosureTitleStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink)" };
 const trustBodyStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", lineHeight: 1.5, color: "var(--v5-ink-3)" };
 const trustLinkStyle: CSSProperties = { marginTop: "6px", fontSize: "12px", fontWeight: 600, color: "var(--v5-brand)" };
-// FAQ de-carded to a transparent hairline group (spec: FAQ → floor). The
-// container border-top opens the group; each item keeps its own row hairline.
 const faqCardStyle: CSSProperties = {
-  padding: "0 2px",
-  borderTop: "1px solid var(--v5-border)",
+  marginTop: "20px",
+  padding: "0 16px",
+  borderRadius: "var(--ui-radius-surface)",
+  background: "var(--v5-surface)",
 };
 function faqItemStyle(i: number): CSSProperties {
   return { borderBottom: i < faqs.value.length - 1 ? "1px solid var(--v5-border)" : "none" };
 }
 const faqQStyle: CSSProperties = {
-  padding: "14px 0",
+  padding: "12px 0",
+  minHeight: "44px",
+  boxSizing: "border-box",
   fontFamily: "var(--font-v5)",
-  fontSize: "var(--ui-type-list-subtitle)",
-  fontWeight: 500,
-  color: "var(--v5-ink)",
+  fontSize: "12px",
+  fontWeight: 400,
+  color: "var(--v5-ink-2)",
   letterSpacing: "-0.005em",
 };
 
@@ -900,6 +893,33 @@ const faqQStyle: CSSProperties = {
 </script>
 <style src="@/components/promotion/promotion.css"></style>
 <style scoped>
+/* One outer corner clip; the catalog image and its pedestal keep their full size. */
+.detail-hero :deep(.detail-product-render) { border-radius:0 !important; }
+.detail-hero :deep(.detail-product-render > [aria-hidden]:not(:first-child)) {
+  background:linear-gradient(to top, var(--v5-content-surface) 0%, color-mix(in srgb, var(--v5-content-surface) 60%, transparent) 50%, transparent 100%) !important;
+}
+.detail-hero :deep(.detail-product-render .text-right > :last-child) { color:var(--v5-ink-2) !important; }
+.detail-hero :deep(.detail-product-render :is(image, uni-image)) { animation:detail-machine-float 5s ease-in-out infinite; }
+@keyframes detail-machine-float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-4px); } }
+.product-detail-page[data-page-visible="false"] :deep(.detail-product-render :is(image, uni-image)),
+.product-detail-page[data-scrolling="true"] :deep(.detail-product-render :is(image, uni-image)) { animation-play-state:paused; }
+@media (prefers-reduced-motion:reduce) {
+  .detail-hero :deep(.detail-product-render :is(image, uni-image)) { animation:none; transform:none; }
+}
+/* Keep the frosted glass on one stationary decoration layer, separate from
+   price/quantity/button paints. The outer clip also bounds its sampling edge. */
+.product-detail-page :deep(.scb-outer) { overflow:hidden; }
+.product-detail-page :deep(.scb-bar) {
+  position:relative;isolation:isolate;
+  background:transparent !important;border-top-color:transparent !important;
+  backdrop-filter:none !important;-webkit-backdrop-filter:none !important;
+}
+.product-detail-page :deep(.scb-bar::before) {
+  content:"";position:absolute;inset:-1px 0 0;z-index:-1;pointer-events:none;
+  background:color-mix(in srgb, var(--v5-surface) 76%, transparent);
+  backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);
+  box-shadow:inset 0 1px 0 var(--v5-sticky-bar-border);
+}
 .product-material-retry { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 16px; margin-top: 12px; border: 1px solid var(--v5-border); border-radius: 999px; color: var(--v5-ink); font-size: var(--ui-type-list-subtitle); }
 .product-material-retry__label { font: 600 13px/20px var(--font-v5); }
 .product-material-retry:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }

@@ -70,7 +70,7 @@ function authority(canStart = true): TrialAuthorityState {
       phaseOpen: true, autoPushEnabled: true, autoPushDelayMs: "1500", autoPushCooldownHours: "24", autoPushMaxPerSession: "1" } };
 }
 
-/** Real authority -> store -> lifecycle presentation -> hero amount and basis. */
+/** Real authority -> store -> lifecycle presentation -> displayed hero credit. */
 async function heroCredit(config: PolicyConfig) {
   const receipt = authority();
   remote.state.mockResolvedValueOnce({ ...receipt, config: { ...receipt.config,
@@ -80,7 +80,7 @@ async function heroCredit(config: PolicyConfig) {
   expect(await useFreeTrial().refreshRemote()).toBe(true);
   const scope = effectScope(); scopes.push(scope);
   const trialView = scope.run(() => useTrialPresentation())!;
-  return { trialView, ...actual(hero, ["trialDays", "dailyEarn", "estimateText", "dailyEarnText", "creditBasisText"], {
+  return { trialView, ...actual(hero, ["estimateText"], {
     computed, trialView, trialCfg: useTrialConfig(), t: computed(() => zh), fmt,
   }) };
 }
@@ -127,17 +127,6 @@ describe("earn hero quotes the creditable trial offset, not the raw accrual", ()
     expect(estimateText.value).toBe("$49.99");
   });
 
-  it("states the cap as the credit basis when the cap bites, and the rate line otherwise", async () => {
-    const capped = await heroCredit(policyConfig());
-    expect(capped.creditBasisText.value).toBe("最高抵 $50.00");
-
-    // Below the cap the total IS days × rate, so the rate line stays the basis.
-    const under = await heroCredit({ trialDays: 3, shadowDailyUSD: 1, trialOffsetCapUSD: 50 });
-    expect(under.trialView.estimatedOffsetUSD.value).toBe(3);
-    expect(under.estimateText.value).toBe("$3.00");
-    expect(under.dailyEarnText.value).toBe("1.00/d × 3");
-    expect(under.creditBasisText.value).toBe(under.dailyEarnText.value);
-  });
 });
 
 describe("trial offer labels hold through a background read", () => {

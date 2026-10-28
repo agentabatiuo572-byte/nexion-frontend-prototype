@@ -27,7 +27,7 @@
         </view>
         <view class="text-right tabular-nums whitespace-nowrap overflow-hidden" :aria-label="tier.yFull" :style="yieldStyle(tier)">
           <text>{{ tier.y }}</text>
-          <text style="font-size: 12px; color: var(--v5-ink-4); font-weight: 400">{{ t.store.perDay }}</text>
+          <text style="font-size: 12px; color: var(--v5-ink-2); font-weight: 400">{{ t.store.perDay }}</text>
         </view>
       </view>
     </view>

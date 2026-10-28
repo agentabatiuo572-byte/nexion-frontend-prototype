@@ -108,8 +108,7 @@
         </view>
       </view>
       <!-- 品牌填充按钮:opacity 取 85(《08》§2 状态派生公式) -->
-      <view class="inline-flex items-center justify-center whitespace-nowrap active:scale-[0.97] active:opacity-85" :class="{'promotion-buy':!!marketingPromotion}" :style="buyBtnDynStyle" role="button" :tabindex="buyUnavailable ? -1 : 0" :aria-disabled="buyUnavailable ? 'true' : 'false'" @click.stop="onBuy"  @keydown.enter.prevent.stop="onBuy" @keydown.space.prevent.stop="onBuy">
-        <LiquidGlass v-if="marketingPromotion" :radius="999" tone="control" />
+      <view class="inline-flex items-center justify-center whitespace-nowrap active:scale-[0.97] active:opacity-85" :class="{'promotion-buy nx-frosted-button':!!marketingPromotion}" :style="buyBtnDynStyle" role="button" :tabindex="buyUnavailable ? -1 : 0" :aria-disabled="buyUnavailable ? 'true' : 'false'" @click.stop="onBuy"  @keydown.enter.prevent.stop="onBuy" @keydown.space.prevent.stop="onBuy">
         <svg v-if="gateLockedView" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; opacity: 0.9"><rect width="18" height="11" x="3" y="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
         <text>{{ buyLabel }}</text>
         <svg v-if="!gateLockedView" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 6px; opacity: 0.9"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
@@ -140,7 +139,7 @@ import { useScrollGrowProgress } from "@/composables/use-scroll-grow-progress";
 import { productCatalogState } from "@/store/product-catalog";
 import type { PublicPromotion } from '@/api/promotion-contracts';
 import PromotionProduct from '@/components/promotion/promotion-product.vue';
-import LiquidGlass from '@/components/liquid-glass.vue';
+
 import { canPreviewPromotion,isPromotionActive,promotionCheckoutHref,promotionDetailHref,type VoucherEntryContext } from '@/lib/promotion-entry';
 
 const props = withDefaults(defineProps<{ product: Product; featured?: boolean; compact?: boolean; promotion?:PublicPromotion|null; activityId?:string; promotionReady?:boolean; voucherContext?:VoucherEntryContext }>(), {
@@ -543,13 +542,13 @@ import { getProductMedia } from "@/lib/product-media";
 .product-card--compact .product-art-entry { display:flex; align-items:center; justify-content:center; padding:0; }
 .product-card--compact .product-art { position:relative !important; inset:auto !important; width:min(172px,100%) !important; height:auto !important; aspect-ratio:1; max-width:172px; margin:0; animation-name:product-compact-float; animation-duration:4.2s; }
 @keyframes product-compact-float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-5px); } }
-.product-card--compact .product-ribbon { top:10px !important; left:10px !important; min-height:24px; display:flex; align-items:center; padding:0 9px !important; border:1px solid var(--v5-liquid-rim); border-radius:999px !important; background:linear-gradient(180deg,var(--v5-liquid-highlight),var(--v5-liquid-tint)) !important; color:var(--ui-lime-soft) !important; font:600 12px/20px var(--font-v5) !important; box-shadow:inset 0 1px 0 var(--v5-liquid-highlight); backdrop-filter:blur(16px) saturate(170%); }
+.product-card--compact .product-ribbon { top:0 !important; left:0 !important; padding:2px 9px !important; border-radius:0 0 6px 0 !important; background:var(--v5-brand) !important; color:var(--v5-on-brand) !important; font:500 11px/16px var(--font-v5) !important; }
 .product-compact-body { flex:1; display:flex; flex-direction:column; padding:10px 14px 14px; }
-.product-compact-name { font:600 var(--ui-type-section)/20px var(--font-v5); color:var(--v5-ink); overflow-wrap:anywhere; }
-.product-compact-tagline { margin-top:2px; font:400 12.5px/17px var(--font-v5); color:var(--v5-ink-3); }
-.product-compact-bottom { display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:4px 6px; margin-top:auto; padding-top:10px; font-variant-numeric:tabular-nums; }
-.product-compact-price { color:var(--v5-ink); font:600 18px/22px var(--font-v5); }
-.product-compact-estimate { font:400 12.5px/16px var(--font-v5); color:var(--v5-brand); }
+.product-compact-name { font:600 14px/19px var(--font-v5); color:var(--v5-ink); overflow-wrap:anywhere; }
+.product-compact-tagline { margin-top:2px; font:400 12px/16px var(--font-v5); color:var(--v5-ink-3); }
+.product-compact-bottom { display:grid; grid-template-columns:minmax(0,1fr); align-content:end; gap:3px; margin-top:auto; padding-top:10px; font-variant-numeric:tabular-nums; }
+.product-compact-price { color:var(--v5-ink); font:600 16px/21px var(--font-v5); }
+.product-compact-estimate { font:400 12px/16px var(--font-v5); color:var(--v5-brand); }
 .product-compact-status { display:block; margin-top:8px; font:400 12px/17px var(--font-v5); color:var(--v5-warning-ink); }
 .product-card--compact:nth-child(2n) .product-art { animation-delay:-1.1s; }
 .product-card--compact:nth-child(3n) .product-art { animation-delay:-2.2s; }

@@ -9,6 +9,7 @@ import { isAmbiguousOutcome } from "@/api/errors";
 import type { UserSession } from "@/api/contracts";
 import { acquireProfileCommandKey, finishProfileCommand } from "@/lib/profile-command-key";
 import { createRemoteAccountEpoch } from "@/lib/remote-account-epoch";
+import type { ProfileAvatar } from "@/api/profile-api";
 
 // Ported from Nexion-prototype/lib/store/profile.ts (zustand → Pinia).
 // 旧设备级单键 "nexgrid-profile-v1" 废弃(存量无账号归属,mock 可重建);资料按账号分行。
@@ -43,7 +44,11 @@ export const useProfile = defineStore("profile", () => {
   const init = remoteApiEnabled ? { displayName: "", avatarSeed: "" } : hydrate(boundKey);
   const displayName = ref(init.displayName);
   const avatarSeed = ref(init.avatarSeed);
+  const avatarUrl = ref("");
+  const avatarRevision = ref("");
+  let avatarReadEpoch = 0;
   const phoneE164 = ref("");
+  const uid = ref("");
   const nicknameCandidates = ref<string[]>([]);
 
   function persist() {
@@ -57,6 +62,10 @@ export const useProfile = defineStore("profile", () => {
   function bindAccount(rawAccountKey: string) {
     boundKey = normalizeAccountKey(rawAccountKey);
     remoteAccountEpoch.bind(boundKey);
+    avatarReadEpoch += 1;
+    avatarUrl.value = "";
+    avatarRevision.value = "";
+    uid.value = "";
     // A server session must never inherit a prior browser profile row. The
     // authoritative auth response is projected immediately after this bind;
     // until then leave an honest blank state rather than a demo identity.
@@ -82,6 +91,7 @@ export const useProfile = defineStore("profile", () => {
     displayName.value = identity.nickname;
     avatarSeed.value = `user:${identity.userId}`;
     phoneE164.value = `${identity.countryCode}${identity.phone}`;
+    uid.value = String(identity.userId);
   }
 
   /** Reconcile the mutable profile projection with an authoritative GET. */
@@ -89,6 +99,23 @@ export const useProfile = defineStore("profile", () => {
     if (!remoteApiEnabled) return;
     const normalized = nickname.trim();
     if (normalized) displayName.value = normalized;
+  }
+
+  function projectServerAvatar(avatar: ProfileAvatar) {
+    if (!remoteApiEnabled) return;
+    avatarReadEpoch += 1;
+    avatarUrl.value = avatar.avatarUrl;
+    avatarRevision.value = avatar.avatarRevision;
+  }
+
+  async function refreshAvatar(): Promise<void> {
+    if (!remoteApiEnabled) return;
+    const account = remoteAccountEpoch.snapshot();
+    const readEpoch = ++avatarReadEpoch;
+    const projection = await profileApi.profile();
+    if (remoteAccountEpoch.isCurrent(account) && readEpoch === avatarReadEpoch) {
+      projectServerAvatar(projection);
+    }
   }
 
   async function refreshNicknameCandidates(): Promise<boolean> {
@@ -136,8 +163,8 @@ export const useProfile = defineStore("profile", () => {
   }
 
   return {
-    displayName, avatarSeed, phoneE164, nicknameCandidates,
+    displayName, avatarSeed, avatarUrl, avatarRevision, phoneE164, uid, nicknameCandidates,
     setDisplayName, regenerateAvatar, bindAccount, projectServerIdentity, projectServerNickname,
-    refreshNicknameCandidates,
+    refreshNicknameCandidates, projectServerAvatar, refreshAvatar,
   };
 });

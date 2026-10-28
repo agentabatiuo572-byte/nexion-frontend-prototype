@@ -76,6 +76,8 @@ describe("per-device today-completed section", () => {
 // Full production SFCs + real App store and wire parsers; RAM GET boundary only.
 const remote = vi.hoisted(() => ({
   remoteApiEnabled: true, fundsServerEnabled: true, expectedApiEnvironment: 'dev',
+  apiRuntimeConfig: { environment: 'dev', baseUrl: 'http://127.0.0.1:8110' },
+  apiRuntimeClientOrigin: { environment: 'dev', baseUrl: 'http://127.0.0.1:8110' },
   sessionVault: { read: vi.fn() }, deviceE3Api: { fleet: vi.fn() },
   taskAssignmentApi: { state: vi.fn() }, appHomeApi: { fetch: vi.fn() },
   withdrawalApi: { submit: vi.fn(), list: vi.fn(), get: vi.fn() },
@@ -249,13 +251,18 @@ it('initial independent task GET failure must not present confirmed zero/empty h
   expect(o.fleetStatus).toBe('ready'); expect(o.fleetHasSnapshot).toBe(true);
   expect(o.assignmentStatus).toBe('error'); expect(o.assignmentHasSnapshot).toBe(false);
   expect(o.detailSurfaceVisible).toBe(true);
-  expect(o.taskHistoryText).not.toContain(taskHistoryCopy.taskHistory.historyEmpty);
+  expect(o.taskHistoryText).not.toContain('暂无已完成作业。');
   expect(o.taskHistoryText).not.toContain('(0)');
 });
-it('canonical successful empty state remains a legitimate zero and empty history', async () => {
+it('canonical successful empty state shows the count and receipt entry without duplicate copy', async () => {
   const s = await setup('confirmed-empty'); const o = s.observe('ready');
   expect(o.assignmentStatus).toBe('ready'); expect(o.assignmentHasSnapshot).toBe(true);
-  expect(o.taskHistoryText).toContain('(0)'); expect(o.taskHistoryText).toContain(taskHistoryCopy.taskHistory.historyEmpty);
+  expect(o.taskHistoryText).toContain('(0)'); expect(o.taskHistoryText).not.toContain('暂无已完成作业。');
+  expect(o.taskHistoryText).toContain(taskHistoryCopy.taskHistory.viewAllAccountReceipts);
+  expect(o.taskHistoryText).not.toContain(taskHistoryCopy.taskHistory.loading);
+  const section = find(s.root, 'nx-device-today-completed')!;
+  expect(section.children.filter(child => child.tag)).toHaveLength(1);
+  expect(section.children.find(child => child.tag)?.props.style.marginBottom).toBe('0');
 });
 it('ordinary page show retry recovers error into parser-confirmed per-device history', async () => {
   assignment = () => Promise.reject(new Error('SYNTHETIC_TASK_READ_UNAVAILABLE'));
@@ -263,7 +270,7 @@ it('ordinary page show retry recovers error into parser-confirmed per-device his
   assignment = () => Promise.resolve(taskState(true)); await s.show(); const o = s.observe('retry ready');
   expect(o.assignmentStatus).toBe('ready'); expect(o.assignmentHasSnapshot).toBe(true);
   expect(o.recentCount).toBe(1); expect(o.taskHistoryText).toContain('(1)');
-  expect(o.taskHistoryText).toContain('Synthetic model'); expect(o.taskHistoryText).not.toContain(taskHistoryCopy.taskHistory.historyEmpty);
+  expect(o.taskHistoryText).toContain('Synthetic model'); expect(o.taskHistoryText).not.toContain('暂无已完成作业。');
 });
 it.each(['account-switch', 'same-account-rebind'])('late task read cannot restore prior history after %s', async boundary => {
   const late = deferred<unknown>(); assignment = () => late.promise;
@@ -293,10 +300,10 @@ it('history loading after the first read failure cannot turn missing authority i
   expect(s.app.remoteAssignmentHasSnapshot).toBe(false);
   expect(historyText()).toContain(taskHistoryCopy.taskHistory.loading);
   expect(historyText()).not.toContain('(0)');
-  expect(historyText()).not.toContain(taskHistoryCopy.taskHistory.historyEmpty);
+  expect(historyText()).not.toContain('暂无已完成作业。');
   pending.resolve(taskState()); await expect(read).resolves.toBe(true); await flush();
   expect(historyText()).toContain('(0)');
-  expect(historyText()).toContain(taskHistoryCopy.taskHistory.historyEmpty);
+  expect(historyText()).not.toContain('暂无已完成作业。');
 });
 
 it('loading preserves confirmed history, error discloses failure, and ready empty recovers normally', async () => {
@@ -318,10 +325,10 @@ it('loading preserves confirmed history, error discloses failure, and ready empt
   expect(s.app.devices[0].recentTasks).toHaveLength(1); // Existing store facts remain unchanged.
   expect(historyText()).toContain(taskHistoryCopy.wallet.assignmentsUnavailableTitle);
   expect(historyText()).not.toContain('(1)');
-  expect(historyText()).not.toContain(taskHistoryCopy.taskHistory.historyEmpty);
+  expect(historyText()).not.toContain('暂无已完成作业。');
   assignment = () => Promise.resolve(taskState());
   await expect(s.app.refreshRemoteFleet()).resolves.toBe(true); await flush();
   expect(s.app.remoteAssignmentStatus).toBe('ready');
   expect(historyText()).toContain('(0)');
-  expect(historyText()).toContain(taskHistoryCopy.taskHistory.historyEmpty);
+  expect(historyText()).not.toContain('暂无已完成作业。');
 });

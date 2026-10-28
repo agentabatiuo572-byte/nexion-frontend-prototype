@@ -9,8 +9,8 @@
       </view>
       <view v-else class="quota-content">
         <view class="quota-hero">
-          <view v-if="heroTier" class="quota-hero__main"><view class="quota-hero__copy"><text class="quota-eyebrow">{{ t.quota.pageTitle }}</text><text class="quota-headline">{{ heroTier.name }}</text><text v-if="heroTier" class="quota-hero__price">{{ fmt(t.quota.priceLine, { price: formatFinanceAmount(heroTier.price) }) }}</text></view><image v-if="heroImage" :src="heroImage" mode="aspectFit" class="quota-hero__image" :alt="heroTier?.name" /><TeamArt v-else kind="members" :size="112" /></view>
-          <view class="quota-invite-count"><text>{{ t.quota.yourInvites }}</text><view><text class="quota-invite-count__number">{{ activeDirectText }}</text><text class="quota-caption">{{ remoteApiEnabled && !remoteSnapshot ? '—' : fmt(t.quota.totalSuffix, { n: directInvites }) }}</text></view></view>
+          <view v-if="heroTier && focusedProductId" class="quota-hero__main"><view class="quota-hero__copy"><text class="quota-headline">{{ heroTier.name }}</text><text v-if="heroTier" class="quota-hero__price">{{ fmt(t.quota.priceLine, { price: formatFinanceAmount(heroTier.price) }) }}</text></view><image v-if="heroImage" :src="heroImage" mode="aspectFit" class="quota-hero__image" :alt="heroTier?.name" /><TeamArt v-else kind="members" :size="112" /></view>
+          <view class="quota-invite-count"><text>{{ t.quota.yourInvites }}</text><view><text class="quota-invite-count__number">{{ visibility.mask(activeDirectText) }}</text><text class="quota-caption">{{ remoteApiEnabled && !remoteSnapshot ? visibility.mask('—') : fmt(t.quota.totalSuffix, { n: visibility.mask(directInvites) }) }}</text></view></view>
           <text class="quota-body">{{ t.quota.heroBody }}</text>
         </view>
 
@@ -34,6 +34,7 @@
 </template>
 
 <script setup lang="ts">
+import { useDataVisibility } from "@/store/data-visibility";
 import { formatAmount } from "@/lib/amount-display";
 import { formatFinanceAmount } from "@/lib/finance-amount-display";
 import { navTo, takeNavigationQuery } from "@/lib/route";
@@ -63,6 +64,7 @@ import { isCurrentTeamP31718Request, type TeamP31718Request } from "@/lib/team-p
 import { isAnnualizedQuotaPerk } from "@/lib/quota-perk";
 
 const t = useT();
+const visibility = useDataVisibility();
 const locale = useLocaleStore();
 const auditCopy = computed(() => networkReauditCopy(locale.code));
 const network = useNetwork();
@@ -298,13 +300,24 @@ const quotaReady = computed(() => !remoteApiEnabled || (catalogDisplayReady.valu
 </script>
 
 <style scoped>
-.quota-page { color:var(--v5-ink);padding-bottom:28px; }.quota-content { padding:0 20px; }
+.quota-page { color:var(--v5-ink);padding-bottom:28px; }.quota-content { padding:12px 20px 0; }
 .quota-hero { padding:var(--ui-space-inline) 0 26px;border-bottom:1px solid var(--v5-border); }.quota-hero__main { display:flex;align-items:center;gap:8px; }.quota-hero__copy { flex:1;min-width:0; }
-.quota-eyebrow { display:block;margin-bottom:var(--ui-space-row-y);font:400 12px/1.5 var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }.quota-headline { display:block;font:600 25px/1.3 var(--font-v5);letter-spacing:-.02em;overflow-wrap:anywhere; }.quota-hero__price { display:block;margin-top:var(--ui-space-row-y);font:500 19px/1.4 var(--font-v5); }
-.quota-hero__image { flex:none;width:42%;height:170px;object-fit:contain; }.quota-invite-count { display:flex;justify-content:space-between;align-items:center;gap:var(--ui-space-inset);margin:18px 0;font:400 13px/1.5 var(--font-v5);color:var(--v5-ink-2); }.quota-invite-count > view { display:flex;align-items:baseline;gap:8px;flex-wrap:wrap; }.quota-invite-count__number { font:600 27px/1.2 var(--font-v5);color:var(--v5-ink); }
+.quota-eyebrow { display:block;margin-bottom:var(--ui-space-row-y);font:400 12px/1.5 var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }.quota-headline { display:block;font:600 var(--ui-type-page-title)/var(--ui-type-page-title-lh) var(--font-v5);letter-spacing:-.02em;overflow-wrap:anywhere; }.quota-hero__price { display:block;margin-top:var(--ui-space-row-y);font:500 var(--ui-type-profile)/var(--ui-type-profile-lh) var(--font-v5); }
+.quota-hero__image { flex:none;width:42%;height:128px;object-fit:contain; }.quota-invite-count { display:flex;justify-content:space-between;align-items:center;gap:var(--ui-space-inset);margin:18px 0;font:400 var(--ui-type-list-subtitle)/var(--ui-type-list-subtitle-lh) var(--font-v5);color:var(--v5-ink-2); }.quota-invite-count > view { display:flex;align-items:baseline;gap:8px;flex-wrap:wrap; }.quota-invite-count__number { font:600 var(--ui-type-wallet-amount)/var(--ui-type-wallet-amount-lh) var(--font-v5);color:var(--v5-ink); }
 .quota-body { display:block;margin-top:8px;font:400 var(--ui-type-list-subtitle)/1.7 var(--font-v5);color:var(--v5-ink-2);overflow-wrap:anywhere; }.quota-caption { display:block;font:400 12px/1.6 var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }
 .quota-state { padding-block:28px;display:flex;flex-direction:column;gap:var(--ui-space-inset); }.quota-footer { margin-top:28px; }.quota-footer > :deep(.nx-button) { width:100%;box-sizing:border-box; }
 .quota-state.nx-inline-recovery { display:grid; align-items:center; gap:12px; }
 .quota-route { display:flex;justify-content:space-between;align-items:center;gap:14px;padding:var(--ui-space-inset) 0;min-height:44px;font:500 var(--ui-type-list-subtitle)/1.6 var(--font-v5);color:var(--v5-ink-2);cursor:pointer; }.quota-route + .quota-route { border-top:1px solid var(--v5-border); }.quota-route > view { flex:1;min-width:0;overflow-wrap:anywhere; }.quota-route svg { flex:none; }.quota-route:focus-visible { outline:2px solid var(--v5-brand);outline-offset:3px; }
-@media(max-width:350px) { .quota-content { padding-inline:16px; }.quota-headline { font-size:22px; }.quota-hero__image { height:146px; } }
+/* Tiers are separate sections; conditions remain inside their owning product. */
+.quota-content :deep(.quota-tier) { padding: 26px 0; margin: 0; background: transparent; border: 0; border-bottom: 1px solid var(--v5-border); border-radius: 0; }
+.quota-content :deep(.quota-product__name) { font-size: var(--ui-type-section); line-height: var(--ui-type-section-lh); }
+.quota-content :deep(.quota-product__price) { font-size: var(--ui-type-list-subtitle); line-height: var(--ui-type-list-subtitle-lh); }
+.quota-content :deep(.quota-product__qualification) { font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); }
+.quota-content :deep(.quota-product__image) { width: 64px; height: 72px; }
+.quota-content :deep(.quota-section-label) { font-size: var(--ui-type-list-title); line-height: var(--ui-type-list-title-lh); font-weight: 500; }
+.quota-content :deep(.quota-conditions) { padding-top: 18px; border-top: 1px solid var(--v5-border); }
+.quota-invite-count { align-items: flex-start; margin-top: 8px; }
+.quota-invite-count > view { justify-content: flex-end; text-align: right; max-width: 58%; overflow-wrap: anywhere; }
+.quota-invite-count > text { padding-top: 8px; flex: 1; }
+@media(max-width:374px) { .quota-content { padding-inline:16px; } .quota-hero__image { height:112px; } }
 </style>

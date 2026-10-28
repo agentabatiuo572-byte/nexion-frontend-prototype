@@ -20,3 +20,11 @@ test('missing primary images retain the gift catalog entry; recovery keeps the c
   assert.ok(demoProducts({...demoDefaults,machineImageState:'missing'}).every(row=>!row.imageUrl));
   assert.ok(demoProducts({...demoDefaults,machineImageState:'broken'}).every(row=>row.imageUrl.includes('/static/demo-missing-')));
 });
+
+test('published banner preview follows the activity id/version contract and excludes inactive activities',()=>{
+  const state={...structuredClone(demoDefaults),machineImageState:'banner'};
+  const activity=read('/api/promotions/demo-promo-0',state);
+  assert.equal(activity.bannerImageUrl,`/api/promotions/${activity.activityId}/banner/${activity.version}`);
+  for(const eventState of ['upcoming','ended'])assert.ok(!read('/api/promotions/demo-promo-0',{...state,eventState}).bannerImageUrl);
+  assert.ok(!read('/api/promotions/demo-promo-0',demoDefaults).bannerImageUrl);
+});

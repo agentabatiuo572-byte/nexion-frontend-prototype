@@ -12,7 +12,7 @@
       </view>
 
       <template v-if="!state.error && !content.incomplete">
-      <HowSection :title="s(sectionId.overview).title" accent="lemon">
+      <HowSection :title="s(sectionId.overview).title" accent="lemon" initial-open>
         <template #icon>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
         </template>
@@ -109,6 +109,14 @@
         </view>
       </HowSection>
 
+      <TeamRuleSection :title="guideCopy.fullText">
+        <view v-if="publicationFallback" class="commission-guide-publication-note" role="status"><text>{{ t.howPublished.languageFallback }}</text></view>
+        <TeamRuleDocument v-if="publishedBlocks" :blocks="publishedBlocks" :locale="locale.code" />
+        <view v-else role="status" class="commission-guide-publication-note">
+          <text>{{ t.howPublished.unavailableBody }}</text>
+          <view class="nx-card-recovery-action nx-card-recovery-action--glass" role="button" tabindex="0" @click="reload" @keydown.enter.prevent="reload" @keydown.space.prevent="reload"><text>{{ content.copy.retry }}</text></view>
+        </view>
+      </TeamRuleSection>
       </template>
 
       <view class="mx-4 mt-6">
@@ -128,11 +136,15 @@ import { onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import RewardPageSurface from "@/components/team/reward-page-surface.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
-import HowHero from "@/components/team/reward-compact-hero.vue";
-import HowSection from "@/components/team/reward-rule-block.vue";
-import HowIconRow from "@/components/team/reward-rule-block.vue";
-import HowCalloutBox from "@/components/team/reward-rule-block.vue";
-import HowFaqRow from "@/components/team/reward-rule-block.vue";
+import HowHero from "@/components/team/team-rule-hero.vue";
+import HowSection from "@/components/team/team-rule-section.vue";
+import HowIconRow from "@/components/team/team-rule-section.vue";
+import HowCalloutBox from "@/components/team/team-rule-section.vue";
+import HowFaqRow from "@/components/team/team-rule-section.vue";
+import TeamRuleSection from "@/components/team/team-rule-section.vue";
+import TeamRuleDocument from "@/components/team/team-rule-document.vue";
+import { teamRuleGuideCopy } from "@/components/team/team-rule-guide-copy";
+import { commissionPublishedBlocks } from "@/components/team/team-rule-commission-copy";
 import { useT } from "@/i18n/use-t";
 import { useApp } from '@/store/app';
 import { useAuth } from '@/store/auth';
@@ -155,7 +167,10 @@ let environmentInvalidated = false;
 watch(() => [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const, () => { environmentInvalidated = true; }, { flush: 'sync' });
 const environmentCurrent = () => !environmentInvalidated && readEnvironment[0] === apiRuntimeConfig.environment && readEnvironment[1] === apiRuntimeConfig.baseUrl;
 const auditCopy = computed(() => networkReauditCopy(locale.code));
+const guideCopy = computed(() => teamRuleGuideCopy(locale.code));
 const state = ref<CommissionsHowState>({ loading: true, error: false, snapshot: null });
+const publishedBlocks = computed(() => state.value.snapshot ? commissionPublishedBlocks(state.value.snapshot, locale.code) : null);
+const publicationFallback = computed(() => !!state.value.snapshot && state.value.snapshot.document.locale.split(/[-_]/)[0].toLowerCase() !== locale.code.split(/[-_]/)[0].toLowerCase());
 const commissionGuideApi = createCommissionGuideApi(apiClient, expectedApiEnvironment);
 const directReferralApi = createDirectReferralApi(apiClient, expectedApiEnvironment);
 let resourceOwner = captureAccountScope();
@@ -197,9 +212,12 @@ function reload() {
 }
 onShow(reload);
 onHide(() => { resource.dispose(); resource = makeResource(); });
-watch(() => [app.accountKey, app.accountBindingEpoch, auth.isAuthenticated, locale.code, apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const, () => {
-  resource.dispose(); state.value = { loading: true, error: false, snapshot: null }; resource = makeResource(); reload();
+const resourceInputs = () => [app.accountKey, app.accountBindingEpoch, auth.isAuthenticated, locale.code, apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const;
+watch(resourceInputs, () => {
+  resource.dispose(); state.value = { loading: true, error: false, snapshot: null }; resource = makeResource();
 }, { flush: 'sync' });
+// Revoke the old body immediately; reload captures the owner after account binding settles.
+watch(resourceInputs, reload);
 onUnmounted(() => resource.dispose());
 
 function goBack() {
@@ -266,7 +284,7 @@ const exampleTotalLabelStyle: CSSProperties = {
 const exampleTotalValueStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
   fontWeight: 600,
-  fontSize: "20px",
+  fontSize: "var(--team-guide-heading)",
   letterSpacing: "-0.014em",
   color: "var(--v5-ink)",
 };
@@ -276,4 +294,5 @@ const exampleTotalValueStyle: CSSProperties = {
 <style scoped>
 .commission-guide-status { display:flex;flex-direction:column;align-items:flex-start;gap:6px; }
 .commission-guide-status > text { display:block;max-width:100%;overflow-wrap:break-word; }
+.commission-guide-publication-note { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; color: var(--v5-ink-3); }
 </style>

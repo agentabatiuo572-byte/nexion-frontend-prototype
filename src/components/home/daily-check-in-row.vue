@@ -1,9 +1,12 @@
 <template>
   <view class="daily-check-in-row" data-home-section="check-in">
-    <view class="daily-check-in-row__flame" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3.5 5 5 5 9.5A5 5 0 0 1 7 12.5C7 10 9 8.5 9 6.5 10.5 7.5 11 9 11 9s1-2.5 1-6z" /></svg></view>
+    <view v-if="rewardFeedback" class="daily-check-in-row__reward-flight" role="status" aria-live="polite" :aria-label="rewardFeedback.title + ' · ' + rewardFeedback.body" @animationend="rewardFeedback = null">
+      <text class="daily-check-in-row__reward">{{ rewardFeedback.title }}</text>
+    </view>
+    <view class="daily-check-in-row__flame" aria-hidden="true"><svg width="128" height="144" viewBox="5 1 14 19" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 3c1 3.5 5 5 5 9.5A5 5 0 0 1 7 12.5C7 10 9 8.5 9 6.5 10.5 7.5 11 9 11 9s1-2.5 1-6z" /></svg></view>
     <view class="daily-check-in-row__copy" role="link" tabindex="0" :aria-label="copy.viewDaily" @click="openDaily">
       <text class="daily-check-in-row__title">{{ ready ? fmt(copy.streak, { n: faucet.signInStreak }) : copy.daily }}</text>
-      <text class="daily-check-in-row__meta">{{ rewardHint }}<text v-if="milestoneHint" class="daily-check-in-row__gift-hint"> · {{ milestoneHint }}</text></text>
+      <text v-if="rewardHint || milestoneHint" class="daily-check-in-row__meta">{{ rewardHint }}<text v-if="milestoneHint" class="daily-check-in-row__gift-hint">{{ rewardHint ? ' · ' : '' }}{{ milestoneHint }}</text></text>
 
     </view>
     <NxButton class="daily-check-in-row__action" :class="{ 'daily-check-in-row__action--checked': checked }" variant="primary" :label="checkInLabel" size="medium" :busy="submitting" @click="checkIn">
@@ -25,7 +28,6 @@ import { fmt } from '@/i18n/format';
 import { useAuditUiCopy } from '@/i18n/audit-ui';
 import { useT } from '@/i18n/use-t';
 import { useLocaleStore } from '@/store/locale';
-import { continuityCopy } from '@/i18n/continuity-fixes';
 import { toast } from '@/store/ui';
 import { dailyCheckInSuccessCopy } from '@/pages/daily/daily-success-copy';
 import { dailyBaseReward, dailyMilestoneRewardText, dailyRewardLabels } from '@/pages/daily/daily-reward-view';
@@ -34,6 +36,7 @@ import NxButton from '@/components/ui/nx-button.vue';
 const faucet = useNexFaucet(), app = useApp(), copy = useAuditUiCopy(), t = useT();
 const locale = useLocaleStore();
 const submitting = ref(false);
+const rewardFeedback = ref<{ title: string; body: string } | null>(null);
 let visible = true, visit = 0;
 const ready = computed(() => remoteApiEnabled && (faucet.remoteReadState === 'ready'
   || (['loading','error'].includes(faucet.remoteReadState) && faucet.remoteHasSnapshot)));
@@ -42,9 +45,8 @@ const rewardHint = computed(() => {
   if (faucet.remoteReadState === 'error') return t.value.daily.checkInUnconfirmed;
   if (!ready.value) return copy.value.viewDaily;
   const base = dailyBaseReward(faucet.remoteRules);
-  if (checked.value) return base === null ? copy.value.tomorrow
-    : fmt(continuityCopy(locale.code).tomorrowBaseReward, { n: base });
-  return base === null ? copy.value.viewDaily : fmt(copy.value.todayReward, { n: base });
+  if (checked.value) return '';
+  return base === null ? copy.value.viewDaily : '';
 });
 const checkInLabel = computed(() => faucet.remoteReadState === 'error' ? copy.value.viewDaily : checked.value ? copy.value.checkedIn : copy.value.checkIn);
 const days = computed(() => {
@@ -64,9 +66,9 @@ function openDaily() {
 }
 onMounted(refresh);
 onShow(() => { visible = true; refresh(); });
-onHide(() => { visible = false; visit++; });
+onHide(() => { visible = false; visit++; rewardFeedback.value = null; });
 onUnmounted(() => { visible = false; visit++; });
-watch(() => [app.accountKey, app.accountBindingEpoch], refresh);
+watch(() => [app.accountKey, app.accountBindingEpoch], () => { rewardFeedback.value = null; refresh(); });
 async function checkIn() {
   if (submitting.value || !visible) return;
   if (faucet.remoteReadState !== 'ready' || checked.value) { navTo('/pages/daily/daily'); return; }
@@ -75,14 +77,27 @@ async function checkIn() {
   try {
     const result = await faucet.checkInRemote();
     if (!visible || scope !== `${app.accountKey}:${app.accountBindingEpoch}:${visit}`) return;
-    if (result.ok) { const message = dailyCheckInSuccessCopy(result, t.value.daily); toast.success(message.title, message.body); }
+    if (result.ok) { rewardFeedback.value = dailyCheckInSuccessCopy(result, t.value.daily); }
     else { toast.error(result.reason === 'B1_COVERAGE_BELOW_REDLINE' ? t.value.binary.blockReasons.COVERAGE_BELOW_REDLINE : result.reason === 'B1_COVERAGE_DATA_UNAVAILABLE' ? t.value.binary.blockReasons.B1_COVERAGE_UNRELIABLE : t.value.authOtp.errorServiceUnavailable); }
   } finally { submitting.value = false; }
 }
 </script>
 <style scoped>
-.daily-check-in-row { display: grid; grid-template-columns: 40px minmax(0,1fr) auto; align-items: center; gap: 0 12px; padding: 14px 14px 14px 16px; border:1px solid var(--v5-border); border-radius: 22px; background: radial-gradient(55% 90% at 100% 0,color-mix(in srgb,var(--v5-brand) 13%,transparent),transparent 62%),var(--v5-surface); }
-.daily-check-in-row__flame { display:grid;place-items:center;width:40px;height:40px;border-radius:14px;background:linear-gradient(160deg,color-mix(in srgb,var(--v5-brand) 30%,transparent),color-mix(in srgb,var(--v5-brand) 8%,transparent));color:var(--ui-lime-soft);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--ui-lime-pale) 35%,transparent); }
+.daily-check-in-row { position:relative; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 0 12px; padding: 14px 14px 14px 16px; border:1px solid var(--v5-border); border-radius: 22px; background: radial-gradient(55% 90% at 100% 0,color-mix(in srgb,var(--v5-brand) 13%,transparent),transparent 62%),var(--v5-surface); }
+.daily-check-in-row__reward-flight { position:absolute; z-index:4; inset-inline:0; top:-42px; height:calc(50% + 24px); display:flex; align-items:flex-start; justify-content:center; pointer-events:none; animation:check-in-reward-rise 1900ms linear both; }
+.daily-check-in-row__reward { color:var(--v5-brand); font:600 20px/24px var(--font-v5); white-space:nowrap; }
+@keyframes check-in-reward-rise {
+  0% { opacity:0; transform:translateY(100%); }
+  28%,66% { opacity:1; transform:translateY(0); }
+  100% { opacity:0; transform:translateY(-36px); }
+}
+@keyframes check-in-reward-fade { 0%,100% { opacity:0; } 15%,85% { opacity:1; } }
+@media (prefers-reduced-motion:reduce) { .daily-check-in-row__reward-flight { animation-name:check-in-reward-fade; animation-duration:1900ms!important; animation-delay:0s!important; transform:none; } }
+.daily-check-in-row__flame { position:absolute; inset:0; overflow:hidden; border-radius:inherit; color:#3b3b3b; opacity:.7; pointer-events:none; }
+:global([data-theme="light"] .daily-check-in-row__flame) { opacity:.16; }
+.daily-check-in-row__flame > svg,.daily-check-in-row__flame :deep(.nx-native-svg) { position:absolute; left:-24px; top:-70px; display:block; width:128px; height:144px; max-width:none; max-height:none; }
+.daily-check-in-row__flame :deep(.nx-native-svg svg) { display:block; width:100%; height:100%; }
+.daily-check-in-row__copy,.daily-check-in-row__days { position:relative; z-index:1; }
 .daily-check-in-row :deep(.nx-button) { min-height:44px;min-width:44px;padding:2px 0;font-size:14px;box-sizing:border-box; }
 .daily-check-in-row :deep(.nx-button__surface) { min-height:40px;padding:8px 18px;box-shadow:0 6px 18px color-mix(in srgb,var(--v5-brand) 28%,transparent),inset 0 1px 0 rgba(255,255,255,.45); }
 .daily-check-in-row :deep(.daily-check-in-row__action) { justify-self:end;align-self:start; }
@@ -105,11 +120,7 @@ async function checkIn() {
 .daily-check-in-row__days .gift { color: var(--v5-nex); background: color-mix(in srgb,var(--v5-nex) 12%,transparent); border: 1px solid color-mix(in srgb,var(--v5-nex) 24%,transparent); box-sizing: border-box; }
 .daily-check-in-row__gift-hint { display: inline-block; max-width: 100%; color: var(--v5-nex); }
 @media(max-width:374px) {
-  .daily-check-in-row { gap:0 8px;padding-inline:12px;grid-template-columns:32px minmax(0,1fr) auto;align-items:start; }
-  .daily-check-in-row__flame { width:32px;height:32px;border-radius:11px;margin-top:6px; }
-  .daily-check-in-row__flame > svg { width:18px;height:18px; }
-  .daily-check-in-row__flame :deep(.nx-native-svg) { width:18px;height:18px;max-width:18px;max-height:18px; }
-  .daily-check-in-row__flame :deep(.nx-native-svg svg) { width:100%;height:100%;display:block; }
+  .daily-check-in-row { gap:0 8px;padding-inline:12px;align-items:start; }
   .daily-check-in-row :deep(.nx-button) { font-size:12px;padding-block:6px;justify-self:end;align-self:start; }
   .daily-check-in-row :deep(.nx-button__surface) { min-height:32px;padding:6px 10px;box-shadow:0 3px 10px color-mix(in srgb,var(--v5-brand) 15%,transparent),inset 0 1px 0 rgba(255,255,255,.45); }
   .daily-check-in-row :deep(.nx-button__content) { gap:4px;white-space:nowrap; }

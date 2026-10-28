@@ -2,6 +2,16 @@ import { describe, expect, it, vi } from "vitest";
 import { createStorefrontActivityApi } from "./storefront-activity-api";
 
 describe("storefront activity api", () => {
+  it("accepts optional live counts only when all fields are nonnegative integers", async () => {
+    const snapshot = { source: "nx_product/nx_order/nx_order_item", serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "", productName: "UVEL Box S1", cumulativeSales: 42, windowDays: 30, windowSales: 14, liveActivity: { viewers: 32, sales24h: 12, sales30m: 3 } };
+    const request = vi.fn().mockResolvedValue(snapshot);
+    const api = createStorefrontActivityApi({ request } as never);
+    await expect(api.socialProof("stellarbox-s1")).resolves.toMatchObject({ liveActivity: snapshot.liveActivity });
+    for (const field of ["viewers", "sales24h", "sales30m"]) {
+      request.mockResolvedValue({ ...snapshot, liveActivity: { ...snapshot.liveActivity, [field]: -1 } });
+      await expect(api.socialProof("stellarbox-s1")).rejects.toMatchObject({ message: "STOREFRONT_SOCIAL_PROOF_RESPONSE_INVALID" });
+    }
+  });
   it("accepts anonymous paid-order facts without inventing identity or viewing fields", async () => {
     const request = vi.fn().mockResolvedValue({
       source: "nx_order/nx_order_item/nx_product",

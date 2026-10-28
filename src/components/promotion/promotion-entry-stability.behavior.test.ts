@@ -4,10 +4,11 @@ import ts from "typescript";
 import { expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { useTheme } from "@/store/theme";
+import { ApiError } from "@/api/errors";
 import source from "./promotion-entry.vue?raw";
 import * as entry from "@/lib/promotion-entry";
 
-it("keeps the same-scope promotion through hide and pending return, clears scope, and exposes actual errors", async () => {
+it("keeps same-scope presentation through warm errors but clears strict denials and account scope", async () => {
   const mounted: Array<() => void> = [], hidden: Array<() => void> = [], shown: Array<() => void> = [], unmounted: Array<() => void> = [];
   const app = Vue.reactive({ accountKey: "user:1", accountBindingEpoch: 1 });
   const locale = Vue.reactive({ code: "zh" });
@@ -22,7 +23,8 @@ it("keeps the same-scope promotion through hide and pending return, clears scope
     "@/store/app": { useApp: () => app }, "@/store/locale": { useLocaleStore: () => locale },
     "@/store/theme": { useTheme: () => theme },
     "@/i18n/use-t": { useT: () => Vue.ref({ promotion: {} }) }, "@/i18n/format": {},
-    "@/mock/products": {}, "@/store/product-catalog": { productCatalogState: { status: "ready", serverCanonical: true }, refreshProductCatalog: async () => true },
+    "@/mock/products": {}, "@/store/product-catalog": { productCatalogState: { status: "ready", serverCanonical: true }, refreshProductCatalog: async () => true, revalidateProductCatalog: async () => true },
+    "@/store/home-promotions": { readHomePromotions: (_scope: string, authenticated: boolean) => list({ limit: 20, placement: "home.purchase-promotion" }, authenticated) },
     "@/lib/route": {}, "@/lib/promotion-display": {}, "@/lib/promotion-entry": entry, "@/components/catalog-machine-image": {},
   };
   const script = compileScript(parse(source).descriptor, { id: "promotion-stability" });
@@ -51,7 +53,13 @@ it("keeps the same-scope promotion through hide and pending return, clears scope
   list.mockReturnValueOnce(new Promise((_yes, reject) => { fail = reject; }));
   shown.forEach(fn => fn()); await flush(); expect(view.items.value).toHaveLength(1);
   fail(new Error("offline")); await flush();
-  expect(view.items.value).toEqual([]); expect(view.status.value).toBe("error");
+  expect(view.items.value).toEqual([activity]); expect(view.status.value).toBe("error");
+  for (const status of [401, 403]) {
+    list.mockResolvedValueOnce({ items: [activity], hasMore: false, nextCursor: null });
+    await view.load(true); expect(view.items.value).toEqual([activity]); expect(view.status.value).toBe("ready");
+    list.mockRejectedValueOnce(new ApiError({ kind: "http", status, message: "denied" }));
+    await view.load(true); expect(view.items.value).toEqual([]); expect(view.status.value).toBe("error");
+  }
   list.mockReturnValueOnce(new Promise(() => {})); app.accountBindingEpoch++; await flush();
   expect(view.items.value).toEqual([]);
   unmounted.forEach(fn => fn()); scope.stop(); theme.$dispose();

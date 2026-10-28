@@ -26,7 +26,8 @@ const flush = async () => { for (let i = 0; i < 8; i++) await Promise.resolve();
 function mount() {
   const app = Vue.reactive({ accountKey: 'user:7', accountBindingEpoch: 1 });
   const auth = Vue.reactive({ isAuthenticated: true });
-  const passive = createPassiveTabReadFixture(() => JSON.stringify([app.accountKey, app.accountBindingEpoch, auth.isAuthenticated]));
+  let passiveScopeEpoch = 0;
+  const passive = createPassiveTabReadFixture(() => JSON.stringify([app.accountKey, app.accountBindingEpoch, auth.isAuthenticated, passiveScopeEpoch]));
   passive.notifyPageActivation('/pages/team/team');
   const products=Vue.reactive<Record<string,{imageUrl?:string}>>({});
   const catalog=Vue.reactive({status:'ready',revision:'1',serverCanonical:true});
@@ -66,10 +67,61 @@ function mount() {
   const unmount = () => { unmounted.forEach(fn => fn()); scope.stop(); };
   cleanups.push(unmount);
   return { app, auth, view, list, referral, unmount, products, catalog, refreshProductCatalog,
+    advancePassiveScope:()=>{passiveScopeEpoch++;},
     show:()=>{passive.notifyPageActivation('/pages/team/team');shown.forEach(fn=>fn());},
     hide:()=>{passive.notifyPageActivation('/pages/me/preferences');hidden.forEach(fn=>fn());} };
 }
-afterEach(() => { cleanups.splice(0).forEach(fn => fn()); vi.unstubAllGlobals(); });
+afterEach(() => { cleanups.splice(0).forEach(fn => fn()); vi.useRealTimers(); vi.unstubAllGlobals(); });
+
+it('settles a cold account binding after its passive read scope advances in the same turn', async () => {
+  const screen = mount();
+  screen.app.accountKey = 'user:8';
+  screen.app.accountBindingEpoch++;
+  // Account hydration updates reactive identity before finishing the shared read scope.
+  screen.advancePassiveScope();
+  await flush();
+  expect(screen.view.loading.value).toBe(false);
+  expect(screen.view.error.value).toBe(false);
+  expect(screen.view.activities.value.map(activity => activity.activityId)).toEqual(['A']);
+  expect(screen.view.qualifyingCount('A')).toBe(1);
+});
+
+it('still rejects a late progress result from a superseded passive runtime scope', async () => {
+  const screen = mount(); await flush();
+  let resolve!: (value: Progress) => void;
+  screen.referral.mockReturnValueOnce(new Promise(yes => { resolve = yes; }));
+  const stale = screen.view.loadProgress('A');
+  screen.advancePassiveScope();
+  resolve({ activityId: 'A', qualifyingOrders: 99, ownRewards: [] });
+  await stale;
+  expect(screen.view.qualifyingCount('A')).toBe(1);
+  screen.hide(); screen.show(); await flush();
+  expect(screen.view.loading.value).toBe(false);
+  expect(screen.view.progressBusy.value.A).toBe(false);
+  expect(screen.view.qualifyingCount('A')).toBe(1);
+});
+
+it('updates progress every 30 seconds only while visible and does not overlap requests', async () => {
+  vi.useFakeTimers();
+  const screen=mount();await flush();screen.referral.mockClear();
+  await vi.advanceTimersByTimeAsync(29_999);expect(screen.referral).not.toHaveBeenCalled();
+  let resolve!:(value:Progress)=>void;
+  screen.referral.mockReturnValueOnce(new Promise(yes=>{resolve=yes;}));
+  await vi.advanceTimersByTimeAsync(1);expect(screen.referral).toHaveBeenCalledTimes(1);
+  expect(screen.view.qualifyingCount('A')).toBe(1);
+  await vi.advanceTimersByTimeAsync(30_000);expect(screen.referral).toHaveBeenCalledTimes(1);
+  resolve({activityId:'A',qualifyingOrders:3,ownRewards:[]});await flush();
+  expect(screen.view.qualifyingCount('A')).toBe(3);
+  screen.hide();await vi.advanceTimersByTimeAsync(60_000);expect(screen.referral).toHaveBeenCalledTimes(1);
+  screen.show();await flush();screen.referral.mockClear();
+  await vi.advanceTimersByTimeAsync(30_000);expect(screen.referral).toHaveBeenCalledTimes(1);
+  screen.unmount();screen.referral.mockClear();await vi.advanceTimersByTimeAsync(60_000);expect(screen.referral).not.toHaveBeenCalled();
+});
+
+it('keeps automatic progress reads off after logout',async()=>{
+  vi.useFakeTimers();const screen=mount();await flush();screen.auth.isAuthenticated=false;await flush();screen.referral.mockClear();
+  await vi.advanceTimersByTimeAsync(60_000);expect(screen.referral).not.toHaveBeenCalled();
+});
 
 it('clears the failed read when refreshing the same invitation progress successfully', async () => {
   const screen = mount(); await flush();
@@ -99,12 +151,12 @@ it('ignores a progress result after unmount', async () => {
   expect(screen.view.progress.value.A.qualifyingOrders).toBe(1);
 });
 
-it('distinguishes a confirmed zero from missing, refreshing and failed first-purchase counts', async () => {
+it('retains the confirmed count during refresh and distinguishes zero from missing or failed counts', async () => {
   const screen=mount();
   expect(screen.view.qualifyingCount('A')).toBe('-');
   await flush();expect(screen.view.qualifyingCount('missing')).toBe('-');
   screen.referral.mockResolvedValueOnce({activityId:'A',qualifyingOrders:0,ownRewards:[]});
-  const refresh=screen.view.loadProgress('A');expect(screen.view.qualifyingCount('A')).toBe('-');
+  const refresh=screen.view.loadProgress('A');expect(screen.view.qualifyingCount('A')).toBe(1);
   await refresh;expect(screen.view.qualifyingCount('A')).toBe(0);
   screen.referral.mockRejectedValueOnce(new Error('offline'));await screen.view.loadProgress('A');
   expect(screen.view.qualifyingCount('A')).toBe('-');

@@ -13,6 +13,8 @@ import { leadershipHowFacts } from "@/lib/leadership-how-facts";
 import { leadershipPoolFailureState } from "@/lib/leadership-pool-state";
 import { networkReauditCopy } from "@/i18n/network-reaudit";
 import { rankLabel } from "@/lib/v-rank-copy";
+import { teamPrivacyFixture } from './team-privacy.test-support';
+import { ruleSection } from '@/components/team/team-rule-guide.test-support';
 
 // Real SFC script/template; only remote reads and chassis children are isolated.
 type Host = { text: string; props: Record<string, any>; parent: Host | null; children: Host[] };
@@ -42,7 +44,8 @@ const code = ts.transpileModule(compileScript(parse(source).descriptor, {
 }).content, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
 const unmounts: Array<() => void> = [];
 async function flush() { for (let i = 0; i < 8; i++) await Promise.resolve(); await Vue.nextTick(); }
-async function mount(nextPayoutAt: unknown, remoteRead?: () => Promise<unknown>, rankOverrides: Record<string, unknown> = {}) {
+async function mount(nextPayoutAt: unknown, remoteRead?: () => Promise<unknown>, rankOverrides: Record<string, unknown> = {}, interactiveSections = false) {
+  const { visibility, dependency } = teamPrivacyFixture();
   const locale = Vue.ref<Locale>("zh");
   const snapshot = Object.freeze({ nextPayoutAt, injectRate: .05, unlockRank: 3, distribution: [], myVotes: 2, totalVotes: 40, mySharePct: .05 });
   const api = vi.fn(remoteRead ?? (async () => snapshot));
@@ -55,8 +58,8 @@ async function mount(nextPayoutAt: unknown, remoteRead?: () => Promise<unknown>,
     "@/components/app-chassis.vue": { default: slot },
     "@/components/team/reward-page-surface.vue": { default: slot },
     "@/components/sub-page-header.vue": { default: slot },
-    "@/components/team/reward-compact-hero.vue": { default: slot },
-    "@/components/team/reward-rule-block.vue": { default: slot },
+    "@/components/team/team-rule-hero.vue": { default: slot },
+    "@/components/team/team-rule-section.vue": interactiveSections ? ruleSection : { default: slot },
     "@/i18n/use-t": { useT: () => Vue.computed(() => dictionaries[locale.value]) },
     "@/store/locale": { useLocaleStore: () => Vue.reactive({ get code() { return locale.value; } }) },
     "@/i18n/network-reaudit": { networkReauditCopy },
@@ -66,6 +69,7 @@ async function mount(nextPayoutAt: unknown, remoteRead?: () => Promise<unknown>,
     "@/api/runtime": { remoteApiEnabled: true, apiRuntimeConfig: { environment: 'prod', baseUrl: 'https://fixture.invalid' }, teamInsightsApi: { leadershipPool: api } },
     "@/store/auth": { useAuth: () => Vue.reactive({ isAuthenticated: true }) },
     "@/store/app": { useApp: () => Vue.reactive({ accountKey: "user:3778" }) },
+    "@/store/data-visibility": dependency,
     "@/store/v-rank": { useVRank: () => rankState },
     "@/lib/v-rank-copy": { rankLabel },
     "@/lib/leadership-pool-state": { leadershipPoolFailureState },
@@ -81,7 +85,7 @@ async function mount(nextPayoutAt: unknown, remoteRead?: () => Promise<unknown>,
   const root = node();
   const app = renderer.createApp(exports.default);
   app.mount(root); unmounts.push(() => app.unmount());
-  return { root, locale, snapshot, api, navBack, rankState, show: async () => { shows.forEach(callback => callback()); await flush(); } };
+  return { root, locale, visibility, snapshot, api, navBack, rankState, show: async () => { shows.forEach(callback => callback()); await flush(); } };
 }
 afterEach(() => { unmounts.splice(0).forEach(unmount => unmount()); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
@@ -154,6 +158,45 @@ test.each([0, undefined])('R10 zero or missing vote total %s never invents a sha
 const distributionFixture = [2, 4, 6, 8].map(vRank => ({ vRank, people: 2, votes: vRank }));
 const configuredLadder = Array.from({ length: 9 }, (_, v) => ({ v, title: '', cnTitle: '', leadershipVotes: v }));
 const hasClass = (node: Host, name: string) => String(node.props.class).split(' ').includes(name);
+test.each(['zh', 'en', 'vi'] as const)('R10 %s hidden-first and expanded participation follows live privacy without masking public weights/dates', async language => {
+  const snapshot = Object.freeze({ unlockRank: 2, injectRate: .05, nextPayoutAt: '2026-10-11T23:59:00Z',
+    myVotes: 17, totalVotes: 137, mySharePct: .1241,
+    distribution: [{ vRank: 2, people: 19, votes: 2 }, { vRank: 4, people: 23, votes: 4 }] });
+  const raw = JSON.stringify(snapshot);
+  const page = await mount(snapshot.nextPayoutAt, async () => snapshot, { ladder: configuredLadder }, true);
+  page.locale.value = language; page.visibility.toggle(); await page.show();
+  const nodes = (name: string) => all(page.root).filter(n => hasClass(n, name));
+  const section = (title: string) => nodes('team-rule-section__toggle').find(n => text(n).includes(title))!;
+  const words = dictionaries[language], copy = networkReauditCopy(language);
+  for (const title of [words.poolHowItWorks.s2Title, copy.poolFactsTitle]) {
+    section(title).props.onKeydown.forEach((handler: (e: object) => void) => handler({ key: ' ', preventDefault() {} }));
+    await flush();
+  }
+  const assertHidden = () => {
+    expect(nodes('pool-how-facts')[0].children.map(row => text(row.children.at(-1)!))).toEqual(['••••', '••••', '••••']);
+    expect(nodes('pool-how-distribution-row').map(text)).toEqual(snapshot.distribution.map(row =>
+      `V${row.vRank}` + fmt(words.pool.peopleVotesEa, { count: '••••', votes: '••••' }) + `${words.poolHowItWorks.colVotes}: ••••`));
+    const actualRegion = [nodes('pool-how-facts')[0], ...nodes('pool-how-distribution-row')];
+    const exposed = actualRegion.map(text).join('') + JSON.stringify(actualRegion.flatMap(all).map(n => Object.fromEntries(Object.entries(n.props).filter(([key]) => key.startsWith('aria-')))));
+    expect(exposed).not.toMatch(/17|137|12[.,]41%|19|23|38|92/);
+    expect(nodes('pool-how-weight-row').map(text)).toEqual([2,3,4,5,6,7,8].map(v => `V${v}${v}`));
+    expect(text(page.root)).toContain(fmt(words.poolHowItWorks.currentRules, { rank: 2 }));
+    expect(text(page.root)).toContain(fmt(words.poolHowItWorks.nextPayout, { time: formatDisplayDateTime(snapshot.nextPayoutAt, language, true) }));
+    expect(nodes('team-rule-section__toggle').every(n => n.props['aria-expanded'])).toBe(true);
+  };
+  assertHidden();
+  page.visibility.toggle(); await flush();
+  const shown = text(page.root);
+  expect(shown).toContain(copy.votes + '17'); expect(shown).toContain(copy.totalVotes + '137');
+  expect(shown).toContain(copy.share + (12.41).toLocaleString(language, { maximumFractionDigits: 2 }) + '%');
+  expect(nodes('pool-how-distribution-row').map(text)[0]).toContain(fmt(words.pool.peopleVotesEa, { count: 19, votes: 2 }));
+  const reads = page.api.mock.calls.length;
+  page.visibility.toggle(); await flush(); assertHidden();
+  page.visibility.toggle(); await flush();
+  expect(text(page.root)).toBe(shown); expect(page.api).toHaveBeenCalledTimes(reads);
+  expect(JSON.stringify(snapshot)).toBe(raw);
+});
+
 test.each(['zh', 'en', 'vi'] as const)('T4 %s shows configured weights separately from this period distribution', async language => {
   const page = await mount('', async () => ({ unlockRank: 2, injectRate: .05, nextPayoutAt: '', myVotes: 2, totalVotes: 40, mySharePct: .05, distribution: distributionFixture }), { ladder: configuredLadder });
   page.locale.value = language; await page.show();

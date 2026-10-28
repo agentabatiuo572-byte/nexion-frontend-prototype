@@ -12,11 +12,13 @@
         <view class="referral-art" aria-hidden="true"><CatalogMachineImage class="referral-gift" v-bind="referralImageProps(activity)" /></view>
       </view>
       <view v-if="expandedActivity===activity.activityId" class="referral-details">
-        <text class="referral-activity-title">{{ localized(activity.title,locale.code) }}</text>
-        <text class="promotion-copy">{{ t.promotion.inviteNote }}</text>
-        <text v-if="progressErrors[activity.activityId]" class="promotion-copy" role="alert">{{ t.promotion.error }}</text>
-        <RewardRows v-if="progress[activity.activityId]" :rewards="progress[activity.activityId].ownRewards" :value-mask="visibility.hidden ? visibility.mask('') : undefined" />
-        <NxButton class="referral-cta" size="medium" :busy="loading || progressBusy[activity.activityId]" :label="t.promotion.refresh" @click="loadActivities(true)"><text>{{ t.promotion.refresh }}</text><text aria-hidden="true">→</text></NxButton>
+        <text class="referral-activity-title">{{ copy.rewardRecords }}</text>
+        <view v-if="progressErrors[activity.activityId]" class="nx-inline-recovery"><text class="promotion-copy nx-inline-recovery__copy" role="alert">{{ t.promotion.error }}</text><NxButton class="referral-retry nx-inline-recovery__action" variant="text" size="medium" :busy="progressBusy[activity.activityId]" :label="t.promotion.retry" @click="loadProgress(activity.activityId,true)" /></view>
+        <RewardRows v-else-if="progress[activity.activityId]?.ownRewards.length" :rewards="progress[activity.activityId].ownRewards" :value-mask="visibility.hidden ? visibility.mask('') : undefined" />
+        <view v-else class="referral-empty" role="status">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h18v4H3zM5 12v9h14v-9M12 8v13M12 8C6 8 5 5 7 3c2-2 5 2 5 5M12 8c6 0 7-3 5-5-2-2-5 2-5 5" /></svg>
+          <text>{{ !progress[activity.activityId] && progressBusy[activity.activityId] ? t.promotion.loading : copy.noRewardRecords }}</text>
+        </view>
         <view class="referral-rule-link" role="button" tabindex="0" @click="termsActivity=activity" @keydown.enter.prevent="termsActivity=activity" @keydown.space.prevent="termsActivity=activity"><text>{{ t.promotion.rulesLink }}</text><text aria-hidden="true">›</text></view>
       </view>
     </view>
@@ -44,6 +46,16 @@ const copy=computed(()=>teamRedesignCopy(locale.code)),expandedActivity=ref<stri
 const termsActivity=ref<PublicPromotion|null>(null);
 const progressBusy=ref<Record<string,boolean>>({}),progressErrors=ref<Record<string,boolean>>({});
 const imageRefresh=ref<Record<string,number>>({});
+let progressTimer:ReturnType<typeof setInterval>|undefined;
+function stopProgressUpdates(){if(progressTimer!==undefined)clearInterval(progressTimer);progressTimer=undefined;}
+function startProgressUpdates(){
+  stopProgressUpdates();
+  if(!visible||!auth.isAuthenticated||!remoteApiEnabled)return;
+  progressTimer=setInterval(()=>{
+    if(!visible||loading.value||(typeof document!=='undefined'&&document.hidden))return;
+    for(const activity of activities.value)void loadProgress(activity.activityId);
+  },30_000);
+}
 function referralImageProps(activity:PublicPromotion){
   const slot=promotionMachineSlots(activity).find(item=>item.role==='purchase');
   void productCatalogState.revision;
@@ -51,7 +63,7 @@ function referralImageProps(activity:PublicPromotion){
   return {sku:slot?.sku,imageUrl:auth.isAuthenticated&&readable&&slot?getProduct(slot.sku)?.imageUrl:undefined,
     scopeKey:activity.activityId+':purchase',refreshKey:JSON.stringify([activity.version,imageRefresh.value[activity.activityId]])};
 }
-function qualifyingCount(id:string){return progressBusy.value[id]||progressErrors.value[id]?'-':progress.value[id]?.qualifyingOrders??'-';}
+function qualifyingCount(id:string){return progressErrors.value[id]?'-':progress.value[id]?.qualifyingOrders??'-';}
 function showProgress(id:string){if(!visible||progressBusy.value[id]||!auth.isAuthenticated)return;expandedActivity.value=expandedActivity.value===id?null:id;if(expandedActivity.value)void loadProgress(id,true);}
 function currentRead(){const request=generation,account=app.accountKey,epoch=app.accountBindingEpoch,authenticated=auth.isAuthenticated,language=locale.code,readScope=passiveTabReadScope();return()=>alive&&visible&&request===generation&&account===app.accountKey&&epoch===app.accountBindingEpoch&&authenticated===auth.isAuthenticated&&language===locale.code&&readScope===passiveTabReadScope();}
 function clearRead(preserveExpanded=true){
@@ -90,10 +102,13 @@ async function loadProgress(id:string,refreshImage=false,passive=false){
   catch{if(current())progressErrors.value={...progressErrors.value,[id]:true};}
   finally{if(current())progressBusy.value={...progressBusy.value,[id]:false};}
 }
-watch(()=>[app.accountKey,app.accountBindingEpoch,auth.isAuthenticated,locale.code],()=>{clearRead(false);if(visible)void loadActivities(true,true);},{immediate:true,flush:'sync'});
-onShow(()=>{visible=true;void loadActivities(true,true);});
-onHide(()=>{visible=false;generation++;progressBusy.value={};loading.value=false;termsActivity.value=null;});
-onBeforeUnmount(()=>{alive=false;visible=false;generation++;});
+const readIdentity=()=>[app.accountKey,app.accountBindingEpoch,auth.isAuthenticated,locale.code];
+watch(readIdentity,()=>{clearRead(false);startProgressUpdates();},{immediate:true,flush:'sync'});
+// Clear private data immediately, then read after account hydration finishes the shared scope.
+watch(readIdentity,()=>{if(visible)void loadActivities(true,true);},{immediate:true});
+onShow(()=>{visible=true;startProgressUpdates();void loadActivities(true,true);});
+onHide(()=>{visible=false;stopProgressUpdates();generation++;progressBusy.value={};loading.value=false;termsActivity.value=null;});
+onBeforeUnmount(()=>{alive=false;visible=false;stopProgressUpdates();generation++;});
 </script>
 <style src="./promotion.css"></style>
 <style scoped>
@@ -111,12 +126,10 @@ onBeforeUnmount(()=>{alive=false;visible=false;generation++;});
 .referral-art { position: relative; flex: 0 0 144px; height: 124px; overflow: hidden; }
 .referral-gift { position: absolute; inset: 0; width: 100%; height: 100%; }
 .referral-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; margin-top: var(--ui-space-inline); }
-.referral-progress-link { display: inline-flex; align-items: center; gap: var(--ui-space-row-y); min-height: 44px; color: var(--v5-ink-2); font: 400 13px/1.4 var(--font-v5); cursor: pointer; }
-.referral-progress-link[aria-disabled=true] { opacity: .5; }
-.referral-progress-link:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
-.referral-cta { --v5-liquid-tint: rgba(38,38,42,.88); --v5-surface: #26262a; color: #fff; background: #26262a; box-sizing: border-box; }
+.referral-progress-link { max-width:100%;--ui-button-ink:var(--v5-brand);--ui-button-fill:color-mix(in srgb,var(--v5-brand) 14%,transparent);--ui-button-solid:color-mix(in srgb,var(--v5-brand) 12%,var(--v5-surface)); }
 .referral-details { margin-top: var(--ui-space-inset); padding-top: 16px; border-top: 1px solid var(--v5-border); }
 .referral-activity-title { display: block; margin-bottom: 6px; font: 600 14px/1.5 var(--font-v5); }
+.referral-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 0 12px; color: var(--v5-ink-3); font-size: var(--ui-type-list-subtitle); }
 .referral-details > .referral-cta { margin-top: var(--ui-space-inline); }
 .referral-retry { width: auto; }
 .referral-recovery { margin-top: var(--ui-space-inline); }

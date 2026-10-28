@@ -19,6 +19,13 @@ import type { TaskCategory } from "@/store/types";
 // mock/ import).
 export type LabelCategory = TaskCategory | "KY";
 
+const compactUnits: Record<TaskCategory, string> = {
+  IG: '/img', VG: '/sec', LL: '/1k tok', FT: '/job', EM: '/1k ch', SP: '/aud s',
+};
+export function compactMarketUnit(code: string, fallback: string): string {
+  return Object.prototype.hasOwnProperty.call(compactUnits, code) ? compactUnits[code as TaskCategory] : fallback;
+}
+
 export function workloadLabel(t: Messages, category: LabelCategory): string {
   return category === "KY"
     ? t.receipt.typeWalletPairing

@@ -144,3 +144,27 @@ it('hidden old callbacks cannot navigate or write, and show restores the fixed l
 it('Home and Missions both host the same fixed row', () => {
   for (const source of [homeRaw, missionsRaw]) expect(source).toContain('<DailyCheckInRow />');
 });
+
+it('shows the confirmed reward once, only after success, and clears it when the animation ends', async () => {
+  const s = mount('zh'); let finish!: (value: any) => void;
+  s.faucet.checkInRemote.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  const reward = () => all(s.root).find(n => hasClass(n, 'daily-check-in-row__reward-flight'));
+  click(s.action()); click(s.action()); await settle();
+  expect(s.faucet.checkInRemote).toHaveBeenCalledOnce(); expect(reward()).toBeUndefined();
+  finish({ ok: true, gained: 17, streak: 3 }); await settle();
+  expect(text(reward()!)).toBe('+17 UVT');
+  expect(reward()!.props['aria-live']).toBe('polite');
+  expect(s.toast.success).not.toHaveBeenCalled();
+  reward()!.props.onAnimationend(); await settle(); expect(reward()).toBeUndefined();
+});
+it('does not celebrate failed or stale check-ins, and removes feedback on hide', async () => {
+  const s = mount();
+  s.faucet.checkInRemote.mockResolvedValueOnce({ ok: false, gained: 0, streak: 2 });
+  click(s.action()); await settle();
+  expect(s.toast.error).toHaveBeenCalledOnce();
+  expect(all(s.root).some(n => hasClass(n, 'daily-check-in-row__reward-flight'))).toBe(false);
+  click(s.action()); await settle();
+  expect(all(s.root).some(n => hasClass(n, 'daily-check-in-row__reward-flight'))).toBe(true);
+  s.hide(); await settle();
+  expect(all(s.root).some(n => hasClass(n, 'daily-check-in-row__reward-flight'))).toBe(false);
+});

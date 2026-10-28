@@ -13,16 +13,19 @@
       <text class="promotion-title">{{ t.promotion.empty }}</text><text class="promotion-copy">{{ t.promotion.emptyNote }}</text>
       <NxButton class="entry-cta" size="medium" :label="t.promotion.allProducts" @click="navTo(promotionStoreHref())"><text>{{ t.promotion.allProducts }}</text><text aria-hidden="true">→</text></NxButton>
     </view>
-    <view v-for="activity in visibleItems" :key="activity.activityId" :class="[mode==='home'?'entry-advert':'entry-event', 'entry-kind-'+activityKind(activity)]" :data-color-scheme="theme.resolved" :data-activity-id="activity.activityId" :data-activity-kind="activityKind(activity)">
+    <view v-for="activity in visibleItems" :key="activity.activityId" :class="[mode==='home'?'entry-advert':'entry-event', 'entry-kind-'+activityKind(activity), { 'entry-advert--banner': mode==='home' && bannerReady(activity) }]" :data-color-scheme="theme.resolved" :data-activity-id="activity.activityId" :data-activity-kind="activityKind(activity)">
       <view v-if="mode==='home'" class="entry-advert-target" role="button" :tabindex="active ? 0 : -1" :aria-hidden="!active" :aria-label="localized(activity.title,locale.code)+' · '+t.promotion.browse" @click="active && navTo(promotionStoreHref(activity.activityId))" @keydown.enter.prevent="active && navTo(promotionStoreHref(activity.activityId))" @keydown.space.prevent="active && navTo(promotionStoreHref(activity.activityId))" />
       <CatalogMachineImage v-if="mode==='home'&&bannerUrl(activity)" :key="bannerKey(activity)" v-show="bannerReady(activity)" class="entry-artwork" v-bind="bannerImageProps(activity)" />
       <view v-if="mode==='home'&&!bannerReady(activity)&&promoSlots(activity).length" class="entry-product-art" aria-hidden="true"><CatalogMachineImage v-for="slot in promoSlots(activity)" :key="slot.role" :sku="slot.sku" :image-url="slot.imageUrl" :scope-key="activity.activityId+':'+slot.role" :refresh-key="catalogRefreshKey" :class="slot.role==='purchase' ? 'entry-main-image' : 'entry-gift-image'" /></view>
+      <text v-if="mode==='home'" class="entry-remaining">{{ homeRemaining(activity) }}</text>
       <view v-if="mode==='events'&&activityKind(activity)!=='plain'" class="entry-event-art"><TeamArt :kind="activityArt(activity)" :size="activityKind(activity)==='spark'?88:144" /></view>
-      <view v-if="mode==='home'&&!bannerReady(activity)" class="entry-copy">
+      <view v-if="mode==='home'" class="entry-copy">
+        <template v-if="!bannerReady(activity)">
         <text class="entry-label">{{ activityKind(activity)==='gift' ? t.promotion.giftBadge : t.promotion.activityBadge }}</text>
         <text class="entry-title">{{ localized(activity.title,locale.code) }}</text>
         <text v-if="homeRewardSummary(activity)" class="entry-benefit">{{ homeRewardSummary(activity) }}</text>
-        <text class="entry-home-deadline" role="button" tabindex="0" :aria-label="t.promotion.homeRulesLink" @click.stop="termsActivity=activity" @keydown.enter.stop.prevent="termsActivity=activity" @keydown.space.stop.prevent="termsActivity=activity">{{ homeRemaining(activity) }} · {{ t.promotion.homeRulesLink }} ›</text>
+        </template>
+        <text class="entry-home-deadline" role="button" tabindex="0" :aria-label="t.promotion.homeRulesLink" @click.stop="termsActivity=activity" @keydown.enter.stop.prevent="termsActivity=activity" @keydown.space.stop.prevent="termsActivity=activity">{{ t.promotion.homeRulesLink }} ›</text>
       </view>
       <view v-if="mode==='events'" class="entry-event-copy">
         <text class="entry-eyebrow">{{ t.promotion.activityBadge }}</text>
@@ -203,12 +206,17 @@ onBeforeUnmount(()=>{visible=false;fence.invalidate();clear();});
 .entry-copy,.entry-event-copy { min-width: 0; }
 .entry-benefit { display: block; margin-top: 5px; color: var(--v5-ink-2); font: 500 14px/1.5 var(--font-v5); overflow-wrap: anywhere; }
 .entry-advert .entry-benefit { margin-top: 0; color: inherit; font: 600 19px/25px var(--font-v5); }
+.entry-advert.entry-kind-gift .entry-title { color: var(--v5-ink-2); font: 500 var(--ui-type-body)/var(--ui-type-body-lh) var(--font-v5); }
+.entry-advert.entry-kind-gift .entry-benefit { margin-top: 4px; color: var(--v5-brand); font: 600 var(--ui-type-profile)/var(--ui-type-profile-lh) var(--font-v5); }
 .entry-home-deadline { position: relative; z-index: 2; align-self: flex-start; margin-top: auto; padding: 13px 0; margin-bottom: -13px; color: #9aa2b2; font: 400 12px/18px var(--font-v5); white-space: nowrap; }
 .entry-home-deadline:focus-visible { outline: 2px solid var(--v5-brand); }
+.entry-remaining { position: absolute; top: 12px; right: 16px; z-index: 2; pointer-events: none; color: var(--v5-warning-ink); font: 500 11px/18px var(--font-v5); white-space: nowrap; }
+.entry-advert--banner .entry-remaining { padding:2px 7px;border-radius:6px;background:var(--v5-surface); }
+.entry-advert--banner .entry-home-deadline { padding-inline:8px;border-radius:8px;background:var(--v5-surface);color:var(--v5-ink-2); }
 .entry-product-art { position: absolute; right: 0; width: 160px; inset-block: 0; pointer-events: none; }
 .entry-product-art::before { content: ''; position: absolute; right: 18px; bottom: 16px; width: 120px; height: 20px; background: radial-gradient(ellipse,rgba(200,242,90,.4),transparent 70%); }
-.entry-main-image { position: absolute; right: 30px; top: 4px; width: 118px; height: 118px; animation: promotion-float 4.2s ease-in-out infinite; }
-.entry-gift-image { position: absolute; right: -6px; bottom: 6px; width: 84px; height: 84px; animation: promotion-float 4.2s ease-in-out -1.6s infinite; }
+.entry-main-image { position: absolute; right: 34px; top: 30px; width: 108px; height: 108px; animation: promotion-float 4.2s ease-in-out infinite; }
+.entry-gift-image { position: absolute; right: 12px; bottom: 10px; width: 76px; height: 76px; animation: promotion-float 4.2s ease-in-out -1.6s infinite; }
 @keyframes promotion-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 @media(prefers-reduced-motion:reduce) { .entry-main-image,.entry-gift-image { animation: none; } }
 .entry-event { display: grid; grid-template-columns: minmax(0,1fr) 128px; padding: var(--ui-space-section); gap: var(--ui-space-inset) 0; }
@@ -225,7 +233,7 @@ onBeforeUnmount(()=>{visible=false;fence.invalidate();clear();});
 .entry-deadline { display: block; color: var(--v5-ink-3); font: 400 11px/1.5 var(--font-v5); overflow-wrap: anywhere; }
 .entry-event-actions { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-top: var(--ui-space-row-y); }
 .promotion-link { gap: 8px; color: var(--v5-ink-2); }
-.entry-cta { --v5-liquid-tint: rgba(38,38,42,.88); --v5-surface: #26262a; color: #fff; background: #26262a; box-sizing: border-box; }
+.entry-cta { max-width: 100%; }
 .entry-event.entry-kind-coupon { grid-template-columns: minmax(0,1fr) 94px; border-radius: 16px; }
 .entry-kind-coupon .entry-event-copy { padding-right: 18px; }
 .entry-kind-coupon .entry-event-art { border-left: 1px dashed var(--v5-border); margin: -20px -20px -16px 0; overflow: hidden; }
@@ -243,11 +251,11 @@ onBeforeUnmount(()=>{visible=false;fence.invalidate();clear();});
 .entry-page-dot { width: 6px; height: 6px; border-radius: 999px; background: var(--v5-ink-4); }
 .entry-page-dot.selected { width: 16px; background: var(--v5-brand); }
 .entry-pagination:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -2px; border-radius: 12px; }
-@media(max-width:350px) {
+@media(max-width:374px) {
   .entry-advert:has(.entry-product-art) .entry-copy { padding-right: 105px; }
-  .entry-product-art { right: -10px; width: 130px; }
-  .entry-main-image { right: 22px; width: 100px; height: 100px; }
-  .entry-gift-image { right: -2px; width: 72px; height: 72px; }
+  .entry-product-art { right: 0; width: 130px; }
+  .entry-main-image { right: 24px; width: 96px; height: 96px; }
+  .entry-gift-image { right: 10px; width: 68px; height: 68px; }
   .entry-advert .entry-title,.entry-advert .entry-benefit { font-size: 17px; line-height: 22px; }
   .entry-home-deadline { font-size: 11px; }
   .entry-event { padding: var(--ui-space-inset); grid-template-columns: minmax(0,1fr) 104px; }

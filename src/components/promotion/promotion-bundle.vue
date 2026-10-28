@@ -53,10 +53,10 @@
       <text class="promotion-copy">{{ t.promotion.rewardNote }}</text>
     </view>
     <view v-if="activity" class="promotion-link" role="button" tabindex="0" @click="termsOpen=true"><text>{{ t.promotion.rulesLink }}</text></view>
-    <view v-if="!signedIn" class="promotion-action primary" role="button" tabindex="0" @click="signIn"><LiquidGlass :radius="999" tone="control" /><text>{{ t.promotion.signIn }}</text></view>
-    <view v-else class="promotion-action" role="button" :tabindex="canQuote?0:-1" :aria-disabled="!canQuote" @click="refreshQuote"><LiquidGlass :radius="999" tone="control" /><text>{{ t.promotion.quote }}</text></view>
+    <view v-if="!signedIn" class="promotion-action primary" role="button" tabindex="0" @click="signIn"><text>{{ t.promotion.signIn }}</text></view>
+    <view v-else class="promotion-action" role="button" :tabindex="canQuote?0:-1" :aria-disabled="!canQuote" @click="refreshQuote"><text>{{ t.promotion.quote }}</text></view>
     <text v-if="selection.length<2" class="promotion-copy">{{ t.promotion.selectTwo }}</text>
-    <view class="promotion-action primary" role="button" :tabindex="canContinue?0:-1" :aria-disabled="!canContinue" @click="continueCheckout"><LiquidGlass :radius="999" tone="control" /><text>{{ t.promotion.continue }}</text></view>
+    <view class="promotion-action primary" role="button" :tabindex="canContinue?0:-1" :aria-disabled="!canContinue" @click="continueCheckout"><text>{{ t.promotion.continue }}</text></view>
     <view class="promotion-link" role="button" tabindex="0" @click="navTo(promotionStoreHref(scopeId))"><text>{{ t.promotion.buyMore }}</text></view>
     <PromotionTerms :open="termsOpen" :title="localized(activity?.title,locale.code)" :terms="ruleTerms" :disclosures="promotionDisclosures(activity)" @close="termsOpen=false" />
     </template>
@@ -83,7 +83,7 @@ import { localized,displayDeadline,rewardSummary } from '@/lib/promotion-display
 import { navTo } from '@/lib/route';
 import { fmt } from '@/i18n/format';
 import { createPromotionReadFence,isEntryQuoteFresh,restoreEntrySelection,promotionBundleHref,promotionCheckoutHref,promotionDetailHref,promotionDisclosures,promotionStoreHref,validEntryItems,type EntryItem,type EntrySelectionDraft } from '@/lib/promotion-entry';
-import LiquidGlass from '@/components/liquid-glass.vue';
+
 import RewardRows from './reward-rows.vue';
 import PromotionTerms from './promotion-terms.vue';
 const props=defineProps<{activityId:string;initialItems:EntryItem[]}>();

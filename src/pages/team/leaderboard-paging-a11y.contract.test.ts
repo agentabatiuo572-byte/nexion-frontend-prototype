@@ -38,7 +38,7 @@ describe("leaderboard paging and keyboard contract", () => {
    * 只落在选中项上,否则键盘用户会停在一个不可达的 tab 上。
    */
   it("exposes exactly one selected period and roving tabindex on it", () => {
-    expect(source).toContain(':label="t.leaderboard.pageTitle"');
+    expect(source).toContain(':label="pointsCopy.title"');
     expect(segments).toContain(':aria-selected=');
     expect(segments).toMatch(/:tabindex="option.disabled \? -1 : [^\"]*option.value === modelValue \? 0 : -1"/);
     expect(segments).toContain('option.value === modelValue');

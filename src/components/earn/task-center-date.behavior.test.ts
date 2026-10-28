@@ -25,7 +25,7 @@ function history(completedAt: unknown) {
   const imports: Record<string, unknown> = { '@/store/data-visibility': { useDataVisibility: () => ({ hidden: false, mask: String }) }, vue: Vue, "@/lib/display-date": dates, "@/lib/task-relative-time": { taskRelativeTime },
     "@/lib/usd-display": { formatUsd }, "@/lib/workload-label": { workloadLabel }, "@/lib/route": { navTo: vi.fn() },
     "@/composables/use-tab-page-lifecycle": { onShow: vi.fn(), onHide: vi.fn(), useVisibleInterval: interval },
-    "@/i18n/use-t": { useT: () => Vue.computed(() => dictionaries[locale.code]) }, "@/i18n/format": { dateLocale: () => locale.code },
+    "@/i18n/use-t": { useT: () => Vue.computed(() => dictionaries[locale.code]) }, "@/i18n/messages/en": { en }, "@/i18n/format": { dateLocale: () => locale.code },
     "@/store/app": { useApp: () => app }, "@/store/receipts": { useReceipts: vi.fn() }, "@/store/ui": { toast: { error: vi.fn() } },
     "@/store/earn-config": { prepareEarnConfig: vi.fn(), useEarnConfig: () => ({ lockedTeasers: () => [], refreshRoute: async () => undefined }) },
     "@/api/runtime": { remoteApiEnabled: true, taskAssignmentApi: { receipt } }, "@/components/me/receipt-modal.vue": { default: { render: () => null } } };
@@ -42,6 +42,7 @@ it.each([
   for (const [index, language] of ["zh", "en", "vi"].entries()) {
     screen.locale.code = language as keyof typeof dictionaries; const html = await screen.html();
     expect(html).toContain(expected[index]); expect(html).toContain("+$0.1235"); expect(html).toContain("Cloud 503");
+    expect(html).toContain(en.market.workloads.IG.label);
     expect(html).toContain('data-task-id="historical-task"'); expect(html).toContain('title="canonical-receipt"');
     expect(html).toContain('d="M4 2v20l2-1');
   }

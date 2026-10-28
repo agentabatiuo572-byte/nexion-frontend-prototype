@@ -45,7 +45,7 @@ export function usePromotionContext(activityId: Ref<string>, retainPresentation 
   });
   onMounted(() => { void refresh(true); });
   onShow(() => { visible = true; void refresh(true); });
-  onHide(() => { visible = false; fence.invalidate(); if (!retainPresentation) { activity.value = null; status.value = 'idle'; } });
+  onHide(() => { visible = false; fence.invalidate(); status.value = 'idle'; if (!retainPresentation) activity.value = null; });
   onBeforeUnmount(() => { visible = false; fence.invalidate(); activity.value = null; });
   const available = computed(() => !environmentInvalidated && status.value === 'ready' && canPreviewPromotion(activity.value));
   return { activity, status, available, refresh };

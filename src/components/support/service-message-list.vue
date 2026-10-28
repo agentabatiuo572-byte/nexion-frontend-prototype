@@ -113,9 +113,9 @@ function retry() {
 .service-avatar { position: relative; width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; color: var(--v5-ink-2); }
 .service-avatar > svg { position: relative; }
 .service-content { flex: 1; min-width: 0; }
-.service-title { display: block; color: var(--v5-ink); font-size: var(--ui-type-section); font-weight: 600; overflow-wrap: anywhere; }
-.service-time { display: block; margin-top: 5px; font-size: 11px; color: var(--v5-ink-3); white-space: normal; overflow-wrap: anywhere; }
-.service-preview { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; margin-top: 5px; color: var(--v5-ink-2); font-size: var(--ui-type-list-subtitle); line-height: 1.5; }
+.service-title { display: block; color: var(--v5-ink); font-size: var(--ui-type-message-title); line-height: var(--ui-type-message-title-lh); font-weight: 500; overflow-wrap: anywhere; }
+.service-time { display: block; margin-top: 5px; font-size: var(--ui-type-message-meta); line-height: var(--ui-type-message-meta-lh); color: var(--v5-ink-3); white-space: normal; overflow-wrap: anywhere; }
+.service-preview { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; margin-top: 5px; color: var(--v5-ink-2); font-size: var(--ui-type-message-preview); line-height: var(--ui-type-message-preview-lh); }
 .service-meta { flex-shrink: 0; align-self: stretch; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 8px; }
 .service-unread { flex-shrink: 0; min-width: 21px; height: 21px; padding: 0 6px; box-sizing: border-box; border-radius: var(--v5-radius-full); display: grid; place-items: center; background: var(--v5-brand); color: var(--v5-on-brand); font-size: 11px; font-weight: 600; line-height: 1; }
 .service-state { gap: 12px; padding: 16px 0; color: var(--v5-ink-3); font-size: 13px; line-height: 1.6; }

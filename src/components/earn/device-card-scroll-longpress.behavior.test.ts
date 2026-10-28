@@ -2,6 +2,7 @@ import * as Vue from "vue";
 import * as tabLifecycle from "@/composables/use-tab-page-lifecycle";
 import { formatAmount } from "@/lib/amount-display";
 import { formatUsd } from "@/lib/usd-display";
+import { canControlDevice } from '@/lib/device-control-platform';
 import { deviceStatisticsCapabilityCopy } from "@/i18n/device-statistics-capability";
 import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
@@ -62,13 +63,14 @@ function cloudDevice(): Device {
     todayEarnings: 0, todayEarningsNEX: 0, cumulativeEarningsUsdt: 0, paidPriceUsdt: 0, capacitySource: "server" };
 }
 
-async function mount(copy: Messages = zh, device = cloudDevice(), expanded = false, native = true, calibrated = true) {
+async function mount(copy: Messages = zh, device = cloudDevice(), expanded = false, native = true, calibrated = true, detailPage = false) {
   const navTo = vi.fn();
   const setPhoneRuntime = vi.fn();
   const toggle = vi.fn();
   const app = Vue.reactive({ accountKey: "render-only", visibleDevices: [device], remotePhoneBindingInvalid: false, setPhoneRuntime });
   const blank = Vue.defineComponent({ setup: () => () => Vue.h("view") });
   const dependencies: Record<string, unknown> = { '@/store/data-visibility': { useDataVisibility: () => ({ hidden: false, mask: String }) },
+    '@/lib/device-control-platform': { canControlDevice },
     "@/composables/use-tab-page-lifecycle": tabLifecycle,
     "@/lib/amount-display": { formatAmount },
     "@/lib/usd-display": { formatUsd },
@@ -103,7 +105,7 @@ async function mount(copy: Messages = zh, device = cloudDevice(), expanded = fal
   const tabVisit = tabLifecycle.createTabLifecycle({}, true);
   const instance = renderer.createApp({ setup() {
     Vue.provide(tabLifecycle.TAB_LIFECYCLE, tabVisit);
-    return () => Vue.h(module.exports.default, { device, expanded, onToggle: toggle });
+    return () => Vue.h(module.exports.default, { device, expanded, detailPage, showManage: detailPage, onToggle: toggle });
   } });
   instance.mount(root);
   let mounted = true;
@@ -112,6 +114,20 @@ async function mount(copy: Messages = zh, device = cloudDevice(), expanded = fal
   await Vue.nextTick();
   return { root, device, toggle, navTo, setPhoneRuntime, unmount, hide: () => tabVisit.setVisible(false), show: () => tabVisit.setVisible(true) };
 }
+
+test.each([en, zh, vietnamese])('detail management opens the existing deactivation confirmation without changing the device', async copy => {
+  const device = { ...cloudDevice(), id: 'box / 41', kind: 'stellarbox-s1' } as Device;
+  const view = await mount(copy, device, true, true, true, true);
+  const before = JSON.stringify(device);
+  await fire(find(view.root, 'nx-device-card')!, 'onTouchstart', touch(50, 50));
+  await vi.advanceTimersByTimeAsync(480);
+  expect(find(view.root, 'nx-device-quick-stats')).toBeUndefined();
+  const action = find(view.root, 'nx-device-quick-deactivate')!;
+  expect(text(action)).toBe(copy.myDevices.inventoryRowDeactivate);
+  await fire(action, 'onClick');
+  expect(view.navTo).toHaveBeenCalledExactlyOnceWith('/pages/me/devices?deactivate=box%20%2F%2041');
+  expect(JSON.stringify(device)).toBe(before);
+});
 
 test.each([en, zh, vietnamese])("uses Online only for confirmed running cards", async copy => {
   for (const kind of ["stellarbox-s1", "phone"] as const) {

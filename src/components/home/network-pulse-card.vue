@@ -1,12 +1,12 @@
 <!--
   NetworkPulseCard — ZONE 2 global-grid metrics(规格 FEAT-HOME02)。
-  三格:注册用户 / 在线设备 / 设备预估排名。
+  三格:注册用户 / 在线设备 / 设备排名。
 -->
 <template>
-  <NxSection v-if="compactView && compactAvailable" :title="copy.network" :action="copy.details" @action="navTo('/pages/globe/globe')" data-home-section="network">
+  <NxSection v-if="compactView && compactAvailable" :title="t.home.networkPulseTitle" :action="copy.details" @action="navTo('/pages/globe/globe')" data-home-section="network">
     <view class="network-compact">
       <view v-for="(m,i) in metrics" :key="m.k" class="network-compact__cell" :role="m.tap ? 'button' : undefined" :tabindex="m.tap ? 0 : -1" @click="activate(m.tap)" @keydown.enter.prevent="activate(m.tap)" @keydown.space.prevent="activate(m.tap)">
-        <text class="network-compact__label">{{ i === 0 && estimated ? copy.memberEstimateLabel : m.k }}</text>
+        <text class="network-compact__label">{{ m.k }}</text>
         <text class="network-compact__value" :style="m.vSize ? {fontSize:m.vSize} : {}">{{ i === 0 && registeredDisplay != null ? registeredDisplay.toLocaleString() : m.v }}</text>
         <text v-if="m.subTap" class="network-compact__retry" role="button" tabindex="0" @click.stop="m.subTap()" @keydown.enter.stop.prevent="m.subTap()" @keydown.space.stop.prevent="m.subTap()">{{ m.sub }}</text>
         <text v-else-if="m.v === '-'" class="network-compact__retry">{{ m.sub }}</text>

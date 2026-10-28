@@ -19,7 +19,6 @@
       <SubPageHeader back="/pages/me/me" />
 
       <!-- Simulation is presentation-only, separate from API telemetry. -->
-      <text class="block mx-4 mb-2" style="font-size: 11px; color: var(--v5-ink-3)">{{ t.globe.simulatedData }}</text>
       <view class="mx-4 mb-3 grid grid-cols-2 gap-2">
         <view class="rounded-2xl" :style="statTileStyle">
           <view class="flex items-center" style="gap: 6px; min-height: 36px">
@@ -73,7 +72,6 @@
               :style="{ borderColor: r.isYou ? 'var(--v5-brand)' : 'var(--v5-brand)' }" />
             <view class="nx-globe-native-dot" :style="{ background: r.isYou ? 'var(--v5-brand)' : 'var(--v5-brand)' }" />
           </view>
-          <text v-if="me" class="nx-globe-native-you" :style="{ left: `${me.cx * 100}%`, top: `${me.cy * 100}%` }">{{ t.globe.referenceCenterShort }}</text>
         </view>
         <!-- #endif -->
         <!-- #ifndef APP-PLUS -->
@@ -134,19 +132,9 @@
               <animate attributeName="r" values="5;24" dur="1.6s" repeatCount="1" />
               <animate attributeName="opacity" values="1;0" dur="1.6s" repeatCount="1" />
             </circle>
-            <SvgText
-              v-if="r.isYou"
-              :x="r.cx * W + 8"
-              :y="r.cy * H - 8"
-              fill="var(--v5-brand)"
-              font-size="10"
-              font-weight="600"
-              font-family="ui-monospace, monospace"
-            >{{ t.globe.referenceCenterShort }}</SvgText>
           </g>
         </svg>
         <!-- #endif -->
-        <text class="block text-center" style="font-size: 12px; color: var(--v5-ink-4); margin-top: 8px">{{ t.globe.tapHint }} · {{ t.globe.simulationLegend }}</text>
       </view>
 
       <!-- Region list — de-carded: transparent hairline group (earnings-ledger
@@ -169,7 +157,6 @@
           <view class="flex-1 min-w-0">
             <view class="flex items-center" style="gap: 8px">
               <text style="font-size: 13px; font-weight: 600; color: var(--v5-ink)">{{ regionName(r) }}</text>
-              <text v-if="r.isYou" :style="youChipStyle">{{ t.globe.referenceCenter }}</text>
             </view>
             <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 2px">{{ t.globe.superComputeCenter }}</text>
           </view>
@@ -193,7 +180,6 @@
             </view>
             <view class="flex-1 min-w-0">
               <text class="block" style="font-size: 20px; font-weight: 600; color: var(--v5-ink)">{{ regionName(selected) }}</text>
-              <text v-if="selected.isYou" class="block" style="font-size: 12px; color: var(--v5-ink-2); margin-top: 2px">{{ t.globe.referenceCenter }}</text>
             </view>
           </view>
           <view class="grid grid-cols-3 gap-2 mt-4">
@@ -223,7 +209,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, type CSSProperties } from "vue";
 import { useConfig } from "@/store/config";
-import SvgText from "@/components/svg-text";
 // #ifdef APP-PLUS
 import NativeSvg from "@/components/native-svg.vue";
 // #endif
@@ -426,13 +411,6 @@ function regionIconBox(isYou?: boolean): CSSProperties {
       : "color-mix(in srgb, var(--v5-brand) 10%, transparent)",
   };
 }
-const youChipStyle: CSSProperties = {
-  fontSize: "12px",
-  padding: "2px 6px",
-  borderRadius: "8px",
-  background: "var(--v5-surface-2)",
-  color: "var(--v5-ink-2)",
-};
 const regionRateStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
   fontSize: "15px",
@@ -520,15 +498,6 @@ useDialogA11y(computed(() => selected.value !== null), ".nx-globe-drawer", () =>
 @keyframes nx-globe-native-pulse {
   from { transform: scale(1); opacity: 1; }
   to { transform: scale(4.8); opacity: 0; }
-}
-.nx-globe-native-you {
-  position: absolute;
-  transform: translate(8px, -18px);
-  color: var(--v5-brand);
-  font-size: 12px;
-  font-weight: 600;
-  font-family: ui-monospace, monospace;
-  pointer-events: none;
 }
 .nx-globe-native-node:focus-visible {
   outline: 2px solid var(--v5-brand);

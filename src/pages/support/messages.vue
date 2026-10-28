@@ -535,8 +535,9 @@ const typeOptions = computed(() => TYPES.value.map(type => ({ value: type.key, l
 }
 .nx-conv-rowname {
   font-family: var(--font-v5);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--ui-type-message-title);
+  line-height: var(--ui-type-message-title-lh);
+  font-weight: 500;
   letter-spacing: -0.008em;
   color: var(--v5-ink);
   min-width: 0;
@@ -546,7 +547,8 @@ const typeOptions = computed(() => TYPES.value.map(type => ({ value: type.key, l
 }
 .nx-conv-rowtime {
   flex-shrink: 0;
-  font-size: 12px;
+  font-size: var(--ui-type-message-meta);
+  line-height: var(--ui-type-message-meta-lh);
   color: var(--v5-ink-4);
 }
 .nx-conv-rowbot {
@@ -559,9 +561,9 @@ const typeOptions = computed(() => TYPES.value.map(type => ({ value: type.key, l
 .nx-conv-rowprev {
   flex: 1;
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--ui-type-message-preview);
   color: var(--v5-ink-3);
-  line-height: 1.45;
+  line-height: var(--ui-type-message-preview-lh);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

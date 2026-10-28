@@ -4,7 +4,7 @@
       <text class="invite-card__title">{{ copy.inviteFriends }}</text>
       <view class="invite-card__header-actions">
       <view v-if="needsRetry" class="invite-card__history invite-card__retry" role="button" tabindex="0" :aria-label="t.network.retry" @click="rewards.refresh()" @keydown.enter.prevent="rewards.refresh()" @keydown.space.prevent="rewards.refresh()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M5.5 7a8 8 0 0 1 13-1L20 9M4 15l1.5 3a8 8 0 0 0 13-1"/></svg></view>
-      <view v-else class="invite-card__history" role="button" tabindex="0" :aria-label="copy.rewardRecords" @click="detailMode='records'; detailOpen=true" @keydown.enter.prevent="detailMode='records'; detailOpen=true" @keydown.space.prevent="detailMode='records'; detailOpen=true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2.5 7M3 4v7h7M12 7v5l3 2"/></svg></view>
+      <view v-else class="invite-card__history" role="button" tabindex="0" :aria-label="copy.rewards" @click="detailMode='records'; detailOpen=true" @keydown.enter.prevent="detailMode='records'; detailOpen=true" @keydown.space.prevent="detailMode='records'; detailOpen=true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z"/><path d="M9 8h6M9 12h6"/></svg><text>{{ copy.rewards }}</text></view>
       <view class="invite-card__rules" role="button" tabindex="0" @click="detailMode='rules'; detailOpen=true" @keydown.enter.prevent="detailMode='rules'; detailOpen=true" @keydown.space.prevent="detailMode='rules'; detailOpen=true"><text>{{ copy.rules }}</text><text aria-hidden="true">›</text></view>
       </view>
     </view>
@@ -19,7 +19,7 @@
           <text class="invite-card__description" :class="{ 'is-active': rewardCaption === 'error' }" :aria-hidden="rewardCaption !== 'error'">{{ t.team.settlementUnavailable }}</text>
           <text class="invite-card__description" :class="{ 'is-active': rewardCaption === 'unavailable' }" :aria-hidden="rewardCaption !== 'unavailable'">{{ t.share.linkUnavailable }}</text>
         </view>
-        <view class="invite-card__action invite-card__primary nx-team-share-now" role="button" :tabindex="referralCode ? 0 : -1" :aria-disabled="!referralCode" :aria-label="copy.inviteFriends" @click="openShare" @keydown.enter.prevent="openShare" @keydown.space.prevent="openShare"><LiquidGlass :radius="999" tone="control" /><text>{{ copy.inviteFriends }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-7-7 7 7-7 7" /></svg></view>
+        <view class="invite-card__action invite-card__primary nx-team-share-now nx-frosted-button" role="button" :tabindex="referralCode ? 0 : -1" :aria-disabled="!referralCode" :aria-label="copy.inviteFriends" @click="openShare" @keydown.enter.prevent="openShare" @keydown.space.prevent="openShare"><text>{{ copy.inviteFriends }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-7-7 7 7-7 7" /></svg></view>
       </view>
       <view class="invite-card__art"><TeamArt kind="invite" :size="128" /></view>
       <view class="invite-card__actions nx-invite-actions">
@@ -41,7 +41,6 @@ import ShareChannelSheet from './share-channel-sheet.vue';
 import SharePosterSheet from './share-poster-sheet.vue';
 import InviteDetailSheet from './invite-detail-sheet.vue';
 import TeamArt from './team-art.vue';
-import LiquidGlass from '@/components/liquid-glass.vue';
 import { useApp } from '@/store/app';
 import { useReferralReward } from '@/store/referral-reward';
 import { useLocaleStore } from '@/store/locale';
@@ -158,10 +157,11 @@ onUnmounted(stopRuntimeRefresh);
 </script>
 <style scoped>
 .invite-card { position: relative; padding: 12px var(--ui-space-inset) 8px; border: 1px solid var(--v5-border); border-radius: 22px; background: radial-gradient(ellipse at 86% 58%,color-mix(in srgb,var(--v5-brand) 9%,transparent),transparent 64%),var(--v5-surface); color: var(--v5-ink); }
-.invite-card__header { position: relative; display: flex; align-items: center; min-height: 32px; padding-right: 96px; gap: var(--ui-space-inline); }
-.invite-card__title { font: 600 18px/1.35 var(--font-v5); }
-.invite-card__header-actions { position: absolute; right: 0; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 4px; }
-.invite-card__history { display: grid; place-items: center; width: 44px; height: 44px; color: var(--v5-ink-3); }
+.invite-card__header { display: flex; flex-wrap: wrap; align-items: center; min-height: 44px; gap: 4px var(--ui-space-inline); }
+.invite-card__title { flex: 1 1 auto; min-width: 0; font: 600 18px/1.35 var(--font-v5); overflow-wrap: anywhere; }
+.invite-card__header-actions { display: flex; align-items: center; flex: 0 0 auto; gap: 8px; margin-inline-start: auto; }
+.invite-card__history { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 44px; min-height: 44px; color: var(--v5-ink-3); font: 400 12px/1.4 var(--font-v5); cursor: pointer; }
+.invite-card__history svg { flex: 0 0 18px; }
 .invite-card__rules { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 44px; min-height: 44px; color: var(--v5-ink-3); font-size: 12px; }
 .nx-invite-body { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: 2px; padding-top: 0; }
 .invite-card__reward { min-width: 0; position: relative; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
@@ -185,6 +185,6 @@ onUnmounted(stopRuntimeRefresh);
 
 .invite-card__action[aria-disabled='true'] { cursor: default; }
 .invite-card [tabindex='0']:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
-.invite-card__action:active,.invite-card__rules:active,.invite-card__retry:active { opacity: .75; }
+.invite-card__action:active,.invite-card__rules:active,.invite-card__history:active { opacity: .75; }
 .invite-card__actions svg { color: var(--v5-brand); }
 </style>

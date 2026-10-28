@@ -1,3 +1,5 @@
+import { formatConversationTime } from '@/components/support/conversation-time';
+import { parseServerTimestamp } from '@/api/server-time';
 import * as Vue from 'vue';
 import { createPinia } from 'pinia';
 import { compileScript, parse } from '@vue/compiler-sfc';
@@ -9,19 +11,20 @@ import { formatAmount } from '@/lib/amount-display';
 import { formatUsd, formatUsdOverviewParts } from '@/lib/usd-display';
 import { fmt, fmtMoney } from '@/i18n/format';
 import { homeEarningsSubtitle } from './home-real-copy';
-import { formatHomeFeedTime } from './home-live-feed';
+import { formatHomeFeedTime, buildCanonicalHomeFeed } from './home-live-feed';
 import { en } from '@/i18n/messages/en';
 import { zh } from '@/i18n/messages/zh';
 import { vi as vietnamese } from '@/i18n/messages/vi';
 import moneyRaw from './tech-money-card.vue?raw';
 import ledgerRaw from './earnings-ledger-card.vue?raw';
+import liveFeedRaw from './live-feed-card.vue?raw';
 import rowRaw from './home-action-row.vue?raw';
 import deviceRowRaw from './device-row.vue?raw';
 import earnRaw from '@/pages/earn/earn.vue?raw';
 import toggleRaw from '@/components/ui/data-visibility-toggle.vue?raw';
 
-type Host = { tag: string; text: string; props: Record<string, any>; parent: Host | null; children: Host[] };
-const node = (text = '', tag = ''): Host => ({ tag, text, props: {}, parent: null, children: [] });
+type Host = { tag: string; text: string; style: Record<string, string>; props: Record<string, any>; parent: Host | null; children: Host[] };
+const node = (text = '', tag = ''): Host => ({ tag, text, style: {}, props: {}, parent: null, children: [] });
 const renderer = Vue.createRenderer<Host, Host>({
   createElement: tag => node('', tag), createText: node, createComment: () => node(),
   setText: (n, text) => { n.text = text; }, setElementText: (n, text) => { n.text = text; n.children = []; },
@@ -68,7 +71,7 @@ function fixture(copy = zh) {
   const passiveReads = createPassiveTabReadFixture(() => JSON.stringify([app.accountKey, app.accountBindingEpoch]));
   const dependencies: Record<string, unknown> = {
     '@/lib/passive-tab-read': passiveReads,
-    vue: Vue, '@/store/data-visibility': { useDataVisibility: () => visibility },
+    vue: Vue, '@/components/support/conversation-time': { formatConversationTime }, '@/api/server-time': { parseServerTimestamp }, '@/store/data-visibility': { useDataVisibility: () => visibility },
     '@/i18n/use-t': { useT: () => Vue.ref(copy) }, '@/i18n/format': { fmt, fmtMoney },
     '@/store/locale': { useLocaleStore: () => ({ code: copy === zh ? 'zh' : copy === vietnamese ? 'vi' : 'en' }) },
     '@/api/runtime': { remoteApiEnabled: true }, '@/store/app': { useApp: () => app },
@@ -76,7 +79,7 @@ function fixture(copy = zh) {
     '@/store/staking': { useStaking: () => ({ todayAccruedUSDT: () => 0 }) },
     '@/composables/use-ticker': { useTicker: () => Vue.ref(0) }, './home-real-copy': { homeEarningsSubtitle },
     '@/lib/amount-display': { formatAmount }, '@/lib/usd-display': { formatUsd, formatUsdOverviewParts },
-    './home-live-feed': { formatHomeFeedTime }, '@/lib/route': { navTo },
+    './home-live-feed': { formatHomeFeedTime, buildCanonicalHomeFeed }, '@/lib/route': { navTo },
     '@/i18n/remainder-ui': { useRemainderUiCopy: () => Vue.ref({ earnWays: {} }) },
     '@/i18n/audit-ui': { useAuditUiCopy: () => Vue.ref({ deviceRevenue: 'Revenue', revenueScope: 'Devices' }) },
     '@/store/config': { useConfig: () => ({ configStatus: 'ready', isEnabled: () => false }) },
@@ -84,7 +87,7 @@ function fixture(copy = zh) {
     '@/composables/use-trial-presentation': { useTrialPresentation: () => ({ active: Vue.ref(false), reservedSlots: Vue.ref(0) }) },
     '@/store/free-trial': { useFreeTrial: () => ({ refreshRemote: vi.fn() }) },
     '@/composables/use-capacity-explainer': { useCapacityExplainer: () => ({ open }) },
-    '@/composables/use-tab-page-lifecycle': { onShow() {}, onHide() {} },
+    '@/composables/use-tab-page-lifecycle': { onShow() {}, onHide() {}, useVisibleInterval() {} },
     '@/lib/device-slot-policy': {}, '@/lib/account-scope': {}, '@/lib/day-one-page-observation': {},
     '@/lib/device-copy': { deviceName: () => 'Device' }, '@/lib/hashpower': { deviceOnlineState: () => 'online' },
   };
@@ -106,14 +109,14 @@ function invoke(handler: Function | Function[], value = event()) {
 
 it.each([zh, en, vietnamese])('links both title toggles, masks period totals/counts/ledger, and restores the unchanged data', async copy => {
   const f = fixture(copy), before = JSON.stringify(f.app);
-  const home = f.mount(moneyRaw), earn = f.mount(earnRaw), ledger = f.mount(ledgerRaw);
+  const home = f.mount(moneyRaw), earn = f.mount(earnRaw), ledger = f.mount(ledgerRaw), feed = f.mount(liveFeedRaw);
   expect(text(home)).toContain('125.67');
   expect(text(earn)).toContain(fmt(copy.earn.jobsCount, { n: '321' }));
   expect(text(ledger)).toContain('+$0.0003');
   const ledgerDate = text(all(ledger).find(n => n.props['data-home-ledger-time'])!);
   invoke(byClass(home, 'data-visibility-toggle').props.onClick); await Vue.nextTick();
   expect(f.visibility.hidden).toBe(true);
-  for (const root of [home, earn, ledger]) {
+  for (const root of [home, earn, ledger, feed]) {
     expect(text(root)).toContain('••••');
     expect(text(root)).not.toContain('125.67');
     expect(text(root)).not.toContain('+$0.0003');
@@ -130,6 +133,7 @@ it.each([zh, en, vietnamese])('links both title toggles, masks period totals/cou
   expect(text(earn)).toContain(fmt(copy.earn.jobsCount, { n: '654' }));
   expect(text(earn)).toContain('765.43');
   expect(text(ledger)).toContain('+$0.0003');
+  expect(text(feed)).toContain('0.0003');
   expect(JSON.stringify(f.app)).toBe(before);
 });
 

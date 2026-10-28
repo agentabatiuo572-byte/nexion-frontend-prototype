@@ -1,3 +1,4 @@
+import { teamPrivacyFixture } from './team-privacy.test-support';
 import { beforeAll, afterAll, expect, it } from 'vitest';
 import { chromium, type Browser } from 'playwright';
 import * as Vue from 'vue';
@@ -29,7 +30,7 @@ const render = new Function('Vue', compile(fragment, { mode: 'function', prefixI
 }).code)(Vue);
 const stylesCode = ts.transpileModule(source.slice(source.indexOf('const blockedStyle:'), source.indexOf('</script>')),
   { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-const styles = new Function(`${stylesCode}; return { wingStyle, weakBadgeStyle, wingVolStyle, topMemberStyle };`)();
+const styles = new Function(`${stylesCode}; return { wingStyle, topMemberStyle };`)();
 function component(sfc: string, dependencies: Record<string, unknown> = {}) {
   const script = compileScript(parse(sfc).descriptor, { id: 'layout', inlineTemplate: true,
     templateOptions: { compilerOptions: { isCustomElement: tag => ['view', 'text'].includes(tag) } },
@@ -47,7 +48,7 @@ const emblem = component(emblemSource);
 let browser: Browser;
 beforeAll(async () => { browser = await chromium.launch({ headless: true }); });
 afterAll(async () => { await browser?.close(); });
-for (const width of [320, 390]) {
+for (const width of [320, 360, 390]) {
   for (const language of ['zh', 'en', 'vi'] as const) {
     it(`T3 ${language} ${width}px keeps member rank and full compute points separate`, async () => {
       const t = { en, zh, vi: vietnamese }[language];
@@ -58,7 +59,7 @@ for (const width of [320, 390]) {
         '@/lib/v-rank-copy': { rankTitle },
       });
       const app = Vue.createSSRApp({ render, setup: () => ({
-        ...styles, t, locale: { code: language }, formatComputePoints,
+        ...styles, visibility: teamPrivacyFixture().visibility, t, locale: { code: language }, formatComputePoints,
         wingMembersText: (n: number) => fmt(t.binary.monthVolMembers, { n }),
         wings: ['left', 'right'].map((key, i) => ({ key, name: i ? t.binary.rightWing : t.binary.leftWing,
           count: 2, computePoints: i ? 1480 : 1720, isWeak: !!i, color: '#ddd',

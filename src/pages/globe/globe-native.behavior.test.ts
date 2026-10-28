@@ -149,7 +149,6 @@ test("APP serializes eight centers, reference connections and geographic leaders
     expect(style(control).width).toBe("44px");
     expect(style(control).height).toBe("44px");
   });
-  expect(text(page.graph()!)).toContain(en.globe.referenceCenterShort);
 });
 
 test("APP reduced-motion stylesheet hides the pulse without hiding the interactive nodes", () => {
@@ -286,10 +285,6 @@ for (const platform of ["app", "h5"] as const) {
     for (const locale of ["en", "zh", "vi"] as const) {
       page.locale.value = locale; await settle();
       const copy = dictionaries[locale];
-      expect(copy.globe.simulatedData).toBeTruthy();
-      expect(text(page.root)).toContain(copy.globe.simulatedData);
-      expect(copy.globe.simulationLegend).toBeTruthy();
-      expect(text(page.root)).toContain(copy.globe.simulationLegend);
       expect(page.rows()).toHaveLength(8);
       expect(page.controls().map(control => control.props["aria-label"])).toEqual(GLOBE_CENTERS.map(c => copy.globe[c.nameKey]));
       for (const [i, row] of page.rows().entries()) {
@@ -400,6 +395,5 @@ for (const platform of ["app", "h5"] as const) {
     expect(first.headline()).toEqual(second.headline());
     expect(first.rows().map(text)).toEqual(second.rows().map(text));
     expect(text(first.root)).not.toContain(en.globe.youAre);
-    expect(text(first.rows()[0])).toContain(en.globe.referenceCenter);
   });
 }

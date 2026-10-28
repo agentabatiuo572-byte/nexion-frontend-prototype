@@ -15,7 +15,9 @@ export interface TeamLeaderboardSnapshot extends TeamProvenance {
   pauseSnapshotId?: string;
   pauseCapturedAt?: string;
   snapshotUnavailableReason?: string;
-  period: LeaderPeriod; rows: LeaderEntry[]; myRank: number | null; gapToNext: number;
+  period: LeaderPeriod; rows: LeaderEntry[]; myRank: number | null; gapToNext: number | null;
+  /** Missing on the legacy money-ranked endpoint. Do not infer a points ranking. */
+  rankingMetric: "COMPUTE_POINTS" | null; gapToNextComputePoints: number | null;
   poolUsd: number; topN: number; page: number; pageSize: number; totalRows: number; generatedAt: string; snapshotAt: string | null; snapshotVersion: string | null;
 }
 export interface TeamCommissionSnapshot extends TeamProvenance {
@@ -76,9 +78,20 @@ function leaderboard(value: unknown, mode: ApiEnvironment, requestedPeriod: Lead
   if(period!==requestedPeriod||(period!=="today"&&period!=="week"&&period!=="month"&&period!=="all")||!Array.isArray(source.rows)) return invalid();
   const page=num(source.page,true);const pageSize=num(source.pageSize,true);const totalRows=num(source.totalRows,true);
   if(page<1||pageSize<1||pageSize>100||source.rows.length>pageSize||totalRows<source.rows.length) return invalid();
+  const rankingMetric = source.rankingMetric === "COMPUTE_POINTS" ? "COMPUTE_POINTS" : null;
+  if (source.rankingMetric != null && typeof source.rankingMetric !== "string") return invalid();
   const firstRank=(page-1)*pageSize+1;const seenRanks=new Set<number>();
-  const rows=source.rows.map((item,index):LeaderEntry=>{const v=row(item);const rank=num(v.rank,true);const vRank=num(v.vRank,true);if(rank!==firstRank+index||rank>totalRows||seenRanks.has(rank)||vRank>12||typeof v.handle!=="string"||typeof v.flag!=="string"||typeof v.cc!=="string"||typeof v.hasDevice!=="boolean") return invalid();seenRanks.add(rank);return {rank,handle:v.handle,flag:v.flag,cc:v.cc,directs:num(v.directs,true),teamSize:num(v.teamSize,true),earnedUSDT:num(v.earnedUSDT),delta:typeof v.delta==="number"&&Number.isSafeInteger(v.delta)?v.delta:invalid(),vRank,hasDevice:v.hasDevice};});
+  const rows=source.rows.map((item,index):LeaderEntry=>{const v=row(item);const rank=num(v.rank,true);const vRank=num(v.vRank,true);if(rank!==firstRank+index||rank>totalRows||seenRanks.has(rank)||vRank>12||typeof v.handle!=="string"||typeof v.flag!=="string"||typeof v.cc!=="string"||typeof v.hasDevice!=="boolean") return invalid();seenRanks.add(rank);return {rank,handle:v.handle,flag:v.flag,cc:v.cc,directs:num(v.directs,true),teamSize:num(v.teamSize,true),earnedUSDT:v.earnedUSDT==null?null:num(v.earnedUSDT),computePoints:v.computePoints==null?null:num(v.computePoints,true),delta:typeof v.delta==="number"&&Number.isSafeInteger(v.delta)?v.delta:invalid(),vRank,hasDevice:v.hasDevice};});
   if((firstRank>totalRows&&rows.length!==0)||(firstRank<=totalRows&&rows.length!==Math.min(pageSize,totalRows-firstRank+1))) return invalid();
+  // Validate the declared ordering without re-sorting a partial server page.
+  if (rankingMetric === "COMPUTE_POINTS") {
+    let previousPoints: number | null = null;
+    for (const entry of rows) {
+      if (entry.computePoints === null) continue;
+      if (previousPoints !== null && entry.computePoints > previousPoints) return invalid();
+      previousPoints = entry.computePoints;
+    }
+  }
   const generatedAt=text(source.generatedAt);if(!Number.isFinite(Date.parse(generatedAt))) return invalid();
   const paused=source.paused===undefined?false:typeof source.paused==="boolean"?source.paused:invalid();
   if (source.snapshotState !== undefined && !["LIVE", "FROZEN", "UNAVAILABLE"].includes(String(source.snapshotState))) return invalid();
@@ -90,7 +103,7 @@ function leaderboard(value: unknown, mode: ApiEnvironment, requestedPeriod: Lead
   const snapshotState=paused?(frozen?"FROZEN":"UNAVAILABLE"):"LIVE";
   const dataAvailable=!paused||frozen;
   const snapshotUnavailableReason=typeof source.snapshotUnavailableReason==="string"?source.snapshotUnavailableReason:"";
-  const myRank=source.myRank===null?null:num(source.myRank,true);if(myRank!==null&&(myRank<1||myRank>totalRows)) return invalid();return {...proof,period,rows,myRank,paused,snapshotState,dataAvailable,pauseSnapshotId,pauseCapturedAt,snapshotUnavailableReason,gapToNext:num(source.gapToNext),poolUsd:num(source.poolUsd),topN:num(source.topN,true),page,pageSize,totalRows,generatedAt,snapshotAt:snapshotAt(source),snapshotVersion:snapshotVersion(source)};
+  const myRank=source.myRank===null?null:num(source.myRank,true);if(myRank!==null&&(myRank<1||myRank>totalRows)) return invalid();return {...proof,period,rows,myRank,paused,snapshotState,dataAvailable,pauseSnapshotId,pauseCapturedAt,snapshotUnavailableReason,rankingMetric,gapToNextComputePoints:source.gapToNextComputePoints==null?null:num(source.gapToNextComputePoints,true),gapToNext:source.gapToNext==null?null:num(source.gapToNext),poolUsd:num(source.poolUsd),topN:num(source.topN,true),page,pageSize,totalRows,generatedAt,snapshotAt:snapshotAt(source),snapshotVersion:snapshotVersion(source)};
 }
 
 const KINDS=new Set(["direct_purchase","direct_device_earning","unilevel","binary","peer","cultivation","leadership","genesis","promotion","other"]);

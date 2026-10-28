@@ -2,28 +2,28 @@
   <view class="team-roster">
     <view class="roster-heading" role="button" tabindex="0" :aria-expanded="isOpen" :aria-controls="`roster-${kind}`" @click="emit('toggle')" @keydown.enter.prevent="emit('toggle')" @keydown.space.prevent="emit('toggle')">
       <view class="roster-heading-copy">
-        <view class="roster-title"><view class="relation-dot" :style="{ background: color }" /><text>{{ title }}</text><text class="roster-count">{{ members.length }}</text></view>
-        <text class="roster-subtitle">{{ subtitle }}</text>
+        <view class="roster-title"><view class="relation-dot" :style="{ background: color }" /><text>{{ title }}</text><text class="roster-count">{{ visibility.mask(members.length) }}</text></view>
+        <text class="roster-subtitle">{{ visibility.mask(subtitle) }}</text>
       </view>
       <text class="roster-chevron" aria-hidden="true">{{ isOpen ? '−' : '+' }}</text>
     </view>
     <view v-if="isOpen" :id="`roster-${kind}`">
-      <text v-if="sortedMembers.length === 0" class="roster-empty">{{ emptyLabel }}</text>
+      <text v-if="sortedMembers.length === 0" class="roster-empty">{{ visibility.mask(emptyLabel) }}</text>
       <view v-for="m in sortedMembers" :key="m.id" class="member-row">
         <view class="member-trigger" role="button" tabindex="0" :aria-expanded="expandedMemberId === m.id" :aria-controls="`member-${kind}-${m.id}`" @click="toggleMember(m.id)" @keydown.enter.prevent="toggleMember(m.id)" @keydown.space.prevent="toggleMember(m.id)">
-          <TeamRankEmblem :rank="m.vRank" :size="44" />
+          <TeamRankEmblem v-if="!visibility.hidden" :rank="m.vRank" :size="44" />
           <view class="member-identity">
             <text class="member-name">{{ displayNickname(m.name) }}</text>
-            <view class="member-meta"><text>{{ rankLabel(m.vRank, locale.code, []) }}</text><view class="relation-dot" :style="{ background: statusColor(m.status) }" /><text>{{ auditCopy[m.status] }}</text></view>
+            <view class="member-meta"><text>{{ visibility.mask(rankLabel(m.vRank, locale.code, [])) }}</text><view class="relation-dot" :style="{ background: statusColor(m.status) }" /><text>{{ auditCopy[m.status] }}</text></view>
           </view>
-          <view class="member-points"><text class="tabular-nums">{{ formatComputePoints(m.monthComputePoints, locale.code) }}</text><text class="member-points-label">{{ t.network.monthVolume }}</text></view>
+          <view class="member-points"><text class="tabular-nums">{{ visibility.mask(formatComputePoints(m.monthComputePoints, locale.code)) }}</text><text class="member-points-label">{{ t.network.monthVolume }}</text></view>
           <text class="roster-chevron" aria-hidden="true">{{ expandedMemberId === m.id ? '−' : '+' }}</text>
         </view>
         <view v-if="expandedMemberId === m.id" :id="`member-${kind}-${m.id}`" class="member-details">
           <view class="member-detail member-joined"><text>{{ t.network.joined }}</text><text>{{ formatDisplayDateTime(m.joinedAt, locale.code) }}</text></view>
-          <view class="member-detail"><text>{{ t.network.allTime }}</text><text class="tabular-nums">{{ formatComputePoints(m.lifetimeComputePoints, locale.code) }}</text></view>
+          <view class="member-detail"><text>{{ t.network.allTime }}</text><text class="tabular-nums">{{ visibility.mask(formatComputePoints(m.lifetimeComputePoints, locale.code)) }}</text></view>
           <view class="member-detail"><text>{{ m.layer === 1 ? t.network.badgeDirect : t.network.badgeExtended }}</text><text>{{ m.city }}</text></view>
-          <text v-if="showContribution" class="member-contribution tabular-nums">+${{ formatAmount(contribution(m)) }}</text>
+          <text v-if="showContribution" class="member-contribution tabular-nums">+${{ visibility.mask(formatAmount(contribution(m))) }}</text>
         </view>
       </view>
     </view>
@@ -31,6 +31,7 @@
 </template>
 
 <script setup lang="ts">
+import { useDataVisibility } from "@/store/data-visibility";
 import { displayNickname } from "@/lib/brand-copy";
 import { formatAmount } from "@/lib/amount-display";
 import { formatComputePoints } from "@/i18n/compute-points";
@@ -59,6 +60,7 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ toggle: [] }>();
 const t = useT();
+const visibility = useDataVisibility();
 const showContribution = computed(() => props.showContribution !== false);
 const locale = useLocaleStore();
 const auditCopy = computed(() => networkReauditCopy(locale.code));

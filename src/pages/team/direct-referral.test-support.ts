@@ -1,6 +1,8 @@
 import { teamLogicCopy } from '@/i18n/team-logic-copy';
+import { teamRuleGuideCopy } from '@/components/team/team-rule-guide-copy';
 import { teamEventDate } from '@/lib/team-event-date';
 import * as Vue from "vue";
+import type { useDataVisibility } from '@/store/data-visibility';
 import { formatAmount } from "@/lib/amount-display";
 import { networkReauditCopy } from "@/i18n/network-reaudit";
 import type { Component } from "vue";
@@ -71,6 +73,7 @@ async function mount(source: string, dependencies: Record<string, unknown>) {
   const exports = { default: {} as Component };
   const shows: Array<() => void> = [];
   const defaults: Record<string, unknown> = {
+    '@/components/team/team-rule-guide-copy': { teamRuleGuideCopy },
     "@/lib/amount-display": { formatAmount },
     "@/i18n/network-reaudit": { networkReauditCopy },
     "@/i18n/team-logic-copy": { teamLogicCopy }, "@/lib/team-event-date": { teamEventDate },
@@ -125,7 +128,7 @@ export const eventFixture = (id = "one", kind = "direct_purchase") => ({ id, kin
 export const snapshotFixture = (events = [eventFixture()]) => ({ period: "month", page: 1, pageSize: 20, totalRows: events.length, events,
   split: { purchase: { amountUSDT: 60, amountNEX: 4000, count: 1 }, deviceEarning: { amountUSDT: .3, amountNEX: 20, count: 1 } },
   generatedAt: "2026-10-05T00:00:00Z", snapshotAt: "2026-10-05T00:00:00Z" });
-export async function directPage(options: { locale?: keyof typeof dictionaries; ready?: boolean; api?: { snapshot: any; policy: any }; purchaseApi?: { unilevel: any } } = {}) {
+export async function directPage(options: { locale?: keyof typeof dictionaries; ready?: boolean; visibility?: Pick<ReturnType<typeof useDataVisibility>, 'hidden' | 'mask'>; api?: { snapshot: any; policy: any }; purchaseApi?: { unilevel: any } } = {}) {
   const ready = options.ready !== false;
   const app = Vue.reactive({ accountKey: ready ? "user:607" : "default", accountBindingEpoch: 1 });
   const auth = Vue.reactive({ isAuthenticated: ready, accountId: ready ? "user:607" : "default" });
@@ -141,6 +144,7 @@ export async function directPage(options: { locale?: keyof typeof dictionaries; 
   } };
   const navTo = vi.fn();
   const page = await mount(directSource, {
+    '@/store/data-visibility': { useDataVisibility: () => options.visibility ?? { hidden: false, mask: String } },
     "@/store/locale": { useLocaleStore: () => Vue.reactive({ get code() { return locale.value; } }) },
     "@/i18n/use-t": { useT: () => Vue.computed(() => dictionaries[locale.value]) },
     "@/i18n/format": { fmt, dateLocale: () => locale.value === "vi" ? "vi-VN" : locale.value === "zh" ? "zh-CN" : "en-US" },

@@ -18,10 +18,11 @@
         </view>
       </NxSection>
       <NxSection :title="t.me.myNetwork">
-        <view class="me-network-grid">
-          <view v-for="item in networkItems" :key="item.key" class="me-network-item" :data-quick-key="item.key" role="button" tabindex="0" @click="handleQuickItem(item)" @keydown.enter.prevent="handleQuickItem(item)" @keydown.space.prevent="handleQuickItem(item)">
-            <view class="me-row-icon" :class="'me-tone--' + (item.tone || 'muted')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path v-for="path in iconPaths[item.icon]" :key="path" :d="path" /></svg></view>
-            <view class="me-network-item__copy"><text class="me-network-item__label">{{ item.label }}</text><text class="me-network-item__meta">{{ item.key === 'rank' ? visibility.mask(item.meta ?? '—') : item.meta }}</text></view>
+        <view class="me-shortcut-grid me-network-grid">
+          <view v-for="item in networkItems" :key="item.key" class="me-shortcut me-network-item" :data-quick-key="item.key" role="button" tabindex="0" @click="handleQuickItem(item)" @keydown.enter.prevent="handleQuickItem(item)" @keydown.space.prevent="handleQuickItem(item)">
+            <view class="me-row-icon me-shortcut__icon" :class="'me-tone--' + (item.tone || 'muted')"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path v-for="path in iconPaths[item.icon]" :key="path" :d="path" /></svg></view>
+            <text class="me-shortcut__label">{{ item.label }}</text>
+            <text v-if="item.meta" class="me-network-item__meta">{{ item.key === 'rank' ? visibility.mask(item.meta) : item.meta }}</text>
           </view>
         </view>
       </NxSection>
@@ -396,6 +397,7 @@ async function refreshRemoteTrial() {
 async function refreshRemoteMe() {
   if (!remoteApiEnabled) return;
   await settleRemoteMeLoaders([
+    ["profile-avatar", () => runPassiveTabRead("profile-avatar", () => profile.refreshAvatar())],
     ["home", () => app.ensureHomeTruth()],
     ["commission", () => commission.ensureCanonicalEvents()],
     ["withdrawals", () => runPassiveTabRead('withdrawals', () => app.refreshRemoteWithdrawalList())],
@@ -666,14 +668,7 @@ const signOutStyle: CSSProperties = {
 .me-tone--success { --me-icon: var(--v5-success-ink); --me-icon-bg: var(--v5-success-soft); }
 .me-tone--danger { --me-icon: var(--v5-danger); --me-icon-bg: var(--v5-danger-soft); }
 .me-row-dot { position: absolute; right: 0; top: 0; width: var(--v5-space-2); height: var(--v5-space-2); border-radius: var(--v5-radius-full); background: var(--v5-danger); box-shadow: 0 0 0 2px var(--v5-bg); }
-.me-network-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--v5-space-2) var(--v5-space-3); padding: var(--v5-space-1) 0 var(--v5-space-2); }
-.me-network-item { display: flex; align-items: center; gap: var(--v5-space-2); min-width: 0; min-height: 52px; cursor: pointer; }
-.me-network-item__copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.me-network-item__label { font: 500 var(--ui-type-list-subtitle)/18px var(--font-v5); overflow-wrap: anywhere; }
-.me-network-item__meta { font: 400 12px/16px var(--font-v5); color: var(--v5-ink-3); overflow-wrap: anywhere; }
-@media (max-width: 374px) {
-  .me-network-item__label { font-size: 12px; line-height: 16px; }
-}
+.me-network-item__meta { margin-top: -4px; font: 400 var(--ui-type-meta)/var(--ui-type-meta-lh) var(--font-v5); color: var(--v5-ink-3); text-align: center; overflow-wrap: anywhere; }
 .me-shortcut:focus-visible, .me-network-item:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; border-radius: var(--v5-radius-s); }
 .me-shortcut:active, .me-network-item:active { opacity: .72; }
 </style>

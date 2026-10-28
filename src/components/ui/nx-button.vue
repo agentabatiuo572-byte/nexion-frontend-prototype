@@ -2,14 +2,12 @@
   <view class="nx-button" :class="[`nx-button--${variant}`, `nx-button--${size}`, { 'nx-button--disabled': disabled || busy }]"
     role="button" :tabindex="disabled || busy ? -1 : 0" :aria-disabled="disabled || busy" :aria-busy="busy" :aria-label="label"
     @click="activate" @keydown.enter.prevent="activate" @keydown.space.prevent="activate">
-    <view class="nx-button__surface">
-      <LiquidGlass v-if="variant === 'secondary'" :radius="999" tone="control" />
+    <view class="nx-button__surface" :class="{ 'nx-frosted-button': variant === 'secondary' }">
       <view class="nx-button__content"><slot><text>{{ label }}</text></slot></view>
     </view>
   </view>
 </template>
 <script setup lang="ts">
-import LiquidGlass from '@/components/liquid-glass.vue';
 const props = withDefaults(defineProps<{ label?: string; variant?: 'primary' | 'secondary' | 'tertiary' | 'text'; size?: 'large' | 'medium' | 'small'; disabled?: boolean; busy?: boolean }>(), { variant: 'secondary', size: 'large' });
 const emit = defineEmits<{ (event: 'click'): void }>();
 function activate(event?: Event) { if (!props.disabled && !props.busy && !(event as KeyboardEvent)?.repeat) emit('click'); }

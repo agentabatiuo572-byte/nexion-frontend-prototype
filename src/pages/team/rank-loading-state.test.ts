@@ -13,12 +13,15 @@ import { zh } from '@/i18n/messages/zh';
 import { vi as vietnamese } from '@/i18n/messages/vi';
 import { fmt } from '@/i18n/format';
 import { auditUiCopy } from '@/i18n/audit-ui';
+import { rankGuideCopy } from '@/i18n/rank-guide-copy';
+import { installKeyboardActivation, uninstallKeyboardActivation } from '@/lib/a11y-activate';
 import { platformDisplayText } from '@/lib/brand-copy';
 import { isEntitlementVRankReward, rankEntitlementLabel } from '@/lib/rank-entitlement-label';
 import { rankGapText, rankConditionsText, rankLabel, rankCultivationCopy } from '@/lib/v-rank-copy';
 import { formatHowNumber } from '@/lib/rank-how-content';
 import { computePointsCopy, formatComputePoints } from '@/i18n/compute-points';
 import { nextRankProgress, type VRank, type VRankData, type VRankDef } from '@/store/v-rank';
+import { teamPrivacyFixture } from './team-privacy.test-support';
 
 vi.mock('@/api/runtime', () => ({ remoteApiEnabled: true, vRankApi: {} }));
 
@@ -57,7 +60,7 @@ const conditionTexts = (root: Host, label: string): string[] => {
   return [label, gap ? text(gap) : ''];
 };
 const unmounts: Array<() => void> = [];
-afterEach(() => { unmounts.splice(0).forEach(unmount => unmount()); vi.unstubAllGlobals(); });
+afterEach(() => { unmounts.splice(0).forEach(unmount => unmount()); uninstallKeyboardActivation(); vi.unstubAllGlobals(); });
 
 const { descriptor } = parse(source);
 const script = compileScript(descriptor, { id: 'rank-read-progress', inlineTemplate: true,
@@ -78,6 +81,7 @@ const facts = (): VRankData & { ladder: VRankDef[] } => ({
   myRank: 0, selfComputePoints: 0, directRefs: 0, teamComputePoints: 0, vDownlineCounts: {}, ladder: ladder(),
 });
 async function page(locale: Locale = 'en', initial?: ReturnType<typeof facts>) {
+  const { visibility, dependency } = teamPrivacyFixture();
   const auth = Vue.reactive({ accountId: 'user:rank-review-A' });
   const refreshCanonicalVRank = vi.fn(() => {});
   const state = Vue.reactive({ ...facts(), remoteReady: !!initial, remoteError: null as string | null,
@@ -98,6 +102,7 @@ async function page(locale: Locale = 'en', initial?: ReturnType<typeof facts>) {
     '@/i18n/compute-points': { computePointsCopy, formatComputePoints },
     '@/i18n/format': { fmt },
     '@/i18n/audit-ui': { useAuditUiCopy: () => Vue.ref(auditUiCopy[locale]) },
+    '@/i18n/rank-guide-copy': { rankGuideCopy },
     '@/components/ui/nx-button.vue': { default: { props: ['label'], setup: (props: any) => () => Vue.h('text', props.label) } },
     '@/components/ui/nx-section.vue': { default: slot },
     '@/components/ui/nx-list-group.vue': { default: slot },
@@ -105,6 +110,7 @@ async function page(locale: Locale = 'en', initial?: ReturnType<typeof facts>) {
     '@/i18n/use-t': { useT: () => Vue.ref(dictionaries[locale]) },
     '@/store/locale': { useLocaleStore: () => ({ code: locale }) },
     '@/store/auth': { useAuth: () => auth },
+    '@/store/data-visibility': dependency,
     '@/store/v-rank': { useVRank: () => state, nextRankProgress },
     '@/api/runtime': { remoteApiEnabled: true },
     '@dcloudio/uni-app': { onShow: (callback: () => void) => shows.push(callback) },
@@ -129,10 +135,72 @@ async function page(locale: Locale = 'en', initial?: ReturnType<typeof facts>) {
     await Vue.nextTick();
   };
   if (initial) await ready(); else await Vue.nextTick();
-  return { root, state, auth, navTo, ready, show: async () => { shows.forEach(callback => callback()); await Vue.nextTick(); } };
+  return { root, state, auth, visibility, navTo, ready, show: async () => { shows.forEach(callback => callback()); await Vue.nextTick(); } };
 }
 
 describe('rank page canonical read and next-rank progress', () => {
+  it.each(['en', 'zh', 'vi'] as const)('R10 masks live %s rank, expanded progress and action ARIA while retaining public rules', async locale => {
+    const loaded = facts(); loaded.ladder = loaded.ladder.slice(0, 9); loaded.myRank = 2;
+    loaded.ladder[2].conditions = { selfComputePoints: 1500 };
+    loaded.ladder[3].conditions = { selfComputePoints: 2000, directRefs: 3, teamComputePoints: 20000 };
+    Object.assign(loaded, { selfComputePoints: 1280, directRefs: 2, teamComputePoints: 12800 });
+    const p = await page(locale, loaded);
+    const nodes = (name: string) => all(p.root).filter(n => String(n.props.class).split(' ').includes(name));
+    const inherited = () => nodes('rank-inherited__toggle')[0];
+    inherited().props.onKeydown.forEach((handler: (e: object) => void) => handler({ key: 'Enter', preventDefault() {} }));
+    await Vue.nextTick();
+    const before = text(p.root), personal = JSON.stringify({ myRank: p.state.myRank, selfComputePoints: p.state.selfComputePoints, teamComputePoints: p.state.teamComputePoints, directRefs: p.state.directRefs });
+    const originalBars = nodes('rank-progress-track').map(n => [n.props['aria-valuenow'], n.props['aria-valuetext']]);
+    expect(originalBars).toHaveLength(4);
+    expect(originalBars.slice(0, 3).map(values => values[0])).toEqual([64, 67, 64]);
+    const publicRules = text(nodes('rank-details')[0]);
+    expect(publicRules).toContain(formatComputePoints(2000, locale));
+    expect(publicRules).toContain(formatComputePoints(20000, locale));
+    expect(publicRules).toContain('10%'); expect(publicRules).toContain('900.00 UVT');
+
+    p.visibility.toggle(); await Vue.nextTick();
+    expect(nodes('rank-current-level').map(text)).toEqual(['••••']);
+    expect(nodes('rank-current-name').map(text)).toEqual(['••••']);
+    expect(all(nodes('rank-identity')[0]).some(n => n.props['data-rank-emblem'] !== undefined)).toBe(false);
+    expect(nodes('rank-condition__current').map(text)).toEqual(Array(4).fill('••••'));
+    expect(nodes('rank-condition__gap').map(text)).toEqual(Array(4).fill('••••'));
+    expect(text(nodes('rank-next-heading')[0])).toContain('••••');
+    expect(text(nodes('rank-next-heading')[0])).not.toContain(fmt(auditUiCopy[locale].remainingConditions, { n: 4 }));
+    expect(text(inherited())).toContain('••••'); expect(inherited().props['aria-expanded']).toBe(true);
+    const actions = all(p.root).filter(n => n.props['data-gap-action'] !== undefined);
+    expect(actions).toHaveLength(4); expect(actions.map(n => n.props['data-gap-action'])).toEqual(Array(4).fill('••••'));
+    for (const bar of nodes('rank-progress-track')) {
+      expect(bar.props['aria-valuenow']).toBeUndefined();
+      expect(bar.props['aria-valuetext']).toMatch(/^•••• \/ /);
+      expect(bar.children.some(n => n.props.style?.width !== undefined)).toBe(false);
+    }
+    // Public rank badges/thresholds remain, but no row identifies the user's rank.
+    expect(nodes('rank-ladder-row').map(n => n.props['data-status'])).toEqual(Array(9).fill('locked'));
+    expect(all(nodes('rank-ladder')[0]).filter(n => n.props['data-rank-emblem'] !== undefined).map(n => n.props['data-rank-emblem'])).toEqual([0,1,2,3,4,5,6,7,8]);
+    expect(text(nodes('rank-details')[0])).toBe(publicRules);
+    const exposed = text(p.root) + JSON.stringify(all(p.root).map(n => Object.fromEntries(Object.entries(n.props).filter(([key]) => key.startsWith('aria-')))));
+    for (const value of [1280, 12800, 720, 7200, 220]) expect(exposed).not.toContain(formatComputePoints(value, locale));
+    expect(JSON.stringify({ myRank: p.state.myRank, selfComputePoints: p.state.selfComputePoints, teamComputePoints: p.state.teamComputePoints, directRefs: p.state.directRefs })).toBe(personal);
+
+    p.visibility.toggle(); await Vue.nextTick();
+    expect(text(p.root)).toBe(before);
+    expect(nodes('rank-progress-track').map(n => [n.props['aria-valuenow'], n.props['aria-valuetext']])).toEqual(originalBars);
+    expect(inherited().props['aria-expanded']).toBe(true);
+  });
+
+  it.each([0, undefined])('R10 restores zero/unknown point facts (%s) without manufacturing a progress value', async value => {
+    const loaded = facts(); loaded.selfComputePoints = value; loaded.teamComputePoints = value;
+    loaded.ladder[1].conditions = { selfComputePoints: 2000, teamComputePoints: 20000 };
+    const p = await page('en', loaded);
+    const before = text(p.root);
+    p.visibility.toggle(); await Vue.nextTick();
+    const bars = () => all(p.root).filter(n => n.props.role === 'progressbar');
+    expect(bars().every(n => n.props['aria-valuenow'] === undefined && n.props['aria-valuetext'].startsWith('•••• / '))).toBe(true);
+    p.visibility.toggle(); await Vue.nextTick();
+    expect(text(p.root)).toBe(before);
+    expect(bars().map(n => n.props['aria-valuenow'])).toEqual([value === undefined ? undefined : 0, value === undefined ? undefined : 0]);
+  });
+
   it.each(['en', 'zh', 'vi'] as const)('keeps the selected %s tier and intentional collapse through same-account rereads', async locale => {
     const loaded = facts(); loaded.myRank = 2;
     const p = await page(locale, loaded);
@@ -405,7 +473,11 @@ it.each(['zh', 'en', 'vi'] as const)('R1-TV05 shows only published increases in 
   const upcoming = () => all(p.root).find(item => item.props.class === 'rank-upcoming')!;
   const full = () => all(p.root).find(item => item.props.id === 'rank-details-3')!;
   expect(text(upcoming())).toContain(rankBenefitIncreaseHeading(locale));
-  expect(text(upcoming())).toContain('L1–L4');
+  expect(text(p.root)).not.toMatch(/L1[–-]L\d|收益层级/);
+  expect(text(upcoming())).toContain(rankGuideCopy(locale).rewardScope);
+  expect(text(full())).toContain(rankGuideCopy(locale).rewardScope);
+  const scopeLink = all(upcoming()).find(item => item.props.class === 'rank-scope-link')!;
+  scopeLink.props.onClick(); expect(p.navTo).toHaveBeenCalledWith('/pages/team/rank-how');
   expect(text(upcoming())).not.toContain(copy.rank.chips.direct);
   expect(text(full())).toContain(copy.rank.chips.direct);
   expect(text(full())).toContain('10%');
@@ -423,4 +495,61 @@ it.each(['zh', 'en', 'vi'] as const)('R1-TV05 shows only published increases in 
   expect(text(upcoming())).toContain(copy.rank.chips.direct);
   expect(text(upcoming())).not.toContain(rankBenefitIncreaseHeading(locale));
   expect(p.state.myRank).toBe(2);
+});
+
+it.each(['zh', 'en', 'vi'] as const)('UI-OPT-014 retains actual %s rates and a rules entry when only scope changes', async locale => {
+  const loaded = facts(); loaded.myRank = 2;
+  loaded.ladder[2].unilevelDepth = 3; loaded.ladder[3].unilevelDepth = 4;
+  const before = JSON.stringify(loaded);
+  const p = await page(locale, loaded);
+  const upcoming = all(p.root).find(item => item.props.class === 'rank-upcoming')!;
+  expect(text(upcoming)).toContain(auditUiCopy[locale].nextBenefits);
+  expect(text(upcoming)).not.toContain(rankBenefitIncreaseHeading(locale));
+  expect(text(upcoming)).toContain('10%');
+  expect(text(upcoming)).toContain(rankGuideCopy(locale).rewardScope);
+  const peerNotice = fmt(dictionaries[locale].rank.chips.peerNotDispatched, { n: '5' });
+  expect(text(upcoming).split(peerNotice)).toHaveLength(2);
+  expect(text(p.root)).not.toMatch(/L1[–-]L\d|收益层级/);
+  expect(p.state.ladder[3].unilevelDepth).toBe(4);
+  expect(JSON.stringify(loaded)).toBe(before);
+});
+
+it.each([
+  ['zh', false], ['en', false], ['vi', false],
+  ['zh', true], ['en', true], ['vi', true],
+] as const)('activates both %s reward rules links by keyboard with document activation %s', async (locale, withDocumentActivation) => {
+  const p = await page(locale, facts());
+  const before = text(p.root);
+  const links = all(p.root).filter(item => item.props.class === 'rank-scope-link');
+  expect(links).toHaveLength(2);
+  const listeners = new Map<string, (event: KeyboardEvent) => void>();
+  if (withDocumentActivation) {
+    vi.stubGlobal('document', {
+      addEventListener: (type: string, listener: (event: KeyboardEvent) => void) => listeners.set(type, listener),
+      removeEventListener: (type: string) => listeners.delete(type),
+    });
+    installKeyboardActivation();
+  }
+  for (const link of links) {
+    expect(link.props.role).toBe('link');
+    expect(String(link.props.tabindex)).toBe('0');
+    p.navTo.mockClear();
+    for (const key of [' ', 'Enter']) {
+      const event = {
+        key, defaultPrevented: false, repeat: false, altKey: false, ctrlKey: false, metaKey: false,
+        target: { tagName: 'UNI-VIEW', getAttribute: (name: string) => link.props[name], click: () => link.props.onClick() },
+        preventDefault() { this.defaultPrevented = true; },
+      };
+      const handlers = link.props.onKeydown;
+      for (const handler of Array.isArray(handlers) ? handlers : handlers ? [handlers] : []) handler(event);
+      listeners.get('keydown')?.(event as unknown as KeyboardEvent);
+      await Vue.nextTick();
+      expect(event.defaultPrevented).toBe(key === 'Enter');
+      expect(p.navTo).toHaveBeenCalledTimes(key === 'Enter' ? 1 : 0);
+    }
+    expect(p.navTo).toHaveBeenCalledWith('/pages/team/rank-how');
+    link.props.onClick();
+    expect(p.navTo).toHaveBeenCalledTimes(2);
+  }
+  expect(text(p.root)).toBe(before);
 });

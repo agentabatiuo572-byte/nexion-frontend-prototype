@@ -33,7 +33,11 @@
         <view class="mx-auto mb-2" style="width: 40px; height: 4px; border-radius: 3px; background: var(--v5-border-strong)" />
         <text class="block px-2 py-1.5 truncate font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-3)">{{ displayName }}</text>
         <view class="space-y-1">
-          <view v-if="phoneLocalReady" class="nx-device-quick-stats flex items-center gap-2.5 px-3 py-2.5 rounded-lg active:opacity-70" role="button" tabindex="0" @click="goStatsMenu"  @keydown.enter.stop.prevent="goStatsMenu" @keydown.space.stop.prevent="goStatsMenu">
+          <view v-if="canControlDevice(device) && device.activatedAt !== null" class="nx-device-quick-deactivate flex items-center gap-2.5 px-3 py-2.5 rounded-lg active:opacity-70" role="button" :tabindex="device.pendingDeactivate ? -1 : 0" :aria-disabled="!!device.pendingDeactivate" @click="goDeactivateMenu" @keydown.enter.stop.prevent="goDeactivateMenu" @keydown.space.stop.prevent="goDeactivateMenu">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v10" /><path d="M6.3 5.3a9 9 0 1 0 11.4 0" /></svg>
+            <text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink)">{{ device.pendingDeactivate ? t.myDevices.inventoryPendingDeactivateChip : t.myDevices.inventoryRowDeactivate }}</text>
+          </view>
+          <view v-if="phoneLocalReady && !detailPage" class="nx-device-quick-stats flex items-center gap-2.5 px-3 py-2.5 rounded-lg active:opacity-70" role="button" tabindex="0" @click="goStatsMenu"  @keydown.enter.stop.prevent="goStatsMenu" @keydown.space.stop.prevent="goStatsMenu">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" /></svg>
             <text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink)">{{ t.earn.quickMenu.stats }}</text>
           </view>
@@ -263,7 +267,7 @@
     <!-- Every device has its own canonical task stream. Keep the active task above;
          this list only mirrors settled task previews returned for this device. -->
     <view v-if="phoneLocalReady" class="nx-device-today-completed" data-device-today-completed="true" style="padding: 0 20px 16px">
-      <view class="flex items-center justify-between" style="margin-bottom: 8px">
+      <view class="flex items-center justify-between" :style="{ marginBottom: taskHistoryReady && !deviceTodayCompleted.length ? '0' : '8px' }">
         <text :style="sectionLabelStyle">{{ t.earn.todayRecentCompleted }}<template v-if="taskHistoryReady"> ({{ visibility.mask(deviceTodayCompleted.length) }})</template></text>
         <view
           class="active:opacity-60"
@@ -295,7 +299,6 @@
           <text class="tabular-nums text-right shrink-0" style="font-family: var(--font-v5); font-size: 12px; color: var(--v5-ink-4); width: 38px">{{ localClockTime(task.completedAt) }}</text>
         </view>
       </view>
-      <text v-else class="block" style="font-size: 12px; color: var(--v5-ink-3)">{{ t.taskHistory.historyEmpty }}</text>
     </view>
 
     <!-- Phone: background mode toggles -->
@@ -397,6 +400,7 @@ import { useDataVisibility } from "@/store/data-visibility";
 import { formatAmount } from "@/lib/amount-display";
 import { formatUsd } from "@/lib/usd-display";
 import { useDeviceStatisticsCapabilityCopy } from "@/i18n/device-statistics-capability";
+import { canControlDevice } from "@/lib/device-control-platform";
 import NxButton from "@/components/ui/nx-button.vue";
 import { computed, nextTick, ref, watch, onUnmounted, type CSSProperties } from "vue";
 import { onHide, useVisibleInterval } from "@/composables/use-tab-page-lifecycle";
@@ -858,6 +862,11 @@ function goStatsMenu() {
   if (props.detailPage) emit('statistics');
   else navTo(`/pages/earn/device-detail?id=${encodeURIComponent(props.device.id)}&section=statistics`);
 }
+function goDeactivateMenu() {
+  if (!canControlDevice(props.device) || props.device.pendingDeactivate || props.device.activatedAt === null) return;
+  closeMenu();
+  navTo(`/pages/me/devices?deactivate=${encodeURIComponent(props.device.id)}`);
+}
 function goTradeinMenu() {
   closeMenu();
   navTo("/pages/me/devices");
@@ -900,8 +909,8 @@ const warnIconStyle: CSSProperties = {
   color: "var(--v5-warning-ink)",
 };
 const chipStyle = computed<CSSProperties>(() => ({
-  padding: "2px 6px",
-  borderRadius: "4px",
+  padding: "2px 12px",
+  borderRadius: "999px",
   fontSize: "12px",
   fontFamily: "var(--font-v5)",
   background: `color-mix(in srgb, ${chipColor.value} 12%, transparent)`,

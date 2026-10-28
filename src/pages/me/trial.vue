@@ -146,9 +146,12 @@
         </view>
 
         <!-- ═══ ended — credit expired terminal ═══ -->
-        <view class="nx-glass-card" v-else-if="status === 'ended'" :style="terminalCardStyle">
-          <view class="grid place-items-center" :style="terminalIconBoxStyle">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></svg>
+        <view class="nx-glass-card" v-else-if="status === 'ended'" :style="terminalCardStyle" data-testid="trial-ended">
+          <view class="trial-ended-art" aria-hidden="true">
+            <CatalogMachineImage class="trial-ended-machine" :sku="trialProductId" :image-url="productCatalogState.status === 'ready' ? trialProduct?.imageUrl : undefined" scope-key="trial-ended" />
+            <view class="trial-ended-status">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></svg>
+            </view>
           </view>
           <text class="block" :style="idleTitleStyle">{{ t.trial.endedTitle }}</text>
           <text class="block" :style="idleBodyStyle">{{ t.trial.endedDesc }}</text>
@@ -222,6 +225,7 @@ import { computed, ref, watch, onMounted, onUnmounted, type CSSProperties } from
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import CountdownHero from "@/components/earn/trial-progress-hero.vue";
+import CatalogMachineImage from "@/components/catalog-machine-image.vue";
 import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
 import { formatTrialDateTime, formatTrialDeadline } from "@/lib/trial-date";
@@ -431,6 +435,9 @@ useDialogA11y(computed(() => rulesOpen.value), ".trs-root", () => { rulesOpen.va
 </script>
 
 <style scoped>
+.trial-ended-art { position:relative;width:112px;height:104px;margin:0 auto; }
+.trial-ended-machine { width:100%;height:100%; }
+.trial-ended-status { position:absolute;right:0;bottom:0;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--v5-surface-2); }
 .trial-read-state { display:flex;flex-direction:column;gap:16px;padding:24px 0;color:var(--v5-ink-3);font-size:13px; }
 .trial-read-skeleton { display:flex;flex-direction:column;gap:14px; }
 .trial-read-skeleton > view { height:24px;width:70%;border-radius:8px;background:var(--v5-surface-2); }

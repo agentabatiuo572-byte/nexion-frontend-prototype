@@ -29,6 +29,7 @@ export interface StorefrontSocialProof {
   cumulativeSales: number;
   windowDays: 7 | 30 | 90;
   windowSales: number;
+  liveActivity?: { viewers: number; sales24h: number; sales30m: number };
 }
 
 export interface StorefrontActivityApi {
@@ -96,12 +97,18 @@ function parseSocialProof(value: unknown, mode: ApiEnvironment): StorefrontSocia
   const proof = provenance(source, mode, PRODUCTION_SOCIAL_PROOF_SOURCE, message);
   if (typeof source.productName !== "string"
       || !source.productName.trim() || ![7, 30, 90].includes(source.windowDays as number)) return invalid(message);
+  const live = source.liveActivity == null ? null : record(source.liveActivity, message);
   return {
     ...proof,
     productName: source.productName.trim(),
     cumulativeSales: nonNegativeInteger(source.cumulativeSales, message),
     windowDays: source.windowDays as 7 | 30 | 90,
     windowSales: nonNegativeInteger(source.windowSales, message),
+    ...(live ? { liveActivity: {
+      viewers: nonNegativeInteger(live.viewers, message),
+      sales24h: nonNegativeInteger(live.sales24h, message),
+      sales30m: nonNegativeInteger(live.sales30m, message),
+    } } : {}),
   };
 }
 

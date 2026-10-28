@@ -15,21 +15,21 @@
           <view class="tree-hero-copy">
             <text class="block" :style="metricLabelStyle">{{ t.tree.totalNetwork }}</text>
             <view class="tree-total">
-              <text class="font-display tabular-nums">{{ !networkReadable ? '—' : members.length }}</text>
-              <text class="tree-total-unit">{{ members.length === 1 ? t.tree.member : t.tree.membersPlural }}</text>
+              <text class="font-display tabular-nums">{{ visibility.mask(!networkReadable ? '—' : members.length) }}</text>
+              <text class="tree-total-unit">{{ !visibility.hidden && members.length === 1 ? t.tree.member : t.tree.membersPlural }}</text>
             </view>
-            <text class="block" :style="metricLabelStyle">{{ t.tree.monthlyVolume }}</text>
-            <text class="block tree-points tabular-nums">{{ !networkReadable ? '—' : formatComputePoints(network.totalMonthComputePoints, locale.code) }}</text>
           </view>
-          <TeamArt kind="members" :size="112" />
+          <TeamArt kind="members" :size="80" />
         </view>
 
-        <view v-if="rosterMounted" v-show="networkReadable">
+        <view class="tree-volume-summary"><text :style="metricLabelStyle">{{ t.tree.monthlyVolume }}</text><text class="tree-points tabular-nums">{{ visibility.mask(!networkReadable ? '—' : formatComputePoints(network.totalMonthComputePoints, locale.code)) }}</text></view>
+
+        <view v-if="rosterMounted" v-show="networkReadable" class="tree-rosters">
           <!-- Direct section -->
           <TeamRosterSection
             color="var(--v5-brand)"
             :title="t.tree.directTitle"
-            :subtitle="directSubtitle"
+            :subtitle="visibility.mask(directSubtitle)"
             accent-bg="transparent"
             accent-text="var(--v5-brand)"
             :badge="t.tree.badgeDirect"
@@ -45,7 +45,7 @@
           <TeamRosterSection
             color="var(--v5-ink-2)"
             :title="t.tree.extendedTitle"
-            :subtitle="extendedSubtitle"
+            :subtitle="visibility.mask(extendedSubtitle)"
             accent-bg="transparent"
             accent-text="var(--v5-ink-2)"
             :badge="t.tree.badgeExtended"
@@ -69,6 +69,7 @@
 </template>
 
 <script setup lang="ts">
+import { useDataVisibility } from "@/store/data-visibility";
 import TeamArt from "@/components/team/team-art.vue";
 import { navTo } from "@/lib/route";
 import { formatAmount } from "@/lib/amount-display";
@@ -87,6 +88,7 @@ import { UNILEVEL_USDT } from "@/store/commission";
 import { apiRuntimeConfig, remoteApiEnabled } from "@/api/runtime";
 
 const t = useT();
+const visibility = useDataVisibility();
 const auth = useAuth();
 const environmentInvalidated = ref(false);
 watch(() => [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const, () => { environmentInvalidated.value = true; }, { flush: 'sync' });
@@ -127,17 +129,27 @@ const expanded = reactive<Record<"direct" | "extended", boolean>>({ direct: true
 
 const errorStateStyle: CSSProperties = { padding: "12px 0", borderBottom: "1px solid var(--v5-border)", color: "var(--v5-ink)" };
 const readStateStyle: CSSProperties = { minHeight: "88px", display: "grid", placeItems: "center", color: "var(--v5-ink-3)", fontSize: "13px" };
-const metricLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.5 };
+const metricLabelStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-3)", lineHeight: "var(--ui-type-list-subtitle-lh)" };
 </script>
 
 <style scoped>
-.team-tree-content { display: flex; flex-direction: column; gap: 28px; padding: var(--ui-space-inset) 20px 24px; }
-.tree-hero { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); padding: 4px 0 12px; }
+.team-tree-content { display: flex; flex-direction: column; gap: 24px; padding: 12px 20px 24px; }
+.tree-hero { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 8px 0 0; }
 .tree-hero-copy { min-width: 0; flex: 1; overflow-wrap: anywhere; }
-.tree-total { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin: 4px 0 18px; font-size: 36px; font-weight: 600; line-height: 1.15; }
-.tree-total-unit { font-size: 12px; color: var(--v5-ink-3); font-weight: 400; }
-.tree-points { margin-top: 4px; font-size: 19px; color: var(--v5-brand); }
-.tree-network-link { display: flex; align-items: center; justify-content: center; gap: var(--ui-space-inline); min-height: 48px; padding: var(--ui-space-row-y) 20px; border: 1px solid var(--v5-border); border-radius: 999px; background: color-mix(in srgb, var(--v5-ink) 6%, transparent); font-size: 14px; }
+.tree-total { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-top: 8px; font-size: var(--ui-type-wallet-amount); font-weight: 600; line-height: var(--ui-type-wallet-amount-lh); }
+.tree-total-unit { font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); color: var(--v5-ink-3); font-weight: 400; }
+.tree-volume-summary { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-block: 16px; border-block: 1px solid var(--v5-border); }
+.tree-volume-summary > text:first-child { flex: 1; }
+.tree-points { max-width: 56%; text-align: right; font-size: var(--ui-type-list-title); line-height: var(--ui-type-list-title-lh); color: var(--v5-ink-2); overflow-wrap: anywhere; }
+.tree-rosters { display: flex; flex-direction: column; gap: 32px; }
+.tree-rosters :deep(.roster-title) { font-size: var(--ui-type-section); line-height: var(--ui-type-section-lh); }
+.tree-rosters :deep(.roster-heading) { padding-bottom: 14px; min-height: 44px; }
+.tree-rosters :deep(.member-trigger) { min-height: 64px; gap: 10px; padding-block: 14px; }
+.tree-rosters :deep(.member-name) { font-size: var(--ui-type-list-title); line-height: var(--ui-type-list-title-lh); font-weight: 500; }
+.tree-rosters :deep(.member-points) { font-size: var(--ui-type-list-subtitle); line-height: var(--ui-type-list-subtitle-lh); }
+.tree-rosters :deep(.member-meta), .tree-rosters :deep(.member-points-label), .tree-rosters :deep(.roster-count) { font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); }
+.tree-rosters :deep(.member-details) { padding-block: 8px 18px; }
+.tree-network-link { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 48px; padding: 12px 0; border-top: 1px solid var(--v5-border); color: var(--v5-ink-2); font-size: var(--ui-type-button); line-height: var(--ui-type-button-lh); }
 [role="button"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
-@media (max-width: 360px) { .team-tree-content { padding-right: 16px; padding-left: 16px; } .tree-hero :deep(.team-art) { width: 88px !important; height: 88px !important; } }
+@media (max-width: 374px) { .team-tree-content { padding-inline: 16px; } .tree-hero :deep(.team-art) { --team-art-size: 72px; } .tree-rosters :deep(.member-trigger) { min-height: 56px; gap: 8px; } .tree-rosters :deep(.member-trigger .team-rank-emblem) { flex-shrink: 0; } }
 </style>

@@ -12,19 +12,26 @@
         <view class="wallet-metric" data-wallet-metric="all-time">
           <text class="wallet-metric-label">{{ t.wallet.allTimeEarnings }}</text>
           <text class="wallet-metric-amount tabular-nums" :style="amountStyle(visibility.mask(allTimeEarned === null ? '-' : `$${formatAmount(allTimeEarned)}`), 22, true)">{{ visibility.mask(allTimeEarned === null ? '-' : `$${formatAmount(allTimeEarned)}`) }}</text>
-          <view class="wallet-metric-sub wallet-metric-breakdown" role="group" :aria-label="allTimeSublabel">
-            <text v-for="(part, index) in allTimeSublabelParts" :key="index" aria-hidden="true" class="wallet-metric-breakdown__part" :class="{ 'wallet-metric-breakdown__amount': part.amount }" :style="part.amount ? amountStyle(part.text, 12, true) : undefined">{{ part.text }}</text>
+          <view class="wallet-metric-sub wallet-metric-breakdown" role="group" tabindex="0" :aria-label="allTimeSublabel">
+            <view class="wallet-metric-breakdown__item" aria-hidden="true">
+              <svg class="wallet-metric-breakdown__icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" /><path d="M9 3v3m6-3v3M9 18v3m6-3v3M3 9h3m-3 6h3m12-6h3m-3 6h3M10 10h4v4h-4z" /></svg>
+              <text class="wallet-metric-breakdown__amount">{{ allTimeAmounts.c }}</text>
+            </view>
+            <view class="wallet-metric-breakdown__item" aria-hidden="true">
+              <svg class="wallet-metric-breakdown__icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="4" /><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m20 0v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+              <text class="wallet-metric-breakdown__amount">{{ allTimeAmounts.tm }}</text>
+            </view>
           </view>
         </view>
         <view class="wallet-metric" data-wallet-metric="reviewing" role="button" tabindex="0" @click="showPendingSheet" @keydown.enter.prevent="showPendingSheet" @keydown.space.prevent="showPendingSheet">
           <text class="wallet-metric-label">{{ t.wallet.reviewingEarnings }}</text>
           <text class="wallet-metric-amount tabular-nums" :style="amountStyle(visibility.mask(bucketsReadable ? `$${formatAmount(pendingReview)}` : '—'), 22, true)">{{ visibility.mask(bucketsReadable ? `$${formatAmount(pendingReview)}` : "—") }}</text>
-          <text class="wallet-metric-sub">{{ t.wallet.reviewingEarningsSub }}</text>
+          <text class="wallet-metric-sub wallet-metric-sub--release">{{ t.wallet.reviewingEarningsSub }}</text>
         </view>
         <view class="wallet-metric" data-wallet-metric="locked" role="button" tabindex="0" @click="showLockedSheet" @keydown.enter.prevent="showLockedSheet" @keydown.space.prevent="showLockedSheet">
           <text class="wallet-metric-label">{{ t.wallet.lockedRewards }}</text>
           <text class="wallet-metric-amount tabular-nums" :style="amountStyle(visibility.mask(bucketsReadable ? `$${formatAmount(lockedRewards)}` : '—'), 22, true)">{{ visibility.mask(bucketsReadable ? `$${formatAmount(lockedRewards)}` : "—") }}</text>
-          <text class="wallet-metric-sub">{{ t.wallet.lockedRewardsSub }}</text>
+          <text class="wallet-metric-sub wallet-metric-sub--release">{{ t.wallet.lockedRewardsSub }}</text>
         </view>
       </view>
 
@@ -177,23 +184,11 @@ const allTimeEarned = computed(() => miningLifetimeUSD.value === null || teamLif
 const hasReadRecovery = computed(() => configSyncFailed.value || fundsAuthorityUnavailable.value || releaseAuthorityUnavailable.value
   || (remoteApiEnabled && !earningsReadPending.value && allTimeEarned.value === null)
   || (remoteApiEnabled && app.remoteWithdrawalListStatus === "error"));
-const allTimeSublabel = computed(() =>
-  fmt(t.value.wallet.allTimeSublabel, {
-    c: visibility.mask(miningLifetimeUSD.value === null ? "-" : `$${formatAmount(miningLifetimeUSD.value)}`),
-    tm: visibility.mask(teamLifetimeUSD.value === null ? "-" : `$${formatAmount(teamLifetimeUSD.value)}`),
-  }),
-);
-const allTimeSublabelParts = computed(() => {
-  const amounts: Record<string, string> = {
-    "{c}": visibility.mask(miningLifetimeUSD.value === null ? "-" : `$${formatAmount(miningLifetimeUSD.value)}`),
-    "{tm}": visibility.mask(teamLifetimeUSD.value === null ? "-" : `$${formatAmount(teamLifetimeUSD.value)}`),
-  };
-  return t.value.wallet.allTimeSublabel.split(/(\{c\}|\{tm\})/).filter(Boolean)
-    .map(part => {
-      const amount = part === "{c}" || part === "{tm}";
-      return { text: amount ? amounts[part] : part, amount };
-    });
-});
+const allTimeAmounts = computed(() => ({
+  c: visibility.mask(miningLifetimeUSD.value === null ? "-" : `$${formatAmount(miningLifetimeUSD.value)}`),
+  tm: visibility.mask(teamLifetimeUSD.value === null ? "-" : `$${formatAmount(teamLifetimeUSD.value)}`),
+}));
+const allTimeSublabel = computed(() => fmt(t.value.wallet.allTimeSublabel, allTimeAmounts.value));
 // 🔴 用**主单**(优先最早的在途单)而不是「最新一笔」:一张在途 + 一张更新的已到账时,
 // 问「最新一笔」会拿到已到账那张 → 入口整行消失,在审核的那笔钱用户再也看不到。
 const latestWithdrawal = computed(() => app.primaryWithdrawal);
@@ -247,8 +242,12 @@ function amountStyle(value: string, size: number, half = false): CSSProperties {
 .wallet-metric-amount { display: block; min-height: 26.4px; margin-top: var(--v5-space-1); font-weight: 500; line-height: 1.2; letter-spacing: -.025em; white-space: nowrap; }
 .wallet-metric--today .wallet-metric-amount { color: var(--v5-brand); }
 .wallet-metric-sub { display: block; margin-top: var(--v5-space-1); font-size: var(--v5-type-caption); color: var(--v5-ink-3); line-height: 1.5; overflow-wrap: anywhere; }
-.wallet-metric-breakdown__part { display: block; }
-.wallet-metric-breakdown__amount { min-height: 18px; line-height: 18px; white-space: nowrap; }
+.wallet-metric-sub--release { font-size: 10px; line-height: 1.4; }
+.wallet-metric-breakdown { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; max-width: 100%; min-height: 16px; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none; }
+.wallet-metric-breakdown::-webkit-scrollbar { display: none; }
+.wallet-metric-breakdown:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; border-radius: var(--v5-radius-s); }
+.wallet-metric-breakdown__item { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 3px; font-size: 10px; line-height: 1.4; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.wallet-metric-breakdown__icon { flex: 0 0 12px; }
 .wallet-activity-row { display: flex; gap: var(--v5-space-3); align-items: center; padding: var(--v5-space-3) var(--v5-space-4); margin-top: var(--v5-space-3); border-radius: var(--v5-radius-l); background: var(--v5-surface); }
 .wallet-row-icon { flex-shrink: 0; color: var(--v5-warning); }
 .wallet-activity-copy { flex: 1; min-width: 0; }

@@ -25,6 +25,7 @@ async function screen(source:string){
  const app=Vue.reactive({accountKey:'user:1',accountBindingEpoch:1}),auth=Vue.reactive({isAuthenticated:true,accountId:'user:1'}),locale=Vue.reactive({code:'en'});
  const commission=useCommission(),net=useNetwork();commission.bindAccount('user:1');net.bindAccount('user:1');await flush();
  const deps:Record<string,any>={ '@/api/runtime':{...remote,sessionVault:{read:()=>({user:{userId:1}})}},'@/store/app':{useApp:()=>app},'@/store/auth':{useAuth:()=>auth},'@/store/locale':{useLocaleStore:()=>locale},'@/store/commission':{useCommission:()=>commission,UNILEVEL_USDT:{}},'@/store/network':{useNetwork:()=>net},'@/i18n/use-t':{useT:()=>Vue.ref(en)},'@/composables/use-product-phase':{useProductPhase:()=>Vue.ref({})},'@dcloudio/uni-app':{onShow(){}},'@/lib/route':{navTo:vi.fn()}};
+ deps['@/store/data-visibility']={useDataVisibility:()=>({hidden:false,mask:String})};
  const {descriptor}=await import('@vue/compiler-sfc').then(m=>m.parse(source));
  for(const m of descriptor.scriptSetup!.content.matchAll(/from\s+['"]([^'"]+)['"]/g)){const id=m[1];if(id==='vue'||id in deps)continue;deps[id]=id.endsWith('.vue')?slot:await vi.importActual(id);}
  const fmt=await vi.importActual<any>('@/i18n/format');deps['@/i18n/format']={...fmt,dateLocale:()=> 'en-US'};

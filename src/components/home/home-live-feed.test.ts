@@ -23,6 +23,13 @@ const ledger: AppHomeEarningsLedgerRow[] = [
 ];
 
 describe("home canonical live feed", () => {
+  it("orders mixed Java and zoned timestamps by the same instant used for display", () => {
+    const rows = [
+      { ...ledger[0], completedAt: '2026-10-29T10:00:00' },
+      { ...ledger[1], completedAt: '2026-10-29T01:30:00Z' },
+    ];
+    expect(buildCanonicalHomeFeed(rows).activityRows.map(row => row.id)).toEqual(['receipt-old', 'receipt-new']);
+  });
   it("keeps full local dates and minutes when native time formatting ignores locale options", () => {
     const nativeTime = vi.spyOn(Date.prototype, "toLocaleTimeString")
       .mockReturnValue("16:34:40 GMT+0900 (JST)");

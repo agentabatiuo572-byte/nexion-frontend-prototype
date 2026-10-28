@@ -1,3 +1,4 @@
+import { teamPrivacyFixture } from './team-privacy.test-support';
 import * as Vue from 'vue';
 import { parse } from '@vue/compiler-sfc';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
@@ -15,6 +16,7 @@ const showBeforeMount = Vue.vShow.beforeMount as Function;
 beforeEach(() => { vi.spyOn(Vue.vShow as { beforeMount: (...args: any[]) => unknown }, 'beforeMount').mockImplementation(((el: any, ...args: any[]) => { el.style = {}; return showBeforeMount(el, ...args); }) as any); const storage = new Map(); vi.stubGlobal('uni', { getStorageSync: (k: string) => storage.get(k), setStorageSync: (k: string,v: any) => storage.set(k,v), removeStorageSync: (k: string) => storage.delete(k) }); });
 afterEach(() => { stops.splice(0).forEach(f=>f()); vi.unstubAllGlobals(); vi.restoreAllMocks(); vi.useRealTimers(); });
 async function screen(name: string, language: 'en'|'zh'|'vi' = 'en', actualPayoutClock = false) {
+  const { visibility, dependency: visibilityDependency } = teamPrivacyFixture();
   const app = Vue.reactive({ accountKey: 'user:1', accountBindingEpoch: 1 });
   const auth = Vue.reactive({ isAuthenticated: true, accountId: 'user:1' });
   const locale = Vue.reactive({ code: language });
@@ -34,6 +36,7 @@ async function screen(name: string, language: 'en'|'zh'|'vi' = 'en', actualPayou
   const rank = Vue.reactive<any>({ myRank:5, remoteReady:true, remoteError:false, ladder:[], refreshCanonicalVRank:vi.fn().mockResolvedValue(undefined) });
   const deps: Record<string, any> = {
     '@dcloudio/uni-app': { onShow:(f:()=>void)=>callbacks.show.push(f), onHide:(f:()=>void)=>callbacks.hide.push(f), onUnload:(f:()=>void)=>callbacks.unload.push(f) },
+    '@/store/data-visibility': visibilityDependency,
     '@/store/app':{useApp:()=>app}, '@/store/auth':{useAuth:()=>auth}, '@/store/locale':{useLocaleStore:()=>locale},
     '@/store/commission':{useCommission:()=>commission,UNILEVEL_USDT:{}}, '@/store/network':{useNetwork:()=>network}, '@/store/v-rank':{useVRank:()=>rank},
     '@/store/leadership-pool':{useLeadershipPool:()=>({}),V_VOTES:{},POOL_TOP_N:100},
@@ -69,10 +72,10 @@ async function screen(name: string, language: 'en'|'zh'|'vi' = 'en', actualPayou
   }
   const page=mountEntry(source,deps,name==='quota-tier-card'?{tier:{productId:'p1',name:'P1',price:20,monthlyStock:80,soldThisMonth:0,conditions:[],perks:[],unlockKind:'all',tint:'#000'},pending:true}:{});
   stops.push(page.unmount);
-  return {...page,view:probe,app,auth,locale,env,api,reads,commission,network,rank,show:async()=>{callbacks.show.forEach(f=>f());await flush();},hide:async()=>{callbacks.hide.forEach(f=>f());await flush();},revision:async()=>{epoch++;callbacks.runtime.forEach(f=>f());await flush();}};
+  return {...page,visibility,view:probe,app,auth,locale,env,api,reads,commission,network,rank,show:async()=>{callbacks.show.forEach(f=>f());await flush();},hide:async()=>{callbacks.hide.forEach(f=>f());await flush();},revision:async()=>{epoch++;callbacks.runtime.forEach(f=>f());await flush();}};
 }
 function pool() { return {currentWeekPoolUSDT:5000,myRank:5,unlockRank:3,myVotes:5,totalVotes:50,mySharePct:.1,projectedPayoutUSDT:500,distribution:[],topN:10,nextPayoutAt:'2026-11-01T00:00:00Z',history:[]}; }
-function board(period='week',paused=false) { return {period,paused,dataAvailable:!paused,snapshotState:'LIVE',rows:[],myRank:null,gapToNext:0,totalRows:0,page:1,pageSize:20,snapshotAt:'A',snapshotVersion:'1'}; }
+function board(period='week',paused=false) { return {rankingMetric:'COMPUTE_POINTS',gapToNextComputePoints:null,period,paused,dataAvailable:!paused,snapshotState:'LIVE',rows:[],myRank:null,gapToNext:0,totalRows:0,page:1,pageSize:20,snapshotAt:'A',snapshotVersion:'1'}; }
 function direct() { return {period:'month',events:[],page:1,pageSize:20,totalRows:0,snapshotAt:'A',split:{direct:{amountUSDT:7,amountNEX:8,count:0},extended:{amountUSDT:0,amountNEX:0,count:0}}}; }
 const ledger = () => ({events:[],totalRows:0,aggregate:{monthUSDT:123,monthNEX:456,totalUSDT:789,totalNEX:12,unlockedUSDT:20,unlockedNEX:30,coolingUSDT:40,nextUnlockAt:null,byKind:Object.fromEntries(['direct_purchase','direct_device_earning','unilevel','binary','peer','cultivation','leadership','genesis','promotion','other'].map(k=>[k,{usdt:0,nex:0,count:0}]))}});
 
@@ -124,9 +127,11 @@ test.each(['zh','en','vi'] as const)('Quota %s pending static purchase label/ico
 for(const name of ['rank-how','commissions-how'])test(name+' retains accepted published body during warm reads but old resource cannot refill a replaced owner',async()=>{
  const p=await screen(name);
  const rankPolicy={hero:'Published rank hero',sections:['overview','overview-detail','ladder','promotion','stepwise','protection','rewards','requirement-self','requirement-direct','requirement-team','requirement-legs','unlock-network','unlock-peer','unlock-leadership','unlock-cultivation','faq-members','faq-rank','faq-rewards'].map(id=>({id,title:'Published '+id,body:'Published body '+id})),rules:{permanentProtection:true,leadershipConfigured:false,qualifiedReferralSelfBuyUSD:null}};
- const document={contentKey:'team-commissions-how',blocks:COMMISSIONS_HOW_SLOTS.map(id=>({id,title:'Published '+id,body:id==='network'?'{directPurchaseRules} {directDeviceRules}':'Published body '+id}))};
+ const document={contentKey:'team-commissions-how',locale:'en',blocks:COMMISSIONS_HOW_SLOTS.map(id=>({id,title:'Published '+id,body:id==='network'?'{directPurchaseRules} {directDeviceRules}':'Published body '+id}))};
  const settle=async(index:number)=>{p.reads.published[index].resolve(name==='rank-how'?rankPolicy:document);p.reads.ladder[index].resolve({ranks:[],capabilities:{peer:false,genesis:false}});if(name==='commissions-how'){p.reads.policy[index].resolve({configured:false,purchase:{},deviceEarning:{},nexUsdtPrice:null});p.reads.guide[index].resolve({binary:null,leadership:null,coolingDays:null,capabilities:{peer:false,genesis:false}});}await flush();};
- await p.show();await settle(0);expect(text(p.root)).toContain('Published body overview');
+ await p.show();await settle(0);
+ if(name==='rank-how'){all(p.root).find(n=>n.props['aria-controls']==='rule-overview')!.props.onClick();await flush();}
+ expect(text(p.root)).toContain('Published body overview');
  await p.show();expect(p.view.state.loading).toBe(true);expect(text(p.root)).toContain('Published body overview');expect(text(p.root)).not.toContain(p.view.content.copy.loading);
  p.app.accountBindingEpoch++;expect(p.view.state[name==='rank-how'?'policy':'snapshot']).toBeNull();await flush();await settle(1);expect(p.view.state[name==='rank-how'?'policy':'snapshot']).toBeNull();
  await settle(2);expect(text(p.root)).toContain('Published body overview');
@@ -162,9 +167,9 @@ test('Binary both wings preserve current canonical members and counts throughout
  const p=await screen('binary');p.network.byBinary=()=>({left:[{id:'l',name:'Left',monthComputePoints:10,monthVolumeUSD:1},{id:'l2',name:'Left 2',monthComputePoints:5,monthVolumeUSD:1}],right:[{id:'r',name:'Right',monthComputePoints:20,monthVolumeUSD:2}]});p.network.hasRemoteSnapshot=true;p.network.remoteStatus='ready';await flush();const before=p.view.wings.map((w:any)=>({count:w.count,name:w.top?.name}));expect(before).toEqual([{count:2,name:'Left'},{count:1,name:'Right'}]);p.network.remoteStatus='loading';await flush();expect(p.view.wings.map((w:any)=>({count:w.count,name:w.top?.name}))).toEqual(before);p.network.remoteStatus='error';await flush();expect(p.view.wings.every((w:any)=>w.top===undefined)).toBe(true);
 });
 for(const name of ['leadership-pool','leadership-pool-how'])test(name+' hide clears time-bound projection before show and rejects a pending prior period; static shell and read rules survive',async()=>{
- const p=await screen(name);await p.show();p.reads.pool[0].resolve(pool());await flush();const frame=name==='leadership-pool'?p.nodes('reward-summary-panel')[0]:p.nodes('pool-how-facts')[0];expect(frame).toBeDefined();await p.show();expect(p.view.remotePool).not.toBeNull();const previous=p.reads.pool[1];
+ const p=await screen(name);await p.show();p.reads.pool[0].resolve(pool());await flush();const frame=name==='leadership-pool'?p.nodes('pool-hero')[0]:p.nodes('pool-how-facts')[0];expect(frame).toBeDefined();await p.show();expect(p.view.remotePool).not.toBeNull();const previous=p.reads.pool[1];
  await p.hide();expect(p.view.remotePool).toBeNull();expect(p.view.remoteState).toBe('loading');expect(name==='leadership-pool'?p.view.poolRules.unlockRank:p.view.ruleFacts.unlockRank).toBe(3);
- await p.show();expect(p.view.remotePool).toBeNull();expect(name==='leadership-pool'?p.nodes('reward-summary-panel')[0]:p.nodes('pool-how-facts')[0]).toBe(frame);expect(text(p.root)).not.toContain('$0.00');expect(text(p.root)).not.toContain('$500.00');
+ await p.show();expect(p.view.remotePool).toBeNull();expect(name==='leadership-pool'?p.nodes('pool-hero')[0]:p.nodes('pool-how-facts')[0]).toBe(frame);expect(text(p.root)).not.toContain('$0.00');expect(text(p.root)).not.toContain('$500.00');
  previous.resolve({...pool(),currentWeekPoolUSDT:999,projectedPayoutUSDT:99});await flush();expect(p.view.remotePool).toBeNull();p.reads.pool[2].resolve({...pool(),currentWeekPoolUSDT:7000,projectedPayoutUSDT:700,nextPayoutAt:'2026-11-08T00:00:00Z'});await flush();expect(p.view.remotePool.projectedPayoutUSDT).toBe(700);
  await p.show();expect(p.view.remotePool.projectedPayoutUSDT).toBe(700);p.reads.pool[3].reject(new Error('actual failure'));await flush();expect(p.view.remotePool).toBeNull();expect(p.view.remoteState).toBe('error');expect(name==='leadership-pool'?p.view.poolRules:p.view.ruleFacts).toBeNull();
 });
@@ -179,4 +184,70 @@ test.each(['zh','en','vi'] as const)('Pool How %s distinguishes unknown distribu
  await p.hide();await p.show();expect(p.view.remotePool).toBeNull();expect(p.view.ruleFacts).not.toBeNull();expect(factsText()).not.toContain(copy.poolHowItWorks.noVoteRows);expect(factsText()).toContain('\u2014');
  p.reads.pool[1].resolve({...pool(),distribution:[]});await flush();expect(p.view.remoteState).toBe('ready');expect(p.view.remotePool).not.toBeNull();expect(factsText()).toContain(copy.poolHowItWorks.noVoteRows);
  await p.show();p.reads.pool[2].reject(new Error('strict failure'));await flush();expect(p.view.remoteState).toBe('error');expect(p.view.ruleFacts).toBeNull();expect(text(p.root)).not.toContain(copy.poolHowItWorks.noVoteRows);expect(text(p.root)).toContain(copy.pool.loadError);
+});
+
+// Global presentation privacy is independent from account/read authority.
+const accessiblePresentation = (root: Parameters<typeof text>[0]) => text(root) + all(root).map(node =>
+  ['aria-label', 'aria-valuetext', 'aria-valuenow', 'title', 'alt', 'value'].map(key => String(node.props[key] ?? '')).join(' ')).join(' ');
+
+test.each(['en','zh','vi'] as const)('Binary %s masks estimate, wings, leaders and history, retaining rules and raw values', async lang => {
+  const p = await screen('binary', lang);
+  const left = { id:'left',name:'Left member',vRank:6,monthComputePoints:1720,monthVolumeUSD:820 };
+  const right = { id:'right',name:'Right member',vRank:4,monthComputePoints:1480,monthVolumeUSD:720 };
+  p.network.byBinary = () => ({left:[left],right:[right]}); p.network.hasRemoteSnapshot=true;p.network.remoteStatus='ready';
+  p.commission.binarySnapshot={estimatedAmountUsdt:240.75,trackA:820,trackB:720,trackAComputePoints:1720,trackBComputePoints:1480,settlePeriod:'monthly',threshold:1,matchRate:.1375,dailyCap:4321,recentMatches:[{id:'settlement',amountUsdt:120.25,createdAt:Date.UTC(2026,9,28),status:'settled'}]};
+  p.commission.binaryStatus='ready';await flush();
+  const before=text(p.root), raw=JSON.stringify(p.commission.binarySnapshot), calls=p.commission.refreshCanonicalBinary.mock.calls.length;
+  expect(before).toContain('240.75');expect(before).toContain('120.25');expect(p.nodes('binary-contribution-fill')).toHaveLength(2);
+  p.visibility.toggle();await flush();
+  expect(p.nodes('binary-points').map(text)).toEqual(['••••','••••']);
+  expect(p.nodes('reward-wing-member__points').map(text)).toEqual(['••••','••••']);
+  expect(p.nodes('binary-record-value').map(text)).toEqual(['••••']);
+  expect(p.nodes('binary-contribution-fill')).toHaveLength(0);expect(p.nodes('binary-weak')).toHaveLength(0);
+  expect(text(p.nodes('reward-binary-basis')[0])).toContain(p.view.formulaText);
+  for(const secret of ['240.75','120.25','1720','1480']) expect(accessiblePresentation(p.root)).not.toContain(secret);
+  expect(text(p.root)).toContain('4,321.00');expect(JSON.stringify(p.commission.binarySnapshot)).toBe(raw);
+  expect(p.commission.refreshCanonicalBinary).toHaveBeenCalledTimes(calls);
+  p.visibility.toggle();await flush();expect(text(p.root)).toBe(before);expect(p.nodes('binary-contribution-fill')).toHaveLength(2);
+});
+
+test.each([null,0,3200])('Tree privacy restores unknown/zero/known points (%s) and hides roster summaries',async points=>{
+  const p=await screen('tree');p.network.members=[{id:'one',name:'Known',layer:1,monthVolumeUSD:0,monthComputePoints:points}];p.network.totalMonthComputePoints=points;p.network.hasRemoteSnapshot=true;p.network.remoteStatus='ready';await flush();
+  const before=text(p.root);expect(text(p.nodes('tree-points')[0])).toContain(points===null?'—':points===0?'0':'3,200');
+  p.visibility.toggle();await flush();expect(text(p.nodes('tree-points')[0])).toBe('••••');expect(text(p.nodes('tree-total')[0])).toContain('••••');
+  expect(all(p.root).filter(node=>node.props.subtitle!==undefined).every(node=>node.props.subtitle==='••••')).toBe(true);
+  expect(p.network.totalMonthComputePoints).toBe(points);p.visibility.toggle();await flush();expect(text(p.root)).toBe(before);
+});
+
+test.each(['en','zh','vi'] as const)('Pool %s hides personal and participation statistics while keeping the public pool',async lang=>{
+  const p=await screen('leadership-pool',lang);await p.show();p.reads.pool[0].resolve({...pool(),projectedPayoutUSDT:250.75,myVotes:2,mySharePct:.05,totalVotes:40,history:[{weekId:'2026-W43',poolUSDT:4000,payoutUSDT:120.25}]});await flush();
+  const before=text(p.root), raw=JSON.stringify(p.view.remotePool), personal=text(p.nodes('pool-personal')[0]);
+  expect(personal).toContain('250.75');expect(text(p.root)).toContain('120.25');
+  const publicHero=text(p.nodes('pool-hero')[0]);p.visibility.toggle();await flush();
+  expect(text(p.nodes('pool-hero')[0])).toBe(publicHero);expect(text(p.nodes('pool-votes')[0])).not.toContain('40');
+  expect(text(p.nodes('pool-personal')[0])).toContain('••••');expect(text(p.nodes('pool-history-row')[0])).toContain('••••');
+  for(const secret of ['250.75','120.25','5.00%'])expect(accessiblePresentation(p.root)).not.toContain(secret);
+  expect(JSON.stringify(p.view.remotePool)).toBe(raw);expect(p.api.leadershipPool).toHaveBeenCalledTimes(1);
+  p.visibility.toggle();await flush();expect(text(p.root)).toBe(before);
+});
+
+test.each(['en','zh','vi'] as const)('Leaderboard %s masks ranks, gap, member stats and earnings without changing order',async lang=>{
+  const p=await screen('leaderboard',lang);await p.show();p.reads.leaderboard[0].resolve({...board(),myRank:27,gapToNext:67.89,gapToNextComputePoints:6789,totalRows:3,rows:[{rank:1,handle:'Member Alpha',vRank:6,directs:13,teamSize:247,computePoints:34567,earnedUSDT:9876.54}]});await flush();
+  const before=text(p.root), raw=JSON.stringify(p.view.remoteSnapshot);expect(before).toContain(lang==='vi'?'34.567':'34,567');
+  p.visibility.toggle();await flush();expect(text(p.nodes('leader-points')[0])).toBe('••••');expect(text(p.nodes('leader-position')[0])).toBe('••••');
+  expect(p.nodes('leader-row')[0].props['data-rank']).toBeUndefined();expect(text(p.root)).toContain('Member Alpha');
+  for(const secret of ['34,567','34.567','6,789','6.789','9,876.54','67.89','247','#27','V6'])expect(accessiblePresentation(p.root)).not.toContain(secret);
+  expect(JSON.stringify(p.view.remoteSnapshot)).toBe(raw);expect(p.api.leaderboard).toHaveBeenCalledTimes(1);
+  p.visibility.toggle();await flush();expect(text(p.root)).toBe(before);
+});
+
+test.each(['en','zh','vi'] as const)('Agent %s masks draft and submitted budgets, retains public limits and the editable draft',async lang=>{
+  const p=await screen('agent',lang);await p.show();p.reads.policy[0].resolve({defaultBudgetUsdt:6543.21,buckets:[{id:'venue',title:'Venue',rule:'Public rule',minBudgetUsdt:100,maxBudgetUsdt:20000}]});p.reads.latest[0].resolve({status:'NONE'});p.reads.history[0].resolve([{applicationId:'application',city:'Test city',eventDate:'2026-11-01',bucket:'venue',status:'PENDING',budgetUsdt:8765.43}]);await flush();
+  p.view.budgetText='6543.21';await flush();
+  const before=accessiblePresentation(p.root), raw=JSON.stringify(p.view.draft.form), bucket=text(p.nodes('agent-bucket')[0]), submit=p.nodes('agent-submit')[0].props['aria-disabled'];
+  expect(before).toContain('6543.21');expect(before).toContain('8,765.43');
+  p.visibility.toggle();await flush();expect(p.nodes('agent-budget-masked')).toHaveLength(1);expect(all(p.root).filter(n=>n.tag==='input')).toHaveLength(2);
+  expect(accessiblePresentation(p.root)).not.toContain('6543.21');expect(accessiblePresentation(p.root)).not.toContain('8,765.43');expect(text(p.nodes('agent-bucket')[0])).toBe(bucket);
+  expect(p.nodes('agent-submit')[0].props['aria-disabled']).toBe(submit);expect(JSON.stringify(p.view.draft.form)).toBe(raw);expect(p.api.create).not.toHaveBeenCalled();
+  p.visibility.toggle();await flush();expect(accessiblePresentation(p.root)).toBe(before);expect(all(p.root).filter(n=>n.tag==='input')).toHaveLength(3);
 });

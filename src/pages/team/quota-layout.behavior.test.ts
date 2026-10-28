@@ -1,3 +1,4 @@
+import { teamPrivacyFixture } from './team-privacy.test-support';
 import { formatFinanceAmount } from '@/lib/finance-amount-display';
 import * as Vue from 'vue';
 import { afterEach, expect, it, vi } from 'vitest';
@@ -45,7 +46,7 @@ function page(locale: keyof typeof dictionaries = 'en', product = '') {
     '@/components/app-chassis.vue': slot, '@/components/sub-page-header.vue': { default: Vue.defineComponent({ props: ['back'], setup: props => () => Vue.h('view', { 'data-back': props.back }) }) },
     '@/components/team/team-art.vue': slot, '@/components/ui/nx-button.vue': button,
     '@/components/team/quota-tier-card.vue': { default: Vue.defineComponent({ props: ['tier', 'pending', 'actionBlocked'], setup: props => () => Vue.h('view', { 'data-tier': props.tier.productId, 'data-facts': props.tier, 'data-pending': props.pending, 'data-action-blocked': props.actionBlocked }, props.tier.name) }) },
-    '@/i18n/use-t': { useT: () => Vue.ref(dictionaries[locale]) }, '@/store/locale': { useLocaleStore: () => ({ code: locale }) },
+    '@/i18n/use-t': { useT: () => Vue.ref(dictionaries[locale]) }, '@/store/data-visibility': teamPrivacyFixture().dependency, '@/store/locale': { useLocaleStore: () => ({ code: locale }) },
     '@/i18n/network-reaudit': { networkReauditCopy }, '@/i18n/format': { fmt }, '@/api/runtime': { remoteApiEnabled: true, teamQuotaApi: api, apiRuntimeConfig: { environment: 'dev', baseUrl: 'https://test.invalid' } },
     '@/api/order-api': { subscribeRuntimeRevision: () => () => {} },
     '@/mock/products': { getProduct: () => undefined, annualRoiPct: () => 5 },
@@ -119,7 +120,7 @@ it('retains the real tier layout while masking stock and qualification and disab
   const p = mountEntry(tierSource.replace(/<image\b/g, '<view data-native-image="true"'), {
     '@/lib/finance-amount-display': { formatFinanceAmount }, '@/i18n/team-logic-copy': { teamLogicCopy },
     '@/i18n/compute-points': { formatComputePoints },
-    '@/store/locale': { useLocaleStore: () => ({ code: 'en' }) }, '@/i18n/network-reaudit': { networkReauditCopy },
+    '@/store/data-visibility': teamPrivacyFixture().dependency, '@/store/locale': { useLocaleStore: () => ({ code: 'en' }) }, '@/i18n/network-reaudit': { networkReauditCopy },
     './quota-condition-bar.vue': { default: Vue.defineComponent({ props: ['met', 'valueText'], setup: props => () => Vue.h('view', { 'data-met': props.met }, props.valueText) }) },
     '@/components/ui/nx-button.vue': { default: Vue.defineComponent({ props: ['label', 'disabled', 'busy'], emits: ['click'], setup: (props, { emit }) => () => Vue.h('view', { 'data-action-disabled': props.disabled, onClick: () => { if (!props.disabled) emit('click'); } }, props.label) }) },
     '@/i18n/use-t': { useT: () => Vue.ref(en) }, '@/i18n/format': { fmt }, '@/lib/brand-copy': { nexGridBrandText },
@@ -141,6 +142,7 @@ it.each(['all', 'either'] as const)('unlocks %s tiers with no minimums while ret
     soldThisMonth: 0, unlockKind, conditions: [], perks: [], tint: '#fff' });
   const navigate = vi.fn();
   const p = mountEntry(tierSource.replace(/<image\b/g, '<view data-native-image="true"'), {
+    '@/store/data-visibility': teamPrivacyFixture().dependency, '@/i18n/team-logic-copy': { teamLogicCopy },
     '@/lib/finance-amount-display': { formatFinanceAmount }, '@/i18n/compute-points': { formatComputePoints },
     '@/store/locale': { useLocaleStore: () => ({ code: 'en' }) }, '@/i18n/network-reaudit': { networkReauditCopy },
     './quota-condition-bar.vue': slot, '@/components/ui/nx-button.vue': button,

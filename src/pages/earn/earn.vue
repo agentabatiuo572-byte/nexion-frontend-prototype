@@ -102,6 +102,8 @@
       </EmptySlotsHint>
 
       <EarningsLedgerCard class="mx-4" />
+      <MarketBoard />
+      <TaskCenter />
       <NxSection class="mx-4 earn-more-ways" :title="auditCopy.moreWays">
         <!-- #ifdef H5 -->
         <EarnWayCard eyebrow="ANDROID" :title="remainderCopy.earnWays.phoneTitle" :body="remainderCopy.earnWays.phoneBody"
@@ -114,8 +116,6 @@
         <EarnWayCard v-if="stakingVisible" eyebrow="UVT" :title="remainderCopy.stakingTitle" :body="remainderCopy.earnWays.stakingBody"
           artwork="staking" :action="remainderCopy.stakingAction" @click="goStaking" />
       </NxSection>
-      <MarketBoard />
-      <TaskCenter />
       <!-- FEAT-DEV01: W-CAP1 任务产能说明弹层(单实例;设备卡/补贴 badge/提示线共用入口) -->
       <CapacityExplainerSheet />
     </CardStagger>

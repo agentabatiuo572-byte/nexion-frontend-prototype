@@ -1,0 +1,18 @@
+/* Shared by Home, Earn, inventory and device details. Offline/unknown dots stay still. */
+.nx-device-row[data-online="true"] .hf-status-dot,
+.device-status-online::before,
+.device-inventory-row__status--online::before,
+.trial-device-row__status--online::before {
+  animation: device-online-breathe 2.4s ease-in-out infinite;
+  transform-origin: center;
+}
+@keyframes device-online-breathe {
+  0%, 100% { opacity: .58; transform: scale(.86); }
+  50% { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-device-row[data-online="true"] .hf-status-dot,
+  .device-status-online::before,
+.device-inventory-row__status--online::before,
+.trial-device-row__status--online::before { animation: none; }
+}

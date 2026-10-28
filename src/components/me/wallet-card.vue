@@ -20,7 +20,7 @@
       </view>
       <view class="nx-wallet-nex" role="link" tabindex="0" @click="goNex" @keydown.enter.prevent="goNex" :aria-label="t.uiChrome.nexBalance + ': ' + nexLabel + ' UVT'">
         <view class="nx-wallet-coin" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9zM8 15V9l8 6V9" /></svg></view>
-        <text class="tabular-nums">{{ nexLabel }} UVT</text>
+        <view class="nx-wallet-token-value"><text class="tabular-nums nx-wallet-token-amount">{{ nexLabel }}</text><text class="nx-wallet-token-unit"> UVT</text></view>
         <svg class="nx-wallet-nex-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
       </view>
     <view class="nx-wallet-details">
@@ -306,7 +306,10 @@ const usdtFitStyle = computed<CSSProperties>(() => ({
 .nx-wallet-valuation { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; font: 400 12px/1.5 var(--font-v5); color: var(--v5-ink-3); }
 .nx-wallet-bills { display: flex; align-items: center; min-height: 44px; }
 .nx-wallet-slot-block { grid-template-columns: minmax(0, 1fr) auto; }
-.nx-wallet-nex-chevron { margin-left: auto; color: var(--v5-ink-3); }
+.nx-wallet-token-value { display: inline-flex; align-items: baseline; gap: 5px; min-width: 0; }
+.nx-wallet-token-amount { font-size: 20px; line-height: 1.35; }
+.nx-wallet-token-unit { flex-shrink: 0; font-size: 12px; line-height: 1.35; }
+.nx-wallet-nex-chevron { flex-shrink: 0; margin-left: -4px; color: var(--v5-ink-3); }
 .nx-wallet-nex:focus-visible, .nx-wallet-heading-link:focus-visible, .nx-wallet-bills:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; border-radius: 12px; }
 @keyframes wallet-arc-breathe { from { opacity: .55; } to { opacity: 1; } }
 @media (max-width: 350px) { .nx-wallet-slot-block { grid-template-columns: minmax(0, 1fr); } .nx-wallet-summary { padding: 18px; } }
@@ -322,6 +325,7 @@ const usdtFitStyle = computed<CSSProperties>(() => ({
 .nx-wallet--compact .nx-wallet-total { margin: 20px 0; }
 .nx-wallet--compact .nx-wallet-amount { font-size: min(var(--ui-type-wallet-amount), var(--nx-wallet-fit-size)); line-height: var(--ui-type-wallet-amount-lh); }
 .nx-wallet--compact .nx-wallet-nex { min-height: 44px; font-size: var(--v5-type-body-m); padding-bottom: 0; }
+.nx-wallet--compact .nx-wallet-token-amount { font-size: 18px; }
 .nx-wallet--compact .nx-wallet-coin { width: 20px; height: 20px; }
 .nx-wallet--compact .nx-wallet-details { padding: 12px 0 0; }
 /* Keep compact feedback slots present; longer financial text can still wrap. */
@@ -329,4 +333,123 @@ const usdtFitStyle = computed<CSSProperties>(() => ({
 .nx-wallet--compact .nx-wallet-valuation { min-height: 1.5em; align-items: flex-start; }
 .nx-wallet--compact .nx-wallet-valuation > text { min-width: 0; overflow-wrap: anywhere; }
 @media (min-width: 375px) { .nx-wallet-total { font-weight: 550; } }
+
+/* UI-OPT-046: visible color flow under a soft, thick glass edge.
+   Only the decorative layer moves; amounts and controls stay still. */
+.nx-wallet--compact > .nx-wallet-summary {
+  --wallet-glow-base: linear-gradient(135deg, rgba(28,27,43,.9), rgba(13,27,34,.94));
+  --wallet-glow-violet: rgba(137,103,248,.54);
+  --wallet-glow-cyan: rgba(39,194,214,.36);
+  --wallet-glow-accent: rgba(157,214,103,.10);
+  --wallet-glow-rim: rgba(176,196,215,.14);
+  --wallet-glow-highlight: rgba(236,247,255,.22);
+  --wallet-glow-bottom: rgba(54,167,184,.18);
+  --wallet-glow-shadow: rgba(0,0,0,.23);
+  --wallet-glow-sheen: rgba(230,240,255,.08);
+  background: var(--wallet-glow-base);
+  box-shadow: 0 12px 28px var(--wallet-glow-shadow), 0 2px 5px rgba(0,0,0,.08);
+  backdrop-filter: blur(16px) saturate(135%);
+  -webkit-backdrop-filter: blur(16px) saturate(135%);
+}
+.nx-wallet--compact > .nx-wallet-summary > .nx-wallet-arc {
+  inset: -55% -20%;
+  width: auto;
+  height: auto;
+  z-index: 0;
+  border-radius: 0;
+  background: radial-gradient(ellipse at 60% 45%, var(--wallet-glow-accent), transparent 75%);
+  box-shadow: none;
+  opacity: 1;
+  transform: none;
+  animation: wallet-color-current 40s linear infinite;
+}
+.nx-wallet--compact > .nx-wallet-summary > .nx-wallet-arc::before,
+.nx-wallet--compact > .nx-wallet-summary > .nx-wallet-arc::after {
+  content: "";
+  position: absolute;
+  --wallet-contact-direction: -1;
+  left: -2%;
+  top: 8%;
+  width: 61%;
+  height: 84%;
+  border-radius: 32% 68% 55% 45% / 64% 36% 64% 36%;
+  background: var(--wallet-glow-violet);
+  opacity: .65;
+  filter: blur(42px);
+  animation: wallet-color-morph 28s ease-in-out infinite, wallet-edge-pressure 24s ease-in-out infinite;
+}
+.nx-wallet--compact > .nx-wallet-summary > .nx-wallet-arc::after {
+  --wallet-contact-direction: 1;
+  left: 41%;
+  background: var(--wallet-glow-cyan);
+  animation: wallet-color-morph 34s ease-in-out -12s infinite reverse, wallet-edge-pressure 24s ease-in-out infinite;
+}
+.nx-wallet--compact > .nx-wallet-summary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(150deg, var(--wallet-glow-sheen), transparent 35%, transparent 60%, var(--wallet-glow-sheen));
+}
+.nx-wallet--compact > .nx-wallet-summary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px var(--wallet-glow-rim), inset 0 3px 6px -2px var(--wallet-glow-highlight), inset 2px 0 8px -4px var(--wallet-glow-highlight), inset 0 -4px 9px -4px var(--wallet-glow-bottom), inset 0 0 18px rgba(255,255,255,.025);
+}
+.nx-wallet--compact > .nx-wallet-summary > .nx-wallet-details { position: relative; z-index: 1; }
+.nx-wallet--compact > .nx-wallet-summary > .nx-wallet-particles { display: none; }
+.nx-wallet--compact .nx-wallet-particle { animation: none !important; }
+:global([data-theme="light"] .nx-wallet--compact > .nx-wallet-summary) {
+  --wallet-glow-base: linear-gradient(135deg, rgba(250,252,255,.86), rgba(242,248,255,.88));
+  --wallet-glow-violet: rgba(157,130,244,.27);
+  --wallet-glow-cyan: rgba(66,135,255,.225);
+  --wallet-glow-accent: rgba(87,210,220,.14);
+  --wallet-glow-rim: rgba(103,135,185,.10);
+  --wallet-glow-highlight: rgba(255,255,255,.85);
+  --wallet-glow-bottom: rgba(116,148,196,.18);
+  --wallet-glow-shadow: rgba(69,95,145,.12);
+  --wallet-glow-sheen: rgba(255,255,255,.45);
+}
+@keyframes wallet-color-current {
+  from { transform: rotate(-22deg); }
+  to { transform: rotate(338deg); }
+}
+@keyframes wallet-color-morph {
+  0%, 100% { border-radius: 32% 68% 55% 45% / 64% 36% 64% 36%; }
+  23% { border-radius: 68% 32% 27% 73% / 38% 68% 32% 62%; }
+  47% { border-radius: 41% 59% 72% 28% / 72% 29% 71% 28%; }
+  71% { border-radius: 73% 27% 41% 59% / 29% 57% 43% 71%; }
+}
+/* The two cores stay apart. Their shared edge yields and stretches together. */
+@keyframes wallet-edge-pressure {
+  0%, 100% { transform: translateX(0) scale(1, 1); }
+  45%, 55% { transform: translateX(calc(var(--wallet-contact-direction) * 3%)) scale(.91, 1.07); }
+}
+:global(.nx-chassis[data-page-visible="false"] .nx-wallet--compact > .nx-wallet-summary > .nx-wallet-arc),
+:global(.nx-chassis[data-scrolling="true"] .nx-wallet--compact > .nx-wallet-summary > .nx-wallet-arc),
+:global(.nx-chassis[data-page-visible="false"] .nx-wallet--compact > .nx-wallet-summary > .nx-wallet-arc::before),
+:global(.nx-chassis[data-page-visible="false"] .nx-wallet--compact > .nx-wallet-summary > .nx-wallet-arc::after),
+:global(.nx-chassis[data-scrolling="true"] .nx-wallet--compact > .nx-wallet-summary > .nx-wallet-arc::before),
+:global(.nx-chassis[data-scrolling="true"] .nx-wallet--compact > .nx-wallet-summary > .nx-wallet-arc::after) { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .nx-wallet--compact > .nx-wallet-summary > .nx-wallet-arc { animation: none; transform: rotate(-22deg); }
+  .nx-wallet--compact > .nx-wallet-summary > .nx-wallet-arc::before,
+  .nx-wallet--compact > .nx-wallet-summary > .nx-wallet-arc::after { animation: none; }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .nx-wallet--compact > .nx-wallet-summary { background: var(--v5-surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .nx-wallet--compact > .nx-wallet-summary::before,
+  .nx-wallet--compact > .nx-wallet-summary > .nx-wallet-arc { display: none; }
+}
+@media (forced-colors: active) {
+  .nx-wallet--compact > .nx-wallet-summary::before,
+  .nx-wallet--compact > .nx-wallet-summary::after,
+  .nx-wallet--compact > .nx-wallet-summary > .nx-wallet-arc { display: none; }
+}
 </style>

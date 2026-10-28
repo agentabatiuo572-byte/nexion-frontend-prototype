@@ -13,7 +13,7 @@
       </view>
 
       <template v-else>
-        <HowSection :title="w.currentRulesTitle" accent="purple">
+        <HowSection :title="w.currentRulesTitle" accent="purple" initial-open>
           <template #icon>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
           </template>
@@ -40,15 +40,15 @@
 
         <HowSection :title="auditCopy.poolFactsTitle">
           <view class="pool-how-facts">
-            <view><text>{{ auditCopy.votes }}</text><text>{{ remotePool?.myVotes ?? '—' }}</text></view>
-            <view><text>{{ auditCopy.totalVotes }}</text><text>{{ remotePool?.totalVotes ?? '—' }}</text></view>
-            <view><text>{{ auditCopy.share }}</text><text>{{ shareText }}</text></view>
+            <view><text>{{ auditCopy.votes }}</text><text>{{ visibility.mask(remotePool?.myVotes ?? '—') }}</text></view>
+            <view><text>{{ auditCopy.totalVotes }}</text><text>{{ visibility.mask(remotePool?.totalVotes ?? '—') }}</text></view>
+            <view><text>{{ auditCopy.share }}</text><text>{{ visibility.mask(shareText) }}</text></view>
           </view>
           <view v-if="distributionRows.length" class="pool-how-distribution">
             <view v-for="row in distributionRows" :key="row.vRank" class="pool-how-distribution-row">
               <text class="pool-how-distribution-rank">{{ row.label }}</text>
-              <text>{{ fmt(t.pool.peopleVotesEa, { count: row.people, votes: row.votes }) }}</text>
-              <text class="pool-how-distribution-total">{{ w.colVotes }}: {{ row.people * row.votes }}</text>
+              <text>{{ fmt(t.pool.peopleVotesEa, { count: visibility.mask(row.people), votes: visibility.mask(row.votes) }) }}</text>
+              <text class="pool-how-distribution-total">{{ w.colVotes }}: {{ visibility.mask(row.people * row.votes) }}</text>
             </view>
           </view>
           <text v-else class="block" :style="bodyStyle">{{ remotePool ? w.noVoteRows : '—' }}</text>
@@ -74,8 +74,8 @@ import { onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import RewardPageSurface from "@/components/team/reward-page-surface.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
-import HowHero from "@/components/team/reward-compact-hero.vue";
-import HowSection from "@/components/team/reward-rule-block.vue";
+import HowHero from "@/components/team/team-rule-hero.vue";
+import HowSection from "@/components/team/team-rule-section.vue";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
 import { networkReauditCopy } from "@/i18n/network-reaudit";
@@ -86,6 +86,7 @@ import { apiRuntimeConfig, remoteApiEnabled, teamInsightsApi } from "@/api/runti
 import type { TeamLeadershipPoolSnapshot } from "@/api/team-insights-api";
 import { useAuth } from '@/store/auth';
 import { useApp } from "@/store/app";
+import { useDataVisibility } from "@/store/data-visibility";
 import { useVRank, type VRank } from "@/store/v-rank";
 import { rankLabel } from "@/lib/v-rank-copy";
 import { leadershipPoolFailureState } from "@/lib/leadership-pool-state";
@@ -99,6 +100,7 @@ const auditCopy = computed(() => networkReauditCopy(locale.code));
 const w = computed(() => t.value.poolHowItWorks);
 const app = useApp();
 const auth = useAuth();
+const visibility = useDataVisibility();
 const readEnvironment = [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const;
 let environmentInvalidated = false;
 watch(() => [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const, () => { environmentInvalidated = true; }, { flush: 'sync' });

@@ -1,3 +1,4 @@
+import { teamPrivacyFixture } from './team-privacy.test-support';
 // @ts-expect-error Node is used only by the test runner.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -19,7 +20,7 @@ const presentationScript = transpileModule(source.slice(presentationStart, prese
 const presentation = new Function('computed', 'locale', 't', `${presentationScript}; return { applicationStatusText, applicationStatusColor, applicationBudget, applicationIdLabel };`);
 const implementation = source.match(/function refreshAgentPage\(\): void \{[\s\S]*?\n\}/)?.[0]?.replace('(): void', '()');
 if (!implementation) throw new Error('Missing ambassador page read function');
-const compile = new Function('remoteApiEnabled', 'captureAgentRequest', 'requestIsCurrent', 'refreshLatest', 'refreshHistory', 'ambassadorApplicationApi', 'vrank', 'policy', 'budgetText', 'pageReadState', 'draft', 'submitting', 'selectedBucketId', 't', `${implementation}; return refreshAgentPage;`);
+const compile = new Function('remoteApiEnabled', 'captureAgentRequest', 'requestIsCurrent', 'refreshLatest', 'refreshHistory', 'ambassadorApplicationApi', 'vrank', 'policy', 'budgetText', 'pageReadState', 'draft', 'submitting', 'selectedBucketId', 't', 'agentMounted', 'auth', 'environmentCurrent', 'invalidateAgentRequests', 'applications', 'latestApplication', 'emptyApplication', `${implementation}; return refreshAgentPage;`);
 const tick = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
 function scenario(failing?: 'latest' | 'history' | 'policy' | 'rank', stale = false) {
   const state = { value: 'loading' };
@@ -29,24 +30,26 @@ function scenario(failing?: 'latest' | 'history' | 'policy' | 'rank', stale = fa
     () => read('latest'), () => read('history'),
     { policy: () => read('policy').then(() => ({ defaultBudgetUsdt: 3000, buckets: [] })) },
     { remoteReady: failing !== 'rank', refreshCanonicalVRank: () => Promise.resolve() },
-    policy, { value: '' }, state, { value: { touched: false, form: {} } }, { value: false }, { value: '' }, { value: en });
+    policy, { value: '' }, state, { value: { touched: false, form: {} } }, { value: false }, { value: '' }, { value: en }, true, { isAuthenticated: true }, () => true, () => {}, { value: [] }, { value: null }, () => ({ status: 'NONE' }));
   run();
   return state;
 }
 describe('ambassador required read results', () => {
   for (const pageReadState of ['loading', 'error']) {
-    it(`${pageReadState} hides the application form and eligibility conclusions`, async () => {
-      const template = parse(source).descriptor.template!.content;
+    it(`${pageReadState} reports the required-read state and exposes retry only on failure`, async () => {
+      const fullTemplate = parse(source).descriptor.template!.content;
+      const template = fullTemplate.slice(fullTemplate.indexOf('<view v-if="remoteApiEnabled && pageReadState'), fullTemplate.indexOf('<view class="agent-content">'));
       const render = new Function('Vue', compileTemplate(template, { mode: 'function', prefixIdentifiers: true }).code)(Vue);
       const wrapper = Vue.defineComponent({ setup: (_, { slots }) => () => Vue.h('section', slots.default?.()) });
       const app = Vue.createSSRApp({ render, setup: () => ({
-        remoteApiEnabled: true, pageReadState, retryAgentPage() {},
+        remoteApiEnabled: true, pageReadState, policy: null, retryAgentPage() {},
         t: { headerTitles: { teamAgent: 'Ambassador' }, agent: { loading: 'Loading records', loadError: 'Read failed', retry: 'Retry' } },
       }) });
       for (const component of ['AppChassis', 'SubPageHeader', 'VBadge', 'TeamArt', 'TeamRankEmblem']) app.component(component, wrapper);
       const html = await renderToString(app);
       expect(html).toContain(pageReadState === 'loading' ? 'Loading records' : 'Read failed');
-      expect(html).not.toContain('<input');
+      expect(html).toContain('role="status"');
+      expect(html).toContain(`aria-busy="${pageReadState === 'loading'}"`);
       expect(html.includes('Retry')).toBe(pageReadState === 'error');
     });
   }
@@ -95,7 +98,7 @@ describe('ambassador application cards expose business information only', () => 
         }));
         const before = JSON.stringify(applications);
         const state = {
-          remoteApiEnabled: true, applications, t: messages,
+          visibility: teamPrivacyFixture().visibility, remoteApiEnabled: true, applications, t: messages,
           casesBlockStyle: {}, approvedCapStyle: {}, casesGroupStyle: {}, caseRowStyle: () => ({}),
           ...presentation(Vue.computed, { code: locale }, Vue.ref(messages)),
           applicationProof: (application: AmbassadorApplication) => `${application.sourceEnvironment} · ${application.source}`,

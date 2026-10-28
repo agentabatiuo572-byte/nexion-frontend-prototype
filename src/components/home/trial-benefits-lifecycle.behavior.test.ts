@@ -213,7 +213,7 @@ test('lifecycle card leaves unrelated keys and nested retry keys alone', async (
   expect(view.navTo).not.toHaveBeenCalled(); expect(view.show).not.toHaveBeenCalled();
 });
 
-test.each(['active', 'grace', 'ended', 'converted'])('benefits keeps the %s trial after claim and fills the grid when the voucher is gone', async status => {
+test.each(['active', 'grace', 'ended'])('benefits keeps the %s trial after claim and fills the grid when the voucher is gone', async status => {
   const view = await mount('en', status, 'benefits');
   expect(find(view.root, item => item.type === 'trial-card')).toBeDefined();
   expect(byClass(view.root, 'home-benefits__grid--single')).toBeUndefined();
@@ -264,4 +264,16 @@ test('a masked embedded credit does not turn a failed unknown read into zero', a
   expect(textContent(byClass(screen.root, 'trial-lifecycle-credit')!)).toContain('-');
   expect(textContent(screen.root)).not.toContain('$0.00');
   expect(screen.projection.offsetUSD.value).toBeNull();
+});
+
+
+test('converted trial leaves the shared Store-style voucher and does not return during a failed warm read', async () => {
+  const view = await mount('zh', 'converted', 'benefits');
+  expect(find(view.root, item => item.type === 'trial-card')).toBeUndefined();
+  expect(find(view.root, item => item.type === 'voucher')).toBeDefined();
+  expect(byClass(view.root, 'home-benefits__grid--single')).toBeDefined();
+  view.trial.status = 'none'; view.trial.authorityStatus = 'error'; await Vue.nextTick();
+  expect(find(view.root, item => item.type === 'trial-card')).toBeUndefined();
+  view.voucher.presentationOffers = []; view.voucher.presentationClaimable = []; await Vue.nextTick();
+  expect(byClass(view.root, 'home-benefits')).toBeUndefined();
 });

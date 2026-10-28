@@ -193,7 +193,8 @@
 
 <script setup lang="ts">
 import { formatAmount } from "@/lib/amount-display";
-import { navReset, navTo } from "@/lib/route";
+import { navReset, navTo, takeNavigationQuery } from "@/lib/route";
+import { onLoad, onUnload } from '@dcloudio/uni-app';
 import { computed, ref, watch, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -295,6 +296,19 @@ const slotMeterLabel = computed(() =>
 
 // Deactivate sheet (running-task branch) — page-driven (no chassis store).
 const sheetDevice = ref<Device | null>(null);
+let deactivateRequest = 0;
+onUnload(() => { deactivateRequest += 1; });
+onLoad(async options => {
+  const query = new URLSearchParams(takeNavigationQuery('/pages/me/devices'));
+  const id = options?.deactivate || query.get('deactivate') || '';
+  if (!id) return;
+  const request = ++deactivateRequest;
+  const scope = captureAccountScope();
+  if (remoteApiEnabled && !await refreshRemoteFleetAfterCatalog(app.accountKey)) return;
+  if (request !== deactivateRequest || !isCurrentAccountScope(scope)) return;
+  const device = app.visibleDevices.find(item => item.id === id && item.activatedAt !== null);
+  if (device) await handleDeactivate(device);
+});
 
 // ── FEAT-DEV02 升级置换条 ──────────────────────────────────────────────
 // 总开关关 / 免费设备(paidPriceUsdt=0)/不在 applyTo 白名单 → 返回空对象 =

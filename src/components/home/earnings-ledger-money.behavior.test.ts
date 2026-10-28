@@ -1,3 +1,5 @@
+import { formatConversationTime } from '@/components/support/conversation-time';
+import { parseServerTimestamp } from '@/api/server-time';
 import * as Vue from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import { compile } from "@vue/compiler-dom";
@@ -31,7 +33,7 @@ function mount(ledger: AppHomeEarningsLedgerRow[] | null, copy = zh, remoteApiEn
   const modules: Record<string, unknown> = {
     '@/store/data-visibility': { useDataVisibility: () => ({ hidden: false, mask: String }) },
     "@/store/locale": { useLocaleStore: () => ({ code: copy === zh ? "zh" : copy === vietnamese ? "vi" : "en" }) },
-    vue: Vue, "@/lib/usd-display": { formatUsd }, "./home-live-feed": { formatHomeFeedTime },
+    vue: Vue, '@/components/support/conversation-time': { formatConversationTime }, '@/api/server-time': { parseServerTimestamp }, '@/composables/use-tab-page-lifecycle': { useVisibleInterval: vi.fn() }, "@/lib/usd-display": { formatUsd }, "./home-live-feed": { formatHomeFeedTime },
     "@/lib/route": { navTo }, "@/i18n/use-t": { useT: () => Vue.ref(copy) },
     "@/api/runtime": { remoteApiEnabled }, "@/store/app": { useApp: () => app },
   };

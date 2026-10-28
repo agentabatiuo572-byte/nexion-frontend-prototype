@@ -5,25 +5,25 @@
       <view class="rank-content">
         <view v-if="rankAvailable" class="rank-spotlight">
           <view class="rank-identity">
-            <view class="rank-identity__emblem"><TeamRankEmblem :rank="myRank" :size="76" /><text class="rank-current-level">V{{ myRank }}</text></view>
-            <view class="rank-identity__copy"><text class="rank-caption">{{ t.rank.currentRank }}</text><text class="rank-current-name">{{ rankLabel(myRank,locale.code,rankDefs) }}</text></view>
+            <view class="rank-identity__emblem"><TeamRankEmblem v-if="!visibility.hidden" :rank="myRank" :size="76" /><view v-else class="rank-private-emblem" aria-hidden="true">••••</view><text class="rank-current-level">{{ visibility.mask(`V${myRank}`) }}</text></view>
+            <view class="rank-identity__copy"><text class="rank-caption">{{ t.rank.currentRank }}</text><text class="rank-current-name">{{ visibility.mask(rankLabel(myRank,locale.code,rankDefs)) }}</text></view>
           </view>
           <view v-if="prog.next" class="rank-next-progress rank-next-progress--summary">
-            <view class="rank-next-heading"><text class="rank-next-title">{{ fmt(copy.toRank,{rank:rankLabel(prog.next.v,locale.code,rankDefs)}) }}</text><text class="rank-caption">{{ rankGapSummary }}</text></view>
+            <view class="rank-next-heading"><text class="rank-next-title">{{ fmt(copy.toRank,{rank:visibility.mask(rankLabel(prog.next.v,locale.code,rankDefs))}) }}</text><text class="rank-caption">{{ visibility.mask(rankGapSummary) }}</text></view>
             <view v-for="condition in nextConditions" :key="condition.key" class="rank-condition">
-              <view class="rank-condition__heading"><text class="rank-condition__name">{{ condition.displayLabel }}</text><view class="rank-condition__value"><text class="rank-condition__current">{{ condition.values.split(' / ')[0] }}</text><text class="rank-condition__target"> / {{ condition.values.split(' / ')[1] }}</text></view></view>
-              <view class="rank-progress-track" role="progressbar" :aria-label="condition.label" :aria-valuenow="condition.percent" :aria-valuemin="0" :aria-valuemax="100" :aria-valuetext="condition.values"><view :style="{width:(condition.percent ?? 0)+'%'}" /></view><text class="rank-condition__gap">{{ condition.gap }}</text>
+              <view class="rank-condition__heading"><text class="rank-condition__name">{{ condition.displayLabel }}</text><view class="rank-condition__value"><text class="rank-condition__current">{{ visibility.mask(condition.values.split(' / ')[0]) }}</text><text class="rank-condition__target"> / {{ condition.values.split(' / ')[1] }}</text></view></view>
+              <view class="rank-progress-track" role="progressbar" :aria-label="condition.label" :aria-valuenow="visibility.hidden ? undefined : condition.percent" :aria-valuemin="0" :aria-valuemax="100" :aria-valuetext="`${visibility.mask(condition.values.split(' / ')[0])} / ${condition.values.split(' / ')[1]}`"><view v-if="!visibility.hidden" :style="{width:(condition.percent ?? 0)+'%'}" /></view><text class="rank-condition__gap">{{ visibility.mask(condition.gap) }}</text>
             </view>
             <view v-if="inheritedConditions.length" class="rank-inherited">
-              <view class="rank-inherited__toggle" role="button" tabindex="0" :aria-expanded="inheritedExpanded" aria-controls="inherited-conditions" @click="inheritedExpanded=!inheritedExpanded" @keydown.enter.prevent="inheritedExpanded=!inheritedExpanded" @keydown.space.prevent="inheritedExpanded=!inheritedExpanded"><text>{{ rankReviewCopy.previous }} · {{ inheritedConditions.length }}</text><text aria-hidden="true">{{ inheritedExpanded ? '−' : '+' }}</text></view>
+              <view class="rank-inherited__toggle" role="button" tabindex="0" :aria-expanded="inheritedExpanded" aria-controls="inherited-conditions" @click="inheritedExpanded=!inheritedExpanded" @keydown.enter.prevent="inheritedExpanded=!inheritedExpanded" @keydown.space.prevent="inheritedExpanded=!inheritedExpanded"><text>{{ rankReviewCopy.previous }} · {{ visibility.mask(inheritedConditions.length) }}</text><text aria-hidden="true">{{ inheritedExpanded ? '−' : '+' }}</text></view>
               <view v-if="inheritedExpanded" id="inherited-conditions">
             <view v-for="condition in inheritedConditions" :key="condition.key" class="rank-condition">
-              <view class="rank-condition__heading"><text class="rank-condition__name">{{ condition.displayLabel }}</text><view class="rank-condition__value"><text class="rank-condition__current">{{ condition.values.split(' / ')[0] }}</text><text class="rank-condition__target"> / {{ condition.values.split(' / ')[1] }}</text></view></view>
-              <view class="rank-progress-track" role="progressbar" :aria-label="condition.label" :aria-valuenow="condition.percent" :aria-valuemin="0" :aria-valuemax="100" :aria-valuetext="condition.values"><view :style="{width:(condition.percent ?? 0)+'%'}" /></view><text class="rank-condition__gap">{{ condition.gap }}</text>
+              <view class="rank-condition__heading"><text class="rank-condition__name">{{ condition.displayLabel }}</text><view class="rank-condition__value"><text class="rank-condition__current">{{ visibility.mask(condition.values.split(' / ')[0]) }}</text><text class="rank-condition__target"> / {{ condition.values.split(' / ')[1] }}</text></view></view>
+              <view class="rank-progress-track" role="progressbar" :aria-label="condition.label" :aria-valuenow="visibility.hidden ? undefined : condition.percent" :aria-valuemin="0" :aria-valuemax="100" :aria-valuetext="`${visibility.mask(condition.values.split(' / ')[0])} / ${condition.values.split(' / ')[1]}`"><view v-if="!visibility.hidden" :style="{width:(condition.percent ?? 0)+'%'}" /></view><text class="rank-condition__gap">{{ visibility.mask(condition.gap) }}</text>
             </view>
               </view>
             </view>
-            <view class="rank-upcoming"><text class="rank-caption">{{ upcomingBenefitsTitle }}</text><view class="rank-perk-tags"><text v-for="perk in upcomingBenefits" :key="perk.key" class="rank-perk-tag">{{ perk.label }} {{ perk.value }}</text></view><text v-if="upcomingPeerNotice" class="rank-caption rank-upcoming__notice">{{ upcomingPeerNotice }}</text></view>
+            <view class="rank-upcoming"><text class="rank-caption">{{ upcomingBenefitsTitle }}</text><view class="rank-perk-tags"><text v-for="perk in upcomingBenefits" :key="perk.key" class="rank-perk-tag">{{ perk.label }} {{ perk.value }}</text></view><text v-if="upcomingPeerNotice" class="rank-caption rank-upcoming__notice">{{ upcomingPeerNotice }}</text><view v-if="prog.next.unilevelDepth > 0" class="rank-scope-link" role="link" tabindex="0" @click="go('/pages/team/rank-how')" @keydown.enter.prevent="go('/pages/team/rank-how')"><text>{{ guideCopy.rewardScope }}</text><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg></view></view>
             <NxButton class="rank-invite" variant="secondary" :label="t.team.inviteFriends" @click="go('/pages/team/team?intent=share')"><text>{{ t.team.inviteFriends }}</text><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
           </view>
         </view>
@@ -36,7 +36,7 @@
               </view>
               <view v-if="expandedRank === r.v" :id="`rank-details-${r.v}`" class="rank-details">
                 <text class="rank-detail-label">{{ t.rank.conditionsLabel }}</text><view v-for="condition in conditionItems(r)" :key="condition" class="rank-condition-copy"><view class="rank-condition-dot" aria-hidden="true" /><text>{{ condition }}</text></view><text v-if="r.v>1" class="rank-detail-hint">{{ t.rank.previousConditions }}</text>
-                <text class="rank-detail-label rank-detail-label--spaced">{{ t.rank.benefitsLabel }}</text><view class="rank-perk-grid"><view v-for="perk in benefitItems(r)" :key="perk.label" class="rank-perk"><text class="rank-caption">{{ perk.label }}</text><text class="rank-perk-value">{{ perk.value }}</text></view></view>
+                <text class="rank-detail-label rank-detail-label--spaced">{{ t.rank.benefitsLabel }}</text><view class="rank-perk-grid"><view v-for="perk in benefitItems(r)" :key="perk.label" class="rank-perk"><text class="rank-caption">{{ perk.label }}</text><text class="rank-perk-value">{{ perk.value }}</text></view></view><view v-if="r.unilevelDepth > 0" class="rank-scope-link" role="link" tabindex="0" @click="go('/pages/team/rank-how')" @keydown.enter.prevent="go('/pages/team/rank-how')"><text>{{ guideCopy.rewardScope }}</text><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg></view>
                 <text class="rank-detail-label rank-detail-label--spaced">{{ t.rank.rewardsLabel }}</text><view v-for="(reward,rewardIndex) in r.rewards" :key="rewardIndex" class="rank-reward-item"><template v-if="cultivationReward(reward)"><view class="rank-reward-summary"><text class="rank-reward-title">{{ cultivationCopy.title }}</text><text class="rank-reward-amount">{{ rewardText(reward) }}</text></view><text class="rank-reward-description">{{ fmt(cultivationCopy.trigger, { n: r.v, amount: rewardText(reward) }) }}</text><text class="rank-reward-note">{{ cultivationCopy.recipient }}</text></template><text v-else class="rank-reward">{{ rewardText(reward) }}</text></view><text v-if="!r.rewards.length" class="rank-reward-note">{{ t.rank.noRewards }}</text>
               </view>
             </view>
@@ -44,7 +44,7 @@
         </view>
         <view v-else-if="vState.remoteError" class="rank-state" role="button" tabindex="0" @click="retryRank" @keydown.enter.prevent="retryRank" @keydown.space.prevent="retryRank"><text>{{ t.rank.loadError }}</text><text>{{ t.rank.retry }}</text></view>
         <view v-else class="rank-state" role="status" aria-live="polite" aria-busy="true"><text>{{ t.rank.loading }}</text></view>
-        <view v-if="rankAvailable && rankActions.length" class="rank-actions"><NxListRow v-for="action in rankActions" :key="action.key" :title="action.title" :subtitle="action.label" @click="go(action.href)"><template #leading><view class="rank-action-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><template v-if="action.kind==='directRefs'"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M19 8v6M16 11h6"/></template><template v-else-if="action.kind==='selfComputePoints'"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M8 7h8M8 11h8M8 15h3"/></template><path v-else d="M4 19V9m6 10V5m6 14v-7m6 7H2" /></svg></view></template></NxListRow></view>
+        <view v-if="rankAvailable && rankActions.length" class="rank-actions"><NxListRow v-for="action in rankActions" :key="action.key" :title="action.title" :subtitle="visibility.mask(action.label)" @click="go(action.href)"><template #leading><view class="rank-action-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><template v-if="action.kind==='directRefs'"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M19 8v6M16 11h6"/></template><template v-else-if="action.kind==='selfComputePoints'"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M8 7h8M8 11h8M8 15h3"/></template><path v-else d="M4 19V9m6 10V5m6 14v-7m6 7H2" /></svg></view></template></NxListRow></view>
       </view>
     </view>
   </AppChassis>
@@ -65,6 +65,7 @@ import TeamRankEmblem from '@/components/team/team-rank-emblem.vue';
 import NxSection from "@/components/ui/nx-section.vue";
 import NxListRow from "@/components/ui/nx-list-row.vue";
 import { useAuditUiCopy } from '@/i18n/audit-ui';
+import { rankGuideCopy } from '@/i18n/rank-guide-copy';
 import NxButton from "@/components/ui/nx-button.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -74,6 +75,7 @@ import { formatHowNumber } from "@/lib/rank-how-content";
 import { computePointsCopy, formatComputePoints } from "@/i18n/compute-points";
 import { useLocaleStore } from "@/store/locale";
 import { useAuth } from "@/store/auth";
+import { useDataVisibility } from "@/store/data-visibility";
 import { remoteApiEnabled } from "@/api/runtime";
 import { onShow } from "@dcloudio/uni-app";
 
@@ -81,10 +83,12 @@ const t = useT();
 const copy = useAuditUiCopy();
 // 中文界面显示中文头衔(主人 2026-08-17 拍板:V3 = 舰长),拼法收在 lib/v-rank-copy
 const locale = useLocaleStore();
+const guideCopy = computed(() => rankGuideCopy(locale.code));
 const pointCopy = computed(() => computePointsCopy(locale.code));
 const cultivationCopy = computed(() => rankCultivationCopy(locale.code));
 const vState = useVRank();
 const auth = useAuth();
+const visibility = useDataVisibility();
 
 const myRank = computed(() => vState.myRank);
 const rankDefs = computed(() => vState.ladder);
@@ -174,6 +178,7 @@ function retryRank() {
 }
 
 function rowStatus(v: VRank): "done" | "current" | "locked" {
+  if (visibility.hidden) return "locked";
   return v < vState.myRank ? "done" : v === vState.myRank ? "current" : "locked";
 }
 
@@ -208,32 +213,37 @@ function go(url: string) {
 
 function benefitItems(r: VRankDef): {key:RankBenefitKey;label:string;value:string}[] {
   const items: {key:RankBenefitKey;label:string;value:string}[]=[{key:'directBonus',label:t.value.rank.chips.direct,value:formatHowNumber(r.directBonus*100,locale.code)+'%'}];
-  if(r.unilevelDepth>0) items.push({key:'unilevelDepth',label:copy.value.earningsDepth,value:`L1–L${r.unilevelDepth}`});
   if(r.peerBonus>0) items.push({key:'peerBonus',label:t.value.rank.chips.peer,value:vState.capabilities.peer ? formatHowNumber(r.peerBonus*100,locale.code)+'%' : fmt(t.value.rank.chips.peerNotDispatched,{n:formatHowNumber(r.peerBonus*100,locale.code)})});
   if(r.leadershipVotes>0) items.push({key:'leadershipVotes',label:t.value.rank.chips.pool,value:`${r.leadershipVotes} ${t.value.rank.chips.votes}`});
   return items;
 }
 const upcomingBenefitKeys = computed(() => increasedRankBenefitKeys(rankDefs.value.find(rank => rank.v === myRank.value), prog.value.next));
-const upcomingBenefitsTitle = computed(() => upcomingBenefitKeys.value ? rankBenefitIncreaseHeading(locale.code) : copy.value.nextBenefits);
+const hasVisibleIncrease = computed(() => upcomingBenefitKeys.value?.some(key => key !== 'unilevelDepth'));
+const upcomingBenefitsTitle = computed(() => hasVisibleIncrease.value ? rankBenefitIncreaseHeading(locale.code) : copy.value.nextBenefits);
 const upcomingBenefits = computed(() => {
   if (!prog.value.next) return [];
   const items = benefitItems(prog.value.next);
-  return upcomingBenefitKeys.value ? items.filter(item => upcomingBenefitKeys.value!.includes(item.key)) : items;
+  return hasVisibleIncrease.value ? items.filter(item => upcomingBenefitKeys.value!.includes(item.key)) : items;
 });
 // Keep the dispatch restriction visible even when an unchanged peer rate is
 // omitted from the increases. Full conditions, benefits and rewards stay below.
 const upcomingPeerNotice = computed(() => prog.value.next && prog.value.next.peerBonus > 0 && !vState.capabilities.peer
-  && upcomingBenefitKeys.value && !upcomingBenefitKeys.value.includes('peerBonus')
+  && hasVisibleIncrease.value && upcomingBenefitKeys.value && !upcomingBenefitKeys.value.includes('peerBonus')
   ? `${t.value.rank.chips.peer} · ${fmt(t.value.rank.chips.peerNotDispatched, { n: formatHowNumber(prog.value.next.peerBonus * 100, locale.code) })}` : '');
 </script>
 
 <style scoped>
 .rank-page { color:var(--v5-ink);padding-bottom:28px; }
+.rank-scope-link { display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;margin-top:8px;color:var(--v5-brand);font:500 13px/1.5 var(--font-v5);cursor:pointer; }
+.rank-scope-link > text { min-width:0;overflow-wrap:anywhere; }
+.rank-scope-link > svg { flex:none; }
+.rank-scope-link:focus-visible { outline:2px solid var(--v5-brand);outline-offset:3px; }
 .rank-content { padding:12px 16px 0; }
 .rank-spotlight { position:relative;isolation:isolate;overflow:hidden;padding:20px 18px 18px;border:1px solid var(--v5-border);border-radius:22px;background:radial-gradient(55% 45% at 18% 18%,color-mix(in srgb,var(--v5-brand) 22%,transparent),transparent 70%),radial-gradient(60% 50% at 100% 0%,color-mix(in srgb,var(--v5-ink) 6%,transparent),transparent 60%),linear-gradient(180deg,var(--ui-spotlight-top),var(--ui-ticket-bottom));margin-bottom:22px; }
 .rank-spotlight::before { content:'';position:absolute;inset:0;z-index:-1;background-image:radial-gradient(color-mix(in srgb,var(--v5-ink) 6%,transparent) 1px,transparent 1px);background-size:14px 14px;-webkit-mask-image:radial-gradient(70% 60% at 85% 10%,#000,transparent 75%);mask-image:radial-gradient(70% 60% at 85% 10%,#000,transparent 75%);pointer-events:none; }
 .rank-identity { position:relative;display:flex;align-items:center;gap:16px;margin-bottom:18px; }
 .rank-identity__emblem { position:relative;isolation:isolate;display:flex;flex:none;flex-direction:column;align-items:center;width:76px;gap:2px; }
+.rank-private-emblem { width:76px;height:76px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--v5-surface-3);color:var(--v5-ink-2);font-size:18px; }
 .rank-identity__emblem::before { content:'';position:absolute;inset:-10px -10px 14px;z-index:-1;border-radius:50%;background:radial-gradient(closest-side,color-mix(in srgb,var(--v5-brand) 40%,transparent),transparent);filter:blur(8px);pointer-events:none; }
 .rank-identity__copy { flex:1;min-width:0; }
 .rank-current-level { display:block;padding:0 9px;border:1px solid var(--v5-brand-border);border-radius:999px;background:var(--v5-surface);color:var(--ui-lime-soft);font:600 12.5px/20px var(--font-v5);font-variant-numeric:tabular-nums; }

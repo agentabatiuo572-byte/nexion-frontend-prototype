@@ -1,3 +1,4 @@
+import { teamPrivacyFixture } from './team-privacy.test-support';
 import { formatComputePoints } from "@/i18n/compute-points";
 import { describe, expect, it, vi } from "vitest";
 import ts from "typescript";
@@ -29,7 +30,7 @@ async function renderTree(remoteStatus: "idle" | "loading" | "ready" | "error", 
       TeamRosterSection: { props: ["emptyLabel"], render() { return h("section", this.$props.emptyLabel); } },
     },
     setup: () => ({
-      formatAmount, formatComputePoints, locale: {code:"en"},
+      visibility: teamPrivacyFixture().visibility, formatAmount, formatComputePoints, locale: {code:"en"},
       networkReadable: !remote || remoteStatus === 'ready', remoteApiEnabled: remote, rosterMounted: !remote || remoteStatus === 'ready',
       network: { remoteStatus, refreshCanonicalNetwork: vi.fn(), ensureCanonicalNetwork: vi.fn() },
       t: { network: en.network, tree: en.tree },

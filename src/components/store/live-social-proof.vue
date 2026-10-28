@@ -14,12 +14,13 @@
   softens entering/exiting rows.
 -->
 <template>
-  <view v-if="remoteApiEnabled" class="absolute" :style="rootStyle" :aria-label="remoteProof ? (remoteProof.productName) : w.unavailableLabel">
-    <view v-if="remoteProof">
-      <view v-for="(r, i) in remoteRows" :key="i" class="flex items-baseline" :style="rowStyle">
+  <view v-if="remoteApiEnabled" ref="proofRef" class="absolute social-proof" :class="{ 'social-proof--visible': proofInView }" :style="rootStyle" :aria-label="remoteProof ? remoteProof.productName : w.unavailableLabel">
+    <view v-if="remoteProof" class="social-proof__track" :style="{ animationDuration: `${remoteRows.length * 2}s` }">
+      <view v-for="(r, i) in [...remoteRows, ...remoteRows]" :key="i" :aria-hidden="i >= remoteRows.length ? true : undefined" class="flex items-baseline" :style="rowStyle">
         <view aria-hidden class="shrink-0" :style="dotStyle(r.color)" />
         <text class="shrink-0 tabular-nums" :style="numStyle(r.color)">{{ r.n.toLocaleString() }}</text>
         <text class="truncate" :style="labelStyle">{{ r.label }}</text>
+        <svg v-if="r.hot" class="shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2"><path d="m13 2-9 12h7l-1 8 10-12h-7l1-8Z" /></svg>
       </view>
     </view>
     <text v-else-if="remoteUnavailable" class="truncate" :style="unavailableStyle">{{ w.unavailableLabel }}</text>
@@ -46,18 +47,26 @@ import type { StorefrontSocialProof } from "@/api/storefront-activity-api";
 import { useApp } from "@/store/app";
 import { productCatalogState } from "@/store/product-catalog";
 import { createRemoteAccountEpoch } from "@/lib/remote-account-epoch";
+import { isTransientReadFailure } from "@/lib/remote-read-failure";
+import { useScrollGrowProgress } from "@/composables/use-scroll-grow-progress";
+import { useVisibleInterval } from "@/composables/use-tab-page-lifecycle";
 import { captureRuntimeRevision, isCurrentRuntimeRevision } from "@/api/order-api";
 import { MOCK_STOREFRONT_SOCIAL_PROOF_FIXTURE_ID, fixtureSocialProofValue } from "@/mock/storefront-social-proof";
 
 const props = defineProps<{ product: Product }>();
 const t = useT();
 const app = useApp();
+const { elRef: proofRef, inView: proofInView } = useScrollGrowProgress({ threshold: 0.01, fallbackInView: false });
 const w = computed(() => t.value.store.liveProof);
 const remoteProof = ref<StorefrontSocialProof | null>(null);
 const remoteUnavailable = ref(false);
 const remoteEpoch = createRemoteAccountEpoch(app.accountKey);
 let remoteMounted = false;
 let remoteRequest = 0;
+let remoteInFlight = 0;
+useVisibleInterval(() => {
+  if (remoteApiEnabled && remoteMounted && proofInView.value && (!remoteProof.value || remoteProof.value.liveActivity)) loadRemoteProof();
+}, 4_000);
 
 function hashId(id: string): number {
   let h = 0x811c9dc5;
@@ -95,7 +104,9 @@ function clearRemoteProof(unavailable = false): void {
 }
 
 function loadRemoteProof(request = remoteEpoch.snapshot()): void {
+  if (remoteInFlight !== 0 && remoteInFlight === remoteRequest) return;
   const generation = ++remoteRequest;
+  remoteInFlight = generation;
   const expectedAccount = String(app.accountKey);
   const runScope = captureRuntimeRevision();
   void storefrontActivityApi.socialProof(props.product.id, 30).then((snapshot) => {
@@ -104,9 +115,12 @@ function loadRemoteProof(request = remoteEpoch.snapshot()): void {
       remoteProof.value = snapshot;
       remoteUnavailable.value = false;
     }
-  }).catch(() => {
+  }).catch((cause: unknown) => {
     if (remoteMounted && generation === remoteRequest && remoteEpoch.isCurrent(request)
-        && expectedAccount === String(app.accountKey) && isCurrentRuntimeRevision(runScope)) clearRemoteProof(true);
+        && expectedAccount === String(app.accountKey) && isCurrentRuntimeRevision(runScope)
+        && !(remoteProof.value && isTransientReadFailure(cause))) clearRemoteProof(true);
+  }).finally(() => {
+    if (remoteInFlight === generation) remoteInFlight = 0;
   });
 }
 
@@ -161,6 +175,11 @@ const remoteRows = computed<FlatRow[]>(() => {
     { n: proof.windowSales, label: `${t.value.store.soldLabel} · ${fmt(t.value.store.detPaybackDays, { n: proof.windowDays })}`, color: "var(--v5-brand)" },
     { n: proof.cumulativeSales, label: t.value.store.liveProof.cumulativeSalesLabel, color: "var(--v5-success-ink)" },
   ];
+  if (proof.liveActivity) return [
+    { n: proof.liveActivity.viewers, label: w.value.viewingLabel, color: "var(--v5-tech-cyan-ink)" },
+    { n: proof.liveActivity.sales24h, label: w.value.sold24hLabel, color: "var(--v5-brand)" },
+    { n: proof.liveActivity.sales30m, label: w.value.sold30mLabel, color: "var(--v5-brand-2)", hot: true },
+  ];
   const stock = props.product.stock;
   if (stock !== undefined && stock < 50) {
     rows.push({ n: stock, label: w.value.stockShortLabel, color: "var(--v5-brand-2)" });
@@ -183,6 +202,7 @@ const doubled = computed(() => [...flat.value, ...flat.value]);
 const duration = computed(() => flat.value.length * 2);
 
 const rootStyle: CSSProperties = {
+  position: "absolute",
   left: "4px",
   bottom: "12px",
   width: "156px",
@@ -229,3 +249,8 @@ const labelStyle: CSSProperties = {
   color: "var(--v5-ink-3)",
 };
 </script>
+<style scoped>
+.social-proof__track { animation: dnk-scroll 6s linear infinite; animation-play-state: paused; }
+.social-proof--visible .social-proof__track { animation-play-state: running; }
+@media (prefers-reduced-motion: reduce) { .social-proof__track { animation: none; } }
+</style>

@@ -1,3 +1,4 @@
+import { teamPrivacyFixture } from './team-privacy.test-support';
 import * as Vue from 'vue';
 import { parse, compileScript } from '@vue/compiler-sfc';
 import ts from 'typescript';
@@ -39,11 +40,13 @@ function component(raw: string, deps: Record<string, unknown>) {
   return exports;
 }
 beforeEach(() => {
+  const storage = new Map<string, unknown>();vi.stubGlobal('uni', {getStorageSync:(key:string)=>storage.get(key),setStorageSync:(key:string,value:unknown)=>storage.set(key,value)});
   vi.resetModules(); vi.clearAllMocks(); vi.doMock('@/api/errors', () => ({ ApiError }));
   transport.config = Vue.reactive({ environment: 'dev', baseUrl: 'https://test.invalid' }); transport.catalog.mockResolvedValue(catalog());
 });
-afterEach(() => stop.splice(0).forEach(fn => fn()));
+afterEach(() => { stop.splice(0).forEach(fn => fn());vi.unstubAllGlobals(); });
 async function page(code: keyof typeof dictionaries = 'en', kind = 'ineligible') {
+  const { visibility, dependency: visibilityDependency } = teamPrivacyFixture();
   const store = await import('@/store/product-catalog');
   const runtimeRevision = await import('@/api/order-api');
   const show: Array<() => void> = [], hide: Array<() => void> = [], unload: Array<() => void> = [], load: Array<(q: any) => void> = [];
@@ -51,7 +54,7 @@ async function page(code: keyof typeof dictionaries = 'en', kind = 'ineligible')
   const app = Vue.reactive({ accountKey: 'user:A', accountBindingEpoch: 1 }), locale = Vue.reactive({ code });
   const common = {
     '@/lib/finance-amount-display': { formatFinanceAmount }, '@/i18n/team-logic-copy': { teamLogicCopy }, '@/i18n/compute-points': { formatComputePoints },
-    '@/store/locale': { useLocaleStore: () => locale }, '@/i18n/network-reaudit': { networkReauditCopy }, '@/i18n/use-t': { useT: () => Vue.computed(() => dictionaries[locale.code]) }, '@/i18n/format': { fmt },
+    '@/store/data-visibility': visibilityDependency, '@/store/locale': { useLocaleStore: () => locale }, '@/i18n/network-reaudit': { networkReauditCopy }, '@/i18n/use-t': { useT: () => Vue.computed(() => dictionaries[locale.code]) }, '@/i18n/format': { fmt },
     '@/lib/brand-copy': { nexGridBrandText }, '@/lib/product-media': { getProductMedia },
     '@/composables/use-scroll-grow-progress': { useScrollGrowProgress: () => ({ elRef: Vue.ref(null), inView: Vue.ref(true) }), PROGRESS_GROW_TRANSITION: 'none' },
   };
@@ -71,7 +74,7 @@ async function page(code: keyof typeof dictionaries = 'en', kind = 'ineligible')
     '@/lib/team-p3-17-18-request-scope': requestScope, '@/lib/quota-perk': { isAnnualizedQuotaPerk },
   });
   const dispose = () => { unload.forEach(fn => fn()); p.unmount(); }; stop.push(dispose); load.forEach(fn => fn({}));
-  return { ...p, store, runtimeRevision, api, app, locale, navTo, load, show: async () => { show.forEach(fn => fn()); await flush(); }, hide: async () => { hide.forEach(fn => fn()); await flush(); },
+  return { ...p, visibility, store, runtimeRevision, api, app, locale, navTo, load, show: async () => { show.forEach(fn => fn()); await flush(); }, hide: async () => { hide.forEach(fn => fn()); await flush(); },
     card: () => p.nodes('quota-tier')[0], action: () => all(p.nodes('quota-actions')[0]).find(n => n.props.role === 'button'),
     bypassAction: () => { const host = all(p.nodes('quota-actions')[0]).find(n => n.props.role === 'button'); const instance = buttons.find(b => !b.isUnmounted && b.subTree.el === host); (instance!.vnode.props!.onClick as () => void)(); }, dispose };
 }
@@ -128,4 +131,14 @@ it('ignores hidden late success and allows a new current observation after retur
   const p = await page(); await p.show(); const card = text(p.card()); const old = deferred(), current = deferred(); p.api.snapshot.mockReturnValueOnce(old.promise).mockReturnValueOnce(current.promise);
   await p.show(); await p.hide(); old.resolve(quota('eligible')); await flush(); expect(text(p.card())).toBe(card);
   await p.show(); current.resolve(quota('sold')); await flush(); expect(text(p.card())).toContain(en.quota.stockUnavailable); expect(p.navTo).not.toHaveBeenCalled();
+});
+
+it.each(['en','zh','vi'] as const)('privacy %s masks quota facts and condition progress but retains stock, thresholds and action authority',async code=>{
+  const p=await page(code);await p.show();const before=text(p.root),stock=text(p.nodes('quota-stock')[0]),action=p.action()!.props['aria-disabled'];
+  const progress=()=>all(p.root).filter(n=>n.props.role==='progressbar');expect(progress().length).toBeGreaterThan(0);
+  const condition=text(p.nodes('quota-condition__values')[0]);expect(condition).toContain('1 / 3');
+  p.visibility.toggle();await flush();expect(text(p.nodes('quota-invite-count__number')[0])).toBe('••••');expect(text(p.nodes('quota-condition__values')[0])).toBe('•••• / 3');
+  expect(progress()).toHaveLength(0);expect(text(p.nodes('quota-stock')[0])).toBe(stock);expect(p.action()!.props['aria-disabled']).toBe(action);
+  expect(text(p.nodes('quota-product__qualification')[0])).toBe('••••');expect(p.api.snapshot).toHaveBeenCalledTimes(1);
+  p.visibility.toggle();await flush();expect(text(p.root)).toBe(before);expect(progress().length).toBeGreaterThan(0);
 });

@@ -1,10 +1,16 @@
 import * as Vue from 'vue';
+import { chromium } from 'playwright';
+// @ts-expect-error Node builtins are used only by this test runner.
+import { readFileSync, writeFileSync } from 'node:fs';
+// @ts-expect-error Node builtins are used only by this test runner.
+import { env } from 'node:process';
 import { compileScript,parse } from '@vue/compiler-sfc';
 import { compile } from '@vue/compiler-dom';
 import { renderToString } from '@vue/server-renderer';
 import ts from 'typescript';
 import { afterEach,expect,it,vi } from 'vitest';
 import entrySource from './promotion-entry.vue?raw';
+import machineSource from '@/components/catalog-machine-image.vue?raw';
 import homeReadSource from '@/store/home-promotions.ts?raw';
 import { ApiError } from '@/api/errors';
 import buttonSource from '@/components/ui/nx-button.vue?raw';
@@ -25,6 +31,7 @@ import * as entry from '@/lib/promotion-entry';
 import { commerceCopy } from '@/lib/commerce-review';
 import * as display from '@/lib/promotion-display';
 import { promotionMachineSlots } from '@/components/catalog-machine-image';
+import { createPassiveTabReadFixture } from '@/lib/passive-tab-read.test-support';
 
 const code=(source:string)=>ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
 const script=(source:string)=>code(compileScript(parse(source).descriptor,{id:'promotion-marketing'}).content);
@@ -42,7 +49,7 @@ function evaluate(source:string,modules:Record<string,unknown>){
 const button=evaluate(code(compileScript(parse(buttonSource).descriptor,{id:'marketing-button',inlineTemplate:true,templateOptions:{compilerOptions:{isCustomElement:tag=>['view','text'].includes(tag)}}}).content),{vue:Vue}).default;
 const cleanups:Array<()=>void>=[];
 afterEach(()=>cleanups.splice(0).forEach(cleanup=>cleanup()));
-const flush=async()=>{await Promise.resolve();await Vue.nextTick();await Promise.resolve();};
+const flush=async()=>{for(let i=0;i<12;i++)await Promise.resolve();await Vue.nextTick();};
 function deferred<T>(){let resolve!:(result:T)=>void,reject!:(error:Error)=>void;const promise=new Promise<T>((yes,no)=>{resolve=yes;reject=no;});return{promise,resolve,reject};}
 const activity=(extra:Partial<PublicPromotion>={}):PublicPromotion=>({activityId:'a1',version:2,template:'SKU_GIFT',state:'ACTIVE',startsAt:'2026-10-07T00:00:00Z',endsAt:'2026-10-30T00:00:00Z',serverTime:'2026-10-08T00:00:00Z',title:{zh:'真实活动',en:'Live offer',vi:'Ưu đãi đang mở'},terms:{zh:'真实条件',en:'Live terms',vi:'Điều khoản'},placement:'home.purchase-promotion',target:'STORE',productNos:['sku'],minimumClientCapabilities:[],eligibility:'ESTIMATE_ELIGIBLE',eligibilityMessage:null,rewardRules:[],...extra});
 const page=(items:PublicPromotion[]):PublicPromotionPage=>({items,nextCursor:null,hasMore:false});
@@ -57,6 +64,7 @@ function platform(){
     '@dcloudio/uni-app':{onShow:(fn:()=>void)=>shown.push(fn),onHide:(fn:()=>void)=>hidden.push(fn)},
     '@/store/app':{useApp:()=>app},'@/store/locale':{useLocaleStore:()=>locale},
     '@/store/theme':{useTheme:()=>theme},
+    '@/lib/passive-tab-read':createPassiveTabReadFixture(()=>JSON.stringify([app.accountKey,app.accountBindingEpoch,locale.code])),
     '@/lib/promotion-entry':entry,'@/lib/promotion-display':display,
     '@/components/catalog-machine-image':{promotionMachineSlots},
     '@/i18n/format':{fmt},
@@ -72,17 +80,17 @@ function context(retainPresentation=false){
   const view=screen.scope.run(()=>create(id,retainPresentation)) as{activity:Vue.Ref<PublicPromotion|null>;status:Vue.Ref<string>;available:Vue.ComputedRef<boolean>;refresh:()=>Promise<void>};
   return{...screen,get,id,view,environment};
 }
-function renderer(source:string,context:Record<string,unknown>){
+function renderer(source:string,context:Record<string,unknown>,components:Record<string,Vue.Component>={}){
   const template=source.includes('<template>')?parse(source).descriptor.template!.content:source;
   const render=new Function('Vue',compile(template,{mode:'function',prefixIdentifiers:true,isCustomElement:tag=>['view','text','image'].includes(tag)}).code)(Vue);
   let node!:Vue.VNode;
-  return{node:()=>node,html:()=>renderToString(Vue.createSSRApp({components:{NxButton:button,TeamArt:empty,CatalogMachineImage:empty,LiquidGlass:empty,PromotionTerms:empty,PromotionProduct:empty,RewardRows:empty,DisclosureDetails:empty},render:()=>{node=render(Vue.proxyRefs(context),[]);return node;}}))};
+  return{node:()=>node,html:()=>renderToString(Vue.createSSRApp({components:{NxButton:button,TeamArt:empty,CatalogMachineImage:empty,LiquidGlass:empty,PromotionTerms:empty,PromotionProduct:empty,RewardRows:empty,DisclosureDetails:empty,...components},render:()=>{node=render(Vue.proxyRefs(context),[]);return node;}}))};
 }
 function find(node:Vue.VNode,className:string):Vue.VNode|undefined{
   if(String(node.props?.class??'').split(/\s+/).includes(className))return node;
   if(Array.isArray(node.children))for(const child of node.children)if(Vue.isVNode(child)){const match=find(child,className);if(match)return match;}
 }
-function advert(activities?:PublicPromotion[],copy=promotionZH){
+function advert(activities?:PublicPromotion[],copy=promotionZH,components:Record<string,Vue.Component>={}){
   const screen=platform(),list=vi.fn<(...args:unknown[])=>Promise<PublicPromotionPage>>().mockResolvedValue(page([])),navTo=vi.fn();
   const products=Vue.reactive<Record<string,{name:string;imageUrl?:string}>>({});
   const catalog=Vue.reactive<{status:string;revision:string|null}>({status:'ready',revision:null});
@@ -92,10 +100,10 @@ function advert(activities?:PublicPromotion[],copy=promotionZH){
     '@/i18n/use-t':{useT:()=>Vue.ref({promotion:copy})},'@/mock/products':{getProduct:(id:string)=>products[id]??({name:'Actual device'})},
     '@/store/product-catalog':{productCatalogState:catalog,refreshProductCatalog,revalidateProductCatalog:refreshProductCatalog},'@/lib/route':{navTo},
   });
-  screen.modules['@/store/home-promotions']=evaluate(code(homeReadSource),{'@/api/runtime':screen.modules['@/api/runtime'],'@/api/errors':{ApiError}});
+  screen.modules['@/store/home-promotions']=evaluate(code(homeReadSource),{'@/api/runtime':screen.modules['@/api/runtime'],'@/api/errors':{ApiError},'@/lib/passive-tab-read':createPassiveTabReadFixture(()=>JSON.stringify([screen.app.accountKey,screen.app.accountBindingEpoch,screen.locale.code]))});
   const props=Vue.reactive({mode:'home',active:true,activities}),component=evaluate(script(entrySource),screen.modules).default;
   const view=screen.scope.run(()=>component.setup(props,{expose(){}}))!;
-  return{...screen,props,view,list,navTo,products,catalog,refreshProductCatalog,...renderer(entrySource,{...Vue.toRefs(props),...view})};
+  return{...screen,props,view,list,navTo,products,catalog,refreshProductCatalog,...renderer(entrySource,{...Vue.toRefs(props),...view},components)};
 }
 
 function purchaseRule(type:'DEVICE'|'DISCOUNT_USDT'|'UVT'):PublicPromotion['rewardRules'][number]{
@@ -103,6 +111,64 @@ function purchaseRule(type:'DEVICE'|'DISCOUNT_USDT'|'UVT'):PublicPromotion['rewa
   const common={rewardRuleId:'reward',beneficiaryRole:'BUYER' as const,disclosure};
   return {ruleId:'rule',productNo:'sku',minBuyQty:2,repeatMode:'PER_GROUP',maxGroups:{mode:'LIMITED',value:3},maxGroupsPerPerson:{mode:'LIMITED',value:4},inviterReward:null,buyerReward:type==='DEVICE'?{...common,type,giftProductNo:'gift',quantity:1}:{...common,type,calculation:'FIXED',amount:'50'}};
 }
+
+it('040 keeps published purchase/gift text and gives gifts distinct hierarchy across four widths and three languages',async()=>{
+  const browser=await chromium.launch({headless:true}),browserPage=await browser.newPage();
+  const tokens=readFileSync(new URL('../../styles/tokens.css',import.meta.url),'utf8').replace(/^@import[^;\r\n]+;\r?$/gm,'');
+  const fonts=readFileSync(new URL('../../styles/fonts.css',import.meta.url),'utf8').replace(/url\("\.\.\/static\/fonts\/([^"/]+)"\)/g,(_match:string,name:string)=>
+    `url("data:${name.endsWith('woff2')?'font/woff2':'font/ttf'};base64,${readFileSync(new URL(`../../static/fonts/${name}`,import.meta.url)).toString('base64')}")`);
+  const machine=parse(machineSource).descriptor;
+  const css=[tokens,fonts,readFileSync(new URL('./promotion.css',import.meta.url),'utf8'),...parse(entrySource).descriptor.styles.map(style=>style.content),...machine.styles.map(style=>style.content)].join('\n');
+  const assets=Object.fromEntries([['stellarbox-s1','s1'],['stellarbox-pro','pro'],['cloud-share','cloud']].map(([sku,file])=>[sku,`data:image/webp;base64,${readFileSync(new URL(`../../static/img/home-glass-20260928/${file}.webp`,import.meta.url)).toString('base64')}`]));
+  // Keep the production template/fields/styles; only adapt image transport for
+  // this isolated Chromium render. No shared preview server or build is used.
+  const machineRender=new Function('Vue',compile(machine.template!.content.replace(/<image\b/g,'<img').replace('mode="aspectFit"','style="object-fit:contain"'),{mode:'function',prefixIdentifiers:true,isCustomElement:tag=>['view','text'].includes(tag)}).code)(Vue);
+  const CatalogMachineImage=Vue.defineComponent({props:['sku','imageUrl','scopeKey','refreshKey'],render:machineRender,
+    setup:props=>({ready:true,frame:Vue.computed(()=>({key:props.sku,src:props.imageUrl,load:()=>{},error:()=>{}}))})});
+  const measurements:unknown[]=[];
+  try{
+    for(const alternate of [false,true])for(const [language,copy] of [['zh',promotionZH],['en',promotionEN],['vi',promotionVI]] as const){
+      const purchaseName=alternate?'UVELBox Pro':'UVELBox S1',giftName=alternate?'UVELBox S1':'Cloud Share';
+      const purchaseSku=alternate?'stellarbox-pro':'stellarbox-s1',giftSku=alternate?'stellarbox-s1':'cloud-share';
+      const rule=purchaseRule('DEVICE');rule.productNo=purchaseSku;
+      if(rule.buyerReward.type!=='DEVICE')throw new Error('Expected device gift fixture');
+      rule.buyerReward.giftProductNo=giftSku;rule.buyerReward.disclosure.deviceName=giftName;
+      rule.buyerReward.disclosure.benefitDescription={zh:`送 ${giftName} 1 份`,en:`Get 1 ${giftName}`,vi:`Tặng 1 ${giftName}`};
+      const offer=activity({title:{zh:`买 ${purchaseName}`,en:`Buy ${purchaseName}`,vi:`Mua ${purchaseName}`},rewardRules:[rule]}),before=JSON.stringify(offer);
+      const screen=advert([offer],copy,{CatalogMachineImage});screen.products[purchaseSku]={name:purchaseName,imageUrl:assets[purchaseSku]};screen.products[giftSku]={name:giftName,imageUrl:assets[giftSku]};screen.locale.code=language;await flush();
+      for(const theme of ['dark','light']){
+        screen.theme.resolved=theme;await flush();const html=await screen.html();
+        for(const width of [320,360,390,430]){
+          await browserPage.setViewportSize({width,height:500});
+          await browserPage.setContent(`<html lang="${language}" data-theme="${theme}"><style>${css}
+            body{margin:0;padding:16px;background:var(--v5-bg);font-family:var(--font-v5)}view{display:block}
+          </style><body>${html}</body></html>`);
+          await browserPage.evaluate(async()=>{await document.fonts.ready;});
+          const result=await browserPage.evaluate(()=>{
+            const info=(selector:string)=>{const element=document.querySelector<HTMLElement>(selector)!,rect=element.getBoundingClientRect(),style=getComputedStyle(element);
+              return{text:element.textContent,fontSize:parseFloat(style.fontSize),fontWeight:Number(style.fontWeight),fontFamily:style.fontFamily,color:style.color,
+                left:rect.left,right:rect.right,top:rect.top,bottom:rect.bottom,width:rect.width,height:rect.height,overflow:element.scrollWidth>element.clientWidth+1};};
+            return{purchase:info('.entry-title'),gift:info('.entry-benefit'),rules:info('.entry-home-deadline'),card:info('.entry-advert'),
+              pageOverflow:document.documentElement.scrollWidth>innerWidth};
+          });
+          expect(result.purchase.text).toBe(offer.title[language]);expect(result.gift.text).toBe(rule.buyerReward.disclosure.benefitDescription[language]);
+          expect(result.purchase.fontFamily).toContain('General Sans');expect(result.gift.fontSize-result.purchase.fontSize).toBeGreaterThanOrEqual(4);
+          expect(result.gift.fontWeight).toBeGreaterThan(result.purchase.fontWeight);expect(result.gift.color).not.toBe(result.purchase.color);
+          expect(result.gift.top).toBeGreaterThanOrEqual(result.purchase.bottom);expect(result.rules.top).toBeGreaterThanOrEqual(result.gift.bottom);
+          for(const line of [result.purchase,result.gift,result.rules]){expect(line.overflow).toBe(false);expect(line.left).toBeGreaterThanOrEqual(result.card.left);expect(line.right).toBeLessThanOrEqual(result.card.right+1);}
+          expect(result.rules.height).toBeGreaterThanOrEqual(44);expect(result.pageOverflow).toBe(false);
+          measurements.push({language,theme,width,alternate,...result});
+          if(env.UI_OPT_040_EVIDENCE_DIR&&!alternate&&(width===320||width===430))await browserPage.screenshot({path:`${env.UI_OPT_040_EVIDENCE_DIR}/promotion-hierarchy-040-${language}-${theme}-${width}.png`});
+        }
+        find(screen.node(),'entry-advert-target')!.props!.onClick();expect(screen.navTo).toHaveBeenLastCalledWith('/pages/store/store?activityId=a1');
+        find(screen.node(),'entry-home-deadline')!.props!.onClick({stopPropagation(){}});expect(screen.view.termsActivity.value).toEqual(offer);
+      }
+      expect(JSON.stringify(offer)).toBe(before);
+    }
+    expect(measurements).toHaveLength(48);
+    if(env.UI_OPT_040_EVIDENCE_DIR)writeFileSync(`${env.UI_OPT_040_EVIDENCE_DIR}/promotion-hierarchy-040-layout.json`,JSON.stringify(measurements,null,2));
+  }finally{await browser.close();}
+},30000);
 
 it('cycles actual home offers and leaves absolute expiry and purchase conditions inside rules',async()=>{
   const first=activity({rewardRules:[purchaseRule('DEVICE')],endsAt:'2026-11-06T00:00:00Z'});
@@ -187,7 +253,7 @@ it('both supplied and independently fetched adverts require ACTIVE, independent 
   expect(own.view.items.value.map((row:PublicPromotion)=>row.activityId)).toEqual(['a1']);
   const late=deferred<PublicPromotionPage>();own.list.mockReturnValueOnce(late.promise);const read=own.view.load(true);
   expect(own.view.items.value.map((row:PublicPromotion)=>row.activityId)).toEqual(['a1']);own.hide();late.resolve(page([activity()]));await read;expect(own.view.items.value.map((row:PublicPromotion)=>row.activityId)).toEqual(['a1']);
-  own.show();await flush();own.list.mockRejectedValueOnce(new Error('unavailable'));await own.view.load(true);expect(own.view.items.value.map((row:PublicPromotion)=>row.activityId)).toEqual(['a1']);expect(own.view.status.value).toBe('error');
+  own.list.mockResolvedValueOnce(page([activity()]));own.show();await flush();own.list.mockRejectedValueOnce(new Error('unavailable'));await own.view.load(true);expect(own.view.items.value.map((row:PublicPromotion)=>row.activityId)).toEqual(['a1']);expect(own.view.status.value).toBe('error');
 });
 it.each(['account','locale'] as const)('an independent advert clears marketing and fences the old read across %s',async boundary=>{
   const screen=advert();screen.list.mockResolvedValueOnce(page([activity()]));await screen.view.load(true);
@@ -202,7 +268,11 @@ it.each([promotionZH,promotionEN,promotionVI])('the complete uploaded image repl
   expect(await screen.html()).toContain(copy.browse);
   const image=find(screen.node(),'entry-artwork')!;expect(image.props).toMatchObject({imageUrl:'https://api.example.test/api/promotions/a1/banner/2',sku:'a1'});
   image.props!.onReady(true);const loaded=await screen.html();
-  expect(loaded).not.toContain('class="entry-copy"');expect(loaded).not.toContain('class="entry-label"');
+  expect(loaded).not.toContain('class="entry-label"');
+  expect(find(screen.node(),'entry-remaining')).toBeDefined();
+  expect(loaded).toContain(fmt(copy.daysRemaining,{n:22}));
+  find(screen.node(),'entry-home-deadline')!.props!.onClick({stopPropagation(){}});
+  expect(screen.view.termsActivity.value.activityId).toBe('a1');
   const action=find(screen.node(),'entry-advert-target')!;expect(action.props).toMatchObject({role:'button',tabindex:0,'aria-label':'真实活动 · '+copy.browse});
   action.props!.onClick();expect(screen.navTo).toHaveBeenCalledWith('/pages/store/store?activityId=a1');
   screen.props.active=false;await screen.html();expect(find(screen.node(),'entry-advert-target')?.props?.tabindex).toBe(-1);
@@ -216,7 +286,7 @@ it('fallback uses the whole existing banner width and has no fixed artwork depen
 it.each([promotionZH,promotionEN,promotionVI])('theme changes use published structured content in light and fence late dark banner events',async copy=>{
   const offer=activity({bannerImageUrl:'/api/promotions/a1/banner/2',rewardRules:[purchaseRule('DEVICE')]}),screen=advert([offer],copy);
   await screen.html();const old=find(screen.node(),'entry-artwork')!;
-  old.props!.onReady(true);expect(await screen.html()).not.toContain('class="entry-copy"');
+  old.props!.onReady(true);expect(await screen.html()).not.toContain('class="entry-label"');
   screen.theme.resolved='light';await flush();
   const light=await screen.html();expect(find(screen.node(),'entry-artwork')).toBeUndefined();
   expect(light).toContain('data-color-scheme="light"');expect(light).toContain('class="entry-copy"');
@@ -226,17 +296,17 @@ it.each([promotionZH,promotionEN,promotionVI])('theme changes use published stru
   find(screen.node(),'entry-home-deadline')!.props!.onClick({stopPropagation(){}});expect(screen.view.termsActivity.value).toEqual(offer);
   screen.theme.resolved='dark';await flush();await screen.html();const current=find(screen.node(),'entry-artwork')!;
   expect(current.key).not.toBe(old.key);old.props!.onReady(true);expect(screen.view.bannerReady(offer)).toBe(false);
-  current.props!.onReady(true);expect(await screen.html()).not.toContain('class="entry-copy"');
+  current.props!.onReady(true);expect(await screen.html()).not.toContain('class="entry-label"');
 });
 it('a carousel rerender preserves a loaded banner while a closed activity still disappears',async()=>{
   const offer=activity({bannerImageUrl:'/api/promotions/a1/banner/2'}),screen=advert([offer]);
   await screen.html();find(screen.node(),'entry-artwork')!.props!.onReady(true);await screen.html();
   const imageKey=find(screen.node(),'entry-artwork')!.key;
   screen.props.activities=[{...offer}];screen.props.active=false;await flush();
-  expect(await screen.html()).not.toContain('class="entry-copy"');
+  expect(await screen.html()).not.toContain('class="entry-label"');
   expect(find(screen.node(),'entry-artwork')!.key).toBe(imageKey);
   screen.props.active=true;screen.props.activities=[{...offer}];await flush();
-  expect(await screen.html()).not.toContain('class="entry-copy"');
+  expect(await screen.html()).not.toContain('class="entry-label"');
   screen.props.activities=[{...offer,state:'PAUSED'}];await flush();
   expect(await screen.html()).not.toContain('entry-artwork');expect(screen.view.items.value).toEqual([]);
 });
@@ -247,7 +317,7 @@ it.each(['account','epoch','locale'] as const)('a supplied banner remounts and r
   if(boundary==='account')screen.app.accountKey='user:8';else if(boundary==='epoch')screen.app.accountBindingEpoch++;else screen.locale.code='en';
   await flush();expect(await screen.html()).toContain('class="entry-copy"');
   const image=find(screen.node(),'entry-artwork')!;expect(image.key).not.toBe(imageKey);
-  image.props!.onReady(true);expect(await screen.html()).not.toContain('class="entry-copy"');
+  image.props!.onReady(true);expect(await screen.html()).not.toContain('class="entry-label"');
 });
 
 it('keeps purchase and gift slots from the first rule when the purchase image is missing',async()=>{
@@ -293,7 +363,7 @@ it.each(['account','epoch','locale','version','url','refresh','hide'] as const)(
   expect(screen.view.items.value.every((item:PublicPromotion)=>!screen.view.bannerReady(item))).toBe(true);
   if(boundary!=='hide'){
     const current=find(screen.node(),'entry-artwork')!;current.props!.onReady(true);old.props!.onReady(false);
-    expect(await screen.html()).not.toContain('class="entry-copy"');
+    expect(await screen.html()).not.toContain('class="entry-label"');
   }
 });
 
@@ -304,7 +374,7 @@ it('retries a failed complete banner at the same URL on refresh and preserves it
   await screen.view.load(true);await screen.html();const retry=find(screen.node(),'entry-artwork')!;
   expect(retry.key).not.toBe(failed.key);expect(retry.props!.imageUrl).toBe(failed.props!.imageUrl);
   retry.props!.onReady(true);failed.props!.onReady(false);
-  expect(await screen.html()).not.toContain('class="entry-copy"');expect(find(screen.node(),'entry-main-image')).toBeUndefined();
+  expect(await screen.html()).not.toContain('class="entry-label"');expect(find(screen.node(),'entry-main-image')).toBeUndefined();
 });
 it('the production bundle clears quote rewards and open terms synchronously when activity is cleared for a new read',()=>{
   const screen=platform(),current=Vue.ref<PublicPromotion|null>(activity());

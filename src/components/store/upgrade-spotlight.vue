@@ -1,11 +1,11 @@
 <template>
   <view class="upgrade-spotlight" :data-images-ready="baseReady && targetReady">
     <text class="upgrade-eyebrow">{{ copy.upgrade }}</text>
-    <view class="upgrade-title"><text>{{ (base.name) }}</text><text class="upgrade-title__target">→ {{ (target.name) }}</text></view>
+    <view class="upgrade-title"><text class="upgrade-title__base">{{ base.name }}</text><text class="upgrade-title__target">→ {{ target.name }}</text></view>
     <view class="upgrade-art" aria-hidden="true">
       <view v-if="baseReady" class="upgrade-art__base-shadow" />
       <CatalogMachineImage class="upgrade-art__base" v-bind="baseImageProps" />
-      <svg class="upgrade-art__arrow" width="40" height="20" viewBox="0 0 40 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10h34" stroke-dasharray="3 4" /><path d="m30 4 6 6-6 6" /></svg>
+      <view class="upgrade-art__arrow" />
       <view v-if="targetReady" class="upgrade-art__target-shadow" />
       <CatalogMachineImage class="upgrade-art__target" :class="{ 'upgrade-art__target--ready': targetReady }" v-bind="targetImageProps" />
     </view>
@@ -65,13 +65,15 @@ function open() { navTo('/pages/store/detail?id=' + encodeURIComponent(props.tar
 <style scoped>
 .upgrade-spotlight { position:relative; overflow:hidden; padding:18px; border:1px solid var(--v5-border); border-radius:22px; background:radial-gradient(60% 55% at 78% 46%,color-mix(in srgb,var(--v5-brand) 20%,transparent),transparent 70%),linear-gradient(180deg,var(--ui-ticket-top),var(--ui-ticket-bottom)); }
 .upgrade-eyebrow { display:block; font:500 12.5px/18px var(--font-v5); color:var(--ui-lime-soft); }
-.upgrade-title { margin-top:6px; font:600 19px/25px var(--font-v5); color:var(--v5-ink); overflow-wrap:anywhere; }
-.upgrade-title__target { display:block; }
+.upgrade-title { margin-top:6px; overflow-wrap:anywhere; }
+.upgrade-title__base { display:block; color:var(--v5-ink-2); font:500 var(--ui-type-body)/var(--ui-type-body-lh) var(--font-v5); }
+.upgrade-title__target { display:block; margin-top:4px; color:var(--v5-brand); font:600 var(--ui-type-profile)/var(--ui-type-profile-lh) var(--font-v5); }
 .upgrade-art { position:relative; height:118px; margin-top:6px; }
 .upgrade-art__base { position:absolute; left:10px; bottom:10px; width:min(96px,34%); aspect-ratio:1; opacity:.75; }
 .upgrade-art__target { position:absolute; right:0; bottom:6px; width:min(150px,50%); aspect-ratio:1; }
 .upgrade-art__target--ready { animation:upgrade-float 4.2s ease-in-out infinite; }
-.upgrade-art__arrow { position:absolute; left:42%; top:46px; color:var(--v5-ink-3); }
+.upgrade-art__arrow { position:absolute; left:43%; top:44px; width:46px; height:32px; transform:translateX(-50%); background:url('/static/promotion/upgrade-arrow-dark.png') center/contain no-repeat; pointer-events:none; }
+:global([data-theme="light"] .upgrade-art__arrow) { background-image:url('/static/promotion/upgrade-arrow-light.png'); }
 .upgrade-art__base-shadow { position:absolute; left:16px; bottom:12px; width:86px; height:14px; border-radius:50%; background:radial-gradient(closest-side,color-mix(in srgb,var(--v5-ink) 18%,transparent),transparent); }
 .upgrade-art__target-shadow { position:absolute; right:6px; bottom:8px; width:150px; height:22px; border-radius:50%; background:radial-gradient(closest-side,color-mix(in srgb,var(--ui-lime-soft) 45%,transparent),transparent); }
 .upgrade-comparison { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:4px; }
@@ -82,6 +84,6 @@ function open() { navTo('/pages/store/detail?id=' + encodeURIComponent(props.tar
 .upgrade-spotlight .upgrade-action { display:flex; margin-top:14px; min-height:44px; padding:0; }
 .upgrade-action :deep(.nx-button__surface) { min-height:44px; }
 @keyframes upgrade-float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-5px); } }
-@media(max-width:350px) { .upgrade-art__base { left:0; width:min(84px,34%); }.upgrade-art__target { width:min(136px,50%); }.upgrade-art__arrow { left:36%; } }
+@media(max-width:350px) { .upgrade-art__base { left:0; width:min(84px,34%); }.upgrade-art__target { width:min(136px,50%); }.upgrade-art__arrow { left:42%; width:42px; height:29px; } }
 @media(prefers-reduced-motion:reduce) { .upgrade-art__target { animation:none; } }
 </style>

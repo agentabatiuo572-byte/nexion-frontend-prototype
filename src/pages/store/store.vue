@@ -19,11 +19,17 @@
         <view v-if="voucherOffers.length&&!voucherContext.voucherId" class="store-voucher-ticket" data-testid="store-voucher-ticket" role="button" tabindex="0" @click="openStoreVouchers" @keydown.enter.prevent="openStoreVouchers" @keydown.space.prevent="openStoreVouchers">
           <view class="store-voucher-ticket__value"><text v-if="voucherBenefit.amount != null" class="store-voucher-ticket__currency">$</text><text>{{ voucherBenefit.amount != null ? fmtMoney(voucherBenefit.amount).replace(/^\$/, '').replace(/\.00$/, '') : voucherBenefit.percent != null ? voucherBenefit.percent + '%' : '–' }}</text></view>
           <view class="store-voucher-ticket__rule" aria-hidden="true" />
-          <view class="store-voucher-ticket__copy"><text class="store-voucher-ticket__title">{{ auditCopy.voucherShort }} · {{ fmt(auditCopy.voucherShortCount,{n:voucherOffers.length}) }}</text><view class="store-voucher-ticket__hint"><view>{{ voucherBenefit.amount != null ? auditCopy.upToOff : auditCopy.voucherDiscount }}</view><view>{{ voucherClaimable.length ? auditCopy.claimToUse : auditCopy.autoApplyVoucher }}</view></view></view>
+          <view class="store-voucher-ticket__copy"><text class="store-voucher-ticket__title">{{ auditCopy.voucherShort }} · {{ fmt(auditCopy.voucherShortCount,{n:voucherOffers.length}) }}</text><view class="store-voucher-ticket__hint"><view v-if="voucherBenefit.amount == null">{{ auditCopy.voucherDiscount }}</view><view>{{ voucherClaimable.length ? auditCopy.claimToUse : auditCopy.autoApplyVoucher }}</view></view></view>
           <image class="store-voucher-ticket__art" src="/static/img/home-glass-20260928/coupon.webp" mode="aspectFit" aria-hidden="true" />
         </view>
         <PromotionEntry v-if="!voucherContext.voucherId" class="store-campaign" mode="home" />
         <UpgradeSpotlight v-if="upgrade&&!voucherContext.voucherId" :base="upgrade.base" :base-image-url="upgradeBaseImageUrl" :target="upgrade.target" />
+        <template v-if="!voucherContext.voucherId">
+          <StoreHero :multiplier="yieldAuthority.multiplier" />
+          <ClusterLadder :authority="yieldAuthority" :owned="ownedHardware" />
+          <VsPhoneHero :authority="yieldAuthority" />
+          <TradeinWindowBanner />
+        </template>
       </template>
 
       <view v-if="publicOnly" class="promotion" data-testid="promotion-public-store">
@@ -126,6 +132,10 @@ import { useProductPhase } from "@/composables/use-product-phase";
 import { isProductAvailable } from "@/store/product-availability";
 import { useEarnConfig } from "@/store/earn-config";
 import { buildStoreYieldAuthority } from "@/lib/store-yield-authority";
+import StoreHero from "@/components/store/store-hero.vue";
+import ClusterLadder from "@/components/store/cluster-ladder.vue";
+import VsPhoneHero from "@/components/store/vs-phone-hero.vue";
+import TradeinWindowBanner from "@/components/store/tradein-window-banner.vue";
 import { resolveStoreGoalFocus } from "@/lib/store-goal-focus";
 import { highestOwnedHardware, storeUpgrade } from "@/lib/store-upgrade";
 import { useApp } from "@/store/app";
@@ -185,6 +195,7 @@ onShow(() => {
   void runPassiveTabRead('genesis-state', () => genesis.syncRemote());
   void runPassiveTabRead('product-phase', () => refreshServerProductPhase(true));
   void revalidateProductCatalog();
+  void runPassiveTabRead('earn-config', () => earnConfig.refresh());
   void observeDayOneStorePage();
 });
 onHide(() => {
@@ -421,20 +432,10 @@ const goalFocusRetryStyle: CSSProperties = {
 
 </script>
 <style src="@/components/promotion/promotion.css"></style>
+<style scoped src="@/components/store/voucher-ticket.css"></style>
 <style scoped>
 .store-content { padding:12px 16px 16px; color:var(--v5-ink); }
 .store-content > * + * { margin-top:16px; }
-.store-voucher-ticket { position:relative; display:flex; align-items:center; gap:14px; min-height:88px; box-sizing:border-box; padding:6px 18px; overflow:hidden; border:1px solid var(--v5-border); border-radius:22px; background:radial-gradient(60% 120% at 100% 50%,color-mix(in srgb,var(--v5-brand) 18%,transparent),transparent 65%),linear-gradient(90deg,var(--ui-ticket-top),var(--ui-ticket-bottom)); }
-.store-voucher-ticket::before,.store-voucher-ticket::after { content:''; position:absolute; top:50%; width:18px; height:18px; margin-top:-9px; border-radius:50%; background:var(--v5-bg); border:1px solid var(--v5-border); }
-.store-voucher-ticket::before { left:-10px; }.store-voucher-ticket::after { right:-10px; }
-.store-voucher-ticket__value { display:flex; align-items:baseline; gap:2px; flex:none; font:600 30px/34px var(--font-v5); letter-spacing:-.02em; color:var(--ui-lime-pale); font-variant-numeric:tabular-nums; }
-.store-voucher-ticket__currency { font-size:var(--ui-type-body); color:var(--ui-lime-soft); }
-.store-voucher-ticket__rule { align-self:stretch; margin:6px 0; border-left:1px dashed var(--v5-border-strong); }
-.store-voucher-ticket__copy { flex:1; min-width:0; }
-.store-voucher-ticket__title { display:block; font:600 var(--ui-type-section)/20px var(--font-v5); }
-.store-voucher-ticket__hint { display:block; margin-top:2px; font:400 12.5px/18px var(--font-v5); color:var(--v5-ink-3); }
-.store-voucher-ticket__art { width:72px; height:72px; margin:-4px -6px -4px 0; flex:none; animation:ticket-bob 4.6s ease-in-out infinite; }
-.store-voucher-ticket:focus-visible { outline:2px solid var(--v5-brand); outline-offset:3px; }
 .store-campaign :deep(.entry-advert) { --promotion-copy-ink:var(--v5-ink); height:auto; min-height:146px; padding:0; border-radius:22px; border:1px solid var(--v5-border); box-shadow:none; background:radial-gradient(70% 90% at 82% 72%,color-mix(in srgb,var(--v5-brand) 24%,transparent),transparent 62%),linear-gradient(135deg,var(--ui-spotlight-top),var(--ui-ticket-bottom)); }
 .store-campaign :deep(.entry-label) { top:18px; left:18px; padding:0; border:0; background:transparent; color:var(--ui-lime-soft); font:500 12.5px/18px var(--font-v5); }
 .store-campaign :deep(.entry-title) { font-size:19px; line-height:25px; }
@@ -453,9 +454,4 @@ const goalFocusRetryStyle: CSSProperties = {
 .store-footer { display:block; margin-top:20px; padding-bottom:8px; font:400 12px/18px var(--font-v5); text-align:center; color:var(--v5-ink-3); }
 .store-promotion-scope { display:flex; flex-direction:column; gap:12px; }
 .store-promotion-actions { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-@keyframes ticket-bob { 0%,100% { transform:translateY(0) rotate(-10deg); } 50% { transform:translateY(-3px) rotate(-8deg); } }
-@media(max-width:350px) { .store-voucher-ticket { gap:8px; padding-inline:14px; }.store-voucher-ticket__art { width:54px; height:54px; }.store-voucher-ticket__value { font-size:26px; } }
-@media(prefers-reduced-motion:reduce) { .store-voucher-ticket__art { animation:none; } }
 </style>
-
-<style scoped>.store-voucher-ticket__hint > text {display:block;} @media(max-width:350px) {.store-voucher-ticket {gap:10px;padding-inline:14px;}.store-voucher-ticket__art {width:58px;margin-right:-10px;}.store-voucher-ticket__copy {position:relative;z-index:1;}.store-voucher-ticket__hint {white-space:normal;}}</style>

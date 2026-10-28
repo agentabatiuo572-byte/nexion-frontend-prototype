@@ -66,9 +66,9 @@ const t = useT();
 const app = useApp();
 const devicesBad = computed(() => app.homeTruth?.onGrid.activeDevices == null);
 const fleetBad = computed(() => app.homeTruth?.onGrid.perSecUsdt == null);
-const gridStatusText = computed(() => app.homeTruthStatus === "error"
-  ? t.value.uiChrome.unavailable
-  : t.value.home.networkStatUpdating);
+const gridStatusText = computed(() => app.homeTruthStatus === "idle" || app.homeTruthStatus === "loading"
+  ? t.value.home.networkStatUpdating
+  : t.value.uiChrome.unavailable);
 const perSecText = computed(() => {
   const value = app.homeTruth?.onGrid.perSecUsdt;
   if (value == null) return "";

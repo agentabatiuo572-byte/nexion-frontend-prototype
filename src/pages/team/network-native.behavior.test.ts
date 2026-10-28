@@ -1,3 +1,4 @@
+import { teamPrivacyFixture } from './team-privacy.test-support';
 import * as networkReaudit from "@/i18n/network-reaudit";
 import * as computePoints from "@/i18n/compute-points";
 import { displayNickname } from "@/lib/brand-copy";
@@ -64,6 +65,7 @@ const emit = (target: Host, key: string, event = {}) => {
 const unmounts: Array<() => void> = [];
 
 async function mount(platform: "app" | "h5" = "app", canonicalNetwork?: ReturnType<typeof useNetwork>) {
+  const { visibility, dependency: visibilityDependency } = teamPrivacyFixture();
   initPreContext(platform);
   const original = parse(raw, { filename: "network.vue" }).descriptor;
   // Reparse after Uni preprocessing: compileScript also consumes the template
@@ -112,7 +114,8 @@ async function mount(platform: "app" | "h5" = "app", canonicalNetwork?: ReturnTy
     "@/components/team/team-rank-emblem.vue": { default: { props: ["rank"], render: () => Vue.h("view") } },
     "@/i18n/use-t": { useT: () => t }, "@/i18n/format": { fmt },
     "@/store/network": { useNetwork: () => network }, "@/store/v-rank": { useVRank: () => rank },
-    "@/lib/v-rank-copy": { rankLabel, rankTitle }, "@/store/locale": { useLocaleStore: () => locale },
+    "@/lib/v-rank-copy": { rankLabel, rankTitle }, "@/store/data-visibility": visibilityDependency,
+    "@/store/locale": { useLocaleStore: () => locale },
     "@/composables/use-dialog-a11y": dialogExports,
     "@/api/runtime": { remoteApiEnabled: true },
     "@dcloudio/uni-app": uniHooks,
@@ -132,7 +135,7 @@ async function mount(platform: "app" | "h5" = "app", canonicalNetwork?: ReturnTy
   await Vue.nextTick();
   const controls = () => all(root).filter((item) => item.props.role === "button" && item.props["aria-label"]);
   const self = () => controls().find((item) => item.props["aria-label"] === fmt(t.value.network.selfNodeLabel, { n: rank.remoteReady ? `V${rank.myRank}` : "—" }))!;
-  return { root, network, rank, locale, navTo, shows, hides, controls, self, backs, dispose,
+  return { root, visibility, network, rank, locale, navTo, shows, hides, controls, self, backs, dispose,
     back: (from = "backbutton") => backs.map(callback => callback({ from })).some(consumed => consumed === true) };
 }
 
@@ -140,41 +143,37 @@ function member(id: string, layer: NetworkMember["layer"], status: NetworkMember
   return { id, name: `Member ${id}`, avatar: "M", vRank: 2, layer, status, binary: "unassigned", isSpillover: false,
     joinedAt: Date.now() - 86400000, monthVolumeUSD: 17, totalVolumeUSD: null, monthComputePoints: 320, lifetimeComputePoints: null, city: "Fixture City" };
 }
-beforeEach(() => { vi.useFakeTimers(); });
+beforeEach(() => { vi.useFakeTimers(); const storage = new Map<string, unknown>(); vi.stubGlobal('uni', { getStorageSync: (key: string) => storage.get(key), setStorageSync: (key: string, value: unknown) => storage.set(key, value) }); });
 afterEach(() => { unmounts.splice(0).forEach((unmount) => unmount()); vi.useRealTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
-test("APP empty network uses a square positioned view graph, not unknown SVG and inline labels", async () => {
+test("APP empty network keeps a compact native overview and reachable self route", async () => {
   const page = await mount();
-  const graph = all(page.root).find((item) => hasClass(item, "nx-net-native"));
-  expect(graph, "empty native graph must still have its own square layout").toBeDefined();
-  expect(style(graph!).paddingTop).toBe("100%");
-  expect(all(graph!).some((item) => item.tag === "svg")).toBe(false);
-  const orbits = all(graph!).filter((item) => hasClass(item, "nx-net-native-orbit"));
-  expect(orbits).toHaveLength(2);
-  expect(orbits.map((item) => style(item).width)).toEqual([`${144 / 360 * 100}%`, `${280 / 360 * 100}%`]);
-  const labels = all(graph!).filter((item) => item.tag === "text");
-  expect(labels.map(text)).toEqual([en.network.diagramYou, "V0"]);
-  expect(labels.slice(1).every((item) => style(item).position === "absolute")).toBe(true);
-  expect(new Set(labels.slice(1).map((item) => style(item).top)).size).toBe(1);
+  const overview = all(page.root).find(item => hasClass(item, "network-overview"))!;
+  expect(overview).toBeDefined();
+  expect(all(overview).some(item => item.tag === "svg")).toBe(false);
+  expect(all(page.root).some(item => hasClass(item, "nx-net-native"))).toBe(false);
+  expect(text(page.root)).toContain(en.tree.emptyDirect);
+  expect(text(page.root)).toContain(en.tree.emptyExtended);
   expect(page.self().tag).toBe("view");
   emit(page.self(), "onClick");
   expect(page.navTo).toHaveBeenCalledExactlyOnceWith("/pages/team/rank");
 });
 
-test("APP real projection binds direct/extended nodes, touch details, close and return without adding facts", async () => {
+test("APP projection groups direct/other members and preserves touch details, close and return", async () => {
   const page = await mount();
   page.network.members = [member("one", 1), member("two", 1, "offline"), member("three", 3, "idle")];
   await Vue.nextTick();
-  const graph = all(page.root).find((item) => hasClass(item, "nx-net-native"))!;
-  expect(graph).toBeDefined();
+  const groups = all(page.root).filter(item => hasClass(item, "network-member-group"));
+  expect(groups).toHaveLength(2);
+  expect(text(groups[0])).toContain(en.network.badgeDirect);
+  expect(text(groups[1])).toContain(en.network.badgeExtended);
   const members = page.controls().filter((item) => hasClass(item, "nx-net-node") && item.props["aria-label"].startsWith("Member "));
   expect(members).toHaveLength(3);
   expect(members.every((item) => item.tag === "view")).toBe(true);
   expect(members[0].props["aria-label"]).toBe(`Member one · V2 · ${en.network.badgeDirect}`);
   expect(members[2].props["aria-label"]).toBe(`Member three · V2 · ${en.network.badgeExtended}`);
-  expect(style(members[0]).left).toBe("50%");
-  expect(style(members[0]).top).toBe(`${108 / 360 * 100}%`);
-  expect(all(graph).filter((item) => hasClass(item, "nx-net-native-connection"))).toHaveLength(2);
+  expect(all(groups[0]).filter(item => hasClass(item, "network-member-pick"))).toHaveLength(2);
+  expect(all(groups[1]).filter(item => hasClass(item, "network-member-pick"))).toHaveLength(1);
   emit(members[2], "onClick"); await Vue.nextTick();
   let sheet = all(page.root).find((item) => item.props.role === "dialog")!;
   expect(text(sheet)).toContain("Member three");
@@ -225,14 +224,14 @@ test("APP acknowledges only selection, stays still when idle and clears the puls
   const page = await mount();
   page.network.members = [member("active", 1), member("idle", 2, "idle"), member("offline", 2, "offline")];
   await Vue.nextTick(); vi.advanceTimersByTime(1200); await Vue.nextTick();
-  expect(all(page.root).some((item) => hasClass(item, 'nx-net-native-pulse'))).toBe(false);
+  expect(all(page.root).some((item) => hasClass(item, 'network-member-pick--selected'))).toBe(false);
   emit(page.controls().find(item=>item.props['aria-label'].startsWith('Member active'))!, 'onClick');
   await Vue.nextTick();
-  const pulses = all(page.root).filter((item) => hasClass(item, "nx-net-native-pulse"));
+  const pulses = all(page.root).filter((item) => hasClass(item, "network-member-pick--selected"));
   expect(pulses).toHaveLength(1);
-  expect(pulses[0].parent?.props["aria-label"]).toContain("Member active");
+  expect(pulses[0].props["aria-label"]).toContain("Member active");
   page.hides.forEach(fn=>fn()); await Vue.nextTick();
-  expect(all(page.root).some((item) => hasClass(item, "nx-net-native-pulse"))).toBe(false);
+  expect(all(page.root).some((item) => hasClass(item, "network-member-pick--selected"))).toBe(false);
   unmounts.pop()!();
   expect(vi.getTimerCount()).toBe(0);
   const revisited = await mount();
@@ -242,43 +241,49 @@ test("APP acknowledges only selection, stays still when idle and clears the puls
   expect(revisited.navTo).toHaveBeenCalledExactlyOnceWith("/pages/team/rank");
 });
 
-test("H5 retains SVG geometry, keyboard self/member activation, pulse and single-V accessible names", async () => {
+test("H5 retains keyboard self/member activation with native list controls", async () => {
   const page = await mount("h5");
-  expect(all(page.root).some((item) => hasClass(item, "nx-net-native"))).toBe(false);
-  const svg = all(page.root).find((item) => item.tag === "svg" && item.props.viewBox === "0 0 360 360")!;
-  expect(svg).toBeDefined();
-  expect(all(svg).filter((item) => item.tag === "circle").map((item) => item.props.r)).toEqual([72, "140", "50", "18"]);
-  expect(all(svg).filter((item) => item.tag === "text")).toHaveLength(2);
-  expect(page.self().tag).toBe("g"); expect(page.self().props.tabindex).toBe("0");
+  expect(all(page.root).some(item => item.tag === "svg" && item.props.viewBox === "0 0 360 360")).toBe(false);
+  expect(page.self().tag).toBe("view"); expect(page.self().props.tabindex).toBe("0");
   expect(page.self().props["aria-label"]).not.toContain("VV0");
   const preventDefault = vi.fn();
   emit(page.self(), "onKeydown", { key: "Enter", preventDefault });
   expect(page.navTo).toHaveBeenCalledExactlyOnceWith("/pages/team/rank");
   expect(preventDefault).toHaveBeenCalled();
   page.network.members = [member("keyboard", 1)]; await Vue.nextTick();
-  const control = page.controls().find((item) => item.props["aria-label"].startsWith("Member keyboard"))!;
+  const control = page.controls().find(item => item.props["aria-label"].startsWith("Member keyboard"))!;
   emit(control, "onKeydown", { key: " ", preventDefault }); await Vue.nextTick();
-  expect(text(all(page.root).find((item) => item.props.role === "dialog")!)).toContain("Member keyboard");
-  expect(all(svg).filter((item) => item.tag === "animate")).toHaveLength(2);
-  expect(all(svg).some((item) => item.tag === "set")).toBe(true);
+  expect(text(all(page.root).find(item => item.props.role === "dialog")!)).toContain("Member keyboard");
+  expect(hasClass(control, 'network-member-pick--selected')).toBe(true);
   vi.advanceTimersByTime(1000); await Vue.nextTick();
-  expect(all(svg).filter((item) => item.tag === 'animate')).toHaveLength(0);
+  expect(hasClass(control, 'network-member-pick--selected')).toBe(false);
 });
 
-test('H5 does not mount SVG animations with reduced motion and responds to setting changes',async()=>{
-  let changed!:()=>void;
-  const media={matches:true,addEventListener:vi.fn((_event:string,listener:()=>void)=>{changed=listener;}),removeEventListener:vi.fn()};
-  vi.stubGlobal('window',{matchMedia:vi.fn(()=>media)});
-  const page=await mount('h5');page.network.members=[member('A',1),member('B',1)];await Vue.nextTick();
-  emit(page.controls().find(item=>item.props['aria-label'].startsWith('Member A'))!,'onClick');await Vue.nextTick();
-  expect(all(page.root).filter(item=>item.tag==='animate')).toHaveLength(0);
-  expect(vi.getTimerCount()).toBe(0);
-  media.matches=false;changed();
-  emit(page.controls().find(item=>item.props['aria-label'].startsWith('Member B'))!,'onClick');await Vue.nextTick();
-  expect(all(page.root).filter(item=>item.tag==='animate')).toHaveLength(2);
-  media.matches=true;changed();await Vue.nextTick();
-  expect(all(page.root).filter(item=>item.tag==='animate')).toHaveLength(0);
-  expect(vi.getTimerCount()).toBe(0);
+test('selection acknowledgment respects reduced motion and responds to setting changes', async () => {
+  let changed!: () => void;
+  const media = { matches: true, addEventListener: vi.fn((_event: string, listener: () => void) => { changed = listener; }), removeEventListener: vi.fn() };
+  vi.stubGlobal('window', { matchMedia: vi.fn(() => media) });
+  const page = await mount('h5'); page.network.members = [member('A', 1), member('B', 1)]; await Vue.nextTick();
+  const highlighted = () => all(page.root).filter(item => hasClass(item, 'network-member-pick--selected'));
+  emit(page.controls().find(item => item.props['aria-label'].startsWith('Member A'))!, 'onClick'); await Vue.nextTick();
+  expect(highlighted()).toHaveLength(0); expect(vi.getTimerCount()).toBe(0);
+  media.matches = false; changed();
+  emit(page.controls().find(item => item.props['aria-label'].startsWith('Member B'))!, 'onClick'); await Vue.nextTick();
+  expect(highlighted()).toHaveLength(1);
+  media.matches = true; changed(); await Vue.nextTick();
+  expect(highlighted()).toHaveLength(0); expect(vi.getTimerCount()).toBe(0);
+});
+
+test.each(['app', 'h5'] as const)('%s exposes every projected member beyond the old diagram/list caps', async platform => {
+  const page = await mount(platform);
+  page.network.members = Array.from({ length: 37 }, (_, index) => member(`full-${index}`, index < 10 ? 1 : (2 + index % 3) as NetworkMember["layer"]));
+  await Vue.nextTick();
+  const controls = page.controls().filter(item => hasClass(item, 'network-member-pick'));
+  expect(controls).toHaveLength(37);
+  expect(new Set(controls.map(item => item.props['aria-label'])).size).toBe(37);
+  emit(controls[36], 'onClick'); await Vue.nextTick();
+  expect(text(all(page.root).find(item => item.props.role === 'dialog')!)).toContain('Member full-36');
+  expect(page.network.members).toHaveLength(37);
 });
 
 async function selectedCanonicalPage(platform: "app" | "h5") {
@@ -465,4 +470,17 @@ test.each(["app", "h5"] as const)("%s member sheet keeps invalid joins unknown a
   const sheet = all(page.root).find(item => item.props.role === "dialog")!;
   const joined = all(sheet).find(item => hasClass(item, "sheet-detail-row") && text(item).startsWith(en.network.joined))!;
   expect(text(joined.children.at(-1)!)).toBe("Jan 21, 1970 10:53");
+});
+
+for (const platform of ['app','h5'] as const) test.each(['en','zh','vi'] as const)(platform+' %s privacy covers summary, member labels and an open detail sheet',async language=>{
+  const p=await mount(platform);p.locale.code=language;p.rank.myRank=7;
+  p.network.members=[{...member('direct',1),vRank:6,monthComputePoints:1732,lifetimeComputePoints:87654},{...member('other',3,'idle'),monthComputePoints:0,lifetimeComputePoints:null}];await Vue.nextTick();
+  const target=p.controls().find(n=>String(n.props['aria-label']).includes('Member direct'))!;emit(target,'onKeydown',{key:'Enter',preventDefault(){}});await Vue.nextTick();
+  const presentation=()=>text(p.root)+all(p.root).map(n=>String(n.props['aria-label']??'')).join(' '), before=presentation(), raw=JSON.stringify(p.network.members);
+  const monthly=computePoints.formatComputePoints(1732,language),lifetime=computePoints.formatComputePoints(87654,language);
+  expect(before).toContain(monthly);expect(before).toContain(lifetime);expect(before).toContain('V6');
+  p.visibility.toggle();await Vue.nextTick();expect(presentation()).not.toContain(monthly);expect(presentation()).not.toContain(lifetime);expect(presentation()).not.toContain('V6');expect(presentation()).not.toContain('V7');
+  expect(all(p.root).find(n=>hasClass(n,'network-distribution'))).toBeUndefined();expect(all(p.root).filter(n=>n.props.role==='dialog')).toHaveLength(1);
+  expect(presentation()).toContain('••••');expect(JSON.stringify(p.network.members)).toBe(raw);
+  p.visibility.toggle();await Vue.nextTick();expect(presentation()).toBe(before);if(platform==='app')expect(p.back()).toBe(true);else emit(p.controls().find(n=>n.props['aria-label']===({en,zh,vi:viMessages})[language].ui.close)!, 'onClick');await Vue.nextTick();expect(all(p.root).filter(n=>n.props.role==='dialog')).toHaveLength(0);
 });

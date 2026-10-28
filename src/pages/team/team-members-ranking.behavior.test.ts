@@ -1,3 +1,4 @@
+import { teamPrivacyFixture } from './team-privacy.test-support';
 import * as displayDate from "@/lib/display-date";
 import * as Vue from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
@@ -8,7 +9,7 @@ import rosterSource from "@/components/team/team-roster-section.vue?raw";
 import leaderboardSource from "./leaderboard.vue?raw";
 import { displayNickname } from "@/lib/brand-copy";
 import { formatAmount } from "@/lib/amount-display";
-import { formatUsd } from "@/lib/usd-display";
+import { leaderboardPointsCopy } from "@/i18n/leaderboard-points-copy";
 import buttonSource from "@/components/ui/nx-button.vue?raw";
 import { formatComputePoints } from "@/i18n/compute-points";
 import { networkReauditCopy } from "@/i18n/network-reaudit";
@@ -52,7 +53,7 @@ test.each(["en", "zh", "vi"] as const)("flat roster expands actual member facts 
   const roster = compileComponent(rosterSource, {
     "@/lib/brand-copy": { displayNickname }, "@/lib/amount-display": { formatAmount },
     "@/i18n/compute-points": { formatComputePoints }, "@/i18n/network-reaudit": { networkReauditCopy },
-    "@/lib/v-rank-copy": { rankLabel }, "@/store/locale": { useLocaleStore: () => ({ code: language }) },
+    "@/lib/v-rank-copy": { rankLabel }, "@/store/data-visibility": teamPrivacyFixture().dependency, "@/store/locale": { useLocaleStore: () => ({ code: language }) },
     "./team-rank-emblem.vue": slot, "@/store/commission": { UNILEVEL_USDT: {} },
     "@/i18n/use-t": { useT: () => Vue.ref(copy) }, "@/lib/display-date": displayDate, "@/i18n/format": { fmt },
   });
@@ -84,26 +85,27 @@ test.each(["en", "zh", "vi"] as const)("flat roster expands actual member facts 
 
 function snapshot(overrides: Partial<TeamLeaderboardSnapshot> = {}): TeamLeaderboardSnapshot {
   return { period: "week", paused: false, snapshotState: "LIVE", dataAvailable: true,
-    rows: [{ rank: 1, handle: "Revenue leader", flag: "", cc: "", directs: 1, teamSize: 3, earnedUSDT: 81.25, delta: 0, vRank: 3, hasDevice: false },
-      { rank: 2, handle: "More invites", flag: "", cc: "", directs: 25, teamSize: 30, earnedUSDT: 0, delta: 0, vRank: 1, hasDevice: false },
-      { rank: 3, handle: "Third member", flag: "", cc: "", directs: 2, teamSize: 2, earnedUSDT: 0, delta: 0, vRank: 1, hasDevice: false },
-      { rank: 4, handle: "Fourth member", flag: "", cc: "", directs: 1, teamSize: 1, earnedUSDT: 0, delta: 0, vRank: 1, hasDevice: false }],
-    myRank: null, gapToNext: 0, poolUsd: 0, topN: 0, page: 1, pageSize: 20, totalRows: 4,
+    rows: [{ rank: 1, handle: "Compute leader", flag: "", cc: "", directs: 1, teamSize: 3, computePoints: 8125, earnedUSDT: 81.25, delta: 0, vRank: 3, hasDevice: false },
+      { rank: 2, handle: "More invites", flag: "", cc: "", directs: 25, teamSize: 30, computePoints: 0, earnedUSDT: 0, delta: 0, vRank: 1, hasDevice: false },
+      { rank: 3, handle: "Third member", flag: "", cc: "", directs: 2, teamSize: 2, computePoints: 0, earnedUSDT: 0, delta: 0, vRank: 1, hasDevice: false },
+      { rank: 4, handle: "Fourth member", flag: "", cc: "", directs: 1, teamSize: 1, computePoints: 0, earnedUSDT: 0, delta: 0, vRank: 1, hasDevice: false }],
+    rankingMetric: "COMPUTE_POINTS", gapToNextComputePoints: null, myRank: null, gapToNext: 0, poolUsd: 0, topN: 0, page: 1, pageSize: 20, totalRows: 4,
     generatedAt: "2026-10-25T00:00:00Z", snapshotAt: null, snapshotVersion: null,
     source: "server", sourceEnvironment: "PRODUCTION", runId: "", serverCanonical: true, ...overrides };
 }
-test.each(["en", "zh", "vi"] as const)("ranking keeps server order, actual currency and one invite action through read failure/retry in %s", async language => {
+test.each(["en", "zh", "vi"] as const)("ranking keeps server order, independent compute points and one invite action through read failure/retry in %s", async language => {
   const shown: Array<() => void> = [];
   const navTo = vi.fn(), read = vi.fn().mockRejectedValueOnce(new Error("503")).mockResolvedValue(snapshot());
   const page = mountEntry(leaderboardSource, {
-    "@/lib/usd-display": { formatUsd },
+    "@/i18n/compute-points": { formatComputePoints }, "@/i18n/leaderboard-points-copy": { leaderboardPointsCopy },
     "@/components/ui/nx-button.vue": compileComponent(buttonSource, { "@/components/liquid-glass.vue": slot }),
     "@/lib/amount-display": { formatAmount }, "@/lib/route": { navTo }, "@dcloudio/uni-app": { onShow: (fn: () => void) => shown.push(fn), onHide: vi.fn() },
     "@/components/app-chassis.vue": slot, "@/components/sub-page-header.vue": slot,
     "@/components/team/team-art.vue": slot, "@/components/team/team-rank-emblem.vue": slot,
-    "@/lib/v-rank-copy": { rankLabel }, "@/store/locale": { useLocaleStore: () => ({ code: language }) },
+    "@/lib/v-rank-copy": { rankLabel }, "@/store/data-visibility": teamPrivacyFixture().dependency, "@/store/locale": { useLocaleStore: () => ({ code: language }) },
     "@/i18n/use-t": { useT: () => Vue.ref(dictionaries[language]) }, "@/lib/display-date": displayDate, "@/i18n/format": { fmt },
-    "@/mock/leaderboard": { LEADERBOARD: {}, MY_RANK: {} }, "@/api/runtime": { remoteApiEnabled: true, teamInsightsApi: { leaderboard: read } },
+    "@/mock/leaderboard": { LEADERBOARD: {}, MY_RANK: {} }, "@/api/runtime": { apiRuntimeConfig: { environment: "prod", baseUrl: "https://fixture.invalid" }, remoteApiEnabled: true, teamInsightsApi: { leaderboard: read } },
+    "@/store/auth": { useAuth: () => Vue.reactive({ isAuthenticated: true }) },
     "@/api/errors": { asApiError: (error: unknown) => error }, "@/store/app": { useApp: () => Vue.reactive({ accountKey: "account" }) },
     "@/lib/account-scope": { captureAccountScope: () => "account", isCurrentAccountScope: () => true },
     "@/api/order-api": { captureRuntimeRevision: () => 1, isCurrentRuntimeRevision: () => true, subscribeRuntimeRevision: () => () => {} },
@@ -119,9 +121,9 @@ test.each(["en", "zh", "vi"] as const)("ranking keeps server order, actual curre
   expect(page.nodes("leader-podium")).toHaveLength(1);
   expect(all(page.nodes("leader-podium")[0]).filter(node => node.props["data-rank"]).map(node => node.props["data-rank"])).toEqual([1, 2, 3]);
   expect(all(page.nodes("leader-flat")[0]).filter(node => node.props["data-rank"]).map(node => node.props["data-rank"])).toEqual([4]);
-  expect(text(page.nodes("leader-row")[0])).toContain("Revenue leader");
-  expect(text(page.nodes("leader-row")[0])).toContain("$81.25");
-  expect(text(page.nodes("leader-row")[1])).toContain("$0.00");
+  expect(text(page.nodes("leader-row")[0])).toContain("Compute leader");
+  expect(text(page.nodes("leader-row")[0])).toContain(formatComputePoints(8125, language));
+  expect(text(page.nodes("leader-row")[1])).toContain(formatComputePoints(0, language));
   const invite = page.nodes("leader-share");
   expect(invite).toHaveLength(1);
   expect(text(invite[0])).toContain(dictionaries[language].leaderboard.cta.share);

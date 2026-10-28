@@ -108,10 +108,10 @@ it.each((['account', 'epoch', 'auth', 'locale'] as const).flatMap(scope => (['su
   if (scope === 'epoch') s.app.accountBindingEpoch++;
   if (scope === 'auth') s.auth.isAuthenticated = false;
   if (scope === 'locale') s.locale.code = 'vi';
-  // A sync invalidation starts the new scope read before any old completion.
-  expect(s.list.mock.calls.length).toBe(3);
+  // Private presentation is invalidated synchronously; the read waits for scope hydration.
+  expect(s.list.mock.calls.length).toBe(2);
   if (outcome === 'success') old.resolve(empty()); else old.reject(new Error('old offline'));
-  await flush(); expect(s.find('referral-progress')).toHaveLength(1); expect(s.find('referral-refresh-status')).toHaveLength(0); expect(s.find('referral-recovery')).toHaveLength(0);
+  await flush(); expect(s.list.mock.calls.length).toBe(3); expect(s.find('referral-progress')).toHaveLength(1); expect(s.find('referral-refresh-status')).toHaveLength(0); expect(s.find('referral-recovery')).toHaveLength(0);
   fresh.resolve(empty()); await flush(); s.hide(); s.list.mockReturnValue(deferred().promise); s.nextVisit(); s.show(); await flush(); expect(s.find('referral-progress')).toHaveLength(0);
 });
 

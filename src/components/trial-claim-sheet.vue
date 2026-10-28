@@ -1,21 +1,19 @@
 <template>
-  <view v-if="sheet.open" class="tcs-root" role="dialog" aria-modal="true" aria-labelledby="trial-claim-title">
+  <view v-if="sheet.open" class="tcs-root" role="dialog" aria-modal="true" :aria-label="activated ? copy.activationSuccessTitle : copy.activateTitle">
     <view class="tcs-backdrop" @click="hide" />
     <view class="nx-glass-sheet tcs-panel" @click.stop>
-      <view class="tcs-head">
+      <view v-if="activated" class="tcs-head">
         <view class="tcs-head-l">
           <view class="tcs-spark-box" :class="{ 'tcs-spark-box--success': activated }" aria-hidden="true">
             <svg v-if="activated" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6" /></svg>
-            <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3z" /></svg>
           </view>
           <view class="tcs-head-meta">
-            <text class="tcs-cap">{{ copy.noPayment }}</text>
-            <text id="trial-claim-title" class="tcs-title">{{ activated ? copy.activationSuccessTitle : copy.activateTitle }}</text>
+            <text class="tcs-title">{{ copy.activationSuccessTitle }}</text>
           </view>
         </view>
-        <view class="tcs-close" role="button" tabindex="0" :aria-label="t.trial.sheetCloseAria" @click="hide">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
-        </view>
+      </view>
+      <view class="tcs-close" role="button" tabindex="0" :aria-label="t.trial.sheetCloseAria" @click="hide">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
       </view>
 
       <view class="tcs-device">
@@ -186,23 +184,22 @@ useDialogA11y(computed(() => sheet.open), ".tcs-root", hide);
 .tcs-panel { position:absolute;left:0;right:0;bottom:0;z-index:800;box-sizing:border-box;max-height:calc(100% - var(--nx-overlay-top));overflow-y:auto;border-radius:var(--nx-glass-radius) var(--nx-glass-radius) 0 0;box-shadow:var(--nx-glass-edge);background:var(--nx-glass-fill);border:none;padding:20px 16px calc(env(safe-area-inset-bottom) + 38px);animation:tcs-slide-up .36s cubic-bezier(.16,1,.3,1); }
 @keyframes tcs-fade { from { opacity:0; } to { opacity:1; } }
 @keyframes tcs-slide-up { from { transform:translateY(100%); } to { transform:translateY(0); } }
-.tcs-head { display:flex;align-items:flex-start;justify-content:space-between;gap:8px; }
+.tcs-head { display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding-right:56px;margin-bottom:16px; }
 .tcs-head-l { display:flex;align-items:center;gap:10px;min-width:0; }
 .tcs-spark-box { width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex-shrink:0;background:color-mix(in srgb,var(--v5-brand) 14%,transparent); }
 .tcs-spark-box--success { box-shadow:0 0 24px color-mix(in srgb,var(--v5-brand) 14%,transparent);animation:tcs-success .4s ease-out; }
 @keyframes tcs-success { from { transform:scale(.8);opacity:.4; } to { transform:scale(1);opacity:1; } }
 .tcs-head-meta { display:flex;flex-direction:column;min-width:0; }
-.tcs-cap { font:500 11px/1.4 var(--font-v5);color:var(--v5-brand); }
 .tcs-title { font:600 17px/1.35 var(--font-v5);color:var(--v5-ink);margin-top:3px;overflow-wrap:anywhere; }
-.tcs-close { width:44px;height:44px;border-radius:999px;background:var(--v5-surface-2);display:grid;place-items:center;flex-shrink:0; }
+.tcs-close { position:absolute;right:16px;top:16px;z-index:1;width:44px;height:44px;border-radius:999px;background:var(--v5-surface-2);display:grid;place-items:center;flex-shrink:0; }
 .tcs-close:active { background:var(--v5-surface-3); }
-.tcs-device { display:flex;align-items:center;gap:14px;margin-top:16px;padding:6px 0 14px;border-bottom:1px solid var(--v5-border); }
-.tcs-device-art { width:92px;height:92px;flex:none;background:url('/static/img/home-glass-20260928/s1.webp') center/contain no-repeat; }
+.tcs-device { display:flex;align-items:center;gap:12px;padding:8px 0 12px;border-bottom:1px solid var(--v5-border); }
+.tcs-device-art { width:200px;height:200px;flex:none;background:url('/static/img/home-glass-20260928/s1.webp') center/contain no-repeat; }
 .tcs-device-meta { min-width:0;display:flex;flex-direction:column;gap:5px; }
 .tcs-device-caption { font:400 11px/1.5 var(--font-v5);color:var(--v5-ink-3); }
 .tcs-device-name { font:600 19px/1.3 var(--font-v5);color:var(--v5-ink);overflow-wrap:anywhere; }
 .tcs-device-duration { font:500 var(--ui-type-list-subtitle)/1.5 var(--font-v5);color:var(--v5-brand);overflow-wrap:anywhere; }
-.tcs-hero { margin-top:16px;border-radius:16px;padding:16px;position:relative;overflow:hidden;background:color-mix(in srgb,var(--v5-brand) 6%,var(--v5-surface-2));border:1px solid color-mix(in srgb,var(--v5-brand) 25%,transparent); }
+.tcs-hero { margin-top:16px;border-radius:16px;padding:16px;position:relative;overflow:hidden;background:color-mix(in srgb,var(--v5-brand) 6%,var(--v5-surface-2));border:none; }
 .tcs-hero-grid { position:absolute;inset:0;pointer-events:none;opacity:.04;background-image:linear-gradient(var(--v5-brand) 1px,transparent 1px),linear-gradient(90deg,var(--v5-brand) 1px,transparent 1px);background-size:16px 16px; }
 .tcs-hero-row,.tcs-hero-num-row { position:relative; }
 .tcs-hero-label { font:500 12px/1.5 var(--font-v5);color:var(--v5-ink-2);overflow-wrap:anywhere; }
@@ -225,6 +222,6 @@ useDialogA11y(computed(() => sheet.open), ".tcs-root", hide);
 .tcs-dismiss:active { opacity:.7; }
 .tcs-dismiss-t { font:400 var(--ui-type-list-subtitle)/1.5 var(--font-v5);color:var(--v5-ink-3);text-align:center; }
 .tcs-claim:focus-visible,.tcs-secondary:focus-visible,.tcs-close:focus-visible,.tcs-dismiss:focus-visible { outline:2px solid var(--v5-brand);outline-offset:3px; }
-@media(max-width:350px) { .tcs-device-art { width:76px;height:76px; }.tcs-device-name {font-size:17px;}.tcs-title {font-size:16px;} }
+@media(max-width:350px) { .tcs-device-art { width:160px;height:160px; }.tcs-device-name {font-size:17px;}.tcs-title {font-size:16px;} }
 @media(prefers-reduced-motion:reduce) { .tcs-panel,.tcs-backdrop,.tcs-spark-box--success { animation:none; }.tcs-claim { transition:none; } }
 </style>

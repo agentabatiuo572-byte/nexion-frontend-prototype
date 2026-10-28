@@ -2,7 +2,7 @@
   <view class="quota-tier" :aria-busy="pending">
     <view class="quota-product" role="link" tabindex="0" :aria-label="displayName" @click="openProduct" @keydown.enter.prevent="openProduct" @keydown.space.prevent="openProduct">
       <image v-if="productImage" :src="productImage" mode="aspectFit" class="quota-product__image" :alt="displayName" />
-      <view class="quota-product__copy"><text class="quota-product__name">{{ displayName }}</text><text class="quota-product__price">{{ priceLineText }}</text><text class="quota-product__qualification" :class="{ 'quota-product__qualification--met': !pending && unlocked }">{{ pending ? '—' : unlocked ? t.quota.unlocked : t.quota.locked }}</text></view>
+      <view class="quota-product__copy"><text class="quota-product__name">{{ displayName }}</text><text class="quota-product__price">{{ priceLineText }}</text><text class="quota-product__qualification" :class="{ 'quota-product__qualification--met': !visibility.hidden && !pending && unlocked }">{{ visibility.mask(pending ? '—' : unlocked ? t.quota.unlocked : t.quota.locked) }}</text></view>
       <svg class="quota-product__arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
     </view>
     <view class="quota-stock">
@@ -13,7 +13,7 @@
       <text class="quota-section-label">{{ tier.unlockKind === 'either' ? t.quota.unlockEither : t.quota.unlockAll }}</text>
       <view v-for="(condition, index) in tier.conditions" :key="index" class="quota-condition">
         <view class="quota-stat-line"><text>{{ conditionLabel(condition) }}</text><text class="quota-condition__values">{{ conditionValue(condition) }}</text></view>
-        <QuotaConditionBar :pct="pending ? 0 : condition.required > 0 ? Math.min(1, Math.max(0, condition.current / condition.required)) : 1" :met="!pending && condition.current >= condition.required" :tint="tier.tint" :label="conditionLabel(condition)" :value-text="conditionValue(condition)" />
+        <QuotaConditionBar v-if="!visibility.hidden" :pct="pending ? 0 : condition.required > 0 ? Math.min(1, Math.max(0, condition.current / condition.required)) : 1" :met="!pending && condition.current >= condition.required" :tint="tier.tint" :label="conditionLabel(condition)" :value-text="conditionValue(condition)" />
       </view>
     </view>
     <view v-if="tier.perks.length" class="quota-perks"><text v-for="(perk, index) in tier.perks" :key="index">{{ perk }}</text></view>
@@ -27,6 +27,7 @@
   </view>
 </template>
 <script setup lang="ts">
+import { useDataVisibility } from "@/store/data-visibility";
 import { computed } from 'vue';
 import { formatFinanceAmount } from '@/lib/finance-amount-display';
 import { formatComputePoints } from '@/i18n/compute-points';
@@ -68,6 +69,7 @@ export interface QuotaTier {
 const props = defineProps<{ tier: QuotaTier; pending?: boolean; actionBlocked?: boolean }>();
 const emit = defineEmits<{ navigate: [url: string] }>();
 const t = useT();
+const visibility = useDataVisibility();
 const locale = useLocaleStore();
 const auditCopy = computed(() => networkReauditCopy(locale.code));
 const displayName = computed(() => (props.tier.name));
@@ -85,10 +87,10 @@ function conditionLabel(condition: QuotaCondition) {
   return condition.label;
 }
 function conditionValue(condition: QuotaCondition) {
-  if (props.pending) return "— / —";
+  if (props.pending) return `${visibility.mask("—")} / —`;
   return condition.kind === 'volume'
-    ? `${formatComputePoints(condition.current, locale.code)} / ${formatComputePoints(condition.required, locale.code)}`
-    : `${condition.current} / ${condition.required}`;
+    ? `${visibility.mask(formatComputePoints(condition.current, locale.code))} / ${formatComputePoints(condition.required, locale.code)}`
+    : `${visibility.mask(condition.current)} / ${condition.required}`;
 }
 function openProduct() { emit('navigate', `/pages/store/detail?id=${encodeURIComponent(props.tier.productId)}`); }
 function openAction() { if (!props.pending && !props.actionBlocked) openProduct(); }

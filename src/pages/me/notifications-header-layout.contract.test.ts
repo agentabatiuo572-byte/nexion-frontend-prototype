@@ -264,31 +264,27 @@ describe("message page header content contract", () => {
     view.retrySummary(); expect(calls).toEqual([]);
   });
 
-  it("matches the reference glass highlights without painting over the category label or dot", () => {
+  it("uses one glass track with a flat selection and keeps the category indicator free to move", () => {
     const scoped = descriptor.styles.find(style => style.scoped)!.content;
     const compiled = compileStyle({ source: scoped, filename: 'notifications.vue', id: 'data-v-message-check', scoped: true });
     expect(compiled.errors).toEqual([]);
-    expect(compiled.code).toContain('.nx-glass-option--selected::before');
-    const highlight = scoped.match(/\.nx-glass-option--selected::before\)\s*\{([^}]+)\}/)![1];
-    expect(highlight).toContain('inset: 5px 0'); expect(highlight).toContain('z-index: 0');
-    expect(highlight).toContain('pointer-events: none');
-    expect(highlight).toContain('var(--message-glass-fill)');
-    expect(highlight).toContain('box-shadow: inset 0 1px 0');
+    const primary = all.find(node => hasClass(node, 'message-primary'))!;
+    expect(attribute(primary, 'surface')).toMatchObject({ value: { content: 'glass' } });
+    expect(attribute(primary, 'selection')).toMatchObject({ value: { content: 'flat' } });
+    expect(scoped).not.toContain('.nx-glass-option--selected::before');
+    const indicator = scoped.match(/\.message-filters :deep\(\.nx-glass-indicator\)\s*\{([^}]+)\}/)![1];
+    expect(indicator).not.toMatch(/display:\s*none|visibility:\s*hidden|transform:/);
     expect(scoped).toMatch(/\.message-option-label, \.message-category-dot\s*\{[^}]*z-index:\s*1/);
-    expect(pageStyles).toContain('--message-glass-white: #fff');
-    expect(pageStyles).toContain('--message-selected-highlight: #E6FFA0');
-    expect(pageStyles).toContain('inset 0 1px 0 color-mix(in srgb, var(--message-glass-white) 42%');
-    expect(scoped).toContain('inset 0 1px 0 color-mix(in srgb, var(--message-selected-highlight) 55%');
-    expect(scoped).toContain('inset 0 -1px 2px');
   });
 
   it("uses natural line boxes for category/date alignment without position compensation", () => {
     const scoped = descriptor.styles.find(style => style.scoped)!.content;
     const category = scoped.match(/\.message-filters :deep\(\.nx-glass-option\)\s*\{([^}]+)\}/)![1];
     const date = pageStyles.match(/\.notification-date\s*\{([^}]+)\}/)![1];
-    for (const rule of [category, date]) {
-      expect(rule).toContain('line-height: normal'); expect(rule).not.toMatch(/transform|translate|top:/);
-    }
+    expect(category).toContain('line-height: normal');
+    expect(date).toContain('line-height: var(--ui-type-message-meta-lh)');
+    expect(date).toContain('font-size: var(--ui-type-message-meta)');
+    for (const rule of [category, date]) expect(rule).not.toMatch(/transform|translate|top:/);
     expect(category).toContain('height: 44px'); expect(date).toContain('margin: 18px 2px 2px');
     expect(source + pageStyles + settingsSource).not.toMatch(/#(?:0F131B|171B24|232938|121722|0D1017)\b/i);
   });

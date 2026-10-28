@@ -5,8 +5,8 @@
   Tapping routes to /me/devices (the trade-in entry).
 -->
 <template>
-  <view v-if="best" class="mb-3">
-    <view class="nx-glass-card block relative overflow-hidden active:opacity-90" :style="rootStyle" role="button" tabindex="0" :aria-label="w.cta" @click.stop="go">
+  <view class="mb-3">
+    <view class="nx-glass-card block relative overflow-hidden active:opacity-90" :style="rootStyle" role="button" tabindex="0" :aria-label="w.cta" @click.stop="go" @keydown.enter.stop.prevent="go" @keydown.space.stop.prevent="go">
       <view class="absolute inset-0 pointer-events-none" :style="radialStyle" />
 
       <view class="relative flex items-center gap-1.5" :style="labelStyle">
@@ -125,12 +125,12 @@ const best = computed(() => remoteApiEnabled ? remoteBest.value : mockBest.value
 const title = computed(() =>
   best.value
     ? fmt(w.value.title, { name: best.value.name, credit: formatAmount(best.value.credit) })
-    : "",
+    : w.value.emptyTitle,
 );
 const body = computed(() =>
   best.value
     ? fmt(w.value.body, { target: best.value.target, net: formatAmount(best.value.net) })
-    : "",
+    : w.value.emptyBody,
 );
 
 const rootStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",

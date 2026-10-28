@@ -13,29 +13,33 @@
               <view><text class="block font-display tabular-nums nx-direct-amount" :style="{ fontSize: amount(remoteTotalUSDT).length > 18 ? '20px' : '26px', fontWeight: 600, color: 'var(--v5-ink)' }">${{ amount(remoteTotalUSDT) }}</text></view>
               <view><text class="block font-display tabular-nums nx-direct-amount" :style="{ fontSize: amount(remoteTotalNEX).length > 18 ? '20px' : '26px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ amount(remoteTotalNEX) }}</text><text>UVT</text></view>
             </view>
-            <text class="block" style="margin-top: 8px; font-size: 12px; color: var(--v5-ink-3)">{{ remoteGroupCount }} {{ t.directReferral.settlementGroups }}</text>
+            <text class="block" style="margin-top: 8px; font-size: 12px; color: var(--v5-ink-3)">{{ visibility.mask(remoteGroupCount) }} {{ t.directReferral.settlementGroups }}</text>
             <text class="block" style="margin-top: 6px; font-size: 12px; line-height: 1.6; color: var(--v5-ink-3)">{{ auditCopy.netSummary }}</text>
           </RewardHero>
         </template>
-        <GlassSegments :label="t.directReferral.period" v-model="period" :options="periodOptions" layout="scroll" />
-        <GlassSegments :label="t.directReferral.source" v-model="filter" :options="filterOptions" layout="wrap" />
-        <view v-if="(remoteState === 'ready' || remoteState === 'loading') && remoteSnapshot" style="border-top: 1px solid var(--v5-border)">
-          <view v-for="event in remoteSnapshot.events" :key="event.id" class="nx-direct-event" style="padding: 14px 0; border-bottom: 1px solid var(--v5-border)">
-            <view :class="{ 'nx-royalty-event-large': wideAmount(event.amountUSDT) || wideAmount(event.amountNEX) }" style="display: flex; justify-content: space-between; gap: 10px">
-              <view style="flex: 1; min-width: 0">
-                <text class="block" style="font-size: var(--ui-type-list-subtitle); overflow-wrap: anywhere">{{ event.sourceUserName }}</text>
-                <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ filter === 'device_earning' ? t.directReferral.deviceEarning : filter === 'direct' ? t.directReferral.purchase : t.directReferral.networkPurchase }}</text>
-              </view>
-              <view style="max-width: 58%; text-align: right">
-                <text class="block font-mono-tabular nx-direct-amount" style="color: var(--v5-ink)">${{ amount(event.amountUSDT) }}</text>
-                <text class="block font-mono-tabular nx-direct-amount" style="color: var(--v5-ink)">{{ amount(event.amountNEX) }} UVT</text>
+        <view class="nx-unilevel-filters">
+          <GlassSegments :label="t.directReferral.period" v-model="period" :options="periodOptions" layout="equal" surface="glass" selection="flat" />
+          <view class="nx-unilevel-sources" role="group" :aria-label="t.directReferral.source">
+            <view v-for="option in filterOptions" :key="option.value" role="button" tabindex="0" class="nx-unilevel-source nx-unilevel-focus" :class="{ 'nx-unilevel-source--selected': filter === option.value }" :aria-pressed="filter === option.value" @click="filter = option.value" @keydown.enter.prevent="filter = option.value" @keydown.space.prevent="filter = option.value"><text>{{ option.label }}</text></view>
+          </view>
+        </view>
+        <view v-if="(remoteState === 'ready' || remoteState === 'loading') && remoteSnapshot" class="nx-unilevel-ledger">
+          <view v-for="(event, index) in remoteSnapshot.events" :key="event.id" class="nx-direct-event">
+            <view class="nx-unilevel-record-head">
+              <text class="nx-unilevel-member">{{ event.sourceUserName }}</text>
+              <view class="nx-unilevel-record-amounts">
+                <view class="nx-unilevel-currency-row"><text class="nx-direct-amount">${{ amount(event.amountUSDT) }}</text><text class="nx-unilevel-currency">USDT</text></view>
+                <text class="nx-direct-amount nx-unilevel-uvt">{{ amount(event.amountNEX) }} UVT</text>
               </view>
             </view>
-            <text class="block nx-unilevel-details">{{ logicCopy.eventAt }}: {{ teamEventDate(event.ts, locale.code) }}</text>
-            <view style="margin-top: 6px"><text class="nx-royalty-status">{{ statusText(event) }}</text></view>
-            <text v-if="event.status === 'recovery_pending'" class="block nx-direct-amount" style="margin-top: 4px; font-size: 12px; color: var(--v5-warning)">{{ fmt(auditCopy.pendingRecovery, { usdt: '$' + amount(event.recoveryPendingUSDT), uvt: amount(event.recoveryPendingNEX) }) }}</text>
-            <view role="button" tabindex="0" class="nx-unilevel-focus nx-unilevel-details-toggle" :aria-expanded="expandedRecords.includes(event.id)" @click="toggleRecord(event.id)" @keydown.enter.prevent="toggleRecord(event.id)" @keydown.space.prevent="toggleRecord(event.id)"><text>{{ expandedRecords.includes(event.id) ? auditCopy.hideDetails : auditCopy.recordDetails }}</text></view>
-            <view v-if="expandedRecords.includes(event.id)" class="nx-unilevel-details">
+            <view class="nx-unilevel-record-meta">
+              <text class="nx-unilevel-source-label">{{ filter === 'device_earning' ? t.directReferral.deviceEarning : filter === 'direct' ? t.directReferral.purchase : t.directReferral.networkPurchase }}</text>
+              <text class="nx-royalty-status">{{ statusText(event) }}</text>
+            </view>
+            <text class="nx-unilevel-event-time">{{ logicCopy.eventAt }}: {{ teamEventDate(event.ts, locale.code) }}</text>
+            <text v-if="event.status === 'recovery_pending'" class="nx-unilevel-recovery nx-direct-amount">{{ fmt(auditCopy.pendingRecovery, { usdt: '$' + amount(event.recoveryPendingUSDT), uvt: amount(event.recoveryPendingNEX) }) }}</text>
+            <view role="button" tabindex="0" class="nx-unilevel-focus nx-unilevel-details-toggle" :aria-expanded="expandedRecords.includes(event.id)" :aria-controls="'unilevel-record-' + index" @click="toggleRecord(event.id)" @keydown.enter.prevent="toggleRecord(event.id)" @keydown.space.prevent="toggleRecord(event.id)"><text>{{ expandedRecords.includes(event.id) ? auditCopy.hideDetails : auditCopy.recordDetails }}</text><svg :class="{ 'nx-unilevel-chevron-open': expandedRecords.includes(event.id) }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg></view>
+            <view v-if="expandedRecords.includes(event.id)" :id="'unilevel-record-' + index" class="nx-unilevel-details nx-unilevel-record-details">
               <text class="block">{{ filter === 'device_earning' ? t.directReferral.receipt : t.directReferral.order }} · {{ sourceReference(event) }}</text>
               <text v-if="'sourceDeviceId' in event && event.sourceDeviceId" class="block">{{ t.directReferral.device }}: {{ event.sourceDeviceId }}</text>
               <text class="block">{{ t.directReferral.settlement }}: {{ event.id }}</text>
@@ -84,7 +88,9 @@ import EmptyState from "@/components/empty-state.vue";
 import GlassSegments from "@/components/glass-segments.vue";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
+import { useDataVisibility } from "@/store/data-visibility";
 import { networkReauditCopy } from "@/i18n/network-reaudit";
+import { teamRuleGuideCopy } from "@/components/team/team-rule-guide-copy";
 import { fmt, dateLocale } from "@/i18n/format";
 import { useApp } from "@/store/app";
 import { useAuth } from "@/store/auth";
@@ -100,6 +106,7 @@ import { formatHowNumber } from "@/lib/rank-how-content";
 
 const t = useT(), app = useApp(), auth = useAuth();
 const locale = useLocaleStore();
+const visibility = useDataVisibility();
 const logicCopy = computed(() => teamLogicCopy(locale.code));
 const auditCopy = computed(() => networkReauditCopy(locale.code));
 const expandedRecords = ref<string[]>([]);
@@ -197,7 +204,7 @@ const remoteTotalUSDT = computed(() => totals.value.amountUSDT), remoteTotalNEX 
 const ruleDescription = computed(() => {
   const p = policy.value;
   if (!p) return "";
-  if (filter.value === "extended") return t.value.directReferral.networkRule;
+  if (filter.value === "extended") return teamRuleGuideCopy(locale.code).networkRule;
   const rule = filter.value === "device_earning" ? p.deviceEarning : p.purchase;
   if (p.settlementMode === "SEVEN_V2" && filter.value === "direct" && (p.purchaseSplitConfigured === false || p.sevenLayerReference?.baseRatePct === null || p.sevenLayerReference?.coolingDays === null)) return t.value.directReferral.purchaseUnconfigured;
   if (p.settlementMode === "SEVEN_V2" && filter.value === "direct") return p.purchaseSplit?.enabled
@@ -210,8 +217,8 @@ const filterOptions = computed(() => [
   { value: "direct", label: t.value.directReferral.purchase },
   { value: "extended", label: t.value.directReferral.networkPurchase },
   { value: "device_earning", label: t.value.directReferral.deviceEarning },
-]);
-function amount(value: number | null | undefined) { return formatAmount(value); }
+] as const);
+function amount(value: number | null | undefined) { return visibility.mask(formatAmount(value)); }
 function wideAmount(value: number) { return amount(value).length > 12; }
 function sourceReference(event: DirectReferralEvent | TeamUnilevelEvent) { return event.sourceRef ?? ("orderId" in event ? event.orderId : null) ?? "—"; }
 function statusText(event: DirectReferralEvent | TeamUnilevelEvent) {
@@ -240,9 +247,26 @@ function openRules() { go('/pages/team/unilevel-how'); }
 
 .nx-royalty-totals-large > view:first-child > text { font-size: 22px !important; }
 
-.nx-royalty-event-large { flex-direction: column; }
-.nx-royalty-event-large > view + view { max-width: 100% !important; text-align: left !important; font-size: var(--ui-type-list-subtitle); }
-.nx-royalty-status { display: block; padding: 2px 0; font-size: 12px; color: var(--v5-ink-2); }
+.nx-unilevel-filters { display: flex; flex-direction: column; gap: 8px; }
+.nx-unilevel-sources { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0 18px; padding: 0 4px; }
+.nx-unilevel-source { min-height: 44px; display: flex; align-items: center; max-width: 100%; padding: 10px 0; color: var(--v5-ink-3); font-size: 13px; line-height: 1.5; cursor: pointer; }
+.nx-unilevel-source--selected { color: var(--v5-brand); font-weight: 600; }
+.nx-unilevel-source--selected > text { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 8px; }
+.nx-unilevel-ledger { border-top: 1px solid var(--v5-border-strong); }
+.nx-direct-event { padding: 20px 0 6px; border-bottom: 1px solid var(--v5-border); }
+.nx-unilevel-record-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 12px; align-items: start; }
+.nx-unilevel-member { min-width: 0; color: var(--v5-ink); font-size: 15px; line-height: 1.5; font-weight: 600; overflow-wrap: anywhere; }
+.nx-unilevel-record-amounts { min-width: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.nx-unilevel-currency-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: flex-end; gap: 2px 5px; font-size: 17px; line-height: 1.45; font-weight: 600; }
+.nx-unilevel-currency { font-size: 11px; font-weight: 500; color: var(--v5-ink-3); }
+.nx-unilevel-uvt { display: block; margin-top: 4px; color: var(--v5-ink-2); font-size: 13px; line-height: 1.5; }
+.nx-unilevel-record-meta { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 12px; align-items: baseline; margin-top: 12px; font-size: 12px; line-height: 1.6; }
+.nx-unilevel-source-label { color: var(--v5-ink-3); }
+.nx-royalty-status { text-align: right; color: var(--v5-ink-2); overflow-wrap: anywhere; }
+.nx-unilevel-event-time { display: block; margin-top: 8px; font-size: 12px; line-height: 1.6; color: var(--v5-ink-3); }
+.nx-unilevel-recovery { display: block; margin-top: 10px; color: var(--v5-ink-2); font-size: 12px; line-height: 1.6; }
+.nx-unilevel-chevron-open { transform: rotate(180deg); }
+.nx-unilevel-record-details { margin: 0 0 14px; padding: 12px; background: var(--v5-surface); border-radius: 12px; }
 .nx-unilevel-focus:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
 .nx-unilevel-details-toggle { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); color: var(--v5-ink-2); font-size: 12px; }
 .nx-unilevel-details { color: var(--v5-ink-3); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }

@@ -18,7 +18,7 @@
         </view>
       </view>
       <view class="message-collapse message-primary-wrap" :class="{ 'message-collapse--hidden': !headerState.primary }" :style="collapseStyle('primary')" :aria-hidden="!headerState.primary" :inert="!headerState.primary ? true : undefined" @focusin="headerFocused = true" @focusout="headerFocused = false">
-        <view class="message-primary-inner"><GlassSegments v-model="section" :options="accessibleSectionOptions" :label="t.notifs.drawerTitle" class="message-primary">
+        <view class="message-primary-inner"><GlassSegments v-model="section" :options="accessibleSectionOptions" :label="t.notifs.drawerTitle" surface="glass" selection="flat" class="message-primary">
           <template #option="{ option }"><text class="message-option-label">{{ option.label }}</text><view v-if="option.hasUnread" class="message-status-dot" aria-hidden="true" /></template>
         </GlassSegments></view>
       </view>
@@ -36,7 +36,7 @@
         <view v-for="(n, index) in filtered" :key="n.id" class="notification-item" :class="{ 'notification-item--read': !!n.readAt, 'notification-item--last': index === filtered.length - 1 }">
           <text v-if="index === 0 || dateHeading(n.ts) !== dateHeading(filtered[index - 1].ts)" class="notification-date" role="heading" aria-level="2">{{ dateHeading(n.ts) }}</text>
           <view class="notification-row" role="button" tabindex="0" :aria-label="platformDisplayText(n.title)" :aria-expanded="directNotice(n) ? undefined : expandedId === n.id" @click="toggle(n)" @touchstart="onTouchStart(n, $event)" @touchend="onTouchEnd(n, $event)">
-            <view class="notification-icon" aria-hidden="true" v-html="kindIcon(n)" />
+            <view class="notification-icon" :data-category="notificationCategory(n)" aria-hidden="true" v-html="kindIcon(n)" />
             <view class="notification-content"><view class="notification-top"><view class="notification-heading"><text class="notification-title">{{ platformDisplayText(n.title) }}</text><text v-if="n.priority === 'critical' || n.priority === 'high'" class="notification-important">{{ t.notifs.important }}</text></view><view class="notification-meta"><text class="notification-time">{{ timeAgo(n.ts) }}</text><view v-if="!n.readAt" class="message-status-dot" aria-hidden="true" /></view></view><text v-if="n.body && expandedId !== n.id" class="notification-preview">{{ platformDisplayText(n.body) }}</text></view>
             <svg v-if="n.ctaHref" class="notification-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
           </view>
@@ -358,23 +358,18 @@ watch(section, () => { resetHeader(); preserveSectionInH5(); });
 .message-nav .message-summary-recovery { flex: 1; min-width: 0; margin: 0 8px; }
 .message-nav .message-summary-recovery .message-button { font: 600 13px/20px var(--font-v5); text-align: center; }
 .notification-management { display: flex; justify-content: flex-end; padding: 4px 0 8px; }
-/* Keep the shared segment semantics and keyboard handling; only this page's
-   rails use the reference's green primary selection and neutral category glass. */
-.message-center .message-primary { height: 50px; box-sizing: border-box; padding: 3px 0; gap: 4px; border: 0; background: transparent; box-shadow: none; }
-.message-center .message-filters :deep(.nx-glass-option--selected::before) { content: ""; position: absolute; inset: 5px 0; z-index: 0; border-radius: 999px; pointer-events: none; border: 1px solid var(--message-glass-border); background: var(--message-glass-fill); box-shadow: inset 0 1px 0 var(--message-glass-border); -webkit-backdrop-filter: blur(16px) saturate(170%); backdrop-filter: blur(16px) saturate(170%); }
+/* One glass rail, one flat moving selection; shared spring/drag behavior stays active. */
+.message-center .message-primary { height: 50px; box-sizing: border-box; padding: 3px; gap: 4px; border: 0; background: transparent; box-shadow: none; }
+.message-center .message-primary :deep(.nx-glass-backdrop) { --v5-liquid-shadow: none; }
+.message-center .message-filters :deep(.nx-glass-indicator) { --v5-liquid-selected: transparent; --v5-liquid-selection-shadow: none; }
 .message-option-label, .message-category-dot { position: relative; z-index: 1; }
-.message-center .message-primary :deep(.nx-glass-track-viewport),
-.message-center .message-primary :deep(.nx-glass-indicator),
-.message-center .message-filters :deep(.nx-glass-track-viewport),
-.message-center .message-filters :deep(.nx-glass-indicator) { display: none; }
 .message-center .message-primary :deep(.nx-glass-option) { min-height: 44px; height: 44px; padding: 0 10px; gap: 6px; border: 1px solid transparent; border-radius: 999px; color: var(--v5-ink-2); font-size: var(--ui-type-list-title); line-height: 20px; font-weight: 500; }
-.message-center .message-primary :deep(.nx-glass-option--selected) { --v5-liquid-selection-shadow: inset 0 1px 0 var(--v5-border); color: var(--ui-lime-soft, var(--v5-brand)); font-weight: 600; background: linear-gradient(180deg, color-mix(in srgb, var(--v5-brand) 30%, transparent), color-mix(in srgb, var(--v5-brand) 10%, transparent)); border-color: color-mix(in srgb, var(--ui-lime-soft, var(--v5-brand)) 45%, transparent); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--message-selected-highlight) 55%, transparent), inset 0 -1px 2px color-mix(in srgb, var(--v5-brand) 25%, transparent); }
+.message-center .message-primary :deep(.nx-glass-option--selected) { color: var(--v5-brand); font-weight: 600; }
 .message-center .message-filters { align-self: flex-start; width: fit-content; max-width: 100%; box-sizing: border-box; height: 44px; min-height: 44px; margin-block: 7px -5px; padding: 0; gap: 6px; border-radius: 0; background: transparent; }
-.message-center .message-filters :deep(.nx-glass-option) { min-height: 44px; height: 44px; padding: 0 9px; gap: 4px; border: 0; border-radius: 999px; color: var(--v5-ink-3); font-size: 13.5px; line-height: normal; font-weight: 400; }
+.message-center .message-filters :deep(.nx-glass-option) { min-height: 44px; height: 44px; padding: 0 9px; gap: 4px; border: 0; border-radius: 999px; color: var(--v5-ink-3); font-size: 13.5px; line-height: normal; font-weight: 500; }
 .message-center .message-filters :deep(.nx-glass-option--selected) { color: var(--v5-ink); font-weight: 600; background: transparent; }
 .message-category-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--v5-brand); flex-shrink: 0; align-self: center; }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  .message-center .message-primary :deep(.nx-glass-option--selected), .message-center .message-filters :deep(.nx-glass-option--selected::before) { background: var(--v5-surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
-  .message-center .message-primary :deep(.nx-glass-option--selected) { background: var(--v5-brand-soft); }
+  .message-center .message-primary :deep(.nx-glass-backdrop), .message-center .message-filters :deep(.nx-glass-indicator) { background: var(--v5-surface); }
 }
 </style>

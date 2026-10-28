@@ -46,10 +46,10 @@ export function teamGuidesDemo(url, locale, request, read) {
     'Group volume counts confirmed order amounts, with refunds deducted. Review estimated and settled rewards separately; multiplying volume by a rate does not determine payment.',
     'Doanh số nhóm tính theo số tiền đơn đã xác nhận, trừ phần hoàn tiền. Xem riêng thưởng ước tính và đã quyết toán; nhân doanh số với tỷ lệ không xác định tiền nhận.'
   );
-  const layers = text(
-    'L1 是直接邀请成员，L2 是这些成员直接邀请的人，后续逐层延伸。购买奖励逐层记录，直接与间接成员不能合并为同一种来源。每层是否计奖仍受当前等级深度、订单资格和结算状态约束。',
-    'L1 contains directly invited members; L2 contains members they directly invited, with later levels continuing that relationship. Purchase rewards are recorded by level. Direct and indirect sources remain distinct, and eligibility depends on rank depth, eligible orders and settlement status.',
-    'L1 gồm thành viên được mời trực tiếp; L2 gồm người do họ mời trực tiếp, các cấp sau tiếp tục quan hệ này. Thưởng mua hàng được ghi theo từng cấp. Nguồn trực tiếp và gián tiếp khác nhau; điều kiện phụ thuộc độ sâu theo hạng, đơn hợp lệ và trạng thái quyết toán.'
+  const invitationScope = text(
+    '从你出发，每经过一次邀请关系记为 1 步：1 步是你直接邀请的成员，2 步是他们直接邀请的成员，之后依次延伸。购买奖励按这些关系区分来源，直接与间接成员不能合并为同一种来源。是否计奖仍受当前等级允许的邀请范围、订单资格和结算状态约束。',
+    'Count invitation steps from you: 1 step means a member you invited directly; 2 steps means a member they invited directly; each further invitation adds a step. Purchase rewards distinguish these relationships; direct and indirect members are separate sources. Eligibility still depends on the invitation scope allowed by your current rank, order eligibility and settlement status.',
+    'Tính số bước mời từ bạn: 1 bước là thành viên bạn trực tiếp mời; 2 bước là người do họ trực tiếp mời; mỗi lời mời tiếp theo thêm một bước. Thưởng mua hàng phân biệt các quan hệ này; nguồn trực tiếp và gián tiếp được ghi riêng. Việc nhận thưởng vẫn phụ thuộc phạm vi mời được hạng hiện tại cho phép, điều kiện đơn hàng và trạng thái quyết toán.'
   );
   const poolExample = text(
     `团队激励池参与起点为演示配置 V${pool.unlockRank}；本页月上限 ${number(DEMO_POOL_MONTHLY_CAP_USDT)} USDT 是固定演示值。票数、份额与预估金额不等于已到账。`,
@@ -68,31 +68,31 @@ export function teamGuidesDemo(url, locale, request, read) {
       `Tỷ lệ minh họa ${number(value.totalRatePct)}%; phân chia thưởng USDT ${number(value.usdtSharePct)}% / UVT ${number(100 - value.usdtSharePct)}%, thời gian chờ ${number(value.coolingDays)} ngày.`
     );
   const rankItems = ranks.map(rank => text(
-    `V${rank.v}：奖励深度 ${number(rank.unilevelDepth)} 层；自购算力 ${number(rank.selfComputePoints)} 点、团队算力 ${number(rank.teamComputePoints)} 点、直接邀请成员 ${number(rank.directRefs)} 人。`,
-    `V${rank.v}: reward depth ${number(rank.unilevelDepth)} levels; own compute ${number(rank.selfComputePoints)} points, team compute ${number(rank.teamComputePoints)} points, ${number(rank.directRefs)} directly invited members.`,
-    `V${rank.v}: độ sâu thưởng ${number(rank.unilevelDepth)} cấp; năng lực tự mua ${number(rank.selfComputePoints)} điểm, đội nhóm ${number(rank.teamComputePoints)} điểm, ${number(rank.directRefs)} thành viên được mời trực tiếp.`
+    `V${rank.v}：购买奖励适用范围为从你出发最多 ${number(rank.unilevelDepth)} 步邀请关系；自购算力 ${number(rank.selfComputePoints)} 点、团队算力 ${number(rank.teamComputePoints)} 点、直接邀请成员 ${number(rank.directRefs)} 人。`,
+    `V${rank.v}: purchase rewards apply to invitation relationships up to ${number(rank.unilevelDepth)} steps from you; own compute ${number(rank.selfComputePoints)} points, team compute ${number(rank.teamComputePoints)} points, ${number(rank.directRefs)} directly invited members.`,
+    `V${rank.v}: phạm vi thưởng mua hàng tối đa ${number(rank.unilevelDepth)} bước mời tính từ bạn; năng lực tự mua ${number(rank.selfComputePoints)} điểm, đội nhóm ${number(rank.teamComputePoints)} điểm, ${number(rank.directRefs)} thành viên được mời trực tiếp.`
   ));
   let blocks;
   if (key === 'team-unilevel-how') {
     blocks = [
       block('hero', ['团队奖励说明 · 演示', 'Team rewards guide · Demo', 'Hướng dẫn thưởng đội nhóm · Minh họa'], sameBody(sample)),
-      block('seven-layer-scope', ['邀请层级与购买奖励', 'Invitation levels and purchase rewards', 'Cấp mời và thưởng mua hàng'], sameBody(layers)),
+      block('seven-layer-scope', ['邀请关系与购买奖励', 'Invitation relationships and purchase rewards', 'Quan hệ mời và thưởng mua hàng'], sameBody(invitationScope)),
       block('direct-referral-scope', ['直接邀请的设备收益奖励', 'Device earnings from direct invitations', 'Thưởng thu nhập thiết bị từ lời mời trực tiếp'], [
-        '设备收益奖励只给直接邀请人，由平台额外支付，成员原设备收益不扣减。这与按层级记录的购买奖励分开核算。',
-        'Device earnings rewards go only to the direct inviter. The platform pays extra; the member keeps the original device earnings. This is accounted for separately from purchase rewards by level.',
-        'Thưởng thu nhập thiết bị chỉ trả cho người mời trực tiếp. Nền tảng trả thêm, thành viên giữ nguyên thu nhập thiết bị. Khoản này được tính riêng với thưởng mua hàng theo cấp.'
+        '设备收益奖励只给直接邀请人，由平台额外支付，成员原设备收益不扣减。这与按邀请关系区分来源的购买奖励分开核算。',
+        'Device earnings rewards go only to the direct inviter. The platform pays extra; the member keeps the original device earnings. This is accounted for separately from purchase rewards attributed to different invitation relationships.',
+        'Thưởng thu nhập thiết bị chỉ trả cho người mời trực tiếp. Nền tảng trả thêm, thành viên giữ nguyên thu nhập thiết bị. Khoản này được tính riêng với thưởng mua hàng từ các quan hệ mời khác nhau.'
       ]),
       block('purchase-rule', ['直接购买奖励比例', 'Direct purchase reward rate', 'Tỷ lệ thưởng mua trực tiếp'], sameBody(rule(direct.purchase))),
       block('device-rule', ['设备收益奖励比例', 'Device earnings reward rate', 'Tỷ lệ thưởng thu nhập thiết bị'], sameBody(rule(direct.deviceEarning))),
-      block('rank-depths', ['演示等级深度与条件', 'Demo rank depths and requirements', 'Độ sâu và điều kiện hạng minh họa'], [
+      block('rank-depths', ['演示等级条件与适用范围', 'Demo rank requirements and reward scope', 'Điều kiện hạng và phạm vi thưởng minh họa'], [
         '以下数值来自当前演示等级表。算力点与购买金额分开计量；达到点数后仍须满足该等级其他条件并完成资格核验。',
         'These values follow the current demo ladder. Compute points and purchase amounts are separate measures. Reaching a point target still requires the other rank conditions and eligibility verification.',
         'Các giá trị theo bảng hạng minh họa hiện tại. Điểm tính toán và tiền mua hàng là hai đại lượng riêng. Đạt điểm vẫn cần đáp ứng điều kiện hạng khác và được xác minh.'
       ], rankItems),
-      block('unknown-network-rates', ['间接层级的计量边界', 'Limits of the indirect-level information', 'Phạm vi thông tin cấp gián tiếp'], [
-        '购买记录按 L1、L2、L3 等层级区分来源。未提供各间接层级的完整比例、额外门槛和总封顶规则，不能沿用直接邀请比例或把等级深度视为到账保证。各笔金额按对应订单和奖励记录核对。',
-        'Purchase records distinguish sources by levels such as L1, L2 and L3. Full indirect-level rates, additional gates and an overall cap are not supplied. Do not reuse the direct invitation rate or treat rank depth as a payment guarantee. Check each order and reward record.',
-        'Bản ghi mua hàng phân biệt nguồn theo các cấp như L1, L2 và L3. Chưa cung cấp đầy đủ tỷ lệ cấp gián tiếp, ngưỡng bổ sung và giới hạn tổng. Không dùng lại tỷ lệ mời trực tiếp hay coi độ sâu là bảo đảm nhận tiền. Kiểm tra từng đơn và bản ghi thưởng.'
+      block('unknown-network-rates', ['间接邀请的规则信息', 'Rules for indirect invitations', 'Thông tin thưởng từ lời mời gián tiếp'], [
+        '购买记录分别保留你直接邀请的成员、这些成员邀请的人及后续邀请关系的来源。未提供各类间接邀请关系的完整比例、额外门槛和总封顶规则，不能沿用直接邀请比例或把允许的邀请范围视为到账保证。各笔金额按对应订单和奖励记录核对。',
+        'Purchase records distinguish members you invited directly, members they invited, and further invitation relationships. Full rates for each indirect relationship, additional eligibility requirements and an overall cap are not supplied. Do not reuse the direct invitation rate or treat the allowed invitation scope as a payment guarantee. Check each order and reward record.',
+        'Bản ghi mua hàng phân biệt thành viên bạn mời trực tiếp, người do họ mời và các quan hệ mời tiếp theo. Chưa cung cấp đầy đủ tỷ lệ cho từng quan hệ gián tiếp, điều kiện bổ sung và giới hạn tổng. Không dùng lại tỷ lệ mời trực tiếp hay coi phạm vi mời được phép là bảo đảm nhận tiền. Kiểm tra từng đơn và bản ghi thưởng.'
       ]),
       block('settlement', ['金额、币种与退款', 'Amounts, currencies and refunds', 'Số tiền, loại tiền và hoàn tiền'], [
         'USDT 与 UVT 分别核对，不直接相加或暗中兑换。已结算、冷却、冻结、冲正及待追回是不同状态；退款后某一币种被冲正时，不代表另一币种也必然失效。',
@@ -138,12 +138,12 @@ export function teamGuidesDemo(url, locale, request, read) {
   } else {
     blocks = [
       block('hero', ['奖励记录说明 · 演示', 'Reward records guide · Demo', 'Hướng dẫn bản ghi thưởng · Minh họa'], sameBody(sample)),
-      block('overview', ['先区分来源与状态', 'Identify sources and status', 'Phân biệt nguồn và trạng thái'], sameBody(`${layers} ${poolExample}`)),
+      block('overview', ['先区分来源与状态', 'Identify sources and status', 'Phân biệt nguồn và trạng thái'], sameBody(`${invitationScope} ${poolExample}`)),
       block('channels', ['不同奖励分别核对', 'Check each reward source separately', 'Kiểm tra riêng từng nguồn thưởng'], sameBody(volumeBoundary)),
       block('network', ['团队奖励：购买与设备收益', 'Team rewards: purchases and device earnings', 'Thưởng đội nhóm: mua hàng và thu nhập thiết bị'], [
-        '购买记录保留直接与间接邀请层级。直接购买：{directPurchaseRules}。间接购买：{networkPurchaseRules}。直接成员设备收益：{directDeviceRules}。{directScope}。演示 UVT 报价：{directPrice}。',
-        'Purchase records retain direct and indirect invitation levels. Direct purchases: {directPurchaseRules}. Indirect purchases: {networkPurchaseRules}. Direct member device earnings: {directDeviceRules}. {directScope}. Demo UVT quote: {directPrice}.',
-        'Bản ghi mua hàng giữ cấp mời trực tiếp và gián tiếp. Mua trực tiếp: {directPurchaseRules}. Mua gián tiếp: {networkPurchaseRules}. Thu nhập thiết bị thành viên trực tiếp: {directDeviceRules}. {directScope}. Báo giá UVT minh họa: {directPrice}.'
+        '购买记录分别保留直接邀请、成员继续邀请等不同关系的来源。直接购买：{directPurchaseRules}。间接购买：{networkPurchaseRules}。直接成员设备收益：{directDeviceRules}。{directScope}。演示 UVT 报价：{directPrice}。',
+        'Purchase records retain the distinct sources from direct invitations and further invitations by members. Direct purchases: {directPurchaseRules}. Indirect purchases: {networkPurchaseRules}. Direct member device earnings: {directDeviceRules}. {directScope}. Demo UVT quote: {directPrice}.',
+        'Bản ghi mua hàng ghi riêng nguồn từ lời mời trực tiếp và từ những người được thành viên tiếp tục mời. Mua trực tiếp: {directPurchaseRules}. Mua gián tiếp: {networkPurchaseRules}. Thu nhập thiết bị thành viên trực tiếp: {directDeviceRules}. {directScope}. Báo giá UVT minh họa: {directPrice}.'
       ]),
       block('binary', ['双区贡献奖励', 'Two-group contribution rewards', 'Thưởng đóng góp hai nhóm'], sameBody('{binaryRules}')),
       block('peer', ['同级奖励', 'Peer rewards', 'Thưởng đồng cấp'], sameBody('{peerRules} {peerStatus}')),
@@ -190,12 +190,12 @@ export function teamGuidesDemo(url, locale, request, read) {
       ]),
       block('example-note', ['演示边界', 'Demo scope', 'Phạm vi minh họa'], sameBody(sample)),
       block('faq', ['常见问题', 'Common questions', 'Câu hỏi thường gặp'], [
-        '先查看对应订单、来源层级和币种状态。', 'Start with the linked order, source level and currency status.', 'Trước tiên xem đơn tương ứng, cấp nguồn và trạng thái loại tiền.'
+        '先查看对应订单、来源邀请关系和币种状态。', 'Start with the linked order, invitation relationship and currency status.', 'Trước tiên xem đơn tương ứng, quan hệ mời và trạng thái loại tiền.'
       ]),
       block('faq-order', ['为什么没有预期奖励？', 'Why is an expected reward missing?', 'Vì sao chưa thấy thưởng dự kiến?'], [
-        '核对订单资格、直接或间接邀请关系、等级深度和奖励状态。成员数增加不自动产生已结算奖励，未提供的层级比例不能自行补算。',
-        'Check order eligibility, direct or indirect relationships, rank depth and reward status. More members do not automatically produce settled rewards; missing level rates must not be guessed.',
-        'Kiểm tra điều kiện đơn, quan hệ trực tiếp hoặc gián tiếp, độ sâu theo hạng và trạng thái thưởng. Thêm thành viên không tự tạo thưởng đã quyết toán; không đoán tỷ lệ cấp còn thiếu.'
+        '核对订单资格、直接或间接邀请关系、当前等级允许的邀请范围和奖励状态。成员数增加不自动产生已结算奖励，未提供的各类邀请关系比例不能自行补算。',
+        'Check order eligibility, direct or indirect relationships, the invitation scope allowed by your current rank and reward status. More members do not automatically produce settled rewards; missing rates for each invitation relationship must not be guessed.',
+        'Kiểm tra điều kiện đơn, quan hệ trực tiếp hoặc gián tiếp, phạm vi mời được hạng hiện tại cho phép và trạng thái thưởng. Thêm thành viên không tự tạo thưởng đã quyết toán; không đoán tỷ lệ còn thiếu cho từng quan hệ mời.'
       ]),
       block('faq-withdraw', ['什么时候可以提现？', 'When can I withdraw?', 'Khi nào có thể rút?'], [
         '以该笔奖励的释放状态与可提现余额为准。预估、待计算和冷却记录不等于可提现金额。',

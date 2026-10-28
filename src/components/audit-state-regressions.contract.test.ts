@@ -19,7 +19,7 @@ describe("server state presentation regressions", () => {
     expect(template).toContain("app.remoteAssignmentStatus === 'idle'");
     expect(template).toContain("app.remoteAssignmentStatus === 'loading' && !app.remoteAssignmentHasSnapshot");
     expect(template.indexOf("t.taskHistory.loading")).toBeGreaterThan(0);
-    expect(template.indexOf("t.taskHistory.loading")).toBeLessThan(template.indexOf("t.taskHistory.historyEmpty"));
+    expect(template.indexOf("t.taskHistory.loading")).toBeLessThan(template.indexOf("t.home.ledgerEmpty"));
   });
   it.each(["./events/events-card.vue", "./events/events-featured-hero.vue"])("does not offer claims outside an ongoing event in %s", (path) => {
     expect(source(path)).toMatch(/const showClaim = computed\([^;]+props\.ev\.status === "ongoing"/);

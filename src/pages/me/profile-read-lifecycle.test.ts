@@ -47,6 +47,7 @@ function mount(localeCode: "zh" | "en" | "vi" = "zh", platform: "app" | "h5" = "
     refreshNicknameCandidates: vi.fn(async () => true),
     setDisplayName: vi.fn(async () => true),
     projectServerNickname: vi.fn((nickname: string) => { profile.displayName = nickname; }),
+    projectServerAvatar: vi.fn(),
   });
   const payout = vue.reactive({ hasAnyAddress: false, provenance: null as unknown, currentFor: () => undefined,
     refreshRemote: vi.fn(async () => false),

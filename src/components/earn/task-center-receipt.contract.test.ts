@@ -65,12 +65,16 @@ import { compileScript, compileTemplate, parse } from '@vue/compiler-sfc';
 import ts from 'typescript';
 import { createPinia, setActivePinia } from 'pinia';
 import { zh } from '@/i18n/messages/zh';
+import { en } from '@/i18n/messages/en';
 import { fmt, dateLocale } from '@/i18n/format';
 import { formatDisplayDateTime } from '@/lib/display-date';
 import { workloadLabel } from '@/lib/workload-label';
 import { isActiveSlotDevice } from '@/lib/device-slot-policy';
+import * as passiveTabRead from '@/lib/passive-tab-read';
 const remote = vi.hoisted(() => ({
   remoteApiEnabled: true, fundsServerEnabled: true, expectedApiEnvironment: 'dev',
+  apiRuntimeConfig: { environment: 'dev', baseUrl: 'http://127.0.0.1:8110' },
+  apiRuntimeClientOrigin: { environment: 'dev', baseUrl: 'http://127.0.0.1:8110' },
   sessionVault: { read: vi.fn() }, deviceE3Api: { fleet: vi.fn() },
   taskAssignmentApi: { state: vi.fn(), receipt: vi.fn() }, appHomeApi: { fetch: vi.fn() },
   withdrawalApi: { submit: vi.fn(), list: vi.fn(), get: vi.fn() },
@@ -110,6 +114,7 @@ async function setup() {
   const modal={props:['receipt'],emits:['close'],setup:(p:any,c:any)=>()=>Vue.h('probe-modal',{receipt:p.receipt,onClose:()=>c.emit('close')})};
   const noChild={render:()=>null}; const navigation={navTo:vi.fn()};
   const imports=(id:string):any=>{
+    if(id==='@/lib/passive-tab-read') return passiveTabRead;
     if(id==='@/store/data-visibility') return { useDataVisibility: () => ({ hidden:false, mask:String }) };
     if(id==='@/lib/amount-display')return{formatAmount};
     if(id==='@/lib/usd-display')return{formatUsdOverviewParts};
@@ -123,6 +128,7 @@ async function setup() {
     if(id==='@/store/app')return{useApp:()=>app};
     if(id==='@/store/ui')return{toast};
     if(id==='@/i18n/use-t')return{useT:()=>Vue.ref(zh)};
+    if(id==='@/i18n/messages/en')return{en};
     if(id==='@/i18n/format')return{fmt,dateLocale};
     if(id==='@/lib/display-date')return{formatDisplayDateTime};
     if(id==='@/lib/workload-label')return{workloadLabel};

@@ -4,33 +4,31 @@
     <view class="pb-6" style="color: var(--v5-ink)">
       <SubPageHeader back="/pages/team/team" :title="t.pool.pageTitle" />
 
-      <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
+      <view class="pool-content">
 
 
-        <view class="reward-summary-panel">
-        <RewardHero kind="balance" :label="t.pool.weekPool" :sub="weeklyDescText">
-          <text class="reward-amount">{{ remoteApiEnabled && !remotePool ? '—' : '$' + formatFinanceAmount(currentWeekPoolUSDT) }}</text>
-          <template #footer><view class="reward-cta reward-rule-link" role="button" tabindex="0" @click="go('/pages/team/leadership-pool-how')" @keydown.enter.prevent="go('/pages/team/leadership-pool-how')" @keydown.space.prevent="go('/pages/team/leadership-pool-how')"><text>{{ t.pool.howItWorksEntry }}</text></view></template>
-        </RewardHero>
+        <view class="pool-hero">
+          <view class="pool-hero-heading"><text class="pool-label">{{ t.pool.weekPool }}</text><view class="pool-rule-link" role="link" tabindex="0" :aria-label="t.pool.howItWorksEntry" @click="go('/pages/team/leadership-pool-how')" @keydown.enter.prevent="go('/pages/team/leadership-pool-how')" @keydown.space.prevent="go('/pages/team/leadership-pool-how')"><text>{{ locale.code === 'zh' ? '规则' : locale.code === 'vi' ? 'Quy tắc' : 'Rules' }}</text></view></view>
+          <RewardHero kind="balance" :sub="weeklyDescText"><text class="reward-amount">{{ remoteApiEnabled && !remotePool ? '—' : '$' + formatFinanceAmount(currentWeekPoolUSDT) }}</text></RewardHero>
+        </view>
 
-
-        <view :style="statusStyle">
+        <view class="pool-personal" :style="statusStyle">
           <template v-if="remoteApiEnabled && !remotePool">
             <text class="block font-mono-tabular" :style="statusCapStyle('var(--v5-ink-2)')">{{ t.pool.projectedDividend }}</text>
-            <text class="block font-display tabular-nums" :style="projectedStyle">—</text>
+            <text class="block font-display tabular-nums" :style="projectedStyle">{{ visibility.mask('—') }}</text>
           </template>
           <template v-else-if="unlocked">
             <view class="flex items-center justify-between">
               <text class="font-mono-tabular" :style="statusCapStyle('var(--v5-ink-2)')">{{ t.pool.projectedDividend }}</text>
-              <VBadge :v="myRank" size="sm" />
+              <VBadge v-if="!visibility.hidden" :v="myRank" size="sm" /><text v-else>{{ visibility.mask('') }}</text>
             </view>
-            <text class="block font-display tabular-nums" :style="projectedStyle">${{ formatFinanceAmount(projectedPayout) }}</text>
+            <text class="block font-display tabular-nums" :style="projectedStyle">${{ visibility.mask(formatFinanceAmount(projectedPayout)) }}</text>
             <view class="pool-votes">
-              <view><text :style="statLabelStyle">{{ auditCopy.votes }}</text><text class="block" :style="statValueStyle">{{ myVotes }}</text></view>
-              <view><text :style="statLabelStyle">{{ auditCopy.totalVotes }}</text><text class="block" :style="statValueStyle">{{ totalVotes }}</text></view>
-              <view><text :style="statLabelStyle">{{ auditCopy.share }}</text><text class="block" :style="statValueStyle">{{ shareLabel }}</text></view>
+              <view><text :style="statLabelStyle">{{ auditCopy.votes }}</text><text class="block" :style="statValueStyle">{{ visibility.mask(myVotes) }}</text></view>
+              <view><text :style="statLabelStyle">{{ auditCopy.totalVotes }}</text><text class="block" :style="statValueStyle">{{ visibility.mask(totalVotes) }}</text></view>
+              <view><text :style="statLabelStyle">{{ auditCopy.share }}</text><text class="block" :style="statValueStyle">{{ visibility.mask(shareLabel) }}</text></view>
             </view>
-            <text v-if="myVotes === 0" class="block" :style="lockedSubStyle">{{ auditCopy.qualified }} · {{ auditCopy.noVotes }}</text>
+            <text v-if="!visibility.hidden && myVotes === 0" class="block" :style="lockedSubStyle">{{ auditCopy.qualified }} · {{ auditCopy.noVotes }}</text>
           </template>
           <template v-else>
             <text class="block font-mono-tabular" :style="statusCapStyle('var(--v5-ink-3)')">{{ t.pool.locked }}</text>
@@ -40,35 +38,32 @@
               <text>{{ requiresUnlockRankParts[2] }}</text>
             </text>
             <text class="block" :style="lockedSubStyle">{{ currentlyVText }}</text>
-            <view class="reward-cta" style="margin-top: 14px" role="button" tabindex="0" @click="go('/pages/team/rank')" @keydown.enter.prevent="go('/pages/team/rank')" @keydown.space.prevent="go('/pages/team/rank')">
+            <view class="pool-action" style="margin-top: 14px" role="button" tabindex="0" @click="go('/pages/team/rank')" @keydown.enter.prevent="go('/pages/team/rank')" @keydown.space.prevent="go('/pages/team/rank')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>
               <text>{{ pathCtaText }}</text>
             </view>
           </template>
         </view>
 
-
-
-        </view>
         <view v-if="poolHistory.length > 0" :style="pastGroupStyle">
           <text class="block font-mono-tabular" :style="pastHeadStyle">{{ t.pool.pastPools }}</text>
           <view
             v-for="(h, i) in poolHistory"
             :key="h.weekId"
-            class="flex items-center justify-between"
+            class="pool-history-row"
             :style="historyRowStyle(i === poolHistory.length - 1)"
           >
             <view>
-              <text class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink)' }">{{ h.weekId }}</text>
+              <text class="block" :style="{ fontSize: 'var(--ui-type-list-title)', color: 'var(--v5-ink)' }">{{ h.weekId }}</text>
               <text v-if="poolTotalText(h)" class="block font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)' }">{{ poolTotalText(h) }}</text>
             </view>
-            <text class="font-mono-tabular tabular-nums" :style="{ fontSize: '12px', color: 'var(--v5-ink)' }">{{ historyAmount(h.payoutUSDT) }}</text>
+            <text class="font-mono-tabular tabular-nums" :style="{ fontSize: 'var(--ui-type-list-title)', color: 'var(--v5-ink)' }">{{ visibility.mask(historyAmount(h.payoutUSDT)) }}</text>
           </view>
         </view>
 
-        <view v-if="remoteApiEnabled && remoteState !== 'ready' && !(remoteState === 'loading' && remotePool)" class="text-center" style="padding: 48px 20px">
+        <view v-if="remoteApiEnabled && remoteState !== 'ready' && !(remoteState === 'loading' && remotePool)" class="pool-read-state" role="status" aria-live="polite" :aria-busy="remoteState === 'loading'">
           <text class="block" :style="{ color: 'var(--v5-ink-2)', fontSize: '13px' }">{{ remoteState === 'loading' ? t.pool.loading : remoteState === 'hold' ? t.pool.settlementHold : t.pool.loadError }}</text>
-          <view v-if="remoteState === 'error' || remoteState === 'hold'" class="reward-cta" style="margin-top: 14px" role="button" tabindex="0" @click="retryRemotePool" @keydown.enter.prevent="retryRemotePool" @keydown.space.prevent="retryRemotePool">
+          <view v-if="remoteState === 'error' || remoteState === 'hold'" class="pool-action" style="margin-top: 14px" role="button" tabindex="0" @click="retryRemotePool" @keydown.enter.prevent="retryRemotePool" @keydown.space.prevent="retryRemotePool">
             <text :style="{ color: 'var(--v5-on-brand)', fontSize: '13px', fontWeight: 600 }">{{ t.pool.retry }}</text>
           </view>
         </view>
@@ -80,6 +75,7 @@
 </template>
 
 <script setup lang="ts">
+import { useDataVisibility } from "@/store/data-visibility";
 import { formatFinanceAmount } from "@/lib/finance-amount-display";
 import { navTo } from "@/lib/route";
 import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
@@ -112,6 +108,7 @@ import {
 } from "@/api/order-api";
 
 const t = useT();
+const visibility = useDataVisibility();
 const app = useApp();
 const auth = useAuth();
 const readEnvironment = [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const;
@@ -193,7 +190,7 @@ const requiresUnlockRankParts = computed(() => {
   return [sentence, "", ""];
 });
 const currentlyVText = computed(() => fmt(t.value.pool.currentlyUnlockRank, {
-  n: myRank.value, title: rankTitle(myRank.value, locale.code, rankPresentation.value ?? []), rank: poolUnlockRankLabel.value,
+  n: visibility.mask(myRank.value), title: visibility.mask(rankTitle(myRank.value, locale.code, rankPresentation.value ?? [])), rank: poolUnlockRankLabel.value,
 }));
 const pathCtaText = computed(() => fmt(t.value.pool.seePathUnlockRank, { rank: poolUnlockRankLabel.value }));
 const totalPeopleText = computed(() =>
@@ -240,7 +237,7 @@ const voteRows = computed(() => {
 
 function poolTotalText(h: LeadershipPayout): string {
   if (remoteApiEnabled && h.poolUSDT <= 0) return "";
-  return fmt(t.value.pool.poolTotalShort, { k: formatFinanceAmount(h.poolUSDT / 1000), n: h.totalVotes.toLocaleString() });
+  return fmt(t.value.pool.poolTotalShort, { k: formatFinanceAmount(h.poolUSDT / 1000), n: visibility.mask(h.totalVotes.toLocaleString()) });
 }
 
 function go(url: string) {
@@ -318,23 +315,44 @@ const statusStyle: CSSProperties = {
   background: "transparent",
 };
 function statusCapStyle(color: string): CSSProperties {
-  return { fontSize: "12px", letterSpacing: "0.16em", color };
+  return { fontSize: "var(--ui-type-list-subtitle)", lineHeight: "var(--ui-type-list-subtitle-lh)", color };
 }
-const projectedStyle: CSSProperties = { marginTop: "8px", fontSize: "28px", fontWeight: 600, lineHeight: 1.2, color: "var(--v5-ink)" };
+const projectedStyle: CSSProperties = { marginTop: "8px", fontSize: "var(--ui-type-page-title)", fontWeight: 600, lineHeight: "var(--ui-type-page-title-lh)", color: "var(--v5-ink)" };
 const statLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
-const statValueStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)", marginTop: "2px" };
+const statValueStyle: CSSProperties = { fontSize: "var(--ui-type-list-title)", fontWeight: 500, color: "var(--v5-ink)", marginTop: "2px" };
 const lockedHeadStyle: CSSProperties = { marginTop: "8px", fontSize: "var(--ui-type-body)", color: "var(--v5-ink)" };
 // SKILL leading-snug = 1.375 (原版 .mt-1.5 text-[12px] leading-snug; was 1.45)
 const lockedSubStyle: CSSProperties = { marginTop: "6px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.375 };
 // Transparent hairline group (form a) — border-top opens the group, rows keep
 // their hairlines, content sits on the 2px optical inset.
-const pastGroupStyle: CSSProperties = { marginTop: "12px", padding: "0 2px", borderTop: "1px solid var(--v5-border)" };
-const pastHeadStyle: CSSProperties = { padding: "12px 0 8px", fontSize: "12px", letterSpacing: "0.16em", color: "var(--v5-ink-3)" };
+const pastGroupStyle: CSSProperties = {};
+const pastHeadStyle: CSSProperties = { padding: "0 0 12px", fontSize: "var(--ui-type-section)", lineHeight: "var(--ui-type-section-lh)", fontWeight: 600, color: "var(--v5-ink)" };
 function historyRowStyle(isLast: boolean): CSSProperties {
   return { padding: "12px 0", borderBottom: isLast ? "none" : "1px solid var(--v5-border)" };
 }
 </script>
 
 <style scoped>
+.pool-content { display: flex; flex-direction: column; gap: 28px; padding: 12px 20px 24px; }
+.pool-hero { padding: 8px 18px 18px; border: 1px solid var(--v5-border); border-radius: 20px; background: var(--v5-surface); }
+.pool-hero-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.pool-label { color: var(--v5-ink-2); font-size: var(--ui-type-list-subtitle); line-height: var(--ui-type-list-subtitle-lh); }
+.pool-rule-link { display: flex; align-items: center; justify-content: flex-end; min-height: 44px; min-width: 44px; flex: none; color: var(--v5-ink-3); font-size: var(--ui-type-meta); }
+.pool-hero :deep(.reward-hero) { padding: 0; border: 0; }
+.pool-hero :deep(.reward-hero__art) { --team-art-size: 64px; flex-basis: 64px; }
+.pool-hero :deep(.reward-hero__sub) { margin-top: 8px; color: var(--v5-ink-3); }
+.pool-hero .reward-amount { margin: 0; font-size: var(--ui-type-wallet-amount); line-height: var(--ui-type-wallet-amount-lh); }
+.pool-personal { border-bottom: 1px solid var(--v5-border); }
+.pool-history-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.pool-history-row > view { flex: 1; min-width: 0; }
+.pool-history-row > text { max-width: 52%; text-align: right; overflow-wrap: anywhere; }
+.pool-action { display: inline-flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; color: var(--v5-ink-2); font-size: var(--ui-type-button); line-height: var(--ui-type-button-lh); }
+.pool-action > svg { display: none; }
+.pool-action > text { color: inherit !important; }
+.pool-action::after { content: '→'; flex: none; }
+.pool-read-state { padding-block: 18px; border-top: 1px solid var(--v5-border); }
+.pool-read-state .pool-action { font: 600 13px/20px var(--font-v5); }
+[role="button"]:focus-visible, [role="link"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
+@media (max-width: 374px) { .pool-content { padding-inline: 16px; gap: 24px; } .pool-hero { padding-inline: 14px; } }
 .pool-votes { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--ui-space-inline); margin-top:var(--ui-space-inset); overflow-wrap:anywhere; }
 </style>

@@ -54,7 +54,8 @@ describe("rank-how page source contract", () => {
     expect(source).not.toMatch(/\bw\.(?:value\.)?(req\d\w*|s1Para\d|s5\w*|faqA\d)|useVRank|v-html|\.current\(/);
     expect(source).toContain("createRankHowResource");
     expect(source).toContain('@click="goBack"');
-    expect(source).toContain('@keydown.enter.prevent="toggleRule(group.id)"');
-    expect(source).toContain('@keydown.space.prevent="toggleRule(group.id)"');
+    expect(source).toContain('@click="toggleRule(group.id)"');
+    expect(source).toContain('role="button" tabindex="0"');
+    expect(source).toContain('aria-controls="how-rules"');
   });
 });

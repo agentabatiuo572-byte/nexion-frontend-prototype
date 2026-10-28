@@ -42,18 +42,22 @@ const find = (target: HostNode, predicate: (item: HostNode) => boolean): HostNod
 const click = (target: HostNode) => (target.props.onClick as () => void)();
 const unmounts: Array<() => void> = [];
 const translations = { en, zh, vi: vietnamese };
-const stockProduct = () => ({ id: "stellarbox-s1", productType: "DEVICE", inventoryMode: "FINITE", stock: 99995, purchaseBlocked: false });
+const stockProduct = () => ({ id: "stellarbox-s1", imageUrl: "/catalog/stellarbox-s1.webp" as string | undefined,
+  productType: "DEVICE", inventoryMode: "FINITE", stock: 99995, purchaseBlocked: false });
 
-async function mount(locale: keyof typeof translations, trialStatus: "active" | "grace" | "ended", catalogStatus: string) {
+async function mount(locale: keyof typeof translations, trialStatus: "none" | "active" | "grace" | "ended" | "converted", catalogStatus: string, remoteApiEnabled = false) {
   vi.useFakeTimers();
   const catalog = Vue.reactive({ status: catalogStatus });
   const product = Vue.ref<ReturnType<typeof stockProduct> | undefined>(stockProduct());
+  const config = Vue.reactive({ trialProductId: "stellarbox-s1", trialOffsetCapUSD: 10 });
   const trial = Vue.reactive({ status: trialStatus, authorityStatus: "ready", authorityServerState: "ACTIVE",
-    startedAt: 1, expiresAt: 2, graceEndsAt: null, canStart: () => false, eligibility: () => ({ reason: "used" }) });
+    authoritativeConversion: undefined as { refunded: boolean; rewardsReversed: boolean; orderNo: string } | undefined,
+    startedAt: 1, expiresAt: 2, graceEndsAt: null, canStart: (): boolean => false, eligibility: () => ({ reason: "used" }) });
   const navTo = vi.fn();
   const refresh = vi.fn().mockResolvedValue(true);
+  const showClaim = vi.fn();
   const dependencies: Record<string, unknown> = {
-    "@/api/runtime": { remoteApiEnabled: false },
+    "@/api/runtime": { remoteApiEnabled },
     "@/i18n/trial-lifecycle": { useTrialLifecycleCopy: () => Vue.ref(trialLifecycleCopy[locale]) },
     "@/i18n/trial-purchase": { useTrialPurchaseCopy: () => Vue.ref(trialPurchaseCopy[locale]) },
     "@/lib/amount-display": { formatAmount, formatGroupedAmount: formatAmount },
@@ -61,15 +65,17 @@ async function mount(locale: keyof typeof translations, trialStatus: "active" | 
     "@/components/app-chassis.vue": { default: { setup: (_props: unknown, context: { slots: Vue.Slots }) => () => Vue.h("chassis", context.slots.default?.()) } },
     "@/components/sub-page-header.vue": { default: { render: () => null } },
     "@/components/earn/trial-progress-hero.vue": { default: { render: () => null } },
+    "@/components/catalog-machine-image.vue": { default: { props: ["sku", "imageUrl", "scopeKey"],
+      setup: (props: Record<string, unknown>) => () => Vue.h("catalog-image", { ...props }) } },
     "@/i18n/use-t": { useT: () => Vue.ref(translations[locale]) },
     "@/i18n/format": { fmt },
     "@/lib/trial-date": { formatTrialDateTime: () => "", formatTrialDeadline: () => "" },
     "@/api/geo-policy-error": { geoPolicyErrorKind: () => null, geoPolicyUserMessage: () => null },
     "@/store/free-trial": { useFreeTrial: () => trial, liveShadowUSD: () => 1, liveShadowNEX: () => 0, remainingMs: () => 1 },
-    "@/store/trial-config": { useTrialConfig: () => ({ config: { trialProductId: "stellarbox-s1", trialOffsetCapUSD: 10 } }),
+    "@/store/trial-config": { useTrialConfig: () => ({ config }),
       computeTrialOffset: () => ({ offsetUSD: 1, remainderUSD: 0 }), resolveTrialCheckoutProductId: (id: string) => id },
-    "@/store/trial-claim-sheet": { useTrialClaimSheet: () => ({ show: vi.fn() }) },
-    "@/mock/products": { getProduct: () => product.value },
+    "@/store/trial-claim-sheet": { useTrialClaimSheet: () => ({ show: showClaim }) },
+    "@/mock/products": { getProduct: (id: string) => product.value?.id === id ? product.value : undefined },
     "@/store/product-catalog": { productCatalogState: catalog, refreshProductCatalog: refresh },
     "@/lib/route": { navTo },
     "@/composables/use-dialog-a11y": { useDialogA11y: () => {} },
@@ -84,7 +90,8 @@ async function mount(locale: keyof typeof translations, trialStatus: "active" | 
   app.mount(root); unmounts.push(() => app.unmount());
   await Vue.nextTick();
   refresh.mockClear();
-  return { root, catalog, product, trial, navTo, refresh,
+  return { root, catalog, product, config, trial, navTo, refresh, showClaim,
+    image: () => find(root, item => item.type === "catalog-image"),
     buy: () => find(root, item => item.props["aria-disabled"] !== undefined)!,
     retry: () => find(root, item => item.props.role === "button" && textContent(item) === translations[locale].store.catalogRetry),
   };
@@ -111,6 +118,75 @@ test.each(unreadCases)("$locale $status with $catalog catalog stays neutral and 
   expect(page.navTo).not.toHaveBeenCalled();
   expect(Boolean(page.retry())).toBe(catalog === "error");
   expect(page.trial.status).toBe(status);
+});
+
+test.each(["zh", "en", "vi"] as const)("%s ended card binds art and checkout to the same current trial product", async locale => {
+  const page = await mount(locale, "ended", "ready");
+  expect(page.image()?.props).toMatchObject({ sku: "stellarbox-s1", imageUrl: stockProduct().imageUrl, scopeKey: "trial-ended" });
+  expect(textContent(page.root)).toContain(translations[locale].trial.endedTitle);
+  expect(textContent(page.root)).toContain(translations[locale].trial.endedDesc);
+
+  page.config.trialProductId = "stellarbox-pro";
+  await Vue.nextTick();
+  expect(page.image()?.props).toMatchObject({ sku: "stellarbox-pro", imageUrl: undefined });
+  click(page.buy());
+  expect(page.navTo).not.toHaveBeenCalled();
+
+  page.product.value = { ...stockProduct(), id: "stellarbox-pro", imageUrl: "/catalog/pro-current.webp" };
+  await Vue.nextTick();
+  expect(page.image()?.props).toMatchObject({ sku: "stellarbox-pro", imageUrl: "/catalog/pro-current.webp" });
+  click(page.buy());
+  expect(page.navTo).toHaveBeenCalledExactlyOnceWith("/pages/store/checkout?product=stellarbox-pro&source=trial");
+});
+
+test.each(["loading", "idle", "error"])("ended art does not retain an unconfirmed image while catalog is %s", async status => {
+  const page = await mount("zh", "ended", "ready");
+  expect(page.image()?.props.imageUrl).toBe(stockProduct().imageUrl);
+  page.catalog.status = status;
+  await Vue.nextTick();
+  expect(page.image()?.props.imageUrl).toBeUndefined();
+  expect(page.buy().props["aria-disabled"]).toBe("true");
+  expect(textContent(page.root)).toContain(zh.trial.endedDesc);
+});
+
+test("missing catalog art stays neutral without disabling a saleable product", async () => {
+  const page = await mount("zh", "ended", "ready");
+  page.product.value!.imageUrl = undefined;
+  await Vue.nextTick();
+  expect(page.image()?.props).toMatchObject({ sku: "stellarbox-s1", imageUrl: undefined });
+  expect(page.buy().props["aria-disabled"]).toBe("false");
+  click(page.buy());
+  expect(page.navTo).toHaveBeenCalledExactlyOnceWith("/pages/store/checkout?product=stellarbox-s1&source=trial");
+});
+
+test.each(["zh", "en", "vi"] as const)("%s refunded trial can re-enter the existing claim branch before ended art", async locale => {
+  const page = await mount(locale, "ended", "ready", true);
+  page.trial.authoritativeConversion = { refunded: true, rewardsReversed: true, orderNo: "REFUND-031" };
+  page.trial.canStart = () => true;
+  await Vue.nextTick();
+  expect(page.image()).toBeUndefined();
+  expect(find(page.root, item => item.props["data-testid"] === "trial-ended")).toBeUndefined();
+  const claim = find(page.root, item => item.props.role === "button" && textContent(item) === translations[locale].trial.idleCta)!;
+  click(claim);
+  expect(page.showClaim).toHaveBeenCalledOnce();
+  expect(page.navTo).not.toHaveBeenCalled();
+});
+
+test.each(["none", "active", "grace", "converted"] as const)("%s keeps its existing state without ended-only art", async status => {
+  const page = await mount("zh", status, "ready");
+  expect(page.image()).toBeUndefined();
+});
+
+test("converted refund information and order entry remain readable without ended art", async () => {
+  const page = await mount("zh", "converted", "ready", true);
+  page.trial.authoritativeConversion = { refunded: true, rewardsReversed: true, orderNo: "REFUND-031" };
+  await Vue.nextTick();
+  expect(page.image()).toBeUndefined();
+  expect(textContent(page.root)).toContain(trialPurchaseCopy.zh.refundedBody);
+  expect(textContent(page.root)).toContain(trialPurchaseCopy.zh.refundedRewards);
+  const order = find(page.root, item => item.props.role === "button" && textContent(item) === trialPurchaseCopy.zh.refundOrderCta)!;
+  click(order);
+  expect(page.navTo).toHaveBeenCalledExactlyOnceWith("/pages/store/order-detail?id=REFUND-031");
 });
 
 test.each(["active", "grace", "ended"] as const)("ready %s catalog enables only the canonical saleable product", async status => {

@@ -1,13 +1,22 @@
-<!-- Shared claim entry; eligibility and claim-sheet state remain store-owned. -->
+<!-- Shared store-ticket appearance; eligibility and claiming remain store-owned. -->
 <template>
-  <view v-if="visible" class="vb-wrap" :class="{ 'vb-wrap--embedded': embedded }">
-    <view class="vb-card" role="button" tabindex="0" :aria-label="t.voucher.bannerTitle" @click="open" @keydown.enter.prevent="open" @keydown.space.prevent="open">
-      <view class="vb-art" aria-hidden="true"><view class="nx-home-art" /></view>
-      <view class="vb-meta"><view class="vb-heading"><text class="vb-title">{{ copy.voucherShort }}</text><text class="vb-count">{{ fmt(copy.voucherShortCount,{n:offers.length}) }}</text></view>
-        <view class="vb-amount"><view class="vb-value"><text v-if="maxDiscount != null" class="vb-currency">$</text><text>{{ faceValue }}</text></view><text class="vb-sub">{{ maxDiscount != null ? copy.upToOff : copy.voucherDiscount }}</text></view>
+  <view v-if="visible" class="vb-wrap">
+    <view class="vb-card store-voucher-ticket">
+      <view class="vb-card-entry" role="button" tabindex="0" :aria-label="t.voucher.bannerTitle" @click="open" @keydown.enter.prevent="open" @keydown.space.prevent="open" />
+      <view class="store-voucher-ticket__value"><text v-if="maxDiscount != null" class="store-voucher-ticket__currency">$</text><text>{{ faceValue }}</text></view>
+      <view class="store-voucher-ticket__rule" aria-hidden="true" />
+      <view class="store-voucher-ticket__copy">
+        <text class="store-voucher-ticket__title">{{ copy.voucherShort }} · {{ fmt(copy.voucherShortCount,{n:offers.length}) }}</text>
+        <view class="store-voucher-ticket__hint">
+          <text v-if="maxDiscount == null">{{ copy.voucherDiscount }}</text>
+          <text v-if="!hasClaimed">{{ copy.claimToUse }}</text>
+          <view v-else class="vb-claimed">
+            <text>{{ t.voucher.bannerClaimed }}</text><text aria-hidden="true"> · </text>
+            <view class="vb-use-link" role="link" tabindex="0" @click.stop="useVoucherNow" @keydown.enter.stop.prevent="useVoucherNow" @keydown.space.stop.prevent="useVoucherNow"><text>{{ t.voucher.bannerUse }}</text><text aria-hidden="true"> →</text></view>
+          </view>
+        </view>
       </view>
-      <view class="vb-rule" aria-hidden="true" />
-      <view class="vb-footer"><text>{{ claimable.length ? copy.claimToUse : copy.autoApplyVoucher }}</text><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg></view>
+      <image class="store-voucher-ticket__art" src="/static/img/home-glass-20260928/coupon.webp" mode="aspectFit" aria-hidden="true" />
     </view>
   </view>
 </template>
@@ -25,7 +34,7 @@ import { voucherBenefitSummary } from '@/lib/voucher-benefit-summary';
 import { voucherSupportsSurface } from '@/lib/voucher-sheet-authority';
 import { remoteApiEnabled } from '@/api/runtime';
 
-const props = defineProps<{ surface: VoucherSurface; embedded?: boolean }>();
+const props = defineProps<{ surface: VoucherSurface }>();
 
 const voucher = useVoucher();
 const sheet = useVoucherClaimSheet();
@@ -37,6 +46,7 @@ const offers = computed(() => remoteApiEnabled
   ? voucher.presentationOffers.filter(row => !voucher.presentationClaimable.some(item => item.id === row.id) || voucherSupportsSurface(row, props.surface))
   : [...new Map([...claimable.value, ...voucher.claimedUnused].map(row => [row.id,row])).values()]);
 const summary = computed(() => voucherBenefitSummary(offers.value));
+const hasClaimed = computed(() => offers.value.some(offer => !(remoteApiEnabled ? voucher.presentationClaimable : voucher.claimableVouchers).some(row => row.id === offer.id)));
 const maxDiscount = computed(() => summary.value.amount);
 const faceValue = computed(() => maxDiscount.value != null ? fmtMoney(maxDiscount.value).replace(/^\$/, '').replace(/\.00$/, '') : summary.value.percent != null ? summary.value.percent + '%' : '–');
 const visible = computed(() => offers.value.length > 0);
@@ -46,40 +56,17 @@ function open() {
   else navTo('/pages/me/rewards-list?cat=voucher');
 }
 
+function useVoucherNow() { navTo('/pages/store/store'); }
+
 
 </script>
 
+<style scoped src="@/components/store/voucher-ticket.css"></style>
 <style scoped>
-.vb-wrap { min-width: 0; }
-.vb-card { position: relative; overflow: hidden; height: 184px; box-sizing:border-box; border-radius: 22px; border: 1px solid var(--v5-border); color: var(--v5-ink); background: radial-gradient(80% 60% at 92% 8%,color-mix(in srgb,var(--v5-brand) 20%,transparent),transparent 62%),linear-gradient(180deg,var(--ui-ticket-top),var(--ui-ticket-bottom)); }
-.vb-card::before,.vb-card::after { content:''; position:absolute; top:110px; width:18px; height:18px; border-radius:50%; background:var(--v5-bg); border:1px solid var(--v5-border); z-index:2; }
-.vb-card::before { left:-10px; }.vb-card::after { right:-10px; }
-.vb-card:focus-visible { outline:2px solid var(--v5-brand); outline-offset:3px; }
-.vb-wrap--embedded .vb-card { height:100%;min-height:184px; }
-.vb-wrap--embedded .vb-card::before,.vb-wrap--embedded .vb-card::after { top:auto;bottom:43px; }
-.vb-wrap--embedded .vb-rule { top:auto;bottom:52px; }
-.vb-wrap--embedded .vb-meta { display:flex; flex-direction:column; height:calc(100% - 52px); box-sizing:border-box; padding-bottom:12px; }
-.vb-wrap--embedded .vb-heading { flex-shrink:0; }
-.vb-wrap--embedded .vb-amount { margin-block:auto; padding-top:8px; }
-.vb-wrap--embedded .vb-value { margin-top:0; }
-.vb-wrap--embedded .vb-footer { bottom:0; min-height:52px; box-sizing:border-box; padding:7px 0; }
-.vb-art { position:absolute; right:-18px; top:-6px; width:112px; height:112px; pointer-events:none; }
-.vb-art .nx-home-art { width:100%;height:100%; transform:rotate(-8deg); animation:voucher-float 4.6s ease-in-out infinite; }
-@keyframes voucher-float { 0%,100% { transform:translateY(0) rotate(-8deg); } 50% { transform:translateY(-4px) rotate(-6deg); } }
-@media(prefers-reduced-motion:reduce) { .vb-art .nx-home-art { animation:none; } }
-.vb-meta { position:relative;padding:14px 14px 0; }
-.vb-heading { display:flex;align-items:center;gap:6px; }
-.vb-title { font:500 12.5px/20px var(--font-v5);color:var(--ui-lime-soft); }
-.vb-count { display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:999px;background:color-mix(in srgb,var(--v5-brand) 16%,transparent);color:var(--ui-lime-soft);font:600 11.5px/1 var(--font-v5);white-space:nowrap; }
-.vb-value { display:flex;align-items:baseline;gap:2px;margin-top:22px;font:600 34px/38px var(--font-v5);letter-spacing:-.02em;color:var(--ui-lime-pale);font-variant-numeric:tabular-nums; }
-.vb-currency { font-size:16px;color:var(--ui-lime-soft); }
-.vb-sub { display:block;margin-top:2px;font:400 12.5px/18px var(--font-v5);color:var(--v5-ink-3); }
-.vb-rule { position:absolute;left:14px;right:14px;top:119px;border-top:1px dashed var(--v5-border-strong); }
-.vb-footer { position:absolute;left:14px;right:12px;bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:4px;font:400 12.5px/18px var(--font-v5);color:var(--v5-ink-2); }
-.vb-footer svg { flex:none;color:var(--v5-ink-4); }
-@media(max-width:350px) { .vb-heading { gap:3px;flex-wrap:wrap; }.vb-meta { padding-inline:12px; }.vb-value { font-size:30px;margin-top:16px; }.vb-art { width:94px;height:94px; }.vb-footer { font-size:11px; } }
-@media(max-width:350px) {
-  .vb-wrap--embedded .vb-card { height:100%;min-height:200px; }
-  .vb-wrap--embedded .vb-art { width:82px;height:82px;right:-12px; }
-}
+.vb-wrap { min-width:0; }
+.vb-card-entry { position:absolute; inset:0; z-index:3; border-radius:inherit; }
+.vb-card-entry:focus-visible { outline:2px solid var(--v5-brand); outline-offset:-3px; }
+.vb-claimed { display:flex; align-items:center; flex-wrap:wrap; }
+.vb-use-link { position:relative; z-index:4; display:inline-flex; align-items:center; min-height:44px; color:var(--v5-brand); white-space:nowrap; }
+.vb-use-link:focus-visible { outline:2px solid var(--v5-brand); outline-offset:2px; border-radius:4px; }
 </style>

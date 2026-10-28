@@ -18,7 +18,7 @@ import { auditUiCopy } from '@/i18n/audit-ui';
 import { zh } from '@/i18n/messages/zh';
 import * as machineImages from '../catalog-machine-image';
 
-const api=vi.hoisted(()=>({remoteApiEnabled:true,voucherApi:{state:vi.fn(),claim:vi.fn(),popupSeen:vi.fn()},productCatalogApi:{catalog:vi.fn()}}));
+const api=vi.hoisted(()=>({remoteApiEnabled:true,apiRuntimeConfig:{environment:'TEST',baseUrl:'https://api.example.test'},voucherApi:{state:vi.fn(),claim:vi.fn(),popupSeen:vi.fn()},productCatalogApi:{catalog:vi.fn()}}));
 const cache=vi.hoisted(()=>({cachedProductImage:vi.fn(async(url:string)=>url),invalidateProductImage:vi.fn(),productImageCacheKey:(url:string)=>url}));
 vi.mock('@/api/runtime',()=>api);
 vi.mock('@/lib/product-image-cache',()=>cache);
@@ -41,12 +41,23 @@ function offer(id:string,surface='home'){return{id,name:id,type:'percent',percen
 async function home(){
  const voucher=useVoucher();await flush();api.voucherApi.state.mockResolvedValueOnce({vouchers:[...Array.from({length:3},(_,i)=>offer(String(i))),offer('store-only','store')],source:'test'});voucher.bindAccount('user:7');await flush();
  const show=vi.fn(),navTo=vi.fn(),deps:Record<string,unknown>={vue:Vue,'@/store/voucher':{useVoucher:()=>voucher},'@/api/runtime':api,'@/store/voucher-claim-sheet':{useVoucherClaimSheet:()=>({show})},'@/i18n/use-t':{useT:()=>Vue.ref(zh)},'@/i18n/audit-ui':{useAuditUiCopy:()=>Vue.ref(auditUiCopy.zh)},'@/i18n/format':{fmt,fmtMoney},'@/lib/route':{navTo},'@/lib/voucher-benefit-summary':{voucherBenefitSummary},'@/lib/voucher-sheet-authority':{voucherSupportsSurface},'@/store/free-trial':{useFreeTrial:()=>({status:'ended'})},'@/store/trial-config':{useTrialConfig:()=>({config:{seatsLeftToday:0}})},'@/composables/use-trial-presentation':{useTrialPresentation:()=>({status:Vue.ref('ended')})},'@/components/ui/nx-section.vue':sfc({setup:(_,ctx)=>()=>Vue.h('section',ctx.slots.default?.())}),'@/components/trial-hero-banner.vue':sfc({render:()=>Vue.h('trial-card','Trial ended S1')})};
+ deps['@/components/liquid-glass.vue']=sfc({render:()=>null});
  deps['@/components/voucher-banner.vue']=sfc(component(bannerSource,deps));return{voucher,show,navTo,root:mount(component(benefitsSource,deps))};
 }
+it('the store-style Home ticket opens the existing claim sheet once and cannot bypass a warm-read authority gap',async()=>{
+ const h=await home();
+ const button=find(h.root,'vb-card-entry')!;
+ expect(button.props.role).toBe('button');expect(button.props['aria-label']).toBe(zh.voucher.bannerTitle);
+ button.props.onClick();expect(h.show).toHaveBeenCalledExactlyOnceWith('home');
+ h.show.mockClear();
+ const pending=deferred();api.voucherApi.state.mockReturnValueOnce(pending.promise);const read=h.voucher.refreshRemote();await flush();
+ find(h.root,'vb-card-entry')!.props.onClick();expect(h.show).not.toHaveBeenCalled();expect(h.navTo).toHaveBeenCalledWith('/pages/me/rewards-list?cat=voucher');
+ pending.resolve({vouchers:[],source:'test'});await read;await flush();expect(find(h.root,'vb-card-entry')).toBeUndefined();
+});
 it('actual Home two-card shell and 20%/3 voucher content survive live runtime invalidation, without granting claim authority',async()=>{
  const h=await home(),card=find(h.root,'vb-card')!,grid=find(h.root,'home-benefits__grid')!;expect(text(h.root)).toContain('20%');expect(text(h.root)).toContain('3');expect(find(h.root,'home-benefits__grid--single')).toBeUndefined();
  const pending=deferred();api.voucherApi.state.mockReturnValueOnce(pending.promise);advanceRuntimeRevision();await flush();expect(h.voucher.claimableVouchers).toEqual([]);expect(find(h.root,'vb-card')).toBe(card);expect(find(h.root,'home-benefits__grid')).toBe(grid);expect(find(h.root,'home-benefits__grid--single')).toBeUndefined();expect(text(h.root)).toContain('20%');expect(text(h.root)).toContain('3');
- find(h.root,'vb-card')!.props.onClick();expect(h.show).not.toHaveBeenCalled();expect(h.navTo).toHaveBeenCalledWith('/pages/me/rewards-list?cat=voucher');
+ find(h.root,'vb-card-entry')!.props.onClick();expect(h.show).not.toHaveBeenCalled();expect(h.navTo).toHaveBeenCalledWith('/pages/me/rewards-list?cat=voucher');
  pending.reject(new ApiError({kind:'http',status:429,message:'limited',retryAfterMs:60_000}));await flush();expect(find(h.root,'vb-card')).toBe(card);expect(find(h.root,'home-benefits__grid--single')).toBeUndefined();
 });
 it.each([401,403])('a current voucher HTTP%s removes Home private voucher presentation while leaving Trial ended S1',async status=>{
@@ -72,4 +83,21 @@ it('actual UpgradeSpotlight and image SFCs retain both decoded image nodes throu
  const failedBase=images[0];failedBase.props.onError();await flush();expect(find(root,'upgrade-spotlight')!.props['data-images-ready']).toBe(false);
  const retry=deferred();api.productCatalogApi.catalog.mockReturnValueOnce(retry.promise);const retryRead=catalog.refreshProductCatalog(true);await flush();retry.resolve({...snapshot,revision:'three'});await retryRead;await flush();const recoveredBase=all(root).find(n=>n.tag==='image'&&n.props.src==='https://public.example/s1')!;expect(recoveredBase).toBeDefined();expect(recoveredBase).not.toBe(failedBase);expect(all(root).find(n=>n.tag==='image'&&n.props.src==='https://public.example/pro')).toBe(images[1]);recoveredBase.props.onLoad();await flush();expect(find(root,'upgrade-spotlight')!.props['data-images-ready']).toBe(true);failedBase.props.onError();failedBase.props.onLoad();await flush();expect(find(root,'upgrade-spotlight')!.props['data-images-ready']).toBe(true);
  api.productCatalogApi.catalog.mockRejectedValueOnce(new ApiError({kind:'http',status:403,message:'denied'}));await catalog.refreshProductCatalog(true);await flush();expect(all(root).filter(n=>n.tag==='image')).toHaveLength(0);
+});
+
+
+it('claimed voucher exposes a text link to Store and retains its claim state through a warm read', async () => {
+ const h=await home();
+ api.voucherApi.state.mockResolvedValueOnce({vouchers:[{...offer('owned'),grantId:'grant-owned',grantStatus:'AVAILABLE',claimable:false}],source:'test'});
+ await h.voucher.refreshRemote();await flush();
+ expect(text(find(h.root,'vb-claimed')!)).toContain('已领取');
+ const link=find(h.root,'vb-use-link')!;
+ expect(link.props.role).toBe('link');
+ expect(find(h.root,'vb-card')!.props.role).toBeUndefined();
+ expect(find(h.root,'vb-card-entry')!.props.role).toBe('button');
+ const event={stopPropagation:vi.fn()};link.props.onClick(event);
+ expect(event.stopPropagation).toHaveBeenCalledOnce();expect(h.navTo).toHaveBeenCalledExactlyOnceWith('/pages/store/store');expect(h.show).not.toHaveBeenCalled();
+ const pending=deferred();api.voucherApi.state.mockReturnValueOnce(pending.promise);const read=h.voucher.refreshRemote();await flush();
+ expect(find(h.root,'vb-use-link')).toBeDefined();expect(text(find(h.root,'vb-claimed')!)).toContain('已领取');
+ pending.resolve({vouchers:[],source:'test'});await read;await flush();expect(find(h.root,'vb-card')).toBeUndefined();
 });

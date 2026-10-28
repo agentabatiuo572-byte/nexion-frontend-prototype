@@ -1,5 +1,5 @@
 <template>
-  <NxSection v-if="hasVoucher || hasTrial" :title="copy.benefits" class="home-benefits" data-home-section="benefits"><view class="home-benefits__grid" :class="{ 'home-benefits__grid--single': !hasVoucher || !hasTrial }"><VoucherBanner v-if="hasVoucher" surface="home" embedded /><TrialHeroBanner v-if="hasTrial" embedded /></view></NxSection>
+  <NxSection v-if="hasVoucher || hasTrial" :title="copy.benefits" class="home-benefits" data-home-section="benefits"><view class="home-benefits__grid" :class="{ 'home-benefits__grid--single': !hasVoucher || !hasTrial }"><VoucherBanner v-if="hasVoucher" surface="home" /><TrialHeroBanner v-if="hasTrial" /></view></NxSection>
 </template>
 <script setup lang="ts">
 import { computed } from "vue";
@@ -21,11 +21,11 @@ const trialView = useTrialPresentation();
 const hasVoucher = computed(() => remoteApiEnabled
   ? voucher.presentationOffers.some(offer => !voucher.presentationClaimable.some(row => row.id === offer.id) || voucherSupportsSurface(offer, 'home'))
   : voucher.hasClaimableForSurface('home') || voucher.claimedUnused.length > 0);
-const hasTrial = computed(() => (trialView.status.value !== null && trialView.status.value !== 'none')
+const hasTrial = computed(() => trialView.status.value !== 'converted' && ((trialView.status.value !== null && trialView.status.value !== 'none')
   || (trial.status === "none" && trialCfg.config.seatsLeftToday > 0
-    && (trial.showHeroPromo() || trial.eligibility().reason === 'capacity-full')));
+    && (trial.showHeroPromo() || trial.eligibility().reason === 'capacity-full'))));
 </script>
 <style scoped>
-.home-benefits__grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px; }
+.home-benefits__grid { display:grid;grid-template-columns:minmax(0,1fr);gap:12px; }
 .home-benefits__grid--single { grid-template-columns:minmax(0,1fr); }
 </style>

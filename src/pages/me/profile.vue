@@ -40,6 +40,7 @@
           <view class="flex-1 min-w-0">
             <text class="block truncate" :style="nameStyle">{{ displayName }}</text>
             <text class="block truncate" :style="emailStyle">{{ email }}</text>
+            <ProfileUid />
             <view class="flex items-center" style="gap: 6px; margin-top: 2px">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
               <text :style="joinedStyle">{{ t.profile.joinedOn }} {{ joinedDate }}</text>
@@ -129,6 +130,7 @@
 </template>
 
 <script setup lang="ts">
+import ProfileUid from "@/components/me/profile-uid.vue";
 import { navTo } from "@/lib/route";
 import { displayNickname } from "@/lib/brand-copy";
 import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
@@ -479,6 +481,7 @@ async function loadRemoteProfile() {
     changeIntervalDays.value = projection.changeIntervalDays;
     nicknameChangeAvailableAt.value = projection.nicknameChangeAvailableAt;
     avatarChangeAvailableAt.value = projection.avatarChangeAvailableAt;
+    profile.projectServerAvatar(projection);
   } catch {
     if (!isCurrentProfileRequest(pageScope, scope, accountKey)) return;
     toast.error(t.value.profile.serverMutationFailed);
@@ -529,12 +532,14 @@ async function handleRegen() {
         if (!isCurrentProfileRequest(pageScope, scope, accountKey)) return;
         avatarUrl.value = result.avatarUrl;
         avatarRevision.value = result.avatarRevision;
+        profile.projectServerAvatar(result);
       } catch (cause) {
         const authoritative = await profileApi.profile().catch(() => null);
         if (!isCurrentProfileRequest(pageScope, scope, accountKey)) return;
         if (!authoritative || !authoritative.avatarRevision || authoritative.avatarRevision === before) throw cause;
         avatarUrl.value = authoritative.avatarUrl;
         avatarRevision.value = authoritative.avatarRevision;
+        profile.projectServerAvatar(authoritative);
       }
       if (isCurrentProfileRequest(pageScope, scope, accountKey)) {
         toast.success(t.value.profile.avatarSavedToast,

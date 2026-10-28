@@ -16,6 +16,7 @@ import { homeEarningsSubtitle } from '../home/home-real-copy';
 import { homeTaskSummary } from '../home/home-task-summary';
 import { fmt } from '@/i18n/format';
 import { formatAmount } from '@/lib/amount-display';
+import { formatUsd } from '@/lib/usd-display';
 import { dailyBaseReward, dailyMilestoneRewardText, dailyRewardLabels } from '@/pages/daily/daily-reward-view';
 import { dailyCheckInSuccessCopy } from '@/pages/daily/daily-success-copy';
 import { continuityCopy } from '@/i18n/continuity-fixes';
@@ -134,7 +135,7 @@ test('a confirmed check-in row stays visible while its next visit reads, without
   faucet.remoteHasSnapshot = false; await Vue.nextTick(); expect(text(root)).not.toBe(before);
 });
 
-test.each(['zh', 'en', 'vi'] as const)('checked-in copy in %s uses the published base reward or a non-numeric tomorrow hint', async language => {
+test.each(['zh', 'en', 'vi'] as const)('checked-in copy in %s omits tomorrow reward while retaining read failure feedback', async language => {
   const copy = { zh, en, vi: vietnamese }[language], labels = auditUiCopy[language];
   const faucet = Vue.reactive({ remoteReadState: 'ready', remoteCheckedInToday: false, signInStreak: 2,
     remoteRules: [{ key: 'baseline', value: '17' }], ensureRemote: vi.fn() });
@@ -143,12 +144,12 @@ test.each(['zh', 'en', 'vi'] as const)('checked-in copy in %s uses the published
     '@/i18n/audit-ui': { useAuditUiCopy: () => Vue.ref(labels) }, '@/store/ui': { toast: {} },
     '@/i18n/continuity-fixes': { continuityCopy }, '@/store/locale': { useLocaleStore: () => ({ code: language }) },
     '@/pages/daily/daily-success-copy': { dailyCheckInSuccessCopy }, '@/pages/daily/daily-reward-view': { dailyBaseReward }, '@/components/ui/nx-button.vue': blank });
-  const hint = () => text(classNode(root, 'daily-check-in-row__meta')!);
-  expect(hint()).toBe(fmt(labels.todayReward, { n: 17 }));
+  const hint = () => { const meta = classNode(root, 'daily-check-in-row__meta'); return meta ? text(meta) : ''; };
+  expect(hint()).toBe('');
   faucet.remoteCheckedInToday = true; await Vue.nextTick();
-  expect(hint()).toBe(fmt(continuityCopy(language).tomorrowBaseReward, { n: 17 }));
+  expect(hint()).toBe('');
   for (const value of ['', 'invalid', '-1', '0']) {
-    faucet.remoteRules[0].value = value; await Vue.nextTick(); expect(hint()).toBe(labels.tomorrow);
+    faucet.remoteRules[0].value = value; await Vue.nextTick(); expect(hint()).toBe('');
   }
   faucet.remoteReadState = 'error'; await Vue.nextTick(); expect(hint()).toBe(copy.daily.checkInUnconfirmed);
 });
@@ -179,14 +180,20 @@ test('to-do waits for its initial reads and trial progress opens the trial page'
   row.props.onClick(); expect(navTo).toHaveBeenCalledExactlyOnceWith('/pages/me/trial');
 });
 
-test('empty market disappears, while known values including zero remain', async () => {
+test('restored market retains unavailable feedback and real names, while known zero remains', async () => {
   const app = Vue.reactive({ homeTruthStatus: 'ready', homeTruth: { marketBoard: { workloads: [], deviceRankings: [] as any[] } } });
   const root = mount(marketRaw, { ...common(), '@/lib/route': { navTo: vi.fn() }, '@/store/app': { useApp: () => app },
+    '@/lib/usd-display': { formatUsd }, '@/i18n/messages/en': { en },
     '@/lib/brand-copy': { nexGridBrandText }, '@/lib/workload-label': workload });
-  expect(classNode(root, 'nx-earn-market-board')).toBeUndefined();
-  app.homeTruth.marketBoard.deviceRankings.push({ rank: 1, kind: 'phone', dailyUsdt: 0, bestFor: null }); await Vue.nextTick();
+  expect(classNode(root, 'nx-earn-market-board')).toBeDefined();
+  expect(text(root)).toContain(zh.uiChrome.unavailable);
+  expect(text(root)).not.toContain('$0.00');
+  app.homeTruth.marketBoard.deviceRankings.push({ rank: 1, kind: 'phone', name: 'NexGrid stored name', dailyUsdt: 0, bestFor: null }); await Vue.nextTick();
   expect(text(root)).toContain('$0.00/天');
-  expect(text(root)).not.toContain(zh.market.priceIndex);
+  expect(text(root)).toContain('NexGrid stored name');
+  expect(text(root)).toContain(en.market.priceIndex);
   app.homeTruthStatus = 'error'; await Vue.nextTick();
-  expect(classNode(root, 'nx-earn-market-board')).toBeUndefined();
+  expect(classNode(root, 'nx-earn-market-board')).toBeDefined();
+  expect(text(root)).not.toContain(zh.market.liveLabel);
+  expect(text(root)).toContain(zh.uiChrome.unavailable);
 });

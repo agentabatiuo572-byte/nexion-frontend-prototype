@@ -579,7 +579,7 @@ const statusBarHeight = computed(() => {
 });
 const HEADER_H = 56;
 // Preserve the existing floor clearance while the navigation rail changes height.
-const TABBAR_CLEARANCE = 36; // HomeIndicator (22) + existing 14px gap; 68px pill totals 104px.
+const TABBAR_CLEARANCE = 36; // HomeIndicator (22) + 14px gap, in addition to the responsive rail height.
 const SUB_BOTTOM = 40; //  home indicator (~22) + 18 breathing (was 26)
 const contentTop = computed(() => statusBarHeight.value + (isTabRoute.value ? HEADER_H : navHeaderH.value));
 const showFloatingSupport = computed(() => isTabRoute.value && ['home', 'earn', 'team'].includes(activeTab.value));
@@ -721,6 +721,10 @@ export default chassisView;
   inset: 0;
   overflow: hidden;
 }
+@media (min-width: 360px) { .nx-chassis { --nx-tabbar-height: 60px; } }
+@media (min-width: 375px) { .nx-chassis { --nx-tabbar-height: 62px; } }
+@media (min-width: 390px) { .nx-chassis { --nx-tabbar-height: 64px; } }
+@media (min-width: 414px) { .nx-chassis { --nx-tabbar-height: 68px; } }
 .nx-top-chrome {
   position: absolute;
   top: 0;

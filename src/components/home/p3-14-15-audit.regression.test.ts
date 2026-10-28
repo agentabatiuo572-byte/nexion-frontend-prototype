@@ -53,8 +53,8 @@ describe("P3-14/15 audit regressions", () => {
     }
   });
 
-  it("keeps the home weekly-card slot rendered for loading, error, and empty server states", () => {
-    expect(indexSource).toContain('homeWeeklyPromoEnabled: platformConfig.isEnabled("homeWeeklyPromoEnabled"),');
+  it("preserves weekly-card recovery states without restoring it to the scoped home layout", () => {
+    expect(indexSource).not.toContain('<HomeWeekly');
     expect(homeSource).toContain('const weeklyState = computed<"loading" | "error" | "empty" | "ready">');
     expect(homeSource).toContain('v-if="weeklyState === \'loading\'"');
     expect(homeSource).toContain('v-else-if="weeklyState === \'error\'"');

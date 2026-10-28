@@ -1,0 +1,17 @@
+.store-voucher-ticket { position:relative; display:flex; align-items:center; gap:14px; min-height:88px; box-sizing:border-box; padding:6px 18px; overflow:hidden; border:1px solid var(--v5-border); border-radius:22px; background:radial-gradient(60% 120% at 100% 50%,color-mix(in srgb,var(--v5-brand) 18%,transparent),transparent 65%),linear-gradient(90deg,var(--ui-ticket-top),var(--ui-ticket-bottom)); }
+.store-voucher-ticket::before,.store-voucher-ticket::after { content:''; position:absolute; top:50%; width:18px; height:18px; margin-top:-9px; border-radius:50%; background:var(--v5-bg); border:1px solid var(--v5-border); }
+.store-voucher-ticket::before { left:-10px; }.store-voucher-ticket::after { right:-10px; }
+.store-voucher-ticket__value { display:flex; align-items:baseline; gap:2px; flex:none; font:600 30px/34px var(--font-v5); letter-spacing:-.02em; color:var(--ui-lime-pale); font-variant-numeric:tabular-nums; }
+.store-voucher-ticket__currency { font-size:var(--ui-type-body); color:var(--ui-lime-soft); }
+.store-voucher-ticket__rule { align-self:stretch; margin:6px 0; border-left:1px dashed var(--v5-border-strong); }
+.store-voucher-ticket__copy { flex:1; min-width:0; }
+.store-voucher-ticket__title { display:block; font:600 var(--ui-type-section)/20px var(--font-v5); }
+.store-voucher-ticket__hint { display:block; margin-top:2px; font:400 12.5px/18px var(--font-v5); color:var(--v5-ink-3); }
+.store-voucher-ticket__art { width:72px; height:72px; margin:-4px -6px -4px 0; flex:none; animation:ticket-bob 4.6s ease-in-out infinite; }
+.store-voucher-ticket:focus-visible { outline:2px solid var(--v5-brand); outline-offset:3px; }
+
+@keyframes ticket-bob { 0%,100% { transform:translateY(0) rotate(-10deg); } 50% { transform:translateY(-3px) rotate(-8deg); } }
+@media(max-width:350px) { .store-voucher-ticket { gap:8px; padding-inline:14px; }.store-voucher-ticket__art { width:54px; height:54px; }.store-voucher-ticket__value { font-size:26px; } }
+@media(prefers-reduced-motion:reduce) { .store-voucher-ticket__art { animation:none; } }
+
+.store-voucher-ticket__hint > text {display:block;} @media(max-width:350px) {.store-voucher-ticket {gap:10px;padding-inline:14px;}.store-voucher-ticket__art {width:58px;margin-right:-10px;}.store-voucher-ticket__copy {position:relative;z-index:1;}.store-voucher-ticket__hint {white-space:normal;}}

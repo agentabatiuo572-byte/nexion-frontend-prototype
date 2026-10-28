@@ -1,3 +1,4 @@
+import { teamPrivacyFixture } from './team-privacy.test-support';
 import { teamLogicCopy } from '@/i18n/team-logic-copy';
 import * as draftSession from '@/lib/ambassador-draft-session';
 import * as Vue from 'vue';
@@ -44,7 +45,7 @@ test.each(['zh', 'en', 'vi'] as const)('R02 distinguishes qualification, availab
   const card = component(quotaSource, {
     '@/i18n/team-logic-copy': { teamLogicCopy },
     '@/lib/amount-display': { formatAmount }, '@/lib/finance-amount-display': { formatFinanceAmount }, '@/i18n/compute-points': { formatComputePoints },
-    '@/store/locale': { useLocaleStore: () => ({ code: language }) }, '@/i18n/network-reaudit': { networkReauditCopy },
+    '@/store/data-visibility': teamPrivacyFixture().dependency, '@/store/locale': { useLocaleStore: () => ({ code: language }) }, '@/i18n/network-reaudit': { networkReauditCopy },
     '@/i18n/use-t': { useT: () => Vue.ref(copy) }, '@/i18n/format': { fmt },
     '@/lib/product-media': { getProductMedia }, '@/components/ui/nx-button.vue': slot,
     './quota-condition-bar.vue': slot, '@/lib/brand-copy': { nexGridBrandText: (name: string) => name },
@@ -105,11 +106,12 @@ test.each(['zh', 'en', 'vi'] as const)('R13 keeps real budget bounds, neutral pr
     '@/components/app-chassis.vue': slot, '@/components/sub-page-header.vue': slot, '@/components/team/v-badge.vue': slot,
     '@/components/team/team-art.vue': slot, '@/components/team/team-rank-emblem.vue': slot,
     '@/store/v-rank': { useVRank: () => rank }, '@/lib/v-rank-copy': { rankLabel: (n: number) => `V${n}`, rankTitle: (n: number) => `V${n}` },
-    '@/store/locale': { useLocaleStore: () => ({ code: language }) }, '@/i18n/network-reaudit': { networkReauditCopy },
+    '@/store/data-visibility': teamPrivacyFixture().dependency, '@/store/locale': { useLocaleStore: () => ({ code: language }) }, '@/i18n/network-reaudit': { networkReauditCopy },
     '@/i18n/use-t': { useT: () => Vue.ref(dictionaries[language]) }, '@/i18n/format': { fmt },
     '@/store/ui': { toast: { warn: vi.fn(), error: vi.fn(), success: vi.fn() } },
+    '@/store/auth': { useAuth: () => Vue.reactive({ isAuthenticated: true }) },
     '@/store/app': { useApp: () => Vue.reactive({ accountKey: 'user:21', accountBindingEpoch: 1 }) },
-    '@/api/runtime': { remoteApiEnabled: true, ambassadorApplicationApi: api },
+    '@/api/runtime': { apiRuntimeConfig: { environment: 'prod', baseUrl: 'https://fixture.invalid' }, remoteApiEnabled: true, ambassadorApplicationApi: api },
     '@/api/ambassador-application-api': { isAmbassadorApplicationPending: () => false },
     '@/api/errors': { isSettledRejection: () => false },
     '@/lib/ambassador-command-key': { acquireAmbassadorCommandKey: vi.fn(), finishAmbassadorCommand: vi.fn() },
@@ -122,7 +124,8 @@ test.each(['zh', 'en', 'vi'] as const)('R13 keeps real budget bounds, neutral pr
   expect(path.props.style.background).not.toBe('var(--v5-brand)'); path.props.onClick(); expect(navTo).toHaveBeenCalledWith('/pages/team/rank');
   const ranges = all(page.root).filter(n => n.text === '125.25–9,876.50 USDT');
   expect(ranges).toHaveLength(4); ranges.forEach(n => expect(n.props.style.color).toBe('var(--v5-ink)'));
-  const submit = all(page.root).find(n => n.props['aria-disabled'] === 'true' && text(n).includes(dictionaries[language].agent.lockedV5))!;
+  const submit = page.nodes('agent-submit')[0];
+  expect(submit.props['aria-disabled']).toBe('true');
   submit.props.onClick(); await flush(); expect(api.submit).not.toHaveBeenCalled();
   expect(all(page.root).filter(n => n.tag === 'input').every(n => n.props.disabled)).toBe(true);
   expect(policy.buckets[0].minBudgetUsdt).toBe(125.25);

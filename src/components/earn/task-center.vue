@@ -54,7 +54,7 @@
     </view>
 
     <!-- Task History (merged single list) -->
-    <view class="pt-3 pb-2" :style="historyHeadStyle">
+    <view class="pb-2" :style="historyHeadStyle">
       <view class="flex items-center justify-between">
         <text style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--v5-ink-3)">{{ t.taskHistory.tabHistory }}</text>
         <view class="earn-history-all flex items-center active:opacity-60" style="gap: 2px; padding: 0 0 0 16px; min-height: 44px" role="button" tabindex="0" @click="goReceipts"  @keydown.enter.stop.prevent="goReceipts" @keydown.space.stop.prevent="goReceipts">
@@ -90,7 +90,7 @@
       <text style="font-size: 12px; color: var(--v5-ink-3)">{{ t.taskHistory.loading }}</text>
     </view>
     <view v-else-if="allRecent.length === 0" class="pb-4">
-      <text style="font-size: 12px; color: var(--v5-ink-3)">{{ t.taskHistory.historyEmpty }}</text>
+      <text style="font-size: 12px; color: var(--v5-ink-3)">{{ t.home.ledgerEmpty }}</text>
     </view>
     <view v-else class="earn-history-list pb-3 space-y-1.5">
       <view
@@ -105,7 +105,7 @@
         @keydown.enter.stop.prevent="openTaskReceipt(task)" @keydown.space.stop.prevent="openTaskReceipt(task)"
       >
         <svg class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335" /><path d="m9 11 3 3L22 4" /></svg>
-        <text class="earn-history-description" style="color: var(--v5-ink-2)">{{ task.model }}<text style="color: var(--v5-ink-4); margin: 0 4px">·</text><text style="color: var(--v5-ink-3)">{{ workloadLabel(task.category) }}</text></text>
+        <text class="earn-history-description" :title="`${task.model} · ${workloadLabel(task.category)}`" style="color: var(--v5-ink-2)">{{ task.model }}<text style="color: var(--v5-ink-2); margin: 0 4px">·</text><text style="color: var(--v5-ink-2)">{{ workloadLabel(task.category) }}</text></text>
         <text class="earn-history-amount tabular-nums" style="font-family: var(--font-v5); color: var(--v5-success-ink)">{{ visibility.mask(formatUsd(task.reward, 'detail', true)) }}</text>
         <text class="earn-history-time" style="font-size: 12px; color: var(--v5-ink-3)">{{ completedTime(task.completedAt) }}</text>
         <view v-if="canOpenTaskReceipt(task)" class="earn-history-document shrink-0 grid place-items-center" style="width: 22px; height: 22px; border-radius: 6px; color: var(--v5-ink-4)" :title="task.receiptNo ?? task.id" @click.stop="openTaskReceipt(task)">
@@ -128,6 +128,7 @@ import { formatDisplayDateTime } from "@/lib/display-date";
 import { dateLocale } from "@/i18n/format";
 import { useApp } from "@/store/app";
 import { useT } from "@/i18n/use-t";
+import { en } from "@/i18n/messages/en";
 import { prepareEarnConfig, useEarnConfig } from "@/store/earn-config";
 import type { TaskCategory, CompletedTask } from "@/store/types";
 import { workloadLabel as resolveWorkloadLabel } from "@/lib/workload-label";
@@ -219,7 +220,7 @@ onUnmounted(() => {
 // Model names are proper nouns (untranslated); the workload half is copy.
 // Resolved from `category` at render — the baked `task.type` string is English.
 function workloadLabel(category: TaskCategory): string {
-  return resolveWorkloadLabel(t.value, category);
+  return resolveWorkloadLabel(en, category);
 }
 
 // History list: completed tasks across all devices, most-recent first (last 20).
@@ -283,9 +284,11 @@ function completedTime(ts: number): string {
 </script>
 
 <style scoped>
-.earn-history-row { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto 22px; align-items: center; gap: 2px 8px; }
-.earn-history-description, .earn-history-time { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+.nx-earn-task-center { background: var(--v5-surface); }
+.earn-history-row { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto 76px 22px; align-items: center; gap: 6px; }
+.earn-history-description { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.earn-history-description :deep(*) { white-space: nowrap; }
 .earn-history-amount { min-width: 0; max-width: 120px; text-align: right; overflow-wrap: anywhere; }
-.earn-history-time { grid-column: 2 / -1; grid-row: 2; text-align: right; }
-.earn-history-document { grid-column: 4; grid-row: 1; }
+.earn-history-time { min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 16px; text-align: right; }
+.earn-history-document { grid-column: 5; }
 </style>

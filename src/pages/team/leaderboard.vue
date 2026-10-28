@@ -1,9 +1,9 @@
 <template>
   <AppChassis active="team">
     <view class="pb-8" style="color: var(--v5-ink)">
-      <SubPageHeader back="/pages/team/team" :title="t.leaderboard.pageTitle" />
+      <SubPageHeader back="/pages/team/team" :title="pointsCopy.title" />
       <view class="leader-content">
-        <GlassSegments class="nx-leader-periods" :label="t.leaderboard.pageTitle" :model-value="period" @select="selectPeriod" :options="periodOptions" />
+        <GlassSegments class="nx-leader-periods" surface="glass" selection="flat" :label="pointsCopy.title" :model-value="period" @select="selectPeriod" :options="periodOptions" />
         <view v-if="remoteApiEnabled && remoteState !== 'ready' && !(remoteState === 'loading' && remoteSnapshot)" class="leader-state" role="status" :aria-busy="remoteState === 'loading'">
           <text>{{ remoteState === 'loading' ? t.leaderboard.loading : t.leaderboard.loadError }}</text>
           <view v-if="remoteState === 'error'" class="leader-cta" role="button" tabindex="0" @click="loadRemote()" @keydown.enter.prevent="loadRemote()" @keydown.space.prevent="loadRemote()"><text class="leader-retry-label">{{ t.leaderboard.retry }}</text><text aria-hidden="true">→</text></view>
@@ -13,31 +13,31 @@
             <text class="leader-state-title">{{ t.leaderboard.pausedTitle }}</text>
             <text>{{ t.leaderboard.pausedBody }}</text>
             <text>{{ snapshotAvailable ? `${t.leaderboard.frozenAt} · ${pauseCapturedAt}` : t.leaderboard.snapshotUnavailable }}</text>
-            <text v-if="snapshotAvailable && prize.poolUSD > 0">{{ t.leaderboard.pool.label }} · {{ fmtCompactUSD(prize.poolUSD) }}</text>
             <view class="leader-cta" role="button" tabindex="0" @click="loadRemote()" @keydown.enter.prevent="loadRemote()" @keydown.space.prevent="loadRemote()"><text class="leader-retry-label">{{ t.leaderboard.retry }}</text><text aria-hidden="true">→</text></view>
           </view>
           <template v-else>
             <view class="leader-hero">
               <view class="leader-hero-copy">
                 <text class="leader-caption">{{ t.leaderboard.myRank.label }}</text>
-                <view class="leader-my-rank"><text class="font-display tabular-nums">{{ me.rank === null ? '—' : '#' + myRankDisplay }}</text><text class="leader-total">/ {{ totalRows.toLocaleString() }}</text></view>
-                <text class="leader-gap">{{ gapText }}</text>
+                <view class="leader-my-rank"><text class="font-display tabular-nums">{{ visibility.mask(!pointsRankingAvailable || me.rank === null ? '—' : '#' + myRankDisplay) }}</text><text class="leader-total">/ {{ visibility.mask(pointsRankingAvailable ? totalRows.toLocaleString() : '—') }}</text></view>
+                <text class="leader-gap">{{ visibility.mask(gapText) }}</text>
               </view>
-              <TeamArt kind="podium" :size="112" />
+              <TeamArt kind="podium" :size="80" />
             </view>
 
-            <view class="leader-list">
-              <view class="leader-list-heading"><text>{{ t.leaderboard.columns.rank }} · {{ t.leaderboard.columns.inviter }}</text><text>{{ t.leaderboard.columns.earned }}</text></view>
+            <view v-if="!pointsRankingAvailable" class="leader-state" role="status"><text>{{ pointsCopy.unavailable }}</text></view>
+            <view v-else class="leader-list">
+              <view class="leader-list-heading"><text>{{ t.leaderboard.columns.rank }} · {{ t.leaderboard.columns.inviter }}</text><text>{{ pointsCopy.points }}</text></view>
               <view v-for="group in rankingGroups" :key="group.id" :class="group.featured ? 'leader-podium' : 'leader-flat'">
-              <view v-for="row in group.rows" :key="row.rank" class="leader-row" :data-rank="row.rank">
-                <text class="leader-position tabular-nums" :class="{ 'leader-position--top': row.rank <= 3 }">{{ row.rank }}</text>
-                <TeamRankEmblem :rank="row.vRank" :size="40" />
+              <view v-for="row in group.rows" :key="row.rank" class="leader-row" :data-rank="visibility.hidden ? undefined : row.rank">
+                <text class="leader-position tabular-nums" :class="{ 'leader-position--top': row.rank <= 3 }">{{ visibility.mask(row.rank) }}</text>
+                <TeamRankEmblem v-if="!visibility.hidden" :rank="row.vRank" :size="40" /><view v-else style="width: 40px; height: 40px" aria-hidden="true" />
                 <view class="leader-person">
                   <text class="leader-name">{{ row.handle }}</text>
-                  <text class="leader-meta">{{ rankLabel(row.vRank, locale.code, []) }} · {{ fmt(t.leaderboard.chips.directs, { n: row.directs }) }}</text>
-                  <text class="leader-meta">{{ fmt(t.leaderboard.chips.teamSize, { n: row.teamSize.toLocaleString() }) }}</text>
+                  <text class="leader-meta">{{ visibility.mask(rankLabel(row.vRank, locale.code, [])) }} · {{ fmt(t.leaderboard.chips.directs, { n: visibility.mask(row.directs) }) }}</text>
+                  <text class="leader-meta">{{ fmt(t.leaderboard.chips.teamSize, { n: visibility.mask(row.teamSize.toLocaleString()) }) }}</text>
                 </view>
-                <view class="leader-earnings"><text class="tabular-nums">{{ formatUsd(row.earnedUSDT) }}</text></view>
+                <view class="leader-points"><text class="tabular-nums">{{ visibility.mask(formatComputePoints(row.computePoints, locale.code)) }}</text></view>
               </view>
               </view>
             </view>
@@ -47,7 +47,7 @@
             <NxButton class="leader-share" variant="secondary" :label="t.leaderboard.cta.share" @click="go('/pages/team/team?intent=share')">
               <text>{{ t.leaderboard.cta.share }}</text><text aria-hidden="true">→</text>
             </NxButton>
-            <text class="block text-center" :style="footerNoteStyle">{{ period === 'all' ? t.leaderboard.noteAllTime : t.leaderboard.note }}</text>
+            <text class="block text-center" :style="footerNoteStyle">{{ period === 'all' ? pointsCopy.noteAll : pointsCopy.note }}</text>
           </template>
         </template>
       </view>
@@ -56,9 +56,10 @@
 </template>
 
 <script setup lang="ts">
+import { useDataVisibility } from "@/store/data-visibility";
 import { formatDisplayDateTime } from "@/lib/display-date";
-import { formatAmount } from "@/lib/amount-display";
-import { formatUsd } from '@/lib/usd-display';
+import { formatComputePoints } from "@/i18n/compute-points";
+import { leaderboardPointsCopy } from "@/i18n/leaderboard-points-copy";
 import { navTo } from "@/lib/route";
 import { computed, nextTick, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onShow, onHide } from "@dcloudio/uni-app";
@@ -81,7 +82,9 @@ import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope"
 import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 
 const t = useT();
+const visibility = useDataVisibility();
 const locale = useLocaleStore();
+const pointsCopy = computed(() => leaderboardPointsCopy(locale.code));
 const app = useApp();
 const auth = useAuth();
 const readEnvironment = [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const;
@@ -110,10 +113,9 @@ const rows = computed(() => remoteApiEnabled ? (remoteSnapshot.value?.period ===
 const paused = computed(() => remoteApiEnabled && remoteSnapshot.value?.period === period.value && remoteSnapshot.value.paused === true);
 const snapshotAvailable = computed(() => !paused.value || (remoteSnapshot.value?.snapshotState === "FROZEN" && remoteSnapshot.value?.dataAvailable === true));
 const pauseCapturedAt = computed(() => formatDisplayDateTime(remoteSnapshot.value?.pauseCapturedAt, locale.code, true));
-// Only show a supplied pool as historical context; no payout or reset promotion.
-const prize = computed(() => ({ poolUSD: remoteApiEnabled ? remoteSnapshot.value?.poolUsd ?? 0 : 0 }));
+const pointsRankingAvailable = computed(() => !remoteApiEnabled || remoteSnapshot.value?.rankingMetric === "COMPUTE_POINTS");
 const me = computed(() => remoteApiEnabled ? { rank: remoteSnapshot.value?.myRank ?? null,
-  gapToNext: remoteSnapshot.value?.gapToNext ?? 0 } : MY_RANK[period.value]);
+  gapToNextComputePoints: remoteSnapshot.value?.gapToNextComputePoints ?? null } : MY_RANK[period.value]);
 const totalRows = computed(() => remoteApiEnabled ? remoteSnapshot.value?.totalRows ?? 0 : rows.value.length);
 const myRankDisplay = computed(() => me.value.rank === null ? "—" : String(me.value.rank));
 const visibleRows = computed(() => remoteApiEnabled ? rows.value : rows.value.slice(0, visibleCount.value));
@@ -121,9 +123,9 @@ const rankingGroups = computed(() => [
   { id: "leaders", featured: true, rows: visibleRows.value.filter(row => row.rank <= 3) },
   { id: "others", featured: false, rows: visibleRows.value.filter(row => row.rank > 3) },
 ].filter(group => group.rows.length > 0));
-const hasMore = computed(() => remoteApiEnabled
+const hasMore = computed(() => pointsRankingAvailable.value && (remoteApiEnabled
   ? rows.value.length < (remoteSnapshot.value?.totalRows ?? 0)
-  : visibleCount.value < rows.value.length);
+  : visibleCount.value < rows.value.length));
 
 function loadMore() {
   if (remoteApiEnabled) {
@@ -163,9 +165,15 @@ async function loadRemote(page = 1, append = false) {
         || snapshot.snapshotAt !== previous.snapshotAt
         || snapshot.snapshotVersion !== previous.snapshotVersion
         || snapshot.paused !== previous.paused || snapshot.snapshotState !== previous.snapshotState
+        || snapshot.rankingMetric !== previous.rankingMetric
         || snapshot.dataAvailable !== previous.dataAvailable
         || snapshot.pauseSnapshotId !== previous.pauseSnapshotId || snapshot.pauseCapturedAt !== previous.pauseCapturedAt
         || snapshot.pageSize !== PAGE_SIZE || snapshot.rows[0]?.rank !== expectedFirstRank) {
+        throw new Error("TEAM_LEADERBOARD_PAGE_SEQUENCE_INVALID");
+      }
+      const lastPoints = previous.rows.map(row => row.computePoints).filter(value => value !== null).at(-1);
+      const firstPoints = snapshot.rows.find(row => row.computePoints !== null)?.computePoints;
+      if (snapshot.rankingMetric === "COMPUTE_POINTS" && lastPoints != null && firstPoints != null && firstPoints > lastPoints) {
         throw new Error("TEAM_LEADERBOARD_PAGE_SEQUENCE_INVALID");
       }
       remoteSnapshot.value = { ...snapshot, rows: [...previous.rows, ...snapshot.rows] };
@@ -204,16 +212,11 @@ onShow(() => { pageVisible = true; if (remoteApiEnabled) void loadRemote(1, fals
 onHide(() => { pageVisible = false; remoteRequest += 1; });
 onUnmounted(() => { stopRuntimeRefresh(); mounted = false; remoteRequest += 1; remoteSnapshot.value = null; });
 
-const gapText = computed(() => me.value.rank === null
-  ? t.value.leaderboard.myRank.notRanked
-  : me.value.rank === 1 ? t.value.leaderboard.myRank.first
-    : fmt(t.value.leaderboard.myRank.gap, { amount: formatAmount(me.value.gapToNext) }));
-
-function fmtCompactUSD(n: number): string {
-  if (n >= 1_000_000) return `$${formatAmount(n / 1_000_000)}M`;
-  if (n >= 1_000) return `$${formatAmount(n / 1_000)}K`;
-  return `$${formatAmount(n)}`;
-}
+const gapText = computed(() => !pointsRankingAvailable.value ? "—"
+  : me.value.rank === null ? t.value.leaderboard.myRank.notRanked
+    : me.value.rank === 1 ? t.value.leaderboard.myRank.first
+      : me.value.gapToNextComputePoints === null ? "—"
+        : fmt(pointsCopy.value.gap, { points: formatComputePoints(me.value.gapToNextComputePoints, locale.code) }));
 
 function go(url: string) {
   navTo(url);
@@ -249,32 +252,32 @@ const periodOptions = computed(() => PERIODS.map(value => ({ value, label: t.val
 
 <style scoped>
 .leader-content { display: flex; flex-direction: column; gap: 24px; padding: var(--ui-space-inline) 20px 24px; }
-.nx-leader-periods { background: transparent; border: 0; box-shadow: none; padding: 0; }
+.nx-leader-periods { width: 100%; min-width: 0; }
 .leader-hero { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); padding: 4px 0 8px; }
 .leader-hero-copy { min-width: 0; flex: 1; overflow-wrap: anywhere; }
 .leader-caption { color: var(--v5-ink-3); font-size: var(--ui-type-list-subtitle); }
-.leader-my-rank { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; font-size: 36px; font-weight: 600; line-height: 1.2; margin: 8px 0 12px; }
-.leader-total { color: var(--v5-ink-3); font-size: 12px; font-weight: 400; }
-.leader-gap { display: block; color: var(--v5-ink-2); font-size: 12px; line-height: 1.6; }
+.leader-my-rank { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; font-size: var(--ui-type-wallet-amount); font-weight: 600; line-height: var(--ui-type-wallet-amount-lh); margin: 8px 0 12px; }
+.leader-total { color: var(--v5-ink-3); font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); font-weight: 400; }
+.leader-gap { display: block; color: var(--v5-ink-2); font-size: var(--ui-type-list-subtitle); line-height: var(--ui-type-list-subtitle-lh); }
 .leader-list-heading { display: flex; justify-content: space-between; gap: var(--ui-space-inset); color: var(--v5-ink-3); font-size: 12px; padding-bottom: 12px; }
 .leader-list-heading > :last-child { text-align: right; }
-.leader-podium { padding: 0 14px; border: 1px solid var(--v5-border); border-radius: 22px; background: color-mix(in srgb, var(--v5-ink) 4%, var(--v5-bg)); }
+.leader-podium { padding: 0 12px; border: 1px solid var(--v5-border); border-radius: 16px; background: color-mix(in srgb, var(--v5-ink) 4%, var(--v5-bg)); }
 .leader-podium > .leader-row:first-child { border-top: 0; }
 .leader-flat { margin-top: var(--ui-space-inline); }
-.leader-row { display: flex; align-items: center; gap: var(--ui-space-row-y); border-top: 1px solid var(--v5-border); padding: 18px 0; }
+.leader-row { display: flex; align-items: center; gap: var(--ui-space-row-y); border-top: 1px solid var(--v5-border); padding: 16px 0; min-height: 64px; }
 .leader-position { min-width: 20px; font-size: 14px; color: var(--v5-ink-3); }
 .leader-position--top { color: var(--v5-brand); font-weight: 600; }
 .leader-person { min-width: 0; flex: 1; }
-.leader-name { display: block; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
-.leader-meta { display: block; color: var(--v5-ink-3); font-size: 11px; line-height: 1.5; margin-top: 4px; overflow-wrap: anywhere; }
-.leader-earnings { text-align: right; font-size: var(--ui-type-body); max-width: 32%; overflow-wrap: anywhere; }
+.leader-name { display: block; font-size: var(--ui-type-list-title); line-height: var(--ui-type-list-title-lh); font-weight: 500; overflow-wrap: anywhere; }
+.leader-meta { display: block; color: var(--v5-ink-3); font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); margin-top: 4px; overflow-wrap: anywhere; }
+.leader-points { text-align: right; font-size: var(--ui-type-list-subtitle); line-height: var(--ui-type-list-subtitle-lh); max-width: 34%; overflow-wrap: anywhere; }
 .leader-currency { display: block; margin-top: 4px; font-size: 11px; color: var(--v5-ink-3); }
 .leader-cta { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inset); min-height: 48px; padding: var(--ui-space-inline) 20px; box-sizing: border-box; border: 1px solid var(--v5-border); border-radius: 999px; color: var(--v5-ink); background: color-mix(in srgb, var(--v5-ink) 6%, transparent); font-size: 14px; font-weight: 500; }
 .leader-more { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2); }
 .leader-retry-label { font: 600 13px/20px var(--font-v5); }
 .leader-share { width:100%; }
-.leader-state { display: flex; flex-direction: column; gap: 14px; padding: 32px 0; color: var(--v5-ink-2); font-size: 13px; line-height: 1.6; }
-.leader-state-title { font-size: 17px; font-weight: 600; color: var(--v5-ink); }
+.leader-state { display: flex; flex-direction: column; gap: 14px; padding: 32px 0; color: var(--v5-ink-2); font-size: var(--ui-type-list-subtitle); line-height: 1.6; }
+.leader-state-title { font-size: var(--ui-type-section); line-height: var(--ui-type-section-lh); font-weight: 600; color: var(--v5-ink); }
 [role="button"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
-@media (max-width: 360px) { .leader-content { padding-left: 16px; padding-right: 16px; } .leader-hero :deep(.team-art) { width: 88px !important; height: 88px !important; } .leader-row { gap: 6px; } .leader-earnings { font-size: var(--ui-type-list-subtitle); } }
+@media (max-width: 374px) { .leader-content { padding-left: 16px; padding-right: 16px; } .leader-hero :deep(.team-art) { --team-art-size: 72px; } .leader-row { gap: 6px; min-height: 56px; } .leader-podium { padding-inline: 8px; } .leader-points { font-size: var(--ui-type-list-subtitle); } }
 </style>

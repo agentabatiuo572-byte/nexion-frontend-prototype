@@ -64,12 +64,12 @@ describe("trial credit product language", () => {
     }
   });
 
-  it("names the visible Chinese trial value as trial credit, never cash-like trial earnings", () => {
+  it("uses the requested short hero label while retaining credit details elsewhere", () => {
     const copy = `${JSON.stringify(zh.trial)}\n${trialStoreCopy(zh)}`;
 
-    expect(zh.trial.heroEarnLabel).toBe("{days} 天预计抵扣金");
+    expect(zh.trial.heroEarnLabel).toBe("预计收益");
     expect(zh.trial.ghostSubtitle).toBe("UVELBox S1 试用抵扣金");
-    expect(copy).not.toMatch(/试用收益|预计收益|收益持续|收益停止|赚的钱|试用攒到|到手/);
+    expect(copy).not.toMatch(/试用收益|收益持续|收益停止|赚的钱|试用攒到|到手/);
   });
 
   it("keeps English and Vietnamese mirrors on the same non-cash trial-credit meaning", () => {

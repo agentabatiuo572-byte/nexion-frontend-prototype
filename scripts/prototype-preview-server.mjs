@@ -47,6 +47,7 @@ const server=http.createServer(async(req,res)=>{
       return sendJson(res,{state,options:demoOptions,simulation:true});
     }
     if(url.pathname==='/preview-language'){locale=['zh','en','vi'].includes(url.searchParams.get('code'))?url.searchParams.get('code'):'zh';if(state.profile)state.profile.language=locale;return res.end('OK');}
+    if(req.method==='GET'&&/^\/api\/promotions\/demo-promo-\d+\/banner\/[1-9][0-9]*$/.test(url.pathname)){res.setHeader('Content-Type','image/png');return res.end(await readFile(path.join(root,'static/promotion/purchase-gift-reference.png')));}
     if(url.pathname==='/api/app/support/attachments/demo-image/content'&&req.method==='GET'){res.setHeader('Content-Type','image/webp');return res.end(await readFile(path.join(root,'static/img/home-glass-20260928/s1.webp')));}
     if(/^\/(api|auth)\//.test(url.pathname)) {
       if(url.pathname==='/auth/users/refresh')return sendJson(res,{code:0,message:'OK',data:{accessToken:'local-demo-token',refreshToken:null,tokenType:'Bearer',user:{userId:900001,countryCode:'+86',phone:'13800000000',nickname:'Alex',onboardingComplete:true}}});

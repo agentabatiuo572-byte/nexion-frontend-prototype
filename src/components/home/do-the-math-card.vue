@@ -61,6 +61,13 @@
       </view>
     </view>
   </view>
+  <view v-else data-home-section="do-the-math">
+    <text class="block" style="font-size: var(--ui-type-section); font-weight: 600; color: var(--v5-ink)">{{ t.home.doMathTitle }}</text>
+    <view class="flex items-center justify-between" style="gap: 12px; min-height: 64px; font-size: 13px; color: var(--v5-ink-2)">
+      <text>{{ app.homeTruthStatus === 'idle' || app.homeTruthStatus === 'loading' ? t.home.networkStatUpdating : app.homeTruthStatus === 'error' ? t.uiChrome.unavailable : t.home.doMathUnavailable }}</text>
+      <view v-if="app.homeTruthStatus === 'error'" class="shrink-0 inline-flex items-center" style="min-height: 44px; color: var(--v5-brand)" role="button" tabindex="0" @click="app.refreshHomeTruth()" @keydown.enter.stop.prevent="app.refreshHomeTruth()" @keydown.space.stop.prevent="app.refreshHomeTruth()">{{ t.ui.retry }}</view>
+    </view>
+  </view>
 </template>
 
 <script setup lang="ts">

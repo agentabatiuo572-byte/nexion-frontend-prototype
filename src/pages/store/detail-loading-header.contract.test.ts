@@ -9,7 +9,7 @@ import ts from "typescript";
 import * as Vue from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import source from "./detail.vue?raw";
-import { fmt } from "@/i18n/format";
+import { fmt, fmtMoney } from "@/i18n/format";
 import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
 import { vi as vietnamese } from "@/i18n/messages/vi";
@@ -71,7 +71,7 @@ function page(copy = en, fallback = "") {
     "@/composables/use-promotion-context": { usePromotionContext: () => ({ activity: Vue.ref(null), status: Vue.ref("idle"), available: Vue.ref(false), refresh: vi.fn() }) },
     "@/lib/promotion-entry": promotionEntry, "@/lib/promotion-display": { localized },
     "@/i18n/use-t": { useT: () => translations }, "@/store/locale": { useLocaleStore: () => ({ code: "en" }) },
-    "@/i18n/format": { fmt }, "@/lib/brand-copy": { nexGridBrandText: (value: string) => value },
+    "@/i18n/format": { fmt, fmtMoney }, "@/lib/brand-copy": { nexGridBrandText: (value: string) => value },
     "@/mock/products": { getProduct }, "@/composables/use-product-phase": { useProductPhase: () => Vue.ref("P1") },
     "@/store/product-availability": { isProductAvailable: (product: Product) => product.available !== false },
     "@/composables/use-page-header": { useSetPageHeader: (getter: () => typeof header.value) => { header = Vue.computed(getter); } },
@@ -148,7 +148,7 @@ describe("BUG 400 detail header distinguishes pending/failed reads from a missin
     p.reads[1](true); await retry; await Vue.nextTick();
     expect(p.view.catalogRetrying.value).toBe(false);
     expect(p.header.value.title).toBe("Cloud Share");
-    expect(p.header.value.subtitle).toBe("Share");
+    expect(p.header.value.subtitle).toBeUndefined();
     expect(p.view.product.value).toEqual(cloud);
     expect(await p.body()).not.toContain(copy.store.faq.refund.q);
     expect(p.cta.value).toMatchObject({ disabled: true, href: "/pages/store/detail?id=cloud-share" });

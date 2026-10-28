@@ -9,19 +9,18 @@
       </view>
       <view class="agent-content">
         <view class="agent-hero">
+          <view class="agent-hero-medal" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning-ink)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6" /><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" /></svg></view>
           <view class="agent-hero-copy">
-            <text class="agent-eyebrow">{{ t.agent.heroLabel }}</text>
             <text class="agent-headline">{{ t.agent.heroHeadline }}</text>
           </view>
-          <TeamArt kind="growth" :size="112" />
         </view>
         <text class="agent-intro">{{ fmt(t.agent.heroBody, { rank: requiredRankLabel }) }}</text>
 
         <view class="agent-eligibility">
-          <TeamRankEmblem :rank="rankReady ? myRank : null" :size="52" />
+          <TeamRankEmblem v-if="!visibility.hidden" :rank="rankReady ? myRank : null" :size="52" /><view v-else style="width: 52px; height: 52px" aria-hidden="true" />
           <view class="agent-eligibility-copy">
             <view class="agent-rank-summary">
-              <view><text class="agent-rank-label">{{ t.rank.currentRank }}</text><VBadge v-if="rankReady" :v="myRank" size="sm" :show-title="false" /><text v-else>—</text></view>
+              <view><text class="agent-rank-label">{{ t.rank.currentRank }}</text><VBadge v-if="rankReady && !visibility.hidden" :v="myRank" size="sm" :show-title="false" /><text v-else>{{ visibility.mask('—') }}</text></view>
               <view><text class="agent-rank-label">{{ t.rank.conditionsLabel }}</text><text>{{ requiredRankLabel }}+</text></view>
             </view>
             <text v-if="unlocked" class="agent-eligible-heading">{{ t.agent.eligible }}</text>
@@ -32,7 +31,8 @@
           </view>
         </view>
 
-        <!-- buckets — transparent hairline rows -->
+        <view class="agent-support-types">
+          <text class="agent-section-title">{{ locale.code === 'zh' ? '申请类别' : locale.code === 'vi' ? 'Loại hỗ trợ' : 'Support type' }}</text>
         <view :style="bucketsGroupStyle">
           <view
             v-for="(b, i) in BUCKETS"
@@ -53,23 +53,24 @@
             </view>
             <view class="flex-1 min-w-0">
               <view class="flex items-center justify-between" style="gap: 6px; flex-wrap: wrap">
-                <text :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ b.title }}</text>
-                <text class="font-display tabular-nums" :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ b.range }}</text>
+                <text class="agent-bucket-title">{{ b.title }}</text>
+                <text class="agent-bucket-range tabular-nums" :style="{ color: 'var(--v5-ink)' }">{{ b.range }}</text>
+                <svg v-if="selectedBucketId === b.id" class="agent-bucket-check" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg>
               </view>
-              <text class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '4px', lineHeight: 1.6 }">{{ b.rule }}</text>
+              <text class="agent-bucket-rule">{{ b.rule }}</text>
             </view>
           </view>
         </view>
-        <text v-if="selectedBucketTitle" class="block text-center" :style="selectedBucketStyle">{{ selectedBucketTitle }} · {{ t.agent.newApplication }}</text>
+        </view>
 
         <!-- The form stays on the floor; only its input controls have borders. -->
-        <view :style="formBlockStyle">
-          <text class="block font-mono-tabular" :style="formCapStyle">{{ t.agent.newApplication }}</text>
+        <view class="agent-form" :style="formBlockStyle">
+          <view class="agent-form-heading"><text class="agent-section-title" :style="formCapStyle">{{ t.agent.newApplication }}</text><text v-if="selectedBucketTitle" class="agent-selected-type" :style="selectedBucketStyle">{{ selectedBucketTitle }}</text></view>
           <view style="display: flex; flex-direction: column; gap: 8px">
             <view :style="fieldStyle">
               <view class="flex items-center" style="gap: 6px; margin-bottom: 4px">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-                <text class="font-mono-tabular" :style="fieldLabelStyle">{{ t.agent.fieldEventDate }}</text>
+                <text class="agent-field-label" :style="fieldLabelStyle">{{ t.agent.fieldEventDate }}</text>
               </view>
               <input
                 v-model="date"
@@ -84,7 +85,7 @@
             <view :style="fieldStyle">
               <view class="flex items-center" style="gap: 6px; margin-bottom: 4px">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" /></svg>
-                <text class="font-mono-tabular" :style="fieldLabelStyle">{{ t.agent.fieldCity }}</text>
+                <text class="agent-field-label" :style="fieldLabelStyle">{{ t.agent.fieldCity }}</text>
               </view>
               <input
                 v-model="city"
@@ -99,11 +100,12 @@
             <view :style="fieldStyle">
               <view class="flex items-center" style="gap: 6px; margin-bottom: 4px">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6" /><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" /></svg>
-                <text class="font-mono-tabular" :style="fieldLabelStyle">{{ auditCopy.budgetLabel }}</text>
+                <text class="agent-field-label" :style="fieldLabelStyle">{{ auditCopy.budgetLabel }}</text>
               </view>
               <view class="flex items-center agent-budget-control">
                 <text class="font-display" :style="{ fontSize: '13px', color: 'var(--v5-ink-3)', marginRight: '12px' }">USDT</text>
-                <input
+                <text v-if="visibility.hidden" class="agent-budget-masked" :aria-label="auditCopy.budgetLabel" :style="budgetInputStyle">{{ visibility.mask(budgetText) }}</text>
+                <input v-else
                   v-model="budgetText"
                   :aria-label="auditCopy.budgetLabel"
                   type="text"
@@ -119,24 +121,24 @@
             <text>{{ t.agent.submitForReview }}</text><text aria-hidden="true">{{ submitting ? '…' : '→' }}</text>
           </view>
 
-          <view v-if="draft.touched" class="agent-cta" role="button" :tabindex="submitting || (remoteApiEnabled && pageReadState !== 'ready') ? -1 : 0" :aria-disabled="submitting || (remoteApiEnabled && pageReadState !== 'ready')" @click="discardDraft"><text>{{ logicCopy.discardDraft }}</text></view>
+          <view v-if="draft.touched" class="agent-discard" role="button" :tabindex="submitting || (remoteApiEnabled && pageReadState !== 'ready') ? -1 : 0" :aria-disabled="submitting || (remoteApiEnabled && pageReadState !== 'ready')" @click="discardDraft" @keydown.enter.prevent="discardDraft" @keydown.space.prevent="discardDraft"><text>{{ logicCopy.discardDraft }}</text></view>
           <text v-if="!unlocked" class="block text-center" :style="previewOnlyStyle">{{ fmt(t.agent.previewOnly, { rank: requiredRankLabel }) }}</text>
         </view>
 
         <!-- approved cases — transparent hairline rows -->
         <view v-if="remoteApiEnabled && applications.length > 0" :style="casesBlockStyle">
-          <text class="block font-mono-tabular" :style="approvedCapStyle">{{ t.agent.serverApplication }}</text>
+          <text class="agent-section-title" :style="approvedCapStyle">{{ t.agent.serverApplication }}</text>
           <view :style="casesGroupStyle">
             <view v-for="(application, index) in applications" :key="application.applicationId ?? index" :style="caseRowStyle(index === applications.length - 1)">
               <view class="agent-application-heading">
                 <view>
-                  <text class="block" :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ application.city }} · {{ application.eventDate }}</text>
+                  <text class="block" :style="{ fontSize: 'var(--ui-type-list-title)', fontWeight: 500, color: 'var(--v5-ink)' }">{{ application.city }} · {{ application.eventDate }}</text>
                 </view>
                 <text class="font-mono-tabular" :style="{ fontSize: '12px', color: applicationStatusColor(application) }">{{ applicationStatusText(application) }}</text>
               </view>
               <view class="agent-application-details">
                 <text>{{ application.bucket ? t.agent.buckets[application.bucket].title : '—' }}</text>
-                <text class="agent-application-budget">{{ t.agent.budgetRequested }} · {{ applicationBudget(application.budgetUsdt) }}</text>
+                <text class="agent-application-budget">{{ t.agent.budgetRequested }} · {{ visibility.mask(applicationBudget(application.budgetUsdt)) }}</text>
                 <text>{{ applicationIdLabel }} · {{ application.applicationId ?? '—' }}</text>
               </view>
             </view>
@@ -144,12 +146,12 @@
         </view>
 
         <view v-if="!remoteApiEnabled" :style="casesBlockStyle">
-          <text class="block font-mono-tabular" :style="approvedCapStyle">{{ t.agent.recentlyApproved }}</text>
+          <text class="agent-section-title" :style="approvedCapStyle">{{ t.agent.recentlyApproved }}</text>
           <view :style="casesGroupStyle">
             <view v-for="(c, i) in APPROVED_CASES" :key="i" :style="caseRowStyle(i === APPROVED_CASES.length - 1)">
               <view class="flex items-start justify-between">
                 <view>
-                  <text class="block" :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ c.name }}</text>
+                  <text class="block" :style="{ fontSize: 'var(--ui-type-list-title)', fontWeight: 500, color: 'var(--v5-ink)' }">{{ c.name }}</text>
                   <text class="block font-mono-tabular" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ hostedByText(c) }}</text>
                 </view>
                 <text class="font-display tabular-nums" :style="{ fontSize: '15px', fontWeight: 600, color: 'var(--v5-ink)' }">${{ formatFinanceAmount(c.amount) }}</text>
@@ -163,6 +165,7 @@
 </template>
 
 <script setup lang="ts">
+import { useDataVisibility } from "@/store/data-visibility";
 import { teamLogicCopy } from "@/i18n/team-logic-copy";
 import { ambassadorDraftCache, clearAmbassadorDraft, beginAmbassadorDraftSubmit, endAmbassadorDraftSubmit, type AmbassadorDraftForm } from "@/lib/ambassador-draft-session";
 import { navTo } from "@/lib/route";
@@ -171,7 +174,6 @@ import { onShow, onHide, onUnload } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import VBadge from "@/components/team/v-badge.vue";
-import TeamArt from "@/components/team/team-art.vue";
 import TeamRankEmblem from "@/components/team/team-rank-emblem.vue";
 import { useVRank } from "@/store/v-rank";
 import { rankTitle, rankLabel } from "@/lib/v-rank-copy";
@@ -199,6 +201,7 @@ import {
 } from "@/lib/team-p3-17-18-request-scope";
 
 const t = useT();
+const visibility = useDataVisibility();
 const vrank = useVRank();
 const locale = useLocaleStore();
 const logicCopy = computed(() => teamLogicCopy(locale.code));
@@ -445,7 +448,7 @@ async function submit() {
   }
   toast.success(
     t.value.agent.toastSubmitted,
-    fmt(t.value.agent.toastSubmittedSub.replace('${budget}', '{budget}'), { city: input.city, budget: applicationBudget(input.budgetUsdt) }),
+    fmt(t.value.agent.toastSubmittedSub.replace('${budget}', '{budget}'), { city: input.city, budget: visibility.mask(applicationBudget(input.budgetUsdt)) }),
   );
   const settled = successfulAmbassadorApplicationState(latestApplication.value);
   latestApplication.value = settled.receipt;
@@ -526,15 +529,15 @@ function go(url: string) {
 const pathCtaStyle: CSSProperties = { color: "var(--v5-ink)" };
 const bucketsGroupStyle: CSSProperties = { borderTop: "1px solid var(--v5-border)" };
 function bucketRowStyle(isLast: boolean): CSSProperties {
-  return { padding: "18px 0", gap: "12px", borderBottom: isLast ? "none" : "1px solid var(--v5-border)" };
+  return { padding: "13px 0", gap: "12px", borderBottom: isLast ? "none" : "1px solid var(--v5-border)" };
 }
 const selectedBucketStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-2)", lineHeight: 1.5 };
-const bucketIconStyle: CSSProperties = { width: "32px", height: "32px" };
+const bucketIconStyle: CSSProperties = { width: "40px", height: "40px", borderRadius: "12px", background: "var(--v5-surface)" };
 const formBlockStyle: CSSProperties = { paddingTop: "8px" };
-const formCapStyle: CSSProperties = { fontSize: "17px", fontWeight: 600, color: "var(--v5-ink)", marginBottom: "12px" };
+const formCapStyle: CSSProperties = { color: "var(--v5-ink)" };
 const fieldStyle: CSSProperties = { padding: "8px 0" };
 const fieldLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
-const inputStyle: CSSProperties = { width: "100%", minHeight: "44px", padding: "0 12px", boxSizing: "border-box", border: "1px solid var(--v5-border)", borderRadius: "10px", background: "transparent", fontSize: "var(--ui-type-input)",
+const inputStyle: CSSProperties = { width: "100%", minHeight: "44px", padding: "0 12px", boxSizing: "border-box", border: "1px solid var(--v5-border)", borderRadius: "12px", background: "var(--v5-surface)", fontSize: "var(--ui-type-input)",
   lineHeight: "var(--ui-type-input-lh)", color: "var(--v5-ink)" };
 const budgetInputStyle: CSSProperties = { flex: "1", minWidth: 0, minHeight: "44px", background: "transparent", fontSize: "var(--ui-type-input)",
   lineHeight: "var(--ui-type-input-lh)", color: "var(--v5-ink)", fontFamily: "var(--font-v5)" };
@@ -543,7 +546,7 @@ const submitStyle = computed<CSSProperties>(() => ({
 }));
 const previewOnlyStyle: CSSProperties = { marginTop: "12px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.5 };
 const casesBlockStyle: CSSProperties = { paddingTop: "8px" };
-const approvedCapStyle: CSSProperties = { marginBottom: "16px", fontSize: "17px", fontWeight: 600, color: "var(--v5-ink)" };
+const approvedCapStyle: CSSProperties = { marginBottom: "16px" };
 const casesGroupStyle: CSSProperties = { borderTop: "1px solid var(--v5-border)" };
 function caseRowStyle(isLast: boolean): CSSProperties {
   return { padding: "16px 0", borderBottom: isLast ? "none" : "1px solid var(--v5-border)", overflowWrap: "anywhere" };
@@ -557,23 +560,32 @@ function caseRowStyle(isLast: boolean): CSSProperties {
 .agent-application-budget { color: var(--v5-ink-2); font-variant-numeric: tabular-nums; }
 .agent-content { display: flex; flex-direction: column; gap: 24px; padding: var(--ui-space-inset) 20px 24px; }
 .agent-hero { display: flex; align-items: center; gap: var(--ui-space-inline); }
+.agent-hero-medal { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 12px; background: var(--v5-surface); }
 .agent-hero-copy { min-width: 0; flex: 1; overflow-wrap: anywhere; }
-.agent-eyebrow { display: block; font-size: 12px; color: var(--v5-ink-3); line-height: 1.5; }
-.agent-headline { display: block; font-size: 25px; font-weight: 600; line-height: 1.3; margin-top: 8px; }
+.agent-headline { display: block; font-size: var(--ui-type-page-title); font-weight: 600; line-height: var(--ui-type-page-title-lh); text-wrap: balance; }
 .agent-intro { display: block; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2); line-height: 1.7; margin-top: -12px; }
-.agent-eligibility { display: grid; grid-template-columns:52px minmax(0,1fr); align-items: center; gap: var(--ui-space-inline); padding: var(--ui-space-inset); border: 1px solid var(--v5-border); border-radius: 20px; background: color-mix(in srgb, var(--v5-ink) 4%, var(--v5-bg)); }
+.agent-eligibility { display: grid; grid-template-columns:52px minmax(0,1fr); align-items: center; gap: var(--ui-space-inline); padding: var(--ui-space-inset); border: 1px solid var(--v5-border); border-radius: 16px; background: var(--v5-surface); }
 .agent-eligibility-copy { min-width: 0; overflow-wrap: break-word; }
-.agent-rank-summary { display: flex; flex-wrap: wrap; gap: var(--ui-space-inline) 20px; font-size: 14px; margin-bottom: 8px; }
-.agent-rank-label { display: block; font-size: 11px; line-height: 1.5; color: var(--v5-ink-3); margin-bottom: 4px; }
-.agent-budget-control { padding: 0 12px; border: 1px solid var(--v5-border); border-radius: 10px; }
-.agent-eligible-heading { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; font-weight: 600; }
+.agent-rank-summary { display: flex; flex-wrap: wrap; gap: 12px 20px; font-size: var(--ui-type-list-title); line-height: var(--ui-type-list-title-lh); margin-bottom: 8px; }
+.agent-rank-label { display: block; font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); color: var(--v5-ink-3); margin-bottom: 4px; }
+.agent-budget-control { padding: 0 12px; border: 1px solid var(--v5-border); border-radius: 12px; background: var(--v5-surface); }
+.agent-eligible-heading { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: var(--ui-type-list-title); font-weight: 500; }
 .agent-eligibility-note { display: block; font-size: 12px; line-height: 1.6; color: var(--v5-ink-3); margin-top: 6px; }
-.agent-cta { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); min-height: 48px; padding: var(--ui-space-inline) 20px; box-sizing: border-box; border: 1px solid var(--v5-border); border-radius: 999px; background: color-mix(in srgb, var(--v5-ink) 6%, transparent); color: var(--v5-ink); font-size: 14px; font-weight: 500; }
+.agent-cta { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); min-height: 48px; padding: var(--ui-space-inline) 20px; box-sizing: border-box; border: 1px solid var(--v5-border); border-radius: 999px; background: color-mix(in srgb, var(--v5-ink) 6%, transparent); color: var(--v5-ink); font-size: var(--ui-type-button); line-height: var(--ui-type-button-lh); font-weight: 500; }
 .agent-retry { margin-top: var(--ui-space-section); }
-.agent-path { grid-column:1/-1; justify-self:stretch; padding: var(--ui-space-row-y) 14px; min-height: 44px; font-size: 12px; }
-.agent-bucket { position: relative; }
-.agent-bucket--selected::before { content: ""; position: absolute; left: -10px; top: 18px; bottom: 18px; width: 2px; background: var(--v5-brand); }
+.agent-path { grid-column: 1/-1; justify-self: stretch; padding: 8px 0 0; border: 0; border-top: 1px solid var(--v5-border); border-radius: 0; background: transparent; min-height: 44px; }
+.agent-bucket { position: relative; min-height: 64px; }
+.agent-bucket-check { flex: none; color: var(--v5-brand); }
+.agent-section-title { display: block; font-size: var(--ui-type-section); line-height: var(--ui-type-section-lh); font-weight: 600; color: var(--v5-ink); }
+.agent-support-types > .agent-section-title { margin-bottom: 14px; }
+.agent-bucket-title { font-size: var(--ui-type-list-title); line-height: var(--ui-type-list-title-lh); font-weight: 500; }
+.agent-bucket-range { display: block; font-size: var(--ui-type-list-subtitle); line-height: var(--ui-type-list-subtitle-lh); overflow-wrap: anywhere; }
+.agent-bucket-rule { display: block; margin-top: 6px; font-size: var(--ui-type-list-subtitle); line-height: 1.6; color: var(--v5-ink-3); }
+.agent-form-heading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 12px; }
+.agent-selected-type { color: var(--v5-ink-3); }
+.agent-discard { display: flex; justify-content: center; align-items: center; min-height: 44px; font-size: var(--ui-type-button); color: var(--v5-ink-3); margin-top: 8px; }
+.agent-form input:focus-within, .agent-budget-control:focus-within { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
 .agent-submit[aria-disabled="true"] { cursor: default; }
 [role="button"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
-@media (max-width: 380px) { .agent-content { padding-left: 16px; padding-right: 16px; } .agent-headline { font-size: 22px; } .agent-hero :deep(.team-art) { width: 88px !important; height: 88px !important; }  }
+@media (max-width: 374px) { .agent-content { padding-inline: 16px; } .agent-hero :deep(.team-art) { --team-art-size: 64px; } .agent-bucket { min-height: 56px; } }
 </style>

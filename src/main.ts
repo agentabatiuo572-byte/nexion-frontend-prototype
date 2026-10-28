@@ -21,6 +21,7 @@ import { installH5PageReadActivation, installNativePageReadActivation, type Page
 import { notifyPageActivation } from "@/lib/passive-read-window";
 import "./styles/tokens.css";
 import "./styles/inline-recovery.css";
+import "./styles/device-presence.css";
 import "uno.css";
 
 declare global {

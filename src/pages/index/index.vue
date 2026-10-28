@@ -8,10 +8,16 @@
       <DailyCheckInRow />
       <HomeBenefits />
       <HomeActionList />
+      <LiveFeedCard />
       <MyFleetSection />
       <PromotionEntry v-if="homePromotions.length" mode="home" :activities="homePromotions" />
       <view v-else-if="!homePromotionRead && (homePromotionStatus === 'idle' || homePromotionStatus === 'loading')" class="home-promotion-skeleton" role="status" aria-busy="true" :aria-label="t.coreReview.loadingOffers"><view /><view /></view>
+      <OnGridSection />
       <HomeNetworkSnapshot />
+      <DoTheMathCard />
+      <EarningsLedgerCard />
+      <MarketBoardCard />
+      <TrustChipWall />
     </view>
   </AppChassis>
 </template>
@@ -27,6 +33,12 @@ import MyFleetSection from '@/components/home/my-fleet-section.vue';
 import PromotionEntry from '@/components/promotion/promotion-entry.vue';
 import HomeBenefits from '@/components/home/home-benefits.vue';
 import HomeNetworkSnapshot from '@/components/home/network-snapshot.vue';
+import LiveFeedCard from '@/components/home/live-feed-card.vue';
+import OnGridSection from '@/components/home/on-grid-section.vue';
+import DoTheMathCard from '@/components/home/do-the-math-card.vue';
+import EarningsLedgerCard from '@/components/home/earnings-ledger-card.vue';
+import MarketBoardCard from '@/components/home/market-board-card.vue';
+import TrustChipWall from '@/components/home/trust-chip-wall.vue';
 import { useT } from '@/i18n/use-t';
 import { useLocaleStore } from '@/store/locale';
 import { useConfig } from '@/store/config';

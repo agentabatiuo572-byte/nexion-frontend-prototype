@@ -1,3 +1,4 @@
+import { teamPrivacyFixture } from './team-privacy.test-support';
 import * as Vue from 'vue';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import source from './agent.vue?raw';
@@ -43,7 +44,7 @@ function fixture() {
       '@/components/team/team-art.vue': slot, '@/components/team/team-rank-emblem.vue': slot,
       '@/store/v-rank': { useVRank: () => ({ myRank: 5, remoteReady: true, ladder: [], refreshCanonicalVRank: async () => {} }) },
       '@/lib/v-rank-copy': { rankLabel: () => 'V5', rankTitle: () => 'Rank' },
-      '@/store/locale': { useLocaleStore: () => ({ code: 'en' }) }, '@/i18n/use-t': { useT: () => Vue.ref(en) }, '@/i18n/format': { fmt },
+      '@/store/data-visibility': teamPrivacyFixture().dependency, '@/store/locale': { useLocaleStore: () => ({ code: 'en' }) }, '@/i18n/use-t': { useT: () => Vue.ref(en) }, '@/i18n/format': { fmt },
       '@/i18n/network-reaudit': { networkReauditCopy }, '@/i18n/team-logic-copy': { teamLogicCopy },
       '@/store/app': { useApp: () => app }, '@/store/auth': { useAuth: () => Vue.reactive({ isAuthenticated: true }) }, '@/store/ui': { toast },
       '@/api/runtime': { apiRuntimeConfig: { environment: 'prod', baseUrl: 'https://fixture.invalid' }, remoteApiEnabled: true, ambassadorApplicationApi: api },
