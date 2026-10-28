@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\WORKS\\PLAN\\.wt\\uvel-design-20261028-integrate",
+  "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-tickets",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "e4fc1caf3ab84a3ebf4cace10a8292c4291d6ab8",
-  "sourceRef": "e4fc1caf3ab84a3ebf4cace10a8292c4291d6ab8",
+  "sourceHead": "3e5772afaa012fe79eeaaab3aa78351527c2361e",
+  "sourceRef": "3e5772afaa012fe79eeaaab3aa78351527c2361e",
   "sourceRefKind": "commit",
-  "sourceTree": "8c1e3163c05ff6c2a5d59e4f66e488c6bb21e99e",
+  "sourceTree": "7af797aaf25095e5531728bcfa5d8e8d6ae8e356",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -12277,10 +12277,10 @@
       "mode": "100644"
     },
     "docs/plans/2026-10-28-android-soc-calibration.md": {
-      "sourceBlob": "6505f33eee9f6338bf866b919085484330ad8188",
-      "sourceSha256": "430771c53b03e6b74ef4f6bce939d15d1fdde670249f310611621fb504c4b48c",
-      "targetBlob": "6505f33eee9f6338bf866b919085484330ad8188",
-      "targetSha256": "430771c53b03e6b74ef4f6bce939d15d1fdde670249f310611621fb504c4b48c",
+      "sourceBlob": "dbec1e6e0e6f6b9c579d129f2fa60d30197452d5",
+      "sourceSha256": "603d6d6917a6c2520c641e5954455a9b1644547e9458a1b9e237e4ed2f69ecf6",
+      "targetBlob": "dbec1e6e0e6f6b9c579d129f2fa60d30197452d5",
+      "targetSha256": "603d6d6917a6c2520c641e5954455a9b1644547e9458a1b9e237e4ed2f69ecf6",
       "mode": "100644"
     },
     "docs/plans/2026-10-28-iphone-model-risk-control.md": {
@@ -26305,10 +26305,10 @@
       "mode": "100644"
     },
     "src/pages/team/rank-how.vue": {
-      "sourceBlob": "d58ad97321b07651b746972a0466f0f030e7e509",
-      "sourceSha256": "970c814b9f94eb79f2fa789c0503fefa0cad344d39cf3bfd7fd3f26a647ebb96",
-      "targetBlob": "d58ad97321b07651b746972a0466f0f030e7e509",
-      "targetSha256": "970c814b9f94eb79f2fa789c0503fefa0cad344d39cf3bfd7fd3f26a647ebb96",
+      "sourceBlob": "712b6b6bbc49eb543cd661ba790823940ea83d28",
+      "sourceSha256": "e5be8d61108da20b52f95556eb6d2cac7696f457654afb71aca7310eba9e89ed",
+      "targetBlob": "712b6b6bbc49eb543cd661ba790823940ea83d28",
+      "targetSha256": "e5be8d61108da20b52f95556eb6d2cac7696f457654afb71aca7310eba9e89ed",
       "mode": "100644"
     },
     "src/pages/team/rank-loading-state.test.ts": {
@@ -26396,10 +26396,10 @@
       "mode": "100644"
     },
     "src/pages/team/team.vue": {
-      "sourceBlob": "8a0e4c5732f1c027861cd94a97ebcc3939f7c253",
-      "sourceSha256": "94bec067f1f58b3275bd33b0406932b0e928c21d29ef77142bfdf5bfb295d451",
-      "targetBlob": "8a0e4c5732f1c027861cd94a97ebcc3939f7c253",
-      "targetSha256": "94bec067f1f58b3275bd33b0406932b0e928c21d29ef77142bfdf5bfb295d451",
+      "sourceBlob": "9f26af1393e32235b17207cbe14ff1394d94f241",
+      "sourceSha256": "3003f55579e478d95ee33413887929da205e55db776773c4cd95007eb1055abe",
+      "targetBlob": "9f26af1393e32235b17207cbe14ff1394d94f241",
+      "targetSha256": "3003f55579e478d95ee33413887929da205e55db776773c4cd95007eb1055abe",
       "mode": "100644"
     },
     "src/pages/team/tree.vue": {
@@ -28706,10 +28706,10 @@
       "mode": "100644"
     },
     "src/styles/message-center.css": {
-      "sourceBlob": "317d66277edcb41f961d2a8feb92bce6cc0e5797",
-      "sourceSha256": "a2a8a68dcab51b0e19d1225653fd1da5fd6995fcdcb909f47c046a6f838b3e3f",
-      "targetBlob": "317d66277edcb41f961d2a8feb92bce6cc0e5797",
-      "targetSha256": "a2a8a68dcab51b0e19d1225653fd1da5fd6995fcdcb909f47c046a6f838b3e3f",
+      "sourceBlob": "a42637a47f2a8120854bcd1abfdce50f7bc70653",
+      "sourceSha256": "9a6ba0fe07b47641ce2047eafedd6d9f251761ad08f4e78fd23a0755c201672a",
+      "targetBlob": "a42637a47f2a8120854bcd1abfdce50f7bc70653",
+      "targetSha256": "9a6ba0fe07b47641ce2047eafedd6d9f251761ad08f4e78fd23a0755c201672a",
       "mode": "100644"
     },
     "src/styles/message-family.css": {
