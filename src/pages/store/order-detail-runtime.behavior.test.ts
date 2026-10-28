@@ -26,7 +26,7 @@ function deferred<T>() {
 const original = {
   orderNo: "ORD-OLD", productId: 10, productNo: "cloud-share", productName: "Cloud Share×1",
   quantity: 1, itemCount: 1, subtotalUsdt: 19.9, unitPriceUsdt: 19.9, discountUsdt: 0, amountUsdt: 19.9,
-  paymentMethod: "NEXGRID_WALLET", paymentStatus: "PAID", orderStatus: "COMPLETED", activationStatus: "ACTIVATED",
+  paymentMethod: "UVEL_WALLET", paymentStatus: "PAID", orderStatus: "COMPLETED", activationStatus: "ACTIVATED",
   canonicalStatus: "activated", orderType: "SINGLE", placedAt: 1, expiresAt: null, paidAt: 2, activatedAt: 2,
   dataCenter: "Cloud-Global", tradeinNo: null, sourceDeviceId: null, targetDeviceId: null,
   targetDeviceInstanceNo: "NEX-OLD", refundedAt: null, refundAmountUsdt: null, refundChannel: null, refundBillNo: null,
@@ -39,7 +39,7 @@ const catalog = { source: "nx_product", sourceEnvironment: "PRODUCTION", runId: 
 const placed = { ...original, canonicalStatus: "placed", paymentStatus: "PENDING", orderStatus: "PENDING_PAYMENT",
   activationStatus: "WAITING_PAYMENT", paidAt: null, activatedAt: null, expiresAt: Date.now() + 1_800_000 };
 const receipt = { orderNo: original.orderNo, paymentNo: "PAY-OLD", paymentStatus: "PAID", orderStatus: "COMPLETED",
-  activationStatus: "ACTIVATED", canonicalStatus: "activated", amountUsdt: 19.9, paymentMethod: "NEXGRID_WALLET",
+  activationStatus: "ACTIVATED", canonicalStatus: "activated", amountUsdt: 19.9, paymentMethod: "UVEL_WALLET",
   walletBalanceAfterUsdt: 80.1, idempotent: false, serverCanonical: true, source: "server",
   sourceEnvironment: "PRODUCTION", runId: "" };
 // Execute the page's real read/presentation/lifecycle declarations, including

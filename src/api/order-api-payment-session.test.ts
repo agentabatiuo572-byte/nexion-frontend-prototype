@@ -3,7 +3,7 @@ import type { ApiClient } from "./api-client";
 import { createOrderApi } from "./order-api";
 import checkoutSource from "../pages/store/checkout.vue?raw";
 
-describe("NexGrid wallet commerce payment", () => {
+describe("UVEL wallet commerce payment", () => {
   it("posts the order pay command and accepts only an activated wallet receipt", async () => {
     const request = vi.fn().mockResolvedValue({
       orderNo: "ORD-1",
@@ -13,7 +13,7 @@ describe("NexGrid wallet commerce payment", () => {
       activationStatus: "ACTIVATED",
       canonicalStatus: "activated",
       amountUsdt: 10,
-      paymentMethod: "NEXGRID_WALLET",
+      paymentMethod: "UVEL_WALLET",
       walletBalanceAfterUsdt: 15,
       idempotent: false,
       serverCanonical: true,
@@ -38,12 +38,23 @@ describe("NexGrid wallet commerce payment", () => {
     }));
   });
 
+  it.each(["NEXGRID_WALLET", "UNKNOWN_WALLET"])("rejects an unrecognized payment provider %s", async paymentMethod => {
+    const api = createOrderApi({ request: vi.fn().mockResolvedValue({
+      orderNo: "ORD-1", paymentNo: "PAY-WALLET-1", paymentStatus: "PAID", orderStatus: "COMPLETED",
+      activationStatus: "ACTIVATED", canonicalStatus: "activated", amountUsdt: 10, paymentMethod,
+      walletBalanceAfterUsdt: 15, idempotent: false, serverCanonical: true, source: "server",
+      sourceEnvironment: "PRODUCTION", runId: "",
+    }) } as unknown as ApiClient, "prod");
+    await expect(api.pay("ORD-1", "wallet-pay-key"))
+      .rejects.toMatchObject({ kind: "protocol", message: "ORDER_RESPONSE_INVALID" });
+  });
+
   it("rejects a receipt that is not synchronously paid and activated", async () => {
     const api = createOrderApi({ request: vi.fn().mockResolvedValue({
       orderNo: "ORD-1", paymentNo: "PAY-WALLET-1",
       paymentStatus: "PENDING", orderStatus: "PENDING_PAYMENT",
       activationStatus: "WAITING_PAYMENT", canonicalStatus: "placed",
-      amountUsdt: 10, paymentMethod: "NEXGRID_WALLET",
+      amountUsdt: 10, paymentMethod: "UVEL_WALLET",
       walletBalanceAfterUsdt: 15, idempotent: false,
       serverCanonical: true, source: "server", sourceEnvironment: "PRODUCTION", runId: "",
     }) } as unknown as ApiClient, "prod");

@@ -52,7 +52,7 @@ const authority = (canStart: boolean, reason?: TrialAuthorityState["eligibilityR
     sourceEnvironment: "PRODUCTION",
     runId: "",
   },
-  paymentRail: "NEXION_USDT_WALLET",
+  paymentRail: "UVEL_USDT_WALLET",
   config: {
     trialDays: "3",
     graceDays: "7",

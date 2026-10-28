@@ -44,14 +44,14 @@ export interface NexEvent {
   href?: string;
   /** Runtime authority marker: remote rows must never fall back to Mock-only actions. */
   runtimeSource?: "remote" | "mock";
-  /** Where "Use it" navigates after the reward is claimed (discount → store, NEX reward → NEX wallet). */
+  /** Where "Use it" navigates after the reward is claimed (discount → store, UVT reward → UVT wallet). */
   useHref?: string;
   featured?: boolean;
   /** Opt into the join→claim flow (progress is user-driven). */
   trackable?: boolean;
   /** Whether the trackable goal is met (mock; real: live evaluator). */
   done?: boolean;
-  /** NEX reward on claim (trackable events only). */
+  /** UVT reward on claim (trackable events only). */
   rewardNEX?: number;
 }
 
@@ -96,12 +96,12 @@ export const EVENTS: NexEvent[] = [
     id: "evt-weekend-double-nex",
     kind: "boost",
     status: "ongoing",
-    title: "Weekend Double NEX",
-    subtitle: "Every Sat–Sun check-in earns 2× NEX · auto-applied.",
+    title: "Weekend Double UVT",
+    subtitle: "Every Sat–Sun check-in earns 2× UVT · auto-applied.",
     ribbon: "ACTIVE NOW",
     emoji: "💎",
     tint: "#7C5CFF",
-    reward: "2× NEX",
+    reward: "2× UVT",
     progress: null,
     countdown: "1d 18h",
     joined: true,
@@ -129,7 +129,7 @@ export const EVENTS: NexEvent[] = [
     kind: "wheel",
     status: "ongoing",
     title: "Spring Lucky Spin",
-    subtitle: "1 free spin per day · win NEX, USDT & a device coupon.",
+    subtitle: "1 free spin per day · win UVT, USDT & a device coupon.",
     ribbon: "DAILY · RESETS 00:00 UTC",
     emoji: "🎰",
     tint: "#FFC83D",
@@ -144,11 +144,11 @@ export const EVENTS: NexEvent[] = [
     kind: "onboarding",
     status: "ongoing",
     title: "New Pilot · 7-Day Boost",
-    subtitle: "Reach V2 within 7 days of joining · get +200.00 NEX + 1 Streak Saver.",
+    subtitle: "Reach V2 within 7 days of joining · get +200.00 UVT + 1 Streak Saver.",
     ribbon: "FIRST WEEK",
     emoji: "🚀",
     tint: "#C6FF3A",
-    reward: "+200.00 NEX + 1 Saver",
+    reward: "+200.00 UVT + 1 Saver",
     progress: { current: 1, total: 4, label: "milestones done" },
     countdown: "5d 11h",
     joined: true,
@@ -177,13 +177,13 @@ export const EVENTS: NexEvent[] = [
     id: "evt-nex-holders-share",
     kind: "holding",
     status: "ongoing",
-    title: "NEX Holders Share · $5.00K Pool",
-    subtitle: "Hold ≥ 1,000.00 NEX for 7 days · automatically share a $5.00K USDT pool.",
+    title: "UVT Holders Share · $5.00K Pool",
+    subtitle: "Hold ≥ 1,000.00 UVT for 7 days · automatically share a $5.00K USDT pool.",
     ribbon: "AUTO-ENROLL",
     emoji: "💰",
     tint: "#C6FF3A",
     reward: "Share $5,000.00 USDT",
-    progress: { current: 1240, total: 1000, label: "your NEX" },
+    progress: { current: 1240, total: 1000, label: "your UVT" },
     countdown: "4d 17h",
     joined: true,
     ctaLabel: "View details",

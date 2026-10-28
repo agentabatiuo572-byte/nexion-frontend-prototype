@@ -77,7 +77,7 @@ export interface TrialAuthorityState {
     sourceEnvironment: "PRODUCTION";
     runId: "";
   };
-  paymentRail: "NEXION_USDT_WALLET";
+  paymentRail: "UVEL_USDT_WALLET";
   config: Record<string, TrialConfigValue>;
 }
 
@@ -264,7 +264,7 @@ export function parseTrialAuthorityState(value: unknown): TrialAuthorityState {
       || !source || row.serverCanonical !== true || row.sourceEnvironment !== "PRODUCTION" || row.runId !== ""
       || provenance?.serverCanonical !== true || provenance.source !== source
       || provenance.sourceEnvironment !== "PRODUCTION" || provenance.runId !== ""
-      || row.paymentRail !== "NEXION_USDT_WALLET"
+      || row.paymentRail !== "UVEL_USDT_WALLET"
       || (reason !== undefined && !REASONS.has(reason))
       || (canStart && reason !== undefined)
       || (!canStart && reason === undefined)
@@ -319,7 +319,7 @@ export function parseTrialAuthorityState(value: unknown): TrialAuthorityState {
       sourceEnvironment: "PRODUCTION",
       runId: "",
     },
-    paymentRail: "NEXION_USDT_WALLET",
+    paymentRail: "UVEL_USDT_WALLET",
     config: trialConfig(row.config),
   };
 }

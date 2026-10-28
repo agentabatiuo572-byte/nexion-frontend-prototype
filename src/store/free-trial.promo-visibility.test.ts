@@ -70,7 +70,7 @@ function authority(canStart = true, status: TrialAuthorityState["status"] = "non
     claimNo: status === "active" ? "TRIAL-FIXTURE" : null, startedAt: null, expiresAt: null, graceEndsAt: null,
     finishedAt: null, cooldownUntil: null, shadowUSD: 0, shadowNEX: 0, source: "nx_trial_claim",
     sourceEnvironment: "PRODUCTION", runId: "", provenance: {source:"nx_trial_claim",serverCanonical:true,sourceEnvironment:"PRODUCTION",runId:""},
-    paymentRail: "NEXION_USDT_WALLET", config: {trialDays:"3",graceDays:"7",discountRate:"0.15",discountCapUSD:"20",
+    paymentRail: "UVEL_USDT_WALLET", config: {trialDays:"3",graceDays:"7",discountRate:"0.15",discountCapUSD:"20",
       trialOffsetCapUSD:"50",trialProductId:"stellarbox-s1",trialProductName:"NexGridBox S1",trialPriceUSD:"1299",
       shadowDailyUSD:"38.52",shadowDailyNEX:"65",seatsLeftToday:"1",phaseOpen:true,autoPushEnabled:true,
       autoPushDelayMs:"1500",autoPushCooldownHours:"24",autoPushMaxPerSession:"1"} };

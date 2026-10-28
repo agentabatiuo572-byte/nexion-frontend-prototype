@@ -23,9 +23,7 @@ function applyRuntimeMessages<T>(bundled: T, runtime: Readonly<Record<string, st
       if (typeof key !== "string") return Reflect.get(target, key, receiver);
       const currentPath = path ? `${path}.${key}` : key;
       const remote = runtime[currentPath];
-      // Server-published copy is a display boundary: retired brand names stored
-      // in older rows are normalized on the way out (see lib/brand-copy.ts), the
-      // same way product/device copy is. The stored value is never rewritten.
+      // Published runtime copy is authoritative, including historical wording.
       if (typeof remote === "string") return platformDisplayText(remote);
       const value = Reflect.get(target, key, receiver);
       return value && typeof value === "object" ? applyRuntimeMessages(value, runtime, currentPath) : value;

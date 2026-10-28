@@ -15,15 +15,15 @@ import privacy from "./privacy.vue?raw";
 
 const unmounts: Array<() => void> = [];
 afterEach(() => { unmounts.splice(0).forEach(fn => fn()); vi.unstubAllGlobals(); });
-function mount(kind: "terms" | "privacy", code: "en" | "zh" | "vi") {
+function mount(kind: "terms" | "privacy", code: "en" | "zh" | "vi", brand = "UVEL / UVT") {
   let load!: (query: Record<string, string>) => void;
   const locale = reactive({ code, setLocale: vi.fn() }), navBack = vi.fn(), navTo = vi.fn();
   const blocked = ref(false), acknowledge = vi.fn();
   const current = vi.fn(async () => kind === "privacy"
-    ? { version: "v7", locale: code, hero: "Policy sample", sections: [{ id: "sample", title: "Privacy sample", body: "Published text" }] }
+    ? { version: "v7", locale: code, hero: `${brand} Policy sample`, sections: [{ id: "sample", title: "Privacy sample", body: `${brand} Published text` }] }
     : { source: "server", sourceEnvironment: "PRODUCTION", runId: "", requestedLocale: code, resolvedLocale: code,
       requestedJurisdiction: "GLOBAL", resolvedJurisdiction: "GLOBAL", version: "v7", effectiveAt: "2026-10-25T00:00:00Z",
-      title: "Terms sample", summary: "Published summary", sections: [{ key: "sample", title: "Terms sample", body: "Published text", sortOrder: 0 }], acknowledged: false });
+      title: `${brand} Terms sample`, summary: "Published summary", sections: [{ key: "sample", title: `${brand} Terms sample`, body: `${brand} Published text`, sortOrder: 0 }], acknowledged: false });
   const headerProps: any[] = [];
   const header = { default: defineComponent({ props: ["back", "backAction", "title", "plain", "design"], setup: props => () => {
     headerProps.push(props);
@@ -67,4 +67,11 @@ it.each(["en", "zh", "vi"] as const)("terms %s localizes the same snapshot date 
   p.blocked.value = false; await flush(); p.nodes("header-back")[0].props.onClick();
   expect(p.navTo).toHaveBeenCalledWith("/pages/trust/trust");
   expect(p.acknowledge).not.toHaveBeenCalled();
+});
+
+
+it.each(["terms", "privacy"] as const)("%s renders published legacy wording exactly", async kind => {
+  const p = mount(kind, "en", "NexGrid / NEX"); p.load({}); await flush();
+  expect(text(p.root)).toContain("NexGrid / NEX");
+  expect(text(p.root)).not.toContain("UVEL / UVT");
 });

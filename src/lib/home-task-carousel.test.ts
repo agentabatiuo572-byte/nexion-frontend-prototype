@@ -35,7 +35,7 @@ const pausedPromo: CanonicalPromoBanner = {
   multiplier: 1.5,
   countdownDays: 4,
   countdownHours: 12,
-  targetDevice: "StellarBox Pro",
+  targetDevice: "UVELBox Pro",
   targetDaily: 1.5,
   status: "paused",
 };
@@ -146,10 +146,10 @@ describe("home task carousel", () => {
     expect(conversionBannerSource).not.toContain('v-if="!weeklyQuest"');
   });
 
-  it("brands the weekly card's server name only in its visible subtitle", () => {
+  it("preserves the weekly card's server name in its visible subtitle", () => {
     const rawQuest = { ...weeklyQuest, name: "查看 NexGridBox S1 ROI" };
     const view = presentHomeWeeklyCard({ kind: "quest", quest: rawQuest }, null, 1, Date.parse("2026-09-05T00:00:00+08:00"));
-    expect(view.subtitle).toBe("查看 UVELBox S1 ROI");
+    expect(view.subtitle).toBe("查看 NexGridBox S1 ROI");
     expect(view.actionRoute).toBe(rawQuest.actionRoute);
     expect(view.rewardNex).toBe(rawQuest.rewardNex);
     expect(rawQuest.name).toBe("查看 NexGridBox S1 ROI");

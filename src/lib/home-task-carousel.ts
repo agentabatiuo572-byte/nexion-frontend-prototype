@@ -156,8 +156,7 @@ export function presentHomeWeeklyCard(
     };
   }
 
-  const targetDevice = source.promo.targetDevice === "StellarBox Pro"
-    ? "UVELBox Pro" : source.promo.targetDevice;
+  const targetDevice = source.promo.targetDevice;
   return {
     multiplier: source.promo.multiplier,
     rewardNex: Math.round(source.promo.baseReward * source.promo.multiplier),

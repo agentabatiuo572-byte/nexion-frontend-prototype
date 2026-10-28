@@ -255,17 +255,17 @@ describe("profile avatar picker cancellation", () => {
 });
 
 describe("profile authoritative read lifecycle", () => {
-  it("brands the nickname row for an untouched historical default without saving a renamed value", async () => {
+  it("preserves an untouched historical nickname without saving a renamed value", async () => {
     const h = mount();
     const oldBrand = "Nexi" + "on";
     const read = h.page.loadRemoteProfile();
     h.profileReads[0].resolve({ nickname: `${oldBrand} 3778`, avatarUrl: "", avatarRevision: "" });
     await read;
     expect(h.page.name.value).toBe(`${oldBrand} 3778`);
-    expect(h.page.displayName.value).toBe("UVEL 3778");
+    expect(h.page.displayName.value).toBe(`${oldBrand} 3778`);
     expect(h.page.dirty.value).toBe(false);
     expect(source).toContain("{{ displayNickname(name) }}");
-    expect(displayNickname(h.page.name.value)).toBe("UVEL 3778");
+    expect(displayNickname(h.page.name.value)).toBe(`${oldBrand} 3778`);
     expect(h.profile.setDisplayName).not.toHaveBeenCalled();
   });
   it.each([

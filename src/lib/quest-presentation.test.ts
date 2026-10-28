@@ -26,11 +26,11 @@ describe("normalizeQuestActionRoute", () => {
 });
 
 describe("weeklyQuestDisplayName", () => {
-  it("still localizes the historical token name without changing the server record", () => {
+  it("preserves historical token wording until its source is corrected", () => {
     const original = { questCode: "weekly_t2_nex_swap", name: "完成一次 NEX ↔ USDT 兑换" };
-    expect(weeklyQuestDisplayName(original, "en", en)).toBe(en.weeklyQuest.tier2_nex_swap_title);
-    expect(weeklyQuestDisplayName(original, "vi", vi)).toBe(vi.weeklyQuest.tier2_nex_swap_title);
-    expect(weeklyQuestDisplayName(original, "zh", zh)).toBe("完成一次 UVT ↔ USDT 兑换");
+    expect(weeklyQuestDisplayName(original, "en", en)).toBe(original.name);
+    expect(weeklyQuestDisplayName(original, "vi", vi)).toBe(original.name);
+    expect(weeklyQuestDisplayName(original, "zh", zh)).toBe(original.name);
     expect(original.name).toBe("完成一次 NEX ↔ USDT 兑换");
   });
   const quest = { questCode: "weekly_t2_invite_friend", name: "邀请 1 位朋友注册" };
@@ -100,14 +100,14 @@ describe("dayOneQuestDisplayName", () => {
       .toBe("访问收益页");
   });
 
-  it("uses current runtime copy for an exact default and retains display-only brand normalization", () => {
+  it("uses current runtime copy for an exact default and preserves authored brand names", () => {
     const messages = { ...en, home: { ...en.home, dayOneTaskVisitEarn: "Explore earnings" } };
     expect(dayOneQuestDisplayName({ questCode: "visit_earn", name: "访问收益页", layer: "DAY_ONE" }, "en", messages))
       .toBe("Explore earnings");
     expect(dayOneQuestDisplayName({ questCode: "view_product_roi", name: "查看 Nex" + "GridBox S1 ROI", layer: "DAY_ONE" }, "vi", vi))
-      .toBe("Xem ROI của UVELBox S1");
+      .toBe("查看 NexGridBox S1 ROI");
     expect(dayOneQuestDisplayName({ questCode: "custom_quest", name: "Nex" + "Grid 自定义任务", layer: "DAY_ONE" }, "vi", vi))
-      .toBe("UVEL 自定义任务");
+      .toBe("NexGrid 自定义任务");
   });
 
   it("updates the label on locale changes without mutating frozen server facts", () => {

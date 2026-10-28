@@ -24,7 +24,7 @@ const base = {
     sourceEnvironment: "PRODUCTION",
     runId: "",
   },
-  paymentRail: "NEXION_USDT_WALLET",
+  paymentRail: "UVEL_USDT_WALLET",
   config: {
     trialDays: "3", graceDays: "7", discountRate: "0.15", discountCapUSD: "20",
     trialOffsetCapUSD: "50", trialProductId: "stellarbox-s1", trialProductName: "NexGridBox S1", trialPriceUSD: "1299",
@@ -35,6 +35,9 @@ const base = {
 };
 
 describe("trial conversion contract", () => {
+  it.each(["NEXION_USDT_WALLET", "OTHER_WALLET"])("rejects a retired or unknown payment rail %s", paymentRail => {
+    expect(() => parseTrialAuthorityState({ ...base, paymentRail })).toThrow("TRIAL_RESPONSE_INVALID");
+  });
   it("retains the claim's canonical split even when current policy differs", () => {
     expect(parseTrialAuthorityState({ ...base, offsetUsdt: "5", remainderUsdt: "5", priceUsdt: "649" }))
       .toMatchObject({ shadowUSD: 10, offsetUSD: 5, remainderUSD: 5, priceUSD: 649 });

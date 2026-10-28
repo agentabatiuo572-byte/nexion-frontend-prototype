@@ -399,10 +399,10 @@ test.each(["app", "h5"] as const)("%s displays historical reset names in nodes a
     page.locale.code = code;
     page.network.members = [{ ...member("53018", 1), name: "NexGrid-F343FA44" }];
     await Vue.nextTick();
-    const control = page.controls().find(item => item.props["aria-label"].startsWith("UVEL-F343FA44"))!;
+    const control = page.controls().find(item => item.props["aria-label"].startsWith("NexGrid-F343FA44"))!;
     emit(control, "onClick"); await Vue.nextTick();
     const sheet = () => all(page.root).find(item => item.props.role === "dialog")!;
-    expect(text(sheet())).toContain("UVEL-F343FA44");
+    expect(text(sheet())).toContain("NexGrid-F343FA44");
     expect(page.network.members[0].name).toBe("NexGrid-F343FA44");
     page.network.members = [{ ...member("53018", 1), name: "NexGrid fan" }];
     await Vue.nextTick();

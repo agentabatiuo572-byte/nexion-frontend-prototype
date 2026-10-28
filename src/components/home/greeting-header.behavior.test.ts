@@ -139,3 +139,14 @@ test("preserves the fallback and full server nickname while the locale changes",
   await Vue.nextTick();
   expect(header.text()).toBe("Good afternoon, UVEL 3778 Two Words");
 });
+
+
+test("mounted greeting preserves published wording and historical personal names", async () => {
+  useLocaleStore().setLocale("en");
+  const header = await mount(15, "NexGrid 3778");
+  expect(header.text()).toBe("Good afternoon, NexGrid 3778");
+  requests.bundle.mockResolvedValueOnce({ messages: { "home.greetingAfternoon": "Nexion NEX afternoon" } });
+  await useI18nRuntime().refresh("en", true);
+  await Vue.nextTick();
+  expect(header.text()).toBe("Nexion NEX afternoon, NexGrid 3778");
+});

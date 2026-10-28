@@ -402,7 +402,7 @@ function paidOrderReceipt(value: unknown): PaidOrderReceipt {
       || source.sourceEnvironment !== "PRODUCTION" || source.runId !== "") return invalid();
   const amountUsdt = finiteNumber(source.amountUsdt);
   if (amountUsdt < 0) return invalid();
-  const paymentMethod = source.paymentMethod === "NEXGRID_WALLET" || source.paymentMethod === "WALLET"
+  const paymentMethod = source.paymentMethod === "UVEL_WALLET" || source.paymentMethod === "WALLET"
     ? "WALLET" : source.paymentMethod === "VOUCHER" ? "VOUCHER" : invalid();
   if ((paymentMethod === "VOUCHER") !== (amountUsdt === 0)) return invalid();
   const walletBalanceAfterUsdt = paymentMethod === "WALLET"

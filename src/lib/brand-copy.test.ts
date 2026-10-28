@@ -1,68 +1,12 @@
-import { describe, expect, it } from "vitest";
-import { displayNickname, nexGridBrandText } from "./brand-copy";
+import { expect, it } from "vitest";
+import { displayNickname, nexGridBrandText, platformDisplayText } from "./brand-copy";
 
-// 旧词拆词构造 —— 与 scripts/verify.sh 的 no_oldbrand_check 同法:直接写字面量会被本仓
-// 自己的品牌哨兵抓红(哨兵要求 src/ 下旧词 0 残留,测试文件也在守备范围内)。
-const OLD = "Nexi" + "on";
-
-describe("nexGridBrandText", () => {
-  it("归一服务端存量行的旧品牌文案,大小写不敏感", () => {
-    expect(nexGridBrandText(`${OLD} 1831`)).toBe("UVEL 1831");
-    expect(nexGridBrandText(`${OLD} App / H5`)).toBe("UVEL App / H5");
-    expect(nexGridBrandText(`欢迎来到 ${OLD}`)).toBe("欢迎来到 UVEL");
-    expect(nexGridBrandText(`${OLD.toUpperCase()} OPS`)).toBe("UVEL OPS");
-  });
-
-  it("商品名逐词归一(旧词是词根,不是整名)", () => {
-    expect(nexGridBrandText(`${OLD}Box Pro v2`)).toBe("UVELBox Pro v2");
-    expect(nexGridBrandText(`${OLD}Rack P1`)).toBe("UVELRack P1");
-    expect(nexGridBrandText(`${OLD} V-Rank`)).toBe("UVEL V-Rank");
-  });
-
-  it("keeps the remote Day-One quest's zh/en/vi wording while replacing its brand", () => {
-    const names = [
-      ["查看 NexGridBox S1 ROI", "查看 UVELBox S1 ROI"],
-      ["View NexGridBox S1 ROI", "View UVELBox S1 ROI"],
-      ["Xem ROI của NexGridBox S1", "Xem ROI của UVELBox S1"],
-    ];
-    for (const [before, after] of names) expect(nexGridBrandText(before)).toBe(after);
-  });
-
-  it("已在新品牌下的文案原样透传", () => {
-    expect(nexGridBrandText("NexGridBox S1")).toBe("UVELBox S1");
-    expect(nexGridBrandText("UVELBox S1")).toBe("UVELBox S1");
-    expect(nexGridBrandText("")).toBe("");
-  });
-
-  it.each([
-    ["StellarBox Pro", "UVELBox Pro"],
-    ["stellarbox S1", "UVELBox S1"],
-    ["STELLARBOX Pro v2", "UVELBox Pro v2"],
-    ["StellarRack P1", "UVELRack P1"],
-    ["stellarrack P2", "UVELRack P2"],
-    ["添加 StellarBox Pro", "添加 UVELBox Pro"],
-    ["Add StellarBox Pro", "Add UVELBox Pro"],
-    ["Thêm StellarRack P1", "Thêm UVELRack P1"],
-  ])("normalizes retired display names: %s", (before, after) => {
-    expect(nexGridBrandText(before)).toBe(after);
-    expect(nexGridBrandText(after)).toBe(after);
-  });
-
-  it.each(["stellarbox-pro", "stellarrack-p1", "InterstellarBox Pro", "Stellar Compute", "Cloud Share"])("preserves identifiers and unrelated names: %s", value => {
-    expect(nexGridBrandText(value)).toBe(value);
-  });
-});
-
-
-describe("system nickname display", () => {
-  it.each([
-    ["NexGrid 1051", "UVEL 1051"], [`${OLD} 3778`, "UVEL 3778"],
-    ["NexGrid-F343FA44", "UVEL-F343FA44"],
-  ])("maps only the full historical system name %s", (before, after) => {
-    expect(displayNickname(before)).toBe(after);
-    expect(displayNickname(after)).toBe(after);
-  });
-  it.each(["NexGrid-F343FA44\n", "NexGrid 1051\n", "NexGrid-F343FA44\r\n", "nexgrid-12ab34cd", "NexGrid-12ab34cd", `${OLD}-F343FA44`, "NexGrid 12345", "NexGrid fan", "My NexGrid 1051", "NexGrid-F343FA44 fan", "NexGrid-1234567", "NexGrid-1234567Z", "NexGrid 1051 Team", "UVEL 1051", ""])("preserves custom name %s", value => {
-    expect(displayNickname(value)).toBe(value);
-  });
+it.each([
+  "UVEL 3778", "UVT rewards", "UVELBox Pro", "NexGrid 3778", "Nexion App / H5",
+  "StellarBox Pro", "StellarRack P1", "NEX / USDT", "My NexGrid name", "业绩额",
+  "https://nexgrid.com/NEX privacy@nexgrid.com", "USDT_TO_UVT NEX-GEN-0001 NEXION_USDT_WALLET", "",
+])("preserves the source text without hiding an unmigrated value: %s", value => {
+  expect(displayNickname(value)).toBe(value);
+  expect(nexGridBrandText(value)).toBe(value);
+  expect(platformDisplayText(value)).toBe(value);
 });

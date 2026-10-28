@@ -29,7 +29,7 @@ const KEY = "nexgrid-notifications-accounts-v1";
 const knownKind = notificationPreferenceKind;
 function hydrate(accountKey: string): Notification[] {
   const rows = readAccountRow<{ items?: Notification[] }>(KEY, accountKey)?.items ?? [];
-  // 存量行可能是改名(2026-07-22)之前落盘的旧品牌标题,读侧一并归一。
+  // 历史通知按原文显示，品牌修正在发布源完成。
   return rows.map((row) => ({ ...row, title: nexGridBrandText(row.title), body: row.body ? nexGridBrandText(row.body) : row.body }));
 }
 let counter = 0;
