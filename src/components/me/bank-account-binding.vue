@@ -33,6 +33,7 @@
         <view v-else class="binding-fields">
           <text v-if="state.config && directBankBindingAvailable(state.config)" class="hint" role="status" data-testid="bank-account-routed-notice">{{ c.accountRoutedNotice }}</text>
           <text class="field-label">{{ c.accountLabel }} <text class="required">*</text></text>
+          <text class="hint account-hint">{{ c.accountHint }}</text>
           <input v-model="state.account" class="field mono" type="text" inputmode="numeric" maxlength="32" autocomplete="off" required aria-required="true" :disabled="fieldsDisabled" :placeholder="c.accountPlaceholder" :aria-label="`${c.accountLabel} · ${c.required}`" data-testid="bank-account" />
           <text class="field-label">{{ c.holderLabel }} <text class="required">*</text></text>
           <input v-model="state.holder" class="field" type="text" maxlength="100" autocomplete="off" required aria-required="true" :disabled="fieldsDisabled" :placeholder="c.holderPlaceholder" :aria-label="`${c.holderLabel} · ${c.required}`" data-testid="bank-holder" />
@@ -140,12 +141,13 @@ function done() { void navReplace(props.returnTo === "/pages/me/wallet-cards" ? 
 .binding-fields { padding: 16px 2px 0; }
 .field-label { display: block; margin-bottom: 4px; font-size: 12px; color: var(--v5-ink-3); }
 .required { color: var(--v5-brand-2); }
-.field { box-sizing: border-box; width: 100%; height: 44px; min-height: 44px; background: var(--v5-surface-2); border: 1px solid var(--v5-border); border-radius: 8px; padding: 0 12px; margin-bottom: 12px; font-size: var(--ui-type-input); color: var(--v5-ink); }
+.field { box-sizing: border-box; width: 100%; height: 44px; min-height: 44px; background: var(--v5-surface-2); border: 1px solid var(--v5-border); border-radius: 8px; padding: 0 12px; margin-bottom: 12px; font-size: var(--ui-type-input); line-height: var(--ui-type-input-lh); color: var(--v5-ink); }
 .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: .03em; }
 .default-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; min-height: 44px; color: var(--v5-ink-2); font-size: var(--ui-type-list-subtitle); }
 .default-check { width: 18px; height: 18px; flex-shrink: 0; background: var(--v5-ink); border-radius: 2px; display: grid; place-items: center; }
 .default-state { margin-left: auto; color: var(--v5-brand); font-size: 12px; font-weight: 600; }
 .hint { display: block; color: var(--v5-ink-3); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.account-hint { margin: -2px 0 6px; }
 .submit { display: flex; align-items: center; justify-content: center; box-sizing: border-box; min-height: 48px; padding: 8px 16px; margin-top: 16px; border-radius: 999px; background: var(--v5-surface-2); color: var(--v5-ink-4); font-size: 13px; font-weight: 600; text-align: center; }
 .submit.ready { background: var(--v5-brand); color: var(--v5-on-brand); cursor: pointer; }
 .submit.ready:active { transform: scale(.98); }

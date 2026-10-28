@@ -36,7 +36,7 @@
       </view>
       <!-- ===== HERO: pill tabs ===== -->
       <view class="mx-4">
-        <GlassSegments :label="t.earn.rangeGroupLabel" semantics="radio" v-model="range" :options="rangeOptions"  />
+        <GlassSegments class="earn-range" :label="t.earn.rangeGroupLabel" semantics="radio" v-model="range" :options="rangeOptions"  />
       </view>
 
       <!-- ===== HERO: total earned card ===== -->
@@ -79,7 +79,7 @@
       <view class="mx-4 mt-2 mb-1 px-1">
         <view class="flex items-center justify-between gap-2">
           <view class="flex items-center min-w-0">
-            <text style="font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-ink); letter-spacing: -0.012em">{{ t.home.myFleet }}</text>
+            <text style="font-family: var(--font-v5); font-size: var(--ui-type-section); font-weight: 600; color: var(--v5-ink); letter-spacing: -0.012em">{{ t.home.myFleet }}</text>
             <view class="earn-capacity-info" role="button" tabindex="0" aria-haspopup="dialog" :aria-label="t.earn.taskPoolLineTitle" @click="openExplainer" @keydown.enter.stop.prevent="!$event.repeat && openExplainer()" @keydown.space.stop.prevent="!$event.repeat && openExplainer()">
               <svg class="earn-capacity-info__glyph" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <g class="earn-capacity-info__rocket">
@@ -391,4 +391,6 @@ const rangeOptions = computed(() => RANGES.map(value => ({ value, label: rangeLa
 .earn-capacity-info:focus-visible { outline:2px solid var(--v5-brand); outline-offset:-2px; border-radius:12px; }
 .earn-scope { color: var(--v5-ink-2); font: 400 12px/1.4 var(--font-v5); text-align: right; max-width: 50%; }
 .earn-more-ways :deep(.nx-section__title) { font-size: 20px; line-height: 1.25; }
+/* Short period names stay on one line (vi "Hôm nay" broke at 320). */
+.earn-range :deep(.nx-glass-option__label) { white-space: nowrap; overflow-wrap: normal; }
 </style>

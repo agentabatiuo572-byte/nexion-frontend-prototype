@@ -158,7 +158,7 @@
       <view class="trs-backdrop" role="button" tabindex="0" @click="rulesOpen = false" />
       <view class="nx-glass-sheet trs-panel" @click.stop>
         <view class="flex items-center justify-between">
-          <text style="font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-ink)">{{ t.trial.rulesTitle }}</text>
+          <text style="font-family: var(--font-v5); font-size: var(--ui-type-section); font-weight: 600; color: var(--v5-ink)">{{ t.trial.rulesTitle }}</text>
           <view class="grid place-items-center active:opacity-70" style="width: 44px; height: 44px; border-radius: 999px; flex-shrink: 0" role="button" tabindex="0" :aria-label="t.trial.sheetCloseAria" @click="rulesOpen = false">
             <view class="rounded-full grid place-items-center" style="width: 36px; height: 36px; background: var(--v5-surface-2)">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>

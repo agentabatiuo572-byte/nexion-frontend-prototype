@@ -657,7 +657,7 @@ const signOutStyle: CSSProperties = {
 <style scoped>
 .me-shortcut-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--v5-space-3) var(--v5-space-1); padding: var(--v5-space-3) 0 var(--v5-space-1); }
 .me-shortcut { display: flex; flex-direction: column; align-items: center; gap: var(--v5-space-2); min-width: 0; min-height: 80px; cursor: pointer; }
-.me-shortcut__label { font-size: var(--v5-type-body-s); line-height: var(--v5-type-body-s-lh); text-align: center; overflow-wrap: anywhere; }
+.me-shortcut__label { font-size: var(--ui-type-list-subtitle); line-height: var(--ui-type-list-subtitle-lh); text-align: center; overflow-wrap: anywhere; }
 .me-row-icon { --me-icon: var(--v5-ink-2); --me-icon-bg: var(--v5-surface-3); position: relative; display: grid; place-items: center; flex: none; width: var(--v5-space-8); height: var(--v5-space-8); border-radius: var(--v5-radius-s); color: var(--me-icon); background: var(--me-icon-bg); }
 .me-shortcut__icon { width: var(--v5-space-10); height: var(--v5-space-10); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--me-icon) 14%, transparent); }
 .me-tone--brand { --me-icon: var(--v5-brand); --me-icon-bg: var(--v5-brand-soft); }

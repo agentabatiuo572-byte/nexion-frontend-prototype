@@ -422,7 +422,7 @@ function confirmTerms(event?: Event) {
   display: block;
   font-size: var(--ui-type-long-form);
   color: var(--v5-ink-2);
-  line-height: 1.65;
+  line-height: var(--ui-type-long-form-lh);
 }
 
 /* Risk cross-link */

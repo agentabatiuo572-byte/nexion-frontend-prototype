@@ -320,6 +320,7 @@ const inputStyle: CSSProperties = {
   padding: "0 12px",
   marginBottom: "12px",
   fontSize: "var(--ui-type-input)",
+  lineHeight: "var(--ui-type-input-lh)",
   color: "var(--v5-ink)",
 };
 const checkboxLabelStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-2)" };

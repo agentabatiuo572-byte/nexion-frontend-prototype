@@ -122,7 +122,7 @@ async function submit() {
 .phone-binding-card { margin: 16px; padding: 16px; border-radius: 18px; background: var(--v5-surface); display: grid; gap: 16px; }
 .phone-binding-note { font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2); line-height: 1.6; overflow-wrap: anywhere; }
 .phone-binding-number { display: flex; align-items: center; gap: 12px; }
-.phone-binding-code, .phone-binding-number input, .phone-binding-input { box-sizing: border-box; padding: 12px; border: 1px solid var(--v5-border); background: var(--v5-surface-2); border-radius: 10px; min-height: 48px; font-size: var(--ui-type-input); }
+.phone-binding-code, .phone-binding-number input, .phone-binding-input { box-sizing: border-box; padding: 12px; border: 1px solid var(--v5-border); background: var(--v5-surface-2); border-radius: 10px; min-height: 48px; font-size: var(--ui-type-input); line-height: var(--ui-type-input-lh); }
 .phone-binding-code { flex-shrink: 0; }
 .phone-binding-number input { flex: 1; min-width: 0; }
 .phone-binding-action { min-height: 48px; padding: 8px 12px; box-sizing: border-box; display: grid; place-items: center; border-radius: 999px; background: var(--v5-brand); color: var(--v5-on-brand); font-size: 14px; font-weight: 600; text-align: center; }

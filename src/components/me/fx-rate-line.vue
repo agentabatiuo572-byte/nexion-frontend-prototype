@@ -146,7 +146,7 @@ const titleStyle: CSSProperties = {
 const bodyStyle: CSSProperties = {
   marginTop: "8px",
   fontFamily: "var(--font-v5)",
-  fontSize: "var(--ui-type-list-subtitle)",
+  fontSize: "var(--ui-type-long-form)",
   color: "var(--v5-ink-3)",
   lineHeight: 1.55,
 };

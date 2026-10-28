@@ -25,7 +25,7 @@ const open = ref(false);
 .reward-rule__heading { display: flex; align-items: center; gap: 9px; font-size: var(--ui-type-section); font-weight: 600; line-height: 1.5; margin-bottom: var(--ui-space-row-y); }
 .reward-rule__number { color: var(--v5-ink-3); font-size: 12px; font-variant-numeric: tabular-nums; min-width: 20px; }
 .reward-rule__icon { display: flex; color: var(--v5-ink-2); flex-shrink: 0; }
-.reward-rule__body, .reward-rule__copy { color: var(--v5-ink-2); font-size: var(--ui-type-long-form); line-height: 1.7; white-space: pre-line; overflow-wrap: anywhere; }
+.reward-rule__body, .reward-rule__copy { color: var(--v5-ink-2); font-size: var(--ui-type-long-form); line-height: var(--ui-type-long-form-lh); white-space: pre-line; overflow-wrap: anywhere; }
 .reward-rule__copy { display: block; }
 .reward-rule__question { display: flex; justify-content: space-between; align-items: center; gap: var(--ui-space-inset); min-height: 44px; font-size: 14px; line-height: 1.5; cursor: pointer; }
 .reward-rule__question:focus-visible { outline: 2px solid var(--reward-accent, #c5f45a); outline-offset: 2px; }

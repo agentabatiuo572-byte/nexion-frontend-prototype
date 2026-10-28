@@ -62,7 +62,10 @@
                 <text v-if="b.ref && b.memoKey !== 'learningReward' && b.type !== 'refund'" style="color: var(--v5-ink-4); margin: 0 4px">·</text>
                 <text v-if="b.ref && b.memoKey !== 'learningReward' && b.type !== 'refund'" class="font-mono-tabular">{{ b.ref }}</text>
               </view>
-              <text v-if="b.type === 'refund' && b.ref" class="block font-mono-tabular" style="color: var(--v5-ink-3); font-size: 12px; overflow-wrap: anywhere">{{ b.ref }}</text>
+              <view v-if="b.type === 'refund' && b.ref" class="flex items-center" style="gap: var(--v5-space-2)">
+                <text class="font-mono-tabular min-w-0" style="color: var(--v5-ink-3); font-size: 12px; overflow-wrap: anywhere">{{ b.ref }}</text>
+                <CopyCodeButton :value="b.ref" :label="t.orders.refundBillNo" />
+              </view>
               <text v-if="b.memoKey === 'learningReward' && b.ref" class="block active:opacity-70" style="color: var(--v5-ink-3); font-size: 12px; margin-top: 4px" role="button" tabindex="0" :aria-label="sourceRefOpen === b.id ? t.rewards.hideSourceId : t.rewards.showSourceId" @click="toggleSourceRef(b.id)"  @keydown.enter.prevent="toggleSourceRef(b.id)" @keydown.space.prevent="toggleSourceRef(b.id)">{{ sourceRefOpen === b.id ? t.rewards.hideSourceId : t.rewards.showSourceId }}</text>
               <text v-if="sourceRefOpen === b.id && b.memoKey === 'learningReward'" class="block" style="color: var(--v5-ink-3); font-size: 12px; overflow-wrap: anywhere">{{ b.ref }}</text>
               <text class="block" :style="timeStyle">{{ fmtTime(b.ts) }}</text>
@@ -111,6 +114,7 @@ import { formatUsd } from "@/lib/usd-display";
 import { computed, nextTick, onBeforeUnmount, ref, watch, type CSSProperties } from "vue";
 import { onLoad, onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
+import CopyCodeButton from "@/components/copy-code-button.vue";
 import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import BillTypeIcon from "@/components/me/bill-type-icon.vue";

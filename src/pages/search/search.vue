@@ -406,6 +406,7 @@ const inputStyle: CSSProperties = {
   flex: "1",
   background: "transparent",
   fontSize: "var(--ui-type-input)",
+  lineHeight: "var(--ui-type-input-lh)",
   color: "var(--v5-ink)",
   height: "100%",
 };

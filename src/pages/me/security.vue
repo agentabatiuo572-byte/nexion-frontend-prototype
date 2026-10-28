@@ -1201,6 +1201,7 @@ const pwdInputStyle: CSSProperties = {
   padding: "0 12px",
   fontFamily: "var(--font-v5)",
   fontSize: "var(--ui-type-input)",
+  lineHeight: "var(--ui-type-input-lh)",
   color: "var(--v5-ink)",
 };
 const errStyle: CSSProperties = {

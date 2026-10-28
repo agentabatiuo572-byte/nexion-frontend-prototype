@@ -612,8 +612,8 @@ const teamSummaryStatus = computed(() => remoteApiEnabled ? network.remoteStatus
 .team-section-title { display: block; font: 600 var(--ui-type-section)/1.4 var(--font-v5); margin-bottom: 8px; }
 .team-tools { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: var(--ui-space-inset); background: transparent; border: 0; border-radius: 0; }
 .team-tools :deep(.nx-list-row) { padding-left: 0; padding-right: 0; min-width: 0; border: 0; }
-.team-tools :deep(.nx-list-row__subtitle) { font-size: 12px; overflow-wrap: normal; word-break:normal; }
-.team-tools :deep(.nx-list-row__title) { font-size: 14px; overflow-wrap: normal; word-break:normal; }
+.team-tools :deep(.nx-list-row__subtitle) { font-size: var(--ui-type-list-subtitle); overflow-wrap: normal; word-break:normal; }
+.team-tools :deep(.nx-list-row__title) { font-size: var(--ui-type-list-title); overflow-wrap: normal; word-break:normal; }
 .team-tools :deep(.nx-list-row__leading) { width:24px; }
 @media(max-width:359px) { .team-tools { grid-template-columns:minmax(0,1fr); } }
 .team-estimate { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }

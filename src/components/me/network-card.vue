@@ -16,7 +16,7 @@
         <text style="font-size: 20px">{{ maxPrizeIcon }}</text>
       </view>
       <view style="flex: 1; min-width: 0">
-        <text class="block" style="font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-ink)">{{ maxRankLine }}</text>
+        <text class="block" style="font-family: var(--font-v5); font-size: var(--ui-type-section); font-weight: 600; color: var(--v5-ink)">{{ maxRankLine }}</text>
       </view>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="m9 18 6-6-6-6" /></svg>
     </view>

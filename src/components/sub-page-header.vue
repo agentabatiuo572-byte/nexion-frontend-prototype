@@ -164,9 +164,9 @@ import LiquidGlass from "@/components/liquid-glass.vue";
 .spv-bell { justify-self: end; margin-right: 6px; }
 .spv--plain { border-radius: 0; }
 .spv--plain .spv-glass { width: 44px; height: 44px; }
-.spv-action { position: relative; z-index: 1; min-height: 44px; width: 72px; max-width: 100%; box-sizing: border-box; padding: 0 4px; display: flex; align-items: center; justify-content: center; color: var(--v5-ink-2); font-size: 14px; font-weight: 500; line-height: 18px; border-radius: 22px; text-align: center; }
+.spv-action { position: relative; z-index: 1; min-height: 44px; min-width: 72px; max-width: 100%; box-sizing: border-box; padding: 0 4px; display: flex; align-items: center; justify-content: center; color: var(--v5-ink-2); font-size: 14px; font-weight: 500; line-height: 18px; border-radius: 22px; text-align: center; }
 .spv-action-surface { position: absolute; inset: 4px 0; border-radius: 18px; pointer-events: none; }
-.spv-action > text { position: relative; z-index: 1; }
+.spv-action > text { position: relative; z-index: 1; white-space: nowrap; }
 .spv-action:active { opacity: .75; transform: scale(.98); }
 .spv-action:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
 .spv-side:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -2px; border-radius: 24px; }
@@ -224,5 +224,5 @@ import LiquidGlass from "@/components/liquid-glass.vue";
 .spv--design .spv-glass { width:44px;height:44px;border-radius:50%; }
 .spv--design .spv-glass svg { width:20px;height:20px; }
 .spv--design .spv-title { font-size:18px;line-height:24px;font-weight:600; }
-.spv--design .spv-action { width:72px;padding:0 4px;font-size:14px; }
+.spv--design .spv-action { min-width:72px;padding:0 4px;font-size:14px; }
 </style>

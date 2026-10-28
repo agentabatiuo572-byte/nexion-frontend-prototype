@@ -20,5 +20,5 @@ withDefaults(defineProps<{
 .how-hero { padding-block: 8px 16px; font-family: var(--font-v5); overflow-wrap: anywhere; }
 .how-hero__label { display: block; color: var(--v5-ink-2); font-size: 12px; line-height: 1.5; }
 .how-hero__title { display: block; margin-top: 10px; color: var(--v5-ink); font-size: 26px; font-weight: 600; letter-spacing: -.022em; line-height: 1.2; }
-.how-hero__sub { display: block; margin-top: 10px; color: var(--v5-ink-2); font-size: var(--ui-type-long-form); line-height: 1.65; }
+.how-hero__sub { display: block; margin-top: 10px; color: var(--v5-ink-2); font-size: var(--ui-type-long-form); line-height: var(--ui-type-long-form-lh); }
 </style>

@@ -74,7 +74,7 @@
         <!-- 反馈走 scale:同 P-058,inline style 里已有 opacity(未读完时 0.55),写 opacity 反馈会被压掉 -->
         <view
           class="flex items-start active:scale-[0.98] transition-transform"
-          :style="{ gap: '10px', opacity: scrolledToBottom && !accepted ? 1 : 0.55 }"
+          :style="{ gap: '10px', minHeight: '44px', alignItems: 'center', opacity: scrolledToBottom && !accepted ? 1 : 0.55 }"
           role="checkbox"
           tabindex="0"
           :aria-checked="checked || accepted"
@@ -430,7 +430,7 @@ const blockNumStyle: CSSProperties = { fontFamily: "var(--font-jet-mono), ui-mon
 // Unit title + paragraph body per the de-card typography ladder (body = ink-2,
 // never ink-3, at a legible 13.5/1.65 for a legal disclosure).
 const blockTitleStyle: CSSProperties = { fontSize: "var(--ui-type-section)", fontWeight: 600, color: "var(--v5-ink)", lineHeight: 1.4 };
-const blockBodyStyle: CSSProperties = { fontSize: "var(--ui-type-long-form)", color: "var(--v5-ink-2)", lineHeight: 1.65 };
+const blockBodyStyle: CSSProperties = { fontSize: "var(--ui-type-long-form)", color: "var(--v5-ink-2)", lineHeight: "var(--ui-type-long-form-lh)" };
 // Selected section keeps a soft brand-2 read-tracking tint (no border — inner
 // blocks use soft fill, not a stroke); horizontal bleed reaches the gutter.
 function blockStyle(selected: boolean): CSSProperties {
@@ -470,7 +470,7 @@ const checkboxStyle = computed<CSSProperties>(() => ({
   background: checked.value || accepted.value ? "var(--v5-brand)" : "transparent",
   border: checked.value || accepted.value ? "1px solid var(--v5-brand)" : "1px solid var(--v5-border-strong)",
 }));
-const checkLabelStyle: CSSProperties = { fontSize: "var(--ui-type-long-form)", color: "var(--v5-ink-2)", lineHeight: 1.625 };
+const checkLabelStyle: CSSProperties = { fontSize: "var(--ui-type-long-form)", color: "var(--v5-ink-2)", lineHeight: "var(--ui-type-long-form-lh)" };
 const acceptBtnStyle = computed<CSSProperties>(() => ({
   marginTop: "16px",
   width: "100%",

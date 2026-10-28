@@ -175,7 +175,7 @@ onHide(() => { pageVisible = false; remoteRequest++; remotePool.value = null; re
 onUnmounted(() => { mounted = false; remoteRequest += 1; remotePool.value = null; unsubscribeRemotePoolRun(); });
 function goBack() { navBack("/pages/team/leadership-pool"); }
 
-const bodyStyle: CSSProperties = { fontSize: "var(--ui-type-long-form)", color: "var(--v5-ink-2)", lineHeight: 1.65 };
+const bodyStyle: CSSProperties = { fontSize: "var(--ui-type-long-form)", color: "var(--v5-ink-2)", lineHeight: "var(--ui-type-long-form-lh)" };
 </script>
 
 <style scoped>

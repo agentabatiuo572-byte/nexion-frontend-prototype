@@ -1041,7 +1041,7 @@ onUnmounted(() => cleanup());
 .rg-phone--err { border-color: color-mix(in srgb, var(--v5-brand-2) 55%, transparent); }
 .rg-phone__cc { height: 100%; padding: 0 16px; display: flex; align-items: center; gap: 4px; border-right: 1px solid var(--v5-surface-2); transition: opacity 0.15s; }
 .rg-phone__cc-t { font-size: var(--ui-type-body); color: var(--v5-ink); }
-.rg-phone__in { flex: 1; height: 100%; background: transparent; padding: 0 16px; font-size: var(--ui-type-input); color: var(--v5-ink); }
+.rg-phone__in { flex: 1; height: 100%; background: transparent; padding: 0 16px; font-size: var(--ui-type-input); line-height: var(--ui-type-input-lh); color: var(--v5-ink); }
 .rg-step2 { display: flex; flex-direction: column; gap: 20px; }
 .rg-otp { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .rg-development-otp { padding: 10px 12px; border-radius: 12px; background: var(--v5-warning-soft); }
@@ -1061,7 +1061,7 @@ onUnmounted(() => cleanup());
 .rg-locked__tag { display: block; margin-top: 8px; padding: 0 4px; font-size: 12px; color: var(--v5-brand); }
 .rg-step3 { display: flex; flex-direction: column; gap: 12px; }
 /* 《03》§3 零 border:填充容器不描边(2026-08-15 zero-border 门抓获存量);错误态改 soft tint 表达。 */
-.rg-field { background: var(--v5-surface); border-radius: 16px; height: 56px; padding: 0 16px; font-size: var(--ui-type-input); color: var(--v5-ink); }
+.rg-field { background: var(--v5-surface); border-radius: 16px; height: 56px; padding: 0 16px; font-size: var(--ui-type-input); line-height: var(--ui-type-input-lh); color: var(--v5-ink); }
 .rg-field-wrap { display: flex; align-items: center; background: var(--v5-surface); border-radius: 16px; height: 56px; padding: 0 16px; }
 .rg-field-wrap--err { background: color-mix(in srgb, var(--v5-brand-2) 12%, var(--v5-surface)); }
 .rg-field--flex { flex: 1; background: transparent; border: none; height: 100%; padding: 0; }

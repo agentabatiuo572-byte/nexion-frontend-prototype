@@ -161,7 +161,7 @@ function goBack() {
 }
 
 // ─── styles ───
-const paraStyle: CSSProperties = { fontSize: "var(--ui-type-long-form)", color: "var(--v5-ink-2)", lineHeight: 1.65 }; // how-page scale: body 13.5/1.65 ink-2
+const paraStyle: CSSProperties = { fontSize: "var(--ui-type-long-form)", color: "var(--v5-ink-2)", lineHeight: "var(--ui-type-long-form-lh)" }; // how-page scale: body 13.5/1.65 ink-2
 const captionStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginBottom: "14px", lineHeight: 1.6 }; // how-page scale: caption 12.5/1.6 ink-3
 const footnoteStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", color: "var(--v5-ink-3)" };
 const noteStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.5 }; // readability: body note 12/1.5 (was 11.5/1.375)
@@ -200,7 +200,7 @@ const signalBadgeStyle: CSSProperties = {
   fontWeight: 600,
 };
 const signalNameStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink)" };
-const signalBodyStyle: CSSProperties = { marginTop: "5px", fontSize: "var(--ui-type-long-form)", color: "var(--v5-ink-2)", lineHeight: 1.62 }; // how-row scale: body 13/1.62 ink-2
+const signalBodyStyle: CSSProperties = { marginTop: "5px", fontSize: "var(--ui-type-long-form)", color: "var(--v5-ink-2)", lineHeight: "var(--ui-type-long-form-lh)" }; // how-row scale: body 13/1.62 ink-2
 
 const mathCardStyle: CSSProperties = {
   marginTop: "12px",

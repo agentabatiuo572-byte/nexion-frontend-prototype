@@ -1079,7 +1079,7 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
 .nx-conv-queue[data-state="failed"] .nx-conv-queue-status { color: var(--v5-danger, #b42318); }
 .nx-conv-queue-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .nx-conv-queue-action { display: inline-flex; align-items: center; justify-content: center; margin: 0; padding: 0 12px; min-height: 44px; line-height: 44px; font-size: 12px; color: var(--v5-brand); background: transparent; }
-.nx-conv-edit-input { box-sizing: border-box; width: 100%; padding: 10px; margin-top: 8px; border: 1px solid var(--v5-border); border-radius: 10px; text-align: left; color: var(--v5-ink); background: var(--v5-surface); font-size: var(--ui-type-input); }
+.nx-conv-edit-input { box-sizing: border-box; width: 100%; padding: 10px; margin-top: 8px; border: 1px solid var(--v5-border); border-radius: 10px; text-align: left; color: var(--v5-ink); background: var(--v5-surface); font-size: var(--ui-type-input); line-height: var(--ui-type-input-lh); }
 .nx-conv-sys {
   text-align: center;
   padding: 4px 0;

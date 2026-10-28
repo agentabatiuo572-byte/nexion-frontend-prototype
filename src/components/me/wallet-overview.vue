@@ -239,7 +239,7 @@ function amountStyle(value: string, size: number, half = false): CSSProperties {
 <style scoped>
 .me-wallet-overview { color: var(--v5-ink); font-family: var(--font-v5); }
 .wallet-overview-card { padding: var(--v5-space-4); border-radius: var(--v5-radius-l); }
-.wallet-section-title { display: block; margin-bottom: var(--v5-space-3); font-size: var(--v5-type-body-m); font-weight: 500; }
+.wallet-section-title { display: block; margin-bottom: var(--v5-space-3); font-size: var(--ui-type-section); font-weight: 500; }
 .wallet-earnings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--v5-space-3); }
 .wallet-metric { min-width: 0; }
 .wallet-metric:nth-child(n+3) { padding-top: var(--v5-space-3); border-top: 1px solid var(--v5-border); }
@@ -252,7 +252,8 @@ function amountStyle(value: string, size: number, half = false): CSSProperties {
 .wallet-activity-row { display: flex; gap: var(--v5-space-3); align-items: center; padding: var(--v5-space-3) var(--v5-space-4); margin-top: var(--v5-space-3); border-radius: var(--v5-radius-l); background: var(--v5-surface); }
 .wallet-row-icon { flex-shrink: 0; color: var(--v5-warning); }
 .wallet-activity-copy { flex: 1; min-width: 0; }
-.wallet-activity-label, .wallet-withdrawal-amount { display: block; font-size: var(--v5-type-body-m); }
+.wallet-activity-label { display: block; font-size: var(--ui-type-list-title); }
+.wallet-withdrawal-amount { display: block; font-size: var(--v5-type-body-m); }
 .wallet-activity-sub { display: block; color: var(--v5-ink-3); font-size: var(--v5-type-caption); line-height: 1.5; overflow-wrap: anywhere; }
 .wallet-withdrawal-amount { margin-top: var(--v5-space-1); color: var(--v5-danger); }
 .wallet-chevron { flex-shrink: 0; color: var(--v5-ink-3); }

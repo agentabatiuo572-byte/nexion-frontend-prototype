@@ -18,6 +18,17 @@ export const ORDER_STATUSES = [
 
 export type CanonicalOrderStatus = typeof ORDER_STATUSES[number];
 
+/** Backend OrderRefundReason (E4); the operator's free-text note is never sent to the App. */
+export const ORDER_REFUND_REASON_CODES = [
+  "USER_REQUEST",
+  "DUPLICATE_PAYMENT",
+  "DELIVERY_UNAVAILABLE",
+  "ORDER_EXCEPTION",
+  "OTHER",
+] as const;
+
+export type OrderRefundReasonCode = typeof ORDER_REFUND_REASON_CODES[number];
+
 export interface CanonicalOrder {
   orderNo: string;
   productId: number;
@@ -43,6 +54,8 @@ export interface CanonicalOrder {
   refundAmountUsdt: number | null;
   refundChannel: string | null;
   refundBillNo: string | null;
+  /** User-visible refund reason; unknown codes are dropped rather than shown raw. */
+  refundReasonCode?: OrderRefundReasonCode | null;
   dataCenter: string | null;
   tradeinNo: string | null;
   sourceDeviceId: number | null;
@@ -168,6 +181,11 @@ function nonEmptyString(value: unknown): string {
   return value.trim();
 }
 
+function refundReasonCode(value: unknown): OrderRefundReasonCode | null {
+  return typeof value === "string" && (ORDER_REFUND_REASON_CODES as readonly string[]).includes(value)
+    ? value as OrderRefundReasonCode : null;
+}
+
 function nullableString(value: unknown): string | null {
   if (value === null || value === undefined || value === "") return null;
   return nonEmptyString(value);
@@ -242,6 +260,7 @@ function canonicalOrder(value: unknown): CanonicalOrder {
       ? null : finiteNumber(source.refundAmountUsdt),
     refundChannel: nullableString(source.refundChannel),
     refundBillNo: nullableString(source.refundBillNo),
+    refundReasonCode: refundReasonCode(source.refundReasonCode),
     dataCenter: nullableString(source.dataCenter),
     tradeinNo: nullableString(source.tradeinNo),
     sourceDeviceId: nullableInteger(source.sourceDeviceId),

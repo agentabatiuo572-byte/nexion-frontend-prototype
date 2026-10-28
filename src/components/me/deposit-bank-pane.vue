@@ -1024,7 +1024,7 @@ const stepNumStyle: CSSProperties = {
 const stateTitleStyle: CSSProperties = {
   marginTop: "12px",
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   color: "var(--v5-ink)",
 };

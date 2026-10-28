@@ -18,7 +18,7 @@ defineEmits<{ (event: 'action'): void }>();
 .nx-section__titles { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; min-width: 0; }
 .nx-section__title { font: 600 var(--ui-type-section)/var(--ui-type-section-lh) var(--font-v5); letter-spacing: -.02em; }
 .nx-section__meta { font: 500 13px/18px var(--font-v5); color: var(--v5-ink-3); }
-.nx-section__heading :deep(.nx-button) {font-size:13.5px;gap:2px;padding:0;min-height:44px;color:var(--v5-ink-2);}
+.nx-section__heading :deep(.nx-button) {font-size:13px;gap:2px;padding:0;min-height:44px;color:var(--v5-ink-2);}
 @media (max-width: 374px) {
   .nx-section__meta { font-size: 12px; line-height: 16px; }
   .nx-section__heading :deep(.nx-button) { font-size: 13px; }

@@ -39,10 +39,10 @@
         </view>
       </view>
       <view v-else-if="displayCourse" class="course-lesson">
-        <text class="block" style="font-size: 20px; font-weight: 600">{{ displayCourse.title }}</text>
+        <text class="block" style="font-size: var(--ui-type-page-title); line-height: var(--ui-type-page-title-lh); font-weight: 600">{{ displayCourse.title }}</text>
         <view class="course-read-progress" role="progressbar" :aria-valuenow="displayCompleted ? 100 : displayCourse.progress" aria-valuemin="0" aria-valuemax="100"><view :style="{width:(displayCompleted ? 100 : displayCourse.progress)+'%'}" /></view>
         <text class="block" style="margin-top: 10px; color: var(--v5-ink-2); text-wrap: pretty">{{ displayCourse.body }}</text>
-        <text class="block" style="margin-top: 8px; color: var(--v5-ink-3)">{{ versionLine }}</text>
+        <text class="block" style="margin-top: 8px; color: var(--v5-ink-3); font-size: var(--ui-type-list-subtitle)">{{ versionLine }}</text>
         <text v-if="startState === 'pending' && !warmCourseRead" class="block" style="margin-top: 8px; color: var(--v5-ink-3); text-wrap: pretty" role="status" aria-live="polite">{{ t.learning.courseStartConfirming }}</text>
         <view v-else-if="startState === 'unconfirmed'" style="margin-top: 8px">
           <text class="block" style="color: var(--v5-ink-3); text-wrap: pretty" role="alert" aria-live="assertive">{{ startFailureText }}</text>
@@ -620,7 +620,7 @@ onUnmounted(resetNextCourses);
 .course-next__title { display: block; margin-top: 6px; font-size: 18px; font-weight: 600; line-height: 24px; overflow-wrap: anywhere; }
 .course-next__meta { margin-top: 6px; font-size: 12.5px; line-height: 18px; color: var(--v5-ink-3); overflow-wrap: anywhere; }
 .course-next__reward { color: var(--learning-reward); font-variant-numeric: tabular-nums; }
-.learning-course .course-next__cta { display: flex; box-sizing: border-box; width: 100%; min-height: 48px; margin-top: var(--v5-space-4); padding: 0; font-size: var(--v5-type-button); font-weight: 600; }
+.learning-course .course-next__cta { display: flex; box-sizing: border-box; width: 100%; min-height: 48px; margin-top: var(--v5-space-4); padding: 0; font-size: var(--ui-type-button); font-weight: 600; }
 .course-quiz-result { display:flex;flex-direction:column;gap:8px;margin-top:20px;padding-top:20px;border-top:1px solid var(--v5-border); }
 .course-quiz-result__title { font:600 18px/25px var(--font-v5);color:var(--v5-ink); }
 .course-quiz-result__score { font:600 28px/36px var(--font-v5);font-variant-numeric:tabular-nums; }
@@ -634,4 +634,6 @@ onUnmounted(resetNextCourses);
 .course-radio { width: 18px; height: 18px; border: 1px solid var(--v5-ink-3); border-radius: 50%; flex: none; }
 .course-radio.selected { border: 5px solid var(--v5-brand); }
 .course-read-progress { height: 4px; background: var(--v5-surface-3); margin-top:16px;border-radius:4px;overflow:hidden; }.course-read-progress > view { height:100%;background:var(--v5-brand); }
+/* Lesson text is running copy: long-form role (14px floor on small screens). */
+.learning-course .course-lesson { font-size: var(--ui-type-long-form); line-height: var(--ui-type-long-form-lh); }
 </style>

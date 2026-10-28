@@ -9,7 +9,7 @@
 <template>
   <view v-if="calculator" data-home-section="do-the-math">
     <view class="flex items-center justify-between" style="margin: 8px 2px 10px">
-      <text style="font-family: var(--font-v5); font-weight: 600; font-size: 15px; color: var(--v5-ink); letter-spacing: -0.012em">{{ t.home.doMathTitle }}</text>
+      <text style="font-family: var(--font-v5); font-weight: 600; font-size: var(--ui-type-section); color: var(--v5-ink); letter-spacing: -0.012em">{{ t.home.doMathTitle }}</text>
     </view>
 
     <view class="nx-glass-card relative overflow-hidden" style="background: var(--nx-glass-fill); box-shadow: var(--nx-glass-edge); border-radius: var(--nx-glass-radius); padding: 16px">

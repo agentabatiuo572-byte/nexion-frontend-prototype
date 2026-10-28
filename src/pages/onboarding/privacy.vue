@@ -59,5 +59,5 @@ onUnmounted(() => { generation += 1; });
 .privacy-back { color: var(--v5-brand); padding: 8px 0; cursor: pointer; }
 .privacy-section { margin-top: 24px; }
 .privacy-section-title { display: block; font-size: var(--ui-type-section); font-weight: 600; }
-.privacy-copy { display: block; font-size: var(--ui-type-long-form); line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 10px; color: var(--v5-ink-2); }
+.privacy-copy { display: block; font-size: var(--ui-type-long-form); line-height: var(--ui-type-long-form-lh); white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 10px; color: var(--v5-ink-2); }
 </style>

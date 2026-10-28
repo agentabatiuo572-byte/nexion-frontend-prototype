@@ -57,10 +57,10 @@
       </view>
 
       <!-- CTA -->
-      <view v-if="ev.runtimeSource === 'remote' && ev.kind !== 'wheel'" class="mt-5 w-full rounded-full flex items-center justify-center" :style="joinBtnStyle" role="link" tabindex="0" @click="openDetails" @keydown.enter.prevent="openDetails"><text style="font-size:15px;font-weight:600;color:var(--v5-on-brand)">{{ t.events.action.viewDetails }} ›</text></view>
+      <view v-if="ev.runtimeSource === 'remote' && ev.kind !== 'wheel'" class="mt-5 w-full rounded-full flex items-center justify-center" :style="joinBtnStyle" role="link" tabindex="0" @click="openDetails" @keydown.enter.prevent="openDetails"><text style="font-size: var(--ui-type-button);font-weight:600;color:var(--v5-on-brand)">{{ t.events.action.viewDetails }} ›</text></view>
       <view v-else-if="showClaim" class="mt-5 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="claimBtnStyle" role="button" :tabindex="busy ? -1 : 0" :aria-disabled="busy" :aria-label="claimLabel" @click="emitUnlessBusy('claim')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; pointer-events: none"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.287 1.288L3 12l5.8 1.9a2 2 0 0 1 1.288 1.287L12 21l1.9-5.8a2 2 0 0 1 1.287-1.288L21 12l-5.8-1.9a2 2 0 0 1-1.288-1.287z" /></svg>
-        <text style="font-size: 15px; font-weight: 600; color: var(--v5-on-brand); pointer-events: none">{{ claimLabel }}</text>
+        <text style="font-size: var(--ui-type-button); font-weight: 600; color: var(--v5-on-brand); pointer-events: none">{{ claimLabel }}</text>
       </view>
       <view v-else-if="ev._claimed" class="mt-5 w-full rounded-full flex items-center justify-center" :class="{ 'active:opacity-90': !!ev.useHref }" :style="claimedPillStyle" :role="ev.useHref ? 'button' : undefined" :tabindex="ev.useHref ? 0 : -1" :aria-label="claimedAriaLabel" @click="onClaimedUse">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; pointer-events: none"><path d="M20 6 9 17l-5-5" /></svg>
@@ -72,12 +72,12 @@
         </template>
       </view>
       <view v-else-if="showJoinAction" class="mt-5 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="joinBtnStyle" role="button" :tabindex="busy ? -1 : 0" :aria-disabled="busy" :aria-label="ev.ctaLabel ?? t.events.joinCta" @click="emitUnlessBusy('join')">
-        <text style="font-size: 15px; font-weight: 600; color: var(--v5-on-brand); pointer-events: none">{{ ev.ctaLabel ?? t.events.joinCta }}</text>
+        <text style="font-size: var(--ui-type-button); font-weight: 600; color: var(--v5-on-brand); pointer-events: none">{{ ev.ctaLabel ?? t.events.joinCta }}</text>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 6px; pointer-events: none"><path d="m9 18 6-6-6-6" /></svg>
       </view>
       <view v-else-if="showOpenAction" class="mt-5 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="joinBtnStyle" role="button" tabindex="0" :aria-label="ev.joined ? t.events.viewProgress : (ev.ctaLabel ?? t.events.joinCta)" @click="openHref">
         <svg v-if="ev.joined" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; pointer-events: none"><path d="M20 6 9 17l-5-5" /></svg>
-        <text style="font-size: 15px; font-weight: 600; color: var(--v5-on-brand); pointer-events: none" @click.stop="openHref">{{ ev.joined ? t.events.viewProgress : (ev.ctaLabel ?? t.events.joinCta) }}</text>
+        <text style="font-size: var(--ui-type-button); font-weight: 600; color: var(--v5-on-brand); pointer-events: none" @click.stop="openHref">{{ ev.joined ? t.events.viewProgress : (ev.ctaLabel ?? t.events.joinCta) }}</text>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 6px; pointer-events: none"><path d="m9 18 6-6-6-6" /></svg>
       </view>
     </view>

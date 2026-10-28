@@ -6,9 +6,8 @@
 
   While on this page, advanceOrder(id) ticks every 3s so the provisioning bar
   moves visibly. Cancel uses confirm() from the ui store (danger). Wrapped in
-  <AppChassis active="store">; back + order-id title/subtitle live in the sticky
-  chassis nav header via useSetPageHeader (mirrors the prototype's
-  <SetPageHeader title={order.id} subtitle={t.orders.orderId} backHref="/store/orders"/>).
+  <AppChassis active="store">; back + "Order details" title live in the sticky
+  chassis nav header via useSetPageHeader.
 
   Status-color opacity tints use color-mix(... transparent) since uni can't do
   the source's `${color}10` hex-suffix on a CSS variable.
@@ -94,7 +93,7 @@
         <!-- Order summary -->
         <view class="nx-glass-card mx-4 rounded-2xl" :style="summaryCardStyle" style="margin-top: 12px">
           <text class="block" :style="sectionLabelStyle">{{ t.orders.orderSummary }}</text>
-          <DetailRow :label="t.orders.orderIdLabel" :value="order.id" mono />
+          <DetailRow :label="t.orders.orderIdLabel" :value="order.id" mono copyable />
           <DetailRow :label="t.orders.quantity" :value="`${order.itemCount ?? order.quantity}`" />
           <view v-if="order.lineItems?.length" style="margin: 8px 0; padding: 8px 0; border-top: 1px solid var(--v5-border); border-bottom: 1px solid var(--v5-border)">
             <view v-for="item in order.lineItems" :key="item.sku" class="flex items-center justify-between" style="padding: 4px 0; gap: 12px">
@@ -114,9 +113,10 @@
           <DetailRow :label="t.orders.subtotal" :value="`$${formatAmount(order.subtotal)}`" />
           <DetailRow :label="t.orders.total" :value="`$${formatAmount(order.total)}`" big />
           <template v-if="order.status === 'refunded'">
+            <DetailRow v-if="order.refundReasonCode" :label="t.orders.refundReason" :value="t.orders.refundReasons[order.refundReasonCode]" />
             <DetailRow v-if="order.refundAmountUsdt != null" :label="t.orders.refundAmount" :value="`$${formatAmount(order.refundAmountUsdt)}`" brand />
             <DetailRow v-if="order.refundChannel" :label="t.orders.refundChannel" :value="refundChannelLabel" />
-            <DetailRow v-if="order.refundBillNo" :label="t.orders.refundBillNo" :value="order.refundBillNo" mono />
+            <DetailRow v-if="order.refundBillNo" :label="t.orders.refundBillNo" :value="order.refundBillNo" mono copyable />
             <view v-if="!order.refundedAt && order.refundAmountUsdt == null && !order.refundBillNo" role="status" style="padding: 8px 0; color: var(--v5-ink-3); font-size: 12px">
               <text>{{ t.orders.refundDetailsUnavailable }}</text>
             </view>
@@ -394,15 +394,13 @@ const fullyVoucherSettled = computed(() => order.value != null
   && order.value.paymentMethod?.toUpperCase() === "VOUCHER"
   && order.value.status !== "placed");
 
-// Sticky chassis nav header — back + order-id title + "Order ID" subtitle
-// (mirrors the prototype's <SetPageHeader title={order.id} subtitle={t.orders.orderId}
-// backHref="/store/orders"/>). Getter form: title resolves once the order loads
-// (onLoad); falls back to "not found" before then / for a bad id.
+// Sticky chassis nav header — back + "Order details" title. The order number
+// stays in the summary card; a long id is not a page title. Getter form: falls
+// back to "not found" before the order loads / for a bad id.
 useSetPageHeader(() => ({
   title: order.value
-    ? order.value.id
+    ? t.value.orders.detailTitle
     : (showRemoteOrderLoading.value || remoteOrderError.value ? t.value.orders.title : t.value.orders.notFound),
-  subtitle: order.value ? t.value.orders.orderId : undefined,
   backHref: ordersBackHref.value,
 }));
 

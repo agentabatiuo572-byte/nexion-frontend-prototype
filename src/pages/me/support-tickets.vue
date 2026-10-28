@@ -704,6 +704,7 @@ const inputStyle: CSSProperties = {
   background: "var(--v5-surface)",
   padding: "0 12px",
   fontSize: "var(--ui-type-input)",
+  lineHeight: "var(--ui-type-input-lh)",
   color: "var(--v5-ink)",
 };
 const textareaStyle: CSSProperties = {

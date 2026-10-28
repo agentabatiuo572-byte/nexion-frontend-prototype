@@ -5,7 +5,7 @@
 -->
 <template>
   <view class="flex items-center justify-between gap-2" style="margin-right: 2px; margin-bottom: 8px; margin-left: 2px">
-    <text style="font-family: var(--font-v5); font-weight: 600; font-size: 15px; color: var(--v5-ink); letter-spacing: -0.012em">{{ title }}<text
+    <text style="font-family: var(--font-v5); font-weight: 600; font-size: var(--ui-type-section); color: var(--v5-ink); letter-spacing: -0.012em">{{ title }}<text
         v-if="count"
         class="font-mono-tabular ml-1"
         style="font-size: 12px; font-weight: 400; color: var(--v5-ink-3)"

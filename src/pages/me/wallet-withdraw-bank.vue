@@ -12,7 +12,7 @@
         <view class="amount-card"><text class="muted">{{ c.receiveLabel }}</text><text class="money">{{ formatAmount(order.bank.amountVnd, 'VND') }}</text><text class="currency">VND</text></view>
         <view class="account-card"><text class="muted">{{ useTranslations.bankBinding.accountRoutedLabel }}</text><text class="account-number">{{ order.bank.maskedAccount }}</text></view>
         <view class="details">
-          <view class="row"><text>{{ c.orderNumber }}</text><text>{{ order.withdrawalNo }}</text></view>
+          <view class="row"><text>{{ c.orderNumber }}</text><view class="code-value"><text>{{ order.withdrawalNo }}</text><CopyCodeButton :value="order.withdrawalNo" :label="c.orderNumber" /></view></view>
           <view class="row"><text>{{ c.totalDebit }}</text><text>{{ money(order.bank.amountUsdt) }} USDT</text></view>
           <view class="row"><text>{{ c.fee }}</text><text>{{ money(order.bank.feeUsdt) }}</text></view>
           <view v-if="outcome === 'refunded'" class="row"><text>{{ c.refundAmount }}</text><text>{{ money(order.settlementEvidence!.amountUsdt!) }}</text></view>
@@ -112,6 +112,7 @@ import { formatFinanceAmount as formatAmount } from "@/lib/finance-amount-displa
 import { computed, ref, watch } from "vue";
 import { onLoad, onShow, onHide, onUnload } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
+import CopyCodeButton from "@/components/copy-code-button.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import { useT } from "@/i18n/use-t";
 import { dateLocale } from "@/i18n/format";
@@ -345,6 +346,8 @@ onUnload(() => { alive = false; visible = false; stopTimer(); stopRuntime(); rev
 .row { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--v5-border); font-size: var(--ui-type-list-subtitle); }
 .row > text:first-child { color: var(--v5-ink-3); font-size: 12px; }
 .row > text:last-child { max-width: 65%; overflow-wrap: anywhere; text-align: right; font-variant-numeric: tabular-nums; }
+.code-value { display: flex; align-items: center; gap: var(--v5-space-2); max-width: 65%; min-width: 0; }
+.code-value > text { min-width: 0; overflow-wrap: anywhere; text-align: right; font-variant-numeric: tabular-nums; }
 .money { display: block; margin-top: 8px; font-size: 34px; font-weight: 600; line-height: 1.25; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .currency { display: block; margin-top: 8px; font-size: 12px; color: var(--v5-ink-3); }
 .consent { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; font-size: 12px; line-height: 1.6; cursor: pointer; margin-bottom: 10px; }

@@ -1041,6 +1041,12 @@ html {
 uni-input {
   min-height: 44px;
 }
+/* 16px inputs: a placeholder longer than the field ends in an ellipsis instead of a hard clip. */
+uni-input .uni-input-placeholder {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
 
 /* Final canvas geometry with owner-requested original neutral card palette. */
 :root { --ui-content-surface:#fff;--ui-content-surface-2:#FAF7F0;--ui-content-surface-3:#F0EBE0;--ui-ticket-top:#FFFFFF;--ui-ticket-bottom:#FAF7F0;--ui-trial-top:#FFFFFF;--ui-lime-soft:var(--v5-brand);--ui-lime-pale:var(--v5-brand);--ui-spotlight-top:#FFFFFF;--ui-perk:#FAF7F0; }

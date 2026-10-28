@@ -28,6 +28,41 @@
   font-style: normal;
   font-display: swap;
 }
+/* General Sans places stacked Vietnamese marks (ế, ẫ, ủ, ắ, ơ, ư …) badly. These code points
+   alone fall back to the bundled Manrope, which draws them correctly; declared after the
+   General Sans faces so they win inside this range for every weight. */
+@font-face {
+  font-family: "General Sans";
+  src: url("../static/fonts/Manrope.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0102-0103, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+1EA0-1EF9;
+}
+@font-face {
+  font-family: "General Sans";
+  src: url("../static/fonts/Manrope.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0102-0103, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+1EA0-1EF9;
+}
+@font-face {
+  font-family: "General Sans";
+  src: url("../static/fonts/Manrope.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0102-0103, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+1EA0-1EF9;
+}
+@font-face {
+  font-family: "General Sans";
+  src: url("../static/fonts/Manrope.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0102-0103, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+1EA0-1EF9;
+}
 @font-face {
   font-family: "Manrope";
   src: url("../static/fonts/Manrope.ttf") format("truetype");

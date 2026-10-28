@@ -247,7 +247,7 @@ const upcomingPeerNotice = computed(() => prog.value.next && prog.value.next.pee
 .rank-rules-link svg { flex:none; }
 .rank-next-progress { padding-top:16px;border-top:1px solid var(--v5-border); }
 .rank-next-heading { display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap; }
-.rank-next-title { font:600 15px/20px var(--font-v5);overflow-wrap:anywhere; }
+.rank-next-title { font:600 var(--ui-type-section)/20px var(--font-v5);overflow-wrap:anywhere; }
 .rank-condition { margin-top:14px; }
 .rank-condition__heading { display:flex;justify-content:space-between;align-items:baseline;gap:6px 12px;flex-wrap:wrap;font:400 13.5px/20px var(--font-v5);color:var(--v5-ink-2); }
 .rank-condition__name { min-width:0;overflow-wrap:anywhere; }

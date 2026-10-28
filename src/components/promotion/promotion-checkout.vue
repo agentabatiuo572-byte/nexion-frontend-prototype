@@ -487,7 +487,7 @@ onBeforeUnmount(()=>{hide();alive=false;if(timer)clearInterval(timer);});
 .checkout-discount-row { display:flex; align-items:center; gap:12px; min-height:64px; box-sizing:border-box; padding:10px 16px; border-bottom:1px solid var(--v5-border); }
 .checkout-discount-row:last-child { border-bottom:0; }
 .checkout-discount-icon { display:grid; place-items:center; flex:none; width:36px; height:36px; border-radius:12px; background:var(--ui-content-surface-2); color:var(--v5-ink-2); }
-.checkout-discount-title { display:block; font:500 15px/20px var(--font-v5); overflow-wrap:anywhere; }
+.checkout-discount-title { display:block; font:500 var(--ui-type-list-title)/20px var(--font-v5); overflow-wrap:anywhere; }
 .checkout-discount-description { display:block; margin-top:2px; font:400 13px/18px var(--font-v5); color:var(--v5-ink-3); overflow-wrap:anywhere; }
 .checkout-discount-chevron { flex:none; color:var(--v5-ink-4); }
 .checkout-voucher-row { gap:12px; color:var(--v5-ink); }

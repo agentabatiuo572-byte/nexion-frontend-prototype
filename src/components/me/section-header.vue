@@ -12,7 +12,7 @@
        有链接:12 + 44 + 2 = 58 ≈ 原 52;无链接:22 + 18 + 12 = 52,与改动前完全一致。 -->
   <view class="flex items-center justify-between" :style="{ margin: hasLink ? '12px 2px 2px' : '22px 2px 12px' }">
     <view class="inline-flex items-center" style="gap: 8px">
-      <text style="font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-ink); letter-spacing: -0.012em">{{ title }}</text>
+      <text style="font-family: var(--font-v5); font-size: var(--ui-type-section); font-weight: 600; color: var(--v5-ink); letter-spacing: -0.012em">{{ title }}</text>
       <text v-if="count" style="font-family: var(--font-jet-mono), ui-monospace, monospace; font-size: 12px; font-weight: 400; color: var(--v5-ink-3)">{{ count }}</text>
     </view>
     <!-- 《07》tap≥44 + 《08》§2:这个链接全站 me 域复用,原先热区只有文字高、按下也零反馈。

@@ -111,4 +111,19 @@ describe("order list provenance", () => {
     await expect(api({ source: "server", sourceEnvironment: "PRODUCTION", runId: null, serverCanonical: true, orders: [{ ...refunded, refundedAt: null }] }, "prod").list())
       .rejects.toMatchObject({ message: "ORDER_RESPONSE_INVALID" });
   });
+
+  it("keeps known refund reasons and drops unknown or operator text", async () => {
+    const refunded = {
+      ...order(), paymentStatus: "REFUNDED", orderStatus: "REFUNDED", activationStatus: "REFUNDED",
+      canonicalStatus: "refunded", expiresAt: null, refundedAt: 2_000,
+      refundAmountUsdt: 100, refundChannel: "WALLET", refundBillNo: "E4-BILL-ORD-1",
+    };
+    const envelope = { source: "server", sourceEnvironment: "PRODUCTION", runId: null, serverCanonical: true };
+    await expect(api({ ...envelope, orders: [{ ...refunded, refundReasonCode: "DUPLICATE_PAYMENT" }] }, "prod").list())
+      .resolves.toMatchObject({ orders: [{ refundReasonCode: "DUPLICATE_PAYMENT" }] });
+    for (const refundReasonCode of ["customer called support", "duplicate_payment", null, undefined]) {
+      await expect(api({ ...envelope, orders: [{ ...refunded, refundReasonCode }] }, "prod").list())
+        .resolves.toMatchObject({ orders: [{ refundReasonCode: null }] });
+    }
+  });
 });

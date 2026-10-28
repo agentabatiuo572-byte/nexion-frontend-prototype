@@ -752,6 +752,7 @@ const addressInputStyle: CSSProperties = {
   padding: "12px",
   boxSizing: "border-box",
   fontSize: "var(--ui-type-input)",
+  lineHeight: "var(--ui-type-input-lh)",
   color: "var(--v5-ink)",
 };
 const errorTextStyle: CSSProperties = {

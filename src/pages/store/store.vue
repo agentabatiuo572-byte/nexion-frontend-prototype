@@ -379,7 +379,7 @@ const catalogStateStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   background: "var(--nx-glass-fill)",
 };
 const catalogStateTitleStyle: CSSProperties = {
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   color: "var(--v5-ink)",
 };

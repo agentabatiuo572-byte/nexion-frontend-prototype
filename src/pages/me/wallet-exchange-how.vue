@@ -9,7 +9,7 @@
     <view v-else-if="remoteApiEnabled" style="padding-bottom: 32px">
       <SubPageHeader back="/pages/me/wallet-exchange" />
       <view class="mx-4" role="status" aria-live="polite" style="padding: 24px 2px; color: var(--v5-ink-2)">
-        <text class="block" style="font-size: 15px; font-weight: 600">{{ exchangeAvailable === false ? w.pausedTitle : exchangeLoading ? t.howPublished.loading : t.howPublished.unavailableTitle }}</text>
+        <text class="block" style="font-size: var(--ui-type-section); font-weight: 600">{{ exchangeAvailable === false ? w.pausedTitle : exchangeLoading ? t.howPublished.loading : t.howPublished.unavailableTitle }}</text>
         <text class="block" style="margin-top: 8px; font-size: var(--ui-type-list-subtitle); line-height: 1.6">{{ exchangeAvailable === false ? w.pausedBody : exchangeLoading ? '' : t.exchange.remoteUnavailableClosed }}</text>
         <view v-if="!exchangeLoading && exchangeAvailable === null" role="button" tabindex="0" style="margin-top: 16px; color: var(--v5-brand)" @click="loadExchangeCaps"  @keydown.enter.prevent="loadExchangeCaps" @keydown.space.prevent="loadExchangeCaps"><text>{{ t.ui.retry }}</text></view>
         <view v-if="exchangeAvailable === false" role="button" tabindex="0" style="margin-top: 16px; color: var(--v5-brand)" @click="goBack"  @keydown.enter.prevent="goBack" @keydown.space.prevent="goBack"><text>{{ w.ctaBack }}</text></view>
@@ -140,7 +140,7 @@ function goBack() {
   navBack("/pages/me/wallet-exchange");
 }
 
-const paraStyle: CSSProperties = { fontSize: "var(--ui-type-long-form)", color: "var(--v5-ink-2)", lineHeight: 1.65 }; // how-page scale: body 13.5/1.65 ink-2
+const paraStyle: CSSProperties = { fontSize: "var(--ui-type-long-form)", color: "var(--v5-ink-2)", lineHeight: "var(--ui-type-long-form-lh)" }; // how-page scale: body 13.5/1.65 ink-2
 const introStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-3)", lineHeight: 1.6, marginBottom: "14px" }; // how-page scale: caption 12.5/1.6 ink-3
 const stepsBoxStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   marginTop: "12px",
@@ -153,7 +153,7 @@ const stepsBoxStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   fontSize: "12px",
 };
 const stepNumStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-3)", lineHeight: 1.62 };
-const stepBodyStyle: CSSProperties = { fontSize: "var(--ui-type-long-form)", color: "var(--v5-ink-2)", lineHeight: 1.62 }; // how-row scale: body 13/1.62 ink-2
+const stepBodyStyle: CSSProperties = { fontSize: "var(--ui-type-long-form)", color: "var(--v5-ink-2)", lineHeight: "var(--ui-type-long-form-lh)" }; // how-row scale: body 13/1.62 ink-2
 const ctaStyle: CSSProperties = {
   gap: "6px",
   height: "50px",
