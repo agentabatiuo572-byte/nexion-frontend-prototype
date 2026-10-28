@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\workspace\\.worktrees\\zentao-root-integration-20261028",
+  "sourcePath": "/Volumes/HD1/Projects/UVEL/nexion-uniapp-doc",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "e1b184d655e8f267be4fa5d0d3eaaa104184dd2e",
-  "sourceRef": "e1b184d655e8f267be4fa5d0d3eaaa104184dd2e",
+  "sourceHead": "2affb6fa968e0f9601dbfc086e9d9b71c15482ab",
+  "sourceRef": "2affb6fa968e0f9601dbfc086e9d9b71c15482ab",
   "sourceRefKind": "commit",
-  "sourceTree": "eef1010eca4167ed0cc683224a0a75f1190976c7",
+  "sourceTree": "9a9e0dfec6a7dd6229762a79c43c79ee89386287",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -12242,10 +12242,10 @@
       "mode": "100644"
     },
     "docs/plans/2026-10-27-ios-model-calibration.md": {
-      "sourceBlob": "7ce095c2fa9464451d7a182a1f47169828a8a5db",
-      "sourceSha256": "172cd97e9dc4d8086a0a9e9c9952cca609e13d7f751592f077b6ffea5aa335f8",
-      "targetBlob": "7ce095c2fa9464451d7a182a1f47169828a8a5db",
-      "targetSha256": "172cd97e9dc4d8086a0a9e9c9952cca609e13d7f751592f077b6ffea5aa335f8",
+      "sourceBlob": "d08ec27dd7119f8cd3ff1ce63ed5bd7f439f30fb",
+      "sourceSha256": "6479dff21a0bd905f4c422839fd485f3bae0b03664110759137b4b0cffb7f220",
+      "targetBlob": "d08ec27dd7119f8cd3ff1ce63ed5bd7f439f30fb",
+      "targetSha256": "6479dff21a0bd905f4c422839fd485f3bae0b03664110759137b4b0cffb7f220",
       "mode": "100644"
     },
     "docs/plans/2026-10-27-ios-model-presets.json": {

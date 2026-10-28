@@ -173,7 +173,7 @@
 - 查询结果的当前 / 待生效策略增加 `iosModelRules`；旧客户端不能丢弃这个字段后整份覆盖保存，需同轮更新后台客户端校验与 A2 提案解析。
 - 新增只读预设目录接口建议为 `GET /api/admin/config/phone-calibration/ios-model-presets`，沿用 E6 读取权限；返回目录版本、核对日期、来源链接和预设规则。
 - 预设目录建议作为后端版本化资源发布。载入预设只填后台草稿，按差异审阅和 A2 发布后才写入正式配置。
-- App 校准结果在现有字段之外建议返回 `calibrationMethod=IOS_MODEL_RANGE`、规范机型、范围和 `valueSource=OPERATOR_PRESET`；保存值仍复用现有 `computeValue`、`tier`、`ruleId`、`ruleVersion`。
+- App 校准结果在现有字段之外返回 `calibrationMethod=IOS_MODEL_RANGE` 和规范机型；保存值仍复用现有 `computeValue`、`tier`、`ruleId`、`ruleVersion`。范围上下限和 `valueSource` 只保存在服务端（校准快照与激活回执），用于抽值复用、激活复核和审计，不下发给 App，激活回执返回 App 时同样去掉（2026-10-28 修订）。
 - `computeUnit` 保持 `platform`。跨平台字段缺失按校准方法判断，不能把 iOS 缺少 SoC 当成硬件异常，也不能因此放宽 Android。
 - 需核对当前校准行和结果 JSON 的容量、序列化及回读：优先复用已有结果快照；只有发现字段存储确实不足时才增加必要迁移。
 
