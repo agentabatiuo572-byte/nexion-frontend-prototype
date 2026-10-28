@@ -15,15 +15,16 @@ const emit = defineEmits<{ (event: 'click'): void }>();
 function activate(event?: Event) { if (!props.disabled && !props.busy && !(event as KeyboardEvent)?.repeat) emit('click'); }
 </script>
 <style scoped>
-.nx-button { position: relative; isolation: isolate; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 48px; border-radius: 999px; color: var(--v5-ink); font: 600 14px/1.4 var(--font-v5); cursor: pointer; transition: transform 160ms ease; }
+.nx-button { position: relative; isolation: isolate; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 48px; border-radius: 999px; color: var(--v5-ink); font: 600 var(--ui-type-button)/var(--ui-type-button-lh) var(--font-v5); cursor: pointer; transition: transform 160ms ease; }
 /* The hit area participates in layout; its compact surface stays inside it. */
 .nx-button__surface { position: relative; box-sizing: border-box; display: flex; align-items: center; justify-content: center; flex: 1; min-width: 0; min-height: 48px; padding: 10px 20px; border-radius: inherit; }
 .nx-button__content { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; text-align: center; overflow-wrap: anywhere; }
 .nx-button--primary > .nx-button__surface { background: var(--v5-brand); color: var(--v5-on-brand); }
 .nx-button--tertiary > .nx-button__surface { background: var(--v5-surface-2); }
 .nx-button--text { color: var(--v5-ink-2); }
-.nx-button--medium { min-height: 44px; padding-block: 2px; font-size: 13px; }
-.nx-button--small { min-height: 44px; padding-block: 6px; font-size: 12px; }
+/* Compact variants are fixed-size exceptions to the button role (10-responsive-type §10.2). */
+.nx-button--medium { min-height: 44px; padding-block: 2px; font-size: 13px; line-height: 1.4; }
+.nx-button--small { min-height: 44px; padding-block: 6px; font-size: 12px; line-height: 1.4; }
 .nx-button--medium > .nx-button__surface { min-height: 40px; padding: 8px 16px; }
 .nx-button--small > .nx-button__surface { min-height: 32px; padding: 6px 12px; }
 .nx-button--text > .nx-button__surface { padding-inline: 8px; }

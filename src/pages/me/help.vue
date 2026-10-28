@@ -540,7 +540,7 @@ const searchInputStyle: CSSProperties = {
   background: "var(--v5-surface)",
   borderRadius: "12px",
   padding: "10px 12px 10px 36px",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-input)",
   color: "var(--v5-ink)",
 };
 function chipStyle(active: boolean): CSSProperties {
@@ -622,7 +622,7 @@ function bubbleMetaStyle(isUser: boolean): CSSProperties {
 const thinkingStyle: CSSProperties = { background: "var(--v5-surface-2)", borderRadius: "16px", padding: "8px 12px" };
 const thinkingTextStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
 const botInputRowStyle: CSSProperties = { gap: "8px", padding: "10px 12px", borderTop: "1px solid color-mix(in srgb, var(--v5-border) 70%, transparent)" };
-const botInputStyle: CSSProperties = { flex: "1", background: "transparent", fontSize: "13px", color: "var(--v5-ink)" };
+const botInputStyle: CSSProperties = { flex: "1", background: "transparent", fontSize: "var(--ui-type-input)", color: "var(--v5-ink)" };
 const botFallbackRowStyle: CSSProperties = { gap: "8px", padding: "8px 12px 12px", flexWrap: "wrap" };
 const botFallbackHintStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-warning)", lineHeight: 1.4, minWidth: "140px" };
 const botFallbackBtnStyle: CSSProperties = { minHeight: "32px", padding: "0 12px", borderRadius: "999px", background: "color-mix(in srgb, var(--v5-brand) 12%, transparent)", color: "var(--v5-brand)", fontSize: "12px", fontWeight: 600 };

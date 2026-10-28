@@ -319,7 +319,7 @@ const inputStyle: CSSProperties = {
   borderRadius: "8px",
   padding: "0 12px",
   marginBottom: "12px",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-input)",
   color: "var(--v5-ink)",
 };
 const checkboxLabelStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)" };

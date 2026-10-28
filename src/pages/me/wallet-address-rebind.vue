@@ -751,7 +751,7 @@ const addressInputStyle: CSSProperties = {
   borderRadius: "12px",
   padding: "12px",
   boxSizing: "border-box",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-input)",
   color: "var(--v5-ink)",
 };
 const errorTextStyle: CSSProperties = {

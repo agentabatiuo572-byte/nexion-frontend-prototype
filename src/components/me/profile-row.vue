@@ -73,6 +73,7 @@ const avatarTextStyle: CSSProperties = {
 const nameStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
   fontSize: "var(--ui-type-profile)",
+  lineHeight: "var(--ui-type-profile-lh)",
   fontWeight: 600,
   letterSpacing: "-0.018em",
   color: "var(--v5-ink)",

@@ -320,7 +320,7 @@ const usdtFitStyle = computed<CSSProperties>(() => ({
 .nx-wallet--compact .nx-wallet-title { font-size: var(--v5-type-body-m); }
 .nx-wallet-heading-bills { font-size: var(--v5-type-caption); color: var(--v5-ink-3); white-space: nowrap; }
 .nx-wallet--compact .nx-wallet-total { margin: 20px 0; }
-.nx-wallet--compact .nx-wallet-amount { font-size: min(var(--v5-type-display-l), var(--nx-wallet-fit-size)); }
+.nx-wallet--compact .nx-wallet-amount { font-size: min(var(--ui-type-wallet-amount), var(--nx-wallet-fit-size)); line-height: var(--ui-type-wallet-amount-lh); }
 .nx-wallet--compact .nx-wallet-nex { min-height: 44px; font-size: var(--v5-type-body-m); padding-bottom: 0; }
 .nx-wallet--compact .nx-wallet-coin { width: 20px; height: 20px; }
 .nx-wallet--compact .nx-wallet-details { padding: 12px 0 0; }

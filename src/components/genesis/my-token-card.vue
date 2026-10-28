@@ -355,7 +355,7 @@ const dollarStyle: CSSProperties = {
 const inputStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
   fontWeight: 600,
-  fontSize: "15px",
+  fontSize: "var(--ui-type-input)",
   color: "var(--v5-ink)",
   letterSpacing: "-0.014em",
   background: "transparent",

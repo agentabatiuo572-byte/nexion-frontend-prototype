@@ -405,7 +405,7 @@ const inputWrapStyle: CSSProperties = {
 const inputStyle: CSSProperties = {
   flex: "1",
   background: "transparent",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-input)",
   color: "var(--v5-ink)",
   height: "100%",
 };

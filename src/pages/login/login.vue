@@ -1042,7 +1042,7 @@ onUnmounted(() => cleanup());
 .lg-recovery-notice { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--v5-brand) 12%, transparent); border: 1px solid color-mix(in srgb, var(--v5-brand) 34%, transparent); }
 .lg-recovery { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
 .lg-recovery__account { font-size: 15px; color: var(--v5-ink); }
-.lg-recovery__input { box-sizing: border-box; height: 56px; padding: 0 16px; border-radius: 16px; background: var(--v5-surface); color: var(--v5-ink); font-size: 15px; }
+.lg-recovery__input { box-sizing: border-box; height: 56px; padding: 0 16px; border-radius: 16px; background: var(--v5-surface); color: var(--v5-ink); font-size: var(--ui-type-input); }
 .lg-recovery .lg-recovery__action { margin-top: 4px; }
 .lg-recovery__secondary { min-height: 44px; display: flex; align-items: center; justify-content: center; font-size: 15px; color: var(--v5-brand); }
 .lg-recovery__secondary[aria-disabled="true"] { opacity: .5; }
@@ -1055,12 +1055,12 @@ onUnmounted(() => cleanup());
 .lg-phone--err { border-color: color-mix(in srgb, var(--v5-brand-2) 55%, transparent); }
 .lg-phone__cc { height: 100%; padding: 0 16px; display: flex; align-items: center; gap: 4px; border-right: 1px solid var(--v5-surface-2); transition: opacity 0.15s; }
 .lg-phone__cc-t { font-size: 15px; color: var(--v5-ink); }
-.lg-phone__in { flex: 1; height: 100%; background: transparent; padding: 0 16px; font-size: 15px; color: var(--v5-ink); }
+.lg-phone__in { flex: 1; height: 100%; background: transparent; padding: 0 16px; font-size: var(--ui-type-input); color: var(--v5-ink); }
 .lg-phone-hint { display: block; margin-top: -4px; padding: 0 4px; font-size: 12px; line-height: 18px; color: var(--v5-ink-3); }
 .lg-phone-hint--err { color: var(--v5-brand-2); }
 .lg-field-wrap { display: flex; align-items: center; background: var(--v5-surface); border: 1px solid var(--v5-surface-2); border-radius: 16px; height: 56px; padding: 0 16px; }
 .lg-field-wrap--err { border-color: color-mix(in srgb, var(--v5-brand-2) 45%, transparent); }
-.lg-field--flex { flex: 1; background: transparent; border: none; height: 100%; font-size: 15px; color: var(--v5-ink); }
+.lg-field--flex { flex: 1; background: transparent; border: none; height: 100%; font-size: var(--ui-type-input); color: var(--v5-ink); }
 /* 《07》tap≥44:三处热区实测 24×30 / 65×36 / 342×18。热区靠 min-* 撑开,
    图标与文字靠 flex 居中 + 负 margin 抵消,视觉位置与原先一致(只有热区变大)。 */
 .lg-eye { min-width: 44px; min-height: 44px; margin-right: -10px; display: flex; align-items: center; justify-content: center; }

@@ -703,7 +703,7 @@ const inputStyle: CSSProperties = {
   borderRadius: "12px",
   background: "var(--v5-surface)",
   padding: "0 12px",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-input)",
   color: "var(--v5-ink)",
 };
 const textareaStyle: CSSProperties = {
@@ -713,7 +713,7 @@ const textareaStyle: CSSProperties = {
   // 同 inputStyle:贴页面底,surface-3 亮色下 ΔE 2.7 不可辨 → L1
   background: "var(--v5-surface)",
   padding: "10px 12px",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-input)",
   color: "var(--v5-ink)",
   lineHeight: 1.625,
 };
@@ -737,7 +737,7 @@ const replyTextareaStyle: CSSProperties = {
   borderRadius: "12px",
   background: "var(--v5-surface)",
   padding: "8px 12px",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-input)",
   color: "var(--v5-ink)",
   lineHeight: 1.625,
 };

@@ -50,17 +50,8 @@
   --nx-overlay-top: max(env(safe-area-inset-top, 0px), 12px);
   --ui-radius-surface: 22px;
   --ui-radius-icon: 12px;
-  --ui-text-body: 15px;
   --ui-text-caption: 13px;
-  /* Responsive role sizes are defined in uvel-docs/design-system/10-responsive-type.md.
-     Keep explicit page exceptions separate; these do not rescale the whole screen. */
-  --ui-type-list-title: 15px;
-  --ui-type-list-title-lh: 20px;
-  --ui-type-list-subtitle: 13px;
-  --ui-type-list-subtitle-lh: 18px;
-  --ui-type-section: 15px;
-  --ui-type-section-lh: 20px;
-  --ui-type-profile: 20px;
+  /* Responsive role sizes (--ui-type-*) live in the five-band block at the end of this file. */
   --ui-space-inline: 12px;
   --ui-space-inset: 16px;
   --ui-space-row-y: 10px;
@@ -1179,27 +1170,62 @@ uni-input {
   }
 }
 
-/* Width means CSS viewport width, independent of device pixel ratio and theme. */
-@media (min-width: 414px) {
-  :root { --ui-type-section: 16px; --ui-type-section-lh: 22px; }
-}
-@media (max-width: 389px) {
-  :root { --ui-text-body: 14px; }
-}
-@media (max-width: 374px) {
-  :root {
-    --ui-type-list-title: 14px;
-    --ui-type-list-subtitle: 12px;
-    --ui-type-list-subtitle-lh: 16px;
-    --ui-type-section: 14px;
-    --ui-type-profile: 19px;
-  }
+/* Five responsive type bands — uvel-docs design-system/10-responsive-type.md §10.1.
+   Width means CSS viewport width, independent of device pixel ratio and theme.
+   The 390 band (390–413) is the default; every other band is an explicit,
+   non-overlapping range so 339/340, 374/375, 389/390 and 413/414 each resolve to
+   exactly one row. Roles only — approved page exceptions stay local to their page. */
+:root {
+  --ui-type-page-title: 24px; --ui-type-page-title-lh: 32px;
+  --ui-type-section: 15px; --ui-type-section-lh: 20px;
+  --ui-type-body: 15px; --ui-type-body-lh: 22px;
+  --ui-type-list-title: 15px; --ui-type-list-title-lh: 20px;
+  --ui-type-list-subtitle: 13px; --ui-type-list-subtitle-lh: 18px;
+  --ui-type-meta: 12px; --ui-type-meta-lh: 16px;
+  --ui-type-profile: 20px; --ui-type-profile-lh: 28px;
+  --ui-type-button: 14px; --ui-type-button-lh: 20px;
+  --ui-type-long-form: 15px; --ui-type-long-form-lh: 22px;
+  --ui-type-input: 16px; --ui-type-input-lh: 24px;
+  --ui-type-wallet-amount: 36px; --ui-type-wallet-amount-lh: 44px;
+  --ui-text-body: var(--ui-type-body);
 }
 @media (max-width: 339px) {
   :root {
-    --ui-text-body: 13px;
-    --ui-type-list-title: 13px;
-    --ui-type-list-title-lh: 18px;
-    --ui-type-profile: 18px;
+    --ui-type-page-title: 20px; --ui-type-page-title-lh: 28px;
+    --ui-type-section: 14px; --ui-type-section-lh: 20px;
+    --ui-type-body: 13px; --ui-type-body-lh: 20px;
+    --ui-type-list-title: 13px; --ui-type-list-title-lh: 18px;
+    --ui-type-list-subtitle: 12px; --ui-type-list-subtitle-lh: 16px;
+    --ui-type-profile: 18px; --ui-type-profile-lh: 24px;
+    --ui-type-button: 13px; --ui-type-button-lh: 18px;
+    --ui-type-long-form: 14px; --ui-type-long-form-lh: 21px;
+    --ui-type-wallet-amount: 30px; --ui-type-wallet-amount-lh: 36px;
+  }
+}
+@media (min-width: 340px) and (max-width: 374px) {
+  :root {
+    --ui-type-page-title: 22px; --ui-type-page-title-lh: 30px;
+    --ui-type-section: 14px; --ui-type-section-lh: 20px;
+    --ui-type-body: 14px; --ui-type-body-lh: 21px;
+    --ui-type-list-title: 14px; --ui-type-list-title-lh: 20px;
+    --ui-type-list-subtitle: 12px; --ui-type-list-subtitle-lh: 16px;
+    --ui-type-profile: 19px; --ui-type-profile-lh: 26px;
+    --ui-type-button: 13px; --ui-type-button-lh: 18px;
+    --ui-type-long-form: 14px; --ui-type-long-form-lh: 21px;
+    --ui-type-wallet-amount: 32px; --ui-type-wallet-amount-lh: 38px;
+  }
+}
+@media (min-width: 375px) and (max-width: 389px) {
+  :root {
+    --ui-type-page-title: 23px; --ui-type-page-title-lh: 31px;
+    --ui-type-body: 14px; --ui-type-body-lh: 21px;
+    --ui-type-long-form: 14px; --ui-type-long-form-lh: 21px;
+    --ui-type-wallet-amount: 34px; --ui-type-wallet-amount-lh: 40px;
+  }
+}
+@media (min-width: 414px) {
+  :root {
+    --ui-type-section: 16px; --ui-type-section-lh: 22px;
+    --ui-type-button: 15px; --ui-type-button-lh: 20px;
   }
 }

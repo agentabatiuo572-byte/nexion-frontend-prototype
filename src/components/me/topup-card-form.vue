@@ -423,7 +423,7 @@ const fieldLabelStyle: CSSProperties = {
 const fieldInputStyle: CSSProperties = {
   marginTop: "2px",
   background: "transparent",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-input)",
   color: "var(--v5-ink)",
 };
 // on-brand: near-black on the brand fill — ink (near-white in dark) fails AA.

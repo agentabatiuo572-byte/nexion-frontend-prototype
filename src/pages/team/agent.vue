@@ -534,8 +534,8 @@ const formBlockStyle: CSSProperties = { paddingTop: "8px" };
 const formCapStyle: CSSProperties = { fontSize: "17px", fontWeight: 600, color: "var(--v5-ink)", marginBottom: "12px" };
 const fieldStyle: CSSProperties = { padding: "8px 0" };
 const fieldLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
-const inputStyle: CSSProperties = { width: "100%", minHeight: "44px", padding: "0 12px", boxSizing: "border-box", border: "1px solid var(--v5-border)", borderRadius: "10px", background: "transparent", fontSize: "15px", color: "var(--v5-ink)" };
-const budgetInputStyle: CSSProperties = { flex: "1", minWidth: 0, minHeight: "44px", background: "transparent", fontSize: "15px", color: "var(--v5-ink)", fontFamily: "var(--font-v5)" };
+const inputStyle: CSSProperties = { width: "100%", minHeight: "44px", padding: "0 12px", boxSizing: "border-box", border: "1px solid var(--v5-border)", borderRadius: "10px", background: "transparent", fontSize: "var(--ui-type-input)", color: "var(--v5-ink)" };
+const budgetInputStyle: CSSProperties = { flex: "1", minWidth: 0, minHeight: "44px", background: "transparent", fontSize: "var(--ui-type-input)", color: "var(--v5-ink)", fontFamily: "var(--font-v5)" };
 const submitStyle = computed<CSSProperties>(() => ({
   marginTop: "24px", opacity: (pageReadState.value === 'loading' || (!rankReady.value && !vrank.remoteError)) && !submitting.value ? 1 : formReady.value && !submitting.value ? 1 : 0.45,
 }));
