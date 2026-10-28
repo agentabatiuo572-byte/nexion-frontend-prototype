@@ -39,7 +39,7 @@ const server=http.createServer(async(req,res)=>{
         if(update.eventState)for(const key of ['eventStatuses','reminders','spun','spinHistory','raffleEntries'])delete state[key];
         if(update.raffleState){state.raffleScenarioAt=Date.now();delete state.raffleEntries;}
         if(update.benefitState)for(const key of ['trialStarted','voucherClaimed','voucherUsed'])delete state[key];
-        if(update.trialState||update.benefitState)for(const key of ['trialRow','trialCommands','trialStartFailed'])delete state[key];
+        if(update.trialState||update.benefitState){if(state.trialOrderNo)state.createdOrders=(state.createdOrders||[]).filter(order=>order.orderNo!==state.trialOrderNo);for(const key of ['trialRow','trialCommands','trialStartFailed','trialOrderNo'])delete state[key];}
         if(typeof update.highestRank==='boolean')state.highestRank=update.highestRank;
         if(typeof update.allCoursesDone==='boolean')state.completed=update.allCoursesDone?[1,2,3]:[];
         realtime.stateChanged(update);

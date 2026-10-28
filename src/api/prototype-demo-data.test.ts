@@ -446,6 +446,15 @@ describe('isolated prototype data uses the real read contracts',()=>{
     const d=demo('zh',{benefitState:'grace'});await createTrialApi(d.client).state();
     Object.assign(d.state,structuredClone(demoDefaults));expect((await createTrialApi(d.client).state()).status).toBe('none');
   });
+  it('links a redeemed trial to its order and shows a refund of that order',async()=>{
+    for(const trialState of ['converted','refunded']){
+      const d=demo('zh',{trialState}),trial=await createTrialApi(d.client).state();
+      const order=(await createOrderApi(d.client).list()).orders.find(row=>row.orderNo===trial.conversion?.orderNo)!;
+      expect(order.trialSettlement).toMatchObject({fullTerm:true,earlyDiscountUsdt:10});
+      expect(trial.conversion).toMatchObject({refunded:trialState==='refunded',rewardsReversed:trialState==='refunded'});
+      expect(order.refundReasonCode??null).toBe(trialState==='refunded'?'USER_REQUEST':null);
+    }
+  });
   it('claims day-one and weekly tasks independently with matching rewards',async()=>{
     const d=demo('zh',{taskState:'complete'});d.get('/api/quests/review-task-1/claim',{},'POST');
     const tasks=(await createQuestApi(d.client).state('zh')).quests;

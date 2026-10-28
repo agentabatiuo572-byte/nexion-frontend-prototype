@@ -15,7 +15,7 @@ export function trialDemo(url,locale,state,request){
   const scenario=mode==='follow'?(state.benefitState==='finished'?'converted':state.benefitState==='grace'?'grace':state.benefitState==='claimed'?'active':'available'):mode;
   if(!state.trialRow){
     const startedAt=now-(scenario==='final-day'?duration-day/2:scenario==='grace'?duration+day:scenario==='ended'?duration+grace+day:day);
-    state.trialRow={state:['active','final-day'].includes(scenario)?'ACTIVE':scenario==='grace'?'GRACE':['ended','eligible-again'].includes(scenario)?'FAILED':scenario==='converted'?'REDEEMED':'ELIGIBLE',startedAt};
+    state.trialRow={state:['active','final-day'].includes(scenario)?'ACTIVE':scenario==='grace'?'GRACE':['ended','eligible-again'].includes(scenario)?'FAILED':['converted','refunded'].includes(scenario)?'REDEEMED':'ELIGIBLE',startedAt};
   }
   const row=state.trialRow;
   const snapshot=()=>{
@@ -25,9 +25,18 @@ export function trialDemo(url,locale,state,request){
     const elapsed=Math.min(duration,Math.max(0,now-row.startedAt))/day;
     const shadow=claimed?Number((elapsed*Number(cfg.shadowDailyUSD)).toFixed(2)):0,offset=live?Math.min(shadow,Number(cfg.trialOffsetCapUSD)):0;
     const canStart=!claimed||(mode==='eligible-again'&&row.state==='FAILED');
-    const quote=live?(()=>{
-      const nex=claimed?Number((elapsed*Number(cfg.shadowDailyNEX)).toFixed(2)):0,discount=Number(cfg.earlyPurchaseDiscountUSD);
-      const early=row.state==='ACTIVE'&&now<row.startedAt+duration&&discount>0,price=Number(cfg.trialPriceUSD);
+    const quote=live?quoteFor(shadow,claimed?Number((elapsed*Number(cfg.shadowDailyNEX)).toFixed(2)):0,row.state==='ACTIVE'&&now<row.startedAt+duration):undefined;
+    const conversion=row.state==='REDEEMED'?conversionFacts():null;
+    return {...data,state:row.state,canStart,eligibilityReason:!canStart?(row.state==='REDEEMED'?'converted':live?'in-progress':'used'):undefined,
+      claimNo:claimed?'DEMO-TRIAL':null,version:row.version||1,serverNowEpochMs:now,
+      claimedAtEpochMs:claimed?row.startedAt:null,expiresAtEpochMs:claimed?row.startedAt+duration:null,graceEndsAtEpochMs:claimed?row.startedAt+duration+grace:null,
+      finishedAtEpochMs:['FAILED','CANCELLED','REDEEMED'].includes(row.state)?row.finishedAt||row.startedAt+duration+grace:null,
+      shadowUsdt:shadow,shadowNex:claimed?Number((elapsed*Number(cfg.shadowDailyNEX)).toFixed(2)):0,
+      offsetUsdt:offset,remainderUsdt:live?Number((shadow-offset).toFixed(2)):0,priceUsdt:Number(cfg.trialPriceUSD),...(quote?{quote}:{}),...(conversion||{})};
+  };
+  function quoteFor(shadow,nex,inTerm){
+      const discount=Number(cfg.earlyPurchaseDiscountUSD);
+      const early=inTerm&&discount>0,price=Number(cfg.trialPriceUSD);
       const settledUsdt=early?round(Number(cfg.trialDays)*Number(cfg.shadowDailyUSD)):shadow,rewardNex=early?round(Number(cfg.trialDays)*Number(cfg.shadowDailyNEX)):nex;
       const offsetUsdt=Math.min(settledUsdt,Number(cfg.trialOffsetCapUSD)),promo=round(Math.min(price*Number(cfg.discountRate),Number(cfg.discountCapUSD)));
       const base=round(Math.max(0,price-Math.min(price,promo+offsetUsdt))),earlyDiscountUsdt=early?Math.min(discount,base):0;
@@ -35,14 +44,28 @@ export function trialDemo(url,locale,state,request){
         earlyPurchase:early,priceUsdt:price,accruedUsdt:shadow,accruedNex:nex,settledUsdt,rewardNex,earlyRewardUsdt:round(settledUsdt-shadow),earlyRewardNex:round(rewardNex-nex),
         offsetUsdt,remainderUsdt:round(settledUsdt-offsetUsdt),promoDiscountUsdt:promo,earlyDiscountConfiguredUsdt:discount,earlyDiscountUsdt,
         discountUsdt:round(price-base+earlyDiscountUsdt),amountUsdt:round(base-earlyDiscountUsdt),earlyEndsAtEpochMs:early?row.startedAt+duration:null};
-    })():undefined;
-    return {...data,state:row.state,canStart,eligibilityReason:!canStart?(row.state==='REDEEMED'?'converted':live?'in-progress':'used'):undefined,
-      claimNo:claimed?'DEMO-TRIAL':null,version:row.version||1,serverNowEpochMs:now,
-      claimedAtEpochMs:claimed?row.startedAt:null,expiresAtEpochMs:claimed?row.startedAt+duration:null,graceEndsAtEpochMs:claimed?row.startedAt+duration+grace:null,
-      finishedAtEpochMs:['FAILED','CANCELLED','REDEEMED'].includes(row.state)?row.finishedAt||row.startedAt+duration+grace:null,
-      shadowUsdt:shadow,shadowNex:claimed?Number((elapsed*Number(cfg.shadowDailyNEX)).toFixed(2)):0,
-      offsetUsdt:offset,remainderUsdt:live?Number((shadow-offset).toFixed(2)):0,priceUsdt:Number(cfg.trialPriceUSD),...(quote?{quote}:{})};
-  };
+  }
+  // PR #26 projection: the redeemed trial names its order; a refund of that order ends the purchase and,
+  // for full-term settlements, takes the trial rewards back.
+  function conversionFacts(){
+    let order=(state.createdOrders||[]).find(o=>o.orderNo===state.trialOrderNo);
+    if(!order){
+      // Panel presets reach REDEEMED without a convert command: book the early full-term purchase it implies.
+      const at=row.finishedAt||Math.min(row.startedAt+day,now-2*3600000),quote=quoteFor(0,0,true);
+      order=conversionOrder('TRC-DEMO'+row.startedAt,at,quote);
+      state.createdOrders??=[];state.createdOrders.unshift(order);state.trialOrderNo=order.orderNo;
+    }
+    if(mode==='refunded'&&order.canonicalStatus!=='refunded')Object.assign(order,{paymentStatus:'REFUNDED',orderStatus:'REFUNDED',activationStatus:'REFUNDED',canonicalStatus:'refunded',
+      refundedAt:now-3600000,refundAmountUsdt:order.amountUsdt,refundChannel:'WALLET',refundBillNo:'E4-BILL-'+order.orderNo,refundReasonCode:'USER_REQUEST'});
+    const refunded=order.canonicalStatus==='refunded';
+    return {conversionOrderNo:order.orderNo,conversionRefunded:refunded,conversionRewardsReversed:refunded&&order.trialSettlement.settlementPolicy==='FULL_TERM_ON_CONVERSION'};
+  }
+  function conversionOrder(orderNo,at,quote){
+    const price=Number(cfg.trialPriceUSD),amount=quote.amountUsdt;
+    return {orderNo,productId:1,productNo:cfg.trialProductId,productName:cfg.trialProductName,quantity:1,unitPriceUsdt:price,subtotalUsdt:price,discountUsdt:round(price-amount),amountUsdt:amount,paymentStatus:'PAID',orderStatus:'COMPLETED',activationStatus:'ACTIVATED',canonicalStatus:'activated',paymentMethod:'WALLET',placedAt:at,paidAt:at,activatedAt:at,orderType:'SINGLE',itemCount:1,dataCenter:'Singapore',
+      lineItems:[{sku:cfg.trialProductId,name:cfg.trialProductName,quantity:1,unitPriceUsdt:price,lineAmountUsdt:price}],
+      trialSettlement:{settlementPolicy:quote.settlementPolicy,promoDiscountUsdt:quote.promoDiscountUsdt,offsetUsdt:quote.offsetUsdt,earlyDiscountUsdt:quote.earlyDiscountUsdt,rewardUsdt:quote.remainderUsdt,rewardNex:quote.rewardNex}};
+  }
   const key=request.headers?.()['idempotency-key']||request.headers?.()['Idempotency-Key'];
   if(request.method()==='POST'&&key&&state.trialCommands?.[key])return structuredClone(state.trialCommands[key]);
   const remember=value=>{if(key){state.trialCommands??={};state.trialCommands[key]=structuredClone(value);}return value;};
@@ -66,7 +89,7 @@ export function trialDemo(url,locale,state,request){
     if((state.walletBalance??52800.64)<amount)refuse('TRIAL_WALLET_INSUFFICIENT');
     const orderNo='TRC-DEMO'+now;
     state.walletBalance=(state.walletBalance??52800.64)-amount+quote.remainderUsdt;
-    state.createdOrders??=[];state.createdOrders.unshift({orderNo,productId:1,productNo:cfg.trialProductId,productName:cfg.trialProductName,quantity:1,unitPriceUsdt:current.priceUsdt,subtotalUsdt:current.priceUsdt,discountUsdt:current.priceUsdt-amount,amountUsdt:amount,paymentStatus:'PAID',orderStatus:'COMPLETED',activationStatus:'ACTIVATED',canonicalStatus:'activated',paymentMethod:'WALLET',placedAt:now,paidAt:now,activatedAt:now,orderType:'SINGLE',itemCount:1,lineItems:[{sku:cfg.trialProductId,name:cfg.trialProductName,quantity:1,unitPriceUsdt:current.priceUsdt,lineAmountUsdt:current.priceUsdt}]});
+    state.createdOrders??=[];state.createdOrders.unshift(conversionOrder(orderNo,now,quote));state.trialOrderNo=orderNo;
     Object.assign(row,{state:'REDEEMED',finishedAt:now,version:(row.version||1)+1});
     const source='nx_trial_claim + nx_order + nx_order_item';
     return remember({...proof,orderNo,productNo:cfg.trialProductId,amountUsdt:amount,discountUsdt:current.priceUsdt-amount,paymentStatus:'PAID',orderStatus:'PAID',
