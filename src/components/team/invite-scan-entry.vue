@@ -76,9 +76,9 @@ async function scan() {
 
 <style scoped>
 .invite-scan { display: flex; flex-direction: column; gap: 8px; }
-.invite-scan__button { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 44px; padding: 10px 16px; border: 1px solid var(--v5-border); border-radius: 12px; background: var(--v5-surface); color: var(--v5-ink); font-size: 15px; line-height: 24px; }
+.invite-scan__button { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 44px; padding: 10px 16px; border: 1px solid var(--v5-border); border-radius: 12px; background: var(--v5-surface); color: var(--v5-ink); font-size: var(--ui-type-button); line-height: 24px; }
 .invite-scan__button[aria-disabled="true"] { opacity: .5; color: var(--v5-ink-3); }
-.invite-scan__error { color: var(--v5-ink-2); font-size: 13px; line-height: 20px; }
+.invite-scan__error { color: var(--v5-ink-2); font-size: var(--ui-type-list-subtitle); line-height: 20px; }
 .invite-scan--shortcut .invite-scan__button { flex-direction: column; justify-content: flex-start; gap: var(--v5-space-2); min-height: 80px; padding: 0; border: 0; background: transparent; }
 .invite-scan--icon .invite-scan__button { position: relative; isolation: isolate; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: transparent; }
 .invite-scan--icon .invite-scan__button:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -2px; }

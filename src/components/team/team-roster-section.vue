@@ -87,7 +87,7 @@ function statusColor(status: MemberStatus): string {
 .roster-subtitle { display: block; margin-top: 6px; font-size: 12px; line-height: 1.5; color: var(--v5-ink-3); overflow-wrap: anywhere; }
 .relation-dot { width: 5px; height: 5px; border-radius: 50%; flex: 0 0 auto; }
 .roster-chevron { color: var(--v5-ink-3); font-size: 16px; flex-shrink: 0; }
-.roster-empty { display: block; padding: 22px 0; border-top: 1px solid var(--v5-border); font-size: 13px; color: var(--v5-ink-3); }
+.roster-empty { display: block; padding: 22px 0; border-top: 1px solid var(--v5-border); font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); }
 .member-row { border-top: 1px solid var(--v5-border); }
 .member-trigger { display: flex; align-items: center; gap: var(--ui-space-row-y); padding: var(--ui-space-inset) 0; min-height: 72px; }
 .member-identity { flex: 1; min-width: 0; }

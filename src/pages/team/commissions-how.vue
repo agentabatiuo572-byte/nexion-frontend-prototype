@@ -207,7 +207,7 @@ function goBack() {
 }
 
 // ─── styles ───
-const paraStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.65 }; // how-page scale: body 13.5/1.65 ink-2
+const paraStyle: CSSProperties = { fontSize: "var(--ui-type-long-form)", color: "var(--v5-ink-2)", lineHeight: 1.65 }; // how-page scale: body 13.5/1.65 ink-2
 const captionStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginBottom: "14px", lineHeight: 1.6 }; // how-page scale: caption 12.5/1.6 ink-3
 const noteStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.5 };
 
@@ -247,7 +247,7 @@ const exampleDayStyle: CSSProperties = {
   color: "var(--v5-ink-3)",
   letterSpacing: "0.06em",
 };
-const exampleLabelStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", overflowWrap: "anywhere" };
+const exampleLabelStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-2)", overflowWrap: "anywhere" };
 function exampleAmtStyle(color: string): CSSProperties {
   return { fontSize: "13px", fontWeight: 600, color, textAlign: "right", maxWidth: "48%", flexShrink: 0, overflowWrap: "anywhere" };
 }

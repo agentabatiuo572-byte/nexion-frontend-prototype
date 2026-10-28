@@ -417,7 +417,7 @@ async function deferPhoneActivation() {
 .est-hint {
   display: block;
   margin-top: 4px;
-  font-size: 13px;
+  font-size: var(--ui-type-list-subtitle);
   color: var(--v5-ink-3);
 }
 .est-reveal {
@@ -439,7 +439,7 @@ async function deferPhoneActivation() {
   to { transform: rotate(360deg); }
 }
 .est-loading__t {
-  font-size: 13px;
+  font-size: var(--ui-type-list-subtitle);
   color: var(--v5-ink-3);
 }
 .est-loading--failed {
@@ -523,7 +523,7 @@ async function deferPhoneActivation() {
 }
 .est-phone__name {
   display: block;
-  font-size: 15px;
+  font-size: var(--ui-type-section);
   font-weight: 600;
   color: var(--v5-ink);
   overflow-wrap: anywhere;
@@ -590,7 +590,7 @@ async function deferPhoneActivation() {
 }
 .cmp__label {
   display: block;
-  font-size: 13px;
+  font-size: var(--ui-type-list-subtitle);
   font-weight: 500;
   color: var(--v5-ink);
 }
@@ -632,7 +632,7 @@ async function deferPhoneActivation() {
   background: var(--v5-brand);
 }
 .est-go__t {
-  font-size: 15px;
+  font-size: var(--ui-type-section);
   font-weight: 600;
   color: var(--v5-ink-4);
 }

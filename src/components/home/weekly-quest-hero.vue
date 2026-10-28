@@ -254,7 +254,7 @@ const titleStyle: CSSProperties = {
 };
 const bodyStyle: CSSProperties = {
   marginTop: "6px",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink-3)",
   lineHeight: 1.5,
 };

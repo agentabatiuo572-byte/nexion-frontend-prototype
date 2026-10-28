@@ -176,7 +176,7 @@ onUnmounted(stopRuntimeRefresh);
 .invite-card__art { position: relative; display: flex; align-items: center; justify-content: center; min-width: 0; pointer-events: none; }
 .invite-card__art :deep(.team-art) { position: relative; z-index: 1; width: 100%; height: auto; aspect-ratio: 4 / 3; transform: translateY(-14px) scale(1.08); }
 .invite-card__action { position: relative; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 7px; font: 500 12px/1.4 var(--font-v5); color: var(--v5-ink-2); cursor: pointer; }
-.invite-card__primary { isolation: isolate; align-self: flex-start; width: max-content; min-width: min(128px,100%); max-width: 100%; gap: 8px; padding: 8px 10px; box-sizing: border-box; border-radius: 999px; margin-top: 2px; font-size: 13px; color: var(--v5-ink); }
+.invite-card__primary { isolation: isolate; align-self: flex-start; width: max-content; min-width: min(128px,100%); max-width: 100%; gap: 8px; padding: 8px 10px; box-sizing: border-box; border-radius: 999px; margin-top: 2px; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink); }
 .invite-card__primary > text,.invite-card__primary > svg { position: relative; z-index: 1; }
 .invite-card__primary > text { text-align: center; min-width: 0; overflow-wrap: anywhere; }
 .invite-card__primary > svg { flex: 0 0 auto; }

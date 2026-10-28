@@ -109,7 +109,7 @@ function openProduct() { emit('navigate', `/pages/store/detail?id=${encodeURICom
 .quota-stock__track { height:3px;background:var(--v5-surface-3);border-radius:9px;overflow:hidden;margin-top:8px; }.quota-stock__track > view { height:100%;background:var(--v5-ink-3);border-radius:inherit; }
 .quota-conditions { margin-top:22px; }.quota-section-label { display:block;font:600 13px/1.5 var(--font-v5); }.quota-condition { margin-top:var(--ui-space-inset); }.quota-condition__values { margin-left:auto;font-weight:500;color:var(--v5-ink);font-variant-numeric:tabular-nums;text-align:right; }
 .quota-perks { display:flex;flex-direction:column;gap:6px;margin-top:18px;color:var(--v5-ink-3);font:400 12px/1.6 var(--font-v5);overflow-wrap:anywhere; }.quota-actions { margin-top:var(--ui-space-section); }.quota-actions :deep(.nx-button) { width:100%;box-sizing:border-box; }
-.quota-unavailable { display:block;font:400 13px/1.6 var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }
+.quota-unavailable { display:block;font:400 var(--ui-type-list-subtitle)/1.6 var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }
 .quota-product:focus-visible { outline:2px solid var(--v5-brand);outline-offset:4px; }
 @media(max-width:350px) { .quota-product { gap:var(--ui-space-row-y); }.quota-product__image { width:64px;height:72px; } }
 </style>

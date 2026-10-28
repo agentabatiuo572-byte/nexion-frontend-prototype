@@ -98,7 +98,7 @@ function open(route: string) {
   display: block;
   margin-top: 12px;
   color: var(--v5-ink-2);
-  font-size: 13px;
+  font-size: var(--ui-type-list-subtitle);
   line-height: 1.65;
 }
 
@@ -132,7 +132,7 @@ function open(route: string) {
 .entry-index__row-label {
   display: block;
   color: var(--v5-ink);
-  font-size: 15px;
+  font-size: var(--ui-type-section);
   font-weight: 600;
 }
 

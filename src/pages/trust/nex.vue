@@ -210,8 +210,8 @@ function goBack(event?: KeyboardEvent | PointerEvent) {
 const stateCardStyle: CSSProperties = { marginTop: "16px", padding: "16px", borderRadius: "16px", background: "var(--v5-surface)" };
 const stateTextStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.6 };
 const retryStyle: CSSProperties = { marginTop: "8px", minHeight: "44px", display: "inline-flex", alignItems: "center", font: "600 13px/20px var(--font-v5)", color: "var(--v5-brand)" };
-const paraStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.65 }; // how-page scale: body 13.5/1.65 ink-2
-const introStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-3)", lineHeight: 1.6, marginBottom: "14px" }; // how-page scale: caption 12.5/1.6 ink-3
+const paraStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-2)", lineHeight: 1.65 }; // how-page scale: body 13.5/1.65 ink-2
+const introStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-3)", lineHeight: 1.6, marginBottom: "14px" }; // how-page scale: caption 12.5/1.6 ink-3
 const tableStyle: CSSProperties = {
   marginTop: "12px",
   paddingBlock: "4px",
@@ -221,7 +221,7 @@ const thWhat: CSSProperties = { flex: "1.2 1 0", minWidth: 0, overflowWrap: "any
 const thCell: CSSProperties = { flex: "1 1 0", minWidth: 0, overflowWrap: "anywhere", padding: "10px 6px", fontWeight: 500 };
 function tableRowStyle(isFirst: boolean): CSSProperties {
   return {
-    fontSize: "13px",
+    fontSize: "var(--ui-type-list-subtitle)",
     lineHeight: 1.6,
     borderTop: isFirst ? "none" : "1px solid color-mix(in srgb, var(--v5-border) 60%, transparent)",
   };
@@ -253,7 +253,7 @@ const ctaExchangeStyle: CSSProperties = {
   borderRadius: "999px",
   background: "var(--v5-brand)",
   color: "var(--v5-on-brand)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-button)",
   fontWeight: 600,
 };
 const ctaBackStyle: CSSProperties = {

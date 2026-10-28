@@ -32,7 +32,7 @@
         <view class="flex items-center gap-2.5">
           <view class="flex-1 min-w-0">
             <view class="flex items-baseline gap-1.5">
-              <text class="truncate" style="font-size: 13px; font-weight: 500; color: var(--v5-ink)">{{ workloadCopy(w).name }}</text>
+              <text class="truncate" style="font-size: var(--ui-type-list-subtitle); font-weight: 500; color: var(--v5-ink)">{{ workloadCopy(w).name }}</text>
               <text class="truncate" style="font-size: 12px; color: var(--v5-ink-4)">{{ workloadCopy(w).unit }}</text>
             </view>
             <text v-if="w.flagshipDelta !== null" class="block truncate" style="font-size: 12px; color: var(--v5-warning-ink); margin-top: 2px">↳ {{ t.market.flagshipRow }} <text class="tabular-nums" style="font-family: var(--font-v5)">↑{{ w.flagshipDelta.toFixed(1) }}%</text></text>

@@ -23,7 +23,7 @@
           <view v-for="event in remoteSnapshot.events" :key="event.id" class="nx-direct-event" style="padding: 14px 0; border-bottom: 1px solid var(--v5-border)">
             <view :class="{ 'nx-royalty-event-large': wideAmount(event.amountUSDT) || wideAmount(event.amountNEX) }" style="display: flex; justify-content: space-between; gap: 10px">
               <view style="flex: 1; min-width: 0">
-                <text class="block" style="font-size: 13px; overflow-wrap: anywhere">{{ event.sourceUserName }}</text>
+                <text class="block" style="font-size: var(--ui-type-list-subtitle); overflow-wrap: anywhere">{{ event.sourceUserName }}</text>
                 <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ filter === 'device_earning' ? t.directReferral.deviceEarning : filter === 'direct' ? t.directReferral.purchase : t.directReferral.networkPurchase }}</text>
               </view>
               <view style="max-width: 58%; text-align: right">
@@ -241,7 +241,7 @@ function openRules() { go('/pages/team/unilevel-how'); }
 .nx-royalty-totals-large > view:first-child > text { font-size: 22px !important; }
 
 .nx-royalty-event-large { flex-direction: column; }
-.nx-royalty-event-large > view + view { max-width: 100% !important; text-align: left !important; font-size: 13px; }
+.nx-royalty-event-large > view + view { max-width: 100% !important; text-align: left !important; font-size: var(--ui-type-list-subtitle); }
 .nx-royalty-status { display: block; padding: 2px 0; font-size: 12px; color: var(--v5-ink-2); }
 .nx-unilevel-focus:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
 .nx-unilevel-details-toggle { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); color: var(--v5-ink-2); font-size: 12px; }

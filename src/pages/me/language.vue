@@ -97,7 +97,7 @@ function goAccount() {
 // Intro caption — header already provides the 24px breathing (no top margin).
 const introStyle: CSSProperties = {
   marginBottom: "14px",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink-3)",
   lineHeight: 1.6,
 };
@@ -115,7 +115,7 @@ function rowStyle(divider: boolean, active: boolean): CSSProperties {
 const languageIconStyle: CSSProperties = { width: "32px", height: "32px", flexShrink: 0, display: "grid", placeItems: "center", color: "var(--v5-ink-2)" };
 function nameStyle(active: boolean): CSSProperties {
   return {
-    fontSize: "13px",
+    fontSize: "var(--ui-type-list-subtitle)",
     color: active ? "var(--v5-ink)" : "color-mix(in srgb, var(--v5-ink) 90%, transparent)",
     fontWeight: active ? 600 : 400,
   };

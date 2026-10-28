@@ -60,15 +60,15 @@
       </view>
       <view v-else-if="ev._claimed" class="mt-3 w-full rounded-full flex items-center justify-center transition-transform" :class="{ 'active:scale-[0.98]': !!ev.useHref }" :style="claimedUseBtnStyle" :role="ev.useHref ? 'button' : undefined" :tabindex="ev.useHref ? 0 : -1" :aria-label="claimedAriaLabel" @click="onClaimedUse">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; pointer-events: none"><path d="M20 6 9 17l-5-5" /></svg>
-        <text style="font-size: 13px; font-weight: 500; color: var(--v5-ink-3); pointer-events: none">{{ t.events.claimedLabel }}</text>
+        <text style="font-size: var(--ui-type-list-subtitle); font-weight: 500; color: var(--v5-ink-3); pointer-events: none">{{ t.events.claimedLabel }}</text>
         <template v-if="ev.useHref">
-          <text style="font-size: 13px; color: var(--v5-ink-4); margin: 0 8px; pointer-events: none">·</text>
+          <text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-4); margin: 0 8px; pointer-events: none">·</text>
           <text :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-brand)', pointerEvents: 'none' }">{{ t.events.useCta }}</text>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; pointer-events: none"><path d="m9 18 6-6-6-6" /></svg>
         </template>
       </view>
       <view v-else-if="showProgressAction" class="mt-3 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="neutralBtnStyle" role="button" tabindex="0" :aria-label="t.events.viewProgress" @click="openHref"  @keydown.enter.prevent="openHref" @keydown.space.prevent="openHref">
-        <text style="font-size: 13px; font-weight: 500; color: var(--v5-ink-2)">{{ t.events.viewProgress }}</text>
+        <text style="font-size: var(--ui-type-list-subtitle); font-weight: 500; color: var(--v5-ink-2)">{{ t.events.viewProgress }}</text>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px"><path d="m9 18 6-6-6-6" /></svg>
       </view>
       <view v-else-if="showDecorativeAction" class="mt-3 w-full rounded-full flex items-center justify-center active:scale-[0.98] transition-transform" :style="softTintBtnStyle" role="button" tabindex="0" :aria-label="ev.ctaLabel" @click="onDecorativeCta"  @keydown.enter.prevent="onDecorativeCta" @keydown.space.prevent="onDecorativeCta">
@@ -198,7 +198,7 @@ const kindLineStyle = computed<CSSProperties>(() => ({
 }));
 const titleStyle: CSSProperties = {
   marginTop: "2px",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   color: "var(--v5-ink)",
   lineHeight: 1.25,

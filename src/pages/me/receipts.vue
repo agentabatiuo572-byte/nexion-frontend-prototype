@@ -593,7 +593,7 @@ function remoteTabStyle(kind: RemoteReceiptKind): CSSProperties {
 }
 function remoteTabLabelStyle(kind: RemoteReceiptKind): CSSProperties {
   return {
-    fontSize: "13px",
+    fontSize: "var(--ui-type-list-subtitle)",
     fontWeight: 500,
     color: remoteReceiptKind.value === kind ? "var(--v5-brand)" : "var(--v5-ink-3)",
   };
@@ -626,7 +626,7 @@ const emptyStyle: CSSProperties = {
   padding: "32px",
   textAlign: "center",
 };
-const emptyTitleStyle: CSSProperties = { marginTop: "12px", fontSize: "13px", color: "var(--v5-ink-2)" };
+const emptyTitleStyle: CSSProperties = { marginTop: "12px", fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-2)" };
 const emptyHintStyle: CSSProperties = { marginTop: "6px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.625 };
 
 // De-carded: transparent hairline group (earnings-ledger idiom). The surface +
@@ -656,7 +656,7 @@ function rowIconStyle(r: Receipt): CSSProperties {
   };
 }
 const rowTitleStyle: CSSProperties = {
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   fontWeight: 500,
   color: "color-mix(in srgb, var(--v5-ink) 90%, transparent)",
 };

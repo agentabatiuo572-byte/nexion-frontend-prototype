@@ -480,7 +480,7 @@ onBeforeUnmount(()=>{hide();alive=false;if(timer)clearInterval(timer);});
 .checkout-step-label--active { color:var(--v5-brand); font-weight:600; }
 .checkout-group { overflow:hidden; min-width:0; border:1px solid var(--v5-border); border-radius:22px; background:var(--ui-content-surface); }
 .checkout-section { min-width:0; }
-.checkout-section-heading { display:flex; align-items:center; min-height:44px; padding:0 2px; font:600 15px/20px var(--font-v5); }
+.checkout-section-heading { display:flex; align-items:center; min-height:44px; padding:0 2px; font:600 var(--ui-type-section)/20px var(--font-v5); }
 .checkout-product-line { display:grid; grid-template-columns:68px minmax(0,1fr); align-items:center; gap:10px 12px; padding:10px 16px; }
 .checkout-product-art { display:grid; place-items:center; width:68px; height:68px; border-radius:16px; overflow:hidden; background:radial-gradient(60% 30% at 50% 84%,color-mix(in srgb,var(--ui-lime-soft) 35%,transparent),transparent 70%),linear-gradient(180deg,var(--ui-content-surface-3),var(--ui-content-surface-2)); }
 .checkout-product-art .promotion-image { width:74px; height:74px; }
@@ -499,8 +499,8 @@ onBeforeUnmount(()=>{hide();alive=false;if(timer)clearInterval(timer);});
 .checkout-rewards :deep(.promotion-row) { align-items:center; min-height:64px; box-sizing:border-box; padding:10px 16px; }
 .checkout-rewards :deep(.promotion-symbol) { display:grid; place-items:center; width:36px; height:36px; border-radius:12px; background:var(--ui-content-surface-2); color:var(--v5-ink-2); }
 .checkout-rewards :deep(.promotion-symbol svg) { width:18px; height:18px; }
-.checkout-rewards :deep(.promotion-grow > text:not([class])),.checkout-rewards :deep(.promotion-grow > uni-text:not([class])) { font:500 15px/20px var(--font-v5) !important; }
-.checkout-rewards :deep(.promotion-copy) { margin-top:2px; font:400 13px/18px var(--font-v5); }
+.checkout-rewards :deep(.promotion-grow > text:not([class])),.checkout-rewards :deep(.promotion-grow > uni-text:not([class])) { font:500 var(--ui-type-list-title)/20px var(--font-v5) !important; }
+.checkout-rewards :deep(.promotion-copy) { margin-top:2px; font:400 var(--ui-type-list-subtitle)/18px var(--font-v5); }
 .checkout-reward-terms { margin:0 16px 0 64px; }
 .checkout-discount-value { color:var(--v5-brand); font-variant-numeric:tabular-nums; }
 .checkout-discount-row .checkout-discount-value { flex-shrink:0; max-width:45%; overflow-wrap:anywhere; text-align:right; font:600 15px/20px var(--font-v5); }
@@ -510,7 +510,7 @@ onBeforeUnmount(()=>{hide();alive=false;if(timer)clearInterval(timer);});
 .checkout-fees { padding:6px 16px; }
 .checkout-fees .promotion-summary { box-sizing:border-box; align-items:center; font-variant-numeric:tabular-nums; }
 .checkout-fees .promotion-summary > :last-child { max-width:65%; }
-.checkout-item-name { display:block; font:500 15px/20px var(--font-v5); overflow-wrap:anywhere; }
+.checkout-item-name { display:block; font:500 var(--ui-type-list-title)/20px var(--font-v5); overflow-wrap:anywhere; }
 .checkout-line-price { display:block; margin-top:6px; line-height:1.5; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
 .checkout-voucher-options { display:flex; flex-direction:column; gap:var(--ui-space-inline); }
 .checkout-voucher-option { align-items:flex-start; flex-direction:column; gap:6px; text-align:left; }

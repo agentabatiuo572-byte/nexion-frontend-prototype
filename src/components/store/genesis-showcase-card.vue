@@ -241,7 +241,7 @@ const titleStyle: CSSProperties = {
 };
 const perksStyle: CSSProperties = {
   marginTop: "4px",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink-3)",
   lineHeight: 1.45,
   textWrap: "pretty" as CSSProperties["textWrap"],
@@ -256,7 +256,7 @@ const priceStyle: CSSProperties = {
   lineHeight: 1.05,
 };
 const soldOutStyle: CSSProperties = {
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink-3)",
   lineHeight: 1.4,
   textWrap: "pretty" as CSSProperties["textWrap"],

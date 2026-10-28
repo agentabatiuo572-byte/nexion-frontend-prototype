@@ -433,7 +433,7 @@ useDialogA11y(computed(() => selected.value !== null), ".nx-net-sheet-wrap", () 
 .network-graph { width: 100%; max-width: 520px; align-self: center; }
 .network-read-state { color: var(--v5-ink-3); font-size: 13px; text-align: center; padding: var(--ui-space-inline) 0; }
 .network-member-index { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px;margin-bottom:var(--ui-space-section); }
-.network-member-pick { display:flex;align-items:center;gap:8px;min-height:48px;border-bottom:1px solid var(--v5-border);font-size:13px; }
+.network-member-pick { display:flex;align-items:center;gap:8px;min-height:48px;border-bottom:1px solid var(--v5-border);font-size:var(--ui-type-list-subtitle); }
 .network-member-dot { width:5px;height:5px;border-radius:50%;flex-shrink:0; }
 .network-member-name { min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1; }
 .network-member-rank { font-size:11px;color:var(--v5-ink-3); }
@@ -446,7 +446,7 @@ useDialogA11y(computed(() => selected.value !== null), ".nx-net-sheet-wrap", () 
 .sheet-rank { display: block; margin-top: 4px; font-size: 12px; color: var(--v5-ink-2); }
 .sheet-relation { display: block; font-size: 12px; line-height: 1.5; margin-top: 4px; }
 .sheet-metrics { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--ui-space-section); padding: 24px 0; }
-.sheet-detail-row { display: flex; align-items: start; justify-content: space-between; gap: var(--ui-space-section); padding: var(--ui-space-inset) 0; border-top: 1px solid var(--v5-border); font-size: 13px; color: var(--v5-ink-3); line-height: 1.5; }
+.sheet-detail-row { display: flex; align-items: start; justify-content: space-between; gap: var(--ui-space-section); padding: var(--ui-space-inset) 0; border-top: 1px solid var(--v5-border); font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); line-height: 1.5; }
 .sheet-joined-date { flex-wrap: wrap; }
 .sheet-joined-date > :last-child { min-width: 0; flex: 1 1 170px; }
 .sheet-detail-row > :last-child { text-align: right; color: var(--v5-ink); overflow-wrap: anywhere; }

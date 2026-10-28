@@ -575,7 +575,7 @@ const faqFallbackStyle: CSSProperties = {
   lineHeight: 1.45,
 };
 const emptyStyle: CSSProperties = { padding: "24px", textAlign: "center" };
-const emptyTextStyle: CSSProperties = { fontSize: "13px", color: "color-mix(in srgb, var(--v5-ink) 80%, transparent)" };
+const emptyTextStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle)", color: "color-mix(in srgb, var(--v5-ink) 80%, transparent)" };
 const faqDividerStyle: CSSProperties = { borderTop: "1px solid color-mix(in srgb, var(--v5-border) 70%, transparent)" };
 const faqHeadStyle: CSSProperties = { gap: "12px", padding: "14px 0", minHeight: "48px" };
 const faqQStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink)", lineHeight: 1.4 };
@@ -583,7 +583,7 @@ function chevStyle(open: boolean): CSSProperties {
   return { transform: open ? "rotate(180deg)" : "rotate(0)", transition: "transform 150ms ease" };
 }
 const faqBodyStyle: CSSProperties = { padding: "0 0 14px" };
-const faqAStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.62 };
+const faqAStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-2)", lineHeight: 1.62 };
 const faqLoadMoreStyle: CSSProperties = { minHeight: "44px", color: "var(--v5-brand)", fontSize: "13px", fontWeight: 600, borderTop: "1px solid var(--v5-border)" };
 // UVELBot — a contained chat widget (single surface container, no border).
 const botCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
@@ -606,7 +606,7 @@ function bubbleStyle(isUser: boolean): CSSProperties {
 }
 function bubbleTextStyle(isUser: boolean): CSSProperties {
   return {
-    fontSize: "13px",
+    fontSize: "var(--ui-type-list-subtitle)",
     color: isUser ? "var(--v5-ink)" : "color-mix(in srgb, var(--v5-ink) 90%, transparent)",
     lineHeight: 1.375,
   };

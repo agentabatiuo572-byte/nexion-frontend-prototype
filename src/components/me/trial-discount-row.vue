@@ -18,7 +18,7 @@ const props = withDefaults(
 );
 
 const labelStyle = computed<CSSProperties>(() => ({
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   fontWeight: props.big ? 600 : 400,
   color: props.big ? "var(--v5-ink)" : "var(--v5-ink-3)",
 }));

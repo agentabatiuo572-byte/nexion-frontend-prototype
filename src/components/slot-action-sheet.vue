@@ -256,7 +256,7 @@ useDialogA11y(computed(() => sheet.open), ".sas-root", hide);
 }
 .sas-title {
   font-family: var(--font-v5);
-  font-size: 15px;
+  font-size: var(--ui-type-section);
   font-weight: 600;
   color: var(--v5-ink);
   line-height: 1.2;
@@ -324,7 +324,7 @@ useDialogA11y(computed(() => sheet.open), ".sas-root", hide);
   transform: scale(0.99);
 }
 .sas-activate-toggle-t {
-  font-size: 13px;
+  font-size: var(--ui-type-list-subtitle);
   font-weight: 500;
   color: var(--v5-ink-3);
   font-family: var(--font-v5);

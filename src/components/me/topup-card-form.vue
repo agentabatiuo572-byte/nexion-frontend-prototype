@@ -56,7 +56,7 @@
       <view class="rounded-2xl" :style="amountCardStyle">
         <text class="block font-mono-tabular" style="font-size: 12px; font-weight: 500; color: var(--v5-ink-3); letter-spacing: 0.06em">{{ t.topupChrome.youReceive }}</text>
         <view class="flex items-baseline" style="margin-top: 4px; gap: 6px">
-          <text style="font-family: var(--font-v5); font-size: 15px; color: var(--v5-ink-3)">$</text>
+          <text style="font-family: var(--font-v5); font-size: var(--ui-type-body); color: var(--v5-ink-3)">$</text>
           <input class="flex-1 min-w-0 tabular-nums" :style="amountInputStyle" type="text" inputmode="decimal" :value="amount" placeholder="0.00" :aria-label="t.topupChrome.youReceive" @input="onAmount" />
           <text class="font-mono-tabular" style="font-size: 15px; color: var(--v5-ink-3)">USDT</text>
         </view>
@@ -305,7 +305,7 @@ const centerTitleStyle: CSSProperties = {
   marginTop: "14px",
   fontFamily: "var(--font-v5)",
   fontWeight: 600,
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   letterSpacing: "-0.005em",
   color: "var(--v5-ink)",
 };
@@ -368,7 +368,7 @@ const failTitleStyle: CSSProperties = {
   marginTop: "14px",
   fontFamily: "var(--font-v5)",
   fontWeight: 600,
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   letterSpacing: "-0.014em",
   color: "var(--v5-ink)",
 };
@@ -378,7 +378,7 @@ const tryAgainBtnStyle: CSSProperties = {
   borderRadius: "999px",
   background: "var(--v5-surface-2)",
   color: "var(--v5-ink)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-button)",
   fontWeight: 600,
 };
 const amountCardStyle: CSSProperties = {
@@ -435,7 +435,7 @@ const submitBtnStyle = computed<CSSProperties>(() => ({
   color: isValid.value ? "var(--v5-on-brand)" : "var(--v5-ink-4)",
   fontFamily: "var(--font-v5)",
   fontWeight: 500,
-  fontSize: "15px",
+  fontSize: "var(--ui-type-button)",
   letterSpacing: "-0.005em",
 }));
 // Plain trust note on the page floor — the boxed chrome added nothing.

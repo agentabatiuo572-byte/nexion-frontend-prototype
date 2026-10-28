@@ -624,7 +624,7 @@ onUnmounted(resetNextCourses);
 .course-quiz-result { display:flex;flex-direction:column;gap:8px;margin-top:20px;padding-top:20px;border-top:1px solid var(--v5-border); }
 .course-quiz-result__title { font:600 18px/25px var(--font-v5);color:var(--v5-ink); }
 .course-quiz-result__score { font:600 28px/36px var(--font-v5);font-variant-numeric:tabular-nums; }
-.course-quiz-result__meta { font:400 13px/20px var(--font-v5);color:var(--v5-ink-2); }
+.course-quiz-result__meta { font:400 var(--ui-type-list-subtitle)/20px var(--font-v5);color:var(--v5-ink-2); }
 .course-quiz-result__retry { width:100%;margin-top:8px; }
 .course-next-state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px; text-align: center; font-size: 13.5px; line-height: 20px; color: var(--v5-ink-3); }
 .learning-course .course-result__back { display: flex; box-sizing: border-box; width: 100%; min-height: 44px; margin-top: var(--v5-space-2); padding: var(--v5-space-2) var(--v5-space-3); font-size: 14px; font-weight: 400; color: var(--v5-ink-2); }

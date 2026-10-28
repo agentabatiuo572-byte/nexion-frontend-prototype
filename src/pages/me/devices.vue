@@ -36,7 +36,7 @@
         @cta="retryInventory"
       />
       <view v-if="inventoryStale" class="mx-4 nx-inline-recovery" role="status" style="padding: 12px; border-radius: 12px; background: var(--v5-danger-soft); color: var(--v5-danger)">
-        <text class="block nx-inline-recovery__copy" style="font-size: 13px">{{ t.myDevices.inventoryStaleWarning }}</text>
+        <text class="block nx-inline-recovery__copy" style="font-size: var(--ui-type-list-subtitle)">{{ t.myDevices.inventoryStaleWarning }}</text>
         <view class="nx-inline-recovery__action" style="color: var(--v5-brand)" role="button" tabindex="0" @click="retryInventory"  @keydown.enter.prevent="retryInventory" @keydown.space.prevent="retryInventory">
           <text>{{ t.empty.errorCta }}</text>
         </view>
@@ -646,7 +646,7 @@ const meterCountStyle: CSSProperties = {
 };
 const meterMaxStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink-3)",
 };
 const trialRowStyle: CSSProperties = {
@@ -690,7 +690,7 @@ const emptyIconStyle: CSSProperties = {
 const emptyTitleStyle: CSSProperties = {
   marginTop: "12px",
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   color: "var(--v5-ink)",
 };

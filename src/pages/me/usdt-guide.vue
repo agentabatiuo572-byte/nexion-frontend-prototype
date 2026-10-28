@@ -79,7 +79,7 @@ function goBack() {
 // ── styles ──
 const introTitleStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   letterSpacing: "-0.014em",
   color: "var(--v5-ink)",

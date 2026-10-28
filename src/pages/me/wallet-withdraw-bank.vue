@@ -318,18 +318,18 @@ onUnload(() => { alive = false; visible = false; stopTimer(); stopRuntime(); rev
 <style scoped>
 .bank-withdraw { padding: 0 24px 40px; color: var(--v5-ink); font-family: var(--font-v5); }
 .screen-title { display: block; font-size: 26px; line-height: 1.3; font-weight: 600; letter-spacing: -.5px; overflow-wrap: anywhere; }
-.intro { display: block; margin: 10px 0 24px; color: var(--v5-ink-3); font-size: 13px; line-height: 1.6; }
+.intro { display: block; margin: 10px 0 24px; color: var(--v5-ink-3); font-size: var(--ui-type-list-subtitle); line-height: 1.6; }
 .muted { display: block; color: var(--v5-ink-3); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
 .loading { margin-bottom: 12px; }
 .account-card, .amount-card { border-radius: 16px; background: var(--v5-surface-2); padding: 18px; margin: 20px 0; }
 .account-number { display: block; font-size: 20px; letter-spacing: 1px; font-variant-numeric: tabular-nums; margin: 6px 0; overflow-wrap: anywhere; }
-.bank-name { font-size: 15px; }
+.bank-name { font-size: var(--ui-type-body); }
 .chip { display: inline-block; border-radius: 999px; background: var(--v5-surface-2); color: var(--v5-brand); padding: 4px 10px; font-size: 12px; }
 .notice { border-left: 2px solid var(--v5-warning); padding-left: 12px; color: var(--v5-ink-2); font-size: 12px; line-height: 1.7; margin: 20px 0; }
 .danger, .error-text { color: var(--v5-danger); }
 .error-text { display: block; font-size: 12px; margin-top: 10px; }
 .warn { color: var(--v5-warning); }
-.action { min-height: 50px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 12px 20px; border-radius: 999px; font-size: 15px; font-weight: 600; cursor: pointer; box-sizing: border-box; }
+.action { min-height: 50px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 12px 20px; border-radius: 999px; font-size: var(--ui-type-button); font-weight: 600; cursor: pointer; box-sizing: border-box; }
 .primary { background: var(--v5-brand); color: var(--v5-on-brand); margin-top: 24px; }
 .secondary { background: var(--v5-surface-2); color: var(--v5-ink); margin-top: 12px; }
 [aria-disabled="true"] { opacity: .4; cursor: default; }
@@ -337,12 +337,12 @@ onUnload(() => { alive = false; visible = false; stopTimer(); stopRuntime(); rev
 .field-label { display: block; font-size: 12px; color: var(--v5-ink-2); margin: 18px 0 6px; }
 .amount-input { display: flex; align-items: center; gap: 8px; border: 1px solid var(--v5-border-strong); border-radius: 12px; padding: 8px 12px; }
 .amount-input input { flex: 1; min-width: 0; font-size: 26px; height: 44px; color: var(--v5-ink); }
-.use-max { min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; color: var(--v5-brand); font-size: 15px; cursor: pointer; }
+.use-max { min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; color: var(--v5-brand); font-size: var(--ui-type-body); cursor: pointer; }
 .limits { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--v5-ink-3); margin-top: 12px; line-height: 1.5; }
 .refresh-limits { min-height: 44px; display: flex; align-items: center; color: var(--v5-brand); cursor: pointer; align-self: flex-start; }
 .fee-rule { display: block; margin-top: 6px; }
 .details { margin: 20px 0; }
-.row { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--v5-border); font-size: 13px; }
+.row { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--v5-border); font-size: var(--ui-type-list-subtitle); }
 .row > text:first-child { color: var(--v5-ink-3); font-size: 12px; }
 .row > text:last-child { max-width: 65%; overflow-wrap: anywhere; text-align: right; font-variant-numeric: tabular-nums; }
 .money { display: block; margin-top: 8px; font-size: 34px; font-weight: 600; line-height: 1.25; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }

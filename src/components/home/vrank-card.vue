@@ -14,7 +14,7 @@
 
     <view v-if="vrank.remoteReady" class="mt-1.5 flex items-baseline gap-2">
       <text style="font-family: var(--font-v5); font-weight: 600; font-size: 26px; color: var(--v5-ink); letter-spacing: -0.022em; line-height: 1">V{{ visibility.mask(myRank) }}</text>
-      <text v-if="myTitle" style="font-family: var(--font-v5); font-weight: 500; font-size: 15px; color: var(--v5-ink-2); letter-spacing: -0.010em">{{ myTitle }}</text>
+      <text v-if="myTitle" style="font-family: var(--font-v5); font-weight: 500; font-size: var(--ui-type-list-title); color: var(--v5-ink-2); letter-spacing: -0.010em">{{ myTitle }}</text>
     </view>
 
     <template v-if="vrank.remoteReady && next">

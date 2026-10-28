@@ -78,15 +78,15 @@
     <!-- Fee + total -->
     <view class="border-t" :style="totalsBoxStyle">
       <view class="flex items-center justify-between" style="padding: 3px 0">
-        <text style="font-size: 13px; color: var(--v5-ink-3)">{{ t.store.coSubtotalLabel }}</text>
+        <text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3)">{{ t.store.coSubtotalLabel }}</text>
         <text class="tabular-nums" style="font-size: 13px; font-weight: 500; color: var(--v5-ink)">${{ amountText }}</text>
       </view>
       <view class="flex items-center justify-between" style="padding: 3px 0">
-        <text style="font-size: 13px; color: var(--v5-ink-3)">{{ fmt(t.store.coCardFeeLabel, { rate: feeRateLabel }) }}</text>
+        <text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3)">{{ fmt(t.store.coCardFeeLabel, { rate: feeRateLabel }) }}</text>
         <text class="tabular-nums" style="font-size: 13px; font-weight: 500; color: var(--v5-ink)">${{ feeText }}</text>
       </view>
       <view class="flex items-center justify-between" style="padding: 3px 0">
-        <text style="font-size: 13px; color: var(--v5-ink-3)">{{ t.store.coPayTotalLabel }}</text>
+        <text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3)">{{ t.store.coPayTotalLabel }}</text>
         <text class="tabular-nums" style="font-size: 20px; font-weight: 600; color: var(--v5-ink)">${{ totalText }}</text>
       </view>
     </view>
@@ -276,7 +276,7 @@ const emptyIconStyle: CSSProperties = {
 };
 const emptyTextStyle: CSSProperties = {
   marginTop: "10px",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink-3)",
   lineHeight: 1.45,
 };

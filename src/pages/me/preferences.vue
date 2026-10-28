@@ -177,7 +177,7 @@ function dotStyle(k: NotifKind): CSSProperties {
 // Section label (de-card spec): 15/600/ink, sentence-case, sits above the group.
 const headingStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   letterSpacing: "-0.012em",
   color: "var(--v5-ink)",

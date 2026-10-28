@@ -33,10 +33,10 @@
       <!-- Real-backend milestones. Remote mode never derives rewards from mock stores. -->
       <view v-if="remoteApiEnabled" style="margin-top: 20px; display: flex; flex-direction: column; gap: 24px">
         <view v-if="remoteLoading && !remoteSnapshot" class="nx-glass-card mx-4" :style="listStyle">
-          <text class="block" style="padding: 18px; font-size: 13px; color: var(--v5-ink-3)">{{ w.remoteLoading }}</text>
+          <text class="block" style="padding: 18px; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3)">{{ w.remoteLoading }}</text>
         </view>
         <view v-else-if="remoteError" class="nx-glass-card mx-4" :style="listStyle">
-          <text class="block" style="padding: 18px 18px 6px; font-size: 13px; color: var(--v5-ink-3)">{{ w.remoteUnavailable }}</text>
+          <text class="block" style="padding: 18px 18px 6px; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3)">{{ w.remoteUnavailable }}</text>
           <view class="active:opacity-80" :style="retryBtnStyle" role="button" tabindex="0" :aria-label="w.retry" @click="refreshRemote">
             <text>{{ w.retry }}</text>
           </view>
@@ -448,7 +448,7 @@ const heroStyle: CSSProperties = { padding: "0 2px" };
 const heroIconBoxStyle: CSSProperties = { width: "56px", height: "56px", borderRadius: "16px", background: "color-mix(in srgb, var(--v5-warning) 15%, transparent)" };
 const heroLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
 const heroCountStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "26px", fontWeight: 600, color: "var(--v5-ink)" };
-const heroTotalStyle: CSSProperties = { fontSize: "15px", color: "var(--v5-ink-4)" };
+const heroTotalStyle: CSSProperties = { fontSize: "var(--ui-type-body)", color: "var(--v5-ink-4)" };
 const heroPctStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "20px", fontWeight: 600, color: "var(--v5-brand)" };
 const barTrackStyle: CSSProperties = { marginTop: "12px", height: "8px", borderRadius: "999px", background: "var(--v5-surface-2)", overflow: "hidden" };
 const barFillStyle = computed<CSSProperties>(() => ({
@@ -461,7 +461,7 @@ const catHeadStyle: CSSProperties = {
   padding: "0 2px",
   marginBottom: "12px",
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   letterSpacing: "-0.012em",
   color: "var(--v5-ink)",

@@ -13,7 +13,7 @@
       <view>
         <text class="block font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-4)">{{ baseName }}</text>
         <view class="mt-1 tabular-nums whitespace-nowrap overflow-hidden" :aria-label="storefrontUsdFull(authority.phone)" :style="phoneNumStyle">
-          <text>{{ storefrontUsd(authority.phone) }}</text><text style="font-size: 13px; color: var(--v5-ink-4); font-weight: 500">{{ t.store.vsPerDay }}</text>
+          <text>{{ storefrontUsd(authority.phone) }}</text><text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-4); font-weight: 500">{{ t.store.vsPerDay }}</text>
         </view>
         <!-- 「/天」后缀恒用弱化色(与本卡美元侧同档 ink-4),不跟数字的强调色走 -->
         <view class="block mt-1 min-w-0 overflow-hidden font-mono-tabular whitespace-nowrap" :aria-label="phoneNexFullText" style="font-size: 12px; color: var(--v5-brand); font-weight: 500"><text>{{ phoneNexText }}</text><text style="color: var(--v5-ink-4)">{{ t.store.vsPerDay }}</text></view>
@@ -27,7 +27,7 @@
       <view class="text-right">
         <text class="block font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-4)">{{ comparison.target.name }}</text>
         <view class="mt-1 tabular-nums whitespace-nowrap overflow-hidden" :aria-label="storefrontUsdFull(authority.entry)" :style="s1NumStyle">
-          <text>{{ storefrontUsd(authority.entry) }}</text><text style="font-size: 13px; color: var(--v5-ink-4); font-weight: 500">{{ t.store.vsPerDay }}</text>
+          <text>{{ storefrontUsd(authority.entry) }}</text><text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-4); font-weight: 500">{{ t.store.vsPerDay }}</text>
         </view>
         <view class="block mt-1 min-w-0 overflow-hidden font-mono-tabular whitespace-nowrap" :aria-label="entryNexFullText" style="font-size: 12px; color: var(--v5-brand); font-weight: 500"><text>{{ entryNexText }}</text><text style="color: var(--v5-ink-4)">{{ t.store.vsPerDay }}</text></view>
       </view>

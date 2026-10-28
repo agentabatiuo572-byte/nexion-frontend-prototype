@@ -215,7 +215,7 @@ const heroTitleStyle: CSSProperties = {
 const heroSubtitleStyle: CSSProperties = {
   marginTop: "10px",
   fontFamily: "var(--font-v5)",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink-2)",
   lineHeight: 1.55,
 };
@@ -223,7 +223,7 @@ const sectionStyle: CSSProperties = { marginTop: "18px" };
 const sectionHeadStyle: CSSProperties = { gap: "8px", marginBottom: "10px" };
 const sectionTitleStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   letterSpacing: "-0.014em",
   color: "var(--v5-ink)",

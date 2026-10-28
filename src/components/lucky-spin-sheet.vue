@@ -603,7 +603,7 @@ useDialogA11y(computed(() => spin.open), ".lss-root", onBackdrop);
 }
 .lss-title {
   font-family: var(--font-v5);
-  font-size: 15px;
+  font-size: var(--ui-type-section);
   font-weight: 600;
   color: var(--v5-ink);
   margin-top: 2px;
@@ -788,7 +788,7 @@ useDialogA11y(computed(() => spin.open), ".lss-root", onBackdrop);
   transform: scale(0.98);
 }
 .lss-btn-again-t {
-  font-size: 15px;
+  font-size: var(--ui-type-button);
   font-weight: 600;
   color: var(--v5-on-brand);
 }
@@ -796,7 +796,7 @@ useDialogA11y(computed(() => spin.open), ".lss-root", onBackdrop);
   background: var(--v5-brand);
 }
 .lss-btn-collect-t {
-  font-size: 15px;
+  font-size: var(--ui-type-button);
   font-weight: 600;
   color: var(--v5-on-brand);
 }
@@ -819,7 +819,7 @@ useDialogA11y(computed(() => spin.open), ".lss-root", onBackdrop);
   opacity: 0.7;
 }
 .lss-spin-btn-t {
-  font-size: 15px;
+  font-size: var(--ui-type-button);
   font-weight: 600;
   color: var(--v5-on-brand);
 }
@@ -835,13 +835,13 @@ useDialogA11y(computed(() => spin.open), ".lss-root", onBackdrop);
 .lss-nospin-title {
   display: block;
   font-family: var(--font-v5);
-  font-size: 15px;
+  font-size: var(--ui-type-section);
   font-weight: 600;
   color: var(--v5-ink);
 }
 .lss-nospin-hint {
   display: block;
-  font-size: 13px;
+  font-size: var(--ui-type-list-subtitle);
   color: var(--v5-ink-3);
   margin-top: 4px;
 }
@@ -878,7 +878,7 @@ useDialogA11y(computed(() => spin.open), ".lss-root", onBackdrop);
   opacity: 0.7;
 }
 .lss-pool-toggle-t {
-  font-size: 13px;
+  font-size: var(--ui-type-list-subtitle);
   font-weight: 500;
   color: var(--v5-ink-2);
 }

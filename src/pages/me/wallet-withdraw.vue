@@ -1864,7 +1864,7 @@ const feeWhySheetStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius) 
 };
 const feeWhyTitleStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   color: "var(--v5-ink)",
 };
@@ -1895,7 +1895,7 @@ const submitBtnStyle = computed<CSSProperties>(() => ({
   // 换成 --v5-on-brand 是 11.98:1。禁用态是灰底灰字,不走 on-brand。
   color: canSubmitAction.value ? "var(--v5-on-brand)" : "var(--v5-ink-4)",
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-button)",
   fontWeight: 600,
 }));
 

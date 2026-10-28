@@ -70,7 +70,7 @@ function goStaking() {
 </script>
 
 <style scoped>
-.stake-alternative { border-top:1px solid var(--v5-border); color:var(--v5-ink-2); font-family:var(--font-v5); font-size:13px; line-height:1.6; }
+.stake-alternative { border-top:1px solid var(--v5-border); color:var(--v5-ink-2); font-family:var(--font-v5); font-size:var(--ui-type-list-subtitle); line-height:1.6; }
 .stake-alternative-toggle,.stake-alternative-link { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:44px; padding:8px 0; box-sizing:border-box; }
 .stake-alternative-toggle svg,.stake-alternative-link svg { flex-shrink:0; }
 .stake-alternative-details { padding-bottom:8px; }

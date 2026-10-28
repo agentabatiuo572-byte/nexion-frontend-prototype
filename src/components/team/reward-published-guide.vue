@@ -59,7 +59,7 @@ const t = useT();
 const content = ref<HowContentDocument | null>(null);
 const loading = ref(true);
 const error = ref(false);
-const bodyStyle = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.65, minWidth: 0 };
+const bodyStyle = { fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-2)", lineHeight: 1.65, minWidth: 0 };
 const requestFence = new PublishedContentRequestFence();
 
 const languageFallback = computed(() => !!content.value
@@ -125,5 +125,5 @@ watch(
 onUnmounted(() => requestFence.invalidate());
 </script>
 <style scoped>
-.reward-rule-marker { flex-shrink:0; min-width:18px; white-space:nowrap; font:400 13px/1.65 var(--font-v5); }
+.reward-rule-marker { flex-shrink:0; min-width:18px; white-space:nowrap; font:400 var(--ui-type-list-subtitle)/1.65 var(--font-v5); }
 </style>

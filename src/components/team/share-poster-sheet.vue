@@ -559,14 +559,14 @@ const templateOptions = computed(() => availableTpls.value.map(item => ({ value:
 @keyframes ps-shim { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
 .ps-skeleton__t { font-size: 12px; color: var(--v5-ink-4); }
 .ps-fail { aspect-ratio: 3 / 4; border-radius: 16px; background: var(--v5-surface-2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--ui-space-row-y); }
-.ps-fail__t { font-size: 13px; color: var(--v5-ink-3); }
+.ps-fail__t { font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); }
 .ps-fail__btn { position: relative; isolation: isolate; min-height: 44px; padding: 0 18px; border-radius: 9999px; display: flex; align-items: center; }
 .ps-fail__btn-t { position: relative; font: 600 13px/20px var(--font-v5); color: var(--v5-ink); }
 .ps-thumbs { margin: var(--ui-space-inline) 16px 0; }
 .ps-reward { margin-top: var(--ui-space-row-y); text-align: center; padding: 0 16px; }
 .ps-reward__t { display: block; line-height: 1.6; overflow-wrap: anywhere; font-size: 12px; color: var(--v5-ink-3); text-wrap: pretty; }
 .ps-toggle { display: flex; align-items: center; justify-content: space-between; margin: var(--ui-space-row-y) 18px 0; min-height: 44px; }
-.ps-toggle__lb { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 13px; color: var(--v5-ink-2); }
+.ps-toggle__lb { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2); }
 .ps-sw { flex: none; width: 44px; height: 26px; border-radius: 9999px; background: var(--v5-surface-3); position: relative; transition: background 0.18s; }
 .ps-sw--on { background: var(--v5-brand); }
 .ps-sw__knob { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 9999px; background: var(--v5-surface); transition: left 0.18s; }

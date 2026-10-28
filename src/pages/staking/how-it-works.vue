@@ -207,10 +207,10 @@ function goStaking() {
   navTo("/pages/staking/staking");
 }
 
-const paraStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.65 }; // how-page scale: body 13.5/1.65 ink-2
+const paraStyle: CSSProperties = { fontSize: "var(--ui-type-long-form)", color: "var(--v5-ink-2)", lineHeight: 1.65 }; // how-page scale: body 13.5/1.65 ink-2
 const paraStyle2: CSSProperties = { ...paraStyle, marginTop: "10px" };
-const captionStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-3)", lineHeight: 1.6, marginBottom: "14px" }; // how-page scale: caption 12.5/1.6 ink-3
-const introStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-3)", lineHeight: 1.6, marginBottom: "14px" };
+const captionStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-3)", lineHeight: 1.6, marginBottom: "14px" }; // how-page scale: caption 12.5/1.6 ink-3
+const introStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-3)", lineHeight: 1.6, marginBottom: "14px" };
 const tableStyle: CSSProperties = {
   paddingBlock: "4px",
 };
@@ -224,7 +224,7 @@ const thCellLeft: CSSProperties = { flex: "1 1 0", minWidth: 0, overflowWrap: "a
 const thCellRight: CSSProperties = { ...thCellLeft };
 function tableRowStyle(isFirst: boolean): CSSProperties {
   return {
-    fontSize: "13px",
+    fontSize: "var(--ui-type-list-subtitle)",
     lineHeight: 1.6,
     borderTop: isFirst ? "none" : "1px solid color-mix(in srgb, var(--v5-border) 60%, transparent)",
   };
@@ -246,7 +246,7 @@ const tdReturnStyle: CSSProperties = {
   color: "var(--v5-brand)",
 };
 const footnoteStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", color: "var(--v5-ink-3)" };
-const unavailableStyle: CSSProperties = { marginTop: "4px", padding: "12px", borderRadius: "10px", background: "var(--v5-warning-soft)", fontSize: "13px", color: "var(--v5-ink-2)" };
+const unavailableStyle: CSSProperties = { marginTop: "4px", padding: "12px", borderRadius: "10px", background: "var(--v5-warning-soft)", fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-2)" };
 const ctaStyle: CSSProperties = {
   gap: "8px",
   width: "100%",
@@ -254,7 +254,7 @@ const ctaStyle: CSSProperties = {
   borderRadius: "999px",
   background: "var(--v5-brand)",
   color: "var(--v5-on-brand)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-button)",
   fontWeight: 600,
 };
 

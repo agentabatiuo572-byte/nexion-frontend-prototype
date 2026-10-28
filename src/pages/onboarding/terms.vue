@@ -373,7 +373,7 @@ function confirmTerms(event?: Event) {
 .tos-sub {
   display: block;
   margin-top: 10px;
-  font-size: 13px;
+  font-size: var(--ui-type-list-subtitle);
   line-height: 1.65;
   color: var(--v5-ink-3);
 }
@@ -413,14 +413,14 @@ function confirmTerms(event?: Event) {
   color: var(--v5-brand);
 }
 .tos-block__title {
-  font-size: 15px;
+  font-size: var(--ui-type-section);
   font-weight: 600;
   color: var(--v5-ink);
   letter-spacing: -0.01em;
 }
 .tos-block__body {
   display: block;
-  font-size: 13px;
+  font-size: var(--ui-type-long-form);
   color: var(--v5-ink-2);
   line-height: 1.65;
 }
@@ -462,7 +462,7 @@ function confirmTerms(event?: Event) {
   transition: transform 0.15s ease;
 }
 .tos-cta__t {
-  font-size: 15px;
+  font-size: var(--ui-type-button);
   font-weight: 600;
   color: var(--v5-on-brand);
 }

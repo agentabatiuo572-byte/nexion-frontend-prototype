@@ -38,6 +38,6 @@ const t = useT();
 .hf-add-plus { display: grid; place-items: center; }
 .hf-add-plus svg { width: 20px; height: 20px; }
 .nx-home-empty-plinth { display: none; }
-.hf-add-title { flex: 1; font: 500 15px/20px var(--font-v5); }
+.hf-add-title { flex: 1; font: 500 var(--ui-type-list-title)/20px var(--font-v5); }
 .hf-add-device .nx-home-arrow { width: 16px; display: flex;background:none;box-shadow:none; }
 </style>

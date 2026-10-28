@@ -157,7 +157,7 @@ function go(href: string) {
   margin-top: 14px;
   max-width: 560px;
   color: var(--v5-ink-2);
-  font-size: 13px;
+  font-size: var(--ui-type-list-subtitle);
   line-height: 1.65;
 }
 

@@ -45,7 +45,7 @@
       </view>
 
       <!-- 去线(主人 2026-08-17 全站令):总间距沿用有线时代的 12+12 -->
-      <text v-if="claimState.empty" class="block" style="margin-top:12px;color:var(--v5-ink-3);font-size:13px">{{ t.home.dayOneNoActiveTasks }}</text>
+      <text v-if="claimState.empty" class="block" style="margin-top:12px;color:var(--v5-ink-3);font-size:var(--ui-type-list-subtitle)">{{ t.home.dayOneNoActiveTasks }}</text>
       <view v-if="expanded && !claimState.empty" style="margin-top: 24px; display: flex; flex-direction: column; gap: 4px">
         <text v-if="remoteApiEnabled && !questUnavailable && !claimState.unverified && !claimState.claimed && !dayOneExpired" class="newcomer-task__reward-hint">{{ t.home.dayOneCompleteAllHint }}</text>
         <view
@@ -126,7 +126,7 @@
 
       @keydown.enter.prevent="toggleExpanded" @keydown.space.prevent="toggleExpanded"
     >
-      <text style="font-family: var(--font-v5); font-size: 13px; font-weight: 500; color: var(--v5-ink-3)">{{ toggleLabel }}</text>
+      <text style="font-family: var(--font-v5); font-size: var(--ui-type-list-subtitle); font-weight: 500; color: var(--v5-ink-3)">{{ toggleLabel }}</text>
       <svg v-if="!questUnavailable" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path :d="expanded ? 'M19 15l-7-7-7 7' : 'M5 9l7 7 7-7'" />
       </svg>
@@ -380,7 +380,7 @@ function labelStyle(task: QuestTask): CSSProperties {
   const done = isDone(task);
   return {
     fontFamily: "var(--font-v5)",
-    fontSize: "13px",
+    fontSize: "var(--ui-type-list-subtitle)",
     color: done ? "var(--v5-ink-4)" : "var(--v5-ink)",
     fontWeight: 500,
     textDecoration: done ? "line-through" : "none",
@@ -439,7 +439,7 @@ const toggleStyle: CSSProperties = {
 
 <style scoped>
 .newcomer-task__reward-hint { margin-bottom: 8px; font-size: 12px; color: var(--v5-ink-3); }
-.newcomer-task__observation { margin-top: 12px; color: var(--v5-ink-2); font-size: 15px; }
+.newcomer-task__observation { margin-top: 12px; color: var(--v5-ink-2); font-size: var(--ui-type-body); }
 .newcomer-task__observation-item { margin-top: 8px; }
 .newcomer-task__observation-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .newcomer-task__observation-action { min-height: 44px; display: flex; align-items: center; padding: 0 12px; cursor: pointer; color: var(--v5-ink); }
@@ -473,7 +473,7 @@ const toggleStyle: CSSProperties = {
 
 .newcomer-task__eyebrow {
   font-family: var(--font-v5);
-  font-size: 13px;
+  font-size: var(--ui-type-list-subtitle);
   font-weight: 500;
   color: var(--v5-ink-2);
   letter-spacing: 0.01em;

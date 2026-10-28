@@ -136,7 +136,7 @@ const ctaStyle = computed<CSSProperties>(() => ({
 }));
 const ctaLabelStyle: CSSProperties = {
   color: "var(--v5-on-brand)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-button)",
   fontWeight: 600,
 };
 

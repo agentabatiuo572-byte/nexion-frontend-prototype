@@ -120,7 +120,7 @@ async function submit() {
 <style scoped>
 .phone-binding-page { min-height: 100vh; padding-bottom: 32px; color: var(--v5-ink); }
 .phone-binding-card { margin: 16px; padding: 16px; border-radius: 18px; background: var(--v5-surface); display: grid; gap: 16px; }
-.phone-binding-note { font-size: 13px; color: var(--v5-ink-2); line-height: 1.6; overflow-wrap: anywhere; }
+.phone-binding-note { font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2); line-height: 1.6; overflow-wrap: anywhere; }
 .phone-binding-number { display: flex; align-items: center; gap: 12px; }
 .phone-binding-code, .phone-binding-number input, .phone-binding-input { box-sizing: border-box; padding: 12px; border: 1px solid var(--v5-border); background: var(--v5-surface-2); border-radius: 10px; min-height: 48px; font-size: var(--ui-type-input); }
 .phone-binding-code { flex-shrink: 0; }

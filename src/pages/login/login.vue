@@ -1044,17 +1044,17 @@ onUnmounted(() => cleanup());
 .lg-recovery__account { font-size: 15px; color: var(--v5-ink); }
 .lg-recovery__input { box-sizing: border-box; height: 56px; padding: 0 16px; border-radius: 16px; background: var(--v5-surface); color: var(--v5-ink); font-size: var(--ui-type-input); }
 .lg-recovery .lg-recovery__action { margin-top: 4px; }
-.lg-recovery__secondary { min-height: 44px; display: flex; align-items: center; justify-content: center; font-size: 15px; color: var(--v5-brand); }
+.lg-recovery__secondary { min-height: 44px; display: flex; align-items: center; justify-content: center; font-size: var(--ui-type-body); color: var(--v5-brand); }
 .lg-recovery__secondary[aria-disabled="true"] { opacity: .5; }
-.lg-recovery-notice__t { display: block; font-size: 13px; line-height: 1.5; color: var(--v5-ink-2); }
-.lg-sub { display: block; margin-top: 8px; font-size: 13px; color: var(--v5-ink-3); }
+.lg-recovery-notice__t { display: block; font-size: var(--ui-type-list-subtitle); line-height: 1.5; color: var(--v5-ink-2); }
+.lg-sub { display: block; margin-top: 8px; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); }
 .lg-sub__ph { font-family: var(--font-v5); color: var(--v5-ink); font-variant-numeric: tabular-nums; }
 .lg-body { margin-top: 28px; }
 .lg-col { display: flex; flex-direction: column; gap: 12px; }
 .lg-phone { position: relative; background: var(--v5-surface); border: 1px solid var(--v5-surface-2); border-radius: 16px; height: 56px; display: flex; align-items: center; }
 .lg-phone--err { border-color: color-mix(in srgb, var(--v5-brand-2) 55%, transparent); }
 .lg-phone__cc { height: 100%; padding: 0 16px; display: flex; align-items: center; gap: 4px; border-right: 1px solid var(--v5-surface-2); transition: opacity 0.15s; }
-.lg-phone__cc-t { font-size: 15px; color: var(--v5-ink); }
+.lg-phone__cc-t { font-size: var(--ui-type-body); color: var(--v5-ink); }
 .lg-phone__in { flex: 1; height: 100%; background: transparent; padding: 0 16px; font-size: var(--ui-type-input); color: var(--v5-ink); }
 .lg-phone-hint { display: block; margin-top: -4px; padding: 0 4px; font-size: 12px; line-height: 18px; color: var(--v5-ink-3); }
 .lg-phone-hint--err { color: var(--v5-brand-2); }
@@ -1065,13 +1065,13 @@ onUnmounted(() => cleanup());
    图标与文字靠 flex 居中 + 负 margin 抵消,视觉位置与原先一致(只有热区变大)。 */
 .lg-eye { min-width: 44px; min-height: 44px; margin-right: -10px; display: flex; align-items: center; justify-content: center; }
 .lg-forgot-row { display: flex; justify-content: flex-end; }
-.lg-forgot { font-size: 13px; color: var(--v5-ink-3); min-height: 44px; padding: 0 4px; line-height: 44px; }
+.lg-forgot { font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); min-height: 44px; padding: 0 4px; line-height: 44px; }
 .lg-otp { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .lg-development-otp { padding: 10px 12px; border-radius: 12px; background: var(--v5-warning-soft); }
 .lg-development-otp__t { font-size: 12px; line-height: 18px; font-weight: 600; color: var(--v5-warning); }
 .lg-otp__in { width: 48px; height: 56px; text-align: center; font-family: var(--font-v5); font-variant-numeric: tabular-nums; font-size: 20px; font-weight: 600; border-radius: 12px; background: var(--v5-surface); border: 1px solid var(--v5-surface-2); color: var(--v5-ink-4); }
 .lg-otp__in--filled { border-color: color-mix(in srgb, var(--v5-brand) 45%, transparent); color: var(--v5-ink); }
-.lg-resend { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+.lg-resend { display: flex; align-items: center; justify-content: space-between; font-size: var(--ui-type-list-subtitle); }
 .lg-resend__change { color: var(--v5-ink-3); }
 .lg-resend__count { font-family: var(--font-v5); color: var(--v5-ink-4); font-variant-numeric: tabular-nums; }
 .lg-resend__btn { color: var(--v5-brand); font-weight: 500; }
@@ -1079,17 +1079,17 @@ onUnmounted(() => cleanup());
 .lg-error__t { flex: 1; }
 .lg-cta { margin-top: 24px; height: 56px; border-radius: 9999px; background: var(--v5-surface); display: flex; align-items: center; justify-content: center; }
 .lg-cta--on { background: var(--v5-brand); }
-.lg-cta__t { font-size: 15px; font-weight: 600; color: var(--v5-ink-4); }
+.lg-cta__t { font-size: var(--ui-type-button); font-weight: 600; color: var(--v5-ink-4); }
 .lg-cta__t--on { color: var(--v5-on-brand); }
 .lg-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 /* min-height 18→44 会多占 26px,margin-top 12→4 抵消一半,视觉间距 12→17px 基本不变 */
 .lg-switch { margin-top: 4px; min-height: 44px; display: flex; align-items: center; justify-content: center; }
-.lg-switch__t { font-size: 13px; color: var(--v5-brand); font-weight: 500; }
+.lg-switch__t { font-size: var(--ui-type-list-subtitle); color: var(--v5-brand); font-weight: 500; }
 .lg-divider { display: flex; align-items: center; margin: 28px 0; }
 .lg-divider__line { flex: 1; height: 1px; background: var(--v5-surface-2); }
 .lg-divider__t { padding: 0 12px; font-size: 12px; color: var(--v5-ink-3); }
 .lg-footer { margin-top: auto; padding-top: 32px; text-align: center; }
-.lg-footer__acc { display: block; font-size: 13px; color: var(--v5-ink-3); }
+.lg-footer__acc { display: block; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); }
 /* 句中行内链接:WCAG 2.5.8 对 inline 目标豁免 44pt(强撑高会拆掉整句行高),
    但纵向 padding 对 inline 元素不撑行盒、只扩热区 —— 17px 高的热区就此变 45px,零布局代价。 */
 .lg-footer__link { color: var(--v5-brand); font-weight: 500; padding: 14px 10px; margin: 0 -10px; transition: opacity 0.15s; }

@@ -140,7 +140,7 @@ function select(item: CountryRow) {
 @keyframes cc-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .cc-grab { flex: 0 0 auto; width: 40px; height: 4px; margin: 10px auto 0; border-radius: 9999px; background: var(--v5-surface-3); }
 .cc-head { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 8px 16px 6px 20px; }
-.cc-head__title { font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-ink); }
+.cc-head__title { font-family: var(--font-v5); font-size: var(--ui-type-section); font-weight: 600; color: var(--v5-ink); }
 .cc-head__close { width: 44px; height: 44px; border-radius: 9999px; background: var(--v5-surface-2); display: flex; align-items: center; justify-content: center; }
 .cc-list { flex: none; min-height: 0; height: calc(min(74vh, 620px, 100vh - var(--nx-overlay-top)) - 72px - max(calc(env(safe-area-inset-bottom, 0px) + 24px), var(--nx-overlay-bottom))); padding: 0 16px; box-sizing: border-box; scrollbar-width: none; }
 .cc-list::-webkit-scrollbar { display: none; width: 0; height: 0; }
@@ -152,7 +152,7 @@ function select(item: CountryRow) {
 .cc-row--disabled { cursor: not-allowed; opacity: 0.38; }
 .cc-row__identity { min-width: 0; display: flex; align-items: center; gap: 10px; }
 .cc-row__iso { flex: 0 0 30px; height: 24px; border-radius: 7px; background: var(--v5-surface-2); display: inline-flex; align-items: center; justify-content: center; font-family: var(--font-v5); font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--v5-ink-3); }
-.cc-row__name { font-size: 15px; font-weight: 500; color: var(--v5-ink-2); }
+.cc-row__name { font-size: var(--ui-type-list-title); font-weight: 500; color: var(--v5-ink-2); }
 .cc-row__end { display: flex; align-items: center; gap: 10px; }
 .cc-row__code { min-width: 42px; text-align: right; font-family: var(--font-v5); font-variant-numeric: tabular-nums; font-size: 13px; color: var(--v5-ink-3); }
 .cc-row__check { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; }

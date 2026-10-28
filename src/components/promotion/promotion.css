@@ -2,7 +2,7 @@
 .promotion-main { padding:20px 16px 28px; display:flex; flex-direction:column; gap:20px; }
 .promotion-flat { background:var(--v5-surface); border-radius:20px; padding:18px; min-width:0; }
 .promotion-title { display:block; font-size:19px; font-weight:600; line-height:1.4; }
-.promotion-copy { display:block; font-size:13px; line-height:1.7; color:var(--v5-ink-3); overflow-wrap:anywhere; }
+.promotion-copy { display:block; font-size:var(--ui-type-list-subtitle); line-height:1.7; color:var(--v5-ink-3); overflow-wrap:anywhere; }
 .promotion-price { font-size:14px; }
 .promotion-row { display:flex; align-items:flex-start; gap:12px; padding:15px 0; border-bottom:1px solid var(--v5-border); }
 .promotion-row:last-child { border-bottom:0; }
@@ -18,9 +18,9 @@
 .promotion-link { display:flex; align-items:center; min-height:44px; color:var(--v5-brand); font-size:13px; }
 .promotion-link:active { opacity:.65; }
 .promotion-actions { display:flex; flex-direction:column; gap:10px; margin-top:16px; }
-.promotion-notice { border-left:2px solid var(--v5-brand); padding:4px 0 4px 12px; font-size:13px; line-height:1.7; }
+.promotion-notice { border-left:2px solid var(--v5-brand); padding:4px 0 4px 12px; font-size:var(--ui-type-list-subtitle); line-height:1.7; }
 .promotion-badge { display:inline-flex; margin-top:8px; padding:4px 8px; border-radius:8px; color:var(--v5-brand); background:color-mix(in srgb,var(--v5-brand) 10%,var(--v5-surface)); font-size:12px; }
-.promotion-summary { display:flex; justify-content:space-between; gap:18px; padding:10px 0; font-size:13px; }
+.promotion-summary { display:flex; justify-content:space-between; gap:18px; padding:10px 0; font-size:var(--ui-type-list-subtitle); }
 .promotion-summary > * { min-width:0; overflow-wrap:anywhere; }
 .promotion-summary > :last-child { text-align:right; }
 .promotion-filters { display:flex; flex-wrap:wrap; gap:8px; }

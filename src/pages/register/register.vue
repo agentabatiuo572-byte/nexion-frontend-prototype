@@ -1024,7 +1024,7 @@ onUnmounted(() => cleanup());
 .rg-sponsor__av { width: 40px; height: 40px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: linear-gradient(135deg, var(--v5-brand), var(--v5-tech-cyan)); }
 .rg-sponsor__av-t { color: var(--v5-on-brand); font-family: var(--font-v5); font-weight: 600; font-size: 20px; }
 .rg-sponsor__body { flex: 1; min-width: 0; }
-.rg-sponsor__name { display: block; font-size: 13px; color: var(--v5-ink); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.rg-sponsor__name { display: block; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .rg-sponsor__name-b { font-weight: 600; }
 .rg-sponsor__gift { display: block; font-variant-numeric: tabular-nums; font-size: 12px; color: var(--v5-brand); margin-top: 2px; }
 .rg-sponsor__v { font-variant-numeric: tabular-nums; font-size: 12px; color: var(--v5-brand); background: color-mix(in srgb, var(--v5-brand) 15%, transparent); padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
@@ -1033,14 +1033,14 @@ onUnmounted(() => cleanup());
 .rg-dot--active { width: 32px; background: var(--v5-brand); }
 .rg-dot--done { width: 16px; background: color-mix(in srgb, var(--v5-brand) 40%, transparent); }
 .rg-title { display: block; font-family: var(--font-v5); margin-top: 12px; font-size: 34px; font-weight: 600; line-height: 1.15; letter-spacing: -0.025em; color: var(--v5-ink); }
-.rg-subtitle { display: block; margin-top: 8px; font-size: 13px; color: var(--v5-ink-3); }
+.rg-subtitle { display: block; margin-top: 8px; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); }
 .rg-subtitle__hl { color: var(--v5-brand); font-weight: 600; }
 .rg-subtitle__ph { font-family: var(--font-v5); color: var(--v5-ink); font-variant-numeric: tabular-nums; }
 .rg-body { margin-top: 28px; }
 .rg-phone { position: relative; background: var(--v5-surface); border: 1px solid var(--v5-surface-2); border-radius: 16px; height: 56px; display: flex; align-items: center; }
 .rg-phone--err { border-color: color-mix(in srgb, var(--v5-brand-2) 55%, transparent); }
 .rg-phone__cc { height: 100%; padding: 0 16px; display: flex; align-items: center; gap: 4px; border-right: 1px solid var(--v5-surface-2); transition: opacity 0.15s; }
-.rg-phone__cc-t { font-size: 15px; color: var(--v5-ink); }
+.rg-phone__cc-t { font-size: var(--ui-type-body); color: var(--v5-ink); }
 .rg-phone__in { flex: 1; height: 100%; background: transparent; padding: 0 16px; font-size: var(--ui-type-input); color: var(--v5-ink); }
 .rg-step2 { display: flex; flex-direction: column; gap: 20px; }
 .rg-otp { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -1048,7 +1048,7 @@ onUnmounted(() => cleanup());
 .rg-development-otp__t { font-size: 12px; line-height: 18px; font-weight: 600; color: var(--v5-warning); }
 .rg-otp__in { width: 48px; height: 56px; text-align: center; font-family: var(--font-v5); font-variant-numeric: tabular-nums; font-size: 20px; font-weight: 600; border-radius: 12px; background: var(--v5-surface); border: 1px solid var(--v5-surface-2); color: var(--v5-ink-4); }
 .rg-otp__in--filled { border-color: color-mix(in srgb, var(--v5-brand) 45%, transparent); color: var(--v5-ink); }
-.rg-resend { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+.rg-resend { display: flex; align-items: center; justify-content: space-between; font-size: var(--ui-type-list-subtitle); }
 .rg-resend__change { color: var(--v5-ink-3); }
 .rg-resend__count { font-family: var(--font-v5); color: var(--v5-ink-4); font-variant-numeric: tabular-nums; }
 .rg-resend__btn { color: var(--v5-brand); font-weight: 500; }
@@ -1081,7 +1081,7 @@ onUnmounted(() => cleanup());
 .rg-cta { margin-top: 20px; height: 56px; border-radius: 9999px; background: var(--v5-surface); display: flex; align-items: center; justify-content: center; }
 .rg-cta--on { background: var(--v5-brand); }
 .rg-cta--busy { opacity: 0.7; }
-.rg-cta__t { font-size: 15px; font-weight: 600; color: var(--v5-ink-4); }
+.rg-cta__t { font-size: var(--ui-type-button); font-weight: 600; color: var(--v5-ink-4); }
 .rg-cta__t--on { color: var(--v5-on-brand); }
 .rg-oauth { }
 .rg-divider { display: flex; align-items: center; margin: 24px 0; }
@@ -1090,7 +1090,7 @@ onUnmounted(() => cleanup());
 .rg-mode-badge { display: inline-flex; margin-top: 8px; padding: 5px 8px; border-radius: 999px; background: var(--v5-warning-soft); }
 .rg-mode-badge__t { font-size: 12px; font-weight: 600; color: var(--v5-warning); }
 .rg-footer { margin-top: auto; padding-top: 32px; text-align: center; }
-.rg-footer__acc { display: block; font-size: 13px; color: var(--v5-ink-3); }
+.rg-footer__acc { display: block; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); }
 /* 同 login:inline 目标吃 WCAG 2.5.8 豁免,纵向 padding 扩热区不撑行高 */
 /* 水平也补 10px:"Sign in" 只有 25px 宽,纵向撑够了横向还是不够。负 margin 抵消布局,
    多出来的热区落在句子里的空白与标点上 —— 那本来就不可点,重叠反而符合 Fitts 定律。 */

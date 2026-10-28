@@ -140,12 +140,12 @@
         <template v-else>
           <view v-if="!accountDisplayReady" class="text-center" :style="emptyCardStyle">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 8px"><path d="M12 9v4" /><path d="M12 17h.01" /><circle cx="12" cy="12" r="10" /></svg>
-            <text class="block" style="font-size: 13px; color: var(--v5-ink)">{{ genesis.remoteAccountReadState === 'loading' ? t.marketplace.accountLoading : t.marketplace.accountUnavailable }}</text>
+            <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink)">{{ genesis.remoteAccountReadState === 'loading' ? t.marketplace.accountLoading : t.marketplace.accountUnavailable }}</text>
             <text v-if="genesis.remoteAccountReadState !== 'loading'" class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px; line-height: 1.375">{{ t.marketplace.accountUnavailableHint }}</text>
           </view>
           <view v-else-if="ownedCount === 0" class="text-center" :style="emptyCardStyle">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 8px"><path d="M6 3h12l4 6-10 13L2 9Z" /><path d="M11 3 8 9l4 13 4-13-3-6" /><path d="M2 9h20" /></svg>
-            <text class="block" style="font-size: 13px; color: var(--v5-ink)">{{ t.marketplace.noTokensTitle }}</text>
+            <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink)">{{ t.marketplace.noTokensTitle }}</text>
             <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px; line-height: 1.375">{{ primaryAvailable ? t.marketplace.noTokensSub : consumerCopy.empty }}</text>
             <view class="inline-block active:scale-95" :style="reserveBtnStyle" role="button" tabindex="0" @click="goGenesis" @keydown.enter.prevent="goGenesis" @keydown.space.prevent="goGenesis">
               <text>{{ primaryEntryLabel }}</text>
@@ -589,7 +589,7 @@ const closedNoticeStyle: CSSProperties = {
 };
 const closedNoticeTitleStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "13px", // 档内值(value-ladder 合法集 {56,44,36,34,26,20,15,13,12};13.5 会被哨兵判红)
+  fontSize: "var(--ui-type-list-subtitle)", // 档内值(value-ladder 合法集 {56,44,36,34,26,20,15,13,12};13.5 会被哨兵判红)
   fontWeight: 550,
   textWrap: "pretty",
 };

@@ -512,7 +512,7 @@ const heroTitleStyle: CSSProperties = {
 const heroSubStyle: CSSProperties = {
   marginTop: "6px",
   fontFamily: "var(--font-v5)",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink-3)",
   lineHeight: 1.6,
 };
@@ -570,7 +570,7 @@ const recPathStyle: CSSProperties = {
 const recReasonStyle: CSSProperties = {
   marginTop: "6px",
   fontFamily: "var(--font-v5)",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink-2)",
   lineHeight: 1.6,
 };
@@ -596,14 +596,14 @@ const saveBtnStyle: CSSProperties = {
 const saveBtnPendingStyle: CSSProperties = { background: "var(--v5-surface-2)", color: "var(--v5-ink-3)" };
 const saveLabelStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   color: "inherit",
 };
 const sectionLabelStyle: CSSProperties = {
   margin: "22px 18px 12px",
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   letterSpacing: "-0.012em",
   color: "var(--v5-ink)",

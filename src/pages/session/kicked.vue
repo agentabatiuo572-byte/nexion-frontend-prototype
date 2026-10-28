@@ -93,7 +93,7 @@ function reLogin() {
 .ks-body {
   display: block;
   margin-top: 10px;
-  font-size: 13px;
+  font-size: var(--ui-type-list-subtitle);
   line-height: 1.5;
   color: var(--v5-ink-2);
 }
@@ -125,7 +125,7 @@ function reLogin() {
   transition: transform 0.15s ease;
 }
 .ks-cta__t {
-  font-size: 15px;
+  font-size: var(--ui-type-button);
   font-weight: 600;
   color: var(--v5-on-brand);
 }

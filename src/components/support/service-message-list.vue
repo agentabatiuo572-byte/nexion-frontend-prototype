@@ -104,7 +104,7 @@ function retry() {
 
 <style scoped>
 .service-messages { padding: 0 16px 16px; font-family: var(--font-v5); }
-.service-note { padding: 12px 0; color: var(--v5-ink-3); font-size: 13px; line-height: 1.5; }
+.service-note { padding: 12px 0; color: var(--v5-ink-3); font-size: var(--ui-type-list-subtitle); line-height: 1.5; }
 .service-rowgroup { border-bottom: 1px solid color-mix(in srgb, var(--v5-border) 55%, transparent); }
 .service-row { display: flex; align-items: center; gap: 12px; min-height: 88px; box-sizing: border-box; padding: 16px 0; cursor: pointer; }
 .service-row:active { opacity: .78; }
@@ -113,15 +113,15 @@ function retry() {
 .service-avatar { position: relative; width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; color: var(--v5-ink-2); }
 .service-avatar > svg { position: relative; }
 .service-content { flex: 1; min-width: 0; }
-.service-title { display: block; color: var(--v5-ink); font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.service-title { display: block; color: var(--v5-ink); font-size: var(--ui-type-section); font-weight: 600; overflow-wrap: anywhere; }
 .service-time { display: block; margin-top: 5px; font-size: 11px; color: var(--v5-ink-3); white-space: normal; overflow-wrap: anywhere; }
-.service-preview { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; margin-top: 5px; color: var(--v5-ink-2); font-size: 13px; line-height: 1.5; }
+.service-preview { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; margin-top: 5px; color: var(--v5-ink-2); font-size: var(--ui-type-list-subtitle); line-height: 1.5; }
 .service-meta { flex-shrink: 0; align-self: stretch; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 8px; }
 .service-unread { flex-shrink: 0; min-width: 21px; height: 21px; padding: 0 6px; box-sizing: border-box; border-radius: var(--v5-radius-full); display: grid; place-items: center; background: var(--v5-brand); color: var(--v5-on-brand); font-size: 11px; font-weight: 600; line-height: 1; }
 .service-state { gap: 12px; padding: 16px 0; color: var(--v5-ink-3); font-size: 13px; line-height: 1.6; }
 .service-state:not(.nx-inline-recovery) { display: flex; flex-direction: column; align-items: flex-start; }
 .service-empty { padding: 32px 0; }
-.service-empty-title { color: var(--v5-ink); font-size: 15px; font-weight: 600; }
+.service-empty-title { color: var(--v5-ink); font-size: var(--ui-type-section); font-weight: 600; }
 .service-button { position: relative; min-height: 44px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 22px; color: var(--v5-brand); font-size: 13px; cursor: pointer; }
 .service-button > text { position: relative; }
 .service-avatar, .service-button { --v5-liquid-shadow: inset 0 1px 0 var(--v5-border); }

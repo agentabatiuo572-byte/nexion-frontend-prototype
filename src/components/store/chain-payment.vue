@@ -229,7 +229,7 @@ const expiredIconStyle: CSSProperties = {
 const expiredTitleStyle: CSSProperties = {
   marginTop: "8px",
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   color: "var(--v5-ink)",
 };

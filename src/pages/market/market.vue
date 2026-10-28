@@ -225,7 +225,7 @@ function segItemStyle(active: boolean): CSSProperties {
 function segLabelStyle(active: boolean): CSSProperties {
   return {
     fontFamily: "var(--font-v5)",
-    fontSize: "13px",
+    fontSize: "var(--ui-type-list-subtitle)",
     fontWeight: 500,
     letterSpacing: "-0.005em",
     color: active ? "var(--v5-on-brand)" : "var(--v5-ink-3)",

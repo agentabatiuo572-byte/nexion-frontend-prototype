@@ -276,10 +276,10 @@ const metricValueStyle: CSSProperties = { fontSize: "20px", fontWeight: 600, col
 const deltaStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-success)" };
 const listCardStyle: CSSProperties = { borderRadius: "0", background: "transparent" };
 function listRowStyle(last: boolean): CSSProperties { return { display: "flex", alignItems: "center", gap: "12px", padding: "12px 14px", borderBottom: last ? "none" : "1px solid var(--v5-border)" }; }
-const titleStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)" };
+const titleStyle: CSSProperties = { fontSize: "var(--ui-type-section)", fontWeight: 600, color: "var(--v5-ink)" };
 const bodyStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", lineHeight: 1.5, color: "var(--v5-ink-3)" };
 const roleStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-brand)" };
-const linkStyle: CSSProperties = { fontSize: "15px", color: "var(--v5-brand)" };
+const linkStyle: CSSProperties = { fontSize: "var(--ui-type-button)", color: "var(--v5-brand)" };
 const avatarStyle: CSSProperties = { width: "38px", height: "38px", borderRadius: "999px", background: "var(--v5-brand-soft)" };
 const avatarTextStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-brand)" };
 const retryStyle: CSSProperties = { minHeight: "44px", display: "flex", alignItems: "center", marginTop: "12px", fontSize: "13px", fontWeight: 600, color: "var(--v5-brand)" };
@@ -290,7 +290,7 @@ const retryStyle: CSSProperties = { minHeight: "44px", display: "flex", alignIte
 <style scoped>
 .trust-category + .trust-category { border-top: 1px solid var(--v5-border); }
 .trust-refresh-status { font:400 13px/1.6 var(--font-v5); color:var(--v5-ink-2); overflow-wrap:anywhere; }
-.trust-category-toggle { display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:64px; padding:12px 0; color:var(--v5-ink); font-size:15px; }
+.trust-category-toggle { display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:64px; padding:12px 0; color:var(--v5-ink); font-size:var(--ui-type-body); }
 .trust-category-toggle:focus-visible, .trust-document:focus-visible { outline:2px solid var(--v5-brand); outline-offset:-2px; }
 .trust-document { padding:12px 0; border-bottom:1px solid var(--v5-border); }
 .trust-document:last-child { border-bottom:0; }
@@ -304,4 +304,4 @@ const retryStyle: CSSProperties = { minHeight: "44px", display: "flex", alignIte
 .trust-material--link { cursor: pointer; }
 .trust-material--link .trust-material-title { color: var(--v5-brand); }
 .trust-material--link:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 4px; }
-.trust-category + .trust-category { border-top:1px solid var(--v5-border); }.trust-category-body { padding:0 16px 16px;font:400 13px/1.6 var(--font-v5);color:var(--v5-ink-2); }.trust-loading { height:80px;background:var(--v5-surface);border-radius:20px; }</style>
+.trust-category + .trust-category { border-top:1px solid var(--v5-border); }.trust-category-body { padding:0 16px 16px;font:400 var(--ui-type-list-subtitle)/1.6 var(--font-v5);color:var(--v5-ink-2); }.trust-loading { height:80px;background:var(--v5-surface);border-radius:20px; }</style>

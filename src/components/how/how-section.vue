@@ -61,7 +61,7 @@ const chipStyle = computed<CSSProperties>(() => ({
 // read as a different colour from body text, not just a different weight).
 const titleStyle = computed<CSSProperties>(() => ({
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   letterSpacing: "-0.014em",
   color: ACCENT_TEXT[props.accent],

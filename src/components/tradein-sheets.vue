@@ -1192,14 +1192,14 @@ useDialogA11y(computed(() => state.value.kind !== "none"), ".tis-root", hide);
 .tis-title {
   display: block;
   font-family: var(--font-v5);
-  font-size: 15px;
+  font-size: var(--ui-type-section);
   font-weight: 600;
   color: var(--v5-ink);
   line-height: 1.3;
 }
 .tis-subtitle {
   display: block;
-  font-size: 13px;
+  font-size: var(--ui-type-list-subtitle);
   color: var(--v5-ink-3);
   margin-top: 4px;
   line-height: 1.5;
@@ -1229,7 +1229,7 @@ useDialogA11y(computed(() => state.value.kind !== "none"), ".tis-root", hide);
 .tis-opt-text {
   flex: 1;
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--ui-type-list-subtitle);
   color: var(--v5-ink);
   line-height: 1.4;
 }
@@ -1254,7 +1254,7 @@ useDialogA11y(computed(() => state.value.kind !== "none"), ".tis-root", hide);
 }
 .tis-card-line {
   display: block;
-  font-size: 13px;
+  font-size: var(--ui-type-list-subtitle);
   color: var(--v5-ink);
 }
 .tis-row {
@@ -1263,7 +1263,7 @@ useDialogA11y(computed(() => state.value.kind !== "none"), ".tis-root", hide);
   justify-content: space-between;
 }
 .tis-row-label {
-  font-size: 13px;
+  font-size: var(--ui-type-list-subtitle);
   color: var(--v5-ink-3);
 }
 .tis-row-value {
@@ -1312,7 +1312,7 @@ useDialogA11y(computed(() => state.value.kind !== "none"), ".tis-root", hide);
 }
 .tis-cta-text {
   font-family: var(--font-v5);
-  font-size: 15px;
+  font-size: var(--ui-type-button);
   font-weight: 600;
   color: var(--v5-on-brand);
 }
@@ -1330,7 +1330,7 @@ useDialogA11y(computed(() => state.value.kind !== "none"), ".tis-root", hide);
   opacity: 0.7;
 }
 .tis-secondary-text {
-  font-size: 13px;
+  font-size: var(--ui-type-list-subtitle);
   color: var(--v5-ink-2);
 }
 .tis-ghost {
@@ -1345,7 +1345,7 @@ useDialogA11y(computed(() => state.value.kind !== "none"), ".tis-root", hide);
   opacity: 0.7;
 }
 .tis-ghost-text {
-  font-size: 13px;
+  font-size: var(--ui-type-list-subtitle);
   font-weight: 400;
   color: var(--v5-ink-3);
 }
@@ -1362,7 +1362,7 @@ useDialogA11y(computed(() => state.value.kind !== "none"), ".tis-root", hide);
   opacity: 0.7;
 }
 .tis-warn-ghost-text {
-  font-size: 13px;
+  font-size: var(--ui-type-list-subtitle);
   font-weight: 400;
   color: var(--v5-warning-ink);
 }
@@ -1383,7 +1383,7 @@ useDialogA11y(computed(() => state.value.kind !== "none"), ".tis-root", hide);
 }
 .tis-block-warn {
   display: block;
-  font-size: 13px;
+  font-size: var(--ui-type-list-subtitle);
   color: var(--v5-ink-3);
   margin-top: 4px;
   line-height: 1.625;

@@ -213,7 +213,7 @@ const loadingBarStyle: CSSProperties = {
 const loadingTextStyle: CSSProperties = {
   display: "block",
   marginTop: "16px",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink-3)",
 };
 
@@ -224,7 +224,7 @@ const emptyStyle: CSSProperties = {
   background: "var(--v5-surface)",
 };
 const emptyTitleStyle: CSSProperties = {
-  fontSize: "15px",
+  fontSize: "var(--ui-type-list-title)",
   fontWeight: 500,
   color: "var(--v5-ink)",
 };
@@ -235,7 +235,7 @@ const backButtonStyle: CSSProperties = {
   borderRadius: "999px",
   background: "var(--v5-brand)",
   color: "var(--v5-on-brand)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-button)",
   fontWeight: 500,
 };
 </script>

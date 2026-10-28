@@ -117,14 +117,14 @@ function goMarketplace() {
   navTo("/pages/genesis/marketplace");
 }
 
-const paraStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.65 }; // how-page scale: body 13.5/1.65 ink-2
+const paraStyle: CSSProperties = { fontSize: "var(--ui-type-long-form)", color: "var(--v5-ink-2)", lineHeight: 1.65 }; // how-page scale: body 13.5/1.65 ink-2
 const paraStyle2: CSSProperties = { ...paraStyle, marginTop: "10px" };
-const introStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-3)", lineHeight: 1.6, marginBottom: "14px" }; // how-page scale: caption 12.5/1.6 ink-3
+const introStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-3)", lineHeight: 1.6, marginBottom: "14px" }; // how-page scale: caption 12.5/1.6 ink-3
 const flowBoxStyle: CSSProperties = {
   background: "var(--v5-surface-2)",
   borderRadius: "12px",
   padding: "14px",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   marginTop: "12px",
   display: "flex",
   flexDirection: "column",
@@ -143,7 +143,7 @@ const flowNumStyle: CSSProperties = {
   color: "var(--v5-warning)",
   flexShrink: 0,
 };
-const flowTextStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.5 };
+const flowTextStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-2)", lineHeight: 1.5 };
 const ctaPrimaryStyle: CSSProperties = {
   gap: "6px",
   height: "50px",

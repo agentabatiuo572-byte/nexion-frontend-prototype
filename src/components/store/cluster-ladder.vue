@@ -102,7 +102,7 @@ function labelStyle(tier: Tier): CSSProperties {
   return {
     fontFamily: "var(--font-v5)",
     fontWeight: 500,
-    fontSize: "13px",
+    fontSize: "var(--ui-type-list-subtitle)",
     color: tier.you ? "var(--v5-brand-2)" : "var(--v5-ink)",
     letterSpacing: "-0.008em",
   };

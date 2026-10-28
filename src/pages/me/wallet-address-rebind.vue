@@ -833,7 +833,7 @@ const otpConfirmStyle = computed<CSSProperties>(() => ({
 }));
 const ctaTextStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-button)",
   fontWeight: 600,
 };
 const primaryCtaStyle: CSSProperties = {
@@ -849,7 +849,7 @@ const ghostBtnStyle: CSSProperties = {
   borderRadius: "999px",
 };
 const ghostTextStyle: CSSProperties = {
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   fontWeight: 500,
   color: "var(--v5-ink-3)",
 };
@@ -894,7 +894,7 @@ const successRowLabelStyle: CSSProperties = {
   color: "var(--v5-ink-3)",
 };
 const successRowValStyle: CSSProperties = {
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink)",
 };
 

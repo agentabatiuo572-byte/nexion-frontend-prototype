@@ -11,7 +11,7 @@
       class="flex items-center justify-between"
       :style="rowStyle(i)"
     >
-      <text style="font-size: 13px; color: var(--v5-ink-3)">{{ r.k }}</text>
+      <text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3)">{{ r.k }}</text>
       <text class="tabular-nums" :style="valueStyle">{{ r.v }}</text>
     </view>
   </view>

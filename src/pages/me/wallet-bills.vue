@@ -399,7 +399,7 @@ function pillLabelStyle(tb: Tab): CSSProperties {
   const on = tab.value === tb;
   return {
     fontFamily: "var(--font-v5)",
-    fontSize: "13px",
+    fontSize: "var(--ui-type-list-subtitle)",
     fontWeight: 500,
     letterSpacing: "-0.005em",
     color: on ? "var(--v5-on-brand)" : "var(--v5-ink-3)",
@@ -429,7 +429,7 @@ const emptyStyle: CSSProperties = {
   padding: "32px",
   textAlign: "center",
 };
-const emptyTextStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)" };
+const emptyTextStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-2)" };
 
 const listWrapStyle: CSSProperties = { margin: "0 16px 12px" };
 const ledgerErrorStyle: CSSProperties = {
@@ -479,7 +479,7 @@ function iconChipStyle(type: BillType): CSSProperties {
   };
 }
 const typeLabelStyle: CSSProperties = {
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   fontWeight: 500,
   color: "color-mix(in srgb, var(--v5-ink) 90%, transparent)",
 };

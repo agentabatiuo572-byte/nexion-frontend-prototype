@@ -230,7 +230,7 @@ const bigNumStyle: CSSProperties = {
 };
 const unitStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   fontWeight: 500,
   color: "var(--v5-ink-3)",
 };

@@ -227,7 +227,7 @@ useDialogA11y(computed(() => sheet.open), ".vcs-root", hide);
 }
 .vcs-title {
   font-family: var(--font-v5);
-  font-size: 15px;
+  font-size: var(--ui-type-section);
   font-weight: 600;
   color: var(--v5-ink);
   margin-top: 2px;
@@ -250,7 +250,7 @@ useDialogA11y(computed(() => sheet.open), ".vcs-root", hide);
 .vcs-sub {
   display: block;
   margin-top: 10px;
-  font-size: 13px;
+  font-size: var(--ui-type-list-subtitle);
   color: var(--v5-ink-3);
   line-height: 1.5;
 }
@@ -348,7 +348,7 @@ useDialogA11y(computed(() => sheet.open), ".vcs-root", hide);
 .vcs-cta-t {
   font-family: var(--font-v5);
   /* 《02》§2 button.m 15/20/600 */
-  font-size: 15px;
+  font-size: var(--ui-type-button);
   line-height: 20px;
   font-weight: 600;
   color: var(--v5-on-brand);
@@ -368,7 +368,7 @@ useDialogA11y(computed(() => sheet.open), ".vcs-root", hide);
 }
 .vcs-dismiss-t {
   /* 《02》§4:用户需读懂才能决策 → body.s 13 而非 caption 12 */
-  font-size: 13px;
+  font-size: var(--ui-type-list-subtitle);
   line-height: 18px;
   font-weight: 400;
   color: var(--v5-ink-3);

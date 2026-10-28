@@ -31,7 +31,7 @@
         class="mx-4"
         style="margin-bottom: 14px; padding: 12px 14px; border: 1px solid var(--v5-warning); border-radius: 12px; background: var(--v5-warning-soft); color: var(--v5-ink-2)"
       >
-        <text class="block" style="font-size: 13px; line-height: 1.5">{{ t.topupChrome.flowRetired }}</text>
+        <text class="block" style="font-size: var(--ui-type-list-subtitle); line-height: 1.5">{{ t.topupChrome.flowRetired }}</text>
       </view>
 
       <view v-if="remoteApiEnabled" class="mx-4"><ThirdPartyAuth :key="app.accountKey + ':' + app.accountBindingEpoch" intent="LINK" :disabled="securityBusy || !remoteSecurity" @busy="oauthBusy = $event" /></view>
@@ -1126,13 +1126,13 @@ const rowBorderedStyle: CSSProperties = {
 };
 const rowLabelStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-body)",
   color: "var(--v5-ink)",
 };
 const rowSubStyle: CSSProperties = {
   marginTop: "2px",
   fontFamily: "var(--font-v5)",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink-3)",
 };
 const passwordHintStyle: CSSProperties = { ...rowSubStyle, lineHeight: 1.5, whiteSpace: "normal", overflowWrap: "anywhere" };
@@ -1182,7 +1182,7 @@ const sectionHeadStyle: CSSProperties = {
   marginTop: "22px",
   marginBottom: "0",
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   letterSpacing: "-0.012em",
   color: "var(--v5-ink)",
@@ -1205,7 +1205,7 @@ const pwdInputStyle: CSSProperties = {
 };
 const errStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-danger)",
 };
 const pwdCancelStyle: CSSProperties = {
@@ -1225,7 +1225,7 @@ const pwdSaveStyle: CSSProperties = {
 };
 const pwdSaveLabelStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   color: "var(--v5-on-brand)",
 };
@@ -1253,7 +1253,7 @@ const toggleThumbStyle = computed<CSSProperties>(() => ({
 const currentBadgeStyle: CSSProperties = {
   flexShrink: 0,
   fontFamily: "var(--font-v5)",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   fontWeight: 500,
   color: "var(--v5-success)",
 };
@@ -1269,12 +1269,12 @@ const revokeAllRowStyle: CSSProperties = {
 };
 const revokeAllLabelStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-body)",
   color: "var(--v5-danger)",
 };
 const dangerLabelStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-body)",
   color: "var(--v5-danger)",
 };
 

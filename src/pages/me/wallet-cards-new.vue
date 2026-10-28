@@ -275,7 +275,7 @@ async function handleBind() {
 
 // ── styles ──
 const bodyStyle: CSSProperties = { padding: "0 16px" };
-const providerHoldTitleStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)" };
+const providerHoldTitleStyle: CSSProperties = { fontSize: "var(--ui-type-section)", fontWeight: 600, color: "var(--v5-ink)" };
 const providerHoldBodyStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", lineHeight: 1.5, color: "var(--v5-ink-3)" };
 const providerHoldCtaStyle: CSSProperties = { minHeight: "44px", marginTop: "16px", borderRadius: "999px", background: "var(--v5-surface-2)" };
 const providerHoldCtaTextStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink-2)" };
@@ -322,7 +322,7 @@ const inputStyle: CSSProperties = {
   fontSize: "var(--ui-type-input)",
   color: "var(--v5-ink)",
 };
-const checkboxLabelStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)" };
+const checkboxLabelStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-2)" };
 const checkboxStateStyle = computed<CSSProperties>(() => ({
   marginLeft: "auto",
   fontSize: "12px",

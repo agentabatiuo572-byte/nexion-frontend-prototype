@@ -44,7 +44,7 @@
         <view class="relative overflow-hidden" :style="totalCardStyle">
           <view class="relative" style="z-index: 1">
             <view class="flex justify-between items-center gap-2">
-              <view class="flex items-center gap-1 min-w-0"><text style="font-size: 13px; color: var(--v5-ink-2)">{{ auditCopy.deviceRevenue }} · {{ rangeLabel(range) }}</text><DataVisibilityToggle /></view>
+              <view class="flex items-center gap-1 min-w-0"><text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2)">{{ auditCopy.deviceRevenue }} · {{ rangeLabel(range) }}</text><DataVisibilityToggle /></view>
               <text class="earn-scope">{{ auditCopy.revenueScope }}</text>
             </view>
 
@@ -342,7 +342,7 @@ function pillLabelStyle(r: Range): CSSProperties {
     color: on ? "var(--v5-brand)" : "var(--v5-ink-3)",
     fontFamily: "var(--font-v5)",
     fontWeight: on ? 600 : 500,
-    fontSize: "13px",
+    fontSize: "var(--ui-type-list-subtitle)",
   };
 }
 const totalCardStyle: CSSProperties = {

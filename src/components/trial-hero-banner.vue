@@ -142,7 +142,7 @@ function retryEligibility() {
 .trial-meta { position: relative; width: 60%; }
 .trial-badge { display: inline-block; max-width: 100%; padding: 4px 10px; border-radius: var(--v5-radius-full); background: var(--v5-brand-soft); color: var(--v5-brand); font: 600 12px/1.4 var(--font-v5); overflow-wrap: anywhere; }
 .trial-title { display: block; margin-top: 8px; font: 600 20px/1.25 var(--font-v5); letter-spacing: -.02em; overflow-wrap: anywhere; }
-.trial-tagline { display: block; margin-top: 5px; font: 400 13px/1.5 var(--font-v5); color: var(--v5-ink-2); }
+.trial-tagline { display: block; margin-top: 5px; font: 400 var(--ui-type-list-subtitle)/1.5 var(--font-v5); color: var(--v5-ink-2); }
 .trial-estimate { margin-top: 12px; }
 .trial-estimate-label { display: block; font-size: 12px; line-height: 1.4; color: var(--v5-ink-2); }
 .trial-value { display: block; margin-top: 3px; font: 600 26px/1.15 var(--font-v5); }

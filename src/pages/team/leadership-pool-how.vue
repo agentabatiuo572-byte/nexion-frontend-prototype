@@ -175,12 +175,12 @@ onHide(() => { pageVisible = false; remoteRequest++; remotePool.value = null; re
 onUnmounted(() => { mounted = false; remoteRequest += 1; remotePool.value = null; unsubscribeRemotePoolRun(); });
 function goBack() { navBack("/pages/team/leadership-pool"); }
 
-const bodyStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.65 };
+const bodyStyle: CSSProperties = { fontSize: "var(--ui-type-long-form)", color: "var(--v5-ink-2)", lineHeight: 1.65 };
 </script>
 
 <style scoped>
 .pool-how-facts { display: flex; flex-direction: column; gap: var(--ui-space-row-y); margin-bottom: var(--ui-space-inset); }
-.pool-how-facts > view { display: flex; justify-content: space-between; gap: var(--ui-space-inset); font-size: 13px; }
+.pool-how-facts > view { display: flex; justify-content: space-between; gap: var(--ui-space-inset); font-size: var(--ui-type-list-subtitle); }
 .pool-how-facts > view > text:last-child { font-variant-numeric: tabular-nums; font-weight: 600; }
 .pool-how-weight-list { margin-top: var(--ui-space-inset); }
 .pool-how-weight-heading, .pool-how-weight-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(60px,auto); gap: var(--ui-space-inset); padding: var(--ui-space-row-y) 0; border-bottom: 1px solid var(--v5-border); }

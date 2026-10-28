@@ -40,7 +40,7 @@
       >
         <text class="font-mono-tabular" style="font-size: 12px; color: var(--v5-brand); background: var(--v5-brand-soft); border-radius: 4px; padding: 2px 4px; text-align: center; justify-self: start; font-weight: 500">{{ displayRow(row).tag }}</text>
         <view class="min-w-0">
-          <text class="block truncate" style="font-family: var(--font-v5); font-weight: 500; font-size: 13px; color: var(--v5-ink); letter-spacing: -0.008em">{{ displayRow(row).name }}</text>
+          <text class="block truncate" style="font-family: var(--font-v5); font-weight: 500; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink); letter-spacing: -0.008em">{{ displayRow(row).name }}</text>
           <text class="block font-mono-tabular mt-0.5" style="font-size: 12px; color: var(--v5-ink-4)">{{ unavailableVolumeText }}</text>
         </view>
         <view class="min-w-0 text-right">
@@ -48,7 +48,7 @@
           <text v-else class="font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-4)">{{ marketBoardUnavailable }}</text>
         </view>
         <view class="text-right whitespace-nowrap tabular-nums">
-          <text style="font-family: var(--font-v5); font-weight: 500; font-size: 13px; color: var(--v5-ink)">{{ displayRow(row).priceText }}</text>
+          <text style="font-family: var(--font-v5); font-weight: 500; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink)">{{ displayRow(row).priceText }}</text>
           <text class="block font-mono-tabular mt-0.5" style="font-size: 12px; color: var(--v5-ink-4)">{{ displayRow(row).unitText }}</text>
         </view>
         <text class="text-right tabular-nums font-mono-tabular" :style="{ fontSize: '13px', color: deltaColor(row), fontWeight: 500 }">{{ displayRow(row).deltaText }}</text>

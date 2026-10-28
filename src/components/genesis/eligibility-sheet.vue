@@ -112,19 +112,19 @@ function emitSubscribe() { emit("subscribe"); }
 
 const panelStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)", background: "var(--nx-glass-fill)", borderTop: "none", padding: "18px 16px calc(env(safe-area-inset-bottom) + 38px)" };
 const titleStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "20px", fontWeight: 600, letterSpacing: "-0.018em", color: "var(--v5-ink)", lineHeight: 1.2 };
-const subtitleStyle: CSSProperties = { marginTop: "4px", fontFamily: "var(--font-v5)", fontSize: "13px", color: "var(--v5-ink-3)" };
+const subtitleStyle: CSSProperties = { marginTop: "4px", fontFamily: "var(--font-v5)", fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-3)" };
 const closeBtnStyle: CSSProperties = { width: "40px", height: "40px", borderRadius: "999px", color: "var(--v5-ink-3)" };
 const unlockedBannerStyle: CSSProperties = { background: "color-mix(in srgb, var(--v5-success) 12%, transparent)", borderRadius: "14px", padding: "12px 14px", marginBottom: "12px" };
-const unlockedTitleStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)", lineHeight: 1.25 };
+const unlockedTitleStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "var(--ui-type-section)", fontWeight: 600, color: "var(--v5-ink)", lineHeight: 1.25 };
 const unlockedSubStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.4 };
 const ruleListStyle: CSSProperties = { display: "flex", flexDirection: "column", gap: "10px" };
 const ruleRowStyle: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", background: "var(--v5-surface-2)", borderRadius: "14px", padding: "13px 14px" };
-const ruleLabelStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "13px", fontWeight: 500, color: "var(--v5-ink)" };
+const ruleLabelStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "var(--ui-type-list-subtitle)", fontWeight: 500, color: "var(--v5-ink)" };
 const ruleValueStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-3)", whiteSpace: "nowrap" };
 const reasonRowStyle: CSSProperties = { background: "color-mix(in srgb, var(--v5-warning) 10%, var(--v5-surface-2))", borderRadius: "14px", padding: "12px 14px" };
 const reasonTextStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-2)", lineHeight: 1.45 };
 const capNoteStyle: CSSProperties = { marginTop: "12px", fontSize: "12px", color: "var(--v5-ink-3)", textAlign: "center", lineHeight: 1.45 };
-const subscribeStyle: CSSProperties = { marginTop: "14px", height: "50px", padding: "0 28px", borderRadius: "999px", gap: "6px", background: "var(--v5-brand)", boxShadow: "var(--v5-spotlight-brand)", color: "var(--v5-on-brand)", fontFamily: "var(--font-v5)", fontWeight: 500, fontSize: "15px" };
+const subscribeStyle: CSSProperties = { marginTop: "14px", height: "50px", padding: "0 28px", borderRadius: "999px", gap: "6px", background: "var(--v5-brand)", boxShadow: "var(--v5-spotlight-brand)", color: "var(--v5-on-brand)", fontFamily: "var(--font-v5)", fontWeight: 500, fontSize: "var(--ui-type-button)" };
 
 useDialogA11y(computed(() => props.open), ".nx-elig-root", emitClose);
 

@@ -515,7 +515,7 @@ function skelStyle(w: string, h: string, mt = "0", radius = "6px"): CSSPropertie
   return { width: w, height: h, marginTop: mt, borderRadius: radius, background: "var(--v5-surface-2)", opacity: 0.6 };
 }
 
-const emptyTextStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)" };
+const emptyTextStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-2)" };
 const emptyLinkStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-brand)" };
 // De-carded amount hero — left-aligned on the page floor (2px optical inset);
 // no surface/border, and the floor glow + dot-grid element are deleted outright.
@@ -544,7 +544,7 @@ function connectorStyle(done: boolean): CSSProperties {
 const doneIconStyle: CSSProperties = { width: "24px", height: "24px", borderRadius: "999px", background: "color-mix(in srgb, var(--v5-brand) 15%, transparent)" };
 const currentIconStyle: CSSProperties = { width: "24px", height: "24px", borderRadius: "999px", background: "color-mix(in srgb, var(--v5-brand) 15%, transparent)" };
 function stepLabelStyle(pending: boolean): CSSProperties {
-  return { fontSize: "13px", fontWeight: 500, color: pending ? "var(--v5-ink-4)" : "var(--v5-ink)" };
+  return { fontSize: "var(--ui-type-list-subtitle)", fontWeight: 500, color: pending ? "var(--v5-ink-4)" : "var(--v5-ink)" };
 }
 const stepHintStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginTop: "2px" };
 const stepTimeStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "12px", color: "var(--v5-ink-4)", marginTop: "2px", fontVariantNumeric: "tabular-nums" };
@@ -559,7 +559,7 @@ const etaFrozenCardStyle: CSSProperties = {
   background: "color-mix(in srgb, var(--v5-danger) 8%, transparent)",
   border: "1px solid color-mix(in srgb, var(--v5-danger) 30%, transparent)",
 };
-const etaTitleStyle: CSSProperties = { fontSize: "13px", fontWeight: 500, color: "var(--v5-ink)" };
+const etaTitleStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle)", fontWeight: 500, color: "var(--v5-ink)" };
 const etaSubStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginTop: "2px" };
 const reasonLineStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.5 };
 // 客服出口 —— 独占一行的行动链接,撑到 44px 热区(《07》tap≥44,不吃 inline 豁免)。

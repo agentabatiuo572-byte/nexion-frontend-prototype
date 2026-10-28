@@ -429,8 +429,8 @@ const sectionsStyle: CSSProperties = {
 const blockNumStyle: CSSProperties = { fontFamily: "var(--font-jet-mono), ui-monospace, monospace", fontSize: "12px", color: "var(--v5-brand-2)" };
 // Unit title + paragraph body per the de-card typography ladder (body = ink-2,
 // never ink-3, at a legible 13.5/1.65 for a legal disclosure).
-const blockTitleStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)", lineHeight: 1.4 };
-const blockBodyStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.65 };
+const blockTitleStyle: CSSProperties = { fontSize: "var(--ui-type-section)", fontWeight: 600, color: "var(--v5-ink)", lineHeight: 1.4 };
+const blockBodyStyle: CSSProperties = { fontSize: "var(--ui-type-long-form)", color: "var(--v5-ink-2)", lineHeight: 1.65 };
 // Selected section keeps a soft brand-2 read-tracking tint (no border — inner
 // blocks use soft fill, not a stroke); horizontal bleed reaches the gutter.
 function blockStyle(selected: boolean): CSSProperties {
@@ -470,7 +470,7 @@ const checkboxStyle = computed<CSSProperties>(() => ({
   background: checked.value || accepted.value ? "var(--v5-brand)" : "transparent",
   border: checked.value || accepted.value ? "1px solid var(--v5-brand)" : "1px solid var(--v5-border-strong)",
 }));
-const checkLabelStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.625 };
+const checkLabelStyle: CSSProperties = { fontSize: "var(--ui-type-long-form)", color: "var(--v5-ink-2)", lineHeight: 1.625 };
 const acceptBtnStyle = computed<CSSProperties>(() => ({
   marginTop: "16px",
   width: "100%",
@@ -478,7 +478,7 @@ const acceptBtnStyle = computed<CSSProperties>(() => ({
   borderRadius: "999px",
   background: canAccept.value || accepted.value ? "var(--v5-brand)" : "var(--v5-surface-2)",
   color: canAccept.value || accepted.value ? "var(--v5-on-brand)" : "var(--v5-ink-4)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-button)",
   fontWeight: 600,
 }));
 const disclaimerStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", color: "var(--v5-ink-4)", lineHeight: 1.375 };

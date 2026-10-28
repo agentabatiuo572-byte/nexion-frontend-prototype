@@ -13,7 +13,7 @@
       <text class="block font-mono-tabular" style="font-size: 12px; color: var(--v5-brand-2-ink)">{{ t.store.heroEyebrow }}</text>
       <text v-if="multiplier !== null" class="block" :style="titleStyle">{{ t.store.heroTitlePre }} <text style="color: var(--v5-brand-2-ink)">{{ multiplierText }}</text> {{ t.store.heroTitlePost }}</text>
       <text v-else class="block" :style="titleStyle">{{ t.store.secMoreTiers }}</text>
-      <text class="block" style="margin-top: 8px; font-size: 13px; color: var(--v5-ink-3); line-height: 1.45">{{ t.store.heroSub }}</text>
+      <text class="block" style="margin-top: 8px; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); line-height: 1.45">{{ t.store.heroSub }}</text>
     </view>
     <view class="relative">
       <!-- StoreHeroArt — tier ladder schematic -->

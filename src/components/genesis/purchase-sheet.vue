@@ -343,14 +343,14 @@ const titleStyle: CSSProperties = {
 const subtitleStyle: CSSProperties = {
   marginTop: "4px",
   fontFamily: "var(--font-v5)",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink-3)",
 };
 const closeBtnStyle: CSSProperties = { width: "40px", height: "40px", borderRadius: "999px", color: "var(--v5-ink-3)" };
 const stepperWrapStyle: CSSProperties = { background: "var(--v5-surface-2)", borderRadius: "16px", padding: "16px" };
 const stepperLabelStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink-3)",
   fontWeight: 500,
 };
@@ -383,7 +383,7 @@ const summaryStyle: CSSProperties = {
   background: "var(--v5-surface-2)",
   borderRadius: "14px",
   padding: "16px",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   display: "flex",
   flexDirection: "column",
   gap: "8px",
@@ -393,7 +393,7 @@ const rowLabelMutedStyle: CSSProperties = { color: "var(--v5-ink-4)" };
 const rowValStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
   fontWeight: 500,
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   letterSpacing: "-0.005em",
   color: "var(--v5-ink)",
 };
@@ -442,7 +442,7 @@ const submitStyle = computed<CSSProperties>(() => ({
   color: purchasing.value ? "var(--v5-ink-4)" : "var(--v5-on-brand)",
   fontFamily: "var(--font-v5)",
   fontWeight: 500,
-  fontSize: "15px",
+  fontSize: "var(--ui-type-button)",
   letterSpacing: "-0.005em",
 }));
 

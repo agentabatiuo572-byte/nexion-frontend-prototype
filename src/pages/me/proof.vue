@@ -661,7 +661,7 @@ const heroBigStyle: CSSProperties = {
   lineHeight: 1,
 };
 const heroBigInlineStyle: CSSProperties = { fontSize: "34px", fontWeight: 600, color: "var(--v5-ink)", lineHeight: 1 };
-const heroUnitStyle: CSSProperties = { fontSize: "15px", fontWeight: 500, color: "var(--v5-ink-3)" };
+const heroUnitStyle: CSSProperties = { fontSize: "var(--ui-type-list-title)", fontWeight: 500, color: "var(--v5-ink-3)" };
 // Nested tint blocks inside the share card — soft surface-2 fill, no border.
 const miniStatStyle: CSSProperties = {
   background: "color-mix(in srgb, var(--v5-surface-2) 60%, transparent)",
@@ -742,7 +742,7 @@ const posterCanvasStyle: CSSProperties = {
   pointerEvents: "none",
 };
 const nativeBtnStyle: CSSProperties = { height: "48px", borderRadius: "999px", background: "var(--v5-brand)" };
-const nativeBtnTextStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, color: "var(--v5-on-brand)" };
+const nativeBtnTextStyle: CSSProperties = { fontSize: "var(--ui-type-button)", fontWeight: 600, color: "var(--v5-on-brand)" };
 const nativeHintStyle: CSSProperties = { marginTop: "6px", textAlign: "center", fontSize: "12px", color: "var(--v5-ink-3)" };
 // Share-destination icon grid (form b) — filled surface tiles, no border.
 const destBtnStyle: CSSProperties = {

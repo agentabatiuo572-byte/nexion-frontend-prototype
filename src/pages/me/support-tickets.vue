@@ -342,7 +342,7 @@ const historyTruncatedStyle: CSSProperties = {
   background: "color-mix(in srgb, var(--v5-warning) 8%, transparent)",
 };
 const historyLoadEarlierStyle: CSSProperties = {
-  fontSize: "13px", lineHeight: "20px", textAlign: "center", padding: "8px 16px",
+  fontSize: "var(--ui-type-list-subtitle)", lineHeight: "20px", textAlign: "center", padding: "8px 16px",
 };
 
 onLoad((query) => {
@@ -661,7 +661,7 @@ async function closeTicket() {
   } catch { if (active()) toast.error(t.value.security.opFailed); }
 }
 
-const backRowStyle: CSSProperties = { minHeight: "44px", fontSize: "13px", color: "var(--v5-ink-2)" };
+const backRowStyle: CSSProperties = { minHeight: "44px", fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-2)" };
 const newBtnStyle: CSSProperties = { minHeight: "48px", fontWeight: 600, fontSize: "13px" };
 const slaNoticeStyle: CSSProperties = { padding: "0 6px", fontSize: "12px", color: "var(--v5-ink-3)" };
 const slaTargetStyle: CSSProperties = { marginTop: "10px", padding: "10px 12px", borderRadius: "12px", background: "var(--v5-surface)" };
@@ -717,8 +717,8 @@ const textareaStyle: CSSProperties = {
   color: "var(--v5-ink)",
   lineHeight: 1.625,
 };
-const cancelBtnStyle: CSSProperties = { minHeight: "48px", fontWeight: 500, fontSize: "15px" };
-const submitBtnStyle: CSSProperties = { minHeight: "48px", fontWeight: 600, fontSize: "15px" };
+const cancelBtnStyle: CSSProperties = { minHeight: "48px", fontWeight: 500, fontSize: "var(--ui-type-button)" };
+const submitBtnStyle: CSSProperties = { minHeight: "48px", fontWeight: 600, fontSize: "var(--ui-type-button)" };
 // Ticket header — sits on the page floor, hairline closes the block.
 const detailMetaStyle: CSSProperties = { padding: "4px 2px 14px", borderBottom: "1px solid var(--v5-border)" };
 function statusTextStyle(s: TicketStatus): CSSProperties {
@@ -760,7 +760,7 @@ const tabOptions = computed(() => tabs.map(value => ({ value, label: tabLabel(va
 .ticket-create-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
 .ticket-reply-actions { gap: 12px; margin-top: 16px; }
 .ticket-error { text-align: center; padding-bottom: 16px; }
-.ticket-creation-notice { color: var(--v5-ink-3); font-size: 13px; line-height: 1.6; padding: 4px 0 12px; border-bottom: 1px solid var(--v5-border); }
+.ticket-creation-notice { color: var(--v5-ink-3); font-size: var(--ui-type-list-subtitle); line-height: 1.6; padding: 4px 0 12px; border-bottom: 1px solid var(--v5-border); }
 .ticket-creation-notice-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .ticket-creation-notice-actions:empty { display: none; }
 .ticket-detail-id { display: block; margin-top: 8px; overflow-wrap: anywhere; color: var(--v5-ink-3); font-family: var(--font-jet-mono), ui-monospace, monospace; font-size: 12px; }

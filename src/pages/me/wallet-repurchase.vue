@@ -599,7 +599,7 @@ const ctaStyle = computed<CSSProperties>(() => ({
   width: "100%",
   height: "48px",
   borderRadius: "999px",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-button)",
   fontWeight: 600,
   background: canSubmit.value ? "var(--v5-brand)" : "var(--v5-surface-2)",
   color: canSubmit.value ? "var(--v5-on-brand)" : "var(--v5-ink-4)",
@@ -607,7 +607,7 @@ const ctaStyle = computed<CSSProperties>(() => ({
 }));
 const lockedNoticeStyle: CSSProperties = { padding: "0 8px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.625 };
 const unavailableStyle: CSSProperties = { padding: "16px", borderRadius: "12px", background: "var(--v5-surface-2)" };
-const unavailableTitleStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)" };
+const unavailableTitleStyle: CSSProperties = { fontSize: "var(--ui-type-section)", fontWeight: 600, color: "var(--v5-ink)" };
 const unavailableBodyStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.625 };
 const retryCtaStyle: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", marginTop: "12px", minHeight: "44px", borderRadius: "999px", background: "var(--v5-surface)", color: "var(--v5-ink-2)", fontSize: "13px", fontWeight: 600 };
 // 余额不足提示:warning 描边 + 一句原因 + 一个充值出口。读屏靠 role="status" 播报,

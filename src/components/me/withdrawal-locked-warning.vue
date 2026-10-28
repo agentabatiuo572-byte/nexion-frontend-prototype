@@ -59,14 +59,14 @@ const iconCharStyle: CSSProperties = {
 };
 const titleStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-list-title)",
   fontWeight: 500,
   letterSpacing: "-0.01em",
   color: "var(--v5-warning-ink)",
 };
 const bodyStyle: CSSProperties = {
   marginTop: "4px",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink-2)",
   lineHeight: 1.5,
 };

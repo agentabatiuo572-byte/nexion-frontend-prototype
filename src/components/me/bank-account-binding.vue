@@ -142,7 +142,7 @@ function done() { void navReplace(props.returnTo === "/pages/me/wallet-cards" ? 
 .required { color: var(--v5-brand-2); }
 .field { box-sizing: border-box; width: 100%; height: 44px; min-height: 44px; background: var(--v5-surface-2); border: 1px solid var(--v5-border); border-radius: 8px; padding: 0 12px; margin-bottom: 12px; font-size: var(--ui-type-input); color: var(--v5-ink); }
 .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: .03em; }
-.default-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; min-height: 44px; color: var(--v5-ink-2); font-size: 13px; }
+.default-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; min-height: 44px; color: var(--v5-ink-2); font-size: var(--ui-type-list-subtitle); }
 .default-check { width: 18px; height: 18px; flex-shrink: 0; background: var(--v5-ink); border-radius: 2px; display: grid; place-items: center; }
 .default-state { margin-left: auto; color: var(--v5-brand); font-size: 12px; font-weight: 600; }
 .hint { display: block; color: var(--v5-ink-3); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
@@ -154,7 +154,7 @@ function done() { void navReplace(props.returnTo === "/pages/me/wallet-cards" ? 
 .text-action { min-height: 44px; display: flex; align-items: center; color: var(--v5-brand); font-size: 13px; }
 .bound-summary { padding: 14px 2px; border-bottom: 1px solid var(--v5-border); }
 .binding-review { padding: 16px 2px 0; }
-.review-row { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--v5-border); font-size: 13px; overflow-wrap: anywhere; }
-.saved-note { display: block; margin: 20px 0; font-size: 13px; color: var(--v5-brand); }
+.review-row { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--v5-border); font-size: var(--ui-type-list-subtitle); overflow-wrap: anywhere; }
+.saved-note { display: block; margin: 20px 0; font-size: var(--ui-type-list-subtitle); color: var(--v5-brand); }
 [aria-disabled="true"] { cursor: default; }
 </style>

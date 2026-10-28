@@ -333,7 +333,7 @@ function onUse(v: VoucherDef) {
 const secHeadStyle: CSSProperties = {
   margin: "22px 18px 12px",
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   letterSpacing: "-0.012em",
   color: "var(--v5-ink)",
@@ -396,8 +396,8 @@ function notchStyle(top: boolean): CSSProperties {
     background: "var(--v5-bg)",
   } as CSSProperties;
 }
-const ticketNameStyle: CSSProperties = { fontSize: "15px", fontWeight: 550, color: "var(--v5-ink)" };
-const ticketNameExpiredStyle: CSSProperties = { fontSize: "15px", fontWeight: 550, color: "var(--v5-ink-3)" };
+const ticketNameStyle: CSSProperties = { fontSize: "var(--ui-type-list-title)", fontWeight: 550, color: "var(--v5-ink)" };
+const ticketNameExpiredStyle: CSSProperties = { fontSize: "var(--ui-type-list-title)", fontWeight: 550, color: "var(--v5-ink-3)" };
 const recordListStyle: CSSProperties = {
   margin: "2px 16px 0",
   padding: "0 2px",
@@ -420,7 +420,7 @@ function vIconStyle(dim: boolean): CSSProperties {
       : "color-mix(in srgb, var(--v5-brand) 12%, transparent)",
   };
 }
-const rowTitleStyle: CSSProperties = { fontSize: "13px", fontWeight: 500, color: "var(--v5-ink)" };
+const rowTitleStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle)", fontWeight: 500, color: "var(--v5-ink)" };
 const rowSubStyle: CSSProperties = { marginTop: "3px", fontSize: "12px", color: "var(--v5-ink-3)" };
 const rowSubTightStyle: CSSProperties = { marginTop: "1px", fontSize: "12px", color: "var(--v5-ink-3)", overflowWrap: "anywhere" };
 const rowDateStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-4)" };
@@ -468,7 +468,7 @@ const emptyStyle: CSSProperties = {
   padding: "32px",
   textAlign: "center",
 };
-const emptyTitleStyle: CSSProperties = { marginTop: "12px", fontSize: "13px", color: "var(--v5-ink-2)" };
+const emptyTitleStyle: CSSProperties = { marginTop: "12px", fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-2)" };
 const emptyHintStyle: CSSProperties = { marginTop: "6px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.6 };
 const remoteErrorStyle: CSSProperties = { margin: "0 16px 12px", padding: "10px 12px", borderRadius: "12px", background: "color-mix(in srgb, var(--v5-danger) 10%, transparent)", color: "var(--v5-danger)", fontSize: "12px", gap: "12px" };
 const loadingStyle: CSSProperties = { margin: "0 16px", padding: "32px", textAlign: "center", color: "var(--v5-ink-3)" };

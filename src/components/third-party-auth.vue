@@ -260,12 +260,12 @@ onUnmounted(() => {
 
 <style scoped>
 .third-party-auth { margin: 20px 0; color: var(--v5-ink); }
-.oauth-title { display: block; font-size: 15px; font-weight: 600; margin-bottom: 12px; }
-.oauth-copy { display: block; font-size: 13px; line-height: 1.6; color: var(--v5-ink-2); margin: 10px 0; overflow-wrap: anywhere; }
+.oauth-title { display: block; font-size: var(--ui-type-section); font-weight: 600; margin-bottom: 12px; }
+.oauth-copy { display: block; font-size: var(--ui-type-list-subtitle); line-height: 1.6; color: var(--v5-ink-2); margin: 10px 0; overflow-wrap: anywhere; }
 .oauth-panel { padding: 14px; margin-top: 12px; border-radius: 16px; background: var(--v5-surface); }
 .oauth-identity { display: block; overflow-wrap: anywhere; font-weight: 600; margin: 12px 0; }
 .oauth-input { box-sizing: border-box; min-height: 44px; width: 100%; padding: 10px; border-radius: 10px; color: var(--v5-ink); background: var(--v5-surface-2); margin: 12px 0; }
-.oauth-button { min-height: 44px; display: flex; align-items: center; justify-content: center; margin-top: 10px; border-radius: 12px; background: var(--v5-brand); color: white; font-size: 15px; }
+.oauth-button { min-height: 44px; display: flex; align-items: center; justify-content: center; margin-top: 10px; border-radius: 12px; background: var(--v5-brand); color: white; font-size: var(--ui-type-button); }
 .oauth-button:active { opacity: 0.8; }
 .oauth-button:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
 .oauth-button[aria-disabled="true"] { opacity: 0.5; }

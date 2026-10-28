@@ -172,7 +172,7 @@ const emptyIconStyle: CSSProperties = {
   borderRadius: "999px",
   background: "var(--v5-surface-2)",
 };
-const emptyTitleStyle: CSSProperties = { marginTop: "12px", fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)" };
+const emptyTitleStyle: CSSProperties = { marginTop: "12px", fontSize: "var(--ui-type-section)", fontWeight: 600, color: "var(--v5-ink)" };
 const emptyHintStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.375 };
 
 // Each saved card keeps its card-face identity as a filled surface; the outer
@@ -186,7 +186,7 @@ const cardRowStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
 };
 const cardRowHeadStyle: CSSProperties = { padding: "var(--ui-space-inset) 20px", gap: "var(--ui-space-inline)" };
 const cardIconStyle: CSSProperties = { width: "40px", height: "40px", borderRadius: "8px", background: "var(--v5-surface-2)" };
-const cardNameStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)" };
+const cardNameStyle: CSSProperties = { fontSize: "var(--ui-type-section)", fontWeight: 600, color: "var(--v5-ink)" };
 const defaultBadgeStyle: CSSProperties = {
   fontSize: "12px",
   color: "var(--v5-brand)",
@@ -214,7 +214,7 @@ const disclaimerStyle: CSSProperties = {
   lineHeight: 1.625,
 };
 const unavailableStyle: CSSProperties = { padding: "4px 2px" };
-const unavailableTitleStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)" };
+const unavailableTitleStyle: CSSProperties = { fontSize: "var(--ui-type-section)", fontWeight: 600, color: "var(--v5-ink)" };
 const unavailableBodyStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", lineHeight: 1.5, color: "var(--v5-ink-3)" };
 const unavailableCtaStyle: CSSProperties = { minHeight: "44px", marginTop: "16px", borderRadius: "999px", background: "var(--v5-surface-2)" };
 const unavailableCtaTextStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink-2)" };
@@ -223,7 +223,7 @@ const refreshErrorStyle: CSSProperties = {
   background: "color-mix(in srgb, var(--v5-warning) 10%, var(--v5-surface))",
   borderRadius: "16px",
 };
-const refreshErrorTextStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)" };
+const refreshErrorTextStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-2)" };
 
 
 </script>

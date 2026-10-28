@@ -149,5 +149,5 @@ const pinDotStyle: CSSProperties = {
   background: "var(--v5-warning)",
   flexShrink: 0,
 };
-const pinTextStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.6 };
+const pinTextStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-2)", lineHeight: 1.6 };
 </script>

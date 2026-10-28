@@ -31,12 +31,12 @@ const iconStyle: CSSProperties = {
 const nameStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
   fontWeight: 600,
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   color: "var(--v5-ink)",
   letterSpacing: "-0.008em",
 };
 const descStyle: CSSProperties = {
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink-3)",
   marginTop: "3px",
   lineHeight: 1.4,

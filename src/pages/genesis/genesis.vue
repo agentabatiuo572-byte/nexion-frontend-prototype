@@ -100,7 +100,7 @@
         <view :style="perksCardStyle">
           <view v-for="(p, i) in PERKS" :key="p.name" class="genesis-perk-row" :class="{'genesis-perk-last':i===PERKS.length-1}">
             <view class="genesis-perk-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path :d="p.path" /></svg></view>
-            <view><text class="block" style="font-size:15px;font-weight:600">{{ p.name }}</text><text class="block" style="margin-top:3px;font-size:13px;line-height:1.6;color:var(--v5-ink-3)">{{ p.desc }}</text></view>
+            <view><text class="block" style="font-size:15px;font-weight:600">{{ p.name }}</text><text class="block" style="margin-top:3px;font-size:var(--ui-type-list-subtitle);line-height:1.6;color:var(--v5-ink-3)">{{ p.desc }}</text></view>
           </view>
         </view>
 
@@ -514,7 +514,7 @@ const titleStyle: CSSProperties = {
 };
 const heroSubStyle: CSSProperties = {
   marginTop: "12px",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "color-mix(in srgb, var(--v5-genesis-gold-pale-on-dark) 72%, transparent)",
   lineHeight: 1.55,
 };
@@ -556,7 +556,7 @@ const socialStyle: CSSProperties = {
   gap: "8px",
   background: "var(--v5-surface)",
   fontFamily: "var(--font-v5)",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
 };
 const socialDotStyle: CSSProperties = { width: "6px", height: "6px", borderRadius: "50%", background: "var(--v5-success)" };
 const socialTimeStyle: CSSProperties = {
@@ -569,7 +569,7 @@ const socialTimeStyle: CSSProperties = {
 const secHeaderStyle: CSSProperties = { margin: "12px 2px 2px", minHeight: "44px" };
 const secTitleStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   letterSpacing: "-0.014em",
   color: "var(--v5-ink)",
@@ -667,7 +667,7 @@ const faqQStyle: CSSProperties = {
 };
 const faqAStyle: CSSProperties = {
   marginTop: "5px",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink-2)",
   lineHeight: 1.62,
 };
@@ -697,7 +697,7 @@ const dockBtnStyle = computed<CSSProperties>(() => ({
   color: dockActive.value ? "var(--v5-genesis-gold-pale-on-dark)" : "var(--v5-ink-4)",
   fontFamily: "var(--font-v5)",
   fontWeight: 500,
-  fontSize: "15px",
+  fontSize: "var(--ui-type-button)",
   letterSpacing: "0.02em",
   boxShadow:
     dockActive.value
@@ -754,7 +754,7 @@ import GenesisArtwork from "@/components/genesis/genesis-artwork.vue";
 </script>
 
 <style scoped>
-.genesis-refresh { display:flex; align-items:center; justify-content:center; min-height:44px; margin-top:12px; color:var(--v5-ink); font-size:13px; cursor:pointer; }
+.genesis-refresh { display:flex; align-items:center; justify-content:center; min-height:44px; margin-top:12px; color:var(--v5-ink); font-size:var(--ui-type-list-subtitle); cursor:pointer; }
 .genesis-refresh:focus-visible { outline:2px solid var(--v5-brand); outline-offset:2px; }
 .genesis-refresh[aria-disabled="true"] { opacity:.5; }
 .genesis-perk-row { display:grid; grid-template-columns:36px minmax(0,1fr); gap:12px; padding:14px 0; border-bottom:1px solid var(--v5-border); }

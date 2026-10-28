@@ -80,10 +80,10 @@
       </view>
       <text class="block" :style="tierProgressStyle">{{ tierProgressLine }}</text>
       <view v-if="remoteApiEnabled && vRank.remoteError" class="mx-4 mt-2" role="status" aria-live="polite">
-        <text class="block" style="font-size: 13px; color: var(--v5-ink-2)">{{ t.profile.rankUnavailable }}</text>
+        <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2)">{{ t.profile.rankUnavailable }}</text>
         <view
           class="nx-profile-rank-retry inline-flex items-center active:opacity-80"
-          style="min-height: 44px; font-size: 13px; color: var(--v5-brand)"
+          style="min-height: 44px; font-size: var(--ui-type-list-subtitle); color: var(--v5-brand)"
           role="button"
           tabindex="0"
           :aria-label="t.rank.retry"
@@ -522,7 +522,7 @@ const regenBtnStyle: CSSProperties = {
 };
 const nameStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   color: "var(--v5-ink)",
 };
@@ -541,7 +541,7 @@ const joinedStyle: CSSProperties = {
 const sectionLabelStyle: CSSProperties = {
   margin: "22px 18px 12px",
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   letterSpacing: "-0.012em",
   color: "var(--v5-ink)",
@@ -601,7 +601,7 @@ const tierHeaderStyle: CSSProperties = {
 };
 const tierTitleStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   letterSpacing: "-0.012em",
   color: "var(--v5-ink)",
@@ -634,7 +634,7 @@ const walletIconStyle: CSSProperties = {
 };
 const walletTitleStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   fontWeight: 500,
   color: "color-mix(in srgb, var(--v5-ink) 90%, transparent)",
 };

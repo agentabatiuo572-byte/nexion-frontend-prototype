@@ -39,7 +39,7 @@
       <!-- Empty state -->
       <view v-if="!q.trim()" class="nx-empty mx-4 mt-4 rounded-2xl text-center" :style="emptyCardStyle">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 8px"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
-        <text class="block" style="font-size: 13px; color: var(--v5-ink)">{{ t.search.emptyTitle }}</text>
+        <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink)">{{ t.search.emptyTitle }}</text>
         <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px; line-height: 1.625">{{ t.search.emptyBody }}</text>
         <view class="nx-search-help active:opacity-75" role="button" tabindex="0"
           @click="openHelp" @keydown.enter.prevent="openHelp" @keydown.space.prevent="openHelp">
@@ -48,7 +48,7 @@
       </view>
 
       <view v-else-if="searchResultState.body === 'loading'" class="nx-empty mx-4 mt-4 rounded-2xl text-center" :style="emptyCardStyle">
-        <text class="block" style="font-size: 13px; color: var(--v5-ink-3)">{{ t.home.networkStatUpdating }}</text>
+        <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3)">{{ t.home.networkStatUpdating }}</text>
       </view>
 
       <EmptyState

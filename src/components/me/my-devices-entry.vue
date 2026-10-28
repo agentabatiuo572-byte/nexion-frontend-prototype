@@ -84,7 +84,7 @@ const iconBoxStyle: CSSProperties = {
 const fleetTitleStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
   fontWeight: 500,
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink-2)",
   letterSpacing: "-0.006em",
   lineHeight: 1.25,

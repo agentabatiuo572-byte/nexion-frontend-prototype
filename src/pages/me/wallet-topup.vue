@@ -92,7 +92,7 @@ function segPillStyle(id: Seg): CSSProperties {
 function segLabelStyle(id: Seg): CSSProperties {
   return {
     fontFamily: "var(--font-v5)",
-    fontSize: "13px",
+    fontSize: "var(--ui-type-list-subtitle)",
     fontWeight: seg.value === id ? 600 : 500,
     color: seg.value === id ? "var(--v5-on-brand)" : "var(--v5-ink-3)",
   };

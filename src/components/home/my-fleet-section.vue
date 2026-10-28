@@ -67,7 +67,7 @@ function goManage() {
 .hf-title-group { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; min-width: 0; }
 .hf-title { font: 600 20px/1.35 var(--font-v5); color: var(--v5-ink); letter-spacing: -.02em; }
 .hf-count { font-size: 12px; line-height: 18px; color: var(--v5-ink-3); white-space: nowrap; }
-.hf-manage { display: flex; align-items: center; justify-content: center; flex-shrink: 0; gap: 8px; min-height: 44px; padding: 10px 16px; border-radius: var(--v5-radius-full); font: 500 13px/20px var(--font-v5); color: var(--v5-ink); }
+.hf-manage { display: flex; align-items: center; justify-content: center; flex-shrink: 0; gap: 8px; min-height: 44px; padding: 10px 16px; border-radius: var(--v5-radius-full); font: 500 var(--ui-type-list-subtitle)/20px var(--font-v5); color: var(--v5-ink); }
 .hf-manage > text, .hf-manage > svg { position: relative; }
 .hf-grid { display: flex; flex-direction: column; overflow: hidden; border-radius: var(--ui-radius-surface); background: var(--v5-surface); border:1px solid var(--v5-border); }
 .hf-unavailable { padding: 12px 16px; border-radius: var(--ui-radius-surface); background: var(--v5-surface); color: var(--v5-ink-3); font-size: 12px; }

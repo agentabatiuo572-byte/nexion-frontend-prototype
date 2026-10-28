@@ -38,7 +38,7 @@ function activate() {
 .earn-way-card__content { position: relative; z-index: 1; min-width: 0; }
 .earn-way-card__eyebrow { display: block; color: var(--v5-brand); font: 600 10px/1.4 var(--font-v5); letter-spacing: .08em; }
 .earn-way-card__title { display: block; margin-top: 7px; font: 600 20px/1.2 var(--font-v5); letter-spacing: -.025em; overflow-wrap: anywhere; }
-.earn-way-card__body { display: block; margin-top: 6px; color: var(--v5-ink-2); font: 400 13px/1.5 var(--font-v5); overflow-wrap: anywhere; }
+.earn-way-card__body { display: block; margin-top: 6px; color: var(--v5-ink-2); font: 400 var(--ui-type-list-subtitle)/1.5 var(--font-v5); overflow-wrap: anywhere; }
 .earn-way-card__action {
   --v5-liquid-tint: rgba(255,255,255,.015);
   --v5-liquid-rim: rgba(222,244,143,.7);

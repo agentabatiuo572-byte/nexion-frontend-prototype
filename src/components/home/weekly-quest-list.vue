@@ -277,7 +277,7 @@ const numberBoxStyle: CSSProperties = {
 };
 const pendingLabelStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink)",
 };
 const periodStyle: CSSProperties = {

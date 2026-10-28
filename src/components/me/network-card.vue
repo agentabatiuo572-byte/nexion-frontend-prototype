@@ -35,7 +35,7 @@
           <template v-if="gapLine">
             <text style="color: var(--v5-ink-4); font-weight: 400"> · </text>
             <text :style="{ color: gap.primaryGap ? 'var(--v5-brand-2)' : 'var(--v5-success)' }">{{ gapLine }}</text>
-            <text v-if="moreCount > 0" style="color: var(--v5-ink-4); font-weight: 400; font-size: 13px"> {{ moreCountLabel }}</text>
+            <text v-if="moreCount > 0" style="color: var(--v5-ink-4); font-weight: 400; font-size: var(--ui-type-list-subtitle)"> {{ moreCountLabel }}</text>
           </template>
         </view>
 
@@ -188,7 +188,7 @@ const prizeHeroStyle: CSSProperties = {
 };
 const perkLineStyle: CSSProperties = {
   marginTop: "4px",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink-3)",
   lineHeight: 1.3,
   whiteSpace: "nowrap",

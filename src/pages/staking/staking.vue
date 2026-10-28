@@ -564,7 +564,7 @@ function statVStyle(tint: string): CSSProperties {
 const secHeaderStyle: CSSProperties = { margin: "10px 2px 0" };
 const secTitleStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   letterSpacing: "-0.014em",
   color: "var(--v5-ink)",

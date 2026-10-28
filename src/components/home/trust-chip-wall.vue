@@ -25,7 +25,7 @@ const t = useT();
 const goTrust = () => navTo("/pages/trust/trust");
 const cardStyle: CSSProperties = { padding: "14px", borderRadius: "16px", background: "var(--v5-surface)" };
 const iconStyle: CSSProperties = { width: "32px", height: "32px", flexShrink: 0, borderRadius: "10px", background: "var(--v5-brand-soft)" };
-const titleStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)" };
+const titleStyle: CSSProperties = { fontSize: "var(--ui-type-section)", fontWeight: 600, color: "var(--v5-ink)" };
 const subtitleStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-brand)" };
 const bodyStyle: CSSProperties = { marginTop: "9px", fontSize: "12px", lineHeight: 1.5, color: "var(--v5-ink-3)" };
 

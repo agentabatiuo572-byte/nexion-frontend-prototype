@@ -32,11 +32,11 @@
         <view class="promotion-link" role="button" tabindex="0" @click="navTo(promotionStoreHref())"><text>{{ t.promotion.allProducts }}</text></view>
       </view>
       <view v-else-if="catalogStatus === 'loading'" class="text-center" style="padding: 40px 16px">
-        <text style="font-size: 13px; color: var(--v5-ink-3)">{{ t.store.catalogLoadingTitle }}</text>
+        <text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3)">{{ t.store.catalogLoadingTitle }}</text>
       </view>
 
       <view v-else-if="catalogStatus === 'error'" class="text-center" style="padding: 40px 16px">
-        <text class="block" style="font-size: 13px; color: var(--v5-ink-3); margin-bottom: 12px">{{ t.store.catalogErrorTitle }}</text>
+        <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); margin-bottom: 12px">{{ t.store.catalogErrorTitle }}</text>
         <view data-testid="detail-catalog-retry" class="inline-flex items-center justify-center active:opacity-90" :style="catalogRetryStyle" role="button" tabindex="0" :aria-disabled="catalogRetrying" @click.stop="retryCatalog">
           <text>{{ catalogRetrying ? t.store.catalogLoadingTitle : t.store.catalogRetry }}</text>
         </view>
@@ -44,7 +44,7 @@
 
       <!-- Product not found — plain floor text (matches checkout / order-detail). -->
       <view v-else-if="!product" class="text-center" style="padding: 40px 16px">
-        <text style="font-size: 13px; color: var(--v5-ink-3)">{{ t.store.coProductNotFound }}</text>
+        <text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3)">{{ t.store.coProductNotFound }}</text>
       </view>
 
       <!-- Phase-gated → coming-soon lock card -->
@@ -58,7 +58,7 @@
       <template v-else-if="purchaseUnavailable">
         <view class="mx-4 rounded-2xl border" style="padding: 24px; border-color: var(--v5-border); background: var(--v5-surface)">
           <text class="block" style="font-size: 15px; font-weight: 600; color: var(--v5-ink)">{{ nexGridBrandText(product.name) }}</text>
-          <text class="block" style="margin-top: 8px; font-size: 13px; line-height: 1.6; color: var(--v5-ink-3)">{{ t.store.specUnavailable }}</text>
+          <text class="block" style="margin-top: 8px; font-size: var(--ui-type-list-subtitle); line-height: 1.6; color: var(--v5-ink-3)">{{ t.store.specUnavailable }}</text>
         </view>
         <view aria-hidden style="height: 32px" />
       </template>
@@ -84,7 +84,7 @@
             <view class="flex items-start justify-between" style="gap: 12px">
               <view class="min-w-0">
                 <text class="block truncate" :style="nameStyle">{{ nexGridBrandText(product.name) }}</text>
-                <text class="block" style="margin-top: 4px; font-size: 13px; color: var(--v5-ink-3)">{{ copy.tagline }}</text>
+                <text class="block" style="margin-top: 4px; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3)">{{ copy.tagline }}</text>
               </view>
             </view>
 
@@ -210,7 +210,7 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0" :style="{ transform: openFaq === i ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }"><path d="m9 18 6-6-6-6" /></svg>
             </view>
             <view v-if="openFaq === i" style="padding-bottom: 12px; padding-right: 24px; margin-top: -4px">
-              <text style="font-size: 13px; color: var(--v5-ink-3); line-height: 1.625; white-space: pre-line">{{ f.a }}</text>
+              <text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); line-height: 1.625; white-space: pre-line">{{ f.a }}</text>
             </view>
           </view>
         </view>
@@ -862,7 +862,7 @@ const trustCardStyle: CSSProperties = { padding: "16px" };
 const mediaStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
   fontWeight: 500,
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink-2)",
 };
 const complianceChipStyle: CSSProperties = {
@@ -891,7 +891,7 @@ function faqItemStyle(i: number): CSSProperties {
 const faqQStyle: CSSProperties = {
   padding: "14px 0",
   fontFamily: "var(--font-v5)",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   fontWeight: 500,
   color: "var(--v5-ink)",
   letterSpacing: "-0.005em",
@@ -901,7 +901,7 @@ const faqQStyle: CSSProperties = {
 </script>
 <style src="@/components/promotion/promotion.css"></style>
 <style scoped>
-.product-material-retry { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 16px; margin-top: 12px; border: 1px solid var(--v5-border); border-radius: 999px; color: var(--v5-ink); font-size: 13px; }
+.product-material-retry { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 16px; margin-top: 12px; border: 1px solid var(--v5-border); border-radius: 999px; color: var(--v5-ink); font-size: var(--ui-type-list-subtitle); }
 .product-material-retry__label { font: 600 13px/20px var(--font-v5); }
 .product-material-retry:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 .promotion-quantity-stepper { display:flex;align-items:center;border:1px solid var(--v5-border);border-radius:999px;overflow:hidden; }

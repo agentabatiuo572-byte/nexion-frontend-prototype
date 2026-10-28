@@ -59,7 +59,7 @@
             @input="onInput"
             @blur="onInputBlur"
           />
-          <text class="shrink-0" style="font-size: 15px; color: var(--v5-ink-3)">{{ platformDisplayText(fromSym) }}</text>
+          <text class="shrink-0" style="font-size: var(--ui-type-body); color: var(--v5-ink-3)">{{ platformDisplayText(fromSym) }}</text>
         </view>
         <view class="flex items-center justify-between" style="margin-top: 6px">
           <text style="font-size: 12px; color: var(--v5-ink-4)">{{ minLabel }}</text>
@@ -83,7 +83,7 @@
         <text class="block" :style="cardLabelStyle">{{ remoteApiEnabled ? t.exchange.netReceive : t.exchange.receive }}</text>
         <view class="flex items-baseline" style="margin-top: 6px; gap: 4px">
           <text class="flex-1 min-w-0 tabular-nums truncate" :style="receiveValueStyle">{{ toAmountLabel }}</text>
-          <text class="shrink-0" style="font-size: 15px; color: var(--v5-ink-3)">{{ platformDisplayText(toSym) }}</text>
+          <text class="shrink-0" style="font-size: var(--ui-type-body); color: var(--v5-ink-3)">{{ platformDisplayText(toSym) }}</text>
         </view>
         <view class="flex items-center justify-between" style="margin-top: 6px">
           <text style="font-size: 12px; color: var(--v5-ink-4)">{{ rateLabel }}</text>
@@ -1199,7 +1199,7 @@ const queueTitleStyle: CSSProperties = {
 const historyTitleStyle: CSSProperties = {
   padding: "0 2px 12px",
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   letterSpacing: "-0.012em",
   color: "var(--v5-ink)",
@@ -1237,7 +1237,7 @@ const historyIconStyle: CSSProperties = {
   background: "color-mix(in srgb, var(--v5-brand) 10%, transparent)",
 };
 const historyMainStyle: CSSProperties = {
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   fontWeight: 500,
   color: "color-mix(in srgb, var(--v5-ink) 90%, transparent)",
 };

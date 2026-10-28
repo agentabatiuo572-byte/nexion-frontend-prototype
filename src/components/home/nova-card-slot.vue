@@ -25,10 +25,10 @@
             <text style="color: var(--v5-brand); font-weight: 600; font-family: var(--font-v5)">{{ t.novaCard.senderName }}</text>
             <text style="color: var(--v5-ink-4)">· {{ t.novaCard.senderRole }}</text>
           </view>
-          <view class="mt-1.5" style="font-family: var(--font-v5); font-size: 15px; line-height: 1.45; color: var(--v5-ink); font-weight: 500">
+          <view class="mt-1.5" style="font-family: var(--font-v5); font-size: var(--ui-type-list-title); line-height: 1.45; color: var(--v5-ink); font-weight: 500">
             <text>{{ msgBefore }}</text><text class="tabular-nums" style="color: var(--v5-brand); font-weight: 600">{{ yieldPct }}</text><text>{{ msgAfter }}</text>
           </view>
-          <view class="mt-2 inline-flex items-center gap-1" style="font-family: var(--font-v5); font-size: 13px; font-weight: 500; color: var(--v5-brand)">
+          <view class="mt-2 inline-flex items-center gap-1" style="font-family: var(--font-v5); font-size: var(--ui-type-list-subtitle); font-weight: 500; color: var(--v5-brand)">
             <text style="color: var(--v5-brand)">{{ t.novaCard.openChatCta }}</text>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
           </view>

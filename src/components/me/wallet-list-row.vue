@@ -66,7 +66,7 @@ const iconChipStyle = computed<CSSProperties>(() => ({
   background: props.iconBg ?? "var(--v5-surface-2)",
 }));
 const labelStyle: CSSProperties = {
-  fontSize: "15px",
+  fontSize: "var(--ui-type-body)",
   lineHeight: 1.25,
   color: "var(--v5-ink)",
 };

@@ -413,7 +413,7 @@ const titleStyle: CSSProperties = {
 const subtitleStyle: CSSProperties = {
   marginTop: "4px",
   fontFamily: "var(--font-v5)",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink-3)",
 };
 const closeBtnStyle: CSSProperties = { width: "44px", height: "44px", flexShrink: 0, borderRadius: "999px", color: "var(--v5-ink-3)" };
@@ -451,7 +451,7 @@ function presetStyle(p: number): CSSProperties {
     height: "44px",
     borderRadius: "999px",
     fontFamily: "var(--font-v5)",
-    fontSize: "13px",
+    fontSize: "var(--ui-type-list-subtitle)",
     fontWeight: 500,
     background: active ? "var(--v5-brand)" : "var(--v5-surface)",
     color: active ? "var(--v5-on-brand)" : "var(--v5-ink-2)",
@@ -473,7 +473,7 @@ const projectionStyle: CSSProperties = {
   background: "var(--v5-surface-2)",
   borderRadius: "14px",
   padding: "16px",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   display: "flex",
   flexDirection: "column",
   gap: "8px",
@@ -482,7 +482,7 @@ const rowLabelStyle: CSSProperties = { color: "var(--v5-ink-3)" };
 const rowValStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
   fontWeight: 500,
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   letterSpacing: "-0.005em",
   color: "var(--v5-ink)",
 };
@@ -505,7 +505,7 @@ const submitStyle: CSSProperties = {
   color: "var(--v5-on-brand)",
   fontFamily: "var(--font-v5)",
   fontWeight: 500,
-  fontSize: "15px",
+  fontSize: "var(--ui-type-button)",
   letterSpacing: "-0.005em",
 };
 const noticeStyle: CSSProperties = { marginTop: "12px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.45 };

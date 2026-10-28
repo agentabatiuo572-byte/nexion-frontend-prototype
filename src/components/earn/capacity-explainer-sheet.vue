@@ -82,7 +82,7 @@ const secTitleStyle: CSSProperties = {
   color: "var(--v5-ink-2)",
 };
 const secBodyStyle: CSSProperties = {
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   lineHeight: 1.65,
   color: "var(--v5-ink-3)",
 };

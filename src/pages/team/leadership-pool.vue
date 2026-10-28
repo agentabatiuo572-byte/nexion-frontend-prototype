@@ -323,7 +323,7 @@ function statusCapStyle(color: string): CSSProperties {
 const projectedStyle: CSSProperties = { marginTop: "8px", fontSize: "28px", fontWeight: 600, lineHeight: 1.2, color: "var(--v5-ink)" };
 const statLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
 const statValueStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)", marginTop: "2px" };
-const lockedHeadStyle: CSSProperties = { marginTop: "8px", fontSize: "15px", color: "var(--v5-ink)" };
+const lockedHeadStyle: CSSProperties = { marginTop: "8px", fontSize: "var(--ui-type-body)", color: "var(--v5-ink)" };
 // SKILL leading-snug = 1.375 (原版 .mt-1.5 text-[12px] leading-snug; was 1.45)
 const lockedSubStyle: CSSProperties = { marginTop: "6px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.375 };
 // Transparent hairline group (form a) — border-top opens the group, rows keep

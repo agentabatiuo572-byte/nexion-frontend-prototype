@@ -108,7 +108,7 @@ const panelStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
 };
 const titleStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   color: "var(--v5-ink)",
 };
@@ -142,7 +142,7 @@ function labelStyle(m: ThemeMode): CSSProperties {
   const on = isActive(m);
   return {
     fontFamily: "var(--font-v5)",
-    fontSize: "15px",
+    fontSize: "var(--ui-type-body)",
     fontWeight: on ? 600 : 500,
     color: on ? "var(--v5-ink)" : "var(--v5-ink-2)",
   };

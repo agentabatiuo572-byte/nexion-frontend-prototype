@@ -404,7 +404,7 @@ const goalFocusTitleStyle: CSSProperties = {
   color: "var(--v5-brand-2-ink)",
 };
 const goalFocusBodyStyle: CSSProperties = {
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   lineHeight: "19px",
   color: "var(--v5-ink)",
 };
@@ -428,10 +428,10 @@ const goalFocusRetryStyle: CSSProperties = {
 .store-voucher-ticket::before,.store-voucher-ticket::after { content:''; position:absolute; top:50%; width:18px; height:18px; margin-top:-9px; border-radius:50%; background:var(--v5-bg); border:1px solid var(--v5-border); }
 .store-voucher-ticket::before { left:-10px; }.store-voucher-ticket::after { right:-10px; }
 .store-voucher-ticket__value { display:flex; align-items:baseline; gap:2px; flex:none; font:600 30px/34px var(--font-v5); letter-spacing:-.02em; color:var(--ui-lime-pale); font-variant-numeric:tabular-nums; }
-.store-voucher-ticket__currency { font-size:15px; color:var(--ui-lime-soft); }
+.store-voucher-ticket__currency { font-size:var(--ui-type-body); color:var(--ui-lime-soft); }
 .store-voucher-ticket__rule { align-self:stretch; margin:6px 0; border-left:1px dashed var(--v5-border-strong); }
 .store-voucher-ticket__copy { flex:1; min-width:0; }
-.store-voucher-ticket__title { display:block; font:600 15px/20px var(--font-v5); }
+.store-voucher-ticket__title { display:block; font:600 var(--ui-type-section)/20px var(--font-v5); }
 .store-voucher-ticket__hint { display:block; margin-top:2px; font:400 12.5px/18px var(--font-v5); color:var(--v5-ink-3); }
 .store-voucher-ticket__art { width:72px; height:72px; margin:-4px -6px -4px 0; flex:none; animation:ticket-bob 4.6s ease-in-out infinite; }
 .store-voucher-ticket:focus-visible { outline:2px solid var(--v5-brand); outline-offset:3px; }
@@ -440,14 +440,14 @@ const goalFocusRetryStyle: CSSProperties = {
 .store-campaign :deep(.entry-title) { font-size:19px; line-height:25px; }
 .store-catalogue { margin-top:20px; }
 .store-catalogue :deep(.nx-section__heading) { padding:0 2px; }
-.store-catalogue :deep(.nx-section__meta) { font-size:13px; font-weight:500; }
+.store-catalogue :deep(.nx-section__meta) { font-size:var(--ui-type-list-subtitle); font-weight:500; }
 .store-product-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; align-items:stretch; }
 .store-estimate-note { display:block; margin-top:10px; padding:0 2px; font:400 12.5px/1.6 var(--font-v5); color:var(--v5-ink-3); }
 .store-more__icon { display:grid; place-items:center; width:36px; height:36px; border-radius:12px; background:var(--ui-content-surface-2); }
 .store-more__icon--gold { color:var(--v5-warning-ink); background:linear-gradient(160deg,color-mix(in srgb,var(--v5-warning) 32%,transparent),color-mix(in srgb,var(--v5-warning) 8%,transparent)); box-shadow:inset 0 1px 0 color-mix(in srgb,var(--v5-warning) 35%,transparent); }
 .store-more :deep(.nx-list-row__subtitle) { color:var(--v5-ink-3); }
 .store-locked-list { display:flex; flex-direction:column; gap:10px; }
-.store-bundle-entry { display:flex; align-items:center; justify-content:flex-end; gap:6px; min-height:44px; padding:0 2px; color:var(--v5-brand); font:500 13px/18px var(--font-v5); cursor:pointer; }
+.store-bundle-entry { display:flex; align-items:center; justify-content:flex-end; gap:6px; min-height:44px; padding:0 2px; color:var(--v5-brand); font:500 var(--ui-type-list-subtitle)/18px var(--font-v5); cursor:pointer; }
 .store-bundle-entry:focus-visible { outline:2px solid var(--v5-brand); outline-offset:2px; border-radius:8px; }
 .store-bundle-entry:active { opacity:.75; }
 .store-footer { display:block; margin-top:20px; padding-bottom:8px; font:400 12px/18px var(--font-v5); text-align:center; color:var(--v5-ink-3); }

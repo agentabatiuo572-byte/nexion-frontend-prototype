@@ -28,13 +28,13 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" :stroke="stampColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
             <text style="margin-left: 4px">{{ t.receipt.stampVerified }}</text>
           </text>
-          <text style="font-size: 13px; color: var(--v5-ink-2)">{{ receiptStatus }} · {{ fmtDate(receipt.settledAt) }}</text>
+          <text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2)">{{ receiptStatus }} · {{ fmtDate(receipt.settledAt) }}</text>
         </view>
       </view>
 
       <view class="nx-receipt-body" :style="bodyStyle">
       <view :style="summaryStyle">
-        <text class="block" style="font-size:13px;color:var(--v5-ink-2)">{{ copy.result }}</text>
+        <text class="block" style="font-size:var(--ui-type-list-subtitle);color:var(--v5-ink-2)">{{ copy.result }}</text>
         <text class="block tabular-nums" style="margin-top:6px;font-size:26px;line-height:1.3;font-weight:600;overflow-wrap:anywhere">{{ summaryAmount }}</text>
       </view>
       <!-- Only identifiers and hashes use monospace; raw values remain unchanged. -->
@@ -71,8 +71,8 @@
         <view v-if="sec.checks" style="margin-top: 4px">
           <view v-for="chk in sec.checks" :key="chk" class="flex items-center" style="gap: 8px; padding: 2px 0">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="M20 6 9 17l-5-5" /></svg>
-            <text style="font-size:13px;color:var(--v5-ink-2)">{{ chk }}</text>
-            <text style="margin-left:auto;font-size:13px;color:var(--v5-ink-2)">{{ t.uiChrome.passed }}</text>
+            <text style="font-size:var(--ui-type-list-subtitle);color:var(--v5-ink-2)">{{ chk }}</text>
+            <text style="margin-left:auto;font-size:var(--ui-type-list-subtitle);color:var(--v5-ink-2)">{{ t.uiChrome.passed }}</text>
           </view>
         </view>
       </view>
@@ -552,7 +552,7 @@ const sectionHeadStyle: CSSProperties = {
 };
 // Prototype Section uses `space-y-1` = 4px gap between rows. `padding: 2px 0`
 // on every row yields the same 4px inter-row spacing.
-const rowStyle: CSSProperties = { display: "grid", gridTemplateColumns: "minmax(0, .9fr) minmax(0, 1.25fr)", alignItems: "center", gap: "12px", fontSize: "13px", lineHeight: 1.5, padding: "6px 0" };
+const rowStyle: CSSProperties = { display: "grid", gridTemplateColumns: "minmax(0, .9fr) minmax(0, 1.25fr)", alignItems: "center", gap: "12px", fontSize: "var(--ui-type-list-subtitle)", lineHeight: 1.5, padding: "6px 0" };
 const dividerStyle: CSSProperties = {
   flex: "1",
   height: "1px",

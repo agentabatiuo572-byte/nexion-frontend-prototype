@@ -41,7 +41,7 @@ function retry() {
   color: var(--text, #eeeeef);
 }
 .page-load-error__title { font-size: 20px; }
-.page-load-error__body { max-width: 30em; font-size: 13px; line-height: 19px; }
+.page-load-error__body { max-width: 30em; font-size: var(--ui-type-list-subtitle); line-height: 19px; }
 .page-load-error__cta {
   min-height: 44px;
   padding: 10px 24px;

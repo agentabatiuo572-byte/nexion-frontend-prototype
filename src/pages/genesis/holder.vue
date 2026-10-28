@@ -466,7 +466,7 @@ const heroNumStyle: CSSProperties = {
 };
 const heroNodesStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-list-title)",
   fontWeight: 500,
   color: "var(--v5-ink-3)",
 };
@@ -577,7 +577,7 @@ const rankNumStyle: CSSProperties = {
   fontSize: "13px",
   color: "var(--v5-brand)",
 };
-const rankWhoStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink)" };
+const rankWhoStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink)" };
 const rankPtsStyle: CSSProperties = {
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "12px",
@@ -633,7 +633,7 @@ const lockValStyle: CSSProperties = {
   marginTop: "3px",
   fontFamily: "var(--font-v5)",
   fontWeight: 500,
-  fontSize: "15px",
+  fontSize: "var(--ui-type-list-title)",
   color: "var(--v5-ink)",
   lineHeight: 1.1,
 };
@@ -676,7 +676,7 @@ const ctaIconStyle: CSSProperties = {
 const ctaTitleStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
   fontWeight: 600,
-  fontSize: "15px",
+  fontSize: "var(--ui-type-button)",
   color: "var(--v5-ink)",
   letterSpacing: "-0.008em",
 };
@@ -786,7 +786,7 @@ const boostStyle: CSSProperties = {
 const boostLabelStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
   fontWeight: 600,
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   color: "var(--v5-on-brand)",
   letterSpacing: "-0.008em",
 };
@@ -802,7 +802,7 @@ const noteStyle: CSSProperties = {
 
 <style scoped>
 .gh-empty-link { display: block; margin-top: 10px; color: var(--v5-brand); font-size: 13px; font-weight: 600; }
-.gh-empty-trust { display: flex; align-items: center; min-height: 44px; color: var(--v5-brand); font-size: 13px; }
+.gh-empty-trust { display: flex; align-items: center; min-height: 44px; color: var(--v5-brand); font-size: var(--ui-type-list-subtitle); }
 .gh-chassis--owned { background-image: url("/static/img/genesis/obsidian-light.webp") !important; background-size: cover !important; background-position: center !important; }
 :global(html[data-theme="dark"] .gh-chassis--owned) { background-image: url("/static/img/genesis/obsidian-dark.webp") !important; }
 .gh-chassis--owned :deep(.nx-top-chrome) { background: transparent; }

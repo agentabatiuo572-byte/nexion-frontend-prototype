@@ -188,7 +188,7 @@ useDialogA11y(computed(() => ui.netError.visible), ".nx-mask--neterr", undefined
   gap: 2px;
 }
 .nx-toast__title {
-  font-size: 15px;
+  font-size: var(--ui-type-section);
   font-weight: 600;
   color: var(--v5-ink);
 }
@@ -226,12 +226,12 @@ useDialogA11y(computed(() => ui.netError.visible), ".nx-mask--neterr", undefined
 }
 .nx-modal > * { flex-shrink: 0; }
 .nx-modal__title {
-  font-size: 15px;
+  font-size: var(--ui-type-section);
   font-weight: 600;
   color: var(--v5-ink);
 }
 .nx-modal__msg {
-  font-size: 13px;
+  font-size: var(--ui-type-list-subtitle);
   line-height: 1.5;
   color: var(--v5-ink-3);
 }
@@ -256,7 +256,7 @@ useDialogA11y(computed(() => ui.netError.visible), ".nx-mask--neterr", undefined
 .nx-btn--ghost { background: var(--v5-surface-2); }
 .nx-btn__label {
   min-width: 0;
-  font-size: 15px;
+  font-size: var(--ui-type-button);
   line-height: 20px;
   text-align: center;
   white-space: normal;

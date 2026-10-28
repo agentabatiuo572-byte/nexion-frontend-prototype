@@ -31,7 +31,7 @@
       <view class="mt-4 flex items-start justify-between" style="gap: 12px">
         <view class="flex-1 min-w-0">
           <text class="block" :style="titleStyle">{{ ev.title }}</text>
-          <text class="block" style="font-size: 13px; color: var(--v5-ink-3); margin-top: 6px; line-height: 1.375">{{ ev.subtitle }}</text>
+          <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); margin-top: 6px; line-height: 1.375">{{ ev.subtitle }}</text>
         </view>
         <EventIcon :kind="ev.kind" :size="40" />
       </view>
@@ -64,9 +64,9 @@
       </view>
       <view v-else-if="ev._claimed" class="mt-5 w-full rounded-full flex items-center justify-center" :class="{ 'active:opacity-90': !!ev.useHref }" :style="claimedPillStyle" :role="ev.useHref ? 'button' : undefined" :tabindex="ev.useHref ? 0 : -1" :aria-label="claimedAriaLabel" @click="onClaimedUse">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; pointer-events: none"><path d="M20 6 9 17l-5-5" /></svg>
-        <text style="font-size: 13px; font-weight: 500; color: var(--v5-ink-3); pointer-events: none">{{ t.events.claimedLabel }}</text>
+        <text style="font-size: var(--ui-type-list-subtitle); font-weight: 500; color: var(--v5-ink-3); pointer-events: none">{{ t.events.claimedLabel }}</text>
         <template v-if="ev.useHref">
-          <text style="font-size: 13px; color: var(--v5-ink-4); margin: 0 8px; pointer-events: none">·</text>
+          <text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-4); margin: 0 8px; pointer-events: none">·</text>
           <text :style="{ fontSize: '13px', fontWeight: 600, color: 'var(--v5-brand)', pointerEvents: 'none' }">{{ t.events.useCta }}</text>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 4px; pointer-events: none"><path d="m9 18 6-6-6-6" /></svg>
         </template>

@@ -122,7 +122,7 @@ const ctaStyle: CSSProperties = {
 const ctaLabelStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
   fontWeight: 600,
-  fontSize: "15px",
+  fontSize: "var(--ui-type-button)",
   letterSpacing: "-0.005em",
   color: "var(--v5-on-brand)",
 };

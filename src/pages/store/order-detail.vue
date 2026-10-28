@@ -28,14 +28,14 @@
       </view>
 
       <view v-if="showRemoteOrderLoading" class="text-center" role="status" aria-live="polite" style="padding: 20px">
-        <text class="block" style="font-size: 13px; color: var(--v5-ink-3)">{{ t.orders.refreshing }}</text>
+        <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3)">{{ t.orders.refreshing }}</text>
         <text class="block" :style="sectionLabelStyle" style="margin-top: 24px">{{ t.orders.orderSummary }}</text>
         <text class="block" :style="sectionLabelStyle" style="margin-top: 24px">{{ t.orders.timelineTitle }}</text>
       </view>
 
       <!-- Order not found only after the scoped remote read settles. -->
       <view v-else-if="showOrderNotFound" class="text-center" style="padding: 20px">
-        <text class="block" style="font-size: 13px; color: var(--v5-ink-3); margin-bottom: 12px">{{ t.orders.notFound }}</text>
+        <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); margin-bottom: 12px">{{ t.orders.notFound }}</text>
         <view class="inline-flex items-center justify-center active:opacity-90" :style="notFoundBtnStyle" role="button" tabindex="0" :aria-label="t.orders.title" @click.stop="goOrders">
           <text>{{ t.orders.title }} →</text>
         </view>
@@ -65,7 +65,7 @@
         </view>
 
         <view v-if="needsRecovery" class="nx-glass-card mx-4 rounded-2xl" :style="summaryCardStyle" style="margin-top: 12px" data-testid="order-recovery">
-          <text class="block" style="font-size: 13px; line-height: 1.6; color: var(--v5-ink-2)">{{ recoveryHint }}</text>
+          <text class="block" style="font-size: var(--ui-type-list-subtitle); line-height: 1.6; color: var(--v5-ink-2)">{{ recoveryHint }}</text>
           <view class="order-recovery-actions">
             <view role="button" tabindex="0" :aria-disabled="remoteOrderRefreshing" :style="notFoundBtnStyle" @click="refreshOrder" @keydown.enter.prevent="refreshOrder" @keydown.space.prevent="refreshOrder"><text style="font: 600 13px/20px var(--font-v5)">{{ t.store.catalogRetry }}</text></view>
             <view role="button" tabindex="0" :style="notFoundBtnStyle" @click="contactOrderSupport" @keydown.enter.prevent="contactOrderSupport" @keydown.space.prevent="contactOrderSupport"><text>{{ t.orders.copyAndSupport }}</text></view>
@@ -677,7 +677,7 @@ const heroIconStyle = computed<CSSProperties>(() => ({
   background: tint(statusColor.value, 12),
 }));
 const heroLabelStyle = computed<CSSProperties>(() => ({
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   lineHeight: "1.2",
   color: statusColor.value,

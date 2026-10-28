@@ -348,7 +348,7 @@ function goPrivacy() {
   margin: 2px auto 10px;
 }
 .intro-lang-sheet__title {
-  font-size: 15px;
+  font-size: var(--ui-type-section);
   font-weight: 600;
   color: var(--v5-ink);
   padding: 0 4px 10px;
@@ -373,7 +373,7 @@ function goPrivacy() {
   flex-direction: column;
 }
 .intro-lang-row__native {
-  font-size: 15px;
+  font-size: var(--ui-type-list-title);
   font-weight: 550;
   color: var(--v5-ink);
 }
@@ -451,7 +451,7 @@ function goPrivacy() {
 .intro-sub {
   display: block;
   margin-top: 12px;
-  font-size: 15px;
+  font-size: var(--ui-type-body);
   line-height: 1.625;
   color: var(--v5-ink-3);
   padding: 0 16px;
@@ -528,7 +528,7 @@ function goPrivacy() {
   transition: transform 0.15s ease;
 }
 .cta-primary__t {
-  font-size: 15px;
+  font-size: var(--ui-type-button);
   font-weight: 500;
   color: var(--v5-on-brand);
 }
@@ -543,7 +543,7 @@ function goPrivacy() {
   transition: transform 0.15s ease;
 }
 .cta-secondary__t {
-  font-size: 15px;
+  font-size: var(--ui-type-button);
   font-weight: 600;
   color: var(--v5-ink);
 }
@@ -583,7 +583,7 @@ function goPrivacy() {
   }
   .intro-hero { padding-bottom: 0; }
   .intro-title { font-size: 26px; line-height: 1.2; }
-  .intro-sub { margin-top: 8px; padding-inline: 0; font-size: 13px; line-height: 1.5; }
+  .intro-sub { margin-top: 8px; padding-inline: 0; font-size: var(--ui-type-list-subtitle); line-height: 1.5; }
   .intro-hero :deep(.home-display-stats) {
     max-width: 100%;
     box-sizing: border-box;

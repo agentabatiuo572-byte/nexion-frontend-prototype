@@ -49,7 +49,7 @@
         <!-- Line 1: daily earn -->
         <view class="mt-1 flex items-baseline gap-2 flex-wrap">
           <text v-if="isShare" class="tabular-nums" :style="bigEarnStyle">{{ shareYieldText }}</text>
-          <text v-else class="tabular-nums" :style="bigEarnStyle">${{ dailyEarnText }}<text style="font-size: 15px; color: var(--v5-ink-3); font-weight: 500">{{ t.store.cardPerDaySuffix }}</text></text>
+          <text v-else class="tabular-nums" :style="bigEarnStyle">${{ dailyEarnText }}<text style="font-size: var(--ui-type-list-title); color: var(--v5-ink-3); font-weight: 500">{{ t.store.cardPerDaySuffix }}</text></text>
           <!-- 「/天」单位后缀恒用弱化色,不跟数字的强调色走 —— 与同行美元侧同一档 ink-3
                (主人 2026-08-17:两侧 /天 字色必须一致) -->
           <text class="font-mono-tabular tabular-nums" style="font-size: 13px; color: var(--v5-quest-violet-ink); font-weight: 500">{{ nexPerDayText }}<text style="color: var(--v5-ink-3)">{{ t.store.cardPerDaySuffix }}</text></text>
@@ -103,7 +103,7 @@
       <view class="min-w-0">
         <text class="block font-mono-tabular" :style="priceEyebrowStyle">{{ t.store.cardPriceLabel }}</text>
         <view class="tabular-nums flex items-baseline" :style="priceRowStyle">
-          <text style="font-size: 15px; color: var(--v5-ink-3); font-weight: 500">$</text>
+          <text style="font-size: var(--ui-type-list-title); color: var(--v5-ink-3); font-weight: 500">$</text>
           <text style="font-size: 26px; font-weight: 600">{{ priceText }}</text>
         </view>
       </view>
@@ -546,7 +546,7 @@ import { getProductMedia } from "@/lib/product-media";
 @keyframes product-compact-float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-5px); } }
 .product-card--compact .product-ribbon { top:10px !important; left:10px !important; min-height:24px; display:flex; align-items:center; padding:0 9px !important; border:1px solid var(--v5-liquid-rim); border-radius:999px !important; background:linear-gradient(180deg,var(--v5-liquid-highlight),var(--v5-liquid-tint)) !important; color:var(--ui-lime-soft) !important; font:600 12px/20px var(--font-v5) !important; box-shadow:inset 0 1px 0 var(--v5-liquid-highlight); backdrop-filter:blur(16px) saturate(170%); }
 .product-compact-body { flex:1; display:flex; flex-direction:column; padding:10px 14px 14px; }
-.product-compact-name { font:600 15px/20px var(--font-v5); color:var(--v5-ink); overflow-wrap:anywhere; }
+.product-compact-name { font:600 var(--ui-type-section)/20px var(--font-v5); color:var(--v5-ink); overflow-wrap:anywhere; }
 .product-compact-tagline { margin-top:2px; font:400 12.5px/17px var(--font-v5); color:var(--v5-ink-3); }
 .product-compact-bottom { display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:4px 6px; margin-top:auto; padding-top:10px; font-variant-numeric:tabular-nums; }
 .product-compact-price { color:var(--v5-ink); font:600 18px/22px var(--font-v5); }

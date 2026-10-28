@@ -98,7 +98,7 @@ const titleStyle: CSSProperties = {
 const descStyle: CSSProperties = {
   marginTop: "6px",
   fontFamily: "var(--font-v5)",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   lineHeight: "18px",
   color: "var(--v5-ink-3)",
   maxWidth: "260px",

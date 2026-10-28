@@ -280,7 +280,7 @@ function onCardAction() {
   min-width: 0;
   overflow: hidden;
   font-family: var(--font-v5);
-  font-size: 15px;
+  font-size: var(--ui-type-section);
   font-weight: 600;
   color: var(--v5-ink);
   text-overflow: ellipsis;
@@ -409,7 +409,7 @@ function onCardAction() {
   margin-top: 0;
   overflow: hidden;
   font-family: var(--font-v5);
-  font-size: 13px;
+  font-size: var(--ui-type-list-subtitle);
   font-weight: 500;
   color: var(--v5-ink-3);
   letter-spacing: -0.008em;

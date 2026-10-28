@@ -46,7 +46,7 @@ const labelStyle: CSSProperties = {
 };
 const bodyStyle: CSSProperties = {
   marginTop: "5px",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-long-form)",
   color: "var(--v5-ink-2)",
   lineHeight: 1.62,
 };

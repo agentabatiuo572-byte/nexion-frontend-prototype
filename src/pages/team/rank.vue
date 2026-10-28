@@ -278,8 +278,8 @@ const upcomingPeerNotice = computed(() => prog.value.next && prog.value.next.pee
 .rank-row-heading:focus-visible,.rank-rules-link:focus-visible,.rank-inherited__toggle:focus-visible { outline:2px solid var(--v5-brand);outline-offset:3px; }
 .rank-row-heading:focus-visible { outline-offset:-3px; }
 .rank-row-copy { flex:1;min-width:0; }
-.rank-row-title { display:block;font:500 15px/20px var(--font-v5);overflow-wrap:anywhere; }
-.rank-row-sub { display:block;margin-top:2px;font:400 13px/18px var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }
+.rank-row-title { display:block;font:500 var(--ui-type-list-title)/20px var(--font-v5);overflow-wrap:anywhere; }
+.rank-row-sub { display:block;margin-top:2px;font:400 var(--ui-type-list-subtitle)/18px var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }
 .rank-row-sub--active { color:var(--v5-brand); }
 .rank-row-chevron { flex:none;color:var(--v5-ink-3);transition:transform 180ms; }.rank-row-chevron--open { transform:rotate(180deg); }
 .rank-details { position:relative;padding:2px 16px 18px 64px; }
@@ -293,7 +293,7 @@ const upcomingPeerNotice = computed(() => prog.value.next && prog.value.next.pee
 .rank-perk-value { font:600 14px/20px var(--font-v5);font-variant-numeric:tabular-nums;overflow-wrap:anywhere; }
 .rank-reward-item + .rank-reward-item { margin-top:12px; }
 .rank-reward-summary { display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 8px;color:var(--v5-nex); }
-.rank-reward-title { display:block;font:600 15px/22px var(--font-v5); }
+.rank-reward-title { display:block;font:600 var(--ui-type-section)/22px var(--font-v5); }
 .rank-reward-amount { display:block;font:600 15px/22px var(--font-v5);font-variant-numeric:tabular-nums;overflow-wrap:anywhere; }
 .rank-reward-description { display:block;margin-top:2px;font:400 12.5px/18px var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }
 .rank-reward { display:block;margin-top:2px;font:600 15px/22px var(--font-v5);font-variant-numeric:tabular-nums;color:var(--v5-nex);overflow-wrap:anywhere; }

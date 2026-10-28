@@ -99,7 +99,7 @@
             <view class="grid place-items-center" :style="hostedIconStyle">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="14" x="3" y="5" rx="2" /><path d="M3 10h18" /><path d="M7 15h.01" /></svg>
             </view>
-            <text class="block text-center" style="margin-top: 10px; font-size: 13px; color: var(--v5-ink-2); line-height: 1.55">{{ hostedRejected ? t.bankPane.hostedRejectedNote : hostedCanOpen ? t.bankPane.hostedSecureNote : t.bankPane.hostedPendingNote }}</text>
+            <text class="block text-center" style="margin-top: 10px; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2); line-height: 1.55">{{ hostedRejected ? t.bankPane.hostedRejectedNote : hostedCanOpen ? t.bankPane.hostedSecureNote : t.bankPane.hostedPendingNote }}</text>
             <text v-if="hostedRejected && intent.providerReason" class="block text-center break-all" style="margin-top: 8px; font-size: 12px; color: var(--v5-ink-2); line-height: 1.55">{{ fmt(t.bankPane.providerReason, { reason: intent.providerReason }) }}</text>
           </view>
           <view v-if="hostedCanOpen" class="nx-bank-hosted-continue-cta w-full grid place-items-center active:opacity-90" :style="paidBtnStyle" role="button" tabindex="0" @click="openHostedOrder(intent)">
@@ -181,7 +181,7 @@
         <view style="margin-top: 14px">
           <view v-for="(s, i) in steps" :key="i" class="flex items-start" style="gap: 10px; padding: 5px 0">
             <view class="grid place-items-center shrink-0" :style="stepNumStyle"><text style="font-size: 12px; font-weight: 600; color: var(--v5-brand)">{{ i + 1 }}</text></view>
-            <view class="flex-1 min-w-0"><text style="font-size: 13px; color: var(--v5-ink-2); line-height: 1.5">{{ s }}</text></view>
+            <view class="flex-1 min-w-0"><text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2); line-height: 1.5">{{ s }}</text></view>
           </view>
         </view>
 
@@ -925,7 +925,7 @@ function pillBtn(bg: string, color: string): CSSProperties {
     background: bg,
     color,
     fontFamily: "var(--font-v5)",
-    fontSize: "15px",
+    fontSize: "var(--ui-type-button)",
     fontWeight: 600,
   };
 }
@@ -940,7 +940,7 @@ const ghostBtnStyle: CSSProperties = {
   background: "transparent",
 };
 const ghostTextStyle: CSSProperties = {
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink-3)",
 };
 const miniSpinnerStyle: CSSProperties = {
@@ -979,11 +979,11 @@ const bankRowStyle: CSSProperties = {
   borderTop: "1px solid var(--v5-border)",
 };
 const bankKeyStyle: CSSProperties = {
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink-3)",
 };
 const bankValStyle: CSSProperties = {
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   fontWeight: 500,
   color: "var(--v5-ink)",
   textAlign: "right",

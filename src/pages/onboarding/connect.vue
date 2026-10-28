@@ -613,7 +613,7 @@ onUnmounted(() => {
 .cn-bar__fill--full { width: 100%; }
 .cn-step { display: block; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--v5-brand); }
 .cn-title { display: block; font-family: var(--font-v5); margin-top: 4px; font-size: 20px; font-weight: 600; line-height: 1.25; color: var(--v5-ink); }
-.cn-sub { display: block; margin-top: 4px; font-size: 13px; color: var(--v5-ink-3); }
+.cn-sub { display: block; margin-top: 4px; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); }
 .cn-phase { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
 
 .cn-why { background: var(--v5-surface); border-radius: 16px; padding: 16px; }
@@ -621,7 +621,7 @@ onUnmounted(() => {
 .cn-why__list { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
 .cn-point { display: flex; align-items: flex-start; gap: 10px; }
 .cn-point__ic { width: 24px; height: 24px; border-radius: 6px; background: var(--v5-surface-2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
-.cn-point__t { flex: 1; font-size: 13px; line-height: 1.375; color: var(--v5-ink); }
+.cn-point__t { flex: 1; font-size: var(--ui-type-list-subtitle); line-height: 1.375; color: var(--v5-ink); }
 
 .cn-prog-row { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
 .cn-prog-row__t { font-size: 12px; color: var(--v5-ink-3); }
@@ -648,7 +648,7 @@ onUnmounted(() => {
 .cn-score__yield-v { font-family: var(--font-v5); font-variant-numeric: tabular-nums; color: var(--v5-brand); font-size: 15px; font-weight: 600; }
 
 .cn-summary { border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 8px; background: var(--v5-surface); }
-.cn-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.cn-row { display: flex; align-items: center; gap: 10px; font-size: var(--ui-type-list-subtitle); }
 .cn-row__check { width: 24px; height: 24px; border-radius: 6px; background: color-mix(in oklab, var(--v5-brand) 14%, transparent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .cn-row__label { color: var(--v5-ink-3); }
 .cn-row__val { margin-left: auto; font-family: var(--font-jet-mono), ui-monospace, monospace; font-variant-numeric: tabular-nums; color: var(--v5-ink); font-weight: 600; }
@@ -668,7 +668,7 @@ onUnmounted(() => {
 .cn-steps__label--idle, .cn-steps__state { color: var(--v5-ink-3); }
 .cn-steps__state { flex: none; font-size: 13px; }
 .cn-steps__state--running { color: var(--v5-brand); font-weight: 600; }
-.cn-ios-body { display: block; margin-bottom: 16px; font-size: 13px; line-height: 1.5; color: var(--v5-ink-2); }
+.cn-ios-body { display: block; margin-bottom: 16px; font-size: var(--ui-type-list-subtitle); line-height: 1.5; color: var(--v5-ink-2); }
 .cn-ios-card { display: flex; flex-direction: column; gap: 6px; padding: 18px; }
 .cn-ios-card__k { display: block; font-size: 12px; color: var(--v5-ink-3); }
 .cn-ios-card__k--gap { margin-top: 10px; }
@@ -676,15 +676,15 @@ onUnmounted(() => {
 .cn-ios-card__raw { display: block; font-size: 16px; font-weight: 600; color: var(--v5-ink); overflow-wrap: anywhere; }
 .cn-ios-card__value { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
 .cn-ios-card__v { font-family: var(--font-v5); font-variant-numeric: tabular-nums; font-size: 34px; font-weight: 700; color: var(--v5-ink); }
-.cn-ios-card__u { font-size: 13px; color: var(--v5-ink-2); }
+.cn-ios-card__u { font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2); }
 .cn-link { min-height: 44px; display: flex; align-items: center; justify-content: center; }
 .cn-link__t { font-size: 13px; color: var(--v5-ink-3); text-decoration: underline; text-underline-offset: 3px; }
 
 .cn-cta { margin-top: auto; padding-top: 24px; }
 .cn-go { width: 100%; height: 48px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--v5-brand); transition: transform 0.15s ease; }
 .cn-go--glow { box-shadow: 0 0 24px color-mix(in oklab, var(--v5-brand) 35%, transparent); }
-.cn-go__t { font-size: 15px; font-weight: 600; color: var(--v5-on-brand); }
-.cn-go__t--on { font-size: 15px; }
+.cn-go__t { font-size: var(--ui-type-section); font-weight: 600; color: var(--v5-on-brand); }
+.cn-go__t--on { font-size: var(--ui-type-body); }
 .cn-error-actions { display: flex; flex-direction: column; gap: 10px; }
 .cn-go--secondary { background: var(--v5-surface); }
 .cn-go__t--secondary { color: var(--v5-ink); }

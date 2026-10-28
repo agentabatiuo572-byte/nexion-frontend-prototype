@@ -646,7 +646,7 @@ const signOutStyle: CSSProperties = {
   borderRadius: "999px",
   fontFamily: "var(--font-v5)",
   fontWeight: 500,
-  fontSize: "15px",
+  fontSize: "var(--ui-type-list-title)",
   letterSpacing: "-0.005em",
 };
 
@@ -669,7 +669,7 @@ const signOutStyle: CSSProperties = {
 .me-network-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--v5-space-2) var(--v5-space-3); padding: var(--v5-space-1) 0 var(--v5-space-2); }
 .me-network-item { display: flex; align-items: center; gap: var(--v5-space-2); min-width: 0; min-height: 52px; cursor: pointer; }
 .me-network-item__copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.me-network-item__label { font: 500 13px/18px var(--font-v5); overflow-wrap: anywhere; }
+.me-network-item__label { font: 500 var(--ui-type-list-subtitle)/18px var(--font-v5); overflow-wrap: anywhere; }
 .me-network-item__meta { font: 400 12px/16px var(--font-v5); color: var(--v5-ink-3); overflow-wrap: anywhere; }
 @media (max-width: 374px) {
   .me-network-item__label { font-size: 12px; line-height: 16px; }

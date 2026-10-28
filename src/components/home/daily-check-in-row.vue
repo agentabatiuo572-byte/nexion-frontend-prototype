@@ -87,7 +87,7 @@ async function checkIn() {
 .daily-check-in-row :deep(.daily-check-in-row__action--checked .nx-native-svg) { width:18px;height:18px;max-width:18px;max-height:18px; }
 .daily-check-in-row :deep(.daily-check-in-row__action--checked .nx-native-svg svg) { width:100%;height:100%;display:block; }
 .daily-check-in-row__copy { min-width: 0; }
-.daily-check-in-row__title { display: block; font: 600 15px/20px var(--font-v5); }
+.daily-check-in-row__title { display: block; font: 600 var(--ui-type-section)/20px var(--font-v5); }
 .daily-check-in-row__meta { display: block; margin-top: 2px; font: 400 12.5px/18px var(--font-v5); color: var(--v5-ink-3); }
 .daily-check-in-row__days { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 6px; grid-column: 1 / -1; margin-top:14px; }
 .daily-check-in-row__days > view { display: flex; flex-direction: column; justify-content:center;align-items: center; gap: 2px; height:50px; border-radius: 14px; font: 400 11.5px/14px var(--font-v5); color: var(--v5-ink-3); background: var(--v5-surface-2); }
@@ -110,7 +110,7 @@ async function checkIn() {
   .daily-check-in-row :deep(.nx-button__content) { gap:4px;white-space:nowrap; }
   .daily-check-in-row :deep(.daily-check-in-row__action--checked) { padding:6px; }
   .daily-check-in-row :deep(.daily-check-in-row__action--checked .nx-button__surface) { width:32px;min-height:32px;height:32px; }
-  .daily-check-in-row__title { font-size:13px;line-height:18px; }
+  .daily-check-in-row__title { font-size:var(--ui-type-list-subtitle);line-height:18px; }
   .daily-check-in-row__meta { font-size:11px;line-height:16px; }
   .daily-check-in-row__days { margin-top:12px; }
 }

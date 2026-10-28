@@ -252,7 +252,7 @@ const periodOptions = computed(() => PERIODS.map(value => ({ value, label: t.val
 .nx-leader-periods { background: transparent; border: 0; box-shadow: none; padding: 0; }
 .leader-hero { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); padding: 4px 0 8px; }
 .leader-hero-copy { min-width: 0; flex: 1; overflow-wrap: anywhere; }
-.leader-caption { color: var(--v5-ink-3); font-size: 13px; }
+.leader-caption { color: var(--v5-ink-3); font-size: var(--ui-type-list-subtitle); }
 .leader-my-rank { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; font-size: 36px; font-weight: 600; line-height: 1.2; margin: 8px 0 12px; }
 .leader-total { color: var(--v5-ink-3); font-size: 12px; font-weight: 400; }
 .leader-gap { display: block; color: var(--v5-ink-2); font-size: 12px; line-height: 1.6; }
@@ -267,14 +267,14 @@ const periodOptions = computed(() => PERIODS.map(value => ({ value, label: t.val
 .leader-person { min-width: 0; flex: 1; }
 .leader-name { display: block; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
 .leader-meta { display: block; color: var(--v5-ink-3); font-size: 11px; line-height: 1.5; margin-top: 4px; overflow-wrap: anywhere; }
-.leader-earnings { text-align: right; font-size: 15px; max-width: 32%; overflow-wrap: anywhere; }
+.leader-earnings { text-align: right; font-size: var(--ui-type-body); max-width: 32%; overflow-wrap: anywhere; }
 .leader-currency { display: block; margin-top: 4px; font-size: 11px; color: var(--v5-ink-3); }
 .leader-cta { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inset); min-height: 48px; padding: var(--ui-space-inline) 20px; box-sizing: border-box; border: 1px solid var(--v5-border); border-radius: 999px; color: var(--v5-ink); background: color-mix(in srgb, var(--v5-ink) 6%, transparent); font-size: 14px; font-weight: 500; }
-.leader-more { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; font-size: 13px; color: var(--v5-ink-2); }
+.leader-more { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2); }
 .leader-retry-label { font: 600 13px/20px var(--font-v5); }
 .leader-share { width:100%; }
 .leader-state { display: flex; flex-direction: column; gap: 14px; padding: 32px 0; color: var(--v5-ink-2); font-size: 13px; line-height: 1.6; }
 .leader-state-title { font-size: 17px; font-weight: 600; color: var(--v5-ink); }
 [role="button"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
-@media (max-width: 360px) { .leader-content { padding-left: 16px; padding-right: 16px; } .leader-hero :deep(.team-art) { width: 88px !important; height: 88px !important; } .leader-row { gap: 6px; } .leader-earnings { font-size: 13px; } }
+@media (max-width: 360px) { .leader-content { padding-left: 16px; padding-right: 16px; } .leader-hero :deep(.team-art) { width: 88px !important; height: 88px !important; } .leader-row { gap: 6px; } .leader-earnings { font-size: var(--ui-type-list-subtitle); } }
 </style>

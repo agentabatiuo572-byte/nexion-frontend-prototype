@@ -88,7 +88,7 @@
 
           <!-- Rules entry -->
           <view class="w-full flex items-center justify-between active:opacity-70" :style="rulesEntryStyle" role="button" tabindex="0" :aria-label="t.trial.rulesEntry" @click="rulesOpen = true">
-            <text style="font-size: 13px; color: var(--v5-ink-2)">{{ t.trial.rulesEntry }}</text>
+            <text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2)">{{ t.trial.rulesEntry }}</text>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
           </view>
 
@@ -168,7 +168,7 @@
         <view style="margin-top: 14px; display: flex; flex-direction: column; gap: 10px">
           <view v-for="(line, i) in rulesLines" :key="i" class="flex items-start" style="gap: 8px">
             <view style="width: 6px; height: 6px; border-radius: 50%; background: var(--v5-brand); margin-top: 6px; flex-shrink: 0" />
-            <text style="flex: 1; font-size: 13px; color: var(--v5-ink-2); line-height: 1.625; text-wrap: pretty">{{ line }}</text>
+            <text style="flex: 1; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2); line-height: 1.625; text-wrap: pretty">{{ line }}</text>
           </view>
         </view>
         <view class="w-full flex items-center justify-center active:scale-[0.98]" :style="rulesGotStyle" role="button" tabindex="0" :aria-label="t.trial.rulesGotCta" @click="rulesOpen = false">
@@ -346,7 +346,7 @@ const remainderNoteStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-i
 const buyBtnStyle: CSSProperties = { marginTop: "12px", width: "100%", height: "48px", borderRadius: "999px", background: "var(--v5-brand)", color: "var(--v5-on-brand)", fontSize: "13px", fontWeight: 600 };
 const buyBtnDisabledStyle: CSSProperties = { ...buyBtnStyle, background: "var(--v5-surface-2)", color: "var(--v5-ink-4)" };
 const rulesEntryStyle: CSSProperties = { minHeight: "44px", padding: "0 2px", borderTop: "1px solid var(--v5-border)" };
-const goEarnStyle: CSSProperties = { width: "100%", height: "44px", borderRadius: "999px", background: "var(--v5-surface-2)", fontSize: "13px", color: "var(--v5-ink-2)" };
+const goEarnStyle: CSSProperties = { width: "100%", height: "44px", borderRadius: "999px", background: "var(--v5-surface-2)", fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-2)" };
 const idleCardStyle: CSSProperties = {
   borderRadius: "16px",
   border: "1px dashed var(--v5-border-strong)",
@@ -355,7 +355,7 @@ const idleCardStyle: CSSProperties = {
   textAlign: "center",
 };
 const idleIconBoxStyle: CSSProperties = { width: "48px", height: "48px", borderRadius: "999px", background: "color-mix(in srgb, var(--v5-brand) 15%, transparent)", margin: "0 auto" };
-const idleTitleStyle: CSSProperties = { marginTop: "12px", fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)" };
+const idleTitleStyle: CSSProperties = { marginTop: "12px", fontSize: "var(--ui-type-section)", fontWeight: 600, color: "var(--v5-ink)" };
 const idleBodyStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.375, padding: "0 8px", textWrap: "pretty" };
 const idleCtaStyle: CSSProperties = { marginTop: "16px", height: "48px", padding: "0 24px", borderRadius: "999px", background: "var(--v5-brand)", color: "var(--v5-on-brand)", fontSize: "13px", fontWeight: 600 };
 const idleCtaDisabledStyle: CSSProperties = { marginTop: "16px", height: "48px", padding: "0 24px", borderRadius: "999px", background: "var(--v5-surface-2)", color: "var(--v5-ink-4)", fontSize: "13px", fontWeight: 600 };

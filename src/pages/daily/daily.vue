@@ -25,7 +25,7 @@
       </view>
 
       <view v-if="!dailyFactsVisible && (remoteInitialLoading || (remoteApiEnabled && ['idle', 'loading'].includes(faucet.remoteReadState)))" class="px-4" role="status" aria-live="polite">
-        <text class="block text-center" style="padding: 48px 16px; color: var(--v5-ink-3); font-size: 13px">{{ t.daily.loading }}</text>
+        <text class="block text-center" style="padding: 48px 16px; color: var(--v5-ink-3); font-size: var(--ui-type-list-subtitle)">{{ t.daily.loading }}</text>
       </view>
 
       <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
@@ -727,7 +727,7 @@ const streakLblStyle: CSSProperties = {
   color: "var(--v5-ink-2)",
   letterSpacing: "0.06em",
 };
-const streakPointsStyle: CSSProperties = { marginTop: "14px", fontSize: "13px", color: "var(--v5-ink-2)" };
+const streakPointsStyle: CSSProperties = { marginTop: "14px", fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-2)" };
 const disabledSignInColor = "var(--v5-ink-3)";
 const signInBtnStyle = computed<CSSProperties>(() => {
   // Pending reads keep the static control appearance; handlers still require fresh state.
@@ -953,11 +953,11 @@ const historyLabelStyle: CSSProperties = {
 };
 // Open history rows keep their separators.
 const historyCardStyle: CSSProperties = { paddingBlock: "4px" };
-const historyEmptyStyle: CSSProperties = { padding: "24px", fontSize: "13px", color: "var(--v5-ink-3)" };
+const historyEmptyStyle: CSSProperties = { padding: "24px", fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-3)" };
 function historyRowStyle(isLast: boolean): CSSProperties {
   return { padding: "10px 16px", borderBottom: isLast ? "none" : "1px solid var(--v5-border)" };
 }
-const historyReasonStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "13px", color: "var(--v5-ink)" };
+const historyReasonStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink)" };
 const historyTimeStyle: CSSProperties = {
   marginTop: "2px",
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",

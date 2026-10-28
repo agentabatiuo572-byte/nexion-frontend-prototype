@@ -921,7 +921,7 @@ const suggestionNameStyle: CSSProperties = {
 function rowLabelStyle(big: boolean): CSSProperties {
   return {
     fontFamily: "var(--font-v5)",
-    fontSize: "13px",
+    fontSize: "var(--ui-type-list-subtitle)",
     fontWeight: big ? 600 : 500,
     color: big ? "var(--v5-ink)" : "var(--v5-ink-3)",
   };
@@ -949,7 +949,7 @@ const ctaStyle = computed<CSSProperties>(() => ({
 const ctaLabelStyle = computed<CSSProperties>(() => ({
   fontFamily: "var(--font-v5)",
   fontWeight: 500,
-  fontSize: "15px",
+  fontSize: "var(--ui-type-button)",
   letterSpacing: "-0.005em",
   color: checkoutUnavailable.value ? "var(--v5-ink-4)" : "var(--v5-on-brand)",
 }));

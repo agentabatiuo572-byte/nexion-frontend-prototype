@@ -73,7 +73,7 @@ const unreadChipStyle: CSSProperties = {
   background: "var(--v5-brand-soft)",
   color: "var(--v5-brand)",
 };
-const subjectStyle: CSSProperties = { flex: "1 1 120px", overflowWrap: "anywhere", fontSize: "15px", fontWeight: 600, color: "var(--v5-ink)", lineHeight: 1.4 };
+const subjectStyle: CSSProperties = { flex: "1 1 120px", overflowWrap: "anywhere", fontSize: "var(--ui-type-section)", fontWeight: 600, color: "var(--v5-ink)", lineHeight: 1.4 };
 const timeStyle: CSSProperties = { marginTop: "4px", fontFamily: "var(--font-jet-mono), ui-monospace, monospace", fontSize: "12px", color: "var(--v5-ink-3)" };
 </script>
 

@@ -4,7 +4,7 @@
       <SubPageHeader back="/pages/team/team" :title="t.headerTitles.teamAgent" />
 
       <view v-if="remoteApiEnabled && pageReadState !== 'ready' && !(pageReadState === 'loading' && policy)" class="px-4 text-center" style="padding-top: 32px" role="status" aria-live="polite" :aria-busy="pageReadState === 'loading'">
-        <text class="block" style="font-size: 13px; color: var(--v5-ink-2)">{{ pageReadState === 'loading' ? t.agent.loading : t.agent.loadError }}</text>
+        <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2)">{{ pageReadState === 'loading' ? t.agent.loading : t.agent.loadError }}</text>
         <view v-if="pageReadState === 'error'" class="agent-cta agent-retry" role="button" tabindex="0" @click="retryAgentPage" @keydown.enter.prevent="retryAgentPage" @keydown.space.prevent="retryAgentPage"><text>{{ t.agent.retry }}</text><text aria-hidden="true">→</text></view>
       </view>
       <view class="agent-content">
@@ -558,7 +558,7 @@ function caseRowStyle(isLast: boolean): CSSProperties {
 .agent-hero-copy { min-width: 0; flex: 1; overflow-wrap: anywhere; }
 .agent-eyebrow { display: block; font-size: 12px; color: var(--v5-ink-3); line-height: 1.5; }
 .agent-headline { display: block; font-size: 25px; font-weight: 600; line-height: 1.3; margin-top: 8px; }
-.agent-intro { display: block; font-size: 13px; color: var(--v5-ink-2); line-height: 1.7; margin-top: -12px; }
+.agent-intro { display: block; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2); line-height: 1.7; margin-top: -12px; }
 .agent-eligibility { display: grid; grid-template-columns:52px minmax(0,1fr); align-items: center; gap: var(--ui-space-inline); padding: var(--ui-space-inset); border: 1px solid var(--v5-border); border-radius: 20px; background: color-mix(in srgb, var(--v5-ink) 4%, var(--v5-bg)); }
 .agent-eligibility-copy { min-width: 0; overflow-wrap: break-word; }
 .agent-rank-summary { display: flex; flex-wrap: wrap; gap: var(--ui-space-inline) 20px; font-size: 14px; margin-bottom: 8px; }

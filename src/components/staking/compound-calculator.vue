@@ -200,7 +200,7 @@ const gridStyle: CSSProperties = {
 };
 const headStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   letterSpacing: "-0.014em",
   color: "var(--v5-ink)",
@@ -300,7 +300,7 @@ const barDeltaStyle: CSSProperties = {
 const footnoteStyle: CSSProperties = {
   // 去线(主人 2026-08-17 全站令):总间距沿用有线时代的 12+12。
   marginTop: "24px",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   color: "var(--v5-ink-2)",
 };
 const disclaimerStyle: CSSProperties = {
@@ -314,7 +314,7 @@ const unavailableStyle: CSSProperties = {
   borderRadius: "16px",
   background: "var(--v5-warning-soft)",
   color: "var(--v5-ink-2)",
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
 };
 
 import GlassSegments from "@/components/glass-segments.vue";

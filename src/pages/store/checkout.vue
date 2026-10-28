@@ -12,24 +12,24 @@
     <view v-else class="checkout-content">
 
       <view v-if="catalogStatus === 'loading'" class="text-center" style="padding: 20px">
-        <text class="block" style="font-size: 13px; color: var(--v5-ink-3); margin-bottom: 12px">{{ t.store.catalogLoadingTitle }}</text>
+        <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); margin-bottom: 12px">{{ t.store.catalogLoadingTitle }}</text>
       </view>
 
       <view v-else-if="catalogStatus === 'error'" class="text-center" style="padding: 20px">
-        <text class="block" style="font-size: 13px; color: var(--v5-ink-3); margin-bottom: 12px">{{ t.store.catalogErrorTitle }}</text>
+        <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); margin-bottom: 12px">{{ t.store.catalogErrorTitle }}</text>
         <view class="inline-flex items-center justify-center active:opacity-90" :style="notFoundBtnStyle" role="button" tabindex="0" @click.stop="goStore">
           <text>{{ t.store.coBackToStore }}</text>
         </view>
       </view>
 
       <view v-else-if="trialQuoteUnavailable" class="text-center" role="status" style="padding: 24px 16px">
-        <text class="block" style="font-size: 13px; color: var(--v5-ink-3)">{{ freeTrial.authorityStatus === 'loading' ? t.trial.entryChecking : t.trial.entryUnavailable }}</text>
+        <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3)">{{ freeTrial.authorityStatus === 'loading' ? t.trial.entryChecking : t.trial.entryUnavailable }}</text>
         <NxButton variant="secondary" :label="t.trial.entryRetry" :busy="freeTrial.authorityStatus === 'loading'" @click="freeTrial.refreshRemote(true)" />
       </view>
 
       <!-- Product not found -->
       <view v-else-if="!product" class="text-center" style="padding: 20px">
-        <text class="block" style="font-size: 13px; color: var(--v5-ink-3); margin-bottom: 12px">{{ t.store.coProductNotFound }}</text>
+        <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); margin-bottom: 12px">{{ t.store.coProductNotFound }}</text>
         <view class="inline-flex items-center justify-center active:opacity-90" :style="notFoundBtnStyle" role="button" tabindex="0" @click.stop="goStore">
           <text>{{ t.store.coBackToStore }}</text>
         </view>
@@ -2286,7 +2286,7 @@ const primaryBtnStyle: CSSProperties = {
   background: "var(--v5-brand)",
   color: "var(--v5-on-brand)",
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-button)",
   fontWeight: 600,
 };
 const confirmCtaStyle: CSSProperties = {
@@ -2296,7 +2296,7 @@ const confirmCtaStyle: CSSProperties = {
   background: "var(--v5-brand)",
   color: "var(--v5-on-brand)",
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-button)",
   fontWeight: 600,
 };
 const changePayBtnStyle: CSSProperties = {
@@ -2328,7 +2328,7 @@ const liveSpinnerWrapStyle: CSSProperties = {
 const centerTitleStyle: CSSProperties = {
   marginTop: "16px",
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-section)",
   fontWeight: 600,
   color: "var(--v5-ink)",
 };
@@ -2364,7 +2364,7 @@ const trackBtnStyle: CSSProperties = {
   background: "var(--v5-brand)",
   color: "var(--v5-on-brand)",
   fontFamily: "var(--font-v5)",
-  fontSize: "15px",
+  fontSize: "var(--ui-type-button)",
   fontWeight: 600,
 };
 const doneBtnStyle: CSSProperties = {
@@ -2430,8 +2430,8 @@ const receiptFailureCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-r
 .checkout-product-art { display:grid; place-items:center; flex:none; width:68px; height:68px; border-radius:16px; overflow:hidden; background:radial-gradient(60% 30% at 50% 84%,color-mix(in srgb,var(--ui-lime-soft) 35%,transparent),transparent 70%),linear-gradient(180deg,var(--ui-content-surface-3),var(--ui-content-surface-2)); }
 .checkout-product-art image { width:74px; height:74px; }
 .checkout-product-copy { flex:1; min-width:0; }
-.checkout-product-name { display:block; font:500 15px/20px var(--font-v5); overflow-wrap:anywhere; }
-.checkout-product-meta { display:block; margin-top:2px; font:400 13px/18px var(--font-v5); color:var(--v5-ink-3); }
+.checkout-product-name { display:block; font:500 var(--ui-type-list-title)/20px var(--font-v5); overflow-wrap:anywhere; }
+.checkout-product-meta { display:block; margin-top:2px; font:400 var(--ui-type-list-subtitle)/18px var(--font-v5); color:var(--v5-ink-3); }
 .checkout-product-price { display:block; margin-top:4px; font:600 15px/20px var(--font-v5); font-variant-numeric:tabular-nums; }
 .checkout-quantity { flex:none; text-align:center; }
 .checkout-quantity-controls { display:flex; align-items:center; margin-top:4px; border:1px solid var(--v5-border); border-radius:999px; background:var(--ui-content-surface-2); }
@@ -2446,13 +2446,13 @@ button.checkout-quantity-button::after {border:0;}
   .checkout-quantity { grid-column:2;justify-self:start;text-align:left; }
 }
 .checkout-section { margin:20px 16px 0; }
-.checkout-section-heading { display:flex; align-items:center; min-height:44px; padding:0 2px; font:600 15px/20px var(--font-v5); letter-spacing:-.012em; }
+.checkout-section-heading { display:flex; align-items:center; min-height:44px; padding:0 2px; font:600 var(--ui-type-section)/20px var(--font-v5); letter-spacing:-.012em; }
 .checkout-option { display:flex; align-items:center; gap:12px; min-height:64px; padding:10px 16px; border-bottom:1px solid var(--v5-border); }
 .checkout-option:last-child { border-bottom:0; }
 .checkout-icon { display:grid; place-items:center; flex:none; width:36px; height:36px; border-radius:12px; color:var(--v5-ink-2); background:var(--ui-content-surface-2); }
 .checkout-option-copy { flex:1; min-width:0; }
-.checkout-row-title { display:block; font:500 15px/20px var(--font-v5); }
-.checkout-row-description { display:block; margin-top:2px; font:400 13px/18px var(--font-v5); color:var(--v5-ink-3); overflow-wrap:anywhere; }
+.checkout-row-title { display:block; font:500 var(--ui-type-list-title)/20px var(--font-v5); }
+.checkout-row-description { display:block; margin-top:2px; font:400 var(--ui-type-list-subtitle)/18px var(--font-v5); color:var(--v5-ink-3); overflow-wrap:anywhere; }
 .checkout-discount { flex:none; color:var(--v5-brand); font:600 15px/20px var(--font-v5); font-variant-numeric:tabular-nums; }
 .checkout-chevron { flex:none; width:16px; height:16px; color:var(--v5-ink-4); transition:transform 180ms ease; }
 .checkout-chevron--open { transform:rotate(90deg); }
@@ -2478,7 +2478,7 @@ button.checkout-quantity-button::after {border:0;}
 .checkout-legal { margin:12px 2px 0; font:400 12.5px/20px var(--font-v5); color:var(--v5-ink-3); }
 .checkout-legal-link { display:inline; color:var(--v5-brand); cursor:pointer; }
 .checkout-legal-link:focus-visible { outline:2px solid var(--v5-brand); outline-offset:2px; border-radius:2px; }
-.checkout-policy-notice { margin-top:12px; font:400 13px/20px var(--font-v5); color:var(--v5-ink-2); overflow-wrap:anywhere; }
+.checkout-policy-notice { margin-top:12px; font:400 var(--ui-type-list-subtitle)/20px var(--font-v5); color:var(--v5-ink-2); overflow-wrap:anywhere; }
 button.checkout-policy-link { display:block; width:100%; min-height:44px; margin:0; padding:8px 0; border:0; border-radius:0; background:transparent; color:var(--v5-brand); font:500 13px/20px var(--font-v5); text-align:left; overflow-wrap:anywhere; }
 button.checkout-policy-link::after { border:0; }
 .checkout-policy-link:focus-visible { outline:2px solid var(--v5-brand); outline-offset:2px; }
@@ -2486,11 +2486,11 @@ button.checkout-policy-link::after { border:0; }
 .checkout-policy-section { display:block; margin-bottom:20px; }
 .checkout-policy-title { display:block; margin-bottom:6px; color:var(--v5-ink); font-weight:600; }
 .checkout-policy-links { border-top:1px solid var(--v5-border); }
-.checkout-cancel { display:grid; place-items:center; min-height:44px; margin-top:4px; font:400 13px/18px var(--font-v5); color:var(--v5-ink-3); cursor:pointer; }
+.checkout-cancel { display:grid; place-items:center; min-height:44px; margin-top:4px; font:400 var(--ui-type-list-subtitle)/18px var(--font-v5); color:var(--v5-ink-3); cursor:pointer; }
 .checkout-sticky { position:absolute; bottom:0; left:0; right:0; z-index:36; display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:100px; padding:12px 16px calc(30px + env(safe-area-inset-bottom)); background:linear-gradient(180deg,color-mix(in srgb,var(--ui-ticket-top) 70%,transparent),color-mix(in srgb,var(--ui-ticket-bottom) 94%,transparent)); border-top:1px solid var(--v5-border-strong); box-shadow:inset 0 1px 0 var(--v5-border); backdrop-filter:blur(18px) saturate(160%); -webkit-backdrop-filter:blur(18px) saturate(160%); }
 .checkout-sticky-copy { min-width:0; }
 .checkout-total { display:block; font:600 20px/24px var(--font-v5); font-variant-numeric:tabular-nums; color:var(--v5-ink); overflow-wrap:anywhere; }
-.checkout-sticky :deep(.nx-button) { flex:none; width:164px; max-width:52%; min-height:48px; font-size:15px; box-shadow:0 8px 22px color-mix(in srgb,var(--v5-brand) 30%,transparent),inset 0 1px 0 var(--v5-liquid-highlight); }
+.checkout-sticky :deep(.nx-button) { flex:none; width:164px; max-width:52%; min-height:48px; font-size:var(--ui-type-button); box-shadow:0 8px 22px color-mix(in srgb,var(--v5-brand) 30%,transparent),inset 0 1px 0 var(--v5-liquid-highlight); }
 .checkout-promotion { padding:8px 16px 120px; color:var(--v5-ink); }
 .checkout-promotion :deep(.promotion-flat) { border:1px solid var(--v5-border); border-radius:22px; background:var(--ui-content-surface); padding:16px; }
 .checkout-promotion :deep(.promotion-summary) { min-height:40px; font-size:14px; }
@@ -2503,7 +2503,7 @@ button.checkout-policy-link::after { border:0; }
 </style>
 
 <style scoped>
-.checkout-voucher-choice { min-height:44px; margin:8px 0 0; padding:10px 14px; background:var(--v5-surface-2); color:var(--v5-ink); font:500 13px/1.5 var(--font-v5); border-radius:14px; white-space:normal; }
+.checkout-voucher-choice { min-height:44px; margin:8px 0 0; padding:10px 14px; background:var(--v5-surface-2); color:var(--v5-ink); font:500 var(--ui-type-list-subtitle)/1.5 var(--font-v5); border-radius:14px; white-space:normal; }
 .checkout-voucher-choice[aria-pressed=true] { color:var(--v5-brand); box-shadow:inset 0 0 0 1px var(--v5-brand); }
 .checkout-voucher-choice:disabled { opacity:.45; }
 </style>

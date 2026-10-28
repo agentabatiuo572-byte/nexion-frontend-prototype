@@ -23,7 +23,7 @@ withDefaults(defineProps<{ kind: 'members' | 'balance' | 'ledger'; label?: strin
 .reward-hero__top { display: flex; align-items: center; gap: var(--ui-space-inline); }
 .reward-hero__copy { flex: 1; min-width: 0; }
 .reward-hero__art { flex: 0 0 88px; pointer-events: none; }
-.reward-hero__label { display: block; color: var(--v5-ink-2); font-size: 13px; line-height: 1.5; }
+.reward-hero__label { display: block; color: var(--v5-ink-2); font-size: var(--ui-type-list-subtitle); line-height: 1.5; }
 .reward-hero__title { display: block; margin-top: 8px; color: var(--v5-ink); font-size: 22px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
-.reward-hero__sub { display: block; margin-top: var(--ui-space-inline); color: var(--v5-ink-2); font-size: 13px; line-height: 1.7; white-space: pre-line; }
+.reward-hero__sub { display: block; margin-top: var(--ui-space-inline); color: var(--v5-ink-2); font-size: var(--ui-type-list-subtitle); line-height: 1.7; white-space: pre-line; }
 </style>

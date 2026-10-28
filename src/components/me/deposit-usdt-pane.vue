@@ -97,11 +97,11 @@
       <view style="margin-top: 16px">
         <view class="nx-dep-usdt-guide-link flex items-center justify-between active:opacity-70" :style="linkRowStyle" role="button" tabindex="0" @click="goGuide">
           <text :style="linkTextStyle">{{ t.topupChrome.howToGetUsdt }}</text>
-          <text style="color: var(--v5-ink-4); font-size: 13px">›</text>
+          <text style="color: var(--v5-ink-4); font-size: var(--ui-type-list-subtitle)">›</text>
         </view>
         <view class="nx-dep-support-link flex items-center justify-between active:opacity-70" :style="linkRowStyle" role="button" tabindex="0" @click="goSupport">
           <text :style="linkTextStyle">{{ t.topupChrome.depositNotArrived }}</text>
-          <text style="color: var(--v5-ink-4); font-size: 13px">›</text>
+          <text style="color: var(--v5-ink-4); font-size: var(--ui-type-list-subtitle)">›</text>
         </view>
       </view>
 
@@ -594,7 +594,7 @@ const depIconStyle: CSSProperties = {
   background: "var(--v5-brand-soft)",
 };
 const rowTitleStyle: CSSProperties = {
-  fontSize: "13px",
+  fontSize: "var(--ui-type-list-subtitle)",
   fontWeight: 500,
   color: "var(--v5-ink)",
 };
