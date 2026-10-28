@@ -409,9 +409,11 @@ describe('isolated prototype data uses the real read contracts',()=>{
     const sent=await api.replyConversation(read,'Demo reply','demo-message-1');expect(sent.messages).toHaveLength(2);
     expect((await api.replyConversation(read,'Demo reply','demo-message-1')).messages).toHaveLength(2);
     await api.dismissConversation(sent.id,2);expect(await api.conversationDismissals()).toEqual([{conversationNo:sent.id,throughMessageId:2}]);
+    // One conversation per advisor: a new question continues the advisor's existing thread.
     const started=await api.startConversation('support','Demo order question','demo-conversation-2');
-    expect(started.messages[0].text).toBe('Demo order question');
-    expect((await api.conversations()).items).toHaveLength(2);
+    expect(started.id).toBe(sent.id);
+    expect(started.messages.at(-1)?.text).toBe('Demo order question');
+    expect((await api.conversations()).items).toHaveLength(1);
     expect((await createHowContentApi(d.client,'prod').published('genesis-how',locale)).blocks).toHaveLength(3);
   });
   it('keeps fleet identities unique and stable across consecutive multi-unit purchases',async()=>{
@@ -444,6 +446,8 @@ describe('isolated prototype data uses the real read contracts',()=>{
   });
   it('resets trial without retaining a mutated base fixture',async()=>{
     const d=demo('zh',{benefitState:'grace'});await createTrialApi(d.client).state();
+    // Same reset as POST /__demo/state {reset:true}: drop every key, then restore the defaults.
+    for(const key of Object.keys(d.state))delete d.state[key];
     Object.assign(d.state,structuredClone(demoDefaults));expect((await createTrialApi(d.client).state()).status).toBe('none');
   });
   it('links a redeemed trial to its order and shows a refund of that order',async()=>{
