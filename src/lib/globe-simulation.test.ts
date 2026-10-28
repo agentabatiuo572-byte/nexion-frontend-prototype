@@ -1,5 +1,7 @@
 import { describe, expect, test } from "vitest";
-import { GLOBE_CENTERS, GLOBE_SIMULATION_INTERVAL_MS, globeSimulation } from "./globe-simulation";
+import { GLOBE_CENTERS, GLOBE_SIMULATION_INTERVAL_MS, globeSimulation } from "./globe-simulation.test-support";
+import { globeSimulation as configured, parseGlobeDisplay } from "./globe-simulation";
+import { TEST_GLOBE_CONFIG } from "./globe-simulation.test-support";
 
 describe("eight-center presentation simulation", () => {
   test("keeps the approved fixed nodes, city identities and 5.4-second interval", () => {
@@ -92,4 +94,21 @@ describe("eight-center presentation simulation", () => {
   test("uses one stable snapshot for fractional positions within a step", () => {
     expect(globeSimulation(12.99)).toEqual(globeSimulation(12));
   });
+});
+
+
+test("only validated H9 values supply simulation metrics", () => {
+  expect(configured(0, undefined)).toBeNull();
+  const zero = { ...TEST_GLOBE_CONFIG, centers: TEST_GLOBE_CONFIG.centers.map(row => ({ ...row, nodes: 0 })) };
+  expect(configured(0, parseGlobeDisplay(zero))!.nodes).toBe(0);
+  expect(configured(0, parseGlobeDisplay(zero))!.jobs).toBe(0);
+  expect(parseGlobeDisplay({ ...zero, intervalMs: 1001 })?.intervalMs).toBe(1001);
+  expect(parseGlobeDisplay({ ...zero, nodeJitterPct: .000001 })?.nodeJitterPct).toBe(.000001);
+  for (const invalid of [null, {}, { ...zero, intervalMs: 1000.1 }, { ...zero, nodeJitterPct: .0000001 },
+    { ...zero, activeJobsMinPct: 20 }, { ...zero, centers: [...zero.centers.slice(1), zero.centers[1]] }]) {
+    expect(parseGlobeDisplay(invalid)).toBeUndefined();
+  }
+  const maximum = parseGlobeDisplay({ ...zero, nodeJitterPct: 100, activeJobsMinPct: 100, activeJobsMaxPct: 100,
+    throughputMin: 10000, throughputMax: 10000, centers: zero.centers.map(row => ({ ...row, nodes: 100000000 })) })!;
+  for (const row of configured(123, maximum)!.regions) expect(Number.isSafeInteger(row.jobsPerHour)).toBe(true);
 });

@@ -5,7 +5,9 @@ import { initPreContext, preCss, preHtml, preJs } from "@dcloudio/uni-cli-shared
 import ts from "typescript";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import raw from "./globe.vue?raw";
-import { GLOBE_CENTERS, globeSimulation, GLOBE_SIMULATION_INTERVAL_MS } from "@/lib/globe-simulation";
+import { GLOBE_CENTERS, globeSimulation, GLOBE_SIMULATION_INTERVAL_MS } from "@/lib/globe-simulation.test-support";
+import { globeSimulation as configuredGlobeSimulation, GLOBE_CENTERS as metadata } from "@/lib/globe-simulation";
+import { TEST_GLOBE_CONFIG } from "@/lib/globe-simulation.test-support";
 import nativeRaw from "@/components/native-svg.vue?raw";
 import SvgText from "@/components/svg-text";
 import { svgMarkup } from "@/lib/native-svg-markup";
@@ -83,13 +85,14 @@ async function mount(platform: Platform) {
   let dialogOpen: Vue.Ref<boolean> | undefined;
   let closeDialog: (() => void) | undefined;
   const slot = { setup: (_props: unknown, { slots }: any) => () => Vue.h("view", slots.default?.()) };
-  // Deliberately provide no API/store imports: this page must mount without either.
+  const cfg = Vue.reactive({ config: { publicStats: { globeDisplay: structuredClone(TEST_GLOBE_CONFIG) as typeof TEST_GLOBE_CONFIG | undefined } }, revalidate: vi.fn(async () => {}) });
   const deps = {
     vue: Vue, "@/components/native-svg.vue": { default: native }, "@/components/svg-text": { default: SvgText },
     "@/components/app-chassis.vue": { default: slot }, "@/components/sub-page-header.vue": { default: slot },
     "@/i18n/use-t": { useT: () => t },
     "@/composables/use-intro-motion": { useIntroMotion },
-    "@/lib/globe-simulation": { globeSimulation, GLOBE_SIMULATION_INTERVAL_MS },
+    "@/lib/globe-simulation": { globeSimulation: configuredGlobeSimulation, GLOBE_CENTERS: metadata },
+    "@/store/config": { useConfig: () => cfg },
     "@/composables/use-dialog-a11y": { useDialogA11y: (open: Vue.Ref<boolean>, _selector: string, close: () => void) => {
       dialogOpen = open; closeDialog = close;
     } },

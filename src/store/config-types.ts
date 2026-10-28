@@ -222,6 +222,7 @@ export interface ShareConfig {
  *  🔴 `virtualUserCount` 与 `hashratePercentileTable` 只用于**排名分母与百分位映射**,
  *  **永不**以任何形式出现在用户可见文案、字段名或接口响应的展示字段里(产品内 0 元层)。 */
 export interface PublicStatsConfig {
+  globeDisplay?: import("@/lib/globe-simulation").GlobeDisplayConfig;
   /** 平台舰队规模锚。合法域 [1000, 1000000]。 */
   fleetDevices: number;
   /** 在线率(%)。在线设备 = 舰队规模 × 该比例。合法域 [50, 100]。 */

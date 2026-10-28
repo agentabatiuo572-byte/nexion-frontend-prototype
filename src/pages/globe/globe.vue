@@ -173,7 +173,7 @@
             </view>
             <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 2px">{{ t.globe.superComputeCenter }}</text>
           </view>
-          <view class="shrink-0 text-right"><text class="block tabular-nums" :style="regionRateStyle">{{ r.jobsPerHour.toLocaleString() }}</text><text class="block" style="font-size: 11px; color: var(--v5-ink-3)">{{ t.globe.jobsPerHour }}</text></view>
+          <view class="shrink-0 text-right"><text class="block tabular-nums" :style="regionRateStyle">{{ r.jobsPerHour?.toLocaleString() ?? '—' }}</text><text class="block" style="font-size: 11px; color: var(--v5-ink-3)">{{ t.globe.jobsPerHour }}</text></view>
         </view>
       </view>
 
@@ -204,7 +204,7 @@
             </view>
             <view class="nx-glass-inset rounded-xl text-center" :style="drawerStatStyle">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" /></svg>
-              <text class="block tabular-nums" :style="drawerStatValStyle">{{ selected.jobsPerHour.toLocaleString() }}</text>
+              <text class="block tabular-nums" :style="drawerStatValStyle">{{ selected.jobsPerHour?.toLocaleString() ?? '—' }}</text>
               <text class="block" :style="drawerStatLabelStyle">{{ t.globe.jobsPerHour }}</text>
             </view>
             <view class="nx-glass-inset rounded-xl text-center" :style="drawerStatStyle">
@@ -221,7 +221,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, type CSSProperties } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted, type CSSProperties } from "vue";
+import { useConfig } from "@/store/config";
 import SvgText from "@/components/svg-text";
 // #ifdef APP-PLUS
 import NativeSvg from "@/components/native-svg.vue";
@@ -238,37 +239,41 @@ import { onHide, onShow } from "@dcloudio/uni-app";
 import { onBackPress } from "@dcloudio/uni-app";
 // #endif
 
-import { globeSimulation, GLOBE_SIMULATION_INTERVAL_MS } from "@/lib/globe-simulation";
+import { globeSimulation, GLOBE_CENTERS } from "@/lib/globe-simulation";
 
 const t = useT();
+const cfg = useConfig();
 // #ifndef APP-PLUS
 const motionAllowed = useIntroMotion();
 // #endif
 
 const W = 440;
 const H = 240;
-type GlobeRegion = { id: string; displayName: string; cx: number; cy: number; anchorX: number; anchorY: number; devices: number;
-  activeJobs: number; jobsPerHour: number; avgLatencyMs: number; isYou: boolean };
+type GlobeRegion = { id: string; displayName: string; cx: number; cy: number; anchorX: number; anchorY: number; devices: number | null;
+  activeJobs: number | null; jobsPerHour: number | null; avgLatencyMs: number | null; isYou: boolean };
 const selectedId = ref<string | null>(null);
 let pageActive = true;
 const pulseTick = ref(0);
-const simulationStep = ref(Math.floor(Date.now() / GLOBE_SIMULATION_INTERVAL_MS));
+const simulationNow = ref(Date.now());
 let pulseTimer = 0;
-const simulatedStats = computed(() => globeSimulation(simulationStep.value));
-const activeNodesText = computed(() => simulatedStats.value.nodes.toLocaleString());
-const activeJobsText = computed(() => simulatedStats.value.jobs.toLocaleString());
+const globeSettings = computed(() => cfg.config.publicStats.globeDisplay);
+const simulatedStats = computed(() => globeSimulation(globeSettings.value ? Math.floor(simulationNow.value / globeSettings.value.intervalMs) : 0, globeSettings.value));
+const activeNodesText = computed(() => simulatedStats.value?.nodes.toLocaleString() ?? '—');
+const activeJobsText = computed(() => simulatedStats.value?.jobs.toLocaleString() ?? '—');
 // Display offsets separate nearby centers; leader lines preserve geographic anchors.
 const mapPositions: Record<string, readonly [number, number]> = {
   uk: [198, 37], fr: [212, 76], de: [244, 47], sg: [345, 136], vn: [335, 102],
 };
-const regions = computed<GlobeRegion[]>(() => simulatedStats.value.regions.map(center => ({
+const regions = computed<GlobeRegion[]>(() => GLOBE_CENTERS.map(center => {
+  const metrics = simulatedStats.value?.regions.find(row => row.id === center.id);
+  return {
   id: center.id, displayName: t.value.globe[center.nameKey],
   cx: mapPositions[center.id] ? mapPositions[center.id][0] / W : (center.lon + 180) / 360,
   cy: mapPositions[center.id] ? mapPositions[center.id][1] / H : (90 - center.lat) / 180,
   anchorX: (center.lon + 180) / 360, anchorY: (90 - center.lat) / 180,
-  devices: center.nodes, activeJobs: center.activeJobs, jobsPerHour: center.jobsPerHour,
-  avgLatencyMs: center.avgLatencyMs, isYou: center.id === "sg",
-})));
+  devices: metrics?.nodes ?? null, activeJobs: metrics?.activeJobs ?? null, jobsPerHour: metrics?.jobsPerHour ?? null,
+  avgLatencyMs: metrics?.avgLatencyMs ?? null, isYou: center.id === "sg",
+}; }));
 const selected = computed<GlobeRegion | null>({
   get: () => regions.value.find(region => region.id === selectedId.value) ?? null,
   set: region => { selectedId.value = region?.id ?? null; },
@@ -310,17 +315,21 @@ function nativeNodeStyle(r: GlobeRegion): CSSProperties {
 // #endif
 
 function regionName(r: GlobeRegion): string { return r.displayName; }
-function regionNodeDisplay(r: GlobeRegion): string { return `${(r.devices / 10000).toFixed(1)}W+`; }
+function regionNodeDisplay(r: GlobeRegion): string { return r.devices === null ? '—' : `${(r.devices / 10000).toFixed(1)}W+`; }
 onMounted(() => {
-  pulseTimer = setInterval(() => {
-    if (!pageActive) return;
-    pulseTick.value += 1;
-    simulationStep.value = Math.floor(Date.now() / GLOBE_SIMULATION_INTERVAL_MS);
-  }, 1800) as unknown as number;
+  watch(() => globeSettings.value?.intervalMs, interval => {
+    if (pulseTimer) clearInterval(pulseTimer);
+    pulseTimer = setInterval(() => {
+      if (!pageActive) return;
+      pulseTick.value += 1;
+      simulationNow.value = Date.now();
+    }, Math.min(1800, interval ?? 1800)) as unknown as number;
+  }, { immediate: true });
 });
 onShow(() => {
   pageActive = true;
-  simulationStep.value = Math.floor(Date.now() / GLOBE_SIMULATION_INTERVAL_MS);
+  simulationNow.value = Date.now();
+  void cfg.revalidate();
 });
 onHide(() => { pageActive = false; selected.value = null; });
 onUnmounted(() => { if (pulseTimer) clearInterval(pulseTimer); });

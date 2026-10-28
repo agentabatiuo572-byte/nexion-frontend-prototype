@@ -1,13 +1,15 @@
 import { parse } from "@vue/compiler-sfc";
 import { initPreContext, preHtml, preJs } from "@dcloudio/uni-cli-shared/dist/preprocess";
-import { ref } from "vue";
+import { ref, reactive } from "vue";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import raw from "./globe.vue?raw";
 import SvgText from "@/components/svg-text";
 import { useIntroMotion } from "@/composables/use-intro-motion";
 import { en } from "@/i18n/messages/en";
 import { all, flush, mountEntry, slot, text } from "@/lib/entry-review.test-support";
-import { globeSimulation, GLOBE_SIMULATION_INTERVAL_MS } from "@/lib/globe-simulation";
+import { globeSimulation, GLOBE_SIMULATION_INTERVAL_MS } from "@/lib/globe-simulation.test-support";
+import { globeSimulation as configuredGlobeSimulation, GLOBE_CENTERS as metadata } from "@/lib/globe-simulation";
+import { TEST_GLOBE_CONFIG } from "@/lib/globe-simulation.test-support";
 
 const unmounts: Array<() => void> = [];
 let preference: { matches: boolean; addEventListener: ReturnType<typeof vi.fn>; removeEventListener: ReturnType<typeof vi.fn> };
@@ -20,20 +22,21 @@ async function mount() {
     .replace(descriptor.template!.content, preHtml(descriptor.template!.content, "globe.vue"))
     .replace(descriptor.scriptSetup!.content, preJs(descriptor.scriptSetup!.content, "globe.vue"));
   const shows: Array<() => void> = [], hides: Array<() => void> = [];
-  // Compile the production page without API/store substitutes: presentation must stand alone.
+  const cfg = reactive({ config: { publicStats: { globeDisplay: structuredClone(TEST_GLOBE_CONFIG) as typeof TEST_GLOBE_CONFIG | undefined } }, revalidate: vi.fn(async () => {}) });
   const page = mountEntry(source, {
     "@/components/svg-text": { default: SvgText },
     "@/components/app-chassis.vue": slot, "@/components/sub-page-header.vue": slot,
     "@/i18n/use-t": { useT: () => ref(en) },
     "@/composables/use-intro-motion": { useIntroMotion },
-    "@/lib/globe-simulation": { globeSimulation, GLOBE_SIMULATION_INTERVAL_MS },
+    "@/lib/globe-simulation": { globeSimulation: configuredGlobeSimulation, GLOBE_CENTERS: metadata },
+    "@/store/config": { useConfig: () => cfg },
     "@/composables/use-dialog-a11y": { useDialogA11y() {} },
     "@dcloudio/uni-app": { onShow: (fn: () => void) => shows.push(fn), onHide: (fn: () => void) => hides.push(fn) },
   });
   unmounts.push(page.unmount);
   shows.forEach(fn => fn()); await flush();
   return {
-    ...page, shows, hides,
+    ...page, shows, hides, cfg,
     animations: () => all(page.root).filter(n => n.tag === "animate"),
     totals: () => page.nodes("tabular-nums").filter(n => n.props.style.fontSize === "20px").map(text),
     rows: () => all(page.root).filter(n => n.props.role === "button" && !n.props["aria-label"]),
@@ -118,4 +121,20 @@ test("unmount releases the simulation timer and motion listener, and queued life
   vi.advanceTimersByTime(GLOBE_SIMULATION_INTERVAL_MS * 2); await flush();
   expect(vi.getTimerCount()).toBe(0);
   expect(page.root.children).toHaveLength(0);
+});
+
+
+test("H9 arrival and updates replace only metrics, preserving all static centers", async () => {
+  const page = await mount();
+  page.cfg.config.publicStats.globeDisplay = undefined; await flush();
+  expect(page.totals()).toEqual(["—", "—"]);
+  expect(page.rows()).toHaveLength(8);
+  page.cfg.config.publicStats.globeDisplay = { ...TEST_GLOBE_CONFIG, intervalMs: 1001,
+    centers: TEST_GLOBE_CONFIG.centers.map(row => ({ ...row, nodes: 0 })) };
+  await flush();
+  expect(page.totals()).toEqual(["0", "0"]);
+  expect(page.rows()).toHaveLength(8);
+  vi.advanceTimersByTime(3003); await flush();
+  expect(page.cfg.revalidate).toHaveBeenCalledTimes(1);
+  expect(vi.getTimerCount()).toBe(1);
 });

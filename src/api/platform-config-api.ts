@@ -14,6 +14,7 @@ import type {
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
 import type { ApiEnvironment } from "./runtime-config";
+import { parseGlobeDisplay } from "@/lib/globe-simulation";
 
 export interface PlatformComputeConfigSnapshot {
   featureFlags: {
@@ -352,6 +353,7 @@ function parsePublicStats(value: unknown): PublicStatsConfig {
   // Optional estimate parameters are rendered only with an explicit estimate label.
   // Invalid or missing values are hidden by publicStatsHealth; they never replace realUserCount.
   return {
+    globeDisplay: parseGlobeDisplay(projection.globeDisplay),
     fleetDevices: 0,
     onlineRatePct: 0,
     onlineJitter: -1,
