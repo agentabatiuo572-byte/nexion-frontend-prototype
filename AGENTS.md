@@ -1,16 +1,38 @@
-# Project Instructions
+# Nexion 原型仓库工作规则
 
-## UniApp GitHub Sync Rules
+## 仓库与工作线
 
-- After each completed task, sync (commit + push) to GitHub automatically without asking; state the pushed range in the wrap-up report. (Owner decision 2026-08-15 — supersedes the old ask-first rule.) **Pushing to the mainline `UniApp` is additionally gated by the full-verify rule below.**
-- Before pushing, check local vs remote differences (`git fetch` + compare).
-- Only stop to ask when the push would overwrite remote-only commits (non-fast-forward); fast-forward pushes need no confirmation. Never force-push without explicit user confirmation.
-- Do not create a new branch unless the user asks for one — except the `codex/<topic>` escape branch described below.
+- 本仓 origin 为 `agentabatiuo572-byte/nexion-frontend-prototype`。`main` 是旧交互原型线；`H5` 是从正式 APP 同步的网页交付线。目录名 `Nexion-uniapp` 不代表正式 APP 仓库。
+- 正式共享源码位于 `agentabatiuo572-byte/nexion-frontend-uniapp` 的 `test`。产品功能与 UI 默认先在 APP 实现并验证，再同步本仓 `H5`，分别提交、推送；不能把本仓旧 `main` 当作最新功能来源。
+- 开始前核对仓根、origin、分支/HEAD、worktree 和未提交改动，读取实际目标分支的 `AGENTS.md`、`package.json` 及相关文档。旧 `CLAUDE.md` 中的仓库身份、mock 默认模式和 full 硬门声明不能覆盖本文件及用户最新决定。
+- 本仓规则、说明等文档维护可在当前已确认的既有分支完成；这不授权把 APP 功能推入 `main`，也不授权合入正式 APP 的 `main`。
+- 可复用的任务提示词见 [Claude Code 原型与交付流程](docs/claude-code-prototype-workflow.txt)；本文件只保留日常必须遵守的边界。
 
-## Mainline full-verify gate (owner decision 2026-08-19)
+## 本地模拟预览
 
-- 🔴 A push to `UniApp` is accepted only if the **exact commit being pushed** has a green **full** verify: after your last commit, with a clean tree, run `npm run verify` (≈16 min; writes `.verify-cache/last-run.json`), then push. scoped / static greens do not count.
-  why: on 2026-08-18/19 six commits reached `UniApp` without a full run and turned the mainline red in 4 steps (unregistered contract tests, a login-order contract, order-readback contracts, store sentinels).
-  check: the git pre-push hook `.githooks/pre-push` → `.githooks/verify-before-push.mjs` (auto-installed by `npm install` via the `prepare` script; manual: `git config core.hooksPath .githooks`) rejects the push and prints why. Red test: `npm run test:githooks`.
-- If this environment cannot run the full verify (no browser / no deps), do NOT push to `UniApp`: push to a `codex/<topic>` branch instead (not gated) and say so in the wrap-up; a machine that can run full will merge it into `UniApp`.
-- `git push --no-verify` and `ALLOW_UNVERIFIED_PUSH="<reason>"` both bypass the gate — only with an explicit owner order in the current task; the env-var form leaves a trace in `.verify-cache/push-valve.log`, `--no-verify` leaves none, so prefer the env-var form when ordered.
+- 使用当前 APP 源码构建和已有 `preview:prototype` 服务，模拟接口放在 `scripts/` 的 fixture/harness 中；产品页面沿用正式接口契约，不为演示向页面或 store 增加业务旁路。命令须从实际 checkout 的 `package.json` 核实，旧原型 `main` 不一定提供这些入口。
+- 模拟服务只监听本机，不连接真实资金或生产后台。演示面板位于产品界面之外，模拟状态和工程说明不得进入正式产品文案。
+- 更新预览前保存服务端模拟状态、构建来源及必要浏览器状态；保留用户消息、输入、选择和浏览位置。自动回归使用独立端口及状态副本，不在用户正在使用的预览上执行 reset 或清空存储。
+- fixture 源码和必要测试可随任务提交；个人演示数据、聊天快照、恢复文件、缓存、日志、依赖和构建产物不提交。模拟验收不代表真实后端、支付或原生设备验收通过。
+
+## 必要验证（用户 2026-10-28 决定）
+
+- 所有目标分支均按实际改动和风险选择必要验证；`npm run verify` 仅为按需完整回归工具，不是提交或推送的固定前置条件。本条替代旧 `UniApp` full 硬门及“跑不了 full 就另开逃生分支”的规则。
+- 功能改动选择相关单元/契约测试、类型检查和目标构建；UI、状态及持久化改动还须实际操作受影响页面，核验写入、读回、刷新和异常恢复。复杂或高风险改动增加适用的独立审查。
+- 浏览器实际加载资源须对应本次目标构建；HTTP 200、编译通过、源码搜索或旧截图不能代替实景验收。涉及界面时覆盖相关中英越文、明暗主题与窄屏/短屏。
+- 纯文档改动检查内容准确性、指令冲突、链接/路径及 diff，不启动无关构建和全量测试。已通过的检查只在新增改动、失败或未解决风险影响其结论时重跑。
+- 如实记录检查命令、结果和未覆盖项；必要验收未通过不能宣布完成。旧 hook 若仍要求 full，须指出实际阻断规则并在授权范围内处理，不伪造绿灯、不把 `--no-verify` 或 `ALLOW_UNVERIFIED_PUSH` 当常规流程。
+
+## APP → H5 同步
+
+- APP 完成相关实现和必要验证后，读取目标分支的 `docs/app-h5-sync.md`，使用 `scripts/app-h5-sync.mjs plan/apply` 从固定 commit 或候选暂存树同步；不用整仓复制。
+- 只同步本任务及其必要依赖；先审阅 plan 的写入/删除，来源 pin 使用完整 SHA。若由暂存树同步，APP 提交后用 `repin` 固定正式 commit。
+- 保留 H5 自身 `AGENTS.md`、网页端口、权限和下载引导。H5 不因同步而获得原生校准、手机心跳或手机任务执行权。
+- 使用真实 APP/H5 checkout 执行来源检查，核对 `docs/app-h5-source.json` 并完成 H5 相关验收；离线缓存一致不等于真实来源或运行态已验证。一侧失败必须报告未完成范围，不能只推 APP 就宣称双端完成。
+
+## Git 交付
+
+- 已授权的代码或文档修改完成并通过必要验证后，自动提交并推送本任务改动，不重复询问；只读审查、咨询及未落地方案不触发提交。只暂存明确文件，禁止夹带其他任务的 WIP。
+- 保留已有未提交改动；需要隔离时复用合适 worktree 或使用 detached worktree。不擅自切换脏主目录、reset、清空工作树或创建新分支。
+- 每次推送前 `git fetch` 并比较目标远端与待推提交。正常快进推送无须确认；远端变化时先保留其提交并整合本任务，复验受影响部分。无法安全整合或将覆盖远端独有提交时停下说明，未经明确授权不强推。
+- 推送使用已核实的 origin 和目标分支，随后读回远端 SHA。收尾报告文件范围、必要验证、APP/H5 各自推送范围和未完成项；单纯规则文档维护不凭空触发双端源码同步。

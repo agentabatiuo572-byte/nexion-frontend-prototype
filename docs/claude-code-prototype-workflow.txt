@@ -1,0 +1,97 @@
+Claude Code 工作提示词：本地模拟原型、状态验收与 APP → H5 交付
+
+请在后续已授权的开发任务中执行以下流程。先读取本提示词和实际仓库的 AGENTS.md；遇到旧 CLAUDE.md、历史工作树或旧验证门与本提示词冲突，回源核对并明确说明。本文采用用户 2026-10-28 的决定：APP 完成并验证后同步 H5，分别推送；只做必要验证，不强制全量 verify。
+
+本次具体任务：
+【在这里填写要修改的页面、功能、问题和验收要求】
+
+一、先定位，再动手
+
+1. 核对实际仓根、origin、分支/HEAD、worktree、暂存区与未提交改动，不能只看目录名。
+   APP 源仓：https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git，目标分支 test。
+   H5 目标仓：https://github.com/agentabatiuo572-byte/nexion-frontend-prototype.git，目标分支 H5。
+   D:/WORKS/PLAN/Nexion-uniapp 的 main 是旧原型，不是最新 APP 功能来源。
+2. 先 fetch、比较远端与本地。保留其他任务的 WIP，必要时复用合适 worktree 或使用 detached worktree；不得擅自切换脏目录、reset、清理他人文件或新建分支。
+3. 读取实际目标分支的 AGENTS.md、package.json、docs/app-h5-sync.md 和任务相关业务契约。主动使用真正匹配且已安装的 skill，简短说明用途；不存在的命令或工具不能假装可用。
+4. 简述要改什么、验收哪些行为和允许改动范围。已明确的任务连续执行；只在缺少关键业务决定或真正扩大范围时提问。仅要求方案或只读分析时不进入实现。
+
+二、沿用当前本地原型机制
+
+1. 修改正式 APP 的真实页面、组件和业务契约，用同一份源码构建可交互预览。模拟接口和场景留在 scripts/ 的 fixture/harness 中，不把假数据写死进 src，不为演示绕过权限、资金或业务状态检查。
+2. 先核实当前版本仍提供以下入口，再使用：
+   npm run build:h5:prod
+   npm run preview:prototype
+   scripts/prototype-preview-server.mjs
+   scripts/prototype-preview.html
+   scripts/lib/prototype-demo-data.mjs 及相关 prototype-demo-*.mjs
+3. 预览服务读取已构建产物，源码修改后必须重新构建；DEMO_BUILD_ROOT 指向本次构建，DEMO_PORT 指向本次独立端口。/preview 是外侧控制面板，应用在其中运行；服务只监听 127.0.0.1，不代理真实后台。
+4. 本机现有预览线索为 D:/WORKS/PLAN/output/uvel-ui-preview/current/README.md 及其启动脚本。先核实实际进程、端口、源码提交和资源，不把历史端口或目录名当作当前版本证明；保留原预览和恢复入口。
+5. 如需补充场景，按现有接口结构在 fixture 层模拟读取、写入结果和后续读回。未建模动作明确报告覆盖缺口，不能用成功 toast 冒充完整业务闭环。
+6. 本提示词允许本机隔离的原型展示和相关测试，不代表启动整套本地业务后端。真实链路验收按当前项目 TEST 环境及权限执行；本地模拟不能当作生产或真机验收。
+
+三、状态与用户当前预览的保护
+
+1. 开始前读取 GET /__demo/state，把返回的完整 JSON 保存到本机独立恢复文件；同时记录当前路由、主题、语言及任务需要保留的浏览器状态。不要把任何含凭据的存储导出到报告或远端。
+2. DEMO_STATE_FILE 只在启动时读取 JSON.state，不会自动持续保存。停止、更新或重启前再次导出最新状态；恢复时用该文件启动服务。不要把 GET 返回值整体 POST 回去，POST /__demo/state 不是完整状态恢复接口。
+3. 自动验收使用独立 QA 端口、独立浏览器上下文和状态副本。prototype-demo-runtime.mjs、prototype-demo-actions.mjs 等会 reset 或清空存储的脚本，只能指向该 QA 地址；禁止指向用户正在使用的预览。
+4. 根据本次涉及的功能建立“初始状态 → 操作 → 预期反馈 → 读回/刷新 → 恢复方式”的验收清单。读取当前 demoOptions 后选择实际存在的场景，不要求每次机械遍历所有组合：
+   - 通用：正常、空数据、加载中、读取失败、恢复与重试。
+   - 任务/福利/活动：未满足、可领取、已领取、进行中、到期、结束等实际适用状态。
+   - 消息：在线、离线、重连；正常、延迟、失败、结果未知、超时、原消息重试；历史、未读与已读。
+   - 商城/图片：可购、售罄、受限、缺图、坏图及数据更新。
+   - 金融/权限：处理中、成功、拒绝、结果待确认等当前契约存在的状态，保留准确金额和后果。
+5. 切换场景可能清除该领域历史，reset 会清空整个服务状态；不得为了测试便利重置用户消息、输入或选择。测试结束确认用户原预览仍可用，必要时从备份恢复并读回。
+6. 演示面板可以说明模拟数据，正式产品界面不加入内部字段、工程解释或“模拟成功”等文案。未知数据不写成零，失败不写成成功。
+
+四、实现与必要验证
+
+1. 只改当前任务所需文件，保留功能入口、路由和已确认的业务规则。默认保持代码直接：无实际复用不提前抽象；外部输入在所属边界校验一次；只在能恢复或提供业务反馈的层捕获异常。增加推测性复杂度前说明具体依据并取得同意。
+2. 先确定必须验证的风险，再选择相关单元/契约测试、类型检查、目标构建和实景流程。UI 改动覆盖相关中英越文、明暗主题、窄屏/短屏、滚动、返回、弹层和安全区；状态改动验证写入、读回、刷新以及失败后的恢复。
+3. 必须确认浏览器实际加载的 index-*.js 等资源与本次构建一致，并检查控制台、关键请求和截图/尺寸。仅 HTTP 200、type-check 通过或截图看起来正常不算完整验收。
+4. 按任务复杂度和风险安排独立审查；审查者只读，实施者回源确认并修复。没有实际执行的测试、审查、真实后端或真机验证不能写成已通过。
+5. 所有分支只要求必要验证。npm run verify 是按需的全量回归工具，不是每次提交或推送的强制前置条件；不固定跑提交前、提交后多轮 full，也不因未跑 full 自动创建逃生分支。
+6. 已通过检查仅在新增改动、失败或未解决风险影响结论时重跑。旧 hook 若仍强制 full，先指出实际冲突规则并在授权范围内处理，不能伪造记录或把禁用 hook、--no-verify、ALLOW_UNVERIFIED_PUSH 当常规做法。
+
+五、APP 完成后同步 H5
+
+1. APP 实现完成且必要验证通过后，检查并只暂存本任务文件，正常提交 APP。记录完整 APP commit SHA；不要夹带他人修改、个人状态或构建产物。
+2. 在核对过的 H5 checkout 中按 docs/app-h5-sync.md 执行受控同步。推荐从已提交的 APP SHA 生成 plan，审阅写入/删除后 apply，不整仓复制，也不手改来源记录制造一致。
+3. PowerShell 命令模板如下，所有路径先替换成实际核对过的绝对路径：
+
+   $appRoot = '<本任务 APP checkout>'
+   $h5Root = '<本任务 H5 checkout>'
+   $syncPlan = '<本任务独立计划文件绝对路径>'
+   $sourceCommit = git -C $appRoot rev-parse HEAD
+   node "$appRoot/scripts/app-h5-sync.mjs" plan --source $appRoot --target $h5Root --ref $sourceCommit --out $syncPlan
+   node "$appRoot/scripts/app-h5-sync.mjs" apply --plan $syncPlan
+   node "$appRoot/scripts/app-h5-sync.mjs" check --source $appRoot --target $h5Root
+
+   每一步检查退出状态后再执行下一步。若按项目流程从暂存候选树同步，则 APP 提交后重新读取最终 commit，再执行：
+   $sourceCommit = git -C $appRoot rev-parse HEAD
+   node "$appRoot/scripts/app-h5-sync.mjs" repin --source $appRoot --target $h5Root --ref $sourceCommit
+
+4. 保留 H5 的 AGENTS.md、网页端口、下载引导和权限边界。H5 不获得原生校准、手机心跳或手机任务执行权；APP 不混入网页专属流程。
+5. 复核 docs/app-h5-source.json 指向实际 APP commit，执行真实源与目标内容检查及 H5 受影响功能验收。--offline 只证明缓存一致，不能代替真实来源验证。
+6. H5 必要验证通过后，精确暂存并提交 H5 改动。同步若发现无关积压或其他任务冲突，先分析可分离范围，不能把全部历史差异悄悄算作本任务。
+
+六、分别推送并核对远端
+
+1. 已授权的代码修改任务完成后，自动提交并推送到既有 APP test 和原型仓库 H5，无须再次询问是否推送。仅咨询、只读或方案请求不自动修改仓库。Git 推送不代表授权部署生产服务。
+2. 每次 push 前重新 fetch，比较待推提交与目标远端；正常快进推送即可。远端有新提交时保留远端工作，整合本任务并复验受影响部分，再重新同步/固定 H5 来源。不得覆盖远端独有提交，不强推，不擅自改用 main、UniApp 或新分支。
+3. 确认两个任务 checkout、暂存区和 HEAD 均是本次交付结果后，分别使用明确的目标引用：
+   git -C $appRoot push origin HEAD:refs/heads/test
+   git -C $h5Root push origin HEAD:refs/heads/H5
+   每次执行前仍需完成上一条 fetch 和快进比较。
+4. 推送后读回两端远端 SHA，核对 H5 来源记录与最终 APP 提交；不能只看 push 退出码。两仓不是原子提交，一边成功一边失败时，保留已成功结果并报告另一边的恢复步骤，不伪装双端完成。
+5. 可提交：任务功能源码、可复用 fixture、必要测试、项目要求的说明与契约。不可提交：个人演示数据、聊天快照、状态恢复 JSON、私密环境或凭据、缓存、临时日志、依赖和构建产物。代码推送不等于清空本地演示数据。
+
+七、收尾格式
+
+简洁报告：
+- 完成了什么，改动了哪些文件。
+- 本地预览地址、源码提交/构建身份，以及原演示状态是否保留。
+- 本次实际覆盖的状态、测试/构建/实景结果和未验证范围。
+- APP 仓库/分支/old..new 与 H5 仓库/分支/old..new，远端读回结果及 H5 来源 pin。
+- 剩余阻塞、恢复入口或必须由我决定的事项。未完成必要验收时直说，不把模拟验收写成上线、支付或原生验收完成。
+
+现在先完成仓库和预览定位，再按本次具体任务继续执行；不要只回复计划，也不要开始占位符中尚未给出的业务任务。
