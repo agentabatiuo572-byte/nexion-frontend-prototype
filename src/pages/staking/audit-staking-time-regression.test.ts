@@ -56,7 +56,7 @@ function stakingSnapshot() {
 
 function exchangeSnapshot() {
   const caps = {
-    asset: "NEX",
+    asset: "UVT",
     currency: "USDT",
     currentPrice: 0.125,
     userDailyCapUsdt: 50,
@@ -82,7 +82,7 @@ function exchangeSnapshot() {
     ordersPage: { total: 1, pageNum: 1, pageSize: 20 },
     orders: [{
       exchangeNo: "EX-time-regression-01",
-      fromAsset: "NEX",
+      fromAsset: "UVT",
       toAsset: "USDT",
       fromAmount: 10,
       toAmount: 1.25,

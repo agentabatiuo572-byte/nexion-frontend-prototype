@@ -64,7 +64,7 @@ async function mount(localeCode: "zh" | "en" | "vi", rows: Bill[], vouchers?: Vo
     "@/lib/brand-copy": brandCopy,
     "@/lib/amount-display": { formatAmount, formatGroupedAmount },
     "@/lib/usd-display": { formatUsd },
-    vue: Vue, "@dcloudio/uni-app": { onLoad: (callback: (options: { cat: string }) => void) => callback({ cat: vouchers ? "voucher" : rows[0]?.symbol === "NEX" ? "nex" : "usdt" }),
+    vue: Vue, "@dcloudio/uni-app": { onLoad: (callback: (options: { cat: string }) => void) => callback({ cat: vouchers ? "voucher" : rows[0]?.symbol === "UVT" ? "uvt" : "usdt" }),
       onShow: (callback: () => void) => shown.push(callback) },
     "@/components/app-chassis.vue": { default: chassis }, "@/components/empty-state.vue": { default: Vue.defineComponent(() => () => Vue.h("empty")) },
     "@/components/sub-page-header.vue": { default: Vue.defineComponent(() => () => Vue.h("header")) },
@@ -103,12 +103,12 @@ afterEach(() => { cleanups.splice(0).forEach(cleanup => cleanup()); vi.restoreAl
 describe("mounted reward detail precision", () => {
   it.each(["zh", "en", "vi"] as const)("keeps the authoritative exact amount for both reward assets in %s", async locale => {
     vi.stubGlobal("Intl", undefined);
-    for (const symbol of ["USDT", "NEX"] as const) {
+    for (const symbol of ["USDT", "UVT"] as const) {
       const rows = ["999999999999.999999", "-999999999999.999999", "0.000001", "0001.000001", "-0.000000"].map(amountExact => ({
         ...fixture(Number(amountExact), symbol), amountExact,
       }));
       const before = JSON.stringify(rows), page = await mount(locale, rows);
-      const visibleSymbol = symbol === 'NEX' ? 'UVT' : symbol;
+      const visibleSymbol = symbol === 'UVT' ? 'UVT' : symbol;
       expect(page.amounts()).toEqual([`+1,000,000,000,000.00 ${visibleSymbol}`, `−1,000,000,000,000.00 ${visibleSymbol}`,
         `+<${symbol === 'USDT' ? '0.0001' : '0.01'} ${visibleSymbol}`, `+1.00 ${visibleSymbol}`, `0.00 ${visibleSymbol}`]);
       expect(JSON.stringify(rows)).toBe(before);
@@ -119,7 +119,7 @@ describe("mounted reward detail precision", () => {
     const rows = [fixture(0.045005), fixture(0.000001), fixture(1234.045005), fixture(-0.045005)];
     const before = JSON.stringify(rows), page = await mount(locale, rows);
     expect(page.amounts()).toEqual(["+0.045 USDT", "+<0.0001 USDT", "+1,234.045 USDT", "−0.045 USDT"]);
-    const nexPage = await mount(locale, [fixture(146, "NEX")]); expect(nexPage.amounts()).toEqual(["+146.00 UVT"]);
+    const nexPage = await mount(locale, [fixture(146, "UVT")]); expect(nexPage.amounts()).toEqual(["+146.00 UVT"]);
     expect(JSON.stringify(rows)).toBe(before);
   });
 
@@ -128,7 +128,7 @@ describe("mounted reward detail precision", () => {
     const nativeFormat = vi.spyOn(Number.prototype, "toLocaleString").mockImplementation(() => { throw new Error("NATIVE_LOCALE_FORMAT_UNAVAILABLE"); });
     const page = await mount(locale, [fixture(0.045005), fixture(0.000001), fixture(-1234.045005)]);
     expect(page.amounts()).toEqual(["+0.045 USDT", "+<0.0001 USDT", "−1,234.045 USDT"]);
-    const nexPage = await mount(locale, [fixture(146, "NEX")]); expect(nexPage.amounts()).toEqual(["+146.00 UVT"]);
+    const nexPage = await mount(locale, [fixture(146, "UVT")]); expect(nexPage.amounts()).toEqual(["+146.00 UVT"]);
     expect(nativeFormat).not.toHaveBeenCalled();
   });
 

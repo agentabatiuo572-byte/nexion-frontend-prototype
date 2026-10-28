@@ -356,7 +356,7 @@ async function handleClaim(ev: EnrichedEvent) {
     const paid = reward > 0
     ? postMoneyBillsOnce([{
       type: "achievement",
-      symbol: "NEX",
+      symbol: "UVT",
       amount: reward,
       status: "posted",
       memo: `Event reward · ${ev.id}`,

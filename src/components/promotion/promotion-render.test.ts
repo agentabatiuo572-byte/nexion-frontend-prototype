@@ -59,7 +59,7 @@ it.each([promotionZH,promotionEN,promotionVI])('personal rewards opt into maskin
   expect(personal.reward.amount).toBe('123.450000');
   const details = await renderToString(Vue.createSSRApp(componentExports.default, { rewards: [personal] }));
   expect(details).toContain('123.45 USDT');
-  const rules = await renderToString(Vue.createSSRApp(componentExports.default, { specs: [{ ...reward.reward, type: 'NEX', amount: '10.000000' }] }));
+  const rules = await renderToString(Vue.createSSRApp(componentExports.default, { specs: [{ ...reward.reward, type: 'UVT', amount: '10.000000' }] }));
   expect(rules).toContain('10.00 UVT');
   expect(rules).not.toContain('••••');
 });
@@ -115,7 +115,7 @@ it('final recovery and cancellation remain visible when a historical refund hold
 
 it('two canonical order-line IDs keep purchase quantities and rewards paired regardless of array order',async()=>{
   const props={lines:[{lineId:'900101',productNo:'sku-a',quantity:2},{lineId:'900102',productNo:'sku-b',quantity:3}],rewards:[
-    {...reward,obligationId:'reward-beta',orderLineId:'900102',reward:{...reward.reward,type:'NEX',amount:'7.000000'}},
+    {...reward,obligationId:'reward-beta',orderLineId:'900102',reward:{...reward.reward,type:'UVT',amount:'7.000000'}},
     {...reward,obligationId:'reward-alpha',orderLineId:'900101',reward:{...reward.reward,type:'USDT',amount:'5.000000'}},
   ]};
   const html=await renderToString(Vue.createSSRApp(componentExports.default,props));

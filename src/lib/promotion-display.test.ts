@@ -1,6 +1,6 @@
 import{afterEach,expect,it,vi}from'vitest';import{rewardAmount,displayDeadline}from'./promotion-display';import type{RewardSpec}from'../api/promotion-api';
 afterEach(()=>{vi.restoreAllMocks();vi.unstubAllGlobals();});
-it('formats two decimal rewards without binary money arithmetic or mixing assets',()=>{const reward={type:'NEX',amount:'999999999999.000001'}as RewardSpec;expect(rewardAmount(reward,100)).toBe('99999999999900.00');expect(rewardAmount({...reward,amount:'0.000001'},3)).toBe('0.00');expect(rewardAmount({...reward,amount:'20.000000'})).toBe('20.00');});
+it('formats two decimal rewards without binary money arithmetic or mixing assets',()=>{const reward={type:'UVT',amount:'999999999999.000001'}as RewardSpec;expect(rewardAmount(reward,100)).toBe('99999999999900.00');expect(rewardAmount({...reward,amount:'0.000001'},3)).toBe('0.00');expect(rewardAmount({...reward,amount:'20.000000'})).toBe('20.00');});
 it('keeps explicit UTC in deadlines and never invents a countdown from invalid input',()=>{expect(displayDeadline('not-a-time','zh')).toBe('—');expect(displayDeadline('2026-10-31T23:59:00+09:00','en')).toContain('UTC');});
 it.each([['zh','2026/10/25'],['en','Oct 25, 2026'],['vi','25/10/2026']])('formats %s UTC deadlines without native locale support',(language,day)=>{
   vi.stubGlobal('Intl',undefined);

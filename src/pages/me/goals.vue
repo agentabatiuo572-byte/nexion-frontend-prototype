@@ -157,7 +157,6 @@ import { useGoals, type Goal } from "@/store/goals";
 import { useApp } from "@/store/app";
 import { useUI } from "@/store/ui";
 import { remoteApiEnabled, apiRuntimeConfig } from "@/api/runtime";
-import { nexGridBrandText } from "@/lib/brand-copy";
 
 const PRESET_TARGETS = [500, 1000, 5000, 10000];
 const PRESET_DEADLINES_DAYS = [30, 90, 180, 365];
@@ -194,7 +193,7 @@ let deleteFeedbackGeneration = 0;
 const recommendation = computed(() => {
   if (remoteApiEnabled && goalsStore.recommendation?.purchaseRequired) {
     return {
-      tier: nexGridBrandText(goalsStore.recommendation.productName ?? ""),
+      tier: (goalsStore.recommendation.productName ?? ""),
       reason: "",
     };
   }

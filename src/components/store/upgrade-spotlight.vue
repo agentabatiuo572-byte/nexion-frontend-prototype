@@ -1,7 +1,7 @@
 <template>
   <view class="upgrade-spotlight" :data-images-ready="baseReady && targetReady">
     <text class="upgrade-eyebrow">{{ copy.upgrade }}</text>
-    <view class="upgrade-title"><text>{{ nexGridBrandText(base.name) }}</text><text class="upgrade-title__target">→ {{ nexGridBrandText(target.name) }}</text></view>
+    <view class="upgrade-title"><text>{{ (base.name) }}</text><text class="upgrade-title__target">→ {{ (target.name) }}</text></view>
     <view class="upgrade-art" aria-hidden="true">
       <view v-if="baseReady" class="upgrade-art__base-shadow" />
       <CatalogMachineImage class="upgrade-art__base" v-bind="baseImageProps" />
@@ -27,7 +27,6 @@ import { useAuditUiCopy } from '@/i18n/audit-ui';
 import { useT } from '@/i18n/use-t';
 import { useLocaleStore } from '@/store/locale';
 import { fmtMoney } from '@/i18n/format';
-import { nexGridBrandText } from '@/lib/brand-copy';
 import { navTo } from '@/lib/route';
 import NxButton from '@/components/ui/nx-button.vue';
 import type { DeviceKind } from '@/store/types';

@@ -151,10 +151,10 @@ export function withdrawalBillDrafts(wd: Withdrawal): ReceiptDraft[] {
   if (fee.nexBurned > 0) {
     drafts.push({
       type: "withdraw",
-      symbol: "NEX",
+      symbol: "UVT",
       amount: -fee.nexBurned,
       status: "posted",
-      memo: `Fee offset · ${fmtNex(fee.nexBurned)} NEX used`,
+      memo: `Fee offset · ${fmtNex(fee.nexBurned)} UVT used`,
       memoKey: "withdrawNexFee",
       memoParams: {
         nex: fmtNex(fee.nexBurned),
@@ -194,11 +194,11 @@ export function withdrawalBillDrafts(wd: Withdrawal): ReceiptDraft[] {
   if (typeof refunded === "number" && refunded > 0 && refunded <= fee.nexBurned) {
     drafts.push({
       type: "withdraw",
-      symbol: "NEX",
+      symbol: "UVT",
       amount: refunded,
       status: "posted",
       // memoKey = 渲染时才翻译(切语言不留旧语);memo 只作兜底,与 bills.ts 的约定一致。
-      memo: `Fee offset refunded · ${fmtNex(refunded)} NEX returned`,
+      memo: `Fee offset refunded · ${fmtNex(refunded)} UVT returned`,
       memoKey: "withdrawNexRefund",
       memoParams: { nex: fmtNex(refunded) },
       ref: wd.id,

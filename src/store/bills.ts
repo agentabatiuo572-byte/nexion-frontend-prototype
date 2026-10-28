@@ -21,7 +21,7 @@ export interface Bill {
   type: BillType;
   amount: number; // signed: +credit, -debit
   amountExact?: string; // signed exact server decimal, retained for display
-  symbol: "USDT" | "NEX";
+  symbol: "USDT" | "UVT";
   status: BillStatus;
   ts: number; // epoch ms
   /**
@@ -141,8 +141,8 @@ function seedBills(): Bill[] {
     });
   }
   list.push({ ts: now - 29 * DAY, type: "bonus", symbol: "USDT", amount: 5.0, status: "posted", memo: "Welcome bonus credited on activation", memoKey: "welcomeBonus" });
-  list.push({ ts: now - 29 * DAY + 60 * 1000, type: "bonus", symbol: "NEX", amount: 10, status: "posted", memo: "Achievement · First Contribution", memoKey: "achFirstContribution" });
-  list.push({ ts: now - 14 * DAY + 5 * 3600 * 1000, type: "achievement", symbol: "NEX", amount: 20, status: "posted", memo: "Achievement · First Dollar", memoKey: "achFirstDollar" });
+  list.push({ ts: now - 29 * DAY + 60 * 1000, type: "bonus", symbol: "UVT", amount: 10, status: "posted", memo: "Achievement · First Contribution", memoKey: "achFirstContribution" });
+  list.push({ ts: now - 14 * DAY + 5 * 3600 * 1000, type: "achievement", symbol: "UVT", amount: 20, status: "posted", memo: "Achievement · First Dollar", memoKey: "achFirstDollar" });
   list.push({ ts: now - 12 * DAY, type: "topup", symbol: "USDT", amount: 50.0, status: "posted", memo: "Top-up · USDT-TRC20", memoKey: "topupTrc20", ref: "TX-20260503-7621" });
   // 🔴 种子不造 withdraw 行:提现账单行与提现单据(app.withdrawals)必须同源成对 ——
   // 只造账单行的话,追踪页按单号深链必「查无此单」(每个新账号都命中),

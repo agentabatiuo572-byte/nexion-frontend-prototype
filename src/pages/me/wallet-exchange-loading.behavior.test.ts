@@ -150,7 +150,7 @@ async function mount(direction = "nex2usdt") {
     settle: async (value: ExchangeSnapshot) => { requests.at(-1)!.resolve(value); await flush(); },
   };
 }
-const insufficient = (sym: string) => en.exchange.insufficientMessage.replace("{sym}", sym === "NEX" ? "UVT" : sym);
+const insufficient = (sym: string) => en.exchange.insufficientMessage.replace("{sym}", sym === "UVT" ? "UVT" : sym);
 beforeEach(() => {
   vi.useFakeTimers();
   vi.stubGlobal("uni", { getStorageSync: () => "", setStorageSync: vi.fn() });
@@ -170,7 +170,7 @@ describe("mounted exchange balance authority", () => {
     const before = JSON.stringify(state); await s.settle(state);
     s.button(en.uiChrome.max).props.onClick(); await flush();
     expect(s.amount()).toBe("4268.31"); expect(Number(s.amount())).toBeLessThanOrEqual(state.wallet[field]);
-    expect(s.text()).not.toContain(insufficient(direction === "nex2usdt" ? "NEX" : "USDT"));
+    expect(s.text()).not.toContain(insufficient(direction === "nex2usdt" ? "UVT" : "USDT"));
     expect(s.button(en.exchange.confirm).props["aria-disabled"]).toBe(enabled ? "false" : "true");
     expect(s.text().includes(en.exchange.swapPaused)).toBe(!enabled);
     expect(JSON.stringify(state)).toBe(before); expect(s.confirm).not.toHaveBeenCalled(); expect(s.swap).not.toHaveBeenCalled();
@@ -202,7 +202,7 @@ describe("mounted exchange balance authority", () => {
   });
 
   it.each(["nex2usdt", "usdt2nex"])("retains input without false validation during pending, unavailable and recovery: %s", async direction => {
-    const s = await mount(direction), sym = direction === "nex2usdt" ? "NEX" : "USDT";
+    const s = await mount(direction), sym = direction === "nex2usdt" ? "UVT" : "USDT";
     await s.settle(snapshot()); await s.enter("10");
     s.button(en.exchange.howItWorksEntry).props.onClick();
     expect(s.navTo).toHaveBeenCalledWith("/pages/me/wallet-exchange-how");
@@ -234,7 +234,7 @@ describe("mounted exchange balance authority", () => {
   });
 
   it.each(["nex2usdt", "usdt2nex"])("still reports a ready low or zero balance and clears it when sufficient: %s", async direction => {
-    const s = await mount(direction), sym = direction === "nex2usdt" ? "NEX" : "USDT";
+    const s = await mount(direction), sym = direction === "nex2usdt" ? "UVT" : "USDT";
     for (const balance of [2, 0]) {
       const state = snapshot(); state.caps.swapEnabled = true;
       state.wallet[direction === "nex2usdt" ? "nexAvailable" : "usdtAvailable"] = balance;
@@ -263,7 +263,7 @@ describe("mounted exchange balance authority", () => {
     await s.settle(state); await s.enter("5");
     const minimum = en.exchange.minAmount.replace("{n}", "10.00").replace("{sym}", "UVT");
     expect(s.text().split(minimum)).toHaveLength(3); // Pay-card hint plus validation.
-    expect(s.text()).not.toContain(insufficient("NEX"));
+    expect(s.text()).not.toContain(insufficient("UVT"));
     expect(s.button(en.exchange.confirm).props["aria-disabled"]).toBe("true");
     const feeState = snapshot(); feeState.caps.swapEnabled = true; feeState.caps.currentPrice = 0.01;
     s.button(en.exchange.refreshRate).props.onClick(); await s.settle(feeState); await s.enter("10");

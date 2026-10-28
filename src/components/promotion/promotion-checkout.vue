@@ -127,7 +127,6 @@
 </template>
 <script setup lang="ts">
 import { formatAmount as formatPlainAmount } from "@/lib/amount-display";
-import { nexGridBrandText } from '@/lib/brand-copy';
 import { commerceCopy } from '@/lib/commerce-review';
 import PromotionAction from '@/components/promotion/promotion-action.vue';
 import LiquidGlass from '@/components/liquid-glass.vue';
@@ -173,7 +172,7 @@ function formatDiscount(value: Parameters<typeof formatPlainAmount>[0]): string 
 }
 function getProduct(id:string){void productCatalogState.status;return readProduct(id);}
 const t=useT(),p=computed(()=>t.value.promotion),locale=useLocaleStore(),app=useApp(),auth=useAuth(),voucher=useVoucher();
-function selectedItemName(item:{productNo:string;productName?:string}){return nexGridBrandText(item.productName??getProduct(item.productNo)?.name??productCatalogPresentation.value?.products.find(product=>product.id===item.productNo)?.name??p.value.unknown);}
+function selectedItemName(item:{productNo:string;productName?:string}){return (item.productName??getProduct(item.productNo)?.name??productCatalogPresentation.value?.products.find(product=>product.id===item.productNo)?.name??p.value.unknown);}
 const reviewCopy=computed(()=>commerceCopy(locale.code));
 const walletState=ref<'idle'|'loading'|'ready'|'error'>('idle');
 let walletGeneration=0;

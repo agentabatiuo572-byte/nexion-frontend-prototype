@@ -3,7 +3,7 @@ import { parseNexMarketSnapshot } from "./market-api";
 
 const RUN = "home-market-run-20260819";
 const snapshot = {
-  asset: "NEX",
+  asset: "UVT",
   currency: "USDT",
   serverCanonical: true,
   source: "mock",

@@ -78,7 +78,7 @@ export function parseNexMarketSnapshot(value: unknown, mode: ApiEnvironment = "p
   const costBasis = positive(data?.costBasis);
   const historyMaxDays = positiveInteger(data?.historyMaxDays);
   const historyPayload = Array.isArray(data?.history) ? data?.history : data?.history24h;
-  if (!data || data.asset !== "NEX" || data.currency !== "USDT"
+  if (!data || data.asset !== "UVT" || data.currency !== "USDT"
       || !provenance(data, mode, "G3 weekly_curve + nx_price_index sampled history")
       || currentPrice === null || costBasis === null || historyMaxDays === null
       || !Array.isArray(data.sparkline) || !Array.isArray(historyPayload)) {

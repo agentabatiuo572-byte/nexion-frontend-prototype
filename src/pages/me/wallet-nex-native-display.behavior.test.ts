@@ -46,7 +46,7 @@ const texts = (root: Host): string[] => [
 ];
 const unmounts: Array<() => void> = [];
 const timestamp = new Date(2026, 9, 3, 16, 34, 40).getTime();
-const bill = (amount = 3, ts = timestamp) => ({ id: "nex:1", amount, ts, symbol: "NEX", status: "settled", memo: "", memoKey: "mining" });
+const bill = (amount = 3, ts = timestamp) => ({ id: "nex:1", amount, ts, symbol: "UVT", status: "settled", memo: "", memoKey: "mining" });
 async function mount(translations = en) {
   const app = Vue.reactive({ accountKey: "user:wallet-fixture", accountBindingEpoch: 1, user: { nexBalance: 143 }, remoteFleetHasSnapshot: true, visibleDevices: [], refreshRemoteFleet: vi.fn(async () => {}) });
   const locale = Vue.reactive({ code: translations === zh ? "zh" : translations === vietnamese ? "vi" : "en" });

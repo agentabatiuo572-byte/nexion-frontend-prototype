@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createMarketApi } from "./market-api";
 
 const productionNex = {
-  asset: "NEX",
+  asset: "UVT",
   currency: "USDT",
   currentPrice: 0.125,
   costBasis: 0.085,
@@ -56,4 +56,9 @@ describe("market API provenance", () => {
 
     await expect(api.fetch()).rejects.toMatchObject({ message: "NEX_MARKET_RESPONSE_INVALID" });
   });
+});
+
+it("rejects the retired asset code instead of accepting it as UVT", async () => {
+  const api = createMarketApi({ request: vi.fn().mockResolvedValue({ ...productionNex, asset: "NEX" }) } as never, "prod");
+  await expect(api.fetch()).rejects.toMatchObject({ message: "NEX_MARKET_RESPONSE_INVALID" });
 });

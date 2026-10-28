@@ -22,10 +22,10 @@ describe("course return after a cold H5 refresh", () => {
   it("keeps the NEX reward source in the deep link and returns to its list", () => {
     const url = courseRewardHref("account-security");
     expect(resolveCourseNavigation(undefined, url.split("?")[1])).toEqual({
-      id: "account-security", source: "rewards-nex", back: "/pages/me/rewards-list?cat=nex",
+      id: "account-security", source: "rewards-uvt", back: "/pages/me/rewards-list?cat=uvt",
     });
-    expect(resolveCourseNavigation({ id: "account-security", source: "rewards-nex" }, "").back)
-      .toBe("/pages/me/rewards-list?cat=nex");
+    expect(resolveCourseNavigation({ id: "account-security", source: "rewards-uvt" }, "").back)
+      .toBe("/pages/me/rewards-list?cat=uvt");
   });
 
   it("restores a source dropped from the visible H5 hash before refresh", () => {
@@ -41,9 +41,9 @@ describe("course return after a cold H5 refresh", () => {
       );
       preserveCourseSourceInH5(nav.id, nav.source);
       expect(history.replaceState).toHaveBeenCalledOnce();
-      expect(location.hash).toBe("#/pages/learn/course?id=account-security&source=rewards-nex");
+      expect(location.hash).toBe("#/pages/learn/course?id=account-security&source=rewards-uvt");
       expect(resolveCourseNavigation(undefined, location.hash.split("?")[1]).back)
-        .toBe("/pages/me/rewards-list?cat=nex");
+        .toBe("/pages/me/rewards-list?cat=uvt");
       preserveCourseSourceInH5(nav.id, nav.source);
       expect(history.replaceState).toHaveBeenCalledOnce();
       location.hash = "#/pages/learn/courses";
@@ -59,4 +59,10 @@ describe("course return after a cold H5 refresh", () => {
     expect(resolveCourseNavigation(undefined, "?id=account-security&source=courses").back).toBe("/pages/learn/courses");
     expect(resolveCourseNavigation(undefined, "?source=%2Fpages%2Fme%2Fwallet").back).toBe("/pages/learn/courses");
   });
+});
+
+
+it("recovers an old reward-source hash to the canonical uvt list after refresh", () => {
+  expect(resolveCourseNavigation(undefined, "id=account-security&source=rewards-nex")).toEqual({ id: "account-security", source: "rewards-uvt", back: "/pages/me/rewards-list?cat=uvt" });
+  expect(resolveCourseNavigation({ id: "account-security", source: "rewards-nex" }, "").back).toBe("/pages/me/rewards-list?cat=uvt");
 });

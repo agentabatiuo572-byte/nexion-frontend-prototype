@@ -9,7 +9,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { zh } from "@/i18n/messages/zh";
 import { en } from "@/i18n/messages/en";
 import { vi as vietnamese } from "@/i18n/messages/vi";
-import { catalogSkuBrandText, catalogSkuRecommendationBody } from "@/lib/brand-copy";
 import { localizedIdleClose } from "@/lib/support-idle-message";
 import { formatUnreadBadge } from "@/lib/unread-badge";
 import { groupConversationThreads } from "@/api/conversation-threads";
@@ -90,7 +89,6 @@ function mount(type: "advisor" | "support", state: "empty" | "ended" | "active" 
     vue: Vue, "@dcloudio/uni-app": { onShow: (fn: () => Promise<void>) => shown.push(fn), onHide: (fn: () => void) => hidden.push(fn) },
     "@/i18n/use-t": { useT: () => currentLocale }, "@/i18n/format": { fmt: (value: string) => value },
     "@/lib/support-idle-message": { localizedIdleClose },
-    "@/lib/brand-copy": { catalogSkuBrandText, catalogSkuRecommendationBody },
     "@/lib/unread-badge": { formatUnreadBadge },
     "@/i18n/conversation-actions": { conversationActionsCopy },
     "@/store/locale": { useLocaleStore: () => ({ code: locale === en ? "en" : locale === vietnamese ? "vi" : "zh" }) },
@@ -398,7 +396,6 @@ function mountRealHumanChat(query: Record<string, string> = { cid: "CV-cold" }, 
     "@dcloudio/uni-app": Object.fromEntries(["onLoad", "onUnload", "onShow", "onHide"].map(name => [name, (fn: () => void) => { hooks[name] = fn; }])),
     "@/i18n/use-t": { useT: () => Vue.ref(messages) }, "@/i18n/format": chatFormat,
     "@/lib/support-idle-message": { localizedIdleClose },
-    "@/lib/brand-copy": { catalogSkuBrandText, catalogSkuRecommendationBody },
     "@/lib/nova-visibility": { NOVA_SUPPORT_VISIBLE: false },
     "@/lib/route": navigation, "@/lib/send-limiter": { ...chatLimiter, conversationSendLimiter: sendBudgets },
     '@/lib/message-length-policy': messagePolicy,

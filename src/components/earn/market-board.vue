@@ -80,7 +80,6 @@ import { useT } from "@/i18n/use-t";
 import type { DeviceKind, TaskCategory } from "@/store/types";
 import { useApp } from "@/store/app";
 import { remoteApiEnabled } from "@/api/runtime";
-import { nexGridBrandText } from "@/lib/brand-copy";
 import { marketWorkloadCopy } from "@/lib/workload-label";
 
 interface WorkloadPrice {
@@ -130,7 +129,7 @@ const priceIndex = computed<WorkloadPrice[]>(() => remoteApiEnabled
   : PRICE_INDEX);
 const workloadCopy = (row: WorkloadPrice) => marketWorkloadCopy(t.value, row.code, row.name, row.unit);
 const deviceRankings = computed<DeviceRanking[]>(() => remoteApiEnabled
-  ? (app.homeTruth?.marketBoard.deviceRankings ?? []).filter((row) => row.kind !== "cloud-share").map((row) => ({ rank: row.rank, name: row.name ? nexGridBrandText(row.name) : undefined, dailyEarn: row.dailyUsdt, bestFor: row.bestFor, kind: row.kind && row.kind !== "phone" ? row.kind : undefined, isPhone: row.kind === "phone" }))
+  ? (app.homeTruth?.marketBoard.deviceRankings ?? []).filter((row) => row.kind !== "cloud-share").map((row) => ({ rank: row.rank, name: row.name ? (row.name) : undefined, dailyEarn: row.dailyUsdt, bestFor: row.bestFor, kind: row.kind && row.kind !== "phone" ? row.kind : undefined, isPhone: row.kind === "phone" }))
   : DEVICE_RANKINGS);
 
 function arrow(w: WorkloadPrice): string {

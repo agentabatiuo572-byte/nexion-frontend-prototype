@@ -109,7 +109,7 @@ function localizedTitle(draw: GenesisRaffleDraw) { return language.value === "zh
 function localizedName(prize: GenesisRafflePrize) { return language.value === "zh" ? prize.nameZh : language.value === "vi" ? prize.nameVi : prize.nameEn; }
 function rewardText(prize: Pick<GenesisRafflePrize, "rewardType" | "amount">) {
   if (prize.rewardType === "USDT") return formatUsd(prize.amount, "detail");
-  return `${formatAmount(prize.amount)} ${prize.rewardType === "NEX" ? "UVT" : copy.value.device}`;
+  return `${formatAmount(prize.amount)} ${prize.rewardType === "UVT" ? "UVT" : copy.value.device}`;
 }
 function entryOpen(draw: GenesisRaffleDraw) { return draw.status === "OPEN" && now.value >= Date.parse(draw.startsAt) && now.value < Date.parse(draw.drawAt); }
 function canEnter(draw: GenesisRaffleDraw) {

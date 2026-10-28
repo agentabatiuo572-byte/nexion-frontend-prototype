@@ -258,7 +258,7 @@ async function handleBind() {
     // 同一次任务完成的两腿一次落盘,入账由收据的 amount/symbol 派生(模式同 lib/share.ts)。
     const drafts: ReceiptDraft[] = [];
     if (task.usdtReward) drafts.push({ type: "bonus", symbol: "USDT", amount: task.usdtReward, status: "posted", memo: t.value.quest.bindCardMemo, ref: billRef });
-    if (task.nexReward) drafts.push({ type: "bonus", symbol: "NEX", amount: task.nexReward, status: "posted", memo: t.value.quest.bindCardMemo, ref: billRef });
+    if (task.nexReward) drafts.push({ type: "bonus", symbol: "UVT", amount: task.nexReward, status: "posted", memo: t.value.quest.bindCardMemo, ref: billRef });
     // 发奖失败已弹错并还原;绑卡本身已成立,照常回上一页,不把用户卡在表单里。
     if (!drafts.length || postMoneyBillsOnce(drafts) === "ok") {
       questStore.markComplete("bind_bank_card"); // 消费失败:重试命中同 ref 不会再发

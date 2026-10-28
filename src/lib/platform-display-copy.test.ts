@@ -13,7 +13,7 @@ describe("UVEL / UVT display boundaries", () => {
     ["NEX-token / NEX-only", "UVT-token / UVT-only"],
     ["StellarBox S1 / StellarRack P1 / StellarBox-custom", "UVELBox S1 / UVELRack P1 / StellarBox-custom"],
     ["https://nexgrid.io/privacy，NEX 奖励", "https://nexgrid.io/privacy，UVT 奖励"],
-    ["USDT_TO_NEX NEX-GEN-0001 NEXION_USDT_WALLET", "USDT_TO_NEX NEX-GEN-0001 NEXION_USDT_WALLET"],
+    ["USDT_TO_UVT NEX-GEN-0001 NEXION_USDT_WALLET", "USDT_TO_UVT NEX-GEN-0001 NEXION_USDT_WALLET"],
     ["NexGrid: privacy@nexgrid.com https://nexgrid.com/NEX nexgrid.com/privacy", "UVEL: privacy@nexgrid.com https://nexgrid.com/NEX nexgrid.com/privacy"],
   ])("formats display copy without changing link targets: %s", (input, expected) => {
     expect(platformDisplayText(input)).toBe(expected);

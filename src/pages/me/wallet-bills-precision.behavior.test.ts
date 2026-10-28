@@ -59,7 +59,7 @@ const fixture = (exact: string, symbol: Bill["symbol"], debit = false): Bill => 
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 describe("wallet bills exact money render", () => {
   it.each(["en", "zh", "vi"] as const)("renders only the requested receipt and hides unrelated filters in %s", async locale => {
-    const matching = { ...fixture("0.000001", "NEX"), ledgerBizNo: "R1:exact" };
+    const matching = { ...fixture("0.000001", "UVT"), ledgerBizNo: "R1:exact" };
     const other = { ...fixture("999999999999.999999", "USDT"), ledgerBizNo: "R1:exact-REV", ref: "R1:exact" };
     const html = await render(locale, [matching, other], "R1:exact");
     expect(html).toContain(locale === "vi" ? "+&lt;0,01" : "+&lt;0.01");
@@ -70,7 +70,7 @@ describe("wallet bills exact money render", () => {
   it.each(["en", "zh", "vi"] as const)("keeps nonzero amounts visible and preserves exact source values in %s", async locale => {
     vi.stubGlobal("Intl", undefined);
     const native = vi.spyOn(Number.prototype, "toLocaleString").mockImplementation(() => { throw new Error("Native localization unavailable"); });
-    for (const symbol of ["USDT", "NEX"] as const) {
+    for (const symbol of ["USDT", "UVT"] as const) {
       for (const exact of ["0.000001", "0.00032", "1.000001", "999999999999.999999"]) {
         const values: Record<string, string> = { "0.000001": symbol === "USDT" ? "&lt;0.0001" : "&lt;0.01", "0.00032": symbol === "USDT" ? "0.0003" : "&lt;0.01", "1.000001": "1.00", "999999999999.999999": "1000000000000.00" };
         const [whole, fraction] = values[exact].split(".");

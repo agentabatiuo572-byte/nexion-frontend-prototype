@@ -6,19 +6,19 @@ import { createWalletBillsApi } from "../api/wallet-bills-api";
 const remote = vi.hoisted(() => ({ fundsServerEnabled: true, walletBillsApi: { list: vi.fn(), summary: vi.fn() } }));
 vi.mock("@/api/runtime", () => remote);
 const { useBills, isRewardBill } = await import("./bills");
-const row = (id: string) => ({ id, bizNo: id, bizType: "QUEST_REWARD", asset: "NEX", direction: "IN", amount: 2, balanceAfter: 9, status: "SUCCESS", remark: id, createdAt: 1000 });
+const row = (id: string) => ({ id, bizNo: id, bizType: "QUEST_REWARD", asset: "UVT", direction: "IN", amount: 2, balanceAfter: 9, status: "SUCCESS", remark: id, createdAt: 1000 });
 const page = (ids: string[], nextCursor: string | null = null, current = 1) => ({ source: "server", sourceEnvironment: "PRODUCTION", bills: ids.map(row), page: current, pageSize: 50, total: 1101, nextPage: nextCursor ? current + 1 : null, nextCursor });
 const summary = (amount = 2202) => ({ source: "server", sourceEnvironment: "PRODUCTION", asOf: 2000, timeZone: "Asia/Shanghai", rewardsUsdt: 0, rewardsNex: amount, latestRewardAt: 1000, todayNexEarn: 800, pendingNex: 120, monthBillCount: 1101, recentNexBills: [row("recent")] });
 function deferred<T>() { let resolve!: (v: T) => void; let reject!: (e: Error) => void; const promise = new Promise<T>((a, b) => { resolve = a; reject = b; }); return { promise, resolve, reject }; }
 beforeEach(() => { setActivePinia(createPinia()); remote.walletBillsApi.list.mockReset(); remote.walletBillsApi.summary.mockReset().mockResolvedValue(summary()); });
 
 describe("wallet ledger demand pagination and authoritative summaries", () => {
-  it.each(["USDT", "NEX"])("retains signed exact %s text in the ledger and recent summary rows", async asset => {
+  it.each(["USDT", "UVT"])("retains signed exact %s text in the ledger and recent summary rows", async asset => {
     const exact = "999999999999.999999";
     const wire = { ...row("exact"), asset, direction: "OUT", amount: Number(exact), balanceAfter: 0.000001,
       amountExact: exact, balanceAfterExact: "0.000001" };
     remote.walletBillsApi.list.mockResolvedValue({ ...page([]), bills: [wire] });
-    remote.walletBillsApi.summary.mockResolvedValue({ ...summary(), recentNexBills: [{ ...wire, asset: "NEX" }] });
+    remote.walletBillsApi.summary.mockResolvedValue({ ...summary(), recentNexBills: [{ ...wire, asset: "UVT" }] });
     const store = useBills(); await store.refreshServerLedger(); await store.refreshSummary();
     expect(store.bills[0]).toMatchObject({ amount: -Number(exact), amountExact: `-${exact}`, balanceAfterExact: "0.000001" });
     expect(store.summary?.recentNexBills[0].amountExact).toBe(`-${exact}`);
@@ -58,9 +58,9 @@ describe("wallet ledger demand pagination and authoritative summaries", () => {
   });
   it("keeps filtered streams separate and deduplicates equivalent filters", async () => {
     remote.walletBillsApi.list.mockResolvedValue(page(["r"])); const store = useBills();
-    const p = store.getLedger({ category: "REWARD", asset: "NEX" });
-    expect(p).toBe(store.getLedger({ asset: "NEX", category: "REWARD" }));
-    await p.refresh(); expect(remote.walletBillsApi.list).toHaveBeenCalledWith(1, 50, { asset: "NEX", category: "REWARD", cursor: "start" });
+    const p = store.getLedger({ category: "REWARD", asset: "UVT" });
+    expect(p).toBe(store.getLedger({ asset: "UVT", category: "REWARD" }));
+    await p.refresh(); expect(remote.walletBillsApi.list).toHaveBeenCalledWith(1, 50, { asset: "UVT", category: "REWARD", cursor: "start" });
     expect(store.getLedger().rows).toEqual([]);
   });
   it("uses the controlled projection for a trial purchase and never exposes its internal remark", async () => {

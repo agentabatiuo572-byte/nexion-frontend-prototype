@@ -42,7 +42,7 @@ function dailySnapshot(currentStreak = 3, serverDate = "2026-08-22", checkedInTo
     dailyMilestones: [{
       milestoneId: 7,
       milestoneDay: 3,
-      rewardType: "NEX",
+      rewardType: "UVT",
       rewardAmount: "1",
       rewardLabel: "+1 NEX",
       status: "AVAILABLE",
@@ -332,7 +332,7 @@ describe("NEX faucet remote failure resilience", () => {
     remote.pointsApi.claimMilestone.mockResolvedValue({
       milestoneId: 7,
       milestoneDay: 3,
-      rewardType: "NEX",
+      rewardType: "UVT",
       rewardAmount: 1,
       badgeCode: null,
       spinTickets: 0,

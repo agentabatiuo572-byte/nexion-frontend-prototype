@@ -16,7 +16,7 @@ function eligibility(): GenesisEligibility {
     accountAgeDays: 1,
     holderStatus: "READY",
     reservedAllocation: 800002.5,
-    reservedAllocationUnit: "NEX",
+    reservedAllocationUnit: "UVT",
     priorityRank: 1,
     priorityTier: "TOP_1",
     qualificationReasonCodes: ["HOLDINGS_CONFIRMED", "POLICY_CONFIRMED"],

@@ -17,27 +17,10 @@ const BRAND = "UVEL";
 
 const LEGACY_BRAND_PATTERN = new RegExp(LEGACY_BRAND, "gi");
 const SYSTEM_NICKNAME_PATTERN = new RegExp(`^(?:(?:${LEGACY_BRAND}|NexGrid) [0-9]{4}|NexGrid-[0-9A-F]{8})$`);
-// Historical persisted body token: comparison only, never a generated UI label.
-const LEGACY_SKU_RECOMMENDATION_PREFIX = "推荐商品：";
 
 /** Only system-generated historical nicknames; keep personal names and raw API values intact. */
 export function displayNickname(value: string): string {
   return SYSTEM_NICKNAME_PATTERN.test(value) ? nexGridBrandText(value) : value;
-}
-
-/** Known official snapshots only; custom catalog names remain verbatim. */
-export function catalogSkuBrandText(id: string | undefined, value: string): string {
-  const official = (id === "stellarbox-s1" && value === "NexGridBox S1")
-    || (id === "stellarbox-pro-v2" && value === "NexGridBox Pro v2")
-    || (id === "stellarbox-pro" && value === "StellarBox Pro")
-    || (id === "stellarrack-p1" && value === "StellarRack P1");
-  return official ? nexGridBrandText(value) : value;
-}
-
-/** Match the historical body exactly; retain its original prefix and authored text. */
-export function catalogSkuRecommendationBody(id: string | undefined, text: string, skuName: string | undefined): string {
-  if (!skuName || text !== LEGACY_SKU_RECOMMENDATION_PREFIX + skuName) return text;
-  return text.slice(0, text.length - skuName.length) + catalogSkuBrandText(id, skuName);
 }
 
 /** 服务端历史值 → 现品牌文案。大小写不敏感,命中即整词替换。 */

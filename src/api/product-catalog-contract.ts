@@ -129,9 +129,9 @@ function purchaseGate(value: unknown): PurchaseGate | undefined {
   const quotaPeriod = optionalString(gate.quotaPeriod);
   if (quotaPeriod && !GATE_PERIODS.has(quotaPeriod as NonNullable<PurchaseGate["quotaPeriod"]>)) return invalid();
   return {
-    rankMin: optionalInteger(gate.rankMin),
-    activeDirectMin: optionalInteger(gate.activeDirectMin),
-    teamComputePointsMin: optionalNumber(gate.teamComputePointsMin),
+    rankMin: optionalInteger(gate.rankMin) ?? 0,
+    activeDirectMin: optionalInteger(gate.activeDirectMin) ?? 0,
+    teamComputePointsMin: optionalNumber(gate.teamComputePointsMin) ?? 0,
     mode: gate.mode as PurchaseGate["mode"],
     quotaCap: optionalInteger(gate.quotaCap),
     quotaSold: optionalInteger(gate.quotaSold),

@@ -120,7 +120,7 @@
           <view v-if="order.lineItems?.length" style="margin: 8px 0; padding: 8px 0; border-top: 1px solid var(--v5-border); border-bottom: 1px solid var(--v5-border)">
             <view v-for="item in order.lineItems" :key="item.sku" class="flex items-center justify-between" style="padding: 4px 0; gap: 12px">
               <view class="flex-1 min-w-0">
-                <text class="block truncate" style="font-size: 12px; color: var(--v5-ink)">{{ nexGridBrandText(item.name) }}</text>
+                <text class="block truncate" style="font-size: 12px; color: var(--v5-ink)">{{ (item.name) }}</text>
                 <text class="block tabular-nums" style="font-size: 12px; color: var(--v5-ink-4)">{{ item.sku }} · {{ item.quantity }} × ${{ formatAmount(item.unitPriceUsdt) }}</text>
               </view>
               <text class="shrink-0 tabular-nums" style="font-size: 12px; color: var(--v5-ink-2)">${{ formatAmount(item.lineAmountUsdt) }}</text>
@@ -238,7 +238,6 @@ import { useTrialPurchaseCopy } from "@/i18n/trial-purchase";
 import { fmt } from "@/i18n/format";
 import { useTrialLifecycleCopy } from "@/i18n/trial-lifecycle";
 import { formatTrialDateTime } from "@/lib/trial-date";
-import { nexGridBrandText } from "@/lib/brand-copy";
 import { useOrders, type OrderStatus, type Order, timelineFor } from "@/store/orders";
 import { useApp } from "@/store/app";
 import { useAuth } from "@/store/auth";

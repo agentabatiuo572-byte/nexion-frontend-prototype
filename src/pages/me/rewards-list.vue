@@ -205,7 +205,7 @@ onLoad((options) => {
 
 const pageTitle = computed(() =>
   cat.value === "promotion" ? t.value.promotion.rewardCategory
-    : cat.value === "usdt" ? t.value.rewards.catUsdt : cat.value === "nex" ? t.value.rewards.catNex : t.value.rewards.catVouchers,
+    : cat.value === "usdt" ? t.value.rewards.catUsdt : cat.value === "uvt" ? t.value.rewards.catNex : t.value.rewards.catVouchers,
 );
 
 // ── vouchers ──
@@ -220,10 +220,10 @@ const voucherKnownEmpty = computed(() => (!remoteApiEnabled || voucher.remoteSta
 function retryVouchers() { void voucher.refreshRemote(); }
 
 // ── reward records (per-symbol, newest-first from the ledger) ──
-const symbol = computed(() => (cat.value === "nex" ? "NEX" : "USDT"));
+const symbol = computed(() => (cat.value === "uvt" ? "UVT" : "USDT"));
 const usdtRewardsPager = bills.getLedger({ asset: "USDT", category: "REWARD" });
-const nexRewardsPager = bills.getLedger({ asset: "NEX", category: "REWARD" });
-const activePager = computed(() => cat.value === "nex" ? nexRewardsPager : usdtRewardsPager);
+const nexRewardsPager = bills.getLedger({ asset: "UVT", category: "REWARD" });
+const activePager = computed(() => cat.value === "uvt" ? nexRewardsPager : usdtRewardsPager);
 const records = computed(() => fundsServerEnabled
   ? activePager.value.rows
   : bills.bills.filter((b) => isRewardBill(b) && b.symbol === symbol.value));
@@ -241,12 +241,12 @@ const appendError = computed(() => fundsServerEnabled && activePager.value.statu
 const showManualLoadMore = computed(() => fundsServerEnabled && activePager.value.status === "ready" && activePager.value.hasMore && !activePager.value.loadingMore && !appendError.value && !refreshErrorWithRows.value);
 
 async function refreshRecords() {
-  if (!fundsServerEnabled || (cat.value !== "usdt" && cat.value !== "nex")) return;
+  if (!fundsServerEnabled || (cat.value !== "usdt" && cat.value !== "uvt")) return;
   if (!remoteSessionReady.value) return;
   try { await activePager.value.refresh(); } catch { /* the pager retains rows and exposes the error */ }
 }
 async function loadMoreRecords() {
-  if (cat.value !== "usdt" && cat.value !== "nex") return;
+  if (cat.value !== "usdt" && cat.value !== "uvt") return;
   if (fundsServerEnabled) {
     try { await activePager.value.loadMore(); } catch { /* keep loaded rows visible for retry */ }
     return;
@@ -265,7 +265,7 @@ watch(remoteSessionReady, (ready, wasReady) => {
   if (cat.value === "voucher") retryVouchers();
 });
 useManualScrollLoadMore(scrollAnchor, {
-  enabled: () => fundsServerEnabled && (cat.value === "usdt" || cat.value === "nex") && !activePager.value.error,
+  enabled: () => fundsServerEnabled && (cat.value === "usdt" || cat.value === "uvt") && !activePager.value.error,
   hasMore: () => activePager.value.hasMore,
   loading: () => activePager.value.loadingMore || activePager.value.status === "loading",
   loadMore: loadMoreRecords,
@@ -275,7 +275,7 @@ useManualScrollLoadMore(scrollAnchor, {
 // receipts.vue: watchEffect re-checks on every dependency change.
 const { elRef: loadMoreSentinel, inView: loadMoreInView } = useScrollGrowProgress({ threshold: 0 });
 watchEffect(() => {
-  if (!fundsServerEnabled && (cat.value === "usdt" || cat.value === "nex") && loadMoreInView.value && hasMore.value) {
+  if (!fundsServerEnabled && (cat.value === "usdt" || cat.value === "uvt") && loadMoreInView.value && hasMore.value) {
     visibleCount.value = Math.min(records.value.length, visibleCount.value + PAGE_SIZE);
   }
 });

@@ -154,14 +154,14 @@ export function postMoneyBills(drafts: ReceiptDraft[], opts: PostMoneyOptions = 
     // 余额不足与落盘失败必须分开报:前者用户可自解(充值 / 改金额),后者是系统故障。
     // 预检**按币种汇总全部扣款腿**再比 —— 逐腿比会放过「单腿够、合计不够」,变成
     // 扣了第一腿才发现第二腿不行。只读,与紧随其后的扣款之间同步,中间插不进写。
-    const needUsdt = drafts.filter((d) => d.amount < 0 && d.symbol !== "NEX").reduce((s, d) => s - d.amount, 0);
-    const needNex = drafts.filter((d) => d.amount < 0 && d.symbol === "NEX").reduce((s, d) => s - d.amount, 0);
+    const needUsdt = drafts.filter((d) => d.amount < 0 && d.symbol !== "UVT").reduce((s, d) => s - d.amount, 0);
+    const needNex = drafts.filter((d) => d.amount < 0 && d.symbol === "UVT").reduce((s, d) => s - d.amount, 0);
     if (needUsdt > app.user.usdtBalance || needNex > app.user.nexBalance) return "insufficient";
     for (const d of drafts) {
       moved =
         d.amount < 0
-          ? d.symbol === "NEX" ? app.debitNex(-d.amount) : app.debitBalance(-d.amount)
-          : d.symbol === "NEX" ? app.creditNex(d.amount) : app.creditBalance(d.amount);
+          ? d.symbol === "UVT" ? app.debitNex(-d.amount) : app.debitBalance(-d.amount)
+          : d.symbol === "UVT" ? app.creditNex(d.amount) : app.creditBalance(d.amount);
       if (!moved) break;
     }
   }

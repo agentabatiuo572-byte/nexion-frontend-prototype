@@ -91,7 +91,6 @@ import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
 import { useT } from "@/i18n/use-t";
 import { formatTrialDate } from "@/lib/trial-date";
-import { nexGridBrandText } from "@/lib/brand-copy";
 import { useOrders, type Order, type OrderStatus } from "@/store/orders";
 import { useGenesis } from "@/store/genesis";
 import { genesisOrderListItems, type GenesisOrderListItem } from "@/lib/genesis-order-list";

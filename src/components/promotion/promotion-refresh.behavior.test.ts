@@ -186,7 +186,7 @@ it('the actual team refresh button re-reads list rules, catalog and progress and
 
 it('team first-purchase progress masks the actual count and own rewards without changing reads or the underlying result', async () => {
   const p = platform(), team = p.mount('team'), visibility = useDataVisibility();
-  const ownRewards = [{ obligationId: 'personal-reward', reward: { type: 'NEX', amount: '123.450000' }, state: 'ISSUED' }];
+  const ownRewards = [{ obligationId: 'personal-reward', reward: { type: 'UVT', amount: '123.450000' }, state: 'ISSUED' }];
   p.referral.mockResolvedValue({ activityId: 'A', qualifyingOrders: 271, ownRewards });
   await flush();
   const open = find(await team.node(), node => node.props?.label === teamRedesignCopy('zh').viewProgress)!;

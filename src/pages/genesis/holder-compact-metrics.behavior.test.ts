@@ -39,7 +39,7 @@ it.each([en, zh, vietnamese])("renders actual holder allocations from parser-con
   const at = new Date().toISOString();
   const payload = { serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "", eligible: true,
     reasons: [], ownedCount: 0, maxPerUser: 20, remainingCap: 20, minAccountAgeDays: 0, accountAgeDays: 30,
-    status: "READY", reservedAllocation: null as number | null, reservedAllocationUnit: "NEX",
+    status: "READY", reservedAllocation: null as number | null, reservedAllocationUnit: "UVT",
     priorityRank: null, priorityTier: "STANDARD", qualificationReasonCodes: [] as string[], policyVersion: "1",
     effectiveAt: at, asOf: at, serverTime: at,
     provenance: { source: "holder-eligibility", environment: "PRODUCTION", runId: "" } };

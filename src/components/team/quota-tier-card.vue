@@ -36,7 +36,6 @@ import QuotaConditionBar from './quota-condition-bar.vue';
 import NxButton from '@/components/ui/nx-button.vue';
 import { useT } from '@/i18n/use-t';
 import { fmt } from '@/i18n/format';
-import { nexGridBrandText } from '@/lib/brand-copy';
 import { getProductMedia } from '@/lib/product-media';
 import { useScrollGrowProgress, PROGRESS_GROW_TRANSITION } from '@/composables/use-scroll-grow-progress';
 export interface QuotaCondition {
@@ -71,12 +70,12 @@ const emit = defineEmits<{ navigate: [url: string] }>();
 const t = useT();
 const locale = useLocaleStore();
 const auditCopy = computed(() => networkReauditCopy(locale.code));
-const displayName = computed(() => nexGridBrandText(props.tier.name));
+const displayName = computed(() => (props.tier.name));
 const productImage = computed(() => getProductMedia(props.tier.productId)?.src ?? props.tier.imageUrl);
 const { elRef: stockBarRef, inView: stockBarInView } = useScrollGrowProgress();
 const unlocked = computed(() => {
   const met = props.tier.conditions.map(condition => condition.current >= condition.required);
-  return props.tier.unlockKind === 'either' ? met.some(Boolean) : met.every(Boolean);
+  return met.length === 0 || (props.tier.unlockKind === 'either' ? met.some(Boolean) : met.every(Boolean));
 });
 const stockPct = computed(() => props.tier.monthlyStock > 0 ? Math.min(1, props.tier.soldThisMonth / props.tier.monthlyStock) : 1);
 const stockLeft = computed(() => Math.max(0, props.tier.monthlyStock - props.tier.soldThisMonth));

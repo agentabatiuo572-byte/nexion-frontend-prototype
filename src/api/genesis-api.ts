@@ -31,7 +31,7 @@ export interface GenesisEligibility {
   halted?: boolean;
   holderStatus: "READY" | "NOT_ELIGIBLE" | "CONFIG_UNAVAILABLE" | "NOT_EFFECTIVE";
   reservedAllocation: number | null;
-  reservedAllocationUnit: "NEX";
+  reservedAllocationUnit: "UVT";
   priorityRank: number | null;
   priorityTier: "TOP_1" | "TOP_3" | "TOP_5" | "STANDARD" | "NONE";
   qualificationReasonCodes: string[];
@@ -262,7 +262,7 @@ function parseEligibility(value: unknown, mode: ApiEnvironment): GenesisEligibil
       || asOf === null || serverTime === null || !provenance
       || text(provenance.source) === null
       || provenance.environment !== row.sourceEnvironment || provenance.runId !== row.runId
-      || row.reservedAllocationUnit !== "NEX"
+      || row.reservedAllocationUnit !== "UVT"
       || !Array.isArray(row.qualificationReasonCodes)
       || !row.qualificationReasonCodes.every((reason) => typeof reason === "string" && reason.trim())) return invalid();
   return {
@@ -278,7 +278,7 @@ function parseEligibility(value: unknown, mode: ApiEnvironment): GenesisEligibil
     halted: typeof row.halted === "boolean" ? row.halted : undefined,
     holderStatus: holderStatus as GenesisEligibility["holderStatus"],
     reservedAllocation,
-    reservedAllocationUnit: "NEX",
+    reservedAllocationUnit: "UVT",
     priorityRank,
     priorityTier: priorityTier as GenesisEligibility["priorityTier"],
     qualificationReasonCodes: row.qualificationReasonCodes.map((reason) => String(reason).trim()),

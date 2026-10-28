@@ -15,7 +15,7 @@ function section(file: string, start: string, end: string): string {
   if (first < 0 || last < 0) throw new Error(`Missing display binding in ${file}`);
   return ts.transpile(source.slice(first, last), { target: ts.ScriptTarget.ES2022 });
 }
-const row = (memoKey = "questReward") => ({ id: "ledger-1", ts: 1, symbol: "NEX", amount: 5,
+const row = (memoKey = "questReward") => ({ id: "ledger-1", ts: 1, symbol: "UVT", amount: 5,
   status: "posted", type: "achievement", memo: "", memoKey, ref: undefined as string | undefined });
 
 function nexView(memoKey?: string) {

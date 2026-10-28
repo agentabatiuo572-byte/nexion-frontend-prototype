@@ -36,7 +36,7 @@ it("requires valid public snapshots and confirms the exact number of tickets ent
 });
 
 it("accepts fixed draw results during delivery without treating pending rewards as paid", () => {
-  const draw = { id: "d", titleZh: "奖", titleEn: "Prize", titleVi: "Giải", startsAt: "2030-01-01T00:00:00Z", drawAt: "2030-01-02T00:00:00Z", status: "PROCESSING", revision: 2, prizes: [], myEntries: 1, totalEntries: 1, myResults: [{ prizeId: "p", rewardType: "NEX", amount: "10", receiptId: "r", status: "PENDING" }] };
+  const draw = { id: "d", titleZh: "奖", titleEn: "Prize", titleVi: "Giải", startsAt: "2030-01-01T00:00:00Z", drawAt: "2030-01-02T00:00:00Z", status: "PROCESSING", revision: 2, prizes: [], myEntries: 1, totalEntries: 1, myResults: [{ prizeId: "p", rewardType: "UVT", amount: "10", receiptId: "r", status: "PENDING" }] };
   const state = parseGenesisRaffleState({ availableTickets: 0, draws: [draw] });
   expect(state.draws[0].status).toBe("PROCESSING"); expect(state.draws[0].myResults[0].status).toBe("PENDING");
   expect(() => parseGenesisRaffleState({ availableTickets: 0, draws: [{ ...draw, myResults: [{ ...draw.myResults[0], status: undefined }] }] })).toThrow();

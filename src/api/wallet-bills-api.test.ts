@@ -10,6 +10,12 @@ describe("wallet summary and paginated API contract", () => {
     amount: "1299", balanceAfter: "1299", status: "SUCCESS", remark: "internal operator/reason/key",
     createdAt: "2026-10-07T04:46:45Z", category: "refund", presentationCode: "orderRefund", publicReference: orderNo, ...fields,
   });
+  it("keeps migrated UVT amounts and historical references, and rejects NEX asset codes", () => {
+    const wire = refund({ asset: "UVT", amount: "0.000001", bizNo: "D2-NEX-REFUND-WD-42" });
+    const page = { ...snapshot(), total: 1, bills: [wire] };
+    expect(parseWalletBillsSnapshot(page).bills[0]).toMatchObject({ asset: "UVT", amountExact: "0.000001", bizNo: wire.bizNo });
+    expect(() => parseWalletBillsSnapshot({ ...page, bills: [{ ...wire, asset: "NEX" }] })).toThrow("WALLET_BILLS_RESPONSE_INVALID");
+  });
   it.each([" ", "\n", "\r\n"])("preserves raw order refund reference whitespace %j for strict consumer validation", whitespace => {
     for (const leading of [true, false]) {
       const bizNo = leading ? `${whitespace}E4-REFUND-${orderNo}` : `E4-REFUND-${orderNo}${whitespace}`;
@@ -50,12 +56,12 @@ describe("wallet summary and paginated API contract", () => {
   });
   const billRow = () => ({ id: "WL-1", bizNo: "R-1", bizType: "PROMOTION_REWARD", asset: "USDT", direction: "IN",
     amount: 0.000001, balanceAfter: 0.000001, status: "SUCCESS", remark: "", createdAt: "2026-10-08T00:00:00Z" });
-  it.each(["USDT", "NEX"])("keeps exact %s bill and balance text alongside compatible numbers", asset => {
+  it.each(["USDT", "UVT"])("keeps exact %s bill and balance text alongside compatible numbers", asset => {
     for (const amountExact of ["0.000001", "1.000001", "999999999999.999999"]) {
       const wire = { ...billRow(), asset, amount: Number(amountExact), balanceAfter: Number(amountExact), amountExact, balanceAfterExact: amountExact };
       const parsed = parseWalletBillsSnapshot({ ...snapshot(), total: 1, bills: [wire] }).bills[0];
       expect(parsed).toMatchObject({ amount: Number(amountExact), balanceAfter: Number(amountExact), amountExact, balanceAfterExact: amountExact });
-      expect(parseWalletBillsSummary({ ...summary(), recentNexBills: [{ ...wire, asset: "NEX" }] }).recentNexBills[0].amountExact).toBe(amountExact);
+      expect(parseWalletBillsSummary({ ...summary(), recentNexBills: [{ ...wire, asset: "UVT" }] }).recentNexBills[0].amountExact).toBe(amountExact);
     }
   });
   it("retains plain legacy decimal strings, while number-only older servers have no exact companion", () => {
@@ -103,10 +109,10 @@ describe("wallet summary and paginated API contract", () => {
   it("encodes cursor and server filters; summary is a separate endpoint", async () => {
     const request = vi.fn().mockResolvedValueOnce({source:"server",sourceEnvironment:"PRODUCTION",bills:[],page:2,pageSize:50,total:0,nextPage:null,nextCursor:null}).mockResolvedValueOnce(summary());
     const api = createWalletBillsApi({request} as unknown as ApiClient);
-    await api.list(2,50,{asset:"NEX",direction:"IN",category:"REWARD",cursor:"a+b/=x"}); await api.summary();
+    await api.list(2,50,{asset:"UVT",direction:"IN",category:"REWARD",cursor:"a+b/=x"}); await api.summary();
     const url = new URL(request.mock.calls[0][0].path,"http://local");
     const query: Record<string, string> = {}; url.searchParams.forEach((value, key) => { query[key] = value; });
-    expect(query).toEqual({page:"2",pageSize:"50",asset:"NEX",direction:"IN",category:"REWARD",cursor:"a+b/=x"});
+    expect(query).toEqual({page:"2",pageSize:"50",asset:"UVT",direction:"IN",category:"REWARD",cursor:"a+b/=x"});
     expect(request.mock.calls[1][0].path).toBe("/api/app/wallet/bills/summary");
   });
 });

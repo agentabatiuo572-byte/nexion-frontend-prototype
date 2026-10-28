@@ -112,11 +112,11 @@ const expiredCount = computed(() => remoteExpiredCount.value ?? lastExpiredCount
 
 // Reward totals per symbol — same reward-family predicate as the dot and
 // the L2 records (bills.ts isRewardBill, single source).
-function creditedTotal(symbol: "USDT" | "NEX"): number {
+function creditedTotal(symbol: "USDT" | "UVT"): number {
   return bills.bills.reduce((sum, b) => (isRewardBill(b) && b.symbol === symbol ? sum + b.amount : sum), 0);
 }
 const usdtTotal = computed(() => creditedTotal("USDT"));
-const nexTotal = computed(() => creditedTotal("NEX"));
+const nexTotal = computed(() => creditedTotal("UVT"));
 const summaryReady = computed(() => !fundsServerEnabled || bills.summaryStatus === "ready");
 const summaryFailed = computed(() => (fundsServerEnabled && bills.summaryStatus === "error")
   || (remoteApiEnabled && voucher.remoteStatus === "error"));
@@ -167,7 +167,7 @@ const cats = computed<CatCard[]>(() => [
     desc: t.value.rewards.catUsdtDesc,
   },
   {
-    key: "nex",
+    key: "uvt",
     label: t.value.rewards.catNex,
     big: displayNexTotal.value === null ? "-" : formatAmount(displayNexTotal.value),
     unit: "UVT",

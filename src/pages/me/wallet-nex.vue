@@ -232,7 +232,7 @@ const pnlPct = computed(() => (totalSpent.value > 0 ? (pnl.value / totalSpent.va
 const nexLedger = computed(() => {
   if (!remoteApiEnabled || summaryForDisplay.value == null) return [];
   return (summaryForDisplay.value?.recentNexBills ?? [])
-    .filter((bill) => bill.symbol === "NEX" && bill.status !== "failed")
+    .filter((bill) => bill.symbol === "UVT" && bill.status !== "failed")
     .map((bill) => ({
       id: bill.id,
       ts: bill.ts,

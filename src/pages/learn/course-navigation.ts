@@ -1,5 +1,5 @@
 const COURSE_PATH = "/pages/learn/course";
-const REWARDS_SOURCE = "rewards-nex";
+const REWARDS_SOURCE = "rewards-uvt";
 
 export function courseRewardHref(id: string): string {
   return `${COURSE_PATH}?id=${encodeURIComponent(id)}&source=${REWARDS_SOURCE}`;
@@ -8,13 +8,14 @@ export function courseRewardHref(id: string): string {
 function courseBackTarget(source: string | null | undefined): string {
   if (source === "home") return "/pages/index/index";
   if (source === "missions") return "/pages/missions/missions";
-  return source === REWARDS_SOURCE ? "/pages/me/rewards-list?cat=nex" : "/pages/learn/courses";
+  return source === REWARDS_SOURCE ? "/pages/me/rewards-list?cat=uvt" : "/pages/learn/courses";
 }
 
 export function resolveCourseNavigation(options: Record<string, string> | undefined, queryString: string) {
   const query = new URLSearchParams(queryString);
   const id = typeof options?.id === "string" ? options.id : (query.get("id") ?? "");
-  const source = typeof options?.source === "string" ? options.source : query.get("source");
+  const storedSource = typeof options?.source === "string" ? options.source : query.get("source");
+  const source = storedSource === "rewards-nex" ? REWARDS_SOURCE : storedSource;
   return { id, source: source === REWARDS_SOURCE || source === "home" || source === "missions" ? source : null, back: courseBackTarget(source) };
 }
 

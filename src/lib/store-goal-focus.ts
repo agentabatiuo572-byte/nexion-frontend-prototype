@@ -1,5 +1,4 @@
 import type { Product } from "@/mock/products";
-import { nexGridBrandText } from "@/lib/brand-copy";
 
 /**
  * Landing context for a store visit that started at an earning goal (BUG 71).
@@ -50,7 +49,7 @@ export function resolveStoreGoalFocus(
       hint = decoded;
     } catch { break; }
   }
-  hint = nexGridBrandText(hint) || id;
+  hint = (hint) || id;
   if (!catalogHasProducts) return { variant: "pending", featured: null, name: hint };
   const known = products.find((product) => product.id === id) ?? null;
   if (known) return { variant: "not-purchasable", featured: null, name: known.name };

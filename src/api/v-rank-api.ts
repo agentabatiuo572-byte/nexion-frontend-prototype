@@ -33,7 +33,7 @@ export interface CanonicalVRankRow {
 }
 
 export interface MonetaryVRankReward {
-  type: "USDT" | "NEX";
+  type: "USDT" | "UVT";
   amount: number;
   voucherId?: string;
   skuId?: string;
@@ -137,8 +137,8 @@ function optionalText(value: unknown): string | undefined {
 function reward(value: unknown): CanonicalVRankReward {
   const source = record(value);
   const type = text(source.type).toUpperCase();
-  if (type !== "USDT" && type !== "NEX" && type !== "VOUCHER" && type !== "SKU" && type !== "CUSTOM") return invalid();
-  if (type === "USDT" || type === "NEX") {
+  if (type !== "USDT" && type !== "UVT" && type !== "VOUCHER" && type !== "SKU" && type !== "CUSTOM") return invalid();
+  if (type === "USDT" || type === "UVT") {
     return { type, amount: number(source.amount), voucherId: optionalText(source.voucherId),
       skuId: optionalText(source.skuId), customLabel: optionalText(source.customLabel) };
   }

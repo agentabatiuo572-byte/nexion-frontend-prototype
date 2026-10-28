@@ -7,15 +7,15 @@ const TERMINAL_STATUSES = new Set([
 ]);
 
 export interface ExchangeSwapIntent {
-  direction: "USDT_TO_NEX" | "NEX_TO_USDT";
+  direction: "USDT_TO_UVT" | "UVT_TO_USDT";
   fromAmount: number;
   queueIfCapped: boolean;
 }
 
 export interface ExchangeOrderLike {
   exchangeNo: string;
-  fromAsset: "USDT" | "NEX";
-  toAsset: "USDT" | "NEX";
+  fromAsset: "USDT" | "UVT";
+  toAsset: "USDT" | "UVT";
   fromAmount: number;
   status: string;
 }
@@ -69,7 +69,7 @@ export function exchangeSwapFingerprint(accountKey: string, intent: ExchangeSwap
 function isIntent(value: unknown): value is ExchangeSwapIntent {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const row = value as Record<string, unknown>;
-  return (row.direction === "USDT_TO_NEX" || row.direction === "NEX_TO_USDT")
+  return (row.direction === "USDT_TO_UVT" || row.direction === "UVT_TO_USDT")
     && typeof row.fromAmount === "number" && Number.isFinite(row.fromAmount) && row.fromAmount > 0
     && typeof row.queueIfCapped === "boolean";
 }
@@ -80,7 +80,16 @@ function hydrate(storage: ExchangePendingStorage): ExchangePendingLease[] {
     if (!value || typeof value !== "object" || Array.isArray(value)) return [];
     const envelope = value as Partial<PersistedExchangePending>;
     if (envelope.version !== 1 || !Array.isArray(envelope.records)) return [];
-    return envelope.records.filter((record): record is ExchangePendingLease => !!record
+    // Migrate persisted in-flight intent names while keeping the original command key.
+    const records = envelope.records.map(record => {
+      const legacyDirection: unknown = record?.intent?.direction;
+      const direction = legacyDirection === "USDT_TO_NEX" ? "USDT_TO_UVT"
+        : legacyDirection === "NEX_TO_USDT" ? "UVT_TO_USDT" : null;
+      if (!direction || typeof record.accountKey !== "string") return record;
+      const intent = { ...record.intent, direction };
+      return isIntent(intent) ? { ...record, intent, fingerprint: exchangeSwapFingerprint(record.accountKey, intent) } : record;
+    });
+    return records.filter((record): record is ExchangePendingLease => !!record
       && typeof record === "object"
       && typeof record.accountKey === "string" && !!record.accountKey
       && typeof record.fingerprint === "string" && !!record.fingerprint
@@ -150,8 +159,8 @@ export function createExchangePendingMutationStore(
 type ExchangePendingStore = ReturnType<typeof createExchangePendingMutationStore>;
 
 function matchesIntent(order: ExchangeOrderLike, intent: ExchangeSwapIntent): boolean {
-  const fromAsset = intent.direction === "USDT_TO_NEX" ? "USDT" : "NEX";
-  const toAsset = intent.direction === "USDT_TO_NEX" ? "NEX" : "USDT";
+  const fromAsset = intent.direction === "USDT_TO_UVT" ? "USDT" : "UVT";
+  const toAsset = intent.direction === "USDT_TO_UVT" ? "UVT" : "USDT";
   return order.fromAsset === fromAsset
     && order.toAsset === toAsset
     && Math.abs(order.fromAmount - intent.fromAmount) < 0.000001

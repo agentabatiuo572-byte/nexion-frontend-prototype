@@ -73,7 +73,7 @@ export interface CanonicalBadgeAchievement {
 }
 
 export interface DailySnapshot {
-  rewardAsset: "NEX";
+  rewardAsset: "UVT";
   serverDate: string;
   nextResetAtUtc: string;
   streak: DailyStreakState;
@@ -320,7 +320,7 @@ function parseSnapshot(value: unknown, mode: ApiEnvironment): DailySnapshot {
   const serverDate = text(row?.serverDate);
   const nextResetAtUtc = text(row?.nextResetAtUtc);
   const source = text(row?.source);
-  if (row.rewardAsset !== "NEX" || !streak || currentStreak === null
+  if (row.rewardAsset !== "UVT" || !streak || currentStreak === null
       || longestStreak === null || streakSavers === null || checkedInToday === null
       || !serverDate || Number.isNaN(Date.parse(`${serverDate}T00:00:00Z`))
       || !nextResetAtUtc || Number.isNaN(Date.parse(nextResetAtUtc))
@@ -357,7 +357,7 @@ function parseSnapshot(value: unknown, mode: ApiEnvironment): DailySnapshot {
     return invalid("BADGE_ACHIEVEMENT_DUPLICATED");
   }
   return {
-    rewardAsset: "NEX",
+    rewardAsset: "UVT",
     serverDate,
     nextResetAtUtc,
     streak: {

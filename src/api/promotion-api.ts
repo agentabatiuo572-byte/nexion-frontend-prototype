@@ -25,7 +25,7 @@ function rewardSpec(value:unknown):void{
   if(!['BUYER','DIRECT_INVITER'].includes(string(r.beneficiaryRole)))return invalid();
   if(r.type==='DEVICE'){string(r.giftProductNo);quantity(r.quantity);}
   else{
-    if(!['USDT','NEX','DISCOUNT_USDT'].includes(string(r.type)))return invalid();
+    if(!['USDT','UVT','DISCOUNT_USDT'].includes(string(r.type)))return invalid();
     amount(r.amount);
     if(r.type==='DISCOUNT_USDT'&&(r.beneficiaryRole!=='BUYER'||r.calculation!=='FIXED'||r.assetPolicy!==undefined||!/[1-9]/.test(String(r.amount))))return invalid();
   }

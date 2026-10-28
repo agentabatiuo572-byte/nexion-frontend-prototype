@@ -110,7 +110,7 @@ const primary = (root: RenderNode) => pageButtons(root).find(el =>
 const stat = (root: RenderNode, label: string) => renderText(renderNodes(root).find(el => el.children.some(child => renderText(child) === label))!.children[1]);
 async function settlePage() { for (let n = 0; n < 20; n++) await Promise.resolve(); await Vue.nextTick(); }
 function pointsState(signed = false) {
-  return { rewardAsset: "NEX", serverDate: "2026-10-01", nextResetAtUtc: "2026-10-01T17:00:00Z",
+  return { rewardAsset: "UVT", serverDate: "2026-10-01", nextResetAtUtc: "2026-10-01T17:00:00Z",
     streak: { currentStreak: 1, longestStreak: 1, streakSavers: 1, lastCheckInDate: signed ? "2026-10-01" : null, checkedInToday: signed },
     dailyMilestones: [], earningMilestones: [], badgeAchievements: [], powerUps: [], topStreakers: [],
     rules: [{ key: "baseline", value: "2" }], source: "nx_user_streak + nx_daily_check_in",
@@ -401,7 +401,7 @@ describe("Daily wallet ledger authority", () => {
     await bills.refreshSummary();
     const refresh = vi.spyOn(bills, 'refreshSummary');
     const run = (h: ReturnType<typeof commands>) => action === 'check-in' ? h.handleCheckIn()
-      : h.handleClaimMilestone({ day: 3, rewardText: '5 NEX', reward: { type: 'nex', amount: 5 } });
+      : h.handleClaimMilestone({ day: 3, rewardText: '5 NEX', reward: { type: 'uvt', amount: 5 } });
     const refused = commands(bills, false);
     await run(refused);
     expect(refresh).not.toHaveBeenCalled();
@@ -420,7 +420,7 @@ describe("Daily wallet ledger authority", () => {
     remote.walletBillsApi.summary.mockRejectedValueOnce(new Error('ledger unavailable'));
     const accepted = commands(bills, true);
     if (action === 'check-in') await accepted.handleCheckIn();
-    else await accepted.handleClaimMilestone({ day: 3, rewardText: '5 NEX', reward: { type: 'nex', amount: 5 } });
+    else await accepted.handleClaimMilestone({ day: 3, rewardText: '5 NEX', reward: { type: 'uvt', amount: 5 } });
     await vi.waitFor(() => expect(bills.summaryStatus).toBe('error'));
     expect(view.lifetimeEarned.value).toBe('—');
     expect(view.lifetimeSpent.value).toBe('—');

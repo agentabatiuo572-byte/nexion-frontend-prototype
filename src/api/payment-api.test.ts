@@ -43,7 +43,7 @@ const intent = {
   fxRate: 26390,
   vndAmount: 659750,
   memoCode: "NX-12345678",
-  bankAccount: { accountName: "NEX", accountNumber: "123456789", bankName: "BANK" },
+  bankAccount: { accountName: "UVT", accountNumber: "123456789", bankName: "BANK" },
   status: "awaiting_payment",
   expiresAt: "2026-08-15T00:30:00Z",
   creditedUsdt: 0,

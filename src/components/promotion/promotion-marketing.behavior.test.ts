@@ -98,7 +98,7 @@ function advert(activities?:PublicPromotion[],copy=promotionZH){
   return{...screen,props,view,list,navTo,products,catalog,refreshProductCatalog,...renderer(entrySource,{...Vue.toRefs(props),...view})};
 }
 
-function purchaseRule(type:'DEVICE'|'DISCOUNT_USDT'|'NEX'):PublicPromotion['rewardRules'][number]{
+function purchaseRule(type:'DEVICE'|'DISCOUNT_USDT'|'UVT'):PublicPromotion['rewardRules'][number]{
   const disclosure={title:{zh:'活动奖励',en:'Offer reward',vi:'Thưởng ưu đãi'},terms:{zh:'满足条件',en:'Conditions apply',vi:'Theo điều kiện'},refundTerms:{zh:'退款撤回',en:'Reversed on refund',vi:'Thu hồi khi hoàn tiền'},benefitDescription:{zh:'',en:'',vi:''},deviceRights:null,deviceName:type==='DEVICE'?'Actual gift device':null};
   const common={rewardRuleId:'reward',beneficiaryRole:'BUYER' as const,disclosure};
   return {ruleId:'rule',productNo:'sku',minBuyQty:2,repeatMode:'PER_GROUP',maxGroups:{mode:'LIMITED',value:3},maxGroupsPerPerson:{mode:'LIMITED',value:4},inviterReward:null,buyerReward:type==='DEVICE'?{...common,type,giftProductNo:'gift',quantity:1}:{...common,type,calculation:'FIXED',amount:'50'}};
@@ -118,7 +118,7 @@ it('cycles actual home offers and leaves absolute expiry and purchase conditions
   expect(screen.view.visibleItems.value[0].activityId).toBe('a3');
 });
 
-it.each([['DEVICE','gift','Actual gift device × 1'],['DISCOUNT_USDT','coupon','50.00 USDT'],['NEX','spark','50.00 UVT']] as const)('renders %s from published rewards without inventing claim or completion state',async(type,kind,benefit)=>{
+it.each([['DEVICE','gift','Actual gift device × 1'],['DISCOUNT_USDT','coupon','50.00 USDT'],['UVT','spark','50.00 UVT']] as const)('renders %s from published rewards without inventing claim or completion state',async(type,kind,benefit)=>{
   const offer=activity({rewardRules:[purchaseRule(type)]}),screen=advert([offer]);screen.props.mode='events';
   const html=await screen.html();expect(html).toContain(`data-activity-kind="${kind}"`);expect(html).toContain(benefit);
   expect(html).toContain('nx-button--secondary');expect(html).not.toContain('nx-button--primary');

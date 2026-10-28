@@ -35,7 +35,7 @@ it.each(languages)("%s renders newcomer, inviter and generic rewards on all actu
   const walletTitle = new Function("t", code(wallet, "function typeLabel(", "function statusLabel(") + ";return typeLabel;")(t);
   const rewardTitle = new Function("t", code(rewards, "function rewardTypeLabel(", "function rewardStatusLabel(") + ";return rewardTypeLabel;")(t);
   for (const [suffix, memoKey, label] of [["NEWCOMER", "newcomerReward", labels[0]], ["INVITER", "inviterReward", labels[1]], ["UNKNOWN", "referralReward", labels[2]]]) {
-    for (const asset of ["USDT", "NEX"] as const) {
+    for (const asset of ["USDT", "UVT"] as const) {
       for (const projection of [{ category: "bonus", presentationCode: memoKey }, { category: "refer", presentationCode: "refer" }, { category: "bonus", presentationCode: "bonus" }, {}] as const) {
         const source = row({ bizNo: `${reference}:${suffix}`, asset, ...projection });
         const bill = project(source);
@@ -53,7 +53,7 @@ it.each(languages)("%s renders newcomer, inviter and generic rewards on all actu
         const nexView = new Function("computed", "remoteApiEnabled", "bills", "t", "resolveWalletBillMemo",
           code(nex, "const nexLedger = computed", "const pendingNex = computed") + ";return nexLedger;")(
           computed, true, bills, t, resolveWalletBillMemo);
-        expect(nexView.value).toEqual(asset === "NEX" ? [{ id: bill.id, ts: bill.ts, kind: "ledger", nex: 0.015, label }] : []);
+        expect(nexView.value).toEqual(asset === "UVT" ? [{ id: bill.id, ts: bill.ts, kind: "ledger", nex: 0.015, label }] : []);
         expect(records.value[0].memo).toBe("");
         expect(label).not.toMatch(/PRIVATE|REF-|NEWCOMER|INVITER/);
       }

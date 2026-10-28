@@ -57,7 +57,7 @@
            the detail readable, but never expose a purchase CTA for it. -->
       <template v-else-if="purchaseUnavailable">
         <view class="mx-4 rounded-2xl border" style="padding: 24px; border-color: var(--v5-border); background: var(--v5-surface)">
-          <text class="block" style="font-size: 15px; font-weight: 600; color: var(--v5-ink)">{{ nexGridBrandText(product.name) }}</text>
+          <text class="block" style="font-size: 15px; font-weight: 600; color: var(--v5-ink)">{{ (product.name) }}</text>
           <text class="block" style="margin-top: 8px; font-size: var(--ui-type-list-subtitle); line-height: 1.6; color: var(--v5-ink-3)">{{ t.store.specUnavailable }}</text>
         </view>
         <view aria-hidden style="height: 32px" />
@@ -83,7 +83,7 @@
             <!-- name + tagline + mult-badge -->
             <view class="flex items-start justify-between" style="gap: 12px">
               <view class="min-w-0">
-                <text class="block truncate" :style="nameStyle">{{ nexGridBrandText(product.name) }}</text>
+                <text class="block truncate" :style="nameStyle">{{ (product.name) }}</text>
                 <text class="block" style="margin-top: 4px; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3)">{{ copy.tagline }}</text>
               </view>
             </view>
@@ -245,7 +245,6 @@ import { useT } from "@/i18n/use-t";
 import { useEarnConfig } from "@/store/earn-config";
 import { useLocaleStore } from "@/store/locale";
 import { fmt, fmtMoney } from "@/i18n/format";
-import { nexGridBrandText } from "@/lib/brand-copy";
 import { getProduct, type Product } from "@/mock/products";
 import { useProductPhase } from "@/composables/use-product-phase";
 import { isProductAvailable } from "@/store/product-availability";

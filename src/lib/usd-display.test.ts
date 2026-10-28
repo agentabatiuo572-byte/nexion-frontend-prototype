@@ -90,7 +90,7 @@ async function renderRewards(language: "zh" | "en" | "vi", amount: number | null
     event: { title: "Event", subtitle: "", kind: "regional", state: "ended" },
     rules: {}, enabled: true, eligibilityReason: "CLAIMED", targetValue: 1, progressValue: 1,
     myRewardAmount: amount,
-    rewards: [{ type: "USDT", amount: "1234.567890" }, { type: "NEX", amount: 20 }],
+    rewards: [{ type: "USDT", amount: "1234.567890" }, { type: "UVT", amount: 20 }],
     results: [{ region: "CN", rank: 1, volume: 7554.1, rewardAmount: 1 }],
   };
   const before = JSON.stringify(detail);

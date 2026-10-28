@@ -13,7 +13,7 @@ export function eventDetailRules(rules: EventDetail["rules"], copy: typeof event
   }).filter(row => row.value);
 }
 export function eventDetailReward(reward: EventDetail["rewards"][number], copy: typeof eventDetailCopy.en): string {
-  const label = ({ NEX: "UVT", USDT: "USDT", DEVICE: copy.device, STREAK_SAVER: copy.saver, GENESIS_TICKET: copy.tickets } as Record<string, string>)[reward.type] ?? copy.reward;
+  const label = ({ UVT: "UVT", USDT: "USDT", DEVICE: copy.device, STREAK_SAVER: copy.saver, GENESIS_TICKET: copy.tickets } as Record<string, string>)[reward.type] ?? copy.reward;
   return `${reward.pool ? `${copy.labels.poolUsdt} · ` : ""}${formatAmount(reward.quantity ?? reward.amount)} ${label}`;
 }
 export function eventClaimCommandKey(code: string, claimKeys: readonly string[] = []): string {

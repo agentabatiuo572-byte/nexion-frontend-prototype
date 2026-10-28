@@ -63,9 +63,9 @@ function deferred<T>() {
 async function flush() { for (let i = 0; i < 16; i++) await Promise.resolve(); await Vue.nextTick(); }
 function snapshot(streak = 1, checkedInToday = false) {
   return {
-    rewardAsset: "NEX", serverDate: "2026-10-01", nextResetAtUtc: "2026-10-01T17:00:00Z",
+    rewardAsset: "UVT", serverDate: "2026-10-01", nextResetAtUtc: "2026-10-01T17:00:00Z",
     streak: { currentStreak: streak, longestStreak: streak, streakSavers: 1, lastCheckInDate: "2026-09-26", checkedInToday },
-    dailyMilestones: [{ milestoneId: 21, milestoneDay: 3, rewardType: "NEX", rewardAmount: 5, status: "LOCKED" }],
+    dailyMilestones: [{ milestoneId: 21, milestoneDay: 3, rewardType: "UVT", rewardAmount: 5, status: "LOCKED" }],
     earningMilestones: [], badgeAchievements: [], powerUps: [], topStreakers: [], rules: [{ key: "baseline", value: "2" }],
     source: "nx_user_streak + nx_daily_check_in", serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "",
   };

@@ -100,7 +100,7 @@ test('a failed earnings retry remains recoverable', async () => {
 });
 
 test('check-in reserves seven cells before its read, then replaces them in place', async () => {
-  const faucet = Vue.reactive({ remoteReadState: 'loading', remoteCheckedInToday: false, signInStreak: 2, remoteRules: [], remoteMilestones:[{milestoneId:7,milestoneDay:7,rewardType:'NEX',rewardAmount:40,badgeCode:null,status:'LOCKED'}], ensureRemote: vi.fn() });
+  const faucet = Vue.reactive({ remoteReadState: 'loading', remoteCheckedInToday: false, signInStreak: 2, remoteRules: [], remoteMilestones:[{milestoneId:7,milestoneDay:7,rewardType:'UVT',rewardAmount:40,badgeCode:null,status:'LOCKED'}], ensureRemote: vi.fn() });
   const root = mount(dailyRaw, { ...common(), '@/store/nex-faucet': { useNexFaucet: () => faucet }, '@/store/app': { useApp: () => ({}) },
     '@/composables/use-tab-page-lifecycle': { onShow: () => {}, onHide: () => {} }, '@/lib/route': { navTo: vi.fn() },
     '@/i18n/audit-ui': { useAuditUiCopy: () => Vue.ref(auditUiCopy.zh) }, '@/store/ui': { toast: {} },

@@ -76,7 +76,7 @@ function confirmationThatPausesWhilePrompted() {
     "exchangeApi", "remoteError", "remoteSnapshotReceivedAt", "refreshCommittedExchangeWalletProjection", "notifyRemoteSwapResult", "pendingExchangeRevision", "platformDisplayText", confirmationHandler,
   )(
     ref(false), computed(() => allowed.value), ref("10"), (value: string) => value, ref(true), () => ({ accountKey: "user:1" }), () => ({}),
-    ref("nex2usdt"), ref("NEX"), ref("USDT"), ref(10), ref(9.5), ref(1), ref(10), { accountKey: "user:1" }, ref(snapshot), ref({ feeUsdt: 0.5 }), true,
+    ref("nex2usdt"), ref("UVT"), ref("USDT"), ref(10), ref(9.5), ref(1), ref(10), { accountKey: "user:1" }, ref(snapshot), ref({ feeUsdt: 0.5 }), true,
     confirm, { value: { exchange: { confirm: "Confirm", netReceive: "Receive", exchangeFee: "Fee", quoteEstimate: "Estimate" } } }, (value: number) => String(value),
     () => true, () => true, { beginMutation: () => ({ finish() {} }) }, executeExchangeSwap, {}, { swap }, ref(null), ref(0), () => {}, () => {}, ref(0), platformDisplayText,
   ) as () => Promise<void>;

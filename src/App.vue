@@ -430,7 +430,7 @@ function pollMilestones() {
   // (与 reconcileBills 同一套「该做什么从数据推出来」的思路)。
   if (postMoneyBill({
     type: "achievement",
-    symbol: "NEX",
+    symbol: "UVT",
     amount: step.nexReward,
     status: "posted",
     memo: `Earnings milestone · $${step.thresholdUSD}`,
@@ -1055,7 +1055,7 @@ function checkQuestRoute() {
   const ref = `QST-${id}`; // 稳定 ref:任务一次性,带时间戳会让判重永不命中 = 假幂等
   const memo = fmt(t.quest.routeMemo, { task: QUEST_ROUTE_MEMO_TASK[id](t) });
   const drafts: ReceiptDraft[] = [];
-  if (task.nexReward) drafts.push({ type: "bonus", symbol: "NEX", amount: task.nexReward, status: "posted", memo, ref });
+  if (task.nexReward) drafts.push({ type: "bonus", symbol: "UVT", amount: task.nexReward, status: "posted", memo, ref });
   if (task.usdtReward) drafts.push({ type: "bonus", symbol: "USDT", amount: task.usdtReward, status: "posted", memo, ref });
   if (!drafts.length) return;
   if (postMoneyBillsOnce(drafts) !== "ok") return;

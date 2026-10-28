@@ -153,7 +153,6 @@
 </template>
 
 <script setup lang="ts">
-import { catalogSkuBrandText, catalogSkuRecommendationBody } from "@/lib/brand-copy";
 import { ref, shallowRef, computed, watch, nextTick, onMounted, onUnmounted, getCurrentInstance, type CSSProperties } from "vue";
 import { onLoad, onUnload, onShow, onHide } from "@dcloudio/uni-app";
 import NovaAvatar from "@/components/nova/nova-avatar.vue";
@@ -997,8 +996,8 @@ const conversationThread = ref<{ prepareHistoryPrepend(): Promise<boolean> } | n
 function humanMessageRecommendation(message: ConvMessage): Partial<ThreadMsg> {
   if (message.kind !== "SKU" && message.kind !== "LINK") return {};
   const copy = t.value.conversations.recommendation;
-  const skuName = message.skuName ? catalogSkuBrandText(message.skuId, message.skuName) : message.skuName;
-  const body = catalogSkuRecommendationBody(message.skuId, message.text, message.skuName);
+  const skuName = message.skuName;
+  const body = message.text;
   const text = message.kind === "SKU"
     ? message.skuName === message.text ? skuName ?? message.text : [body, skuName].filter(Boolean).join("\n")
     : message.text;

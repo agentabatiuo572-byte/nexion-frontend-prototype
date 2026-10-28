@@ -72,7 +72,7 @@ type Locale = keyof typeof dictionaries;
 const ladder = (): VRankDef[] => Array.from({ length: 13 }, (_, v) => ({
   v: v as VRank, title: `Published ${v}`, cnTitle: `公开 ${v}`, conditions: {},
   directBonus: .1, unilevelDepth: 1, peerBonus: .05, leadershipVotes: 0,
-  cultivationBonus: 900, rewards: [{ type: 'NEX', amount: 900 }],
+  cultivationBonus: 900, rewards: [{ type: 'UVT', amount: 900 }],
 }));
 const facts = (): VRankData & { ladder: VRankDef[] } => ({
   myRank: 0, selfComputePoints: 0, directRefs: 0, teamComputePoints: 0, vDownlineCounts: {}, ladder: ladder(),
@@ -234,11 +234,11 @@ describe('rank page canonical read and next-rank progress', () => {
     const loaded = facts();
     loaded.ladder[1].cultivationBonus = 7777;
     loaded.ladder[1].rewards = [
-      { type: 'NEX', amount: 900 },
-      { type: 'NEX', amount: 880, customLabel: 'cultivation' },
-      { type: 'NEX', amount: 700, customLabel: 'SELF promotion' },
-      { type: 'NEX', amount: 600, customLabel: 'Direct reward' },
-      { type: 'NEX', amount: 0 },
+      { type: 'UVT', amount: 900 },
+      { type: 'UVT', amount: 880, customLabel: 'cultivation' },
+      { type: 'UVT', amount: 700, customLabel: 'SELF promotion' },
+      { type: 'UVT', amount: 600, customLabel: 'Direct reward' },
+      { type: 'UVT', amount: 0 },
       { type: 'USDT', amount: 500 },
       { type: 'VOUCHER', voucherId: 'voucher-1', displayName: 'Device voucher' },
       { type: 'SKU', skuId: 'sku-1', displayName: 'Device reward' },

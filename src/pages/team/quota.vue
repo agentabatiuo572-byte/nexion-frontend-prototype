@@ -189,11 +189,11 @@ function buildTier(productId: string, tint: string): QuotaTier | null {
   const g = p?.purchaseGate;
   if (!p || !g) return null;
   const conditions: QuotaCondition[] = [];
-  if (g.rankMin != null)
+  if (g.rankMin != null && g.rankMin > 0)
     conditions.push({ label: fmt(t.value.quota.condRank, { v: g.rankMin }), current: vRank.myRank, required: g.rankMin, kind: "invites" });
-  if (g.activeDirectMin != null)
+  if (g.activeDirectMin != null && g.activeDirectMin > 0)
     conditions.push({ label: t.value.quota.condActivatedDirect, current: activeDirect.value, required: g.activeDirectMin, kind: "invites" });
-  if (g.teamComputePointsMin != null)
+  if (g.teamComputePointsMin != null && g.teamComputePointsMin > 0)
     conditions.push({ label: t.value.quota.condTeamVol, current: vRank.teamComputePoints ?? 0, required: g.teamComputePointsMin, kind: "volume" });
   return {
     productId,

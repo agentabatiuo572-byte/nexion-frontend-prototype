@@ -9,7 +9,6 @@ import { useNova } from "@/store/nova";
 import { zh } from "@/i18n/messages/zh";
 import { en } from "@/i18n/messages/en";
 import { vi as vietnamese } from "@/i18n/messages/vi";
-import { catalogSkuBrandText, catalogSkuRecommendationBody } from "@/lib/brand-copy";
 import { localizedIdleClose } from "@/lib/support-idle-message";
 import * as thinking from "@/lib/nova-thinking";
 import * as failure from "@/lib/nova-failure";
@@ -71,7 +70,6 @@ function mount(query: Record<string, string> = { type: "ai" }, conversation?: {
     "@/i18n/use-t": { useT: () => currentLocale },
     "@/i18n/format": format,
     "@/lib/support-idle-message": { localizedIdleClose },
-    "@/lib/brand-copy": { catalogSkuBrandText, catalogSkuRecommendationBody },
     "@/lib/route": { navTo: vi.fn(), navBack: vi.fn(), navReplace: vi.fn(async () => true) },
     "@/lib/nova-visibility": { NOVA_SUPPORT_VISIBLE: true },
     "@/lib/send-limiter": { ...limiter, conversationSendLimiter: limiter.createConversationSendBudgets() },

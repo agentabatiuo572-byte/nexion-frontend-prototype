@@ -26,7 +26,7 @@ function canonicalEvent(overrides: Partial<CanonicalEvent> = {}): CanonicalEvent
     title: "Event",
     subtitle: "Event subtitle",
     rewardName: "Reward",
-    rewardType: "NEX",
+    rewardType: "UVT",
     rewardAmount: 10,
     featured: false,
     trackable: false,
@@ -113,14 +113,14 @@ describe("remoteEventView", () => {
     const view = remoteEventView(canonicalEvent({
       kind: "boost",
       userStatus: "CLAIMED",
-      rewardType: "NEX",
+      rewardType: "UVT",
       href: "/pages/daily/daily",
     }), labels);
 
     expect(view.useHref).toBe("/pages/daily/daily");
   });
 
-  it.each(["NEX", "USDT"] as const)("does not invent a post-claim %s route when the business href is absent", (rewardType) => {
+  it.each(["UVT", "USDT"] as const)("does not invent a post-claim %s route when the business href is absent", (rewardType) => {
     const view = remoteEventView(canonicalEvent({
       trackable: true,
       userStatus: "CLAIMED",

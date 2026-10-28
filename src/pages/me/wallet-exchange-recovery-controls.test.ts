@@ -23,7 +23,7 @@ function deferred<T>() {
   let resolve!: (value: T) => void;
   const promise = new Promise<T>(done => { resolve = done; }); return { resolve, promise };
 }
-const order = { exchangeNo: "EX-original-12345678", fromAsset: "NEX" as const, toAsset: "USDT" as const, fromAmount: 10, status: "QUEUED" };
+const order = { exchangeNo: "EX-original-12345678", fromAsset: "UVT" as const, toAsset: "USDT" as const, fromAmount: 10, status: "QUEUED" };
 function setup() {
   let pendingData: unknown, cancelData: unknown;
   const pendingStorage: ExchangePendingStorage = { read: () => pendingData, write: v => { pendingData = structuredClone(v); } };
@@ -63,14 +63,14 @@ function setup() {
 
 describe("actual exchange recovery and cancellation controls", () => {
   it("recovers an existing command while paused and with no form input, never posting a swap", async () => {
-    const s = setup(); s.pending.acquire("synthetic", { direction: "NEX_TO_USDT", fromAmount: 10, queueIfCapped: true }, []);
+    const s = setup(); s.pending.acquire("synthetic", { direction: "UVT_TO_USDT", fromAmount: 10, queueIfCapped: true }, []);
     await s.functions.recoverPendingExchange();
-    expect(s.exchangeApi.recover).toHaveBeenCalledExactlyOnceWith("NEX_TO_USDT",10,true,"original-swap-key");
+    expect(s.exchangeApi.recover).toHaveBeenCalledExactlyOnceWith("UVT_TO_USDT",10,true,"original-swap-key");
     expect(s.exchangeApi.swap).not.toHaveBeenCalled(); expect(s.pending.list("synthetic")).toEqual([]);
     expect(s.notifyRemoteSwapResult).toHaveBeenCalledOnce();
   });
   it("ignores duplicate recovery clicks and suppresses late results after a page boundary", async () => {
-    const s = setup(); s.pending.acquire("synthetic", { direction: "NEX_TO_USDT", fromAmount: 10, queueIfCapped: true }, []);
+    const s = setup(); s.pending.acquire("synthetic", { direction: "UVT_TO_USDT", fromAmount: 10, queueIfCapped: true }, []);
     const read = deferred<{ status: string; order: typeof order }>(); s.exchangeApi.recover.mockReturnValue(read.promise);
     const first = s.functions.recoverPendingExchange(); await s.functions.recoverPendingExchange();
     expect(s.exchangeApi.recover).toHaveBeenCalledOnce(); s.scope.pageEpoch++;
@@ -79,7 +79,7 @@ describe("actual exchange recovery and cancellation controls", () => {
     expect(s.pending.list("synthetic")).toHaveLength(1);
   });
   it("releases a show-time read after the hidden recovery request finishes without clearing its key", async () => {
-    const s = setup(); s.pending.acquire("synthetic", { direction: "NEX_TO_USDT", fromAmount: 10, queueIfCapped: true }, []);
+    const s = setup(); s.pending.acquire("synthetic", { direction: "UVT_TO_USDT", fromAmount: 10, queueIfCapped: true }, []);
     const receipt = deferred<{ status: string; order: typeof order }>(); s.exchangeApi.recover.mockReturnValue(receipt.promise);
     const recovery = s.functions.recoverPendingExchange(); s.scope.pageEpoch++;
     const fresh = s.remoteAuthority.guardedRead(s.scope.accountKey, () => s.exchangeApi.fetchState());

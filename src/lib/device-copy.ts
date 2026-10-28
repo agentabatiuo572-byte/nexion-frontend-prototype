@@ -18,7 +18,6 @@
 import type { Messages } from "@/i18n/messages/en";
 import type { Device, DeviceKind } from "@/store/types";
 import { fmt } from "@/i18n/format";
-import { nexGridBrandText } from "@/lib/brand-copy";
 
 /** A linked computer carries the user's own GPU model → its stored strings are
  *  proper nouns. Without a tier match it holds the generic English spec.
@@ -35,7 +34,7 @@ export function deviceName(t: Messages, d: DeviceLabelSource): string {
   if (d.kind === "pc-gpu") {
     return isTieredPcGpu(d) ? t.device.nameSharedComputer : t.device.nameComputerGpu;
   }
-  return nexGridBrandText(d.name); // Persisted SKU names may use the previous brand.
+  return d.name;
 }
 
 /** Promo copy names a device by kind before one exists — no Device to pass. */
@@ -43,7 +42,7 @@ export function deviceNameByKind(t: Messages, kind: DeviceKind | null, stored: s
   if (kind === null) return t.device.promoNoActive;
   if (kind === "phone") return t.earn.yourPhone;
   if (kind === "pc-gpu") return t.device.nameComputerGpu;
-  return nexGridBrandText(stored); // Display only; protocol IDs stay unchanged.
+  return stored;
 }
 
 /** Same, for a name dropped mid-sentence. The standalone names are label-cased
@@ -53,7 +52,7 @@ export function deviceNameInline(t: Messages, kind: DeviceKind | null, stored: s
   if (kind === null) return t.device.promoNoActive;
   if (kind === "phone") return t.device.namePhoneInline;
   if (kind === "pc-gpu") return t.device.nameComputerGpuInline;
-  return nexGridBrandText(stored); // Display only.
+  return stored;
 }
 
 export function deviceGpuLabel(t: Messages, d: Device): string {

@@ -1,7 +1,7 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
 
-export type WalletBillAsset = "USDT" | "NEX";
+export type WalletBillAsset = "USDT" | "UVT";
 export type WalletBillDirection = "IN" | "OUT";
 export type WalletBillStatus = "SUCCESS" | "PENDING" | "FAILED";
 export type WalletBillCategory = "earn" | "refer" | "bonus" | "topup" | "withdraw" | "purchase" | "refund" | "swap" | "verification" | "stake" | "unstake" | "achievement" | "other";
@@ -98,7 +98,7 @@ function bill(value: unknown): WalletBillRow {
   const status = text(row?.status)?.toUpperCase();
   const createdAtRaw = text(row?.createdAt);
   const createdAt = createdAtRaw ? Date.parse(createdAtRaw) : Number.NaN;
-  if (!row || !id || !bizNo || !bizType || (asset !== "USDT" && asset !== "NEX")
+  if (!row || !id || !bizNo || !bizType || (asset !== "USDT" && asset !== "UVT")
       || (direction !== "IN" && direction !== "OUT") || amount === null || balanceAfter === null
       || (status !== "SUCCESS" && status !== "PENDING" && status !== "FAILED")
       || !Number.isFinite(createdAt)) return invalid();

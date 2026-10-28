@@ -16,7 +16,7 @@ beforeEach(() => {
 describe("mock ledger compatibility after demand pagination", () => {
   it("preserves mock seed, persistence, account isolation and idempotent writes without remote requests", async () => {
     const store = useBills(); store.bindAccount("A"); const count = store.bills.length;
-    const draft = {type:"bonus" as const,amount:8,symbol:"NEX" as const,status:"pending" as const,memo:"fixture",ref:"fixture-A"};
+    const draft = {type:"bonus" as const,amount:8,symbol:"UVT" as const,status:"pending" as const,memo:"fixture",ref:"fixture-A"};
     store.addOnce(draft); store.addOnce(draft);
     expect(store.bills).toHaveLength(count+1); expect(store.settleByRef("fixture-A","posted")).toBe(true);
     store.bindAccount("B"); expect(store.bills.some(b=>b.ref === "fixture-A")).toBe(false);
@@ -27,7 +27,7 @@ describe("mock ledger compatibility after demand pagination", () => {
   it("still rolls back the whole group if mock persistence fails", () => {
     const store = useBills(); store.bindAccount("A"); const before = store.bills;
     broken = true;
-    expect(store.addMany([{type:"swap",amount:-3,symbol:"USDT",status:"posted",memo:"out"},{type:"swap",amount:6,symbol:"NEX",status:"posted",memo:"in"}])).toBeNull();
+    expect(store.addMany([{type:"swap",amount:-3,symbol:"USDT",status:"posted",memo:"out"},{type:"swap",amount:6,symbol:"UVT",status:"posted",memo:"in"}])).toBeNull();
     expect(store.bills).toEqual(before);
   });
 });

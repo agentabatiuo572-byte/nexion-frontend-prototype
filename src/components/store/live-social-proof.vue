@@ -14,7 +14,7 @@
   softens entering/exiting rows.
 -->
 <template>
-  <view v-if="remoteApiEnabled" class="absolute" :style="rootStyle" :aria-label="remoteProof ? nexGridBrandText(remoteProof.productName) : w.unavailableLabel">
+  <view v-if="remoteApiEnabled" class="absolute" :style="rootStyle" :aria-label="remoteProof ? (remoteProof.productName) : w.unavailableLabel">
     <view v-if="remoteProof">
       <view v-for="(r, i) in remoteRows" :key="i" class="flex items-baseline" :style="rowStyle">
         <view aria-hidden class="shrink-0" :style="dotStyle(r.color)" />
@@ -41,7 +41,6 @@ import { ref, computed, onMounted, onUnmounted, watch, type CSSProperties } from
 import type { Product } from "@/mock/products";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
-import { nexGridBrandText } from "@/lib/brand-copy";
 import { remoteApiEnabled, storefrontActivityApi } from "@/api/runtime";
 import type { StorefrontSocialProof } from "@/api/storefront-activity-api";
 import { useApp } from "@/store/app";

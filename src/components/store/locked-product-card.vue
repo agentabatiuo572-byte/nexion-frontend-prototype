@@ -27,7 +27,7 @@
               </view>
             </view>
           </view>
-          <text class="block mt-1" :style="titleStyle">{{ nexGridBrandText(product.name) }}</text>
+          <text class="block mt-1" :style="titleStyle">{{ (product.name) }}</text>
           <view v-if="detailsOpen">
             <text class="block mt-1 line-clamp-2" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); line-height: 1.35">{{ copy.tagline }}</text>
             <view class="mt-2 flex items-center font-mono-tabular truncate" style="gap: 6px; font-size: 12px; color: var(--v5-ink-3)">
@@ -63,7 +63,6 @@ import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope"
 import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision, type RuntimeRevisionScope } from "@/api/order-api";
 import { useScrollGrowProgress, PROGRESS_GROW_TRANSITION } from "@/composables/use-scroll-grow-progress";
 import { productCopy, specText } from "@/lib/product-copy";
-import { nexGridBrandText } from "@/lib/brand-copy";
 
 const props = defineProps<{ product: Product }>();
 const app = useApp();
@@ -158,7 +157,7 @@ async function handleNotify() {
     if (!requestIsCurrent(scope, epoch, accountKey, runScope, productNo)) return;
     if (result.serverCanonical && result.productNo === productNo && result.subscribed === nextSubscribed) {
       serverSubscribed.value = nextSubscribed;
-      if (nextSubscribed) toast.success(fmt(t.value.store.notifyToast, { name: nexGridBrandText(props.product.name) }));
+      if (nextSubscribed) toast.success(fmt(t.value.store.notifyToast, { name: (props.product.name) }));
     } else {
       toast.error(t.value.authOtp.errorServiceUnavailable);
     }

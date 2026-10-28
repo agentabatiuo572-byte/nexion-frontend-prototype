@@ -46,7 +46,7 @@ export interface VRankDef {
 }
 
 export interface MonetaryVRankReward {
-  type: "USDT" | "NEX";
+  type: "USDT" | "UVT";
   amount: number;
   voucherId?: string;
   skuId?: string;

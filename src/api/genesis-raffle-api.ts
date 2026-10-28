@@ -1,7 +1,7 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
 
-export interface GenesisRafflePrize { id: string; nameZh: string; nameEn: string; nameVi: string; rewardType: "NEX" | "USDT" | "DEVICE"; amount: string | number; quantity: number; productNo?: string; }
+export interface GenesisRafflePrize { id: string; nameZh: string; nameEn: string; nameVi: string; rewardType: "UVT" | "USDT" | "DEVICE"; amount: string | number; quantity: number; productNo?: string; }
 export interface GenesisRaffleDraw { id: string; titleZh: string; titleEn: string; titleVi: string; startsAt: string; drawAt: string; status: "OPEN" | "PROCESSING" | "DRAWN"; revision: number; prizes: GenesisRafflePrize[]; myEntries: number; totalEntries: number; myResults: Array<{ prizeId: string; rewardType: GenesisRafflePrize["rewardType"]; amount: string | number; productNo?: string; receiptId: string; status: "PENDING" | "PAID" }>; }
 export interface GenesisRaffleState { availableTickets: number; draws: GenesisRaffleDraw[]; }
 const invalid = (): never => { throw new ApiError({ kind: "protocol", message: "GENESIS_RAFFLE_RESPONSE_INVALID" }); };
@@ -10,7 +10,7 @@ const text = (value: unknown): string => typeof value === "string" && value.trim
 const integer = (value: unknown, min = 0): number => Number.isSafeInteger(value) && Number(value) >= min ? Number(value) : invalid();
 const amount = (value: unknown): string | number => (typeof value === "string" && /^(0|[1-9]\d*)(\.\d+)?$/.test(value)) || (typeof value === "number" && Number.isFinite(value) && value >= 0) ? value as string | number : invalid();
 const time = (value: unknown): string => Number.isFinite(Date.parse(text(value))) ? value as string : invalid();
-const rewardType = (value: unknown): GenesisRafflePrize["rewardType"] => ["NEX", "USDT", "DEVICE"].includes(String(value)) ? value as GenesisRafflePrize["rewardType"] : invalid();
+const rewardType = (value: unknown): GenesisRafflePrize["rewardType"] => ["UVT", "USDT", "DEVICE"].includes(String(value)) ? value as GenesisRafflePrize["rewardType"] : invalid();
 export function parseGenesisRaffleState(value: unknown): GenesisRaffleState {
   const row = object(value); if (!Array.isArray(row.draws)) return invalid();
   return { availableTickets: integer(row.availableTickets), draws: row.draws.map(value => {

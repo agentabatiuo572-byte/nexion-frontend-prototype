@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { dailyBadgeName, dailyBaseReward, dailyLuckyHint, dailyMilestoneRewardText, dailyRewardLabels, dailyUpcomingMilestone } from "./daily-reward-view";
+import { dailyBadgeName, dailyBaseReward, dailyLuckyHint, dailyMilestoneRewardKind, dailyMilestoneRewardText, dailyRewardLabels, dailyUpcomingMilestone } from "./daily-reward-view";
 
 const labels = dailyRewardLabels({
   badgeLabel: "Badge",
   rewardPoints: "Points",
   rewardSpin: "Spin tickets",
-  rewardNex: "NEX",
+  rewardNex: "UVT",
   rewardUsdt: "USDT",
   rewardUnknown: "Reward",
   badgeStreakMaster: "Streak Master",
@@ -65,5 +65,12 @@ describe("daily reward presentation", () => {
     expect(dailyMilestoneRewardText({ rewardType: "BADGE", rewardAmount: 0, badgeCode: "STREAK_100" }, labels)).toBe("Badge");
     expect(dailyBadgeName("STREAK_MASTER", labels)).toBe("Streak Master");
     expect(dailyBadgeName(null, labels)).toBeNull();
+  });
+});
+
+
+describe("canonical local milestone asset kinds", () => {
+  it.each([["UVT", "uvt"], ["uvt", "uvt"], ["USDT", "usdt"], ["SPIN", "spin"], ["BADGE", "badge"], ["NEX", "unknown"], ["POINTS", "unknown"], ["UNKNOWN", "unknown"]])("maps %s to %s without an asset fallback", (value, kind) => {
+    expect(dailyMilestoneRewardKind(value)).toBe(kind);
   });
 });

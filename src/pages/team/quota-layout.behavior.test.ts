@@ -135,3 +135,24 @@ it('retains the real tier layout while masking stock and qualification and disab
   const track = all(p.root).find(n => String(n.props.class).includes('quota-stock__track'))!;
   expect(track.children[0].props.style).toMatchObject({ width: '0%', transition: 'none' });
 });
+
+it.each(['all', 'either'] as const)('unlocks %s tiers with no minimums while retaining sold-out feedback', async unlockKind => {
+  const tier = Vue.reactive({ productId: 'stellarbox-pro', name: 'Stored product', price: 10, monthlyStock: 2,
+    soldThisMonth: 0, unlockKind, conditions: [], perks: [], tint: '#fff' });
+  const navigate = vi.fn();
+  const p = mountEntry(tierSource.replace(/<image\b/g, '<view data-native-image="true"'), {
+    '@/lib/finance-amount-display': { formatFinanceAmount }, '@/i18n/compute-points': { formatComputePoints },
+    '@/store/locale': { useLocaleStore: () => ({ code: 'en' }) }, '@/i18n/network-reaudit': { networkReauditCopy },
+    './quota-condition-bar.vue': slot, '@/components/ui/nx-button.vue': button,
+    '@/i18n/use-t': { useT: () => Vue.ref(en) }, '@/i18n/format': { fmt }, '@/lib/product-media': { getProductMedia },
+    '@/composables/use-scroll-grow-progress': { useScrollGrowProgress: () => ({ elRef: Vue.ref(null), inView: Vue.ref(true) }), PROGRESS_GROW_TRANSITION: 'none' },
+  }, { tier, onNavigate: navigate });
+  stop.push(p.unmount);
+  expect(text(p.root)).toContain(en.quota.unlocked);
+  const buy = all(p.root).find(n => n.props['aria-label'] === fmt(en.quota.buyCta, { name: tier.name }));
+  expect(buy).toBeDefined(); buy!.props.onClick();
+  expect(navigate).toHaveBeenCalledWith('/pages/store/detail?id=stellarbox-pro');
+  tier.soldThisMonth = 2; await flush();
+  expect(text(p.root)).toContain(en.quota.stockUnavailable);
+  expect(all(p.root).find(n => n.props['aria-label'] === fmt(en.quota.buyCta, { name: tier.name }))).toBeUndefined();
+});

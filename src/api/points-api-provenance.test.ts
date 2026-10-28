@@ -4,7 +4,7 @@ import { createPointsApi } from "./points-api";
 const sandboxRun = "sandbox-run-20260816";
 
 const state = {
-  rewardAsset: "NEX",
+  rewardAsset: "UVT",
   serverDate: "2026-08-16",
   nextResetAtUtc: "2026-08-17T00:00:00Z",
   streak: {
@@ -63,7 +63,7 @@ describe("points API provenance", () => {
   it("fails closed for every points mutation when provenance is missing or mismatched", async () => {
     const responses = [
       { checkInDate: "2026-08-16", baseNex: 1, rewardNex: 1, streakBonusNex: 0, multiplier: 1, streakDays: 1 },
-      { milestoneId: 1, milestoneDay: 1, rewardType: "NEX", rewardAmount: 1, badgeCode: null, spinTickets: 0 },
+      { milestoneId: 1, milestoneDay: 1, rewardType: "UVT", rewardAmount: 1, badgeCode: null, spinTickets: 0 },
       { restoredStreak: 1, streakSavers: 0, effectiveLastCheckInDate: "2026-08-15" },
       { powerUpId: 1, powerUpCode: "nex_boost", badgeCode: null, status: "ACTIVATED" },
     ].map((value) => ({ ...value, serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "" }));
@@ -84,7 +84,7 @@ describe("points API provenance", () => {
     const canonical = { serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "" };
     const request = vi.fn()
       .mockResolvedValueOnce({ checkInDate: "2026-08-16", baseNex: 2, rewardNex: 2, streakBonusNex: 0, multiplier: 1, streakDays: 1, ...canonical })
-      .mockResolvedValueOnce({ milestoneId: 1, milestoneDay: 3, rewardType: "NEX", rewardAmount: 5, badgeCode: null, spinTickets: 0, ...canonical })
+      .mockResolvedValueOnce({ milestoneId: 1, milestoneDay: 3, rewardType: "UVT", rewardAmount: 5, badgeCode: null, spinTickets: 0, ...canonical })
       .mockResolvedValueOnce({ restoredStreak: 1, streakSavers: 0, effectiveLastCheckInDate: "2026-08-15", ...canonical })
       .mockResolvedValueOnce({ powerUpId: 1, powerUpCode: "nex_boost", badgeCode: null, status: "ACTIVATED", ...canonical });
     const api = createPointsApi({ request } as never, "dev");

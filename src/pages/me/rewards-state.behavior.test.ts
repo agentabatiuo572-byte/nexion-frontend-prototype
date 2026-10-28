@@ -63,7 +63,7 @@ const totalCopy = {
   vi: "Gồm thưởng đang xử lý. Số dư khả dụng xem trong ví.",
 };
 const fixture = (status: Bill["status"], type: Bill["type"] = "refer"): Bill => ({
-  id: "WL-840781", type, amount: 99.5, symbol: "NEX", status,
+  id: "WL-840781", type, amount: 99.5, symbol: "UVT", status,
   ts: Date.parse("2026-10-05T11:48:21Z"), memo: "", memoKey: "refer", ref: "F2-NETWORK-NEX-376",
 });
 async function mount(localeCode: Locale, rows: Bill[] = [], page: keyof typeof codes = "list", category?: string, initialReadFailed = false) {
@@ -81,7 +81,7 @@ async function mount(localeCode: Locale, rows: Bill[] = [], page: keyof typeof c
     "@/lib/amount-display": { formatAmount },
     "@/lib/usd-display": { formatUsd },
     vue: Vue, "@dcloudio/uni-app": {
-      onLoad: (callback: (options: { cat: string; activityId: string; orderNo: string }) => void) => callback({ cat: category ?? (rows[0]?.symbol === "USDT" ? "usdt" : "nex"), activityId: "campaign-A", orderNo: "order-A" }),
+      onLoad: (callback: (options: { cat: string; activityId: string; orderNo: string }) => void) => callback({ cat: category ?? (rows[0]?.symbol === "USDT" ? "usdt" : "uvt"), activityId: "campaign-A", orderNo: "order-A" }),
       onShow: (callback: () => void) => shown.push(callback), onHide: vi.fn(),
     },
     "@/components/app-chassis.vue": { default: Vue.defineComponent({ setup: (_props, { slots }) => () => Vue.h("main", slots.default?.()) }) },
@@ -266,7 +266,7 @@ describe("mounted reward state presentation", () => {
     expect(page.text()).toContain("$147.72"); expect(page.text()).toContain("251.50");
     expect(JSON.stringify(page.summary)).toBe(before);
     const nexCard = nodes(page.root).find(entry => entry.props.role === "button" && entry.props["aria-label"] === dicts[locale].rewards.catNex)!;
-    (nexCard.props.onClick as () => void)(); expect(page.navTo).toHaveBeenCalledWith("/me/rewards/list?cat=nex");
+    (nexCard.props.onClick as () => void)(); expect(page.navTo).toHaveBeenCalledWith("/me/rewards/list?cat=uvt");
   });
 
   it.each(locales)("preserves course source, round trip and model precision in %s", async locale => {
@@ -277,8 +277,8 @@ describe("mounted reward state presentation", () => {
     expect(nodes(page.root).find(entry => entry.tag === "header")?.props.back).toBe("/pages/me/rewards");
     const link = nodes(page.root).find(entry => entry.props.role === "link")!;
     (link.props.onClick as () => void)();
-    expect(page.navTo).toHaveBeenCalledWith("/pages/learn/course?id=intro-uvel&source=rewards-nex");
-    expect(resolveCourseNavigation({ id: "intro-uvel", source: "rewards-nex" }, "").back).toBe("/pages/me/rewards-list?cat=nex");
+    expect(page.navTo).toHaveBeenCalledWith("/pages/learn/course?id=intro-uvel&source=rewards-uvt");
+    expect(resolveCourseNavigation({ id: "intro-uvel", source: "rewards-uvt" }, "").back).toBe("/pages/me/rewards-list?cat=uvt");
     const sourceToggle = () => nodes(page.root).find(entry => entry.props.role === "button" && entry.props["aria-label"] === t.rewards.showSourceId)!;
     (sourceToggle().props.onClick as () => void)(); await Vue.nextTick();
     expect(nodes(page.root).filter(entry => entry.tag === "text").map(textOf)).toContain("intro-uvel@v1");

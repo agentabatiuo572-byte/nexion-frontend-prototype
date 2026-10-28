@@ -5,7 +5,7 @@ import {
   type PersistedExchangePending, type ExchangeSwapIntent,
 } from "@/lib/exchange-pending-mutation";
 
-const intent: ExchangeSwapIntent = { direction: "NEX_TO_USDT", fromAmount: 10, queueIfCapped: true };
+const intent: ExchangeSwapIntent = { direction: "UVT_TO_USDT", fromAmount: 10, queueIfCapped: true };
 function setup() {
   let stored: PersistedExchangePending | null = null;
   let serial = 0;
@@ -69,7 +69,7 @@ describe("exchange pending command outcome classification", () => {
   it("recovers the exact receipt after an ambiguous response without another swap", async () => {
     const s = setup();
     let swaps = 0;
-    const order = { exchangeNo: "synthetic-order", fromAsset: "NEX" as const, toAsset: "USDT" as const, fromAmount: 10, status: "COMPLETED" };
+    const order = { exchangeNo: "synthetic-order", fromAsset: "UVT" as const, toAsset: "USDT" as const, fromAmount: 10, status: "COMPLETED" };
     const result = await executeExchangeSwap({
       isCurrent: () => true, recover: async () => ({ status: "SUCCEEDED", order }),
       pending: s.pending, accountKey: "synthetic", intent, baseline: { orders: [] },

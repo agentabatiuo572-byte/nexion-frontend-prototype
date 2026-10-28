@@ -3,7 +3,6 @@
 // + 2 pure helpers; copied faithfully so the store page renders the same 6 tiers).
 
 import type { PhaseId } from "@/store/product-phase";
-import { nexGridBrandText } from "@/lib/brand-copy";
 
 // AI workload throughput per device — replaces "MH/s" hash rate in the
 // hero spec card, drives the v3.1 "you can power LLM 70B inference" narrative.
@@ -308,7 +307,7 @@ export function clearProductCatalog(): void {
 export function replaceProductCatalog(products: readonly Product[]): void {
   // 服务端目录的 SKU 显示名可能是改名前的存量值("NexionBox Pro v2");这里是**展示**目录,
   // 归一后再进渲染面。协议侧不受影响:下单按 productNo(order-api 的 create 只发 productNo)。
-  PRODUCTS.splice(0, PRODUCTS.length, ...products.map((product) => ({ ...product, name: nexGridBrandText(product.name) })));
+  PRODUCTS.splice(0, PRODUCTS.length, ...products);
 }
 
 export function getProduct(id: string): Product | undefined {
@@ -356,9 +355,9 @@ export function evaluatePurchaseGate(
     return { gated: false, eligible: true, soldOut: false, blocked: false, remaining: null, conditions: [], unmet: [], progressPct: 1 };
   }
   const conditions: GateCondition[] = [];
-  if (g.rankMin != null) conditions.push({ kind: "rank", need: g.rankMin, have: ctx.rank, met: ctx.rank >= g.rankMin });
-  if (g.activeDirectMin != null) conditions.push({ kind: "activeDirect", need: g.activeDirectMin, have: ctx.activeDirect, met: ctx.activeDirect >= g.activeDirectMin });
-  if (g.teamComputePointsMin != null) conditions.push({ kind: "teamComputePoints", need: g.teamComputePointsMin, have: ctx.teamComputePoints, met: ctx.teamComputePoints >= g.teamComputePointsMin });
+  if (g.rankMin != null && g.rankMin > 0) conditions.push({ kind: "rank", need: g.rankMin, have: ctx.rank, met: ctx.rank >= g.rankMin });
+  if (g.activeDirectMin != null && g.activeDirectMin > 0) conditions.push({ kind: "activeDirect", need: g.activeDirectMin, have: ctx.activeDirect, met: ctx.activeDirect >= g.activeDirectMin });
+  if (g.teamComputePointsMin != null && g.teamComputePointsMin > 0) conditions.push({ kind: "teamComputePoints", need: g.teamComputePointsMin, have: ctx.teamComputePoints, met: ctx.teamComputePoints >= g.teamComputePointsMin });
 
   const eligible =
     conditions.length === 0 ? true : g.mode === "all" ? conditions.every((c) => c.met) : conditions.some((c) => c.met);

@@ -4,7 +4,6 @@ import type { ProductCatalogSnapshot } from "@/api/product-catalog-api";
 import { productCatalogApi, remoteApiEnabled, apiRuntimeConfig } from "@/api/runtime";
 import { advanceRuntimeRevision, captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision, type RuntimeRevisionScope } from "@/api/order-api";
 import { clearProductCatalog, replaceProductCatalog } from "@/mock/products";
-import { nexGridBrandText } from "@/lib/brand-copy";
 import { ApiError } from "@/api/errors";
 
 // "mock" 变体已删:它曾是 mock 模式的初值,而全仓消费方只认 "ready" —— 留着这个变体
@@ -161,7 +160,7 @@ export function refreshProductCatalog(force = false): Promise<boolean> {
       if (!current()) return false;
       presentation.value = {
         ...snapshot,
-        products: snapshot.products.map((product) => ({ ...product, name: nexGridBrandText(product.name) })),
+        products: snapshot.products,
       };
       if (!current()) return false;
       displayProof.value = snapshot.serverCanonical === true && snapshot.sourceEnvironment === "PRODUCTION" && snapshot.runId === ""

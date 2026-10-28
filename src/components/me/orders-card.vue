@@ -11,7 +11,7 @@
     <view class="nx-glass-card relative overflow-hidden" :style="cardStyle">
       <view v-if="latestOrder" class="flex items-center justify-between" style="gap: 8px">
         <view class="min-w-0">
-          <text class="block truncate" style="font-family: var(--font-v5); font-size: var(--ui-type-list-subtitle); font-weight: 500; color: var(--v5-ink)">{{ nexGridBrandText(latestOrder.productName) }}</text>
+          <text class="block truncate" style="font-family: var(--font-v5); font-size: var(--ui-type-list-subtitle); font-weight: 500; color: var(--v5-ink)">{{ (latestOrder.productName) }}</text>
           <text class="block font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 2px">${{ formatAmount(latestOrder.total) }} · {{ latestOrder.dataCenter }}</text>
         </view>
         <text class="shrink-0 font-mono-tabular" :style="statusPillStyle(latestOrder.status)">{{ statusLabel(latestOrder.status) }}</text>
@@ -42,7 +42,6 @@ import SectionHeader from "@/components/me/section-header.vue";
 import { useT } from "@/i18n/use-t";
 import { useOrders } from "@/store/orders";
 import { latestOrder as selectLatestOrder } from "@/lib/latest-order";
-import { nexGridBrandText } from "@/lib/brand-copy";
 
 const t = useT();
 const orders = useOrders();

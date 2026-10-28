@@ -12,10 +12,10 @@
 -->
 <template>
   <!-- 《08》§2:tap 反馈 active:scale+opacity(禁 hover 做移动端反馈) -->
-  <view ref="cardRef" class="product-card relative overflow-hidden block" :class="{ 'promotion-catalog-card': marketingPromotion, 'product-card--in-view': cardInView, 'product-card--compact': compact, 'product-card--entered': entered }" :style="marketingPromotion ? promotionCardStyle : cardStyle" :role="compact ? 'link' : undefined" :tabindex="compact ? 0 : -1" :aria-label="compact ? nexGridBrandText(product.name) : undefined" @click="goDetail">
+  <view ref="cardRef" class="product-card relative overflow-hidden block" :class="{ 'promotion-catalog-card': marketingPromotion, 'product-card--in-view': cardInView, 'product-card--compact': compact, 'product-card--entered': entered }" :style="marketingPromotion ? promotionCardStyle : cardStyle" :role="compact ? 'link' : undefined" :tabindex="compact ? 0 : -1" :aria-label="compact ? (product.name) : undefined" @click="goDetail">
 
     <!-- ───── Catalog photo or neutral placeholder ───── -->
-    <view class="product-media relative overflow-hidden" :style="renderWrapStyle" :role="compact ? undefined : 'button'" :tabindex="compact ? -1 : 0" :aria-label="compact ? undefined : nexGridBrandText(product.name)" @click.stop="goDetail"  @keydown.enter.prevent.stop="goDetail" @keydown.space.prevent.stop="goDetail">
+    <view class="product-media relative overflow-hidden" :style="renderWrapStyle" :role="compact ? undefined : 'button'" :tabindex="compact ? -1 : 0" :aria-label="compact ? undefined : (product.name)" @click.stop="goDetail"  @keydown.enter.prevent.stop="goDetail" @keydown.space.prevent.stop="goDetail">
       <view v-if="photo" class="product-art-entry"><image class="product-art" :style="{viewTransitionName:'catalog-'+product.id.replace(/[^a-zA-Z0-9_-]/g,'-')}" :key="photo.src" :src="photo.src" mode="aspectFit" style="position: absolute; inset: 0; width: 100%; height: 100%" @error="fallbackProductImage" /></view>
       <view v-else class="absolute inset-0 grid place-items-center" style="color: var(--v5-ink-3)">
         <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /><path d="m3.3 7 8.7 5 8.7-5" /><path d="M12 22V12" /></svg>
@@ -33,7 +33,7 @@
     <view v-if="!compact" class="relative" style="padding: 14px 16px">
       <view>
         <view class="min-w-0">
-          <text class="block" :style="nameStyle">{{ nexGridBrandText(product.name) }}</text>
+          <text class="block" :style="nameStyle">{{ (product.name) }}</text>
         </view>
       </view>
 
@@ -89,7 +89,7 @@
     </view>
 
     <view v-if="compact" class="product-compact-body">
-      <text class="product-compact-name">{{ nexGridBrandText(product.name) }}</text>
+      <text class="product-compact-name">{{ (product.name) }}</text>
       <text class="product-compact-tagline">{{ copy.tagline }}</text>
       <view class="product-compact-bottom">
         <text class="product-compact-price">{{ fmtMoney(product.price).replace(/\.00$/, '') }}</text>
@@ -132,7 +132,6 @@ import { navTo } from "@/lib/route";
 import { usePurchaseGate } from "@/composables/use-purchase-gate";
 import { productCopy } from "@/lib/product-copy";
 import { prepareEarnConfig, useEarnConfig } from "@/store/earn-config";
-import { nexGridBrandText } from "@/lib/brand-copy";
 import { productTierCode } from "@/lib/product-image";
 import { useProductImage } from "@/composables/use-product-image";
 import { remoteApiEnabled } from "@/api/runtime";

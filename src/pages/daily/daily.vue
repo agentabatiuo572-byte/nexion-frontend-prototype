@@ -231,7 +231,7 @@ import { captureRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-ap
 import { postMoneyBillsOnce } from "@/lib/money-receipt";
 import { useLuckySpin } from "@/store/lucky-spin";
 import { toast } from "@/store/ui";
-import { dailyBaseReward, dailyLuckyHint, dailyMilestoneRewardText, dailyRewardLabels, dailyUpcomingMilestone } from "./daily-reward-view";
+import { dailyBaseReward, dailyLuckyHint, dailyMilestoneRewardKind, dailyMilestoneRewardText, type DailyMilestoneRewardKind, dailyRewardLabels, dailyUpcomingMilestone } from "./daily-reward-view";
 import { dailyCheckInSuccessCopy } from "./daily-success-copy";
 
 const ONE_DAY_MS = 86400 * 1000;
@@ -240,7 +240,7 @@ interface Milestone {
   day: number;
   rewardKey: "reward3" | "reward7" | "reward14" | "reward21" | "reward30" | "reward60" | "reward100";
   labelKey: "day3" | "day7" | "day14" | "day21" | "day30" | "day60" | "day100";
-  reward: { type: "usdt" | "nex" | "spin" | "badge"; amount: number };
+  reward: { type: DailyMilestoneRewardKind; amount: number };
   tint: string;
   iconPath: string;
   iconPath2?: string;
@@ -251,10 +251,10 @@ interface Milestone {
 
 // Icon paths (lucide): Sparkles / Gift / TrendingUp / Star / Trophy / ShieldCheck.
 const MILESTONES: Milestone[] = [
-  { day: 3, rewardKey: "reward3", labelKey: "day3", reward: { type: "nex", amount: 5 }, tint: "var(--v5-nex)", iconPath: "m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" },
-  { day: 7, rewardKey: "reward7", labelKey: "day7", reward: { type: "nex", amount: 15 }, tint: "var(--v5-nex)", iconPath: "M20 12v10H4V12", iconPath2: "M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7" },
+  { day: 3, rewardKey: "reward3", labelKey: "day3", reward: { type: "uvt", amount: 5 }, tint: "var(--v5-nex)", iconPath: "m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" },
+  { day: 7, rewardKey: "reward7", labelKey: "day7", reward: { type: "uvt", amount: 15 }, tint: "var(--v5-nex)", iconPath: "M20 12v10H4V12", iconPath2: "M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7" },
   { day: 14, rewardKey: "reward14", labelKey: "day14", reward: { type: "usdt", amount: 1 }, tint: "var(--v5-warning)", iconPath: "M16 7h6v6", iconPath2: "m22 7-8.5 8.5-5-5L2 17" },
-  { day: 21, rewardKey: "reward21", labelKey: "day21", reward: { type: "nex", amount: 100 }, tint: "var(--v5-nex)", iconPath: "M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" },
+  { day: 21, rewardKey: "reward21", labelKey: "day21", reward: { type: "uvt", amount: 100 }, tint: "var(--v5-nex)", iconPath: "M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" },
   { day: 30, rewardKey: "reward30", labelKey: "day30", reward: { type: "spin", amount: 1 }, tint: "var(--v5-brand-2)", iconPath: "M6 9H4.5a2.5 2.5 0 0 1 0-5H6", iconPath2: "M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2Z" },
   { day: 60, rewardKey: "reward60", labelKey: "day60", reward: { type: "usdt", amount: 10 }, tint: "var(--v5-warning)", iconPath: "M16 7h6v6", iconPath2: "m22 7-8.5 8.5-5-5L2 17" },
   { day: 100, rewardKey: "reward100", labelKey: "day100", reward: { type: "badge", amount: 1 }, tint: "var(--v5-brand)", iconPath: "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z", iconPath2: "m9 12 2 2 4-4" },
@@ -325,7 +325,7 @@ const milestones = computed<Milestone[]>(() => remoteApiEnabled
       labelText: fmt(t.value.daily.milestones.dayLabel, { n: m.milestoneDay }),
       rewardText: dailyMilestoneRewardText(m, milestoneRewardLabels.value),
       status: m.status,
-      reward: { type: (m.rewardType.toLowerCase() === "usdt" ? "usdt" : m.rewardType.toLowerCase() === "spin" ? "spin" : m.rewardType.toLowerCase() === "badge" ? "badge" : "nex") as Milestone["reward"]["type"], amount: m.rewardAmount },
+      reward: { type: dailyMilestoneRewardKind(m.rewardType), amount: m.rewardAmount },
       tint: "var(--v5-nex)", iconPath: "m12 3v18M3 12h18",
     }))
   : MILESTONES);
@@ -574,7 +574,7 @@ async function handleCheckIn() {
   // 对策照仓里既有的自愈教条(App.vue reconcileBills:「别记,从现有数据推出来」)——
   // ref 用**当天日期**保持稳定,进页面时若发现「今天签过但账上没有那条分录」就补发;
   // 幂等出口保证补发不会变成第二次发钱。
-  const paid = postMoneyBillsOnce([{ type: "bonus", symbol: "NEX", amount: r.gained, status: "posted",
+  const paid = postMoneyBillsOnce([{ type: "bonus", symbol: "UVT", amount: r.gained, status: "posted",
     memo: `Daily check-in · ${r.streak}-day streak`, ref: signInRef(faucet.lastSignedInAt) }]);
   // 签到发奖这一跳就是上面那个 POST /api/faucet/sign-in —— 地区拒绝以它的结果回来。
   // 🔴 翻译不出来(`null`)就是普通结果,原样落回下面的 `!== "ok"` 出口:
@@ -620,7 +620,7 @@ async function handleClaimMilestone(m: Milestone) {
     void refreshLedger(true);
     return;
   }
-  const gainedNex = m.reward.type === "nex" ? m.reward.amount : 0;
+  const gainedNex = m.reward.type === "uvt" ? m.reward.amount : 0;
   const rewardDisplay = t.value.daily.milestones[m.rewardKey];
   // 🔴 必须先看 ok:上面两道预判读的是本页内存态,而里程碑领取是**一次性**的。
   // 别的标签页刚领过时 store 会按磁盘最新态拒掉,此时还往下走就是白发一份奖励。
@@ -631,7 +631,7 @@ async function handleClaimMilestone(m: Milestone) {
     return;
   }
   // USDT / NEX milestone rewards actually credit the wallet + write a bill.
-  if (m.reward.type === "usdt" || m.reward.type === "nex") {
+  if (m.reward.type === "usdt" || m.reward.type === "uvt") {
     // MOCK-ONLY NON-ATOMIC: PROD milestone-claim endpoint TBD must atomically
     // grant the reward and emit the matching bill in one idempotent transaction.
     // 🔴 ref 去掉时间戳:里程碑一档只能领一次,`STREAK-D{day}` 天生稳定。带时间戳的话
@@ -644,7 +644,7 @@ async function handleClaimMilestone(m: Milestone) {
     // 发钱失败对用户是**响的**(有失败提示),不是静默吞掉。
     const paid = postMoneyBillsOnce([{
       type: "bonus",
-      symbol: m.reward.type === "usdt" ? "USDT" : "NEX",
+      symbol: m.reward.type === "usdt" ? "USDT" : "UVT",
       amount: m.reward.amount,
       status: "posted",
       memo: `Streak milestone · Day-${m.day}`,

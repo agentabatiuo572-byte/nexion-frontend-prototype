@@ -434,7 +434,7 @@ function handleClaim(id: string) {
   // 消费掉,发钱失败就 return —— 成就标记已置、奖归零且**再也领不了**(成就是一次性的)。
   // ref 本来就是成就 id(天然稳定),换成幂等出口后重放不会重复发。
   const drafts: ReceiptDraft[] = [];
-  if (def.rewardNex) drafts.push({ type: "achievement", symbol: "NEX", amount: def.rewardNex, status: "posted", memo: `Achievement · ${name}`, ref: id });
+  if (def.rewardNex) drafts.push({ type: "achievement", symbol: "UVT", amount: def.rewardNex, status: "posted", memo: `Achievement · ${name}`, ref: id });
   if (def.rewardUsdt) drafts.push({ type: "achievement", symbol: "USDT", amount: def.rewardUsdt, status: "posted", memo: `Achievement · ${name}`, ref: id });
   if (drafts.length && postMoneyBillsOnce(drafts) !== "ok") return;
   if (!ach.claim(id)) return; // 消费失败:钱已幂等落定,下次重试命中同一 ref 不会再发

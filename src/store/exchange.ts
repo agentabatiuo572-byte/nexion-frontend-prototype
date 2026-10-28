@@ -10,8 +10,8 @@ import { readAccountRow, writeAccountRow } from "./account-scoped-storage";
 export interface SwapEvent {
   id: string;
   ts: number;
-  fromSym: "USDT" | "NEX";
-  toSym: "USDT" | "NEX";
+  fromSym: "USDT" | "UVT";
+  toSym: "USDT" | "UVT";
   fromAmount: number;
   toAmount: number;
   rate: number; // USDT per NEX

@@ -1,5 +1,4 @@
 import { formatAmount } from '@/lib/amount-display';
-import { nexGridBrandText } from '@/lib/brand-copy';
 
 const copy = {
   zh: { provisioningLocationPending:'正在配置设备，部署地点待确认。', activatedLocationPending:'设备已激活，部署地点待确认。', walletLoading:'正在更新可用余额…', walletError:'余额暂未更新，请重试。', walletRefresh:'刷新余额', automaticVoucher:'自动使用最优可用券', releasedRewards:'本单已取消或结束，未发放的奖励不再发放。', bundleTitle:'组合订单 · {kinds} 款 / {units} 台', singleActivity:'此活动仅支持单款购买', singlePurchase:'查看商品并购买' },
@@ -11,5 +10,5 @@ export function commerceAmount(value:Parameters<typeof formatAmount>[0]) { retur
 export function commerceOrderTitle(order:{productName:string;quantity:number;lineItems?:{sku:string;quantity:number}[]},locale:string) {
   const lines=order.lineItems??[];
   const kinds=new Set(lines.map(line=>line.sku)).size;
-  return kinds>1 ? commerceCopy(locale).bundleTitle.replace('{kinds}',String(kinds)).replace('{units}',String(lines.reduce((sum,line)=>sum+line.quantity,0))) : nexGridBrandText(order.productName);
+  return kinds>1 ? commerceCopy(locale).bundleTitle.replace('{kinds}',String(kinds)).replace('{units}',String(lines.reduce((sum,line)=>sum+line.quantity,0))) : (order.productName);
 }

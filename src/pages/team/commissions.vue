@@ -18,7 +18,7 @@
 
         <RewardHero kind="ledger" panel :label="t.commissions.thisMonth">
           <text class="reward-amount">{{ assetTotal(monthTotals.usdt, 'usdt') }}</text>
-          <text class="block reward-income-uvt">{{ assetTotal(monthTotals.nex, 'nex') }}</text>
+          <text class="block reward-income-uvt">{{ assetTotal(monthTotals.nex, 'uvt') }}</text>
           <template #footer><view class="reward-cta reward-rule-link nx-commissions-focusable" role="link" tabindex="0" :aria-label="t.commissions.howItWorksEntry" @click="go('/pages/team/commissions-how')" @keydown.enter.prevent="go('/pages/team/commissions-how')" @keydown.space.prevent="go('/pages/team/commissions-how')"><text>{{ t.commissions.howItWorksEntry }}</text></view></template>
         </RewardHero>
         <view class="reward-income-summary">
@@ -33,7 +33,7 @@
             <text class="block reward-caption">{{ coolingOverviewText }}</text>
           </view>
         </view>
-        <view class="reward-income-lifetime"><text>{{ t.commissions.lifetime }}</text><view class="reward-income-lifetime__amounts"><text>{{ assetTotal(lifetimeTotals.usdt, 'usdt') }}</text><text>{{ assetTotal(lifetimeTotals.nex, 'nex') }}</text></view></view>
+        <view class="reward-income-lifetime"><text>{{ t.commissions.lifetime }}</text><view class="reward-income-lifetime__amounts"><text>{{ assetTotal(lifetimeTotals.usdt, 'usdt') }}</text><text>{{ assetTotal(lifetimeTotals.nex, 'uvt') }}</text></view></view>
 
 
         <GlassSegments :label="t.commissions.pageTitle" v-model="filter" :options="filterOptions" layout="scroll"  />
@@ -60,7 +60,7 @@
               </view>
               <view class="text-right" style="max-width: 48%; overflow-wrap: anywhere">
                 <text v-if="e.amountUSDT > 0" class="block font-mono-tabular tabular-nums" :style="commissionAmountStyle(e, 'usdt')">{{ commissionAmountLabel(e) }}</text>
-                <text v-if="e.amountNEX > 0" class="block font-mono-tabular tabular-nums" :style="commissionAmountStyle(e, 'nex')">{{ commissionNexLabel(e) }}</text>
+                <text v-if="e.amountNEX > 0" class="block font-mono-tabular tabular-nums" :style="commissionAmountStyle(e, 'uvt')">{{ commissionNexLabel(e) }}</text>
                 <text v-if="e.status === 'cooling'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-warning)', marginTop: '2px' }">{{ coolingTag(e) }}</text>
                 <text v-else-if="e.status === 'unlocked'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-success)', marginTop: '2px' }">{{ t.commissions.readyTag }}</text>
                 <text v-else-if="e.status === 'withdrawn'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ t.commissions.withdrawnTag }}</text>
@@ -177,8 +177,8 @@ function assetNumber(key: 'unlockedUSDT' | 'unlockedNEX' | 'coolingUSDT', mock: 
   const value = remoteApiEnabled ? ledger.value?.aggregate[key] : mock;
   return typeof value === 'number' && Number.isFinite(value) ? formatAmount(value) : '—';
 }
-function assetTotal(value: number | null | undefined, asset: 'usdt' | 'nex'): string {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return asset === 'nex' ? '— UVT' : '— USD';
+function assetTotal(value: number | null | undefined, asset: 'usdt' | 'uvt'): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return asset === 'uvt' ? '— UVT' : '— USD';
   return asset === 'usdt' ? `$${formatAmount(value)}` : `${formatAmount(value)} UVT`;
 }
 function loadMoreEvents() {
@@ -229,7 +229,7 @@ function commissionNexLabel(e: CommissionEvent): string {
   return `+${amount}`;
 }
 
-function commissionAmountStyle(e: CommissionEvent, asset: "usdt" | "nex"): CSSProperties {
+function commissionAmountStyle(e: CommissionEvent, asset: "usdt" | "uvt"): CSSProperties {
   const color = e.status === "rejected"
     ? "var(--v5-danger)"
     : e.status === "frozen"

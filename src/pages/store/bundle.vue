@@ -92,7 +92,7 @@
           :style="{ borderBottom: i === products.length - 1 ? 'none' : '1px solid var(--v5-border)' }"
         >
           <view class="flex-1 min-w-0">
-            <text class="block truncate" :style="itemNameStyle">{{ nexGridBrandText(p.name) }}</text>
+            <text class="block truncate" :style="itemNameStyle">{{ (p.name) }}</text>
             <text class="block" :style="itemMetaStyle">
               <text style="color: var(--v5-ink-4)">{{ t.uiChrome.price }} </text>${{ formatAmount(p.price) }}<text style="color: var(--v5-ink-4)"> · </text><text style="color: var(--v5-success)">{{ bundleProductYieldText(p) }}</text>
             </text>
@@ -100,7 +100,7 @@
             <text v-if="remoteApiEnabled && purchaseEligibilityStore.state(p.id).status !== 'ready'" class="block" :style="itemMetaStyle">{{ purchaseEligibilityStore.state(p.id).status === 'error' ? t.store.purchaseEligibilityError : t.store.purchaseEligibilityLoading }}</text>
             <text v-else-if="remoteApiEnabled && !purchaseEligibilityStore.state(p.id).eligible" class="block" :style="itemMetaStyle">{{ t.store.purchaseEligibilityIneligible }}</text>
           </view>
-          <view class="shrink-0 rounded-full grid place-items-center active:opacity-70" style="width: 44px; height: 44px; flex-shrink: 0" role="button" tabindex="0" :aria-label="fmt(t.uiChrome.removeItem, { name: nexGridBrandText(p.name) })" @click.stop="remove(p.id)" @keydown="activate($event, () => remove(p.id))">
+          <view class="shrink-0 rounded-full grid place-items-center active:opacity-70" style="width: 44px; height: 44px; flex-shrink: 0" role="button" tabindex="0" :aria-label="fmt(t.uiChrome.removeItem, { name: (p.name) })" @click.stop="remove(p.id)" @keydown="activate($event, () => remove(p.id))">
             <view class="rounded-full grid place-items-center" style="width: 28px; height: 28px; background: var(--v5-surface-2)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
             </view>
@@ -120,12 +120,12 @@
             role="button"
             tabindex="0"
             :aria-label="remoteApiEnabled && purchaseEligibilityStore.state(p.id).status === 'ready' && !purchaseEligibilityStore.state(p.id).eligible
-              ? `${nexGridBrandText(p.name)} · ${t.store.gateBlockedToast}` : fmt(t.uiChrome.addItem, { name: nexGridBrandText(p.name) })"
+              ? `${(p.name)} · ${t.store.gateBlockedToast}` : fmt(t.uiChrome.addItem, { name: (p.name) })"
             @click.stop="onAddSuggestion(p)"
             @keydown="activate($event, () => onAddSuggestion(p))"
           >
             <view class="flex-1 min-w-0 text-left">
-              <text class="block truncate" :style="suggestionNameStyle">{{ nexGridBrandText(p.name) }}</text>
+              <text class="block truncate" :style="suggestionNameStyle">{{ (p.name) }}</text>
               <text class="block" :style="itemMetaStyle">
                 <text style="color: var(--v5-ink-4)">{{ t.uiChrome.price }} </text>${{ formatAmount(p.price) }}<text style="color: var(--v5-ink-4)"> · </text><text style="color: var(--v5-success)">{{ bundleProductYieldText(p) }}</text>
               </text>
@@ -208,7 +208,6 @@ import { parseEntryItems,type EntryItem } from '@/lib/promotion-entry';
 import EmptyState from "@/components/empty-state.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
-import { nexGridBrandText } from "@/lib/brand-copy";
 import { useCart, bundleDiscountForCount, type BundleDiscountTier } from "@/store/cart";
 import { PRODUCTS, getProduct, evaluatePurchaseGate, type Product } from "@/mock/products";
 import { useSetPageHeader } from "@/composables/use-page-header";
@@ -471,7 +470,7 @@ async function onAddSuggestion(p: Product) {
   }
   if (!catalogReady.value || !isProductAvailable(p, phase.value) || cart.has(p.id)) return;
   cart.add(p.id);
-  toast.success(fmt(t.value.bundle.addedToBundle, { name: nexGridBrandText(p.name) }));
+  toast.success(fmt(t.value.bundle.addedToBundle, { name: (p.name) }));
 }
 interface PendingBundleCommands { commands: Record<string, PendingBundleCommand | string> }
 const BUNDLE_COMMAND_KEY = "nexgrid-bundle-order-command-v1";

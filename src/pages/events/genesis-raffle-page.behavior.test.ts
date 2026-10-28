@@ -51,7 +51,7 @@ it.each(["zh", "en", "vi"] as const)("renders parser-confirmed monetary prizes a
     { rewardType: "USDT", amount: "0.00005", expected: "<$0.0001" },
     { rewardType: "USDT", amount: "1234.56789", expected: "$1,234.5679" },
     { rewardType: "USDT", amount: "0", expected: "$0.00" },
-    { rewardType: "NEX", amount: "20", expected: "20.00 UVT" },
+    { rewardType: "UVT", amount: "20", expected: "20.00 UVT" },
     { rewardType: "DEVICE", amount: "2", expected: `2.00 ${genesisRaffleCopy[language].device}` },
   ];
   const parsed = parseGenesisRaffleState({ availableTickets: 5, draws: [{ ...draw, status: "DRAWN", myEntries: 3, totalEntries: 7,

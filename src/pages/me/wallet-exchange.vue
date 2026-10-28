@@ -514,7 +514,7 @@ const displayQueue = computed(() => remoteApiEnabled
   ? visibleQueuedExchangeOrders(remoteState.value?.orders ?? []).map((order) => ({
     id: order.exchangeNo,
     amountUSD: order.fromAsset === "USDT" ? order.fromAmount : order.toAmount,
-    direction: order.fromAsset === "NEX" ? "nex2usdt" as const : "usdt2nex" as const,
+    direction: order.fromAsset === "UVT" ? "nex2usdt" as const : "usdt2nex" as const,
   }))
   : v3.queue);
 const rate = computed(() => remoteApiEnabled ? (remoteState.value?.caps.currentPrice ?? 0) : exchange.rate);
@@ -619,8 +619,8 @@ async function recoverPendingExchange() {
   }
 }
 
-const fromSym = computed(() => (direction.value === "usdt2nex" ? "USDT" : "NEX"));
-const toSym = computed(() => (direction.value === "usdt2nex" ? "NEX" : "USDT"));
+const fromSym = computed(() => (direction.value === "usdt2nex" ? "USDT" : "UVT"));
+const toSym = computed(() => (direction.value === "usdt2nex" ? "UVT" : "USDT"));
 const fromBal = computed(() => {
   if (remoteApiEnabled) return direction.value === "usdt2nex"
     ? (remoteState.value?.wallet.usdtAvailable ?? 0)
@@ -792,7 +792,7 @@ async function handleConfirm() {
   // 此前它们全是活读,而「确认弹窗 + 900ms 结算延迟」这段窗口里:汇率每 15s 自己跳、
   // 用户还能翻方向 / 改金额 —— 实际成交与用户点「确认」时看到的不是同一笔;
   // 额度门更只在确认那一刻按当时的值校验过一次,确认后把金额改大即可绕过每日额度。
-  // 币种取 store 的类型单源(SwapEvent),不让对象字面量把 "USDT"|"NEX" 宽化成 string。
+  // 币种取 store 的类型单源(SwapEvent),不让对象字面量把 "USDT"|"UVT" 宽化成 string。
   const snap = {
     direction: direction.value,
     fromSym: fromSym.value as SwapEvent["fromSym"],
@@ -827,7 +827,7 @@ async function handleConfirm() {
         ));
         return;
       }
-      const directionCode = snap.direction === "usdt2nex" ? "USDT_TO_NEX" : "NEX_TO_USDT";
+      const directionCode = snap.direction === "usdt2nex" ? "USDT_TO_UVT" : "UVT_TO_USDT";
       const intent: ExchangeSwapIntent = {
         direction: directionCode,
         fromAmount: snap.fromAmount,

@@ -30,7 +30,7 @@ import { createAccountRowCommit } from "./account-scoped-storage";
  * persist key 带版本号;时间戳 ms epoch;action-driven → 接真后台前端零重写.
  */
 
-export type SpinPrizeKind = "nex" | "points" | "usdt" | "coupon";
+export type SpinPrizeKind = "uvt" | "points" | "usdt" | "coupon";
 
 export interface SpinPrize {
   id: string;
@@ -45,13 +45,13 @@ export interface SpinPrize {
 
 /** 8 档奖池 — 对齐 PRD V3 Ch13 H4 ③ 奖池表(顺序即转盘顺时针扇区序) */
 export const SPIN_PRIZES: SpinPrize[] = [
-  { id: "nex5",     kind: "nex",    amount: 5,   labelKey: "nex5",     weight: 38,  isReal: false, tint: "var(--v5-brand)" },
+  { id: "nex5",     kind: "uvt",    amount: 5,   labelKey: "nex5",     weight: 38,  isReal: false, tint: "var(--v5-brand)" },
   { id: "usdt1",    kind: "usdt",   amount: 1,   labelKey: "usdt1",    weight: 5,   isReal: true,  tint: "var(--v5-warning)" },
-  { id: "nex10",    kind: "nex",    amount: 10,  labelKey: "nex10",    weight: 24,  isReal: false, tint: "var(--v5-tech-cyan)" },
+  { id: "nex10",    kind: "uvt",    amount: 10,  labelKey: "nex10",    weight: 24,  isReal: false, tint: "var(--v5-tech-cyan)" },
   { id: "usdt20",   kind: "usdt",   amount: 20,  labelKey: "usdt20",   weight: 0.9, isReal: true,  tint: "var(--v5-warning)" },
-  { id: "nex30",    kind: "nex",    amount: 30,  labelKey: "nex30",    weight: 18,  isReal: false, tint: "var(--v5-brand)" },
+  { id: "nex30",    kind: "uvt",    amount: 30,  labelKey: "nex30",    weight: 18,  isReal: false, tint: "var(--v5-brand)" },
   { id: "coupon50", kind: "coupon", amount: 50,  labelKey: "coupon50", weight: 3,   isReal: true,  tint: "var(--v5-tech-cyan)" },
-  { id: "nex50",    kind: "nex",    amount: 50,  labelKey: "nex50",    weight: 11,  isReal: false, tint: "var(--v5-brand-2)" },
+  { id: "nex50",    kind: "uvt",    amount: 50,  labelKey: "nex50",    weight: 11,  isReal: false, tint: "var(--v5-brand-2)" },
   { id: "usdt500",  kind: "usdt",   amount: 500, labelKey: "usdt500",  weight: 0.1, isReal: true,  tint: "var(--v5-brand-2)" },
 ];
 
@@ -252,8 +252,10 @@ export const useLuckySpin = defineStore("luckySpin", () => {
 
   function mapRemoteSegment(segment: EventSpinSegment, index: number): SpinPrize {
     const type = segment.rewardType.toLowerCase();
-    const kind: SpinPrizeKind = type === "usdt" || type === "coupon" || type === "points"
-      ? type : "nex";
+    if (type !== "uvt" && type !== "usdt" && type !== "coupon" && type !== "points") {
+      throw new Error("EVENTS_RESPONSE_INVALID");
+    }
+    const kind: SpinPrizeKind = type;
     return {
       id: segment.tierId,
       kind,

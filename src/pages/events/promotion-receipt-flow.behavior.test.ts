@@ -41,7 +41,7 @@ function lifecycle() {
     onShow: (fn: () => void) => hooks.show.push(fn), onHide: (fn: () => void) => hooks.hide.push(fn),
     onBeforeUnmount: (fn: () => void) => hooks.unmount.push(fn) } };
 }
-const row = (id: string, bizNo: string, asset: "USDT" | "NEX" = "USDT"): WalletBillRow => ({
+const row = (id: string, bizNo: string, asset: "USDT" | "UVT" = "USDT"): WalletBillRow => ({
   id, bizNo, bizType: "PROMOTION_REWARD", asset, direction: "IN", amount: 0.000001,
   amountExact: "0.000001", balanceAfter: 999999999999.999999, balanceAfterExact: "999999999999.999999",
   status: "SUCCESS", remark: "private ledger note", createdAt: 1000,
@@ -120,7 +120,7 @@ beforeEach(() => {
 afterEach(() => { disposals.splice(0).forEach(fn => fn()); });
 
 describe("promotion receipt exact wallet lookup", () => {
-  it.each(["USDT", "NEX"] as const)("finds only the exact server receipt on a later page and keeps %s decimals", async asset => {
+  it.each(["USDT", "UVT"] as const)("finds only the exact server receipt on a later page and keeps %s decimals", async asset => {
     const first = deferred<WalletBillsSnapshot>(), second = deferred<WalletBillsSnapshot>();
     remote.walletBillsApi.list.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
     const h = billsHarness(); const read = h.page.refreshLedger();

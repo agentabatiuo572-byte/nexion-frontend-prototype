@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import { createExchangePendingMutationStore, executeExchangeSwap, recoverExchangeSwap, ExchangeOutcomeUnknownError,
   type PersistedExchangePending, type ExchangeSwapIntent, type ExchangeOrderLike, type ExchangePendingLease } from "./exchange-pending-mutation";
 
-const intent: ExchangeSwapIntent = { direction: "NEX_TO_USDT", fromAmount: 10, queueIfCapped: true };
-const order: ExchangeOrderLike = { exchangeNo: "EX-original-order", fromAsset: "NEX", toAsset: "USDT", fromAmount: 10, status: "COMPLETED" };
+const intent: ExchangeSwapIntent = { direction: "UVT_TO_USDT", fromAmount: 10, queueIfCapped: true };
+const order: ExchangeOrderLike = { exchangeNo: "EX-original-order", fromAsset: "UVT", toAsset: "USDT", fromAmount: 10, status: "COMPLETED" };
 function setup() {
   let stored: PersistedExchangePending | null = null;
   let serial = 0;

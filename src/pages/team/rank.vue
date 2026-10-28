@@ -181,13 +181,13 @@ function rowStatus(v: VRank): "done" | "current" | "locked" {
 // NEX without a self/direct marker follows the sponsor-with-self-fallback rule.
 // cultivationBonus aggregates all NEX and cannot classify an individual reward.
 function cultivationReward(reward: VRankReward): boolean {
-  return !isEntitlementVRankReward(reward) && reward.type === 'NEX'
+  return !isEntitlementVRankReward(reward) && reward.type === 'UVT'
     && Number.isFinite(reward.amount) && reward.amount > 0
     && !/self|direct/i.test(reward.customLabel ?? '');
 }
 function rewardText(reward: VRankReward): string {
   if (isEntitlementVRankReward(reward)) return platformDisplayText(rankEntitlementLabel(reward, t.value.rank.rewardUnavailable));
-  const amount = `${formatAmount(reward.amount)} ${reward.type === "NEX" ? "UVT" : reward.type}`;
+  const amount = `${formatAmount(reward.amount)} ${reward.type === "UVT" ? "UVT" : reward.type}`;
   return amount;
 }
 

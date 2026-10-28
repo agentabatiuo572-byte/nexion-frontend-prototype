@@ -8,7 +8,7 @@ function promotion(extra:Partial<PublicPromotion>={}):PublicPromotion {
 const disclosure={title:{zh:'权益',en:'Rights',vi:'Quyền lợi'},terms:{zh:'条款',en:'Terms',vi:'Điều khoản'},refundTerms:{zh:'退款',en:'Refund',vi:'Hoàn tiền'},benefitDescription:{zh:'说明',en:'Benefits',vi:'Lợi ích'},deviceRights:null,deviceName:null};
 const device:PublicRewardSpec={rewardRuleId:'gift',beneficiaryRole:'BUYER',type:'DEVICE',giftProductNo:'B',quantity:1,disclosure};
 const usdt:PublicRewardSpec={rewardRuleId:'usdt',beneficiaryRole:'BUYER',type:'USDT',calculation:'FIXED',amount:'0.123456',disclosure};
-const nex:PublicRewardSpec={rewardRuleId:'nex',beneficiaryRole:'DIRECT_INVITER',type:'NEX',calculation:'FIXED',amount:'123456789012345678.123456',disclosure};
+const nex:PublicRewardSpec={rewardRuleId:'nex',beneficiaryRole:'DIRECT_INVITER',type:'UVT',calculation:'FIXED',amount:'123456789012345678.123456',disclosure};
 
 describe('promotion entry server truth',()=>{
   it('accepts public sign-in estimates without pretending to know personal eligibility',()=>{

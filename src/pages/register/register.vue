@@ -910,7 +910,7 @@ async function finish() {
         const giftPosted = registration.giftRoute === "withdrawable";
         const giftMemo = giftPosted ? t.value.register.giftBillMemo : t.value.register.giftPendingBillMemo;
         const usdtBill = bills.addOnce({ type: "bonus", symbol: "USDT", amount: gift.usdt, status: giftPosted ? "posted" : "pending", memo: giftMemo, ref: giftRef });
-        const nexBill = bills.addOnce({ type: "bonus", symbol: "NEX", amount: gift.nex, status: giftPosted ? "posted" : "pending", memo: giftMemo, ref: giftRef });
+        const nexBill = bills.addOnce({ type: "bonus", symbol: "UVT", amount: gift.nex, status: giftPosted ? "posted" : "pending", memo: giftMemo, ref: giftRef });
         if (!usdtBill || !nexBill) throw new Error("gift_bill_unavailable");
         if (posted && giftPosted) {
           toast.success(

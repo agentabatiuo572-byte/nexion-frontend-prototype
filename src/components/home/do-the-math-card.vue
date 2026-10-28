@@ -72,7 +72,6 @@ import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useApp } from "@/store/app";
 import { deviceNameInline } from "@/lib/device-copy";
-import { nexGridBrandText } from "@/lib/brand-copy";
 
 const visibility = useDataVisibility();
 const t = useT();
@@ -85,7 +84,7 @@ const calculator = computed(() => {
 const baseShort = computed(() => calculator.value
   ? deviceNameInline(t.value, calculator.value.base.kind, calculator.value.base.name)
   : "");
-const targetLabel = computed(() => nexGridBrandText(calculator.value?.target.name ?? ""));
+const targetLabel = computed(() => (calculator.value?.target.name ?? ""));
 const baseWidthPct = computed(() => calculator.value
   ? Math.max(0.4, (calculator.value.base.dailyUsdt / calculator.value.target.dailyUsdt) * 100)
   : 0.4);

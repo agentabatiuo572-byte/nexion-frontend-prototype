@@ -34,7 +34,7 @@ function account(): GenesisAccountState {
     emissions: [], orders: [], walletBalanceUsdt: 100,
     eligibility: { sourceEnvironment: "PRODUCTION", runId: "", eligible: true, reasons: [], ownedCount: 1,
       maxPerUser: 5, remainingCap: 4, minAccountAgeDays: 0, accountAgeDays: 30, holderStatus: "READY",
-      reservedAllocation: null, reservedAllocationUnit: "NEX", priorityRank: null, priorityTier: "NONE",
+      reservedAllocation: null, reservedAllocationUnit: "UVT", priorityRank: null, priorityTier: "NONE",
       qualificationReasonCodes: [], policyVersion: "test", effectiveAt: 1, asOf: 1, serverTime: 1,
       provenance: { source: "test", environment: "PRODUCTION", runId: "" } },
   };

@@ -235,7 +235,7 @@ function wheelLabel(sp: Pick<SpinPrize, "kind" | "amount">): string[] {
   const units = wheelUnits[locale.code === "zh" || locale.code === "vi" ? locale.code : "en"];
   return [
     `${sp.kind === "usdt" || sp.kind === "coupon" ? "$" : ""}${sp.amount}`,
-    sp.kind === "nex" ? "UVT" : sp.kind === "usdt" ? "USDT" : units[sp.kind],
+    sp.kind === "uvt" ? "UVT" : sp.kind === "usdt" ? "USDT" : units[sp.kind],
   ];
 }
 
@@ -287,7 +287,7 @@ const wonPrize = computed(() =>
 );
 const isJackpot = computed(() =>
   wonPrize.value
-    ? wonPrize.value.amount >= 150 && (wonPrize.value.kind === "usdt" || wonPrize.value.kind === "nex")
+    ? wonPrize.value.amount >= 150 && (wonPrize.value.kind === "usdt" || wonPrize.value.kind === "uvt")
     : false,
 );
 
@@ -302,7 +302,7 @@ function historyPrizeLabel(row: EventSpinHistory): string {
     const label = ls(current);
     if (label !== current.id) return label;
   }
-  if (kind === "nex" || kind === "usdt" || kind === "points" || kind === "coupon") {
+  if (kind === "uvt" || kind === "usdt" || kind === "points" || kind === "coupon") {
     return wheelLabel({ kind, amount: row.rewardAmount }).join(" ");
   }
   return platformDisplayText(row.rewardName);
@@ -351,9 +351,9 @@ const spinBtnStyle = computed<CSSProperties>(() => ({
 function creditPrize(sp: SpinPrize): boolean {
   const ref = `LSPIN-${sp.id}-${mockServerNow().toString(36)}`;
   const memo = fmt(t.value.luckySpin.billMemo, { prize: ls(sp) });
-  if (sp.kind === "nex" || sp.kind === "usdt") {
+  if (sp.kind === "uvt" || sp.kind === "usdt") {
     // 收据即指令:symbol 决定入哪种币,派奖与账单同生共死。
-    return postMoneyBill({ type: "bonus", symbol: sp.kind === "nex" ? "NEX" : "USDT", amount: sp.amount, status: "posted", memo, ref }) === "ok";
+    return postMoneyBill({ type: "bonus", symbol: sp.kind === "uvt" ? "UVT" : "USDT", amount: sp.amount, status: "posted", memo, ref }) === "ok";
   }
   // coupon: 购机抵扣券 — 记入转盘中奖历史(store.history,持久化),不入钱包余额
   // (对齐"仅抵购机款不可提现")。原型未建券兑换流;真后台落 coupon 账本 + 结账抵扣。

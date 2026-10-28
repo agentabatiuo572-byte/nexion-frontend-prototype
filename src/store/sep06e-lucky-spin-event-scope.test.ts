@@ -38,7 +38,7 @@ function state(eventCode: string, tierId: string): EventSpinState {
     availableSpins: 1,
     segments: [{
       tierId,
-      rewardType: "NEX",
+      rewardType: "UVT",
       rewardAmount: 5,
       rewardName: tierId,
       realOutflow: false,
@@ -70,6 +70,15 @@ beforeEach(() => {
 });
 
 describe("Lucky Spin selected-event isolation", () => {
+  it.each(["NEX", "UNKNOWN"])("does not turn retired or unknown wheel asset %s into UVT", async rewardType => {
+    const snapshot = state("evt-spring", "tier");
+    snapshot.segments[0].rewardType = rewardType;
+    remote.eventsApi.spinState.mockResolvedValue(snapshot);
+    const spin = useLuckySpin(); spin.openSheet("evt-spring"); await flush();
+    expect(spin.remoteSegments).toEqual([]);
+    expect(spin.remoteError).toBe(true);
+  });
+
   it.each([
     new ApiError({kind:"auth",status:401,message:"AUTH_REQUIRED"}),
     new ApiError({kind:"http",status:400,message:"BAD_REQUEST"}),
@@ -77,7 +86,7 @@ describe("Lucky Spin selected-event isolation", () => {
   ])("retains the original unknown intent through restart and a rejected replay", async rejection => {
     remote.eventsApi.spinState.mockResolvedValue({...state("evt-spring", "tier"),freeAvailable:false,bonusTickets:2,availableSpins:2});
     remote.eventsApi.spin.mockRejectedValueOnce(new Error("lost reply")).mockRejectedValueOnce(rejection)
-      .mockResolvedValueOnce({eventId:"evt-spring",tierId:"tier",rewardType:"NEX",rewardAmount:5,rewardName:"5 NEX"});
+      .mockResolvedValueOnce({eventId:"evt-spring",tierId:"tier",rewardType:"UVT",rewardAmount:5,rewardName:"5 NEX"});
     const first = useLuckySpin(); first.bindAccount("account-a"); first.openSheet("evt-spring"); await flush();
     await first.spinRemote("evt-spring"); const key = first.pendingSpin!.key;
     first.closeSheet(); setActivePinia(createPinia());
@@ -113,7 +122,7 @@ describe("Lucky Spin selected-event isolation", () => {
     remote.eventsApi.spin.mockRejectedValueOnce(new Error("unknown")).mockRejectedValue(new ApiError({kind:"http",status:409,message:"IDEMPOTENCY_CONFLICT"}));
     const spin=useLuckySpin(); spin.openSheet("evt-spring"); await flush(); await spin.spinRemote("evt-spring");
     const key=spin.pendingSpin!.key;
-    remote.eventsApi.spinState.mockResolvedValue({...state("evt-spring","tier"),serverDate:"2026-09-07",history:[{spinId:"unrelated",spinDate:"2026-09-06",sourceType:"DAILY",tierId:"tier",rewardType:"NEX",rewardAmount:5,rewardName:"5 NEX",downgraded:false,downgradeReason:"NONE",awardedAt:"2026-09-06T12:00:00Z"}]});
+    remote.eventsApi.spinState.mockResolvedValue({...state("evt-spring","tier"),serverDate:"2026-09-07",history:[{spinId:"unrelated",spinDate:"2026-09-06",sourceType:"DAILY",tierId:"tier",rewardType:"UVT",rewardAmount:5,rewardName:"5 NEX",downgraded:false,downgradeReason:"NONE",awardedAt:"2026-09-06T12:00:00Z"}]});
     await spin.refreshRemoteState();
     for(let retry=0;retry<2;retry++) expect((await spin.spinRemote("evt-spring")).failure).toMatchObject({ambiguous:true,messageKey:"spinReview"});
     expect(spin.pendingSpin).toMatchObject({key,serverDate:"2026-09-06"});
@@ -159,7 +168,7 @@ describe("Lucky Spin selected-event isolation", () => {
 
   it.each([new Error("response lost with secret body"), new ApiError({kind:"http",status:409,message:"IDEMPOTENCY_CONFLICT"})])("keeps an unknown original attempt replayable after zero/ended refresh", async cause => {
     remote.eventsApi.spinState.mockResolvedValue(state("evt-spring", "tier"));
-    remote.eventsApi.spin.mockRejectedValueOnce(cause).mockResolvedValue({eventId:"evt-spring",tierId:"tier",rewardType:"NEX",rewardAmount:5,rewardName:"5 NEX"});
+    remote.eventsApi.spin.mockRejectedValueOnce(cause).mockResolvedValue({eventId:"evt-spring",tierId:"tier",rewardType:"UVT",rewardAmount:5,rewardName:"5 NEX"});
     const spin = useLuckySpin(); spin.openSheet("evt-spring"); await flush();
     expect((await spin.spinRemote("evt-spring")).failure?.ambiguous).toBe(true);
     expect(JSON.stringify(spin.remoteFailure)).not.toContain("secret body");
@@ -215,7 +224,7 @@ describe("Lucky Spin selected-event isolation", () => {
 
   it("loads and spins the event code selected by the CTA", async () => {
     remote.eventsApi.spinState.mockResolvedValue(state("evt-autumn", "tier-autumn"));
-    remote.eventsApi.spin.mockResolvedValue({ eventId: "evt-autumn", tierId: "tier-autumn", rewardType: "NEX", rewardAmount: 5, rewardName: "5 NEX" });
+    remote.eventsApi.spin.mockResolvedValue({ eventId: "evt-autumn", tierId: "tier-autumn", rewardType: "UVT", rewardAmount: 5, rewardName: "5 NEX" });
     const spin = useLuckySpin() as EventScopedSpin;
 
     spin.openSheet("evt-autumn");

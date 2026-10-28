@@ -45,7 +45,7 @@
 
         <view v-if="step === 'select-payment' || step === 'confirm'" class="checkout-product checkout-group">
           <view class="checkout-product-art"><image v-if="checkoutImage" :src="checkoutImage" mode="aspectFit" aria-hidden="true" @error="checkoutImageError" /></view>
-          <view class="checkout-product-copy"><text class="checkout-product-name">{{ nexGridBrandText(product.name) }}</text><text v-if="product.tagline" class="checkout-product-meta">{{ product.tagline }}</text><text class="checkout-product-price">&#36;{{ priceText }}</text></view>
+          <view class="checkout-product-copy"><text class="checkout-product-name">{{ (product.name) }}</text><text v-if="product.tagline" class="checkout-product-meta">{{ product.tagline }}</text><text class="checkout-product-price">&#36;{{ priceText }}</text></view>
           <view class="checkout-quantity"><text class="checkout-product-meta">{{ t.store.coRowQuantity }}</text><view class="checkout-quantity-controls">
             <button class="checkout-quantity-button" disabled :aria-label="t.uiChrome.decreaseQty">−</button>
             <text class="checkout-quantity-value" aria-live="polite">1</text>
@@ -245,7 +245,6 @@ import { useT } from "@/i18n/use-t";
 import { commerceCopy } from '@/lib/commerce-review';
 import { useLocaleStore } from "@/store/locale";
 import { deviceName } from "@/lib/device-copy";
-import { nexGridBrandText } from "@/lib/brand-copy";
 import { fmt } from "@/i18n/format";
 import { cardFeeRateLabel, cardFeeUsd } from "@/store/deposits-core";
 import { getProduct, type Product } from "@/mock/products";
@@ -2179,7 +2178,7 @@ watch(step, async (s) => {
           shadowNEXNow > 0 &&
           postMoneyBill({
             type: "bonus",
-            symbol: "NEX",
+            symbol: "UVT",
             amount: shadowNEXNow,
             status: "posted",
             memo: fmt(t.value.store.coBillTrialNexMemo, { name: p.name }),
