@@ -58,10 +58,8 @@
 
       <!-- Phase: result: the server score is the only public calibration figure. -->
       <view v-else-if="phase === 'result' && iosPhone" key="result-ios" class="cn-phase anim-up">
-        <view class="cn-ios-card nx-glass-card nx-glass-hero" role="group" :aria-label="`${t.onboarding.iosModelIs} ${iosModel} · ${t.onboarding.iosComputeEstimate} ${finalScore} ${t.onboarding.phoneComputeUnit}`">
-          <text class="cn-ios-card__k">{{ t.onboarding.iosModelIs }}</text>
-          <text class="cn-ios-card__model">{{ iosModel }}</text>
-          <text class="cn-ios-card__k cn-ios-card__k--gap">{{ t.onboarding.iosComputeEstimate }}</text>
+        <view class="cn-ios-card nx-glass-card nx-glass-hero" role="group" :aria-label="`${t.onboarding.iosComputeEstimate} ${finalScore} ${t.onboarding.phoneComputeUnit}`">
+          <text class="cn-ios-card__k">{{ t.onboarding.iosComputeEstimate }}</text>
           <view class="cn-ios-card__value">
             <text class="cn-ios-card__v">{{ shownScore }}</text>
             <text class="cn-ios-card__u">{{ t.onboarding.phoneComputeUnit }}<template v-if="canonical?.tierName"> · {{ canonical.tierName }}</template></text>
@@ -82,12 +80,10 @@
         </view>
       </view>
 
-      <!-- An unrecognised iPhone: what the system reported and where to go next. -->
+      <!-- An iPhone waiting for verification: where to go next, never which model or rule was involved. -->
       <view v-else-if="iosPending" key="error-ios" class="cn-phase anim-up">
         <text class="cn-ios-body">{{ t.onboarding.phoneCalibrationPendingIosBody }}</text>
         <view class="cn-ios-card nx-glass-card">
-          <text class="cn-ios-card__k">{{ t.onboarding.iosReportedModel }}</text>
-          <text class="cn-ios-card__raw">{{ canonical?.signals?.model || "—" }}</text>
           <text class="cn-ios-card__k">{{ t.onboarding.iosPendingHint }}</text>
         </view>
       </view>
@@ -266,7 +262,6 @@ const subText = computed(() => iosPhone && phase.value === "calibrating" ? t.val
   : isRecal.value ? t.value.onboarding.recalSubtitle : t.value.onboarding.calibrationSubtitle);
 const activateText = computed(() => (isRecal.value ? t.value.onboarding.recalActivate : t.value.onboarding.activatePhone));
 const iosPending = computed(() => canonical.value?.calibrationStatus === "PENDING_VERIFICATION" && canonical.value.signals?.platform === "ios");
-const iosModel = computed(() => canonical.value?.iosModel?.model ?? canonical.value?.signals?.model ?? "");
 const iosSteps = computed(() => [t.value.onboarding.iosStepIdentify, t.value.onboarding.iosStepResult, t.value.onboarding.iosStepActivate]
   .map((label, index) => ({ label, running: index === 0, state: index === 0 ? t.value.onboarding.iosStepRunning : t.value.onboarding.iosStepWaiting })));
 function contactSupport() {
@@ -299,7 +294,7 @@ const ICON = {
 };
 
 const whyPoints = computed(() => [
-  { icon: ICON.cpu2, color: "var(--v5-brand)", text: iosPhone ? t.value.onboarding.calibrationWhyLineIos : t.value.onboarding.calibrationWhyLine1 },
+  { icon: ICON.cpu2, color: "var(--v5-brand)", text: t.value.onboarding.calibrationWhyLine1 },
 ]);
 
 // Initial onboarding reuses the estimator's canonical result. Only an explicit
@@ -671,9 +666,6 @@ onUnmounted(() => {
 .cn-ios-body { display: block; margin-bottom: 16px; font-size: var(--ui-type-list-subtitle); line-height: 1.5; color: var(--v5-ink-2); }
 .cn-ios-card { display: flex; flex-direction: column; gap: 6px; padding: 18px; }
 .cn-ios-card__k { display: block; font-size: 12px; color: var(--v5-ink-3); }
-.cn-ios-card__k--gap { margin-top: 10px; }
-.cn-ios-card__model { display: block; font-size: 18px; font-weight: 650; color: var(--v5-ink); overflow-wrap: anywhere; }
-.cn-ios-card__raw { display: block; font-size: 16px; font-weight: 600; color: var(--v5-ink); overflow-wrap: anywhere; }
 .cn-ios-card__value { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
 .cn-ios-card__v { font-family: var(--font-v5); font-variant-numeric: tabular-nums; font-size: 34px; font-weight: 700; color: var(--v5-ink); }
 .cn-ios-card__u { font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2); }

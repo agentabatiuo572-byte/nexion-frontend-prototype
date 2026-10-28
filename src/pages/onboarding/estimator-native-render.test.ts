@@ -90,13 +90,13 @@ it("H5 remains download-only and never requests or activates a phone",async()=>{
  expect(p.errors).toEqual([]);expect(text(p.root)).toContain(zh.myDevices.phoneActivationAppOnlyTitle);expect(p.navReset).toHaveBeenCalledWith(expect.objectContaining({url:"/pages/register/success?download=1"}));
  expect(api.result).not.toHaveBeenCalled();expect(api.calibrate).not.toHaveBeenCalled();expect(api.activate).not.toHaveBeenCalled();
 });
-it("an iPhone shows its model and stored value only, never ranges, rules or benchmarks",async()=>{
+it("an iPhone shows its stored value only, never its model, ranges, rules or benchmarks",async()=>{
  vi.useFakeTimers();
  const iphone={...record,computeValue:113.42,tierName:"Tier 5",iosModel:{method:"IOS_MODEL_RANGE",model:"iPhone 16 Pro"}};
  const api={result:vi.fn().mockResolvedValue(iphone),calibrate:vi.fn(),activate:vi.fn()};const p=mount(api,true,"ios");await settle();
  await vi.advanceTimersByTimeAsync(1200);await settle();
  expect(p.errors).toEqual([]);const shown=text(p.root);
- expect(shown).toContain("iPhone 16 Pro");expect(shown).toContain("113.42");
+ expect(shown).not.toContain("iPhone 16 Pro");expect(shown).toContain("113.42");
  expect(shown).not.toMatch(/100[–-]120|运营|预设|GPU|压测|跑分|TOPS/);
 });
 it("an unknown iPhone model stays pending with its own guidance and no compute value",async()=>{

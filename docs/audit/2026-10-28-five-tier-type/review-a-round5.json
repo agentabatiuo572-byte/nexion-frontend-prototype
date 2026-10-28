@@ -1,0 +1,8 @@
+{"reviewer":"A","round":5,"build":"index-Df5dxpJM.js","commit":"c18440219f2916bb8c4c4e4d13361c35d54da343","indexSha256":"772ed229ef2088aecfb87e448f7fd34bb16213f75fbf8a32c9e06cc52e3702fe",
+"items":[{"name":"五档令牌与边界","score":9.5},{"name":"共享组件（列表/分区/昵称/按钮）","score":9},{"name":"钱包主金额","score":9},{"name":"表单输入","score":9,"note":"沿用第四轮证据"},{"name":"页面标题与区块标题","score":9},{"name":"正文与列表文字","score":9},{"name":"长篇规则正文","score":9.5,"note":"沿用第四轮证据；本轮 rank-how 回归通过"},{"name":"三语与小屏换行","score":9},{"name":"例外项协调性","score":9},{"name":"页面级横向溢出","score":10},{"name":"系统字体放大/字体回退","score":"N/T"}],
+"previousFindings":[{"id":"R4-N1","status":"已修复：vi 浅色 8 个宽度、vi 深色 6 个宽度共 14 组，四条副文里的 8 个不换行空格词对都没有被拆开，按词组实测没有跨行，也没有溢出；text-wrap: balance 仍生效","evidence":"round5/team-tools-lines.json; round5/vi-light-390-team-tools.png; round5/vi-dark-360-team-tools.png; round5/vi-light-430-team-tools.png"}],
+"findings":[
+{"id":"R5-O1","severity":"观察","route":"team/team（更多功能）","width":"360-390","locale":"vi","theme":"light/dark","summary":"「Xem thành viên | nhóm」第二行只剩一个单音节词 nhóm。词对没有被拆；在 100–107px 的窄列里，均衡换行已经是最优结果。同样情况的还有英文「View team | members」。不计分"},
+{"id":"R5-O2","severity":"观察","route":"team/team（团队奖励列表）","width":"360-430","locale":"vi","theme":"light/dark","summary":"列表标题「Quỹ khuyến khích đội nhóm tuần | này」末行只剩 này。这是常规 nx-list-row 标题，不属于本次 R4-N1 的修复范围，此前就存在"}],
+"regression":"zh-dark、vi-light 各 8 个路由 × 11 个宽度，共 176 个状态：没有溢出，根令牌 mismatch 为 0；不符合角色表的只有已登记 10.2 的 earn 20px。amount-display 改动后，钱包金额在 320/340/375/390/414 下上限仍是 30/32/34/36/36，字重 500/550，小数颜色不变；长金额单行完整显示，结果与第四轮一致",
+"taskSpace":"只用了一个（id 6），已 finish；之后列表里只剩其他会话的 7（trial05 jenkins）"}

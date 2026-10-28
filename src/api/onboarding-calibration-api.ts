@@ -22,6 +22,8 @@ export interface CalibrationSignals {
   screenWidth?: number;
   screenHeight?: number;
   pixelRatio?: number;
+  /** Android: every chip identifier the phone reported (SOC_MODEL, board platform, hardware); at most 4. */
+  socIds?: string[];
 }
 
 /** Raw device observations may be unavailable; null is preserved to the server. */
@@ -200,8 +202,10 @@ export function parseOnboardingCalibration(
   if (status !== undefined && status !== "MATCHED" && status !== "PENDING_VERIFICATION") return invalid();
   if (status && row.computeUnit !== "platform") return invalid();
   if (status === "PENDING_VERIFICATION" && row.calibrationAvailable) return invalid();
+  // An Android chip-tier result keeps its tier rule on the server; every other match names its rule.
+  const androidRange = row.calibrationMethod === "ANDROID_SOC_RANGE";
   if (status === "MATCHED" && (!row.calibrationAvailable || row.computeValue !== row.tops
-      || row.ruleId == null || row.ruleVersion == null)) return invalid();
+      || !androidRange && (row.ruleId == null || row.ruleVersion == null))) return invalid();
   const comparisonConfig = Array.isArray(row.comparisonConfig) ? row.comparisonConfig.map((entry) => {
     const item = record(entry);
     return { key: text(item.key), label: text(item.label),
@@ -211,10 +215,10 @@ export function parseOnboardingCalibration(
   }) : invalid();
   let iosModel: IosModelMatch | undefined;
   if (row.calibrationMethod !== undefined) {
-    if (row.calibrationMethod !== "IOS_MODEL_RANGE" || status !== "MATCHED") return invalid();
+    if (row.calibrationMethod !== "IOS_MODEL_RANGE" && !androidRange || status !== "MATCHED") return invalid();
     const value = number(row.computeValue, Number.MIN_VALUE, 1_000_000);
     if (Math.abs(Math.round(value * 100) - value * 100) > 1e-6) return invalid(); // drawn with two decimals
-    iosModel = { method: "IOS_MODEL_RANGE", model: text(row.model) };
+    if (!androidRange) iosModel = { method: "IOS_MODEL_RANGE", model: text(row.model) };
   }
   const common = {
     userId: integer(row.userId, 1), deviceId: text(row.deviceId), serverCanonical: true, source: "server",

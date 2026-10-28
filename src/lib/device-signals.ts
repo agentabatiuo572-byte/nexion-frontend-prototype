@@ -57,15 +57,30 @@ export function collectDeviceSignals(observedGpu = ""): CalibrationRequestSignal
   if (platform !== "android") return result;
   result.platform = "android";
   const android = plus.android;
+  const socIds: string[] = [];
+  const addSocId = (value: unknown) => {
+    const id = typeof value === "string" ? value.trim() : "";
+    if (id && id.length <= 128 && !socIds.includes(id) && socIds.length < 4) socIds.push(id);
+  };
+  let hardware: unknown;
   try {
     const build = android.importClass("android.os.Build") as PlusAndroidClassObject & {
-      MODEL?: unknown; BRAND?: unknown; SOC_MODEL?: unknown;
+      MODEL?: unknown; BRAND?: unknown; SOC_MODEL?: unknown; HARDWARE?: unknown;
     };
     const text = (value: unknown) => typeof value === "string" ? value.slice(0,128) : "";
     result.model = text(build.MODEL);
     result.brand = text(build.BRAND);
     result.soc = text(build.SOC_MODEL);
+    addSocId(build.SOC_MODEL);
+    hardware = build.HARDWARE;
   } catch { /* Older Android versions may not expose SOC_MODEL. */ }
+  // Android 11 and older have no SOC_MODEL; the board properties may name the chip. Hidden or missing ones are skipped.
+  for (const key of ["ro.soc.model", "ro.board.platform"]) {
+    try { addSocId(android.invoke("android.os.SystemProperties", "get", key)); } catch { /* not readable here */ }
+  }
+  addSocId(hardware);
+  // Every identifier goes to the server, which decides which chip, if any, they name.
+  result.socIds = socIds;
   try {
     const manager = android.invoke(android.runtimeMainActivity(), "getSystemService", "activity");
     const memory = android.newObject("android.app.ActivityManager$MemoryInfo");

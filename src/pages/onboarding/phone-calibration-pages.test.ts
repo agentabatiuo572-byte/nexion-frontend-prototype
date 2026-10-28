@@ -77,7 +77,7 @@ function mount(name: "connect" | "estimator", api: any, query: Record<string, st
   initPreContext(h5 ? "h5" : "app-plus");
   const compiled = preJs(preHtml(readFileSync(new URL(`./${name}.vue`, import.meta.url), "utf8"), `${name}.vue`), `${name}.vue`);
   const source = compiled.split('<script setup lang="ts">')[1].split("</script>")[0];
-  const fields = name === "connect" ? "phase, canonical, activationBusy, titleText, subText, isRecal, failureTitle, failureDetail, retryCalibration, activate, leaveConnect, deferPhoneActivation, iosPending, iosModel, iosSteps, contactSupport" : "detected, loadFailed, deferred, deferFailed, calibration, failureDetail, retryCalibration, goConnect, leaveEstimator, deferPhoneActivation";
+  const fields = name === "connect" ? "phase, canonical, activationBusy, titleText, subText, isRecal, failureTitle, failureDetail, retryCalibration, activate, leaveConnect, deferPhoneActivation, iosPending, iosSteps, contactSupport" : "detected, loadFailed, deferred, deferFailed, calibration, failureDetail, retryCalibration, goConnect, leaveEstimator, deferPhoneActivation";
   const code = ts.transpileModule(`${source}\nexport const page = { ${fields}, phoneActivationGuidance };`, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
   }).outputText;
@@ -333,7 +333,7 @@ describe("real onboarding page workers", () => {
       expect(api.calibrate).toHaveBeenCalledOnce();
     }
   });
-  it("an iPhone shows identifying steps, then its model and stored value, using the product copy only", async () => {
+  it("an iPhone shows the compute check, then only its stored value, never its model", async () => {
     nativePlatform = "ios";
     const iphone = { ...record, computeValue: 113.42, tops: 113.42, tierName: "T5", ruleId: "ios-iphone-16-pro",
       iosModel: { method: "IOS_MODEL_RANGE", model: "iPhone 16 Pro" },
@@ -350,10 +350,10 @@ describe("real onboarding page workers", () => {
     resolve(iphone); await settle();
     expect(page.phase.value).toBe("result");
     expect(page.titleText.value).toBe(zh.onboarding.resultTitle);
-    expect(page.iosModel.value).toBe("iPhone 16 Pro");
+    expect(zh.onboarding.iosIdentifying).toBe("算力校验中…");
     expect(api.activate).not.toHaveBeenCalled();
   });
-  it("an unknown iPhone shows the reported model with recalibrate, support and defer, and no award", async () => {
+  it("an unknown iPhone offers recalibrate, support and defer without naming its model, and no award", async () => {
     nativePlatform = "ios";
     const pending = { ...record, calibrationAvailable: false, calibrationStatus: "PENDING_VERIFICATION", pendingReason: "MODEL_UNKNOWN",
       computeValue: null, tier: null, tops: null, score: null, tierName: null, baseRateUsdt: null, baseRateNex: null,
@@ -364,7 +364,6 @@ describe("real onboarding page workers", () => {
     expect(page.iosPending.value).toBe(true);
     expect(page.failureTitle.value).toBe(zh.onboarding.phoneCalibrationPendingIosTitle);
     expect(page.failureDetail.value).toBe(zh.onboarding.phoneCalibrationPendingIosBody);
-    expect(page.iosModel.value).toBe("iPhone19,9");
     page.contactSupport();
     expect(navTo).toHaveBeenCalledWith("/pages/support/messages");
     await page.activate();
