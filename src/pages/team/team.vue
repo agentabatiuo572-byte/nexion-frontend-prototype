@@ -165,7 +165,8 @@ import { useNetwork } from "@/store/network";
 import { useCommission } from "@/store/commission";
 import { useLeadershipPool } from "@/store/leadership-pool";
 import { apiRuntimeConfig, remoteApiEnabled, teamInsightsApi } from "@/api/runtime";
-import { productCatalogState, productCatalogDisplayProof, isProductCatalogDisplayCurrent } from "@/store/product-catalog";
+import { productCatalogState, productCatalogDisplayProof, productCatalogPresentation, isProductCatalogDisplayCurrent } from "@/store/product-catalog";
+import type { CanonicalBinaryState } from "@/api/commission-config-api";
 import type { TeamCommissionSnapshot, TeamLeadershipPoolSnapshot } from "@/api/team-insights-api";
 import { leadershipPoolFailureState } from "@/lib/leadership-pool-state";
 import { useReferralReward } from "@/store/referral-reward";
@@ -184,6 +185,7 @@ const commission = useCommission();
 type LedgerPresentation = Pick<TeamCommissionSnapshot["aggregate"], "totalUSDT" | "contributorCount" | "directUSDT" | "extendedUSDT" | "monthUSDT" | "monthNEX" | "unlockedUSDT" | "coolingUSDT">;
 const ledgerPresentation = ref<LedgerPresentation | null>(null);
 const rankPresentation = ref<number | null>(null);
+const binaryPresentation = ref<Pick<CanonicalBinaryState, "estimatedAmountUsdt" | "trackA" | "trackB"> | null>(null);
 const displayEnvironmentInvalidated = ref(false);
 watch(() => [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl], () => { displayEnvironmentInvalidated.value = true; }, { flush: "sync" });
 const displayCatalogValid = computed(() => !displayEnvironmentInvalidated.value && productCatalogDisplayProof.value !== null
@@ -210,7 +212,7 @@ let remotePoolRequest = 0;
 let remotePoolMounted = true;
 function clearTeamPresentation() {
   ledgerFailureFeedback.value = false;
-  ledgerPresentation.value = null; rankPresentation.value = null;
+  ledgerPresentation.value = null; rankPresentation.value = null; binaryPresentation.value = null;
   remotePoolRequest += 1; remotePool.value = null; remotePoolState.value = "idle";
 }
 watch([ledgerFailed, () => network.remoteStatus === "ready" && commission.eventsStatus === "ready"], ([failed, ready]) => {
@@ -220,6 +222,19 @@ watch([ledgerFailed, () => network.remoteStatus === "ready" && commission.events
 watch(() => [app.accountKey, app.accountBindingEpoch, apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl, locale.code], clearTeamPresentation, { flush: "sync" });
 watch(() => locale.code, () => { commission.invalidateReadOwner(); network.invalidateReadOwner(); vrank.invalidateReadOwner(); }, { flush: "sync" });
 watch(displayCatalogValid, valid => { if (!valid) clearTeamPresentation(); }, { flush: "sync" });
+// Catalog publication metadata and image URLs do not change binary facts.
+// Business changes revoke the display even when the revision stays the same.
+watch(() => {
+  const snapshot = productCatalogPresentation.value;
+  return snapshot && JSON.stringify([snapshot.source, snapshot.serverCanonical, snapshot.sourceEnvironment, snapshot.runId, snapshot.products.map(({ imageUrl: _imageUrl, ...product }) => product)]);
+}, () => { binaryPresentation.value = null; }, { flush: "sync" });
+watch([() => commission.binaryStatus, () => commission.binarySnapshot], () => {
+  if (commission.binaryStatus === "error") { binaryPresentation.value = null; return; }
+  const snapshot = commission.binarySnapshot;
+  if (!displayCatalogValid.value || commission.binaryStatus !== "ready" || !snapshot) return;
+  const { estimatedAmountUsdt, trackA, trackB } = snapshot;
+  binaryPresentation.value = { estimatedAmountUsdt, trackA, trackB };
+}, { immediate: true, flush: "sync" });
 watch([() => commission.eventsStatus, () => commission.eventsEvidence, () => network.remoteStatus, () => network.remoteTransientFailure, () => commission.eventsTransientFailure], () => {
   if (ledgerStrictFailure.value) { ledgerPresentation.value = null; return; }
   const evidence = commission.eventsEvidence;
@@ -305,7 +320,7 @@ const extendedUSDT = computed(() => ledger.value.extendedUSDT);
 // Binary match snapshot.
 const binary = computed(() => {
   if (remoteApiEnabled) {
-    const snapshot = commission.binarySnapshot;
+    const snapshot = binaryPresentation.value;
     if (!snapshot) return null;
     return {
       binaryMatch: snapshot?.estimatedAmountUsdt ?? 0,
