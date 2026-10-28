@@ -39,19 +39,30 @@ function wallet(language: keyof typeof dictionaries) {
   };
   const exports = {} as { default: Vue.Component };
   new Function("require", "exports", code)((id: string) => imports[id], exports);
-  return { app, visibility, release, status, hasSnapshot, market, html: () => renderToString(Vue.createSSRApp(exports.default, { compact: true })) };
+  return { app, visibility, release, status, hasSnapshot, market, html: (compact = true) => renderToString(Vue.createSSRApp(exports.default, { compact })) };
 }
-it.each(["zh", "en", "vi"] as const)("keeps the compact %s bucket line mounted from confirmed zero into pending/held/failure", async language => {
+it.each(["zh", "en", "vi"] as const)("keeps the compact %s wallet free of inserted bucket rows through zero/pending/failure/recovery", async language => {
   const w = wallet(language);
-  const zero = await w.html();
-  expect(zero).toMatch(/<text[^>]*nx-wallet-pending[^>]*aria-hidden="true"[^>]*><\/text>/);
+  for (const state of ["ready", "loading", "error", "ready"]) {
+    w.status.value = state;
+    w.release.value.buckets = { pending_review: state === "ready" ? 0 : 4.5, bonus_locked: 7 };
+    const html = await w.html();
+    expect(html).not.toContain("nx-wallet-pending");
+    expect(html).toContain("nx-wallet-valuation");
+    expect(html).toContain("nx-wallet-actions");
+  }
+  expect(w.app.user.usdtBalance).toBe(10297.08);
+});
+it.each(["zh", "en", "vi"] as const)("keeps noncompact %s bucket amounts and unknown authority truthful", async language => {
+  const w = wallet(language);
+  expect(await w.html(false)).not.toContain("nx-wallet-pending");
   w.release.value.buckets = { pending_review: 4.5, bonus_locked: 7 };
-  expect(await w.html()).toContain(auditUiCopy[language].confirming + " $4.50");
-  expect(await w.html()).toContain(auditUiCopy[language].locked + " $7.00");
+  expect(await w.html(false)).toContain(auditUiCopy[language].confirming + " $4.50");
+  expect(await w.html(false)).toContain(auditUiCopy[language].locked + " $7.00");
   w.status.value = "loading";
-  expect(await w.html()).toContain(auditUiCopy[language].locked + " $7.00");
+  expect(await w.html(false)).toContain(auditUiCopy[language].locked + " $7.00");
   w.status.value = "error"; w.market.remoteReady = false;
-  const failed = await w.html();
+  const failed = await w.html(false);
   expect(failed).toContain(auditUiCopy[language].confirming + " --");
   expect(failed).toContain(auditUiCopy[language].locked + " --");
   expect(failed).toContain("1 UVT = — USDT");

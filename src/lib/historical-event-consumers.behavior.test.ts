@@ -36,13 +36,13 @@ function screen(kind: "token" | "roster" | "achievements" | "security", timestam
     const script = parse(securitySource).descriptor.scriptSetup!.content, ast = ts.createSourceFile("security.ts", script, ts.ScriptTarget.Latest, true);
     const picked = ast.statements.filter(n => ts.isVariableStatement(n) && n.declarationList.declarations.some(d => ["passwordHintLine", "rowStyle", "rowLabelStyle", "rowSubStyle", "passwordHintStyle", "chevronStyle"].includes(d.name.getText(ast)))
       || ts.isFunctionDeclaration(n) && ["relativeWhen", "lastActiveLabel", "iconBox"].includes(n.name?.text ?? "")).map(n => n.getText(ast)).join("\n");
-    const remoteSecurity = Vue.ref({ passwordChangedAt: timestamp }), security = { passwordChangedAt: timestamp };
-    const deps = { computed: Vue.computed, t, remoteApiEnabled: remote, remoteSecurity, security, formatDisplayDateTime: dates.formatDisplayDateTime, dateLocale: () => locale.code, fmt };
+    const securityPresentation = Vue.ref({ passwordChangedAt: timestamp }), security = { passwordChangedAt: timestamp };
+    const deps = { computed: Vue.computed, t, remoteApiEnabled: remote, securityPresentation, security, displayTimestamp: dates.displayTimestamp, formatDisplayDateTime: dates.formatDisplayDateTime, dateLocale: () => locale.code, fmt };
     const state = scope.run(() => new Function(...Object.keys(deps), js(picked + "\nreturn {passwordHintLine,lastActiveLabel,iconBox,rowStyle,rowLabelStyle,rowSubStyle,chevronStyle,passwordHintStyle:typeof passwordHintStyle==='undefined'?undefined:passwordHintStyle};"))(...Object.values(deps)))!;
     const nodes = (node: any): any[] => [node, ...(node.children ?? []).flatMap(nodes)];
     const line = nodes(parseTemplate(parse(securitySource).descriptor.template!.content)).find(node => node.tag === "view" && node.props?.some((p: any) => p.exp?.content === "editingPwd = !editingPwd"))!.loc.source;
     const render = new Function("Vue", js(compile(line, { mode: "function", prefixIdentifiers: true, isCustomElement: tag => ["view", "text"].includes(tag) }).code))(Vue);
-    return { locale, state, io, raw: { remoteSecurity: remoteSecurity.value, security }, html: () => renderToString(Vue.createSSRApp({ render: () => render(Vue.proxyRefs({ ...state, t, editingPwd: Vue.ref(false) }), []) })) };
+    return { locale, state, io, raw: { securityPresentation: securityPresentation.value, security }, html: () => renderToString(Vue.createSSRApp({ render: () => render(Vue.proxyRefs({ ...state, t, editingPwd: Vue.ref(false) }), []) })) };
   }
   const raw = kind === "token" ? tokenSource : kind === "roster" ? rosterSource : achievementsSource;
   const props = kind === "token" ? { tokenId: "holding-history", pageScope: { visible: true, epoch: 1 } } : kind === "roster" ? {

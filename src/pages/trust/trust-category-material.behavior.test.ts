@@ -36,6 +36,7 @@ const renderer = Vue.createRenderer<Host, Host>({
   remove: child => { if (child.parent) child.parent.children = child.parent.children.filter(item => item !== child); },
 });
 const all = (root: Host): Host[] => [root, ...root.children.flatMap(all)];
+const hasClass = (node: Host, name: string) => String(node.props.class ?? '').split(/\s+/).includes(name);
 const text = (root: Host): string => root.text + root.children.map(text).join("");
 const slot = { setup: (_: unknown, { slots }: any) => () => Vue.h("view", slots.default?.()) };
 const row = {
@@ -110,7 +111,8 @@ it.each(['zh', 'en', 'vi'] as const)('retains readable materials and marks stale
   await screen.expand('hosting');
   screen.status.value = 'loading'; await Vue.nextTick();
   expect(text(screen.body())).toContain('Confirmed hosting');
-  expect(text(screen.root)).toContain(continuityCopy(language).trustRefreshing);
+  expect(text(screen.root)).not.toContain(continuityCopy(language).trustRefreshing);
+  expect(all(screen.root).find(node => hasClass(node, 'trust-refresh-status'))).toBeUndefined();
   screen.status.value = 'error'; await Vue.nextTick();
   expect(text(screen.body())).toContain('Confirmed hosting');
   expect(text(screen.root)).toContain(continuityCopy(language).trustRefreshFailed);
@@ -139,12 +141,12 @@ it.each(['ready', 'error'] as const)('keeps the captured bottom after returning 
   try {
     host.dataset.pageVisible = 'false'; controller.update({ visible: false });
     screen.status.value = 'loading'; await Vue.nextTick();
-    const rendered = all(screen.root), status = rendered.find(node => node.props.class === 'trust-refresh-status')!;
+    const rendered = all(screen.root), status = rendered.find(node => hasClass(node, 'trust-refresh-status'));
     const categories = rendered.find(node => node.props.class === 'trust-categories')!;
     // Model the observed WebView anchor adjustment only when the actual SFC
     // inserts the transient 20.8px line + 12px gap before the reading anchor.
-    const beforeAnchor = rendered.indexOf(status) < rendered.indexOf(categories);
-    const added = 32.7111; max += added; if (beforeAnchor) scroll.scrollTop += added;
+    const beforeAnchor = !!status && rendered.indexOf(status) < rendered.indexOf(categories);
+    const added = status ? 32.7111 : 0; max += added; if (beforeAnchor) scroll.scrollTop += added;
     host.dataset.pageVisible = 'true'; controller.update({ visible: true }); flush();
     expect(scroll.scrollTop).toBeCloseTo(555.3778, 3);
     screen.status.value = outcome; await Vue.nextTick();
@@ -153,7 +155,11 @@ it.each(['ready', 'error'] as const)('keeps the captured bottom after returning 
     expect(scroll.scrollTop).toBeCloseTo(555.3778, 3);
     expect(text(screen.body())).toContain('Confirmed hosting');
     expect(beforeAnchor).toBe(false);
-    if (outcome === 'error') expect(text(screen.root)).toContain(continuityCopy('zh').trustRefreshFailed);
+    if (outcome === 'error') {
+      expect(text(screen.root)).toContain(continuityCopy('zh').trustRefreshFailed);
+      const failed = all(screen.root), feedback = failed.find(node => hasClass(node, 'trust-refresh-status'))!;
+      expect(failed.indexOf(feedback)).toBeGreaterThan(failed.indexOf(categories));
+    }
   } finally { controller.destroy(); }
 });
 
@@ -164,7 +170,7 @@ it('clears prior-scope material and feedback rather than preserving its layout a
   screen.sections.value = []; screen.status.value = 'loading'; await Vue.nextTick();
   expect(text(screen.root)).not.toContain('Private prior source');
   expect(text(screen.root)).not.toContain(continuityCopy('zh').trustRefreshFailed);
-  expect(all(screen.root).find(node => node.props.class === 'trust-refresh-status')).toBeUndefined();
+  expect(all(screen.root).find(node => hasClass(node, 'trust-refresh-status'))).toBeUndefined();
 });
 
 it.each(['zh', 'en', 'vi'] as const)('keeps cold read errors and their retry beside the requested %s material', async language => {
