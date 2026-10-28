@@ -104,7 +104,7 @@ const NET_LINES: Record<string, string> = {
   BEP20: "BNB Smart Chain (BEP20)",
   ERC20: "Ethereum Mainnet (ERC20)",
 };
-const qAmount = ref<number | null>(null);
+const qAmount = ref<string | null>(null);
 const qConfs = ref<number | null>(null);
 const qNet = ref<string | null>(null);
 const qTo = ref<string | null>(null);
@@ -117,8 +117,8 @@ onLoad((options) => {
   if (copyResetTimer) clearTimeout(copyResetTimer);
   hashProvided.value = typeof options?.hash === "string" && !!options.hash.trim();
   hash.value = validatedTransactionHash(options?.hash);
-  const amt = parseFloat(String(options?.amount ?? ""));
-  qAmount.value = Number.isFinite(amt) && amt > 0 && amt <= 1e9 ? amt : null;
+  const amt = String(options?.amount ?? "");
+  qAmount.value = /^(?:0|[1-9]\d{0,11})(?:\.\d{1,6})?$/.test(amt) && Number(amt) > 0 ? amt : null;
   const confs = parseInt(String(options?.confs ?? ""), 10);
   qConfs.value = Number.isFinite(confs) && confs >= 0 && confs <= 10_000 ? confs : null;
   qNet.value = typeof options?.net === "string" && options.net in NET_LINES ? options.net : null;
@@ -177,7 +177,7 @@ const derived = computed(() => {
 
 const blockNumber = computed(() => derived.value.blockNumber);
 const gasUsedGwei = computed(() => derived.value.gasUsedGwei);
-const valueUSDT = computed(() => formatAmount(qAmount.value ?? derived.value.valueUSDT));
+const valueUSDT = computed(() => formatAmount(qAmount.value ?? derived.value.valueUSDT, 6));
 const fromAddr = computed(() => derived.value.fromAddr);
 const toAddr = computed(() => qTo.value ?? derived.value.toAddr);
 const contract = computed(() => derived.value.contract);

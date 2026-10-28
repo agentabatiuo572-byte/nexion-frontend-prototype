@@ -12,7 +12,7 @@ import QrCode from "qrcode-reader";
 // @ts-expect-error App TypeScript excludes Node declarations; this runs in Vitest's Node process.
 import { Buffer } from "node:buffer";
 import source from "./deposit-usdt-pane.vue?raw";
-import { createCregisDepositApi } from "@/api/cregis-deposit-api";
+import { createCregisDepositApi, exactDepositAmount } from "@/api/cregis-deposit-api";
 import type { ApiClient } from "@/api/api-client";
 import { binarySessionReady } from "@/lib/binary-session-ready";
 import { fmt } from "@/i18n/format";
@@ -78,7 +78,7 @@ const rows = statuses.map((status, index) => ({ depositId: `CR-${index + 1}`, st
   txHash: "0x" + String(index + 1).repeat(64), address: address.address,
   grossAmountUsdt: status === "DUST_HOLD" ? 5 : 10.125,
   creditedUsdt: ["CREDITED", "REORG_INVESTIGATING", "PROVIDER_CONFLICT_HOLD"].includes(status) ? 9.125 : 0,
-  confirmations: status === "CONFIRMING" ? 3 : 15,
+  confirmations: status === "CONFIRMING" ? 3 : 15, requiredConfirmations: 15,
   createdAt: 1_791_072_000_000 + index,
 }));
 type Messages = typeof zh | typeof en | typeof vietnamese;
@@ -103,6 +103,7 @@ async function pane(response: object, records: unknown[] | Promise<unknown[]> = 
   const modules: Record<string, unknown> = {
     "@dcloudio/uni-app": { onShow: (fn: () => void) => { lifecycle.show = fn; }, onHide: (fn: () => void) => { lifecycle.hide = fn; } },
     "@/lib/amount-display": { formatAmount },
+    "@/api/cregis-deposit-api": { exactDepositAmount },
     vue: Vue, "qrcode-generator": { default: qrcode },
     "@/api/runtime": { fundsServerEnabled: true, cregisDepositApi: api,
       sessionVault: { read: () => sessionUserId.value === null ? null : { user: { userId: sessionUserId.value } } } },
@@ -119,7 +120,7 @@ async function pane(response: object, records: unknown[] | Promise<unknown[]> = 
       if (!(name in modules)) throw new Error(`Unexpected deposit dependency: ${name}`);
       return modules[name];
     }, {});
-    return { ...state, fmt, formatAmount, fundsServerEnabled: true, CHAIN_DEPOSIT_FEE_USDT: depositsCore.CHAIN_DEPOSIT_FEE_USDT };
+    return { ...state, fmt, formatAmount: (v: number | string | null | undefined) => formatAmount(v, 6), fundsServerEnabled: true, CHAIN_DEPOSIT_FEE_USDT: depositsCore.CHAIN_DEPOSIT_FEE_USDT };
   } });
   const root = node("root"); mounted.mount(root);
   cleanups.push(() => mounted.unmount());
@@ -348,7 +349,7 @@ test.each([zh, en, vietnamese])("a mixed six-state list stays visible and risk r
   for (const [id, label] of [["CR-5", messages.topupChrome.reorgInvestigating], ["CR-6", messages.topupChrome.providerConflictHold]]) {
     const record = records.find(record => textOf(record).includes(id))!;
     expect(textOf(record)).toContain(label);
-    expect(textOf(record)).toContain(fmt(messages.topupChrome.riskHoldNote, { amount: "9.13" }));
+    expect(textOf(record)).toContain(fmt(messages.topupChrome.riskHoldNote, { amount: "9.125" }));
     expect(record.props.onClick).toBeUndefined();
     expect(record.props.role).toBeUndefined();
     expect(record.props.tabindex).toBeUndefined();
@@ -437,14 +438,14 @@ test("a risk record with no historical credit does not substitute its gross tran
   expect(record.props.onClick).toBeUndefined();
 });
 
-test("Native two-decimal display preserves six-decimal credit and transaction URL", async () => {
+test("Native display preserves six-decimal credit and transaction URL", async () => {
   vi.stubGlobal("Intl", undefined);
   const nativeLocale = vi.spyOn(Number.prototype, "toLocaleString").mockImplementation(() => { throw new Error("NATIVE_LOCALE_UNAVAILABLE"); });
   try {
     const transfer = { ...rows[1], grossAmountUsdt: 10.123456, creditedUsdt: 9.123456 };
     const h = await pane({ ...address, creditEnabled: true }, [transfer]);
     const record = controls(h.root, "nx-dep-record-row")[0];
-    expect(nodesOf(record).filter(target => target.kind === "text").map(textOf)).toContain("9.12");
+    expect(nodesOf(record).filter(target => target.kind === "text").map(textOf)).toContain("9.123456");
     expect(h.text()).toContain("$10.00");
     expect(h.text()).toContain("1.00 USDT");
     expect((h.state.serverRecords as Vue.Ref<unknown[]>).value[0]).toMatchObject({
@@ -520,4 +521,89 @@ test("polling is independently staggered and error recovery backs off", async ()
   random.mockReturnValue(0.999999);expect(delay("preparing")).toBe(10000);expect(delay("ready")).toBe(45000);
   expect(delay("error",0)).toBe(15000);expect(delay("error",2)).toBe(45000);expect(delay("error",20)).toBe(45000);
   random.mockRestore();
+});
+
+
+test.each([zh, en, vietnamese])("each pending deposit uses its own confirmation requirement and unknown stays unknown", async messages => {
+  const pending = [
+    { ...rows[0], depositId: "CR-11", confirmations: 3, requiredConfirmations: 20 },
+    { ...rows[0], depositId: "CR-12", confirmations: 16, requiredConfirmations: 15 },
+    { ...rows[0], depositId: "CR-13", confirmations: 3, requiredConfirmations: null },
+    { ...rows[0], depositId: "CR-14", confirmations: 2, requiredConfirmations: undefined },
+  ];
+  const h = await pane({ ...address, confirmations: 30, creditEnabled: true }, pending, messages);
+  const records = controls(h.root, "nx-dep-record-row");
+  for (const [id, n, total, bars] of [["CR-11", 3, 20, 1], ["CR-12", 16, 15, 1], ["CR-13", 3, "-", 0], ["CR-14", 2, "-", 0]] as const) {
+    const row = records.find(record => textOf(record).includes(id))!;
+    expect(textOf(row)).toContain(fmt(messages.topupChrome.confirmingProgress, { n, total }));
+    expect(controls(row, "nx-dep-progress")).toHaveLength(bars);
+  }
+});
+
+
+test("shows six decimal deposit rules and history and preserves large exact strings", async () => {
+  const h = await pane({ ...address, minDepositUsdt: 0.000001, feeUsdt: 0.004999 }, [
+    { ...rows[1], grossAmountUsdt: 1.005001, creditedUsdt: 1.000002 },
+    { ...rows[0], depositId: "CR-21", grossAmountUsdt: 1.005001, creditedUsdt: 0 },
+    { ...rows[1], depositId: "CR-20", grossAmountUsdt: 999999999999, grossAmountUsdtExact: "999999999999.000001", creditedUsdt: 999999999999, creditedUsdtExact: "999999999999.000001" },
+  ]);
+  expect(h.text()).toContain("0.000001"); expect(h.text()).toContain("0.004999");
+  expect(h.text()).toContain("1.000002"); expect(h.text()).toContain("1.005001"); expect(h.text()).toContain("999999999999.000001");
+  const big = controls(h.root, "nx-dep-record-row").find(r => textOf(r).includes("CR-20"))!;
+  (big.props.onClick as () => void)();
+  expect(h.navTo.mock.calls[0][0]).toContain("amount=999999999999.000001");
+});
+
+test("withholds unsafe legacy numeric amounts", async () => {
+  const h = await pane({ ...address, minDepositUsdt: 999999999999 }, [
+    { ...rows[1], grossAmountUsdt: 999999999999, creditedUsdt: 999999999999 },
+  ]);
+  expect(h.text()).not.toContain("999999999999");
+  expect(controls(h.root, "nx-dep-record-row")[0].props.onClick).toBeUndefined();
+});
+
+
+test("history failure preserves verified address and existing records, then recovers", async () => {
+  const h = await pane(address, [rows[1]]);
+  h.request.mockImplementation(async ({ path }) => {
+    if (path.startsWith("/api/deposits/address")) return { ...address, feeUsdt: 0.004999 };
+    throw new Error("history failed");
+  });
+  (h.state.load as (background: boolean) => void)(true);
+  await vi.waitFor(() => expect(h.text()).toContain(zh.topupChrome.depositOpFailedNote));
+  expect(controls(h.root, "nx-dep-qr-box")).toHaveLength(1);
+  expect(controls(h.root, "nx-dep-record-row")).toHaveLength(1);
+  expect(h.text()).toContain("0.004999");
+  h.request.mockImplementation(async ({ path }) => path.startsWith("/api/deposits/address") ? address : []);
+  (controls(h.root, "nx-dep-chain-history-retry")[0].props.onClick as () => void)();
+  await vi.waitFor(() => expect(h.text()).toContain(zh.topupChrome.noDepositsYet));
+  expect(h.text()).not.toContain(zh.topupChrome.depositOpFailedNote);
+});
+
+test("initial history failure retains address without asserting an empty list", async () => {
+  const h = await pane(address, Promise.reject(new Error("history failed")));
+  expect(controls(h.root, "nx-dep-qr-box")).toHaveLength(1);
+  expect(h.text()).toContain(zh.topupChrome.depositOpFailedNote);
+  expect(h.text()).not.toContain(zh.topupChrome.noDepositsYet);
+});
+
+
+test("background address failure withholds the address but preserves history and recovers", async () => {
+  const h = await pane(address, [rows[1]]);
+  h.request.mockImplementation(async ({ path }) => {
+    if (path.startsWith("/api/deposits/address")) throw new Error("address unavailable");
+    return [rows[1]];
+  });
+  (h.state.load as (background: boolean) => void)(true);
+  await vi.waitFor(() => expect(h.text()).toContain(zh.topupChrome.addrLoadFailed));
+  expect(controls(h.root, "nx-dep-qr-box")).toHaveLength(0);
+  expect(controls(h.root, "nx-dep-copy-address-cta")).toHaveLength(0);
+  expect(controls(h.root, "nx-dep-record-row")).toHaveLength(1);
+  expect(h.text()).not.toContain(zh.topupChrome.allNetworksPaused);
+  expect(h.text()).not.toContain(zh.topupChrome.noDepositsYet);
+  h.request.mockImplementation(async ({ path }) => path.startsWith("/api/deposits/address") ? address : [rows[1]]);
+  (controls(h.root, "nx-dep-background-retry")[0].props.onClick as () => void)();
+  await vi.waitFor(() => expect(controls(h.root, "nx-dep-qr-box")).toHaveLength(1));
+  expect(h.text()).not.toContain(zh.topupChrome.addrLoadFailed);
+  expect(controls(h.root, "nx-dep-record-row")).toHaveLength(1);
 });

@@ -34,6 +34,10 @@
     </view>
 
     <template v-else>
+      <view v-if="addressRefreshFailed" class="nx-dep-background-error" role="status">
+        <text :style="noteStyle">{{ t.topupChrome.addrLoadFailed }}</text>
+        <view class="nx-dep-background-retry grid place-items-center active:opacity-80" :style="retryBtnStyle" role="button" tabindex="0" @click="load(true)"><text style="font-size: 13px; font-weight: 500; color: var(--v5-ink)">{{ t.ui.retry }}</text></view>
+      </view>
       <!-- ── 三网络 chip ── -->
       <view class="flex" style="gap: 8px">
         <view
@@ -47,7 +51,7 @@
         >
           <text :style="chipLabelStyle(nw.id)">{{ nw.label }}</text>
           <text v-if="nw.id === 'usdt-trc20'" :style="chipTagStyle">{{ t.topupChrome.netRecommended }}</text>
-          <text v-else :style="chipSubStyle" style="white-space: nowrap">{{ fmt(t.topupChrome.netFee, { fee: formatAmount(fundsServerEnabled ? feeUsdt : CHAIN_DEPOSIT_FEE_USDT[nw.id]) }) }}</text>
+          <text v-else :style="chipSubStyle" style="white-space: nowrap">{{ fmt(t.topupChrome.netFee, { fee: addressRefreshFailed ? "—" : formatAmount(fundsServerEnabled ? feeUsdt : CHAIN_DEPOSIT_FEE_USDT[nw.id]) }) }}</text>
         </view>
       </view>
 
@@ -80,7 +84,7 @@
       </view>
 
       <!-- ── 全部网络停用 ── -->
-      <view v-else class="flex flex-col items-center" style="padding: 36px 0 28px">
+      <view v-else-if="!addressRefreshFailed" class="flex flex-col items-center" style="padding: 36px 0 28px">
         <view class="grid place-items-center" :style="stateIconBoxStyle">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M10 15V9" /><path d="M14 15V9" /></svg>
         </view>
@@ -117,7 +121,13 @@
           </view>
         </view>
 
-        <view v-if="sortedRecords.length === 0 && bankHistoryStatus === 'ready'" class="flex flex-col items-center" style="padding: 26px 0 18px">
+        <view v-if="fundsServerEnabled && chainHistoryFailed" style="margin-top: 8px">
+          <text :style="noteStyle">{{ t.topupChrome.depositOpFailedNote }}</text>
+          <view class="nx-dep-chain-history-retry nx-card-recovery-action nx-card-recovery-action--quiet active:opacity-80" role="button" tabindex="0" @click="load()"><text>{{ t.ui.retry }}</text></view>
+        </view>
+        <view v-else-if="fundsServerEnabled && !chainHistoryLoaded" class="nx-dep-chain-history-loading nx-dep-sk" role="status" :aria-label="t.bankWithdrawal.loading" style="height: 56px; margin-top: 8px" />
+
+        <view v-if="sortedRecords.length === 0 && bankHistoryStatus === 'ready' && (!fundsServerEnabled || (chainHistoryLoaded && !chainHistoryFailed && !addressRefreshFailed))" class="flex flex-col items-center" style="padding: 26px 0 18px">
           <view class="grid place-items-center" :style="stateIconBoxStyle">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14" /><path d="m19 12-7 7-7-7" /></svg>
           </view>
@@ -147,7 +157,7 @@
                 <text class="truncate font-mono-tabular" :style="rowSubStyle">{{ netShort(r.channel) }} · {{ r.depositId }}</text>
                 <text v-if="stateText(r)" :style="stateTextStyle(r)">{{ stateText(r) }}</text>
               </view>
-              <view v-if="isInFlight(r)" :style="progTrackStyle"><view :style="progFillStyle(r)" /></view>
+              <view v-if="isInFlight(r) && r.requiredConfirmations != null" class="nx-dep-progress" :style="progTrackStyle"><view :style="progFillStyle(r)" /></view>
               <view v-if="noteText(r)"><text class="block" :style="noteStyle">{{ noteText(r) }}</text></view>
             </view>
           </view>
@@ -158,7 +168,9 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { formatAmount as formatBaseAmount } from "@/lib/amount-display";
+import { exactDepositAmount } from "@/api/cregis-deposit-api";
+const formatAmount = (value: number | string | null | undefined) => formatBaseAmount(value, 6);
 import { ref, computed, onMounted, onUnmounted, watch, type CSSProperties } from "vue";
 import { onShow, onHide } from "@dcloudio/uni-app";
 import qrcode from "qrcode-generator";
@@ -230,14 +242,19 @@ function pollDelay(state: "preparing" | "ready" | "error", failures = 0): number
 const serverAddress = ref("");
 const serverEnabled = ref(false);
 const serverCreditEnabled = ref(false);
+const chainHistoryLoaded = ref(false);
+const chainHistoryFailed = ref(false);
+const addressRefreshFailed = ref(false);
 type PaneDepositRecord = Omit<DepositRecord, "status"> & {
   status: DepositRecord["status"] | "reorg_investigating" | "provider_conflict_hold" | "reorg_reversed";
   reviewHold?: boolean;
+  grossExact?: string | null;
+  creditedExact?: string | null;
 };
 const serverRecords = ref<PaneDepositRecord[]>([]);
 const copied = ref(false);
-const minDeposit = ref(MIN_DEPOSIT_USDT);
-const feeUsdt = ref(0);
+const minDeposit = ref<string | number | null>(MIN_DEPOSIT_USDT);
+const feeUsdt = ref<string | number | null>(0);
 const confirmations = ref(CHAIN_REQUIRED_CONFIRMATIONS["usdt-bep20"]);
 function refreshBankHistory(): void {
   if (fundsServerEnabled && remoteSessionReady.value && dep.currentAccountKey() === app.accountKey
@@ -246,6 +263,7 @@ function refreshBankHistory(): void {
 function load(background = false) {
   if (fundsServerEnabled && (!remoteSessionReady.value || !pageVisible)) return;
   if (background && requestRunning) return;
+  const hadSnapshot = background && phase.value === "ready";
   if (!background) phase.value = "loading";
   if (loadTimer) clearTimeout(loadTimer);
   if (fundsServerEnabled) {
@@ -258,22 +276,43 @@ function load(background = false) {
     void (async () => {
       try {
         const snapshot = await cregisDepositApi.address();
-        const deposits = !snapshot.enabled && snapshot.reason === "CREGIS_ADDRESS_PREPARING"
-          ? [] : await cregisDepositApi.list();
         if (generation !== loadGeneration || account !== app.accountKey
             || bindingEpoch !== app.accountBindingEpoch || !remoteSessionReady.value) return;
+        addressRefreshFailed.value = false;
         serverEnabled.value = snapshot.enabled;
         serverCreditEnabled.value = snapshot.creditEnabled === true;
         serverAddress.value = snapshot.enabled ? snapshot.address ?? "" : "";
-        minDeposit.value = snapshot.minDepositUsdt ?? MIN_DEPOSIT_USDT;
-        feeUsdt.value = snapshot.feeUsdt ?? 0;
+        minDeposit.value = snapshot.minDepositUsdt == null ? MIN_DEPOSIT_USDT : exactDepositAmount(snapshot.minDepositUsdt, snapshot.minDepositUsdtExact);
+        feeUsdt.value = snapshot.feeUsdt == null ? 0 : exactDepositAmount(snapshot.feeUsdt, snapshot.feeUsdtExact);
         confirmations.value = snapshot.confirmations ?? CHAIN_REQUIRED_CONFIRMATIONS["usdt-bep20"];
+        phase.value = !snapshot.enabled && snapshot.reason === "CREGIS_ADDRESS_PREPARING" ? "preparing" : "ready";
+        if (phase.value === "preparing") {
+          nextPollAt = Date.now() + pollDelay(phase.value);
+          return;
+        }
+        let deposits;
+        try {
+          deposits = await cregisDepositApi.list();
+        } catch {
+          if (generation === loadGeneration && account === app.accountKey
+              && bindingEpoch === app.accountBindingEpoch && remoteSessionReady.value) {
+            chainHistoryFailed.value = true;
+            nextPollAt = Date.now() + pollDelay("error", pollFailures++);
+          }
+          return;
+        }
+        if (generation !== loadGeneration || account !== app.accountKey
+            || bindingEpoch !== app.accountBindingEpoch || !remoteSessionReady.value) return;
+        chainHistoryLoaded.value = true;
+        chainHistoryFailed.value = false;
         serverRecords.value = deposits.map((row) => ({
           depositId: row.depositId, channel: "usdt-bep20", txHash: row.txHash,
           address: row.address, grossAmountUsdt: row.grossAmountUsdt,
+          grossExact: exactDepositAmount(row.grossAmountUsdt, row.grossAmountUsdtExact),
+          creditedExact: exactDepositAmount(row.creditedUsdt, row.creditedUsdtExact),
           feeUsdt: row.creditedUsdt > 0 ? row.grossAmountUsdt - row.creditedUsdt : 0,
           creditedUsdt: row.creditedUsdt,
-          confirmations: row.confirmations, requiredConfirmations: confirmations.value,
+          confirmations: row.confirmations, requiredConfirmations: row.requiredConfirmations ?? undefined,
           reviewHold: row.status === "REVIEW_HOLD",
           status: row.status === "CREDITED" ? "credited"
             : row.status === "REORG_INVESTIGATING" ? "reorg_investigating"
@@ -292,7 +331,9 @@ function load(background = false) {
           serverAddress.value = "";
           serverEnabled.value = false;
           serverCreditEnabled.value = false;
-          phase.value = "error";
+          copied.value = false;
+          addressRefreshFailed.value = hadSnapshot;
+          phase.value = hadSnapshot ? "ready" : "error";
           nextPollAt = Date.now() + pollDelay("error", pollFailures++);
         }
       } finally {
@@ -313,6 +354,9 @@ watch([remoteSessionReady, () => app.accountKey, () => app.accountBindingEpoch],
   serverEnabled.value = false;
   serverCreditEnabled.value = false;
   serverRecords.value = [];
+  chainHistoryLoaded.value = false;
+  chainHistoryFailed.value = false;
+  addressRefreshFailed.value = false;
   copied.value = false;
   phase.value = "loading";
   if (ready) load();
@@ -428,7 +472,7 @@ function isRiskHold(r: PaneDepositRecord): boolean {
 }
 function rowAmount(r: PaneDepositRecord): string {
   const value = r.status === "reorg_reversed" || isRiskHold(r) || r.creditedUsdt > 0 ? r.creditedUsdt : r.grossAmountUsdt;
-  return formatAmount(value);
+  return formatAmount("grossExact" in r ? (value === r.creditedUsdt ? r.creditedExact : r.grossExact) : value);
 }
 function netShort(c: DepositChannel): string {
   return CHANNEL_SHORT[c];
@@ -444,8 +488,7 @@ function stateText(r: PaneDepositRecord): string {
   if (r.status === "credited") return tc.depositCredited;
   if (r.status === "returned") return tc.depositReturned;
   if (isInFlight(r)) {
-    const total = r.requiredConfirmations ?? 1;
-    return fmt(tc.confirmingProgress, { n: Math.min(r.confirmations ?? 0, total), total });
+    return fmt(tc.confirmingProgress, { n: r.confirmations ?? 0, total: r.requiredConfirmations ?? "-" });
   }
   return ""; // dust_hold:右侧留空,整句人工处理说明走 note 行
 }
@@ -459,7 +502,7 @@ function noteText(r: PaneDepositRecord): string {
 }
 /** 法币轨恒可点(跳账单页);链上轨只有已入账(credited)有交易详情可看(与 goRecord 同判据)。 */
 function recordClickable(r: PaneDepositRecord): boolean {
-  return !isChainChannel(r.channel) || r.status === "credited";
+  return !isChainChannel(r.channel) || (r.status === "credited" && (!("grossExact" in r) || r.grossExact !== null));
 }
 /** 不可点记录行不注册 click 监听(同 wallet-bills.billRowOn:防 tap-feedback 门判死控件)。 */
 function recordRowOn(r: PaneDepositRecord) {
@@ -480,8 +523,7 @@ function goRecord(r: PaneDepositRecord) {
   // 网络、确认数、专属收款地址、发生时间——tx 页入参优先,防种子假数据与本笔矛盾。
   const p = new URLSearchParams({
     hash: r.txHash ?? r.depositId,
-    amount: fundsServerEnabled ? r.grossAmountUsdt.toFixed(6).replace(/0+$/, "").replace(/\.$/, "")
-      : r.grossAmountUsdt.toFixed(2),
+    amount: fundsServerEnabled ? (r.grossExact ?? String(r.grossAmountUsdt)) : r.grossAmountUsdt.toFixed(2),
     net: CHANNEL_SHORT[r.channel],
     confs: String(r.confirmations ?? 0),
     age: String(Math.max(1, Math.round((mockServerNow() - r.createdAt) / 60_000))),
