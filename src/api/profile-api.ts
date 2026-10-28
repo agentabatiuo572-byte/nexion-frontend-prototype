@@ -15,6 +15,11 @@ export interface ProfileProjection {
   avatarUrl: string;
   avatarRevision: string;
   language: LocaleCode;
+  /** Days between two nickname or two avatar changes. */
+  changeIntervalDays: number;
+  /** Epoch ms of the next allowed change; null when a change is allowed now. */
+  nicknameChangeAvailableAt: number | null;
+  avatarChangeAvailableAt: number | null;
 }
 
 export interface ProfileAvatar {
@@ -55,12 +60,19 @@ function language(value: string): LocaleCode {
   return value;
 }
 
+function changeAvailableAt(value: unknown): value is number | null {
+  return value === null || (Number.isSafeInteger(value) && (value as number) > 0);
+}
+
 function parseProjection(value: unknown): ProfileProjection {
   const row = record(value);
   if (!row || !validExistingNickname(row.nickname)
       || typeof row.avatarUrl !== "string"
       || typeof row.avatarRevision !== "string"
       || !isProfileLanguage(row.language)
+      || !Number.isSafeInteger(row.profileChangeIntervalDays) || (row.profileChangeIntervalDays as number) <= 0
+      || !changeAvailableAt(row.nicknameChangeAvailableAt)
+      || !changeAvailableAt(row.avatarChangeAvailableAt)
       || (!!row.avatarUrl && !/^https?:\/\//i.test(row.avatarUrl))) {
     throw new ApiError({ kind: "protocol", message: "PROFILE_RESPONSE_INVALID" });
   }
@@ -69,6 +81,9 @@ function parseProjection(value: unknown): ProfileProjection {
     avatarUrl: row.avatarUrl,
     avatarRevision: row.avatarRevision,
     language: row.language,
+    changeIntervalDays: row.profileChangeIntervalDays as number,
+    nicknameChangeAvailableAt: row.nicknameChangeAvailableAt,
+    avatarChangeAvailableAt: row.avatarChangeAvailableAt,
   };
 }
 

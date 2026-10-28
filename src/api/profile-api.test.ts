@@ -17,9 +17,38 @@ describe("profile API projection", () => {
       avatarUrl: "",
       avatarRevision: "",
       language: "vi",
+      profileChangeIntervalDays: 7,
+      nicknameChangeAvailableAt: null,
+      avatarChangeAvailableAt: null,
     }));
 
     await expect(api.profile()).resolves.toMatchObject({ nickname: "NexGrid 5678", language: "vi" });
+  });
+
+  it("carries when the nickname and avatar may change next", async () => {
+    const row = {
+      nickname: "Silver River 42",
+      avatarUrl: "",
+      avatarRevision: "",
+      language: "zh",
+      profileChangeIntervalDays: 7,
+      nicknameChangeAvailableAt: 1_800_000_000_000,
+      avatarChangeAvailableAt: null,
+    };
+
+    await expect(createProfileApi(client(row)).profile()).resolves.toMatchObject({
+      changeIntervalDays: 7,
+      nicknameChangeAvailableAt: 1_800_000_000_000,
+      avatarChangeAvailableAt: null,
+    });
+    for (const broken of [
+      { ...row, profileChangeIntervalDays: undefined },
+      { ...row, profileChangeIntervalDays: 0 },
+      { ...row, nicknameChangeAvailableAt: "2027-01-01" },
+      { ...row, avatarChangeAvailableAt: undefined },
+    ]) {
+      await expect(createProfileApi(client(broken)).profile()).rejects.toMatchObject({ message: "PROFILE_RESPONSE_INVALID" });
+    }
   });
 
   it("writes only a supported locale to the authenticated profile endpoint", async () => {

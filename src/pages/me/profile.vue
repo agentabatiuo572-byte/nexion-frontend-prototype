@@ -27,7 +27,7 @@
             </view>
             <view
               class="grid place-items-center active:opacity-80"
-              :style="regenBtnStyle"
+              :style="[regenBtnStyle, avatarLocked ? { opacity: 0.5 } : {}]"
               role="button"
               tabindex="0"
               aria-disabled="false"
@@ -66,9 +66,9 @@
             @click="openNicknameSheet"
           >
             <text class="flex-1 truncate" :style="nameValueStyle">{{ displayNickname(name) }}</text>
-            <text class="shrink-0" :style="nameChangeStyle">{{ t.profile.nicknameChange }}</text>
+            <text class="shrink-0" :style="[nameChangeStyle, nicknameLocked ? { color: 'var(--v5-ink-4)' } : {}]">{{ t.profile.nicknameChange }}</text>
           </view>
-          <text class="block" :style="fieldHintStyle">{{ t.profile.displayNameHint }}</text>
+          <text class="block" :style="fieldHintStyle">{{ nicknameHint }}</text>
         </view>
 
       </view>
@@ -134,6 +134,7 @@ import { displayNickname } from "@/lib/brand-copy";
 import { computed, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
 import { profileApi, remoteApiEnabled, sessionVault } from "@/api/runtime";
+import { asApiError } from "@/api/errors";
 import AppChassis from "@/components/app-chassis.vue";
 import NicknameSheet from "@/components/me/nickname-sheet.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -147,7 +148,8 @@ import { useQuest } from "@/store/quest";
 import { useVRank } from "@/store/v-rank";
 import { useLocaleStore } from "@/store/locale";
 import { maskAddressMid, PAYOUT_NETWORKS } from "@/store/payout-address-core";
-import { toast } from "@/store/ui";
+import { confirm, toast, useUI } from "@/store/ui";
+import { formatDisplayDateTime } from "@/lib/display-date";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
 import { claimSetupProfileQuest } from "@/lib/remote-profile-quest";
 import { reconcileProfileEdit } from "@/lib/profile-save-flow";
@@ -191,6 +193,12 @@ const avatarUrl = ref("");
 const avatarRevision = ref("");
 const avatarUploading = ref(false);
 const setupProfileQuestPending = ref(false);
+// Server-owned change interval from the profile read; null until the first read.
+const changeIntervalDays = ref<number | null>(null);
+const nicknameChangeAvailableAt = ref<number | null>(null);
+const avatarChangeAvailableAt = ref<number | null>(null);
+const ui = useUI();
+const confirmOwner = `profile:${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
 function isCurrentProfileRequest(
   pageScope: P318AccountPageScope,
@@ -213,6 +221,10 @@ function clearProfileAccountState() {
   avatarRevision.value = "";
   avatarUploading.value = false;
   setupProfileQuestPending.value = false;
+  changeIntervalDays.value = null;
+  nicknameChangeAvailableAt.value = null;
+  avatarChangeAvailableAt.value = null;
+  ui.clearConfirmsBy(confirmOwner);
 }
 
 function refreshProfileForCurrentAccount() {
@@ -320,6 +332,25 @@ const joinedDate = computed(() => formatJoinedDate(app.user.joinedAt, dateLocale
 
 const dirty = computed(() => name.value !== profile.displayName);
 
+const nicknameLocked = computed(() => (nicknameChangeAvailableAt.value ?? 0) > Date.now());
+const avatarLocked = computed(() => (avatarChangeAvailableAt.value ?? 0) > Date.now());
+const nicknameHint = computed(() => {
+  const days = changeIntervalDays.value;
+  if (!remoteApiEnabled || days === null) return t.value.profile.displayNameHint;
+  const rule = nicknameLocked.value
+    ? t.value.profile.nicknameLockedHint.replace("{date}", formatDisplayDateTime(nicknameChangeAvailableAt.value, dateLocale()))
+    : t.value.profile.changeIntervalHint.replace("{days}", String(days));
+  return `${t.value.profile.displayNameHint} · ${rule}`;
+});
+
+function showChangeLocked(field: "nickname" | "avatar") {
+  const at = field === "nickname" ? nicknameChangeAvailableAt.value : avatarChangeAvailableAt.value;
+  const copy = t.value.profile;
+  const title = field === "nickname" ? copy.nicknameLockedTitle : copy.avatarLockedTitle;
+  const hint = field === "nickname" ? copy.nicknameLockedHint : copy.avatarLockedHint;
+  toast.info(title, at ? hint.replace("{date}", formatDisplayDateTime(at, dateLocale())) : undefined);
+}
+
 async function loadProfileCandidates() {
   const pageScope = profilePageFence.capture("nickname-candidates");
   const accountScope = captureAccountScope();
@@ -335,6 +366,10 @@ async function openNicknameSheet() {
   const accountScope = captureAccountScope();
   const accountKey = auth.accountId;
   if (!isCurrentProfileRequest(pageScope, accountScope, accountKey)) return;
+  if (remoteApiEnabled && nicknameLocked.value) {
+    showChangeLocked("nickname");
+    return;
+  }
   if (remoteApiEnabled && profile.nicknameCandidates.length === 0) {
     const ok = await profile.refreshNicknameCandidates();
     if (!isCurrentProfileRequest(pageScope, accountScope, accountKey)) return;
@@ -382,6 +417,15 @@ async function handleSave() {
     toast.info(t.value.profile.noChangesToast);
     return;
   }
+  const days = changeIntervalDays.value;
+  if (remoteApiEnabled && days !== null) {
+    const ok = await confirm({
+      owner: confirmOwner,
+      title: t.value.profile.nicknameConfirmTitle,
+      message: t.value.profile.nicknameConfirmMessage.replace("{days}", String(days)),
+    });
+    if (!ok || !isCurrentProfileRequest(pageScope, accountScope, accountKey) || isSaving.value) return;
+  }
   isSaving.value = true;
   try {
     let outcome: { saved: boolean; questPending: boolean; claimNotice: typeof quest.claimNotice };
@@ -402,10 +446,18 @@ async function handleSave() {
     name.value = profile.displayName;
     setupProfileQuestPending.value = outcome.questPending;
     saveFeedback.value = t.value.profile.savedToast;
-    toast.success(t.value.profile.savedToast);
+    toast.success(t.value.profile.savedToast,
+      remoteApiEnabled && days !== null ? t.value.profile.nicknameSavedHint.replace("{days}", String(days)) : undefined);
     if (outcome.claimNotice) toast.info(t.value.questClaim[outcome.claimNotice]);
-  } catch {
+    if (remoteApiEnabled) void loadRemoteProfile();
+  } catch (cause) {
     if (!isCurrentProfileRequest(pageScope, accountScope, accountKey)) return;
+    if (asApiError(cause).message === "USER_NICKNAME_CHANGE_TOO_SOON") {
+      name.value = profile.displayName;
+      await loadRemoteProfile();
+      if (isCurrentProfileRequest(pageScope, accountScope, accountKey)) showChangeLocked("nickname");
+      return;
+    }
     toast.error(t.value.profile.serverMutationFailed);
   } finally {
     if (isCurrentProfileRequest(pageScope, accountScope, accountKey)) isSaving.value = false;
@@ -424,6 +476,9 @@ async function loadRemoteProfile() {
     profile.projectServerNickname(projection.nickname);
     avatarUrl.value = projection.avatarUrl;
     avatarRevision.value = projection.avatarRevision;
+    changeIntervalDays.value = projection.changeIntervalDays;
+    nicknameChangeAvailableAt.value = projection.nicknameChangeAvailableAt;
+    avatarChangeAvailableAt.value = projection.avatarChangeAvailableAt;
   } catch {
     if (!isCurrentProfileRequest(pageScope, scope, accountKey)) return;
     toast.error(t.value.profile.serverMutationFailed);
@@ -437,6 +492,19 @@ async function handleRegen() {
   const accountKey = auth.accountId;
   if (!isCurrentProfileRequest(pageScope, scope, accountKey)) return;
   if (remoteApiEnabled) {
+    if (avatarLocked.value) {
+      showChangeLocked("avatar");
+      return;
+    }
+    const days = changeIntervalDays.value;
+    if (days !== null) {
+      const ok = await confirm({
+        owner: confirmOwner,
+        title: t.value.profile.avatarConfirmTitle,
+        message: t.value.profile.avatarConfirmMessage.replace("{days}", String(days)),
+      });
+      if (!ok || !isCurrentProfileRequest(pageScope, scope, accountKey) || avatarUploading.value) return;
+    }
     try {
       const chosen = await new Promise<UniApp.ChooseImageSuccessCallbackResult | null>((resolve, reject) => {
         uni.chooseImage({ count: 1, sizeType: ["compressed"], sourceType: ["album", "camera"], success: resolve, fail: (cause) => {
@@ -469,10 +537,17 @@ async function handleRegen() {
         avatarRevision.value = authoritative.avatarRevision;
       }
       if (isCurrentProfileRequest(pageScope, scope, accountKey)) {
-        toast.success(t.value.profile.avatar, t.value.profile.avatarHint);
+        toast.success(t.value.profile.avatarSavedToast,
+          days !== null ? t.value.profile.avatarSavedHint.replace("{days}", String(days)) : undefined);
+        void loadRemoteProfile();
       }
     } catch (cause) {
       if (!isCurrentProfileRequest(pageScope, scope, accountKey)) return;
+      if (asApiError(cause).message === "USER_AVATAR_CHANGE_TOO_SOON") {
+        await loadRemoteProfile();
+        if (isCurrentProfileRequest(pageScope, scope, accountKey)) showChangeLocked("avatar");
+        return;
+      }
       toast.error(t.value.profile.serverMutationFailed);
     } finally {
       if (isCurrentProfileRequest(pageScope, scope, accountKey)) avatarUploading.value = false;

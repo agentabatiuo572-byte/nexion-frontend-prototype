@@ -82,7 +82,7 @@ export async function installFormalProbeSession(page, { authenticated = true, re
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({ code: 0, message: "OK", data: {
-          nickname: "Formal Probe", avatarUrl: "", avatarRevision: "", language: "en",
+          nickname: "Formal Probe", avatarUrl: "", avatarRevision: "", profileChangeIntervalDays: 7, nicknameChangeAvailableAt: null, avatarChangeAvailableAt: null, language: "en",
         } }),
       });
     }

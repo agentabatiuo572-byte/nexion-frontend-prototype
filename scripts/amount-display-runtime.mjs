@@ -123,7 +123,7 @@ const genesisEmission = { batchNo: "GEN-MONEY-EMISSION", holdingNo: "GEN-MONEY-H
 function fixture(url, request, locale, state = "normal") {
   const p = url.pathname, empty = state === "empty";
   const rounding = walletDisplayStates[state], walletAmount = rounding?.amount ?? fleet.walletUsdt;
-  if (p === "/api/app/profile") return { nickname: "Money probe", avatarUrl: "", avatarRevision: "", language: locale };
+  if (p === "/api/app/profile") return { nickname: "Money probe", avatarUrl: "", avatarRevision: "", profileChangeIntervalDays: 7, nicknameChangeAvailableAt: null, avatarChangeAvailableAt: null, language: locale };
   if (p === "/api/app/profile/language") return { language: locale };
   if (p === "/api/devices/earnings") return { ...fleet, walletUsdt: walletAmount };
   if (p === "/api/app/home/overview") return overview;

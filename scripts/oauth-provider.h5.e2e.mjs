@@ -104,7 +104,7 @@ const transport = async route => {
     refreshCalls++;
     return issued ? ok(session) : fail(401, "USER_REFRESH_TOKEN_REQUIRED");
   }
-  if (path === "/api/app/profile") return ok({ nickname: "OAuth page fixture", avatarUrl: "", avatarRevision: "", language: "en" });
+  if (path === "/api/app/profile") return ok({ nickname: "OAuth page fixture", avatarUrl: "", avatarRevision: "", profileChangeIntervalDays: 7, nicknameChangeAvailableAt: null, avatarChangeAvailableAt: null, language: "en" });
   if (path === "/api/app/security") {
     return ok({ twoFactorEnabled: false, passwordChangedAt: null, sessions: [], nextCursor: null });
   }

@@ -83,7 +83,7 @@ test("remote nickname and avatar mutations use server authority", () => {
   assert.match(page, /:server-candidates="profile\.nicknameCandidates"/);
   assert.match(profile, /function projectServerNickname\(nickname: string\)[\s\S]*?displayName\.value = normalized/);
   assert.match(page, /profile\.projectServerNickname\(projection\.nickname\)/);
-  assert.match(page, /async function handleSave\(\)[\s\S]*?profile\.setDisplayName\(name\.value\)[\s\S]*?claimSetupProfileQuest\(quest\)[\s\S]*?toast\.success\(t\.value\.profile\.savedToast\)/);
+  assert.match(page, /async function handleSave\(\)[\s\S]*?profile\.setDisplayName\(name\.value\)[\s\S]*?claimSetupProfileQuest\(quest\)[\s\S]*?toast\.success\(t\.value\.profile\.savedToast[,)]/);
   assert.doesNotMatch(page, /if \(setupProfileQuestPending\.value\) toast\.error\(t\.value\.profile\.serverMutationFailed\)/);
   assert.match(api, /uploadAvatar:[\s\S]*?client\.upload\(\{[\s\S]*?path: "\/api\/app\/profile\/avatar"/);
   assert.match(page, /async function handleRegen\(\) \{[\s\S]*?if \(remoteApiEnabled\) \{[\s\S]*?uni\.chooseImage\([\s\S]*?profileApi\.uploadAvatar\(filePath, key\)[\s\S]*?profileApi\.profile\(\)\.catch/);
