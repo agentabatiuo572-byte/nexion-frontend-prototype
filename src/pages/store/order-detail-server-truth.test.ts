@@ -15,6 +15,9 @@ import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
 import { vi as vietnamese } from "@/i18n/messages/vi";
 import source from "./order-detail.vue?raw";
+import { fmt } from "@/i18n/format";
+import { trialPurchaseCopy } from "@/i18n/trial-purchase";
+import { trialLifecycleCopy } from "@/i18n/trial-lifecycle";
 
 const remote = vi.hoisted(() => ({
   remoteApiEnabled: true,
@@ -84,7 +87,9 @@ async function detail(dataCenter: string | null, copy = en, status: CanonicalOrd
     if (id === "@/store/app") return { useApp: () => ({}) };
     if (id === "@/store/auth") return { useAuth: () => ({ isAuthenticated: true, accountId: "user:server-truth" }) };
     if (id === "@/i18n/use-t") return { useT: () => copyRef };
-    if (id === "@/i18n/format") return { dateLocale: () => "en-US" };
+    if (id === "@/i18n/format") return { dateLocale: () => "en-US", fmt };
+    if (id === "@/i18n/trial-purchase") return { useTrialPurchaseCopy: () => Vue.computed(() => trialPurchaseCopy[Vue.toRaw(copyRef.value) === zh ? "zh" : Vue.toRaw(copyRef.value) === en ? "en" : "vi"]) };
+    if (id === "@/i18n/trial-lifecycle") return { useTrialLifecycleCopy: () => Vue.computed(() => trialLifecycleCopy[Vue.toRaw(copyRef.value) === zh ? "zh" : Vue.toRaw(copyRef.value) === en ? "en" : "vi"]) };
     if (id === "@/lib/brand-copy") return { nexGridBrandText };
     if (id === "@/lib/trial-date") return { formatTrialDateTime };
     if (id === "@/store/free-trial") return { trialReservesSlotNow: () => false };
@@ -131,7 +136,7 @@ describe("BUG 381 canonical order data-center and activation truth", () => {
   it('formats authoritative order amounts with thousands separators without changing the amount',async()=>{
     const {view,orders}=await detail('Cloud-Global');
     orders.orders[0].total=12999;
-    expect(await rendered(view)).toContain('$12,999.00');expect(orders.orders[0].total).toBe(12999);
+    expect(await rendered(view)).toContain('12,999.00 USDT');expect(orders.orders[0].total).toBe(12999);
   });
   it.each(["Cloud-Global", "Frankfurt DC", "Singapore DC", "Other Region", "Cloud-Frankfurt", null, ""])(
     "preserves the canonical data-center %s instead of inferring a region", async (dataCenter) => {

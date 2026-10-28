@@ -116,10 +116,13 @@
               <CheckoutRow v-if="!remoteApiEnabled" :label="t.store.coRowShipping" :value="t.store.coShippingValue" class="checkout-fee" />
               <CheckoutRow :label="t.store.coRowTotal" :value="confirmTotalText + ' USDT'" big class="checkout-fee checkout-fee--total" />
             </view>
-            <text v-if="trialEarlyNote" class="checkout-note" data-testid="checkout-trial-early-note">{{ trialEarlyNote }}</text>
+            <view v-if="trialCreditText" class="checkout-trial-credit" data-testid="checkout-trial-credit">
+              <text>{{ trialCopy.afterPurchaseLabel }}</text>
+              <text class="checkout-trial-credit-value">{{ trialCreditText }}</text>
+            </view>
             <text v-if="trialZeroDue" class="checkout-note">{{ t.store.coTrialZeroNote }}</text>
             <view v-if="capped" class="checkout-note checkout-note--warning"><text>{{ slotsFullText }}</text></view>
-            <view class="checkout-policy-notice" data-testid="checkout-policy-notice"><text>{{ policyHasDevice ? policyCopy.deviceScope+t.store.faq.refund.a : policyCopy.review }}</text><button class="checkout-policy-link" @click="purchasePolicyOpen=true">{{ policyCopy.entry }}</button></view>
+            <view class="checkout-policy-notice" data-testid="checkout-policy-notice"><text>{{ policyHasDevice ? policyCopy.deviceScope+t.store.faq.refund.a+(trialConversionMode ? purchaseCopy.refundClause : '') : policyCopy.review }}</text><button class="checkout-policy-link" @click="purchasePolicyOpen=true">{{ policyCopy.entry }}</button></view>
             <view class="checkout-legal"><text>{{ legalCopy.before }}</text><text class="checkout-legal-link" role="link" tabindex="0" @click="navTo('/pages/onboarding/terms')" @keydown.enter.prevent="navTo('/pages/onboarding/terms')">{{ auditCopy.terms }}</text><text>{{ legalCopy.join }}</text><text class="checkout-legal-link" role="link" tabindex="0" @click="navTo('/pages/me/risk-disclosure')" @keydown.enter.prevent="navTo('/pages/me/risk-disclosure')">{{ t.me.riskRow }}</text><text>{{ legalCopy.end }}</text></view>
             <view class="checkout-cancel" role="button" tabindex="0" @click.stop="cancelCheckout" @keydown.enter.prevent.stop="cancelCheckout" @keydown.space.prevent.stop="cancelCheckout"><text>{{ t.store.coCancel }}</text></view>
           </view>
@@ -224,7 +227,7 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount as formatPlainAmount } from "@/lib/amount-display";
+import { formatAmount as formatPlainAmount, formatGroupedAmount } from "@/lib/amount-display";
 import { ref, nextTick, computed, watch, onMounted, onUnmounted, type CSSProperties } from "vue";
 import NxButton from "@/components/ui/nx-button.vue";
 import NxSheet from "@/components/ui/nx-sheet.vue";
@@ -263,6 +266,7 @@ import { useTradeinSheet } from "@/store/tradein-sheet";
 import type { PurchaseEligibilitySnapshot } from "@/api/purchase-eligibility-api";
 import { trialReservesSlotNow, useFreeTrial } from "@/store/free-trial";
 import { useTrialLifecycleCopy } from "@/i18n/trial-lifecycle";
+import { useTrialPurchaseCopy } from "@/i18n/trial-purchase";
 import { useTrialConfig, computeDiscountedPrice, computeTrialOffset, resolveTrialCheckoutProductId } from "@/store/trial-config";
 import { resolveTrialAt, accruedShadow } from "@/store/trial-boundary";
 import { mockServerNow } from "@/store/server-time";
@@ -625,6 +629,7 @@ const { gate: purchaseGate } = usePurchaseGate(product);
 // 抵扣行;支付侧按 mockServerNow() 重解一次只用于「还能不能按这份报价成交」。
 const freeTrial = useFreeTrial();
 const trialCopy = useTrialLifecycleCopy();
+const purchaseCopy = useTrialPurchaseCopy();
 const trialCfg = computed(() => useTrialConfig().config);
 // 1s ticker — the credit keeps accruing during active (display freshness).
 const nowTick = ref(mockServerNow());
@@ -709,15 +714,16 @@ const promoDiscountText = computed(() => formatAmount(promoDiscount.value));
 const trialOffsetText = computed(() => formatAmount(trialOffsetView.value.offsetUSD));
 const trialEarlyDiscountText = computed(() => formatAmount(trialOffsetView.value.earlyDiscountUSD));
 watch(trialEarlyQuoteLapsed, (lapsed) => { if (lapsed) void freeTrial.refreshRemote(true); });
-const trialEarlyNote = computed(() => {
+// What the trial purchase credits right after payment (server quote convert() settles).
+const trialCreditText = computed(() => {
   const quote = remoteApiEnabled && trialConversionMode.value ? freeTrial.authoritativeQuote : null;
-  if (!quote?.earlyPurchase) return "";
-  const nex = `${formatAmount(quote.rewardNEX)} UVT`;
-  return fmt(trialCopy.value.earlyCheckoutNote, {
-    rewards: quote.remainderUSD > 0 ? `${formatAmount(quote.remainderUSD)} USDT · ${nex}` : nex,
-  });
+  if (!quote) return "";
+  const nex = `${formatGroupedAmount(quote.rewardNEX)} UVT`;
+  return quote.remainderUSD > 0 ? `${formatGroupedAmount(quote.remainderUSD)} USDT · ${nex}` : nex;
 });
-const promoRowLabel = computed(() => fmt(t.value.store.coRowTrialDiscount, { pct: (trialCfg.value.discountRate * 100).toFixed(0) }));
+const promoRowLabel = computed(() => fmt(t.value.store.coRowTrialDiscount, {
+  pct: (trialCfg.value.discountRate * 100).toFixed(0), cap: String(Number(trialCfg.value.discountCapUSD)),
+}));
 
 // ─── Voucher redemption ──────────────────────────────────────────────────
 // Best claimed-unused voucher applicable to this SKU at its base price. The
@@ -1221,9 +1227,14 @@ async function requestConfirmPay() {
   purchaseConfirmationOpen = true;
   dialogsOpen += 1;
   try {
+    const trialDevice = trialConversionMode.value ? product.value?.name ?? "" : "";
     const accepted = await confirm({
-      title: t.value.store.coConfirmPurchase,
-      message: fmt(t.value.store.coConfirmPurchaseMessage, { amount: confirmTotalText.value }),
+      title: trialDevice ? fmt(purchaseCopy.value.confirmTitle, { device: trialDevice }) : t.value.store.coConfirmPurchase,
+      message: trialDevice
+        ? [fmt(purchaseCopy.value.confirmPay, { amount: confirmTotalText.value }),
+          ...(trialCreditText.value ? [fmt(purchaseCopy.value.confirmCredit, { rewards: trialCreditText.value })] : []),
+          purchaseCopy.value.confirmRun].join("\n")
+        : fmt(t.value.store.coConfirmPurchaseMessage, { amount: confirmTotalText.value }),
       confirmLabel: t.value.store.coConfirmPayment,
       cancelLabel: t.value.store.coCancel,
       owner: dialogOwner,
@@ -1302,7 +1313,7 @@ async function onConfirmPay() {
       orderId.value = conversion.orderNo;
       // Replace checkout with the canonical order URL. A browser refresh now
       // reloads the paid server order instead of reopening a fresh purchase.
-      navReplace({ url: `/pages/store/order-detail?id=${encodeURIComponent(conversion.orderNo)}` });
+      navReplace({ url: `/pages/store/order-detail?id=${encodeURIComponent(conversion.orderNo)}&result=trial` });
       return;
     }
     await submitRemoteOrder();
@@ -2474,6 +2485,8 @@ button.checkout-quantity-button::after {border:0;}
 .checkout-fee--total :deep(uni-text),.checkout-fee--total :deep(text) { color:var(--v5-ink) !important; font-weight:600; }
 .checkout-fee--total :deep(.tabular-nums) { font-size:18px !important; }
 .checkout-note { display:block; margin:12px 2px 0; font:400 12.5px/1.6 var(--font-v5); color:var(--v5-ink-3); }
+.checkout-trial-credit { display:flex; justify-content:space-between; align-items:baseline; gap:var(--v5-space-3); margin-top:var(--v5-space-3); padding:var(--v5-space-3) var(--v5-space-4); border-radius:var(--v5-radius-m); background:color-mix(in srgb, var(--v5-brand) 10%, transparent); font-size:var(--ui-type-list-subtitle); line-height:var(--ui-type-list-subtitle-lh); font-weight:600; color:var(--v5-ink-2); }
+.checkout-trial-credit-value { color:var(--v5-brand); text-align:right; font-variant-numeric:tabular-nums; }
 .checkout-note--warning { padding:10px 12px; border-radius:12px; background:var(--v5-warning-soft); color:var(--v5-warning-ink); }
 .checkout-legal { margin:12px 2px 0; font:400 12.5px/20px var(--font-v5); color:var(--v5-ink-3); }
 .checkout-legal-link { display:inline; color:var(--v5-brand); cursor:pointer; }

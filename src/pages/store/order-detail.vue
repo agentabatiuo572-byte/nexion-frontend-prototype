@@ -40,6 +40,28 @@
         </view>
       </view>
 
+      <!-- FEAT-TRIAL05 purchase result: shown once right after a trial purchase. -->
+      <view v-else-if="order && showTrialResult" class="mx-4 trial-result" data-testid="trial-purchase-result">
+        <view class="trial-result-head">
+          <view class="grid place-items-center trial-result-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg></view>
+          <text class="trial-result-title" role="status">{{ purchaseCopy.resultTitle }}</text>
+          <text class="trial-result-body">{{ resultRunningText }}</text>
+        </view>
+        <view v-if="order.trialReward && (order.trialReward.usdt > 0 || order.trialReward.nex > 0)" class="trial-result-credit" role="group" :aria-label="purchaseCopy.resultCredited">
+          <text class="trial-result-credit-label">{{ purchaseCopy.resultCredited }}</text>
+          <view v-if="order.trialReward.usdt > 0" class="trial-result-row"><text>{{ purchaseCopy.resultUsdt }}</text><text class="trial-result-usdt">+{{ formatAmount(order.trialReward.usdt) }} USDT</text></view>
+          <view v-if="order.trialReward.nex > 0" class="trial-result-row"><text>{{ purchaseCopy.resultUvt }}</text><text class="trial-result-uvt">+{{ formatAmount(order.trialReward.nex) }} UVT</text></view>
+        </view>
+        <view class="trial-result-summary">
+          <view class="trial-result-line"><text>{{ purchaseCopy.resultPaid }}</text><text>{{ formatAmount(order.total) }} USDT</text></view>
+          <view v-if="orderSaved > 0" class="trial-result-line"><text>{{ purchaseCopy.resultSaved }}</text><text class="trial-result-saved">{{ formatAmount(orderSaved) }} USDT</text></view>
+        </view>
+        <view class="trial-result-actions">
+          <view class="trial-result-primary active:scale-[0.98]" role="button" tabindex="0" :aria-label="purchaseCopy.resultDevices" @click="goDevices"><text>{{ purchaseCopy.resultDevices }}</text></view>
+          <view class="trial-result-secondary active:opacity-85" role="button" tabindex="0" :aria-label="purchaseCopy.resultOrder" @click="showTrialResult = false"><text>{{ purchaseCopy.resultOrder }}</text></view>
+        </view>
+      </view>
+
       <template v-else-if="order">
         <!-- Hero status — filled status-tint tile (accent border dropped). -->
         <view class="mx-4 rounded-2xl" :style="heroStyle">
@@ -104,19 +126,21 @@
               <text class="shrink-0 tabular-nums" style="font-size: 12px; color: var(--v5-ink-2)">${{ formatAmount(item.lineAmountUsdt) }}</text>
             </view>
           </view>
-          <DetailRow v-if="(order.itemCount ?? 1) === 1" :label="t.orders.unitPrice" :value="`$${formatAmount(order.unitPrice)}`" />
-          <DetailRow v-if="order.discount > 0" :label="t.orders.discount" :value="`-$${formatAmount(order.discount)}`" brand />
-          <!-- FEAT-TRIAL02 conversion order: promo + trial credit as their own
-               rows (never folded into the voucher line). -->
-          <DetailRow v-if="(order.promoDiscountUSD ?? 0) > 0" :label="t.orders.trialDiscount" :value="`-$${formatAmount((order.promoDiscountUSD ?? 0))}`" brand />
-          <DetailRow v-if="(order.trialOffsetUSD ?? 0) > 0" :label="t.orders.trialOffset" :value="`-$${formatAmount((order.trialOffsetUSD ?? 0))}`" brand />
-          <DetailRow :label="t.orders.subtotal" :value="`$${formatAmount(order.subtotal)}`" />
-          <DetailRow :label="t.orders.total" :value="`$${formatAmount(order.total)}`" big />
+          <DetailRow v-if="(order.itemCount ?? 1) === 1" :label="t.orders.unitPrice" :value="usdt(order.unitPrice)" />
+          <DetailRow :label="t.orders.subtotal" :value="usdt(order.subtotal)" />
+          <DetailRow v-if="order.discount > 0" :label="t.orders.discount" :value="`−${usdt(order.discount)}`" brand />
+          <!-- Trial conversion orders: each checkout discount on its own row (never folded into the voucher line). -->
+          <DetailRow v-if="(order.promoDiscountUSD ?? 0) > 0" :label="t.orders.trialDiscount" :value="`−${usdt(order.promoDiscountUSD ?? 0)}`" brand />
+          <DetailRow v-if="(order.trialOffsetUSD ?? 0) > 0" :label="t.orders.trialOffset" :value="`−${usdt(order.trialOffsetUSD ?? 0)}`" brand />
+          <DetailRow v-if="(order.earlyDiscountUSD ?? 0) > 0" :label="trialLifecycle.earlyDiscountLabel" :value="`−${usdt(order.earlyDiscountUSD ?? 0)}`" brand />
+          <DetailRow :label="order.trialReward ? purchaseCopy.orderPaid : t.orders.total" :value="usdt(order.total)" big />
+          <DetailRow v-if="trialRewardText && order.status !== 'refunded'" :label="purchaseCopy.orderTrialReward" :value="trialRewardText" brand />
           <template v-if="order.status === 'refunded'">
             <DetailRow v-if="order.refundReasonCode" :label="t.orders.refundReason" :value="t.orders.refundReasons[order.refundReasonCode]" />
-            <DetailRow v-if="order.refundAmountUsdt != null" :label="t.orders.refundAmount" :value="`$${formatAmount(order.refundAmountUsdt)}`" brand />
+            <DetailRow v-if="order.refundAmountUsdt != null" :label="t.orders.refundAmount" :value="usdt(order.refundAmountUsdt)" brand />
             <DetailRow v-if="order.refundChannel" :label="t.orders.refundChannel" :value="refundChannelLabel" />
             <DetailRow v-if="order.refundBillNo" :label="t.orders.refundBillNo" :value="order.refundBillNo" mono copyable />
+            <text v-if="order.trialReward?.reversedOnRefund && trialRewardText" class="block" style="padding: 6px 0; font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); color: var(--v5-ink-3)">{{ purchaseCopy.orderRewardsReversed }}</text>
             <view v-if="!order.refundedAt && order.refundAmountUsdt == null && !order.refundBillNo" role="status" style="padding: 8px 0; color: var(--v5-ink-3); font-size: 12px">
               <text>{{ t.orders.refundDetailsUnavailable }}</text>
             </view>
@@ -210,6 +234,9 @@ import { onLoad, onShow, onHide, onUnload } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import DetailRow from "@/components/store/order-detail-row.vue";
 import { useT } from "@/i18n/use-t";
+import { useTrialPurchaseCopy } from "@/i18n/trial-purchase";
+import { fmt } from "@/i18n/format";
+import { useTrialLifecycleCopy } from "@/i18n/trial-lifecycle";
 import { formatTrialDateTime } from "@/lib/trial-date";
 import { nexGridBrandText } from "@/lib/brand-copy";
 import { useOrders, type OrderStatus, type Order, timelineFor } from "@/store/orders";
@@ -231,6 +258,8 @@ const app = useApp();
 const auth = useAuth();
 
 const id = ref("");
+// FEAT-TRIAL05: `?result=trial` (set by checkout) opens the purchase result once; the order view is one tap away.
+const showTrialResult = ref(false);
 const orderOrigin = ref("");
 const ordersBackHref = ref("/store/orders");
 let detailMounted = true;
@@ -264,6 +293,7 @@ onLoad((options) => {
   id.value = o.id || (queryIds.length === 1 ? queryIds[0] : "");
   const queryMatchesOrder = Boolean(id.value) && queryIds.length === 1 && queryIds[0] === id.value;
   const from = o.from ?? (queryMatchesOrder && query.getAll("from").length === 1 ? query.get("from") : "");
+  showTrialResult.value = (o.result ?? (queryMatchesOrder && query.getAll("result").length === 1 ? query.get("result") : "")) === "trial";
   orderOrigin.value = from === "me" || from === "store" ? from : "";
   ordersBackHref.value = orderOrigin.value ? `/store/orders?from=${orderOrigin.value}` : "/store/orders";
   preserveOrderOriginInH5();
@@ -639,6 +669,31 @@ function goOrders() {
 function goEarn() {
   navTo("/earn");
 }
+const purchaseCopy = useTrialPurchaseCopy();
+const trialLifecycle = useTrialLifecycleCopy();
+function goDevices() {
+  navTo("/pages/me/devices");
+}
+const usdt = (value: number | string) => `${formatAmount(value)} USDT`;
+const trialRewardText = computed(() => {
+  const reward = order.value?.trialReward;
+  if (!reward || (reward.usdt <= 0 && reward.nex <= 0)) return "";
+  const nex = `${formatAmount(reward.nex)} UVT`;
+  return reward.usdt > 0 ? `${formatAmount(reward.usdt)} USDT · ${nex}` : nex;
+});
+const orderSaved = computed(() => {
+  const current = order.value;
+  if (!current) return 0;
+  const saved = Number(current.subtotal) - Number(current.total);
+  return Number.isFinite(saved) && saved > 0 ? +saved.toFixed(2) : 0;
+});
+const resultRunningText = computed(() => {
+  const current = order.value;
+  const device = current ? commerceOrderTitle(current, locale.code) : "";
+  return current?.dataCenter?.trim()
+    ? fmt(purchaseCopy.value.resultRunning, { device, dc: dataCenterLabel.value })
+    : fmt(purchaseCopy.value.resultRunningNoDc, { device });
+});
 
 function cleanup() {
   detailMounted = false;
@@ -779,4 +834,22 @@ const remoteErrorStyle: CSSProperties = {
 <style scoped>
 .order-recovery-actions { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
 .order-recovery-actions > view { display:flex; align-items:center; justify-content:center; text-align:center; line-height:1.5; }
+
+.trial-result { display:flex;flex-direction:column;gap:var(--v5-space-3); }
+.trial-result-head { display:flex;flex-direction:column;align-items:center;gap:var(--v5-space-2);padding:var(--v5-space-4) 0;text-align:center; }
+.trial-result-icon { width:64px;height:64px;border-radius:var(--v5-radius-full);background:var(--v5-brand-soft);color:var(--v5-brand); }
+.trial-result-title { font-size:var(--ui-type-page-title);line-height:var(--ui-type-page-title-lh);font-weight:600;color:var(--v5-ink); }
+.trial-result-body { font-size:var(--ui-type-body);line-height:var(--ui-type-body-lh);color:var(--v5-ink-2);overflow-wrap:anywhere; }
+.trial-result-credit { display:flex;flex-direction:column;gap:var(--v5-space-2);padding:var(--v5-space-4);border-radius:var(--v5-radius-l);background:color-mix(in srgb, var(--v5-brand) 10%, transparent);border:1px solid color-mix(in srgb, var(--v5-brand) 25%, transparent); }
+.trial-result-credit-label { font-size:var(--ui-type-list-subtitle);line-height:var(--ui-type-list-subtitle-lh);font-weight:600;color:var(--v5-ink-2); }
+.trial-result-row, .trial-result-line { display:flex;justify-content:space-between;align-items:baseline;gap:var(--v5-space-3);font-size:var(--ui-type-list-subtitle);line-height:var(--ui-type-list-subtitle-lh);color:var(--v5-ink-3); }
+.trial-result-row > text:last-child { font-size:var(--ui-type-list-title);line-height:var(--ui-type-list-title-lh);font-weight:600;font-variant-numeric:tabular-nums; }
+.trial-result-usdt, .trial-result-saved { color:var(--v5-brand); }
+.trial-result-uvt { color:var(--v5-nex); }
+.trial-result-summary { display:flex;flex-direction:column;gap:var(--v5-space-2);padding:var(--v5-space-3) var(--v5-space-4);border-radius:var(--v5-radius-l);background:var(--v5-surface); }
+.trial-result-line > text:last-child { color:var(--v5-ink-2);font-variant-numeric:tabular-nums; }
+.trial-result-actions { display:flex;flex-direction:column;gap:var(--v5-space-3);margin-top:var(--v5-space-2); }
+.trial-result-primary, .trial-result-secondary { display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:var(--v5-radius-full);font-size:var(--ui-type-button);line-height:var(--ui-type-button-lh);font-weight:600; }
+.trial-result-primary { background:var(--v5-brand);color:var(--v5-on-brand); }
+.trial-result-secondary { border:1px solid var(--v5-border-strong);color:var(--v5-ink); }
 </style>

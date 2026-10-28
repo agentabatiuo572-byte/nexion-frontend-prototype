@@ -59,6 +59,10 @@ export interface Order {
   promoDiscountUSD?: number;
   /** FEAT-TRIAL02 试用抵扣金(USDT)——仅结算抵减;服务端在同一订单事务里复算并 convert。 */
   trialOffsetUSD?: number;
+  /** FEAT-TRIAL05 早购立减(USDT)。 */
+  earlyDiscountUSD?: number;
+  /** 试用转购购后到账的 USDT / UVT 奖励;fullTerm 订单退款时随退款收回。 */
+  trialReward?: { usdt: number; nex: number; reversedOnRefund: boolean };
   total: number | string;   // Promoted history preserves the server's exact decimal string.
   promotionQuoteId?: string;
   paymentMethod: string;    // "usdt-trc20" etc
@@ -224,7 +228,13 @@ export const useOrders = defineStore("orders", () => {
       ...(row.lineItems != null && { lineItems: row.lineItems }),
       subtotal: row.subtotalUsdt,
       unitPrice: row.unitPriceUsdt,
-      discount: row.tradeinNo ? 0 : row.discountUsdt,
+      discount: row.tradeinNo || row.trialSettlement ? 0 : row.discountUsdt,
+      ...(row.trialSettlement && {
+        ...(row.trialSettlement.promoDiscountUsdt > 0 && { promoDiscountUSD: row.trialSettlement.promoDiscountUsdt }),
+        ...(row.trialSettlement.offsetUsdt > 0 && { trialOffsetUSD: row.trialSettlement.offsetUsdt }),
+        ...(row.trialSettlement.earlyDiscountUsdt > 0 && { earlyDiscountUSD: row.trialSettlement.earlyDiscountUsdt }),
+        trialReward: { usdt: row.trialSettlement.rewardUsdt, nex: row.trialSettlement.rewardNex, reversedOnRefund: row.trialSettlement.fullTerm },
+      }),
       ...(row.tradeinNo && { tradeInCredit: row.discountUsdt, tradeInDeviceId: String(row.sourceDeviceId) }),
       total: row.amountUsdt,
       ...(row.promotionQuoteId && { promotionQuoteId: row.promotionQuoteId }),

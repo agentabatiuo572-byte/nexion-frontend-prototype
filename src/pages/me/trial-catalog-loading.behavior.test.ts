@@ -10,6 +10,7 @@ import { fmt } from "@/i18n/format";
 import raw from "./trial.vue?raw";
 import { formatAmount } from "@/lib/amount-display";
 import { trialLifecycleCopy } from "@/i18n/trial-lifecycle";
+import { trialPurchaseCopy } from "@/i18n/trial-purchase";
 
 // Render the actual page and invoke its actual handlers: disabling the paint
 // must not allow a click/key press to navigate against an unread catalog.
@@ -54,14 +55,15 @@ async function mount(locale: keyof typeof translations, trialStatus: "active" | 
   const dependencies: Record<string, unknown> = {
     "@/api/runtime": { remoteApiEnabled: false },
     "@/i18n/trial-lifecycle": { useTrialLifecycleCopy: () => Vue.ref(trialLifecycleCopy[locale]) },
-    "@/lib/amount-display": { formatAmount },
+    "@/i18n/trial-purchase": { useTrialPurchaseCopy: () => Vue.ref(trialPurchaseCopy[locale]) },
+    "@/lib/amount-display": { formatAmount, formatGroupedAmount: formatAmount },
     vue: Vue,
     "@/components/app-chassis.vue": { default: { setup: (_props: unknown, context: { slots: Vue.Slots }) => () => Vue.h("chassis", context.slots.default?.()) } },
     "@/components/sub-page-header.vue": { default: { render: () => null } },
     "@/components/earn/trial-progress-hero.vue": { default: { render: () => null } },
     "@/i18n/use-t": { useT: () => Vue.ref(translations[locale]) },
     "@/i18n/format": { fmt },
-    "@/lib/trial-date": { formatTrialDateTime: () => "" },
+    "@/lib/trial-date": { formatTrialDateTime: () => "", formatTrialDeadline: () => "" },
     "@/api/geo-policy-error": { geoPolicyErrorKind: () => null, geoPolicyUserMessage: () => null },
     "@/store/free-trial": { useFreeTrial: () => trial, liveShadowUSD: () => 1, liveShadowNEX: () => 0, remainingMs: () => 1 },
     "@/store/trial-config": { useTrialConfig: () => ({ config: { trialProductId: "stellarbox-s1", trialOffsetCapUSD: 10 } }),

@@ -29,6 +29,16 @@ export const ORDER_REFUND_REASON_CODES = [
 
 export type OrderRefundReasonCode = typeof ORDER_REFUND_REASON_CODES[number];
 
+export interface OrderTrialSettlement {
+  /** FULL_TERM_ON_CONVERSION takes its rewards back on refund; older rules keep them. */
+  fullTerm: boolean;
+  promoDiscountUsdt: number;
+  offsetUsdt: number;
+  earlyDiscountUsdt: number;
+  rewardUsdt: number;
+  rewardNex: number;
+}
+
 export interface CanonicalOrder {
   orderNo: string;
   productId: number;
@@ -56,6 +66,8 @@ export interface CanonicalOrder {
   refundBillNo: string | null;
   /** User-visible refund reason; unknown codes are dropped rather than shown raw. */
   refundReasonCode?: OrderRefundReasonCode | null;
+  /** Trial-conversion orders only: checkout discounts and the trial rewards credited. */
+  trialSettlement?: OrderTrialSettlement | null;
   dataCenter: string | null;
   tradeinNo: string | null;
   sourceDeviceId: number | null;
@@ -181,6 +193,19 @@ function nonEmptyString(value: unknown): string {
   return value.trim();
 }
 
+function trialSettlement(value: unknown): OrderTrialSettlement | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const row = value as Record<string, unknown>;
+  return {
+    fullTerm: row.settlementPolicy === "FULL_TERM_ON_CONVERSION",
+    promoDiscountUsdt: finiteNumber(row.promoDiscountUsdt ?? 0),
+    offsetUsdt: finiteNumber(row.offsetUsdt ?? 0),
+    earlyDiscountUsdt: finiteNumber(row.earlyDiscountUsdt ?? 0),
+    rewardUsdt: finiteNumber(row.rewardUsdt ?? 0),
+    rewardNex: finiteNumber(row.rewardNex ?? 0),
+  };
+}
+
 function refundReasonCode(value: unknown): OrderRefundReasonCode | null {
   return typeof value === "string" && (ORDER_REFUND_REASON_CODES as readonly string[]).includes(value)
     ? value as OrderRefundReasonCode : null;
@@ -261,6 +286,7 @@ function canonicalOrder(value: unknown): CanonicalOrder {
     refundChannel: nullableString(source.refundChannel),
     refundBillNo: nullableString(source.refundBillNo),
     refundReasonCode: refundReasonCode(source.refundReasonCode),
+    trialSettlement: trialSettlement(source.trialSettlement),
     dataCenter: nullableString(source.dataCenter),
     tradeinNo: nullableString(source.tradeinNo),
     sourceDeviceId: nullableInteger(source.sourceDeviceId),

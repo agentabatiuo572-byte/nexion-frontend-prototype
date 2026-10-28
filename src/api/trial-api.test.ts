@@ -43,6 +43,13 @@ describe("trial conversion contract", () => {
     { offsetUsdt: 5, remainderUsdt: "invalid", priceUsdt: 649 }])("rejects an incomplete or invalid canonical split", amounts => {
     expect(() => parseTrialAuthorityState({ ...base, ...amounts })).toThrow("TRIAL_RESPONSE_INVALID");
   });
+  it("reads whether a redeemed trial's purchase was refunded, and only when the server says so", () => {
+    expect(parseTrialAuthorityState({ ...base, conversionOrderNo: "TRC-1", conversionRefunded: true, conversionRewardsReversed: true }))
+      .toMatchObject({ conversion: { orderNo: "TRC-1", refunded: true, rewardsReversed: true } });
+    expect(parseTrialAuthorityState({ ...base, conversionOrderNo: null, conversionRefunded: false }))
+      .toMatchObject({ conversion: { orderNo: null, refunded: false, rewardsReversed: false } });
+    expect(parseTrialAuthorityState(base)).not.toHaveProperty("conversion");
+  });
   it("retains the extended purchase deadline without resuming production", () => {
     const extendedEndsAt = 1_726_000_000_000;
     const parsed = parseTrialAuthorityState({ ...base, state: "EXTENDED", eligibilityReason: "in-progress",

@@ -38,7 +38,7 @@
           />
 
           <!-- Grace: stopped note — device dimmed above; here the plain words -->
-          <view v-if="status === 'grace'" :style="stoppedRowStyle">
+          <view v-if="status === 'grace' && freeTrial.authorityServerState === 'EXTENDED'" :style="stoppedRowStyle">
             <view class="flex items-center" style="gap: 6px">
               <view style="width: 8px; height: 8px; border-radius: 50%; background: var(--v5-warning); flex-shrink: 0" />
               <text style="font-size: 13px; font-weight: 600; color: var(--v5-ink)">{{ freeTrial.authorityServerState === 'EXTENDED' ? t.trial.extendedNote : t.trial.stoppedNote }}</text>
@@ -46,27 +46,36 @@
             <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3); line-height: 1.625">{{ offsetUsableUntilText }}</text>
           </view>
 
-          <!-- Accrued credit + conversion CTA -->
-          <view :style="creditWrapStyle" data-testid="trial-credit-summary">
-            <!-- FEAT-TRIAL05: every amount below is the server quote convert() will settle. -->
-            <template v-if="earlyQuote">
-              <text class="trial-early-headline" data-testid="trial-early-headline">{{ earlyHeadline }}</text>
-              <view class="trial-estimate-row"><text>{{ lifecycle.accruedLabel }}</text><text>${{ formatAmount(earlyQuote.accruedUSD) }} · {{ formatAmount(earlyQuote.accruedNEX) }} UVT</text></view>
-              <view class="trial-estimate-row"><text>{{ lifecycle.earlyRewardLabel }}</text><text>+${{ formatAmount(earlyQuote.earlyRewardUSD) }} · +{{ formatAmount(earlyQuote.earlyRewardNEX) }} UVT</text></view>
-              <view class="trial-estimate-row"><text>{{ t.store.coRowTrialOffset }}</text><text>−${{ formatAmount(earlyQuote.offsetUSD) }}</text></view>
-              <view v-if="earlyQuote.earlyDiscountUSD > 0" class="trial-estimate-row"><text>{{ lifecycle.earlyDiscountLabel }}</text><text>−${{ formatAmount(earlyQuote.earlyDiscountUSD) }}</text></view>
-              <view class="trial-estimate-row"><text>{{ lifecycle.afterPurchaseLabel }}</text><text>{{ earlyRewardsText }}</text></view>
-              <text class="trial-early-note">{{ lifecycle.earlyNote }}</text>
-            </template>
-            <template v-else>
-              <view class="flex items-center justify-between">
-                <text style="font-size: 12px; color: var(--v5-ink-3)">{{ lifecycle.availableOffsetLabel }}</text>
-                <text class="font-mono-tabular" style="font-size: 15px; font-weight: 600; color: var(--v5-brand); white-space: nowrap">${{ formatAmount(trialOffset.offsetUSD) }}</text>
+          <!-- FEAT-TRIAL05: every amount below is the server quote convert() will settle. -->
+          <view v-if="purchaseQuote" class="trial-buy" data-testid="trial-credit-summary">
+            <view>
+              <text class="trial-buy-title" data-testid="trial-buy-title">{{ buyTitle }}</text>
+              <view v-if="earlyDeadline" class="trial-buy-deadline" data-testid="trial-early-deadline">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                <text>{{ earlyDeadline }}</text>
               </view>
-              <view class="trial-estimate-row"><text>{{ lifecycle.estimateTotalLabel }}</text><text>≈ ${{ formatAmount(estimatedOffsetUSD) }}</text></view>
-              <text class="trial-early-note">{{ lifecycle.earlyPurchaseNote }}</text>
-              <text v-if="trialOffset.remainderUSD > 0" class="block" :style="remainderNoteStyle">{{ offsetRemainderNote }}</text>
-            </template>
+            </view>
+            <view class="trial-buy-card" role="group" :aria-label="purchase.payGroup">
+              <text class="trial-buy-card-label">{{ purchase.payGroup }}</text>
+              <view class="trial-buy-row"><text>{{ purchase.unitPrice }}</text><text>{{ usdt(purchaseQuote.priceUSD) }}</text></view>
+              <view v-if="purchaseQuote.promoDiscountUSD > 0" class="trial-buy-row trial-buy-row--discount"><text>{{ promoLabel }}</text><text>−{{ usdt(purchaseQuote.promoDiscountUSD) }}</text></view>
+              <view v-if="purchaseQuote.offsetUSD > 0" class="trial-buy-row trial-buy-row--discount"><text>{{ t.store.coRowTrialOffset }}</text><text>−{{ usdt(purchaseQuote.offsetUSD) }}</text></view>
+              <view v-if="purchaseQuote.earlyDiscountUSD > 0" class="trial-buy-row trial-buy-row--discount"><text>{{ lifecycle.earlyDiscountLabel }}</text><text>−{{ usdt(purchaseQuote.earlyDiscountUSD) }}</text></view>
+              <view class="trial-buy-divider" />
+              <view class="trial-buy-total"><text>{{ purchase.amountDue }}</text><text data-testid="trial-amount-due">{{ usdt(purchaseQuote.amountUSD) }}</text></view>
+            </view>
+            <view class="trial-buy-credit" role="group" :aria-label="purchase.creditGroup">
+              <view class="trial-buy-credit-row">
+                <text>{{ purchase.creditGroup }}</text>
+                <view class="trial-buy-credit-value" data-testid="trial-credit-after">
+                  <text v-if="purchaseQuote.remainderUSD > 0" class="trial-buy-usdt">{{ usdt(purchaseQuote.remainderUSD) }}</text>
+                  <text v-if="purchaseQuote.remainderUSD > 0" class="trial-buy-sep">·</text>
+                  <text class="trial-buy-uvt">{{ formatGroupedAmount(purchaseQuote.rewardNEX) }} UVT</text>
+                </view>
+              </view>
+              <text v-if="creditNote" class="trial-buy-note">{{ creditNote }}</text>
+            </view>
+            <text v-if="earlyEndedNote" class="trial-buy-note">{{ earlyEndedNote }}</text>
             <view
               class="w-full flex items-center justify-center"
               :class="trialProductUnavailable ? '' : 'active:scale-[0.98] active:opacity-85'"
@@ -85,10 +94,24 @@
             </view>
             <text v-if="trialProductUnavailable && productCatalogState.status === 'ready'" class="block" :style="reasonNoteStyle">{{ t.store.trialProductUnavailable }}</text>
           </view>
+          <!-- Older servers without a quote keep the accrued-only presentation. -->
+          <view v-else :style="creditWrapStyle" data-testid="trial-credit-summary">
+            <view class="flex items-center justify-between">
+              <text style="font-size: var(--ui-type-meta); color: var(--v5-ink-3)">{{ lifecycle.availableOffsetLabel }}</text>
+              <text class="font-mono-tabular" style="font-size: var(--ui-type-list-title); font-weight: 600; color: var(--v5-brand); white-space: nowrap">{{ usdt(trialOffset.offsetUSD) }}</text>
+            </view>
+            <view class="trial-estimate-row"><text>{{ lifecycle.estimateTotalLabel }}</text><text>≈ {{ usdt(estimatedOffsetUSD) }}</text></view>
+            <text class="trial-buy-note">{{ lifecycle.earlyPurchaseNote }}</text>
+            <text v-if="trialOffset.remainderUSD > 0" class="block" :style="remainderNoteStyle">{{ offsetRemainderNote }}</text>
+            <view class="w-full flex items-center justify-center" :class="trialProductUnavailable ? '' : 'active:scale-[0.98] active:opacity-85'" :style="trialProductUnavailable && !trialCatalogLoading ? buyBtnDisabledStyle : buyBtnStyle" role="button" :tabindex="trialProductUnavailable ? -1 : 0" :aria-label="trialBuyCtaText" :aria-disabled="trialProductUnavailable ? 'true' : 'false'" :aria-busy="trialCatalogLoading ? 'true' : 'false'" @click="goCheckout" @keydown.enter.prevent="goCheckout" @keydown.space.prevent="goCheckout">
+              <text>{{ trialBuyCtaText }}</text>
+            </view>
+            <text v-if="trialProductUnavailable && productCatalogState.status === 'ready'" class="block" :style="reasonNoteStyle">{{ t.store.trialProductUnavailable }}</text>
+          </view>
 
           <!-- Rules entry -->
-          <view class="w-full flex items-center justify-between active:opacity-70" :style="rulesEntryStyle" role="button" tabindex="0" :aria-label="t.trial.rulesEntry" @click="rulesOpen = true">
-            <text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2)">{{ t.trial.rulesEntry }}</text>
+          <view class="w-full flex items-center justify-between active:opacity-70" :style="rulesEntryStyle" role="button" tabindex="0" :aria-label="purchase.rulesEntry" @click="rulesOpen = true">
+            <text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2)">{{ purchase.rulesEntry }}</text>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
           </view>
 
@@ -135,6 +158,20 @@
           <text v-if="trialProductUnavailable && productCatalogState.status === 'ready'" class="block" :style="reasonNoteStyle">{{ t.store.trialProductUnavailable }}</text>
         </view>
 
+        <!-- ═══ converted, then refunded: the device is gone, say so ═══ -->
+        <template v-else-if="conversionRefunded">
+          <view class="nx-glass-card" :style="terminalCardStyle" data-testid="trial-refunded">
+            <view class="grid place-items-center" :style="terminalIconBoxStyle">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7v6h6" /><path d="M21 17a9 9 0 0 0-15-6.7L3 13" /></svg>
+            </view>
+            <text class="block" :style="idleTitleStyle">{{ purchase.refundedTitle }}</text>
+            <text class="block" :style="idleBodyStyle">{{ purchase.refundedBody }}</text>
+            <text v-if="freeTrial.authoritativeConversion?.rewardsReversed" class="block" :style="reasonNoteStyle">{{ purchase.refundedRewards }}</text>
+          </view>
+          <view class="w-full flex items-center justify-center active:scale-[0.98]" :style="buyBtnStyle" role="button" tabindex="0" :aria-label="purchase.shopCta" @click="goStore"><text>{{ purchase.shopCta }}</text></view>
+          <view v-if="freeTrial.authoritativeConversion?.orderNo" class="w-full flex items-center justify-center active:opacity-90" :style="goEarnStyle" role="button" tabindex="0" :aria-label="purchase.refundOrderCta" @click="goRefundedOrder"><text>{{ purchase.refundOrderCta }}</text></view>
+        </template>
+
         <!-- ═══ converted — owned terminal ═══ -->
         <view class="nx-glass-card" v-else :style="terminalCardStyle">
           <view class="grid place-items-center" :style="terminalIconBoxStyle">
@@ -180,14 +217,14 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
+import { formatAmount, formatGroupedAmount } from "@/lib/amount-display";
 import { computed, ref, watch, onMounted, onUnmounted, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import CountdownHero from "@/components/earn/trial-progress-hero.vue";
 import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
-import { formatTrialDateTime } from "@/lib/trial-date";
+import { formatTrialDateTime, formatTrialDeadline } from "@/lib/trial-date";
 import { geoPolicyErrorKind, geoPolicyUserMessage } from "@/api/geo-policy-error";
 import { useFreeTrial, liveShadowUSD, liveShadowNEX, remainingMs } from "@/store/free-trial";
 import { useTrialConfig, computeTrialOffset, resolveTrialCheckoutProductId } from "@/store/trial-config";
@@ -198,11 +235,13 @@ import { navTo } from "@/lib/route";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import { remoteApiEnabled } from "@/api/runtime";
 import { useTrialLifecycleCopy } from "@/i18n/trial-lifecycle";
+import { useTrialPurchaseCopy } from "@/i18n/trial-purchase";
 
 const t = useT();
 const freeTrial = useFreeTrial();
 const trialConfig = useTrialConfig();
 const lifecycle = useTrialLifecycleCopy();
+const purchase = useTrialPurchaseCopy();
 const authorityUnavailable = computed(() => remoteApiEnabled && (freeTrial.authorityStatus !== "ready"
   || ((freeTrial.status === "active" || freeTrial.status === "grace")
     && (freeTrial.authoritativeOffsetUSD === null || freeTrial.authoritativeRemainderUSD === null))));
@@ -243,22 +282,34 @@ const trialOffset = computed(() => remoteApiEnabled
   ? { offsetUSD: freeTrial.authoritativeOffsetUSD ?? 0, remainderUSD: freeTrial.authoritativeRemainderUSD ?? 0 }
   : computeTrialOffset(cfg.value, shadowUSD.value));
 const estimatedOffsetUSD = computed(() => computeTrialOffset(cfg.value, cfg.value.shadowDailyUSD * cfg.value.trialDays).offsetUSD);
-// FEAT-TRIAL05: shown only while the server says the original term is still running.
-// Once its end passes, the quote is stale: hide it and re-read rather than show a lapsed offer.
+// FEAT-TRIAL05: the server quote convert() will settle. An early quote is shown only while
+// the original term is still running; once its end passes it is stale, so hide it and re-read.
 const earlyQuoteLapsed = computed(() => {
   const quote = freeTrial.authoritativeQuote;
   return !!quote?.earlyPurchase && quote.earlyEndsAt !== null && now.value >= quote.earlyEndsAt;
 });
-const earlyQuote = computed(() => remoteApiEnabled && status.value === "active" && freeTrial.authoritativeQuote?.earlyPurchase
-  && !earlyQuoteLapsed.value ? freeTrial.authoritativeQuote : null);
+const purchaseQuote = computed(() => remoteApiEnabled && isActiveCycle.value && !earlyQuoteLapsed.value
+  ? freeTrial.authoritativeQuote : null);
+const earlyQuote = computed(() => status.value === "active" && purchaseQuote.value?.earlyPurchase ? purchaseQuote.value : null);
 watch(earlyQuoteLapsed, (lapsed) => { if (lapsed) void freeTrial.refreshRemote(true); });
-const earlyHeadline = computed(() => fmt(lifecycle.value.earlyHeadline, { discount: formatAmount(earlyQuote.value?.earlyDiscountUSD ?? 0) }));
-const earlyRewardsText = computed(() => {
-  const quote = earlyQuote.value;
-  if (!quote) return "";
-  const nex = `${formatAmount(quote.rewardNEX)} UVT`;
-  return quote.remainderUSD > 0 ? `${formatAmount(quote.remainderUSD)} USDT · ${nex}` : nex;
+const usdt = (value: number) => `${formatGroupedAmount(value)} USDT`;
+const buyTitle = computed(() => {
+  if (earlyQuote.value) return fmt(purchase.value.earlyTitle, { discount: formatGroupedAmount(earlyQuote.value.earlyDiscountUSD) });
+  return status.value === "grace" ? purchase.value.graceTitle : purchase.value.accruedTitle;
 });
+const earlyDeadline = computed(() => earlyQuote.value?.earlyEndsAt
+  ? fmt(purchase.value.earlyDeadline, { time: formatTrialDeadline(earlyQuote.value.earlyEndsAt, dateLocale()) }) : "");
+const creditNote = computed(() => {
+  if (earlyQuote.value) return fmt(purchase.value.creditNoteFull, { days: String(cfg.value.trialDays) });
+  return status.value === "active" ? purchase.value.creditNoteAccrued : "";
+});
+const earlyEndedNote = computed(() => status.value === "grace" && (purchaseQuote.value?.earlyDiscountConfiguredUSD ?? 0) > 0
+  ? fmt(purchase.value.earlyEnded, { discount: formatGroupedAmount(purchaseQuote.value!.earlyDiscountConfiguredUSD) }) : "");
+const promoLabel = computed(() => fmt(t.value.store.coRowTrialDiscount, {
+  pct: (cfg.value.discountRate * 100).toFixed(0), cap: String(Number(cfg.value.discountCapUSD)),
+}));
+const conversionRefunded = computed(() => remoteApiEnabled && status.value === "converted"
+  && freeTrial.authoritativeConversion?.refunded === true);
 
 const w = computed(() => t.value.trial);
 const idleBody = computed(() => freeTrial.authorityStatus === "mock" || freeTrial.authorityServerState !== null
@@ -274,7 +325,7 @@ const trialBuyCtaText = computed(() => {
   if (productCatalogState.status === "error") return t.value.store.catalogErrorTitle;
   if (trialCatalogLoading.value) return w.value.buyCtaPlain;
   if (trialProductUnavailable.value) return t.value.store.temporarilyOutOfStock;
-  if (earlyQuote.value) return fmt(lifecycle.value.earlyBuyCta, { amount: formatAmount(earlyQuote.value.amountUSD) });
+  if (purchaseQuote.value) return fmt(purchase.value.buyCta, { amount: formatGroupedAmount(purchaseQuote.value.amountUSD) });
   return w.value.buyCtaPlain;
 });
 // none-state eligibility (异常2 — concrete reason, never a generic error).
@@ -304,11 +355,11 @@ const ineligibleReasonText = computed(() => {
 // remainder → balance / expiry).
 const rulesOpen = ref(false);
 const rulesLines = computed(() => [
-  fmt(w.value.rulesBefore, { cap: formatAmount(cfg.value.trialOffsetCapUSD) }),
+  fmt(w.value.rulesBefore, { cap: formatGroupedAmount(cfg.value.trialOffsetCapUSD) }),
   w.value.rulesNoCash,
   w.value.rulesAfter,
   ...(earlyQuote.value ? [
-    fmt(lifecycle.value.rulesEarly, { discount: formatAmount(earlyQuote.value.earlyDiscountConfiguredUSD) }),
+    fmt(lifecycle.value.rulesEarly, { discount: formatGroupedAmount(earlyQuote.value.earlyDiscountConfiguredUSD) }),
     lifecycle.value.rulesRefund,
   ] : []),
   w.value.rulesExpiry,
@@ -338,12 +389,19 @@ function goEarn() {
 function goDevices() {
   navTo("/pages/me/devices");
 }
+function goStore() {
+  navTo("/store");
+}
+function goRefundedOrder() {
+  const orderNo = freeTrial.authoritativeConversion?.orderNo;
+  if (orderNo) navTo(`/pages/store/order-detail?id=${encodeURIComponent(orderNo)}`);
+}
 
 // ── styles — hairline-separated blocks on the page floor ──
 const stoppedRowStyle: CSSProperties = { padding: "13px 2px 0", borderTop: "1px solid var(--v5-border)" };
 const creditWrapStyle: CSSProperties = { padding: "13px 2px 0", borderTop: "1px solid var(--v5-border)" };
 const remainderNoteStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-4)", marginTop: "6px", lineHeight: 1.625, textWrap: "pretty" };
-const buyBtnStyle: CSSProperties = { marginTop: "12px", width: "100%", height: "48px", borderRadius: "999px", background: "var(--v5-brand)", color: "var(--v5-on-brand)", fontSize: "13px", fontWeight: 600 };
+const buyBtnStyle: CSSProperties = { marginTop: "4px", width: "100%", height: "48px", borderRadius: "999px", background: "var(--v5-brand)", color: "var(--v5-on-brand)", fontSize: "var(--ui-type-button)", lineHeight: "var(--ui-type-button-lh)", fontWeight: 600 };
 const buyBtnDisabledStyle: CSSProperties = { ...buyBtnStyle, background: "var(--v5-surface-2)", color: "var(--v5-ink-4)" };
 const rulesEntryStyle: CSSProperties = { minHeight: "44px", padding: "0 2px", borderTop: "1px solid var(--v5-border)" };
 const goEarnStyle: CSSProperties = { width: "100%", height: "44px", borderRadius: "999px", background: "var(--v5-surface-2)", fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-2)" };
@@ -378,10 +436,26 @@ useDialogA11y(computed(() => rulesOpen.value), ".trs-root", () => { rulesOpen.va
 .trial-read-skeleton > view { height:24px;width:70%;border-radius:8px;background:var(--v5-surface-2); }
 .trial-read-skeleton > view:first-child { height:100px;width:100%;border-radius:20px; }
 .trial-read-retry { min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:999px;background:var(--v5-surface-2);color:var(--v5-ink);font:600 13px/20px var(--font-v5); }
-.trial-estimate-row { display:flex;justify-content:space-between;gap:12px;margin-top:10px;color:var(--v5-ink-3);font-size:12px;line-height:1.5; }
+.trial-estimate-row { display:flex;justify-content:space-between;gap:var(--v5-space-3);margin-top:var(--v5-space-2);color:var(--v5-ink-3);font-size:var(--ui-type-meta);line-height:var(--ui-type-meta-lh); }
 .trial-estimate-row > text:last-child { flex-shrink:0;font-variant-numeric:tabular-nums; }
-.trial-early-note { display:block;margin-top:12px;font-size:12px;line-height:1.6;color:var(--v5-ink-2); }
-.trial-early-headline { display:block;font-size:14px;font-weight:600;line-height:1.5;color:var(--v5-brand);text-wrap:pretty; }
+.trial-buy { display:flex;flex-direction:column;gap:var(--v5-space-3);padding-top:var(--v5-space-2); }
+.trial-buy-title { display:block;font-size:var(--ui-type-section);line-height:var(--ui-type-section-lh);font-weight:600;color:var(--v5-ink);text-wrap:pretty; }
+.trial-buy-deadline { display:inline-flex;align-items:center;gap:var(--v5-space-1);margin-top:var(--v5-space-2);padding:var(--v5-space-1) var(--v5-space-3);border-radius:var(--v5-radius-full);background:var(--v5-brand-soft);color:var(--v5-brand);font-size:var(--ui-type-meta);line-height:var(--ui-type-meta-lh);font-weight:600; }
+.trial-buy-card { display:flex;flex-direction:column;gap:var(--v5-space-2);padding:var(--v5-space-3) var(--v5-space-4);border-radius:var(--v5-radius-l);background:var(--v5-surface); }
+.trial-buy-card-label { font-size:var(--ui-type-meta);line-height:var(--ui-type-meta-lh);font-weight:600;color:var(--v5-ink-3); }
+.trial-buy-row { display:flex;justify-content:space-between;gap:var(--v5-space-3);font-size:var(--ui-type-list-subtitle);line-height:var(--ui-type-list-subtitle-lh);color:var(--v5-ink-3); }
+.trial-buy-row > text:last-child { flex-shrink:0;color:var(--v5-ink-2);font-variant-numeric:tabular-nums; }
+.trial-buy-row--discount > text:last-child { color:var(--v5-brand); }
+.trial-buy-divider { height:1px;background:var(--v5-border); }
+.trial-buy-total { display:flex;justify-content:space-between;align-items:baseline;gap:var(--v5-space-3);font-size:var(--ui-type-list-subtitle);color:var(--v5-ink-2); }
+.trial-buy-total > text:last-child { font-size:var(--ui-type-list-title);line-height:var(--ui-type-list-title-lh);font-weight:600;color:var(--v5-ink);font-variant-numeric:tabular-nums; }
+.trial-buy-credit { display:flex;flex-direction:column;gap:var(--v5-space-1);padding:var(--v5-space-3) var(--v5-space-4);border-radius:var(--v5-radius-l);background:color-mix(in srgb, var(--v5-brand) 10%, transparent);border:1px solid color-mix(in srgb, var(--v5-brand) 25%, transparent); }
+.trial-buy-credit-row { display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;column-gap:var(--v5-space-3);row-gap:var(--v5-space-1);font-size:var(--ui-type-list-subtitle);line-height:var(--ui-type-list-subtitle-lh);font-weight:600;color:var(--v5-ink-2); }
+.trial-buy-credit-value { display:flex;margin-left:auto;white-space:nowrap;gap:var(--v5-space-1);font-size:var(--ui-type-list-title);line-height:var(--ui-type-list-title-lh);font-variant-numeric:tabular-nums; }
+.trial-buy-usdt { color:var(--v5-brand); }
+.trial-buy-sep { color:var(--v5-ink-3); }
+.trial-buy-uvt { color:var(--v5-nex); }
+.trial-buy-note { display:block;font-size:var(--ui-type-meta);line-height:var(--ui-type-meta-lh);color:var(--v5-ink-3);text-wrap:pretty; }
 .trs-root {
   position: fixed;
   inset: 0;

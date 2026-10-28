@@ -112,6 +112,19 @@ describe("order list provenance", () => {
       .rejects.toMatchObject({ message: "ORDER_RESPONSE_INVALID" });
   });
 
+  it("reads a trial conversion breakdown and leaves ordinary orders without one", async () => {
+    const envelope = { source: "server", sourceEnvironment: "PRODUCTION", runId: null, serverCanonical: true };
+    const trialSettlement = { settlementPolicy: "FULL_TERM_ON_CONVERSION", promoDiscountUsdt: 50, offsetUsdt: 50,
+      earlyDiscountUsdt: 10, rewardUsdt: 65.56, rewardNex: 195 };
+    await expect(api({ ...envelope, orders: [{ ...order(), trialSettlement }, order()] }, "prod").list())
+      .resolves.toMatchObject({ orders: [
+        { trialSettlement: { fullTerm: true, promoDiscountUsdt: 50, offsetUsdt: 50, earlyDiscountUsdt: 10, rewardUsdt: 65.56, rewardNex: 195 } },
+        { trialSettlement: null },
+      ] });
+    await expect(api({ ...envelope, orders: [{ ...order(), trialSettlement: { ...trialSettlement, settlementPolicy: "ACCRUED_ON_CONVERSION" } }] }, "prod").list())
+      .resolves.toMatchObject({ orders: [{ trialSettlement: { fullTerm: false } }] });
+  });
+
   it("keeps known refund reasons and drops unknown or operator text", async () => {
     const refunded = {
       ...order(), paymentStatus: "REFUNDED", orderStatus: "REFUNDED", activationStatus: "REFUNDED",

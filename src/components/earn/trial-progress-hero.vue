@@ -12,44 +12,41 @@
       <text :style="boxNameStyle">{{ cfg.trialProductName }}</text>
     </view>
 
-    <text class="block" style="margin-top:16px;font-size:12px;color:var(--v5-ink-3)">{{ lifecycle.accruedLabel }}</text>
-    <!-- Shadow earnings -->
-    <view class="flex items-baseline" style="gap: 6px; margin-top: 12px">
-      <text :style="dollarStyle">$</text>
-      <text :style="shadowUsdStyle">{{ visibility.mask(formatAmount(shadowUSD)) }}</text>
-      <text :style="shadowNexStyle">+ {{ visibility.mask(formatAmount(shadowNEX)) }} UVT</text>
+    <text class="block" style="margin-top:16px;font-size:var(--ui-type-list-subtitle);line-height:var(--ui-type-list-subtitle-lh);color:var(--v5-ink-3)">{{ lifecycle.accruedLabel }}</text>
+    <!-- Shadow earnings: USDT and UVT are separate assets, never shown as dollars. -->
+    <view class="flex items-baseline" style="gap: 6px; margin-top: 8px">
+      <text :style="shadowUsdStyle">{{ visibility.mask(formatGroupedAmount(shadowUSD)) }}</text>
+      <text :style="unitStyle">USDT</text>
+      <text :style="shadowNexStyle">+ {{ visibility.mask(formatGroupedAmount(shadowNEX)) }} UVT</text>
     </view>
     <text class="block" :style="ctaLineStyle">{{ cta }}</text>
 
-    <!-- Seconds are only useful in the final 24 hours. -->
+    <!-- Remaining time and the term end share one compact row; seconds only in the final 24 hours. -->
     <view class="trial-remaining" :class="{ 'trial-remaining--final-day': remainingMs <= 86400000 }">
-      <text class="block" style="font-size:12px;color:var(--v5-ink-3)">{{ t.coreReview.remaining }}</text>
-      <text class="block tabular-nums" style="margin-top:6px;font:600 20px/28px var(--font-v5);color:var(--v5-ink)">{{ remainingLabel }}</text>
+      <text>{{ fmt(purchase.heroRemaining, { time: remainingLabel }) }}</text>
+      <text>{{ termLine }}</text>
     </view>
 
     <!-- Progress bar -->
     <view :style="barTrackStyle">
       <view :style="barFillStyle" />
     </view>
-    <view class="flex items-center justify-between" :style="datesRowStyle">
-      <text>{{ startDateLine }}</text>
-      <text>{{ endDateLine }}</text>
-    </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { useDataVisibility } from "@/store/data-visibility";
-import { formatAmount } from "@/lib/amount-display";
+import { formatGroupedAmount } from "@/lib/amount-display";
 import { computed, type CSSProperties } from "vue";
 import { formatTrialRemaining } from "@/i18n/core-review";
 import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
-import { formatTrialDate } from "@/lib/trial-date";
+import { formatTrialDeadline } from "@/lib/trial-date";
 import { useTrialConfig } from "@/store/trial-config";
 import type { TrialStatus } from "@/store/free-trial";
 import { trialCycleDurationMs } from "@/lib/trial-cycle-duration";
 import { useTrialLifecycleCopy } from "@/i18n/trial-lifecycle";
+import { useTrialPurchaseCopy } from "@/i18n/trial-purchase";
 
 const visibility = useDataVisibility();
 const props = defineProps<{
@@ -66,6 +63,7 @@ const props = defineProps<{
 
 const t = useT();
 const lifecycle = useTrialLifecycleCopy();
+const purchase = useTrialPurchaseCopy();
 const cfg = computed(() => useTrialConfig().config);
 
 const remainingLabel = computed(() => formatTrialRemaining(props.remainingMs, t.value.coreReview));
@@ -92,16 +90,13 @@ const cta = computed(() => {
   return "";
 });
 
-const startDateLine = computed(() =>
-  fmt(w.value.countdownStart, {
-    date: props.startedAt !== null ? formatTrialDate(props.startedAt, dateLocale()) : w.value.countdownDateEmpty,
-  }),
-);
-const endDateLine = computed(() =>
-  fmt(w.value.countdownEnd, {
-    date: props.graceEndsAt !== null ? formatTrialDate(props.graceEndsAt, dateLocale()) : w.value.countdownDateEmpty,
-  }),
-);
+// Active: the original term end (where the early discount stops). Grace: how long the credit is kept.
+const termLine = computed(() => {
+  if (props.status === "grace") {
+    return props.graceEndsAt === null ? "" : fmt(purchase.value.heroKeptUntil, { time: formatTrialDeadline(props.graceEndsAt, dateLocale()) });
+  }
+  return props.expiresAt === null ? "" : fmt(purchase.value.heroTermUntil, { time: formatTrialDeadline(props.expiresAt, dateLocale()) });
+});
 
 const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", borderRadius: "var(--nx-glass-radius)", border: "none", background: "var(--nx-glass-fill)", padding: "20px" };
 const ribbonStyle = computed<CSSProperties>(() => ({
@@ -120,31 +115,31 @@ const boxNameStyle = computed<CSSProperties>(() => ({
   color: props.status === "grace" ? "var(--v5-ink-4)" : "var(--v5-ink-3)",
   opacity: props.status === "grace" ? 0.6 : 1,
 }));
-const dollarStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "15px", fontWeight: 500, color: "var(--v5-ink-3)", opacity: 0.75 };
+const unitStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-3)" };
 // Grace = stopped: the frozen figure dims to read as "no longer accruing".
 const shadowUsdStyle = computed<CSSProperties>(() => ({
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "34px",
+  fontSize: "var(--ui-type-wallet-amount)",
+  lineHeight: "var(--ui-type-wallet-amount-lh)",
   fontWeight: 600,
   letterSpacing: "-0.024em",
   color: props.status === "grace" ? "var(--v5-ink-3)" : "var(--v5-ink)",
 }));
-const shadowNexStyle: CSSProperties = { fontFamily: "var(--font-jet-mono), ui-monospace, monospace", fontSize: "13px", color: "var(--v5-tech-cyan)", marginLeft: "6px" };
-const ctaLineStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", color: "var(--v5-ink-3)" };
-const barTrackStyle: CSSProperties = { marginTop: "16px", height: "6px", borderRadius: "999px", background: "var(--v5-surface-3)", overflow: "hidden" };
+const shadowNexStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-nex)", marginLeft: "4px" };
+const ctaLineStyle: CSSProperties = { marginTop: "4px", fontSize: "var(--ui-type-meta)", lineHeight: "var(--ui-type-meta-lh)", color: "var(--v5-ink-3)" };
+const barTrackStyle: CSSProperties = { marginTop: "8px", height: "6px", borderRadius: "999px", background: "var(--v5-surface-3)", overflow: "hidden" };
 const barFillStyle = computed<CSSProperties>(() => ({
   height: "100%",
   width: `${progressPct.value}%`,
   background: tint.value,
   transition: "width 500ms ease",
 }));
-const datesRowStyle: CSSProperties = { marginTop: "6px", fontFamily: "var(--font-jet-mono), ui-monospace, monospace", fontSize: "12px", color: "var(--v5-ink-4)" };
 
 
 </script>
 
 
 <style scoped>
-.trial-remaining { margin-top:16px;padding:14px 16px;border-radius:14px;background:var(--v5-surface-2); }
+.trial-remaining { margin-top:16px;display:flex;justify-content:space-between;gap:12px;font-size:var(--ui-type-meta);line-height:var(--ui-type-meta-lh);color:var(--v5-ink-3); }
 .trial-remaining--final-day { font-variant-numeric:tabular-nums; }
 </style>

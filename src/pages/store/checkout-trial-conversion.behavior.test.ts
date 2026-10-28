@@ -139,7 +139,7 @@ describe("real trial checkout refusal and recovery feedback", () => {
     h.freeTrial.hasPendingConversion.mockReturnValue(true);
     h.freeTrial.convert.mockResolvedValue({ ok: true, orderNo: "ORIGINAL-ORDER" });
     await h.pay(); expect(h.submitRemoteOrder).not.toHaveBeenCalled();
-    expect(h.navReplace).toHaveBeenCalledWith({ url: "/pages/store/order-detail?id=ORIGINAL-ORDER" });
+    expect(h.navReplace).toHaveBeenCalledWith({ url: "/pages/store/order-detail?id=ORIGINAL-ORDER&result=trial" });
   });
   it("reserves the pricing message for an actual quote refusal", async () => {
     const h = harness(); h.freeTrial.convert.mockResolvedValue({ ok: false, reason: "quote-changed" });
