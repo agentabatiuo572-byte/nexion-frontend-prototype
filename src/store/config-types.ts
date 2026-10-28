@@ -234,8 +234,9 @@ export interface PublicStatsConfig {
   registeredUsersMonthlyGrowthPct: number;
   /** 派生起点(ms epoch)。运营改基数即重置锚点。 */
   registeredUsersAnchorAt: number;
-  /** Optional until the public estimate settings are published. Seconds / users. */
+  /** 注册用户跳动间隔(秒)。与每次增加人数成对下发,未设置时缺省并隐藏估算。[1, 86400]。 */
   registeredUsersTickIntervalSec?: number;
+  /** 每次跳动增加的注册用户数,0 表示保持不变。[0, 100000000]。 */
   registeredUsersTickStep?: number;
   /** 服务端真实注册账号数，仅用于排名分母，不用于营销展示。 */
   realUserCount: number;
