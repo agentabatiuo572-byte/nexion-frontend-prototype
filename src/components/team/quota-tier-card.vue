@@ -16,7 +16,6 @@
         <QuotaConditionBar :pct="pending ? 0 : condition.required > 0 ? Math.min(1, Math.max(0, condition.current / condition.required)) : 1" :met="!pending && condition.current >= condition.required" :tint="tier.tint" :label="conditionLabel(condition)" :value-text="conditionValue(condition)" />
       </view>
     </view>
-    <text v-if="tier.conditions.some(condition => condition.kind === 'legacyUSD') && !tier.conditions.some(condition => condition.kind === 'volume')" class="quota-unavailable">{{ logicCopy.pointsUnavailable }}</text>
     <view v-if="tier.perks.length" class="quota-perks"><text v-for="(perk, index) in tier.perks" :key="index">{{ perk }}</text></view>
     <view class="quota-actions" :class="{ 'quota-pending-action': actionBlocked }">
       <NxButton v-if="pending" class="quota-pending-action" variant="secondary" :label="fmt(t.quota.buyCta, { name: displayName })" :disabled="true"><text>{{ fmt(t.quota.buyCta, { name: displayName }) }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
@@ -30,8 +29,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { formatFinanceAmount } from '@/lib/finance-amount-display';
-import { teamLogicCopy } from '@/i18n/team-logic-copy';
-import { formatLegacyUSD } from '@/lib/v-rank-copy';
 import { formatComputePoints } from '@/i18n/compute-points';
 import { useLocaleStore } from '@/store/locale';
 import { networkReauditCopy } from '@/i18n/network-reaudit';
@@ -46,7 +43,7 @@ export interface QuotaCondition {
   label: string;
   current: number;
   required: number;
-  kind: "invites" | "volume" | "legacyUSD";
+  kind: "invites" | "volume";
 }
 export interface QuotaTier {
   available?: boolean;
@@ -73,7 +70,6 @@ const props = defineProps<{ tier: QuotaTier; pending?: boolean; actionBlocked?: 
 const emit = defineEmits<{ navigate: [url: string] }>();
 const t = useT();
 const locale = useLocaleStore();
-const logicCopy = computed(() => teamLogicCopy(locale.code));
 const auditCopy = computed(() => networkReauditCopy(locale.code));
 const displayName = computed(() => nexGridBrandText(props.tier.name));
 const productImage = computed(() => getProductMedia(props.tier.productId)?.src ?? props.tier.imageUrl);
@@ -87,11 +83,10 @@ const stockLeft = computed(() => Math.max(0, props.tier.monthlyStock - props.tie
 const priceLineText = computed(() => fmt(t.value.quota.priceLine, { price: formatFinanceAmount(props.tier.price) }));
 const stockFillStyle = computed(() => ({ width: `${!props.pending && stockBarInView.value ? stockPct.value * 100 : 0}%`, transition: !props.pending && stockBarInView.value ? PROGRESS_GROW_TRANSITION : 'none' }));
 function conditionLabel(condition: QuotaCondition) {
-  return condition.kind === 'legacyUSD' ? logicCopy.value.legacyTeam : condition.label;
+  return condition.label;
 }
 function conditionValue(condition: QuotaCondition) {
   if (props.pending) return "— / —";
-  if (condition.kind === 'legacyUSD') return `${formatLegacyUSD(condition.current, locale.code)} / ${formatLegacyUSD(condition.required, locale.code)}`;
   return condition.kind === 'volume'
     ? `${formatComputePoints(condition.current, locale.code)} / ${formatComputePoints(condition.required, locale.code)}`
     : `${condition.current} / ${condition.required}`;

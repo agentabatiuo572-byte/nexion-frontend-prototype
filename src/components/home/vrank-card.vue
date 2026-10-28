@@ -55,7 +55,7 @@ const { elRef, inView } = useScrollGrowProgress();
 const myRank = computed(() => vrank.myRank);
 const totalRanks = computed(() => vrank.ladder.length);
 const myTitle = computed(() => rankTitle(myRank.value, locale.code, vrank.ladder));
-const rankInfo = computed(() => nextRankProgress(vrank, vrank.ladder, "compute-points"));
+const rankInfo = computed(() => nextRankProgress(vrank, vrank.ladder));
 const next = computed(() => rankInfo.value.next);
 const pct = computed(() => Math.round(rankInfo.value.progressPct * 100));
 const missing = computed(() => rankInfo.value.missing);

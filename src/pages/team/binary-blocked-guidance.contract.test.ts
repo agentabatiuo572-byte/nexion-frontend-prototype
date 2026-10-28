@@ -31,10 +31,10 @@ describe("binary blocked guidance page contract", () => {
     expect(vi).not.toContain('nâng khoản thưởng tháng này');
   });
 
-  it("describes comparison without converting points into money or promising payment", () => {
-    expect(zh).toContain('算力点仅用于比较 A/B 两组贡献，不用于直接换算奖励金额');
-    expect(en).toContain('they do not directly convert into a reward amount');
-    expect(vi).toContain('không quy đổi trực tiếp thành tiền thưởng');
+  it("describes group volume from confirmed orders without promising payment", () => {
+    expect(zh).toContain('两组业绩按成员已确认订单金额统计，退款会扣回');
+    expect(en).toContain('Group volume counts members’ confirmed order amounts, with refunds deducted');
+    expect(vi).toContain('Doanh số nhóm tính theo số tiền đơn đã xác nhận của thành viên, trừ phần hoàn tiền');
     expect(zh).toContain('奖励金额以结算预估为准，实际到账以最终结算为准');
     expect(en).toContain('Rewards shown are settlement estimates; actual payments depend on final settlement');
     expect(vi).toContain('Số tiền hiển thị là ước tính quyết toán; khoản thực nhận theo quyết toán cuối cùng');

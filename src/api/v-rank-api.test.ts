@@ -32,11 +32,11 @@ it("preserves every configured reward type for App display without issuing a rew
       { type: "SKU", voucherId: undefined, skuId: "SKU-PRO", customLabel: undefined },
       { type: "CUSTOM", voucherId: undefined, skuId: undefined, customLabel: "Event access" }]);
 });
-const ladder = () => Array.from({ length: 13 }, (_, v) => row(v));
+const ladder = () => Array.from({ length: 9 }, (_, v) => row(v));
 const current = {
   source: "nx_team_member + server VRankPerformanceRepository",
   serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "",
-  rankCode: "V2", progress: { selfBuyUSD: 100, directRefs: 2, teamVolumeUSD: 300, vDownlineCounts: {} },
+  rankCode: "V2", progress: { selfComputePoints: 1000, directRefs: 2, teamComputePoints: 3000, vDownlineCounts: {} },
 };
 
 describe("v-rank API authority provenance", () => {
@@ -57,7 +57,7 @@ describe("v-rank API authority provenance", () => {
     });
     const result = await createVRankApi({ request } as never, "prod").ladder();
     expect(result.capabilities).toEqual({ peer: false, genesis: false });
-    expect(result.ranks).toHaveLength(13);
+    expect(result.ranks).toHaveLength(9);
   });
 
   it("rejects non-boolean capability values", async () => {
@@ -116,23 +116,26 @@ it("reads the active V0-V8 ladder from F1 without fabricating higher ranks", asy
 describe("independent canonical compute points", () => {
   const ladderResponse = (fields: Record<string, unknown>) => ({ source: "server", serverCanonical: true,
     sourceEnvironment: "PRODUCTION", runId: "", prizeName: "Ranks", ranks: [{ ...row(0), ...fields }] });
-  it("keeps point counts separate from legacy dollar values, including zero", async () => {
-    const request = vi.fn().mockResolvedValueOnce(ladderResponse({ selfBuyUSD: 299, teamVolumeUSD: 5000, selfComputePoints: 0, teamComputePoints: 20000.125 }))
-      .mockResolvedValueOnce({ ...current, progress: { ...current.progress, selfComputePoints: 1280, teamComputePoints: 12800.5 } });
+  it("reads whole point counts, including zero, and no dollar fields", async () => {
+    const request = vi.fn().mockResolvedValueOnce(ladderResponse({ selfComputePoints: 0, teamComputePoints: 200000 }))
+      .mockResolvedValueOnce({ ...current, progress: { ...current.progress, selfComputePoints: 1280, teamComputePoints: 12800 } });
     const api = createVRankApi({ request } as never);
-    expect((await api.ladder()).ranks[0]).toMatchObject({ selfBuyUSD: 299, teamVolumeUSD: 5000, selfComputePoints: 0, teamComputePoints: 20000.125 });
-    expect((await api.current()).progress).toMatchObject({ selfBuyUSD: 100, teamVolumeUSD: 300, selfComputePoints: 1280, teamComputePoints: 12800.5 });
+    const rank = (await api.ladder()).ranks[0];
+    expect(rank).toMatchObject({ selfComputePoints: 0, teamComputePoints: 200000 });
+    expect(rank).not.toHaveProperty("selfBuyUSD");
+    expect((await api.current()).progress).toMatchObject({ selfComputePoints: 1280, teamComputePoints: 12800 });
   });
-  it("leaves absent points unknown in both endpoints without deriving from USD", async () => {
-    const request = vi.fn().mockResolvedValueOnce(ladderResponse({ selfBuyUSD: 299, teamVolumeUSD: 5000 })).mockResolvedValueOnce(current);
+  it("leaves an absent rank threshold unknown but requires current progress points", async () => {
+    const { selfComputePoints: _self, ...progress } = current.progress;
+    const request = vi.fn().mockResolvedValueOnce(ladderResponse({})).mockResolvedValueOnce({ ...current, progress });
     const api = createVRankApi({ request } as never);
-    for (const value of [(await api.ladder()).ranks[0], (await api.current()).progress]) {
-      expect(value.selfComputePoints).toBeUndefined();
-      expect(value.teamComputePoints).toBeUndefined();
-    }
+    const rank = (await api.ladder()).ranks[0];
+    expect(rank.selfComputePoints).toBeUndefined();
+    expect(rank.teamComputePoints).toBeUndefined();
+    await expect(api.current()).rejects.toMatchObject({ message: "V_RANK_RESPONSE_INVALID" });
   });
   for (const field of ["selfComputePoints", "teamComputePoints"]) {
-    it.each([-1, NaN, Infinity, -Infinity, "1280", "", null, true, {}])(`rejects invalid ${field} in row and progress: %s`, async value => {
+    it.each([-1, 1.5, NaN, Infinity, -Infinity, "1280", "", null, true, {}])(`rejects invalid ${field} in row and progress: %s`, async value => {
       const request = vi.fn().mockResolvedValueOnce(ladderResponse({ [field]: value }))
         .mockResolvedValueOnce({ ...current, progress: { ...current.progress, [field]: value } });
       const api = createVRankApi({ request } as never);

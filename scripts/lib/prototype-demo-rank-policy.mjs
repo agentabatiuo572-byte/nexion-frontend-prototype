@@ -33,5 +33,5 @@ const rows = [
 export function rankPolicyDemo(url,locale) {
   if(url.pathname!=='/api/config/v-rank-policy')return undefined;
   const lang=url.searchParams.get('locale')||locale,index=lang==='zh'?0:lang==='vi'?2:1;
-  return {status:'PUBLISHED',version:'prototype-points-v1',locale:lang,hero:['平台算力点 · 等级规则演示','Platform compute points · example rank guide','Điểm nền tảng · hướng dẫn hạng mẫu'][index],source:'server',sourceEnvironment:'PRODUCTION',runId:'',rules:{permanentProtection:true,qualifiedReferralSelfBuyUSD:null,leadershipConfigured:true},sections:rows.map(([id,titles,bodies],order)=>({id,title:titles[index],body:bodies[index],order}))};
+  return {status:'PUBLISHED',version:'prototype-points-v1',locale:lang,hero:['平台算力点 · 等级规则演示','Platform compute points · example rank guide','Điểm nền tảng · hướng dẫn hạng mẫu'][index],source:'server',sourceEnvironment:'PRODUCTION',runId:'',rules:{permanentProtection:true,qualifiedReferralSelfComputePoints:null,leadershipConfigured:true},sections:rows.map(([id,titles,bodies],order)=>({id,title:titles[index],body:bodies[index],order}))};
 }

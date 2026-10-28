@@ -4,8 +4,8 @@ import type { ApiEnvironment } from "./runtime-config";
 import { matchesRuntimeProvenance } from "./runtime-provenance";
 
 export type TeamQuotaEnvironment = "PRODUCTION";
-export interface TeamQuotaFacts { rank: number; directRefs: number; directInvites: number | null; activeDirect: number; teamVolumeUSD: number }
-export interface TeamQuotaCondition { kind: "rank" | "directRefs" | "teamVolume" | "teamComputePoints"; required: number; current: number }
+export interface TeamQuotaFacts { rank: number; directRefs: number; directInvites: number | null; activeDirect: number; teamComputePoints: number }
+export interface TeamQuotaCondition { kind: "rank" | "directRefs" | "teamComputePoints"; required: number; current: number }
 export interface TeamQuotaTier {
   productId: string; quotaCode: string; name: string; price: number; monthlyStock: number; soldThisMonth: number;
   unlockKind: "ALL" | "EITHER"; conditions: TeamQuotaCondition[]; perks: string[]; available: boolean;
@@ -27,14 +27,14 @@ function parse(value: unknown, mode: ApiEnvironment): TeamQuotaSnapshot {
   const runId = text(source.runId, false);
   if (runId !== "") return invalid();
   const facts = row(source.facts);
-  const parsedFacts = { rank: num(facts.rank, true), directRefs: num(facts.directRefs, true), directInvites: facts.directInvites == null ? null : num(facts.directInvites, true), activeDirect: num(facts.activeDirect, true), teamVolumeUSD: num(facts.teamVolumeUSD) };
+  const parsedFacts = { rank: num(facts.rank, true), directRefs: num(facts.directRefs, true), directInvites: facts.directInvites == null ? null : num(facts.directInvites, true), activeDirect: num(facts.activeDirect, true), teamComputePoints: num(facts.teamComputePoints, true) };
   if (!Array.isArray(source.tiers)) return invalid();
   const tiers = source.tiers.map((value): TeamQuotaTier => {
     const item = row(value); const unlockKind = item.unlockKind;
     if (unlockKind !== "ALL" && unlockKind !== "EITHER" || typeof item.available !== "boolean" || !Array.isArray(item.conditions) || !Array.isArray(item.perks)) return invalid();
     const conditions = item.conditions.map((raw): TeamQuotaCondition => {
       const condition = row(raw); const kind = condition.kind;
-      if (kind !== "rank" && kind !== "directRefs" && kind !== "teamVolume" && kind !== "teamComputePoints") return invalid();
+      if (kind !== "rank" && kind !== "directRefs" && kind !== "teamComputePoints") return invalid();
       return { kind, required: num(condition.required), current: num(condition.current) };
     });
     return { productId: text(item.productId), quotaCode: text(item.quotaCode), name: text(item.name), price: num(item.price),

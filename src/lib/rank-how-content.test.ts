@@ -3,57 +3,34 @@ import type { CanonicalVRankRow } from "@/api/v-rank-api";
 import type { RankHowPolicy } from "@/api/rank-how-policy-api";
 import { buildRankHowContent, createRankHowResource } from "./rank-how-content";
 import { teamRedesignCopy } from "@/i18n/team-redesign";
-import { formatLegacyUSD } from "./v-rank-copy";
+import { formatComputePoints } from "@/i18n/compute-points";
 
 const labels = { selfBuy: "自购 ${n}", directRefs: "合格直推 {n}", teamVol: "团队 ${n}", register: "注册", vDownlines: "{n} 个 V{v}" };
 const rank = (v: number, patch: Partial<CanonicalVRankRow> = {}): CanonicalVRankRow => ({ v, title: `Title ${v}`, cnTitle: `头衔${v}`, directBonus: .123456, unilevelDepth: 99, peerBonus: .0275, leadershipVotes: 17, cultivationBonus: 321.123456, rewards: [], visible: true, ...patch });
-const ranks = [rank(0), rank(1, { selfBuyUSD: 789.123456, directRefs: 8 }), rank(2, { selfBuyUSD: 987, directRefs: 9, teamVolumeUSD: 45678.123456, requiredDownlineRank: 1, requiredDownlineCount: 6 })];
+const ranks = [rank(0), rank(1, { selfComputePoints: 7891, directRefs: 8 }), rank(2, { selfComputePoints: 9870, directRefs: 9, teamComputePoints: 456781, requiredDownlineRank: 1, requiredDownlineCount: 6 })];
+const pointless = ranks.map(({ selfComputePoints: _self, teamComputePoints: _team, ...row }) => row as CanonicalVRankRow);
 const enabled = { peer: true, genesis: false } as const;
 const unavailable = { peer: false, genesis: false } as const;
-const policy: RankHowPolicy = { version: "p1", locale: "zh", hero: "Published hero", source: "server", sourceEnvironment: "PRODUCTION", runId: "", rules: { permanentProtection: false, qualifiedReferralSelfBuyUSD: 789.123456, leadershipConfigured: false }, sections: [
-  { id: "example", title: "{fromRank} → {toRank}", body: "{selfBuy} / {directRefs} / {teamVolume} / {rankLegs}", order: 1 },
+const policy: RankHowPolicy = { version: "p1", locale: "zh", hero: "Published hero", source: "server", sourceEnvironment: "PRODUCTION", runId: "", rules: { permanentProtection: false, qualifiedReferralSelfComputePoints: 7891, leadershipConfigured: false }, sections: [
+  { id: "example", title: "{fromRank} → {toRank}", body: "{selfComputePoints} / {directRefs} / {teamComputePoints} / {rankLegs}", order: 1 },
   { id: "rewards", title: "奖励", body: "{directRate} / {peerRate} / {votes} / {cultivation} / {leadershipStatus}", order: 2 },
   { id: "protection", title: "保级", body: "{protection}", order: 3 },
   { id: "requirement-direct", title: "合格直推", body: "{referralThreshold}", order: 4 },
 ] };
 
 describe("rank-how published presentation", () => {
-  it.each(["zh", "en", "vi"])("R1-R01 preserves the same legacy USD thresholds as rank/quota in %s", locale => {
-    const rows = [rank(0), rank(1, { selfBuyUSD: 0.000001, teamVolumeUSD: 299.000001 })];
-    const published = { ...policy, rules: { ...policy.rules, qualifiedReferralSelfBuyUSD: 0.000001 },
-      sections: [{ id: "example", title: "{fromRank} → {toRank}", body: "{selfBuy} | {teamVolume} | {referralThreshold}", order: 1 }] };
-    const before = JSON.stringify({ rows, published });
-    const example = buildRankHowContent(published, rows, enabled, locale, labels).section("example");
-    const tiny = locale === "vi" ? "0,000001 USD" : "0.000001 USD";
-    const team = locale === "vi" ? "299,000001 USD" : "299.000001 USD";
-    expect(example).toMatchObject({ available: true, title: "V0 → V1", body: `${tiny} | ${team} | ${tiny}` });
-    expect(tiny).toBe(formatLegacyUSD(rows[1].selfBuyUSD, locale));
-    expect(team).toBe(formatLegacyUSD(rows[1].teamVolumeUSD, locale));
-    expect(example.body).not.toContain("USDT");
-    expect(JSON.stringify({ rows, published })).toBe(before);
-  });
-  it.each(["zh", "en", "vi"])("R1-R01 does not round smaller positive USD thresholds to zero in %s without Intl", locale => {
-    vi.stubGlobal("Intl", undefined);
-    try {
-      const rows = [rank(0), rank(1, { selfBuyUSD: 1e-8, teamVolumeUSD: 1.00000001 })];
-      const published = { ...policy, rules: { ...policy.rules, qualifiedReferralSelfBuyUSD: 1e-8 },
-        sections: [{ id: "example", title: "Example", body: "{selfBuy} | {teamVolume} | {referralThreshold}", order: 1 }] };
-      const body = buildRankHowContent(published, rows, enabled, locale, labels).section("example").body;
-      const tiny = locale === "vi" ? "0,00000001 USD" : "0.00000001 USD";
-      const team = locale === "vi" ? "1,00000001 USD" : "1.00000001 USD";
-      expect(body).toBe(`${tiny} | ${team} | ${tiny}`);
-    } finally { vi.unstubAllGlobals(); }
-  });
   it.each([
-    ["zh", "0 USD（不要求正数自购）"],
-    ["en", "0 USD (no positive self-purchase minimum)"],
-    ["vi", "0 USD (không yêu cầu mức tự mua dương)"],
-  ])("R1-R01 distinguishes zero and unavailable referral USD gates in %s", (locale, zero) => {
-    const configured = buildRankHowContent({ ...policy, rules: { ...policy.rules, qualifiedReferralSelfBuyUSD: 0 } }, ranks, enabled, locale, labels);
-    const absent = buildRankHowContent({ ...policy, rules: { ...policy.rules, qualifiedReferralSelfBuyUSD: null } }, ranks, enabled, locale, labels);
+    ["zh", "不要求自购算力点"],
+    ["en", "No self compute-point minimum"],
+    ["vi", "Không yêu cầu điểm tính toán tự mua"],
+  ])("R1-R01 shows the referral threshold in points and distinguishes zero from unavailable in %s", (locale, zero) => {
+    const shown = buildRankHowContent(policy, ranks, enabled, locale, labels);
+    const configured = buildRankHowContent({ ...policy, rules: { ...policy.rules, qualifiedReferralSelfComputePoints: 0 } }, ranks, enabled, locale, labels);
+    const absent = buildRankHowContent({ ...policy, rules: { ...policy.rules, qualifiedReferralSelfComputePoints: null } }, ranks, enabled, locale, labels);
+    expect(shown.section("requirement-direct")).toMatchObject({ available: true, body: formatComputePoints(7891, locale) });
     expect(configured.section("requirement-direct")).toMatchObject({ available: true, body: zero });
     expect(absent.section("requirement-direct").available).toBe(false);
-    expect(absent.section("requirement-direct").body).not.toContain("0 USD");
+    expect(shown.section("requirement-direct").body).not.toMatch(/USD|\$/);
   });
   it.each(['zh', 'en', 'vi'])('uses the %s incentive-pool term while retaining the settlement gate and published wording', locale => {
     const input = { ...policy, sections: [
@@ -90,96 +67,64 @@ describe("rank-how published presentation", () => {
       expect(content.section("example-self").body).toBe(`V1 → V2: ${ownValue}`);
       expect(content.section("example-team").body).toBe(`V1 → V2: ${teamValue}`);
       for (const { id } of pointsPolicy.sections) {
-        expect(content.section(id).body).not.toMatch(/\$|USDT|45678|987/);
-        const missing = buildRankHowContent(pointsPolicy, ranks, enabled, locale, labels).section(id);
+        expect(content.section(id).body).not.toMatch(/\$|USD/);
+        const missing = buildRankHowContent(pointsPolicy, pointless, enabled, locale, labels).section(id);
         expect(missing.available).toBe(false);
-        expect(missing.body).not.toMatch(/\$|USDT|45678|987/);
+        expect(missing.body).not.toMatch(/\$|USD/);
       }
     } finally {
       vi.unstubAllGlobals();
     }
   });
-  it("binds new point policy tokens only to canonical point fields and leaves legacy financial tokens alone", () => {
+  it("binds point policy tokens only to canonical point fields", () => {
     const pointsPolicy = { ...policy, sections: [{ id: "points", title: "Points", body: "{selfComputePoints} / {teamComputePoints}", order: 1 }, ...policy.sections] };
     const changed = ranks.map(r => r.v === 2 ? { ...r, selfComputePoints: 2000, teamComputePoints: 20000 } : r);
     const content = buildRankHowContent(pointsPolicy, changed, enabled, "zh", labels);
     expect(content.section("points")).toMatchObject({ available: true, body: "2,000 算力点 / 20,000 算力点" });
-    expect(content.section("example").body).toContain("45,678.123456 USD");
     expect(content.section("rewards").body).toContain("321.12 UVT");
-    const missing = buildRankHowContent(pointsPolicy, ranks, enabled, "zh", labels);
+    const missing = buildRankHowContent(pointsPolicy, pointless, enabled, "zh", labels);
     expect(missing.section("points").available).toBe(false);
-    expect(missing.section("points").body).not.toContain("45678");
   });
-  it("selects a point-only example without requiring legacy monetary thresholds", () => {
+  it("selects a point-only example", () => {
     const p = { ...policy, sections: [{ id: "points", title: "{fromRank} → {toRank}", body: "{selfComputePoints} / {teamComputePoints}", order: 1 }] };
     const content = buildRankHowContent(p, [rank(0), rank(1, { selfComputePoints: 0, teamComputePoints: 20000.125 })], enabled, "vi", labels);
     expect(content.section("points")).toMatchObject({ available: true, title: "V0 → V1", body: "0 điểm tính toán / 20.000,125 điểm tính toán" });
   });
-  it("preserves canonical USD gate precision without changing reward and rate formatting", () => {
+  it("formats example thresholds in points without changing reward and rate formatting", () => {
     const content = buildRankHowContent(policy, ranks, enabled, "zh", labels);
     expect(content.section("example").title).toBe("V1 → V2");
-    expect(content.section("example").body).toContain("45,678.123456 USD");
+    expect(content.section("example").body).toContain("456,781 算力点");
     expect(content.section("example").body).toContain("6 个 V1");
+    expect(content.section("example").body).not.toMatch(/USD|\$/);
     expect(content.section("rewards").body).toContain("12.3456%");
     expect(content.section("rewards").body).toContain("2.75%");
     expect(content.section("rewards").body).toContain("321.12 UVT");
     expect(content.section("rewards").body).toContain("暂不可结算");
-    expect(content.section("requirement-direct").body).toBe("789.123456 USD");
+    expect(content.section("requirement-direct").body).toBe("7,891 算力点");
     expect(content.section("protection").body).toContain("未开启");
-    expect(content.section("example").body).not.toMatch(/50,000|52,300|22,000/);
   });
-  it.each([
-    ["zh", "1,234,567.987654 USD", "1.23456789 USD"],
-    ["en", "1,234,567.987654 USD", "1.23456789 USD"],
-    ["vi", "1.234.567,987654 USD", "1,23456789 USD"],
-  ])("renders server numbers in %s when native Intl is absent", (locale, large, precise) => {
+  it.each(["zh", "en", "vi"])("renders large point thresholds in %s when native Intl is absent", locale => {
+    const expected = formatComputePoints(1234567, locale);
     vi.stubGlobal("Intl", undefined);
     try {
-      const changed = ranks.map(row => row.v === 2 ? { ...row, teamVolumeUSD: 1234567.987654, selfBuyUSD: 1.23456789 } : row);
+      const changed = ranks.map(row => row.v === 2 ? { ...row, teamComputePoints: 1234567 } : row);
       const content = buildRankHowContent(policy, changed, enabled, locale, labels);
-      expect(content.section("example").body).toContain(large);
-      expect(content.section("example").body).toContain(precise);
+      expect(content.section("example").body).toContain(expected);
       expect(content.section("rewards").body).toContain("321.12 UVT");
     } finally {
       vi.unstubAllGlobals();
     }
   });
-  it.each([
-    ["zh", "1,000,000,000,000,000,000,000 USD", "1.2345655 USD", "0.0000005 USD"],
-    ["en", "1,000,000,000,000,000,000,000 USD", "1.2345655 USD", "0.0000005 USD"],
-    ["vi", "1.000.000.000.000.000.000.000 USD", "1,2345655 USD", "0,0000005 USD"],
-  ])("renders extreme and sub-cent server money in %s without Intl", (locale, huge, precise, tiny) => {
-    vi.stubGlobal("Intl", undefined);
-    try {
-      const changed = ranks.map(row => row.v === 2 ? { ...row, teamVolumeUSD: 1e21, selfBuyUSD: 1.2345655 } : row);
-      const changedPolicy = { ...policy, rules: { ...policy.rules, qualifiedReferralSelfBuyUSD: 0.0000005 } };
-      const content = buildRankHowContent(changedPolicy, changed, enabled, locale, labels);
-      expect(content.section("example").body).toContain(huge);
-      expect(content.section("example").body).toContain(precise);
-      expect(content.section("requirement-direct").body).toContain(tiny);
-    } finally {
-      vi.unstubAllGlobals();
-    }
-  });
-  it("does not round a legacy gate up to the next whole dollar without Intl", () => {
-    vi.stubGlobal("Intl", undefined);
-    try {
-      const changed = ranks.map(row => row.v === 2 ? { ...row, selfBuyUSD: 9.9999995 } : row);
-      expect(buildRankHowContent(policy, changed, enabled, "en", labels).section("example").body).toContain("9.9999995 USD");
-    } finally {
-      vi.unstubAllGlobals();
-    }
-  });
   it("recomputes values after PC configuration changes", () => {
-    const changed = ranks.map(r => r.v === 2 ? { ...r, teamVolumeUSD: 123, leadershipVotes: 29 } : r);
+    const changed = ranks.map(r => r.v === 2 ? { ...r, teamComputePoints: 123, leadershipVotes: 29 } : r);
     const content = buildRankHowContent({ ...policy, rules: { ...policy.rules!, permanentProtection: true, leadershipConfigured: true } }, changed, enabled, "zh", labels);
-    expect(content.section("example").body).toContain("123 USD");
+    expect(content.section("example").body).toContain("123 算力点");
     expect(content.section("rewards").body).toContain("29");
     expect(content.section("protection").body).toContain("已开启");
   });
   it("distinguishes a configured zero referral minimum from unavailable configuration", () => {
-    const content = buildRankHowContent({ ...policy, rules: { ...policy.rules, qualifiedReferralSelfBuyUSD: 0 } }, ranks, enabled, "zh", labels);
-    expect(content.section("requirement-direct").body).toBe("0 USD（不要求正数自购）");
+    const content = buildRankHowContent({ ...policy, rules: { ...policy.rules, qualifiedReferralSelfComputePoints: 0 } }, ranks, enabled, "zh", labels);
+    expect(content.section("requirement-direct").body).toBe("不要求自购算力点");
     expect(content.section("requirement-direct").available).toBe(true);
   });
   it("keeps the full ladder range independent of the example pair", () => {
@@ -195,7 +140,7 @@ describe("rank-how published presentation", () => {
     expect(partial.section("rewards").available).toBe(false);
   });
   it("ignores zero gates and hidden ranks; never fabricates an unlimited payout", () => {
-    const content = buildRankHowContent(policy, [rank(0), rank(1, { selfBuyUSD: 0, directRefs: 0 }), rank(2, { visible: false })], enabled, "zh", labels);
+    const content = buildRankHowContent(policy, [rank(0), rank(1, { selfComputePoints: 0, directRefs: 0 }), rank(2, { visible: false })], enabled, "zh", labels);
     expect(content.ladder.map(r => r.v)).toEqual([0, 1]);
     expect(content.example).toBeNull();
     expect(content.section("example").body).not.toContain("99");

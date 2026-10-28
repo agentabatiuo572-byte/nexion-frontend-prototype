@@ -164,11 +164,10 @@ describe('prototype team-guide publications', () => {
     expect(guide.coolingDays).toBeNull();
     expect(Object.values(guide.network)).toEqual([null, null, null]);
     const comparison = document.blocks.find(block => block.id === 'point-comparison')!;
-    expect(comparison.body).toMatch(/不提供点数转金额|no point-to-money rate|không có tỷ giá đổi điểm thành tiền/);
+    expect(comparison.body).toMatch(/已确认订单金额|confirmed order amounts|số tiền đơn đã xác nhận/);
     const amount = document.blocks.find(block => block.id === 'amount-and-rate')!.body;
     expect(amount).toContain(`${binary.estimatedAmountUsdt} USDT`);
-    expect(amount).not.toContain(`${Math.min(binary.trackAComputePoints!, binary.trackBComputePoints!) * binary.matchRate} USDT`);
-    expect(comparison.items!.join(' ')).toContain(new Intl.NumberFormat(locale).format(binary.trackBComputePoints!));
+    expect(comparison.items!.join(' ')).toContain(`${new Intl.NumberFormat(locale).format(binary.trackB)} USDT`);
   });
 
   it.each(['zh', 'en', 'vi'])('keeps %s empty-account publications readable without creating paid rewards', async locale => {
@@ -190,7 +189,7 @@ describe('prototype team-guide publications', () => {
     const d = demo();
     const read = (path: string) => {
       const facts = d.get(path);
-      if (path === '/api/team/binary') return { ...facts, trackAComputePoints: 900000, trackBComputePoints: 800000, estimatedAmountUsdt: 3.21, matchRate: .07125 };
+      if (path === '/api/team/binary') return { ...facts, estimatedAmountUsdt: 3.21, matchRate: .07125 };
       if (path.startsWith('/api/config/commission/direct-referral')) return { ...facts, purchase: { ...facts.purchase, totalRatePct: 12.5, coolingDays: 11 } };
       return facts;
     };
@@ -303,12 +302,12 @@ describe('isolated prototype data uses the real read contracts',()=>{
     expect((await api.state()).earningMilestones[1].status).toBe('FIRED');
     expect((await api.evaluateEarningMilestones('demo-earning-again','demo-earning-1')).count).toBe(0);
   });
-  it('reads independent rank, member and binary point counts', async()=>{
+  it('reads rank and member point counts and binary volume in USDT', async()=>{
     const d=demo(),ranks=createVRankApi(d.client);
-    expect((await ranks.current()).progress).toMatchObject({selfBuyUSD:250,selfComputePoints:1280,teamComputePoints:12800});
+    expect((await ranks.current()).progress).toMatchObject({selfComputePoints:1280,teamComputePoints:12800});
     expect((await ranks.ladder()).ranks[3]).toMatchObject({selfComputePoints:2000,teamComputePoints:20000});
     expect(await createTeamNetworkApi(d.client).snapshot()).toMatchObject({monthComputePoints:3200,lifetimeComputePoints:12800});
-    expect(await createCommissionConfigApi(d.client).binary()).toMatchObject({trackAComputePoints:1720,trackBComputePoints:1480,estimatedAmountUsdt:240});
+    expect(await createCommissionConfigApi(d.client).binary()).toMatchObject({trackA:2800,trackB:2400,estimatedAmountUsdt:240});
   });
   it.each(['zh','en','vi'])('provides a complete point-based rank guide in %s',async locale=>{
     const d=demo(locale),policy=await createRankHowPolicyApi(d.client).published(locale),ladder=await createVRankApi(d.client).ladder();

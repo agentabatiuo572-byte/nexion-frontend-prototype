@@ -28,13 +28,9 @@ export function teamRankRequirements(state: VRankData, ladder: readonly VRankDef
         : { kind, amount: remaining };
       rows.push({ tier: rank.v, key: `${rank.v}-${kind}-${vLevel ?? ''}`, kind, current, required, conditions, vLevel, status, gap });
     };
-    // Match the published point-first qualification semantics. A legacy fallback
-    // remains money, and is present only when no replacement point rule exists.
     if (c.selfComputePoints !== undefined) add('selfComputePoints', state.selfComputePoints, c.selfComputePoints, { selfComputePoints: c.selfComputePoints });
-    else if (c.selfBuyUSD !== undefined) add('selfBuy', state.selfBuyUSD, c.selfBuyUSD, { selfBuyUSD: c.selfBuyUSD });
     if (c.directRefs) add('directRefs', state.directRefs, c.directRefs, { directRefs: c.directRefs });
     if (c.teamComputePoints !== undefined) add('teamComputePoints', state.teamComputePoints, c.teamComputePoints, { teamComputePoints: c.teamComputePoints });
-    else if (c.teamVolumeUSD !== undefined) add('teamVolume', state.teamVolumeUSD, c.teamVolumeUSD, { teamVolumeUSD: c.teamVolumeUSD });
     for (const [level, required] of Object.entries(c.vDownlines ?? {})) {
       if (required) add('vDownlines', state.vDownlineCounts[Number(level)] ?? 0, required, { vDownlines: { [level]: required } }, Number(level));
     }

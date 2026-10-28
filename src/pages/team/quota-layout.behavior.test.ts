@@ -4,7 +4,6 @@ import { afterEach, expect, it, vi } from 'vitest';
 import source from './quota.vue?raw';
 import tierSource from '@/components/team/quota-tier-card.vue?raw';
 import { teamLogicCopy } from '@/i18n/team-logic-copy';
-import { formatLegacyUSD } from '@/lib/v-rank-copy';
 import { formatComputePoints } from '@/i18n/compute-points';
 import { nexGridBrandText } from '@/lib/brand-copy';
 import { mountEntry, all, text, flush, slot } from '@/lib/entry-review.test-support';
@@ -21,7 +20,7 @@ import type { TeamQuotaSnapshot } from '@/api/team-quota-api';
 
 const dictionaries = { zh, en, vi: vietnamese };
 const snapshot = (): TeamQuotaSnapshot => ({ source: 'server', sourceEnvironment: 'PRODUCTION', runId: '', generatedAt: '2026-10-25T00:00:00Z',
-  facts: { rank: 2, directRefs: 2, directInvites: 4, activeDirect: 2, teamVolumeUSD: 99999 },
+  facts: { rank: 2, directRefs: 2, directInvites: 4, activeDirect: 2, teamComputePoints: 99999 },
   tiers: ['stellarbox-pro', 'stellarrack-p1'].map(productId => ({ productId, quotaCode: productId, name: 'Old name', price: 999,
     monthlyStock: 60, soldThisMonth: 42, unlockKind: 'ALL', available: true,
     conditions: [{ kind: 'teamComputePoints', required: 20000, current: 12800 }], perks: [] })),
@@ -119,7 +118,7 @@ it('retains the real tier layout while masking stock and qualification and disab
   const navigate = vi.fn();
   const p = mountEntry(tierSource.replace(/<image\b/g, '<view data-native-image="true"'), {
     '@/lib/finance-amount-display': { formatFinanceAmount }, '@/i18n/team-logic-copy': { teamLogicCopy },
-    '@/lib/v-rank-copy': { formatLegacyUSD }, '@/i18n/compute-points': { formatComputePoints },
+    '@/i18n/compute-points': { formatComputePoints },
     '@/store/locale': { useLocaleStore: () => ({ code: 'en' }) }, '@/i18n/network-reaudit': { networkReauditCopy },
     './quota-condition-bar.vue': { default: Vue.defineComponent({ props: ['met', 'valueText'], setup: props => () => Vue.h('view', { 'data-met': props.met }, props.valueText) }) },
     '@/components/ui/nx-button.vue': { default: Vue.defineComponent({ props: ['label', 'disabled', 'busy'], emits: ['click'], setup: (props, { emit }) => () => Vue.h('view', { 'data-action-disabled': props.disabled, onClick: () => { if (!props.disabled) emit('click'); } }, props.label) }) },

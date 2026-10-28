@@ -27,7 +27,8 @@ describe('team copy distinguishes reward mechanisms', () => {
     expect(rendered).toContain('$0');
     expect(rendered).toContain(messages.binary.settlePeriodLabel.weekly);
     expect(rendered).not.toMatch(/\{\w+\}/);
-    expect(messages.binary.formula).toMatch(/算力点用于对比两组贡献|Compute points compare the two groups|Điểm tính toán dùng để so sánh đóng góp của hai nhóm/);
+    expect(messages.binary.formula).toMatch(/较小一组业绩|smaller group’s volume|doanh số nhóm nhỏ hơn/);
+    expect(messages.binary.formula).not.toMatch(/算力点|compute points|điểm tính toán/i);
     expect(messages.binary.formula).not.toMatch(/点\s*[×x*]|points\s*[×x*]/i);
     expect(messages.rank.networkDepth).toContain('{n}');
     expect(messages.directReferral.purchaseSplitRule).toContain('{usdt}%');

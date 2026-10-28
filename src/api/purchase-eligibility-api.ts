@@ -4,7 +4,7 @@ import type { ApiEnvironment } from "./runtime-config";
 export const PURCHASE_ELIGIBILITY_SOURCE = "nx_product + nx_admin_device_sku + nx_user" as const;
 
 export type PurchaseEligibilityPolicyName = "E1" | "F4B";
-export type PurchaseEligibilityConditionKind = "rank" | "activeDirect" | "teamVolumeUsd" | "lifetimeQuota" | "monthlyQuota";
+export type PurchaseEligibilityConditionKind = "rank" | "activeDirect" | "teamComputePoints" | "lifetimeQuota" | "monthlyQuota";
 
 export interface PurchaseEligibilityCondition {
   kind: PurchaseEligibilityConditionKind;
@@ -53,7 +53,7 @@ function policies(value: unknown): value is PurchaseEligibilityPolicy[] {
     return row.conditions.every((condition) => {
       if (!condition || typeof condition !== "object" || Array.isArray(condition)) return false;
       const item = condition as Record<string, unknown>;
-      return ["rank", "activeDirect", "teamVolumeUsd", "lifetimeQuota", "monthlyQuota"].includes(String(item.kind))
+      return ["rank", "activeDirect", "teamComputePoints", "lifetimeQuota", "monthlyQuota"].includes(String(item.kind))
         && finite(item.required) && finite(item.current) && finite(item.gap) && item.gap >= 0 && typeof item.met === "boolean";
     });
   }) && e1Count === 1 && f4bCount >= 1;

@@ -50,7 +50,7 @@
               <text class="font-display" :style="{ fontSize: '13px', fontWeight: 600, color: wing.color }">{{ wing.name }}</text>
               <text v-if="wing.isWeak" class="font-mono-tabular" :style="weakBadgeStyle">{{ t.binary.weakBadge }}</text>
             </view>
-            <text class="block font-display tabular-nums" :style="wingVolStyle">{{ formatComputePoints(wing.computePoints, locale.code) }}</text>
+            <text class="block font-display tabular-nums" :style="wingVolStyle">${{ formatFinanceAmount(wing.monthVol) }}</text>
             <text class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '4px' }">{{ wingMembersText(wing.count) }}</text>
             <view v-if="wing.top" class="reward-wing-member border-t" :style="topMemberStyle">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 22v-2a8 8 0 0 1 16 0v2"/></svg>
@@ -67,7 +67,7 @@
 
         </view>
         <view class="reward-binary-basis">
-          <text class="block reward-caption">{{ t.binary.weak }} · {{ formatComputePoints(lowerComputePoints, locale.code) }}</text>
+          <text class="block reward-caption">{{ t.binary.weak }} · ${{ formatFinanceAmount(weakVol) }}</text>
           <text class="block reward-caption">{{ formulaText }}</text>
           <text class="block reward-caption">{{ gapHintText }}</text>
         </view>
@@ -107,7 +107,7 @@
 
 <script setup lang="ts">
 import { formatFinanceAmount } from "@/lib/finance-amount-display";
-import { formatComputePoints, sumComputePoints } from "@/i18n/compute-points";
+import { formatComputePoints } from "@/i18n/compute-points";
 import { useLocaleStore } from "@/store/locale";
 import { computed, onMounted, ref, watch, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
@@ -180,12 +180,6 @@ const MIN_THRESHOLD = computed(() => remoteApiEnabled ? snapshot.value?.threshol
 const MATCH_RATE = computed(() => remoteApiEnabled ? snapshot.value?.matchRate ?? 0 : 0.1);
 const DAILY_CAP = computed(() => remoteApiEnabled ? snapshot.value?.dailyCap ?? 0 : phase.value.binaryDailyCapUSD);
 const sides = computed(() => network.byBinary());
-const leftPoints = computed(() => remoteApiEnabled ? snapshot.value?.trackAComputePoints ?? null : sumComputePoints(sides.value.left.map(m => m.monthComputePoints)));
-const rightPoints = computed(() => remoteApiEnabled ? snapshot.value?.trackBComputePoints ?? null : sumComputePoints(sides.value.right.map(m => m.monthComputePoints)));
-const lowerComputePoints = computed(() => leftPoints.value === null || rightPoints.value === null
-  ? null : Math.min(leftPoints.value, rightPoints.value));
-const smallerPointSide = computed(() => leftPoints.value === null || rightPoints.value === null || leftPoints.value === rightPoints.value
-  ? null : leftPoints.value < rightPoints.value ? "left" : "right");
 const leftMonthVol = computed(() => remoteApiEnabled ? remoteTrackA.value : network.leftVolumeMonth());
 const rightMonthVol = computed(() => remoteApiEnabled ? remoteTrackB.value : network.rightVolumeMonth());
 const weakSide = computed(() => (leftMonthVol.value <= rightMonthVol.value ? "left" : "right"));
@@ -220,7 +214,6 @@ interface Wing {
   name: string;
   count: number;
   monthVol: number;
-  computePoints: number | null;
   isWeak: boolean;
   color: string;
   top: NetworkMember | undefined;
@@ -232,8 +225,7 @@ const wings = computed<Wing[]>(() => [
     count: remoteApiEnabled && !memberDetailsReadable.value
       ? snapshot.value?.trackAMembers ?? 0 : sides.value.left.length,
     monthVol: leftMonthVol.value,
-    computePoints: leftPoints.value,
-    isWeak: smallerPointSide.value === "left",
+    isWeak: leftMonthVol.value !== rightMonthVol.value && weakSide.value === "left",
     color: "var(--v5-ink)",
     top: memberDetailsReadable.value ? topOf(sides.value.left) : undefined,
   },
@@ -243,8 +235,7 @@ const wings = computed<Wing[]>(() => [
     count: remoteApiEnabled && !memberDetailsReadable.value
       ? snapshot.value?.trackBMembers ?? 0 : sides.value.right.length,
     monthVol: rightMonthVol.value,
-    computePoints: rightPoints.value,
-    isWeak: smallerPointSide.value === "right",
+    isWeak: leftMonthVol.value !== rightMonthVol.value && weakSide.value === "right",
     color: "var(--v5-ink)",
     top: memberDetailsReadable.value ? topOf(sides.value.right) : undefined,
   },

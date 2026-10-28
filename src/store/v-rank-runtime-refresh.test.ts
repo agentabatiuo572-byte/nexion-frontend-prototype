@@ -21,7 +21,7 @@ const ladder = {
 };
 const current = {
   ...proof, rankCode: "V2",
-  progress: { selfBuyUSD: 250, directRefs: 2, teamVolumeUSD: 2300, vDownlineCounts: {} },
+  progress: { selfComputePoints: 2500, directRefs: 2, teamComputePoints: 23000, vDownlineCounts: {} },
 };
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -74,7 +74,7 @@ describe("V-rank runtime refresh recovery", () => {
       await retry;
       expect(store.remoteReady).toBe(true);
       expect(store.myRank).toBe(2);
-      expect(store.teamVolumeUSD).toBe(2300);
+      expect(store.teamComputePoints).toBe(23000);
       expect(store.ladder).toHaveLength(3);
     },
   );

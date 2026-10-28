@@ -41,10 +41,10 @@ export function teamGuidesDemo(url, locale, request, read) {
     'Local prototype demo. Amounts and conditions illustrate the interface, not formal reward rules or personal payments.',
     'Đây là tài liệu minh họa nguyên mẫu cục bộ. Số tiền và điều kiện chỉ để minh họa, không phải quy tắc thưởng chính thức hay khoản đã nhận.'
   );
-  const pointBoundary = text(
-    '算力点只用于比较两组贡献与已给出的点数条件，不是美元，也不提供点数转金额的汇率。预估奖励与已结算金额分别查看，不能用点数乘比例推算到账。',
-    'Compute points only compare group contributions and the supplied point requirements. They are not dollars and no point-to-money rate is provided. Review estimated and settled rewards separately; multiplying points by a rate does not determine payment.',
-    'Điểm tính toán chỉ dùng so sánh đóng góp hai nhóm và điều kiện điểm được cung cấp. Điểm không phải USD và không có tỷ giá đổi điểm thành tiền. Xem riêng thưởng ước tính và đã quyết toán; nhân điểm với tỷ lệ không xác định tiền nhận.'
+  const volumeBoundary = text(
+    '两组业绩按已确认订单金额统计，退款会扣回。预估奖励与已结算金额分别查看，不能用业绩乘比例推算到账。',
+    'Group volume counts confirmed order amounts, with refunds deducted. Review estimated and settled rewards separately; multiplying volume by a rate does not determine payment.',
+    'Doanh số nhóm tính theo số tiền đơn đã xác nhận, trừ phần hoàn tiền. Xem riêng thưởng ước tính và đã quyết toán; nhân doanh số với tỷ lệ không xác định tiền nhận.'
   );
   const layers = text(
     'L1 是直接邀请成员，L2 是这些成员直接邀请的人，后续逐层延伸。购买奖励逐层记录，直接与间接成员不能合并为同一种来源。每层是否计奖仍受当前等级深度、订单资格和结算状态约束。',
@@ -110,14 +110,14 @@ export function teamGuidesDemo(url, locale, request, read) {
         'Placement rules assign members to Group A or B. Placement does not change direct or indirect invitation relationships or grant reward eligibility.',
         'Quy tắc xếp thành viên vào nhóm A hoặc B. Việc xếp nhóm không đổi quan hệ mời trực tiếp, gián tiếp hay tự cấp điều kiện nhận thưởng.'
       ]),
-      block('point-comparison', ['贡献点数对比', 'Compare contribution points', 'So sánh điểm đóng góp'], sameBody(pointBoundary), [
-        text(`A 组 ${number(binary.trackAComputePoints)} 算力点；B 组 ${number(binary.trackBComputePoints)} 算力点。`, `Group A: ${number(binary.trackAComputePoints)} compute points; Group B: ${number(binary.trackBComputePoints)} compute points.`, `Nhóm A: ${number(binary.trackAComputePoints)} điểm tính toán; nhóm B: ${number(binary.trackBComputePoints)} điểm tính toán.`),
-        text(`本演示公布的点数条件：${number(binary.thresholdComputePoints)} 算力点。资格还需核对完整结算条件。`, `Published demo point requirement: ${number(binary.thresholdComputePoints)} compute points. Full settlement conditions still apply.`, `Điều kiện điểm minh họa: ${number(binary.thresholdComputePoints)} điểm tính toán. Vẫn áp dụng đầy đủ điều kiện quyết toán.`),
+      block('point-comparison', ['两组业绩对比', 'Compare group volume', 'So sánh doanh số hai nhóm'], sameBody(volumeBoundary), [
+        text(`A 组业绩 ${number(binary.trackA)} USDT；B 组业绩 ${number(binary.trackB)} USDT。`, `Group A volume: ${number(binary.trackA)} USDT; Group B volume: ${number(binary.trackB)} USDT.`, `Doanh số nhóm A: ${number(binary.trackA)} USDT; nhóm B: ${number(binary.trackB)} USDT.`),
+        text(`本演示公布的每组业绩门槛：${number(binary.threshold)} USDT。资格还需核对完整结算条件。`, `Published demo threshold per group: ${number(binary.threshold)} USDT. Full settlement conditions still apply.`, `Ngưỡng doanh số mỗi nhóm minh họa: ${number(binary.threshold)} USDT. Vẫn áp dụng đầy đủ điều kiện quyết toán.`),
       ]),
       block('amount-and-rate', ['预估金额与规则', 'Estimated amount and rules', 'Số tiền ước tính và quy tắc'], [
-        `本期演示预估为 ${number(binary.estimatedAmountUsdt)} USDT，直接读取奖励预估值，不由本页点数计算。演示比例 ${number(binary.matchRate * 100)}%；${period}结算；日上限 ${number(binary.dailyCap)} USDT；本期上限 ${number(binary.periodCap)} USDT。`,
-        `The demo period estimate is ${number(binary.estimatedAmountUsdt)} USDT, read directly from the reward estimate, not calculated from points here. Demo rate ${number(binary.matchRate * 100)}%; settlement ${period}; daily cap ${number(binary.dailyCap)} USDT; period cap ${number(binary.periodCap)} USDT.`,
-        `Ước tính kỳ minh họa là ${number(binary.estimatedAmountUsdt)} USDT, lấy trực tiếp từ giá trị thưởng ước tính, không tính từ điểm trên trang. Tỷ lệ minh họa ${number(binary.matchRate * 100)}%; quyết toán ${period}; giới hạn ngày ${number(binary.dailyCap)} USDT; giới hạn kỳ ${number(binary.periodCap)} USDT.`
+        `本期演示预估为 ${number(binary.estimatedAmountUsdt)} USDT，直接读取奖励预估值，不在本页重算。演示比例 ${number(binary.matchRate * 100)}%；${period}结算；日上限 ${number(binary.dailyCap)} USDT；本期上限 ${number(binary.periodCap)} USDT。`,
+        `The demo period estimate is ${number(binary.estimatedAmountUsdt)} USDT, read directly from the reward estimate, not recalculated here. Demo rate ${number(binary.matchRate * 100)}%; settlement ${period}; daily cap ${number(binary.dailyCap)} USDT; period cap ${number(binary.periodCap)} USDT.`,
+        `Ước tính kỳ minh họa là ${number(binary.estimatedAmountUsdt)} USDT, lấy trực tiếp từ giá trị thưởng ước tính, không tính lại trên trang. Tỷ lệ minh họa ${number(binary.matchRate * 100)}%; quyết toán ${period}; giới hạn ngày ${number(binary.dailyCap)} USDT; giới hạn kỳ ${number(binary.periodCap)} USDT.`
       ]),
       block('qualification', ['结算前核对资格', 'Check eligibility before settlement', 'Kiểm tra điều kiện trước quyết toán'], [
         '两组均须满足公布的条件；暂停、分组不完整、退款冲回或结算日未到都可能影响结算。当前开关未暂停也不等于奖励已到账。',
@@ -139,7 +139,7 @@ export function teamGuidesDemo(url, locale, request, read) {
     blocks = [
       block('hero', ['奖励记录说明 · 演示', 'Reward records guide · Demo', 'Hướng dẫn bản ghi thưởng · Minh họa'], sameBody(sample)),
       block('overview', ['先区分来源与状态', 'Identify sources and status', 'Phân biệt nguồn và trạng thái'], sameBody(`${layers} ${poolExample}`)),
-      block('channels', ['不同奖励分别核对', 'Check each reward source separately', 'Kiểm tra riêng từng nguồn thưởng'], sameBody(pointBoundary)),
+      block('channels', ['不同奖励分别核对', 'Check each reward source separately', 'Kiểm tra riêng từng nguồn thưởng'], sameBody(volumeBoundary)),
       block('network', ['团队奖励：购买与设备收益', 'Team rewards: purchases and device earnings', 'Thưởng đội nhóm: mua hàng và thu nhập thiết bị'], [
         '购买记录保留直接与间接邀请层级。直接购买：{directPurchaseRules}。间接购买：{networkPurchaseRules}。直接成员设备收益：{directDeviceRules}。{directScope}。演示 UVT 报价：{directPrice}。',
         'Purchase records retain direct and indirect invitation levels. Direct purchases: {directPurchaseRules}. Indirect purchases: {networkPurchaseRules}. Direct member device earnings: {directDeviceRules}. {directScope}. Demo UVT quote: {directPrice}.',

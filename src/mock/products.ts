@@ -24,7 +24,7 @@ export interface AIPerformance {
 export interface PurchaseGate {
   rankMin?: number;           // 最低 V 级 (0-12);eligible 需 myRank >= rankMin
   activeDirectMin?: number;   // 最少活跃直推数
-  teamVolumeMin?: number;     // 最低团队业绩 USD
+  teamComputePointsMin?: number; // 最低团队算力点
   mode: "all" | "either";     // 多条件 AND / OR
   quotaCap?: number;          // 锁额:本期可售上限
   quotaSold?: number;         // 已售 (server 维护;remaining = cap - sold)
@@ -218,7 +218,7 @@ export const PRODUCTS: Product[] = [
     sold: 287,
     stock: 8,
     // 购买门(后台可改):组合 either —— V≥3 或 ≥15 活跃直推 或 ≥$20K 团队业绩 + 硬锁额(remaining=8)。
-    purchaseGate: { rankMin: 3, activeDirectMin: 15, teamVolumeMin: 20000, mode: "either", quotaCap: 100, quotaSold: 92, quotaPeriod: "month", enforce: true },
+    purchaseGate: { rankMin: 3, activeDirectMin: 15, teamComputePointsMin: 200000, mode: "either", quotaCap: 100, quotaSold: 92, quotaPeriod: "month", enforce: true },
     features: [
       "Enterprise A100 GPUs",
       "Dedicated tier-3 datacenter slot",
@@ -326,12 +326,12 @@ export function annualRoiPct(p: Pick<Product, "dailyEarn" | "price">): number {
 // server-canonical in prod (server re-checks on POST /api/orders); client uses
 // this only for UI gating + progress copy.
 export interface GateContext {
-  rank: number; // myRank 0-12
+  rank: number; // myRank 0-8
   activeDirect: number; // active direct-invite count
-  teamVolumeUSD: number;
+  teamComputePoints: number;
 }
 export interface GateCondition {
-  kind: "rank" | "activeDirect" | "teamVolume";
+  kind: "rank" | "activeDirect" | "teamComputePoints";
   need: number;
   have: number;
   met: boolean;
@@ -358,7 +358,7 @@ export function evaluatePurchaseGate(
   const conditions: GateCondition[] = [];
   if (g.rankMin != null) conditions.push({ kind: "rank", need: g.rankMin, have: ctx.rank, met: ctx.rank >= g.rankMin });
   if (g.activeDirectMin != null) conditions.push({ kind: "activeDirect", need: g.activeDirectMin, have: ctx.activeDirect, met: ctx.activeDirect >= g.activeDirectMin });
-  if (g.teamVolumeMin != null) conditions.push({ kind: "teamVolume", need: g.teamVolumeMin, have: ctx.teamVolumeUSD, met: ctx.teamVolumeUSD >= g.teamVolumeMin });
+  if (g.teamComputePointsMin != null) conditions.push({ kind: "teamComputePoints", need: g.teamComputePointsMin, have: ctx.teamComputePoints, met: ctx.teamComputePoints >= g.teamComputePointsMin });
 
   const eligible =
     conditions.length === 0 ? true : g.mode === "all" ? conditions.every((c) => c.met) : conditions.some((c) => c.met);

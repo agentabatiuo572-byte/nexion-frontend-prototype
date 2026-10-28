@@ -1,7 +1,6 @@
 import { teamLogicCopy } from '@/i18n/team-logic-copy';
 import { increasedRankBenefitKeys, rankBenefitIncreaseHeading } from '@/lib/team-rank-benefits';
 import { teamRankRequirements } from '@/lib/team-rank-progress';
-import { formatLegacyUSD } from '@/lib/v-rank-copy';
 import * as Vue from 'vue';
 import { formatAmount } from '@/lib/amount-display';
 import type { Component } from 'vue';
@@ -76,7 +75,7 @@ const ladder = (): VRankDef[] => Array.from({ length: 13 }, (_, v) => ({
   cultivationBonus: 900, rewards: [{ type: 'NEX', amount: 900 }],
 }));
 const facts = (): VRankData & { ladder: VRankDef[] } => ({
-  myRank: 0, selfBuyUSD: 0, directRefs: 0, teamVolumeUSD: 0, vDownlineCounts: {}, ladder: ladder(),
+  myRank: 0, selfComputePoints: 0, directRefs: 0, teamComputePoints: 0, vDownlineCounts: {}, ladder: ladder(),
 });
 async function page(locale: Locale = 'en', initial?: ReturnType<typeof facts>) {
   const auth = Vue.reactive({ accountId: 'user:rank-review-A' });
@@ -94,7 +93,7 @@ async function page(locale: Locale = 'en', initial?: ReturnType<typeof facts>) {
     '@/lib/amount-display': { formatAmount },
     vue: Vue, '@/lib/route': { navTo }, '@/lib/brand-copy': { platformDisplayText },
     '@/lib/rank-entitlement-label': { isEntitlementVRankReward, rankEntitlementLabel },
-    '@/lib/v-rank-copy': { rankGapText, rankConditionsText, rankLabel, rankCultivationCopy, formatLegacyUSD },
+    '@/lib/v-rank-copy': { rankGapText, rankConditionsText, rankLabel, rankCultivationCopy },
     '@/lib/rank-how-content': { formatHowNumber },
     '@/i18n/compute-points': { computePointsCopy, formatComputePoints },
     '@/i18n/format': { fmt },
@@ -187,7 +186,7 @@ describe('rank page canonical read and next-rank progress', () => {
     retry.props.onClick(); await Vue.nextTick();
     expect(p.state.refreshCanonicalVRank).toHaveBeenCalledTimes(2);
     expect(text(p.root)).toContain(copy.rank.loading); expect(text(p.root)).not.toContain(copy.rank.retry); unknown();
-    const loaded = facts(); loaded.ladder[1].conditions = { selfBuyUSD: 299, directRefs: 3 };
+    const loaded = facts(); loaded.ladder[1].conditions = { selfComputePoints: 2990, directRefs: 3 };
     await p.ready(loaded);
     expect(all(p.root).filter(item => item.props.role === 'progressbar')).toHaveLength(2); expect(text(p.root)).toContain('0 / 3');
     expect(text(p.root)).not.toContain(copy.rank.loading); expect(text(p.root)).not.toContain(copy.rank.loadError);
@@ -197,8 +196,8 @@ describe('rank page canonical read and next-rank progress', () => {
 
   it('renders independent point conditions, unchanged rewards and the rules destination', async () => {
     const loaded = facts();
-    loaded.ladder[1].conditions = { selfBuyUSD: 299, teamVolumeUSD: 5000, selfComputePoints: 2000, teamComputePoints: 20000, directRefs: 3 };
-    Object.assign(loaded, { selfBuyUSD: 9000, teamVolumeUSD: 90000, selfComputePoints: 1280, teamComputePoints: 12800, directRefs: 2 });
+    loaded.ladder[1].conditions = { selfComputePoints: 2000, teamComputePoints: 20000, directRefs: 3 };
+    Object.assign(loaded, { selfComputePoints: 1280, teamComputePoints: 12800, directRefs: 2 });
     const p = await page('en', loaded);
     for (const [label, gap] of [
       ['V1 · Own compute ≥ 2,000 compute pts · 1,280 compute pts / 2,000 compute pts', '720 compute pts more own compute'],
@@ -212,7 +211,7 @@ describe('rank page canonical read and next-rank progress', () => {
     expect(text(p.root)).toContain(rankCultivationCopy('en').recipient);
     all(p.root).find(item => item.props.role === 'link')!.props.onClick();
     expect(p.navTo).toHaveBeenLastCalledWith('/pages/team/rank-how');
-    expect(p.state.myRank).toBe(0); expect(p.state.selfBuyUSD).toBe(9000);
+    expect(p.state.myRank).toBe(0); expect(p.state.selfComputePoints).toBe(1280);
   });
 
   it('opens the existing share flow from both rank invitation actions', async () => {
@@ -274,17 +273,12 @@ describe('rank page canonical read and next-rank progress', () => {
     expect(text(p.root)).not.toContain('$');
   });
 
-  it.each(['en', 'zh', 'vi'] as const)('discloses legacy USD gates and keeps missing %s point facts unknown after migration', async locale => {
-    const loaded = facts(); loaded.selfBuyUSD = 39.8; loaded.teamVolumeUSD = 99999;
-    loaded.ladder[1].conditions = { selfBuyUSD: 500, teamVolumeUSD: 5000, directRefs: 3 };
+  it.each(['en', 'zh', 'vi'] as const)('keeps missing %s point facts unknown until the server reports them', async locale => {
+    const loaded = facts(); loaded.selfComputePoints = undefined; loaded.teamComputePoints = undefined;
+    loaded.ladder[1].conditions = { directRefs: 3 };
     const p = await page(locale, loaded);
     const pending = teamLogicCopy(locale).unknownProgress;
-    expect(text(p.root)).toContain(teamLogicCopy(locale).legacySelf);
-    expect(text(p.root)).toContain(formatLegacyUSD(500, locale));
-    const moneyBars = all(p.root).filter(item => item.props.role === 'progressbar' && String(item.props['aria-label']).includes('USD'));
-    expect(moneyBars).toHaveLength(2);
-    expect(moneyBars.map(bar => bar.props['aria-valuenow'])).toEqual([8, 100]);
-    expect(p.state.selfBuyUSD).toBe(39.8); expect(p.state.myRank).toBe(0);
+    expect(p.state.myRank).toBe(0);
     p.state.ladder[1].conditions = { selfComputePoints: 2000, teamComputePoints: 20000 };
     await Vue.nextTick();
     expect(text(p.root)).toContain(pending);

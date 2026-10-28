@@ -249,13 +249,11 @@ const commissionAggregate = computed(() => ledgerPresentation.value ?? {
 const rankInfo = computed(() =>
   nextRankProgress({
     myRank: vrank.myRank,
-    selfBuyUSD: vrank.selfBuyUSD,
     selfComputePoints: vrank.selfComputePoints,
     directRefs: vrank.directRefs,
-  teamVolumeUSD: vrank.teamVolumeUSD,
   teamComputePoints: vrank.teamComputePoints,
   vDownlineCounts: vrank.vDownlineCounts,
-}, vrank.ladder, "compute-points"),
+}, vrank.ladder),
 );
 
 const byLayerBuckets = computed(() => network.byLayer());
@@ -324,8 +322,8 @@ const binary = computed(() => {
   return { binaryMatch: match, leftVol: L, rightVol: R };
 });
 const binaryMatchText = computed(() => binary.value === null ? "—" : formatUsd(binary.value.binaryMatch));
-const leftVolText = computed(() => formatComputePoints(remoteApiEnabled ? commission.binarySnapshot?.trackAComputePoints : sumComputePoints(members.value.filter(m => m.binary === 'left').map(m => m.monthComputePoints)), locale.code));
-const rightVolText = computed(() => formatComputePoints(remoteApiEnabled ? commission.binarySnapshot?.trackBComputePoints : sumComputePoints(members.value.filter(m => m.binary === 'right').map(m => m.monthComputePoints)), locale.code));
+const leftVolText = computed(() => binary.value === null ? "—" : formatUsd(binary.value.leftVol));
+const rightVolText = computed(() => binary.value === null ? "—" : formatUsd(binary.value.rightVol));
 
 const myVotes = computed(() => remoteApiEnabled ? remotePool.value?.myVotes ?? 0 : pool.myVotes(vrank.myRank));
 const leadershipUnlockRank = computed(() => remoteApiEnabled ? remotePool.value?.unlockRank ?? 3 : 3);

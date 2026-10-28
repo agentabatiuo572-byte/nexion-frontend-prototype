@@ -24,10 +24,10 @@ afterEach(() => { disposePinia(pinia); });
 
 const pointLadder = () => ({ prizeName: "Ranks", capabilities: { peer: false, genesis: false }, ranks: [
   { v: 0, title: "Base", cnTitle: "基础", directBonus: .05, unilevelDepth: 1, peerBonus: 0, leadershipVotes: 0, cultivationBonus: 0, rewards: [], visible: true },
-  { v: 1, title: "Next", cnTitle: "下级", selfBuyUSD: 299, teamVolumeUSD: 5000, selfComputePoints: 2000, teamComputePoints: 20000, directBonus: .1, unilevelDepth: 2, peerBonus: 0, leadershipVotes: 0, cultivationBonus: 500, rewards: [], visible: true },
+  { v: 1, title: "Next", cnTitle: "下级", selfComputePoints: 2000, teamComputePoints: 20000, directBonus: .1, unilevelDepth: 2, peerBonus: 0, leadershipVotes: 0, cultivationBonus: 500, rewards: [], visible: true },
 ] });
 const pointCurrent = (points: Record<string, number> = {}) => ({ rankCode: "V0", progress: {
-  selfBuyUSD: 9000, directRefs: 3, teamVolumeUSD: 90000, vDownlineCounts: {}, ...points,
+  directRefs: 3, vDownlineCounts: {}, ...points,
 } });
 
 describe("point projection and account lifecycle", () => {
@@ -35,12 +35,12 @@ describe("point projection and account lifecycle", () => {
     remote.vRankApi.ladder.mockResolvedValue(pointLadder());
     remote.vRankApi.current.mockResolvedValue(pointCurrent({ selfComputePoints: 1280, teamComputePoints: 12800 }));
     const store = useVRank(); await store.refreshCanonicalVRank();
-    expect(store.ladder[1].conditions).toMatchObject({ selfComputePoints: 2000, teamComputePoints: 20000, selfBuyUSD: 299, teamVolumeUSD: 5000 });
-    const progress = nextRankProgress(store, store.ladder, "compute-points");
+    expect(store.ladder[1].conditions).toEqual({ selfComputePoints: 2000, teamComputePoints: 20000 });
+    const progress = nextRankProgress(store, store.ladder);
     expect(progress.progressKnown).toBe(true); expect(progress.progressPct).toBeCloseTo(.64);
     expect(progress.missing).toEqual([{ kind: "selfComputePoints", amount: 720 }, { kind: "teamComputePoints", amount: 7200 }]);
-    expect(nextRankGap(store, store.ladder, "compute-points").primaryGap).toMatchObject({ kind: "selfComputePoints", remaining: 720 });
-    expect(store.myRank).toBe(0); expect(store.selfBuyUSD).toBe(9000); expect(store.teamVolumeUSD).toBe(90000);
+    expect(nextRankGap(store, store.ladder).primaryGap).toMatchObject({ kind: "selfComputePoints", remaining: 720 });
+    expect(store.myRank).toBe(0);
   });
   it("clears omitted points on refresh and all point facts after a failed request", async () => {
     remote.vRankApi.ladder.mockResolvedValue(pointLadder());
@@ -48,7 +48,7 @@ describe("point projection and account lifecycle", () => {
       .mockResolvedValueOnce(pointCurrent()).mockRejectedValueOnce(new Error("offline"));
     const store = useVRank(); await store.refreshCanonicalVRank(); await store.refreshCanonicalVRank();
     expect(store.selfComputePoints).toBeUndefined(); expect(store.teamComputePoints).toBeUndefined();
-    const unknown = nextRankProgress(store, store.ladder, "compute-points");
+    const unknown = nextRankProgress(store, store.ladder);
     expect(unknown.progressKnown).toBe(false); expect(unknown.missing).toContainEqual({ kind: "teamComputePoints", amount: undefined });
     await store.refreshCanonicalVRank();
     expect(store.remoteReady).toBe(false); expect(store.ladder).toEqual([]);
@@ -66,18 +66,17 @@ describe("point projection and account lifecycle", () => {
     await Promise.resolve(); await Promise.resolve();
     expect(store.selfComputePoints).toBe(20); expect(store.teamComputePoints).toBe(200);
   });
-  it("shows unknown for legacy USD-only conditions in point mode while retaining monetary gap compatibility", () => {
-    const ladder = pointLadder().ranks.map(row => ({ ...row, conditions: row.v ? { selfBuyUSD: 10000, teamVolumeUSD: 100000 } : {} })) as VRankDef[];
+  it("shows unknown progress while current point facts are missing", () => {
+    const ladder = pointLadder().ranks.map(row => ({ ...row, conditions: row.v ? { selfComputePoints: 10000, teamComputePoints: 100000 } : {} })) as VRankDef[];
     const state = { myRank: 0, ...pointCurrent().progress };
-    expect(nextRankProgress(state, ladder).missing).toEqual([{ kind: "selfBuy", amount: 1000 }, { kind: "teamVolume", amount: 10000 }]);
-    const points = nextRankProgress(state, ladder, "compute-points");
+    const points = nextRankProgress(state, ladder);
     expect(points.progressKnown).toBe(false);
     expect(points.missing).toEqual([{ kind: "selfComputePoints", amount: undefined }, { kind: "teamComputePoints", amount: undefined }]);
   });
   it("handles a canonical zero threshold without NaN and clamps surplus progress without promotion", () => {
     const ladder = pointLadder().ranks.map(row => ({ ...row, conditions: row.v ? { selfComputePoints: 0, teamComputePoints: 20000 } : {} })) as VRankDef[];
     const state = { myRank: 0, ...pointCurrent({ selfComputePoints: 0, teamComputePoints: 25000 }).progress };
-    expect(nextRankProgress(state, ladder, "compute-points")).toMatchObject({ progressPct: 1, progressKnown: true, missing: [] });
+    expect(nextRankProgress(state, ladder)).toMatchObject({ progressPct: 1, progressKnown: true, missing: [] });
     expect(state.myRank).toBe(0);
   });
 });
@@ -99,21 +98,21 @@ describe("V-rank remote authority state", () => {
     const store = useVRank();
     const canonicalLadder: VRankDef[] = [
     { v: 0, title: "Remote Base", cnTitle: "Remote Base CN", conditions: {}, directBonus: 0, unilevelDepth: 1, peerBonus: 0, leadershipVotes: 0, cultivationBonus: 0, rewards: [] },
-    { v: 1, title: "Remote Apex", cnTitle: "Remote Apex CN", conditions: { teamVolumeUSD: 100 }, directBonus: 0, unilevelDepth: 2, peerBonus: 0, leadershipVotes: 0, cultivationBonus: 0, rewards: [] },
+    { v: 1, title: "Remote Apex", cnTitle: "Remote Apex CN", conditions: { teamComputePoints: 100 }, directBonus: 0, unilevelDepth: 2, peerBonus: 0, leadershipVotes: 0, cultivationBonus: 0, rewards: [] },
     ];
 
     const state: VRankData = {
       myRank: 0,
-      selfBuyUSD: 0,
+      selfComputePoints: 0,
       directRefs: 0,
-      teamVolumeUSD: 0,
+      teamComputePoints: 0,
       vDownlineCounts: {},
     };
     const progress = nextRankProgress(state, canonicalLadder);
     const gap = nextRankGap(state, canonicalLadder);
 
     expect(progress.next?.title).toBe("Remote Apex");
-    expect(progress.missing[0]).toMatchObject({ kind: "teamVolume", amount: 100 });
+    expect(progress.missing[0]).toMatchObject({ kind: "teamComputePoints", amount: 100 });
     expect(gap.next?.title).toBe("Remote Apex");
   });
 
@@ -125,17 +124,17 @@ describe("V-rank remote authority state", () => {
     const store = useVRank();
     const pending = store.refreshCanonicalVRank();
 
-    resolveLadder({ source: "server", ranks: Array.from({ length: 13 }, (_, v) => ({
+    resolveLadder({ source: "server", ranks: Array.from({ length: 9 }, (_, v) => ({
       v, title: `V${v}`, cnTitle: `V${v}`, directBonus: 0, unilevelDepth: 1,
       peerBonus: 0, leadershipVotes: 0, cultivationBonus: 0, rewards: [], visible: true,
     })) });
     resolveCurrent({ source: "server", rankCode: "V2", progress: {
-      selfBuyUSD: 0, directRefs: 0, teamVolumeUSD: 0, vDownlineCounts: {},
+      selfComputePoints: 0, directRefs: 0, teamComputePoints: 0, vDownlineCounts: {},
     } });
     await pending;
 
     expect(store.remoteReady).toBe(true);
-    expect(store.ladder).toHaveLength(13);
+    expect(store.ladder).toHaveLength(9);
   });
 });
 
@@ -150,12 +149,12 @@ describe("V-rank remote authority state", () => {
 
     const pending = store.refreshCanonicalVRank();
     advanceRuntimeRevision("account-refresh");
-    resolveLadder({ source: "stale", ranks: Array.from({ length: 13 }, (_, v) => ({
+    resolveLadder({ source: "stale", ranks: Array.from({ length: 9 }, (_, v) => ({
       v, title: `V${v}`, cnTitle: `V${v}`, directBonus: 0, unilevelDepth: 1,
       peerBonus: 0, leadershipVotes: 0, cultivationBonus: 0, rewards: [], visible: true,
     })) });
     resolveCurrent({ source: "stale", rankCode: "V5", progress: {
-      selfBuyUSD: 0, directRefs: 0, teamVolumeUSD: 0, vDownlineCounts: {},
+      selfComputePoints: 0, directRefs: 0, teamComputePoints: 0, vDownlineCounts: {},
     } });
     await pending;
 

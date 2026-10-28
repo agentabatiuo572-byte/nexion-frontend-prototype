@@ -76,7 +76,7 @@ const locale = useLocaleStore();
 const { elRef, inView } = useScrollGrowProgress();
 
 const myRank = computed(() => vrank.myRank);
-const gap = computed(() => nextRankGap(vrank, vrank.ladder, "compute-points"));
+const gap = computed(() => nextRankGap(vrank, vrank.ladder));
 
 // 头衔的中英取舍收在 lib/v-rank-copy(主人 2026-08-17 拍板 V3 = 舰长;此前三处各写一份判断,
 // 中文界面出现「舰长 / 队长 / Captain」三种写法)
@@ -101,9 +101,6 @@ const towardLine = computed(() =>
 
 function formatPrimaryGap(g: PrimaryGap): string {
   switch (g.kind) {
-    case "teamVolume":
-    case "selfBuy":
-      return computePointsCopy(locale.code).conditionsPending;
     case "selfComputePoints":
     case "teamComputePoints":
       if (g.remaining === undefined) return computePointsCopy(locale.code).conditionsPending;

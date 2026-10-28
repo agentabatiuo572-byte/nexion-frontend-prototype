@@ -1,5 +1,4 @@
 import { teamLogicCopy } from '@/i18n/team-logic-copy';
-import { formatLegacyUSD } from '@/lib/v-rank-copy';
 import * as draftSession from '@/lib/ambassador-draft-session';
 import * as Vue from 'vue';
 import { compileScript, parse } from '@vue/compiler-sfc';
@@ -43,7 +42,7 @@ test.each(['zh', 'en', 'vi'] as const)('R02 distinguishes qualification, availab
   const tier = { productId: 'sample', name: 'Sample', price: 1299, monthlyStock: 60, soldThisMonth: 42, available: false,
     unlockKind: 'all', conditions: [{ label: 'Rank', current: 2, required: 3, kind: 'invites' }], perks: [], tint: 'var(--v5-brand)' };
   const card = component(quotaSource, {
-    '@/i18n/team-logic-copy': { teamLogicCopy }, '@/lib/v-rank-copy': { formatLegacyUSD },
+    '@/i18n/team-logic-copy': { teamLogicCopy },
     '@/lib/amount-display': { formatAmount }, '@/lib/finance-amount-display': { formatFinanceAmount }, '@/i18n/compute-points': { formatComputePoints },
     '@/store/locale': { useLocaleStore: () => ({ code: language }) }, '@/i18n/network-reaudit': { networkReauditCopy },
     '@/i18n/use-t': { useT: () => Vue.ref(copy) }, '@/i18n/format': { fmt },
@@ -61,17 +60,12 @@ test.each(['zh', 'en', 'vi'] as const)('R02 distinguishes qualification, availab
   expect(await show({ ...qualified, soldThisMonth: 60 })).toContain(copy.quota.stockUnavailable);
   expect(await show({ ...qualified, available: true })).toContain(fmt(copy.quota.buyCta, { name: 'Sample' }));
   expect(tier.soldThisMonth).toBe(42); expect(tier.conditions[0].current).toBe(2);
-  const legacy = { ...qualified, available: true, conditions: [{ label: copy.quota.condTeamVol, current: 6000, required: 5000, kind: 'legacyUSD' }] };
-  const legacyText = await show(legacy);
-  expect(legacyText).toContain(teamLogicCopy(language).legacyTeam);
-  expect(legacyText).toContain(`${formatLegacyUSD(6000, language)} / ${formatLegacyUSD(5000, language)}`);
-  expect(legacyText).toContain(copy.quota.unlocked);
-  expect(legacyText).toContain(teamLogicCopy(language).pointsUnavailable);
-  expect(await show({ ...legacy, conditions: [{ ...legacy.conditions[0], current: 4999 }] })).toContain(copy.quota.locked);
-  const modernText = await show({ ...legacy, conditions: [{ ...legacy.conditions[0], kind: 'volume' }] });
-  expect(modernText).toContain(formatComputePoints(6000, language));
-  expect(modernText).not.toContain(teamLogicCopy(language).legacyTeam);
-  expect(modernText).not.toContain('USD');
+  const points = { ...qualified, available: true, conditions: [{ label: copy.quota.condTeamVol, current: 6000, required: 5000, kind: 'volume' }] };
+  const pointsText = await show(points);
+  expect(pointsText).toContain(`${formatComputePoints(6000, language)} / ${formatComputePoints(5000, language)}`);
+  expect(pointsText).toContain(copy.quota.unlocked);
+  expect(pointsText).not.toContain('USD');
+  expect(await show({ ...points, conditions: [{ ...points.conditions[0], current: 4999 }] })).toContain(copy.quota.locked);
 
 });
 

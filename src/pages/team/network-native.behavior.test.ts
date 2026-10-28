@@ -417,10 +417,10 @@ test.each(["app", "h5"] as const)("%s displays historical reset names in nodes a
 test.each(["app", "h5"] as const)("%s member sheet renders canonical join instants as complete local dates", async platform => {
   const timestamp = "2025-12-31T16:05:06Z";
   const payload = { totalMembers: 1, directMembers: 1, activeMembers: 1,
-    monthVolumeUsdt: 17, lifetimeVolumeUsdt: null, generatedAt: "2026-10-27T00:00:00Z",
+    monthComputePoints: 170, lifetimeComputePoints: 170, generatedAt: "2026-10-27T00:00:00Z",
     source: "server", sourceEnvironment: "PRODUCTION", runId: "", serverCanonical: true,
     members: [{ id: "42", name: "Member 42", avatarUrl: null, vRank: 2, layer: 1,
-      leg: "A", joinedAt: timestamp, monthVolumeUsdt: 17, lifetimeVolumeUsdt: null,
+      leg: "A", joinedAt: timestamp, monthComputePoints: 170, lifetimeComputePoints: 170,
       status: "ACTIVE", region: "Fixture City" }], nextCursor: null };
   const api = createTeamNetworkApi({ request: vi.fn().mockResolvedValue(payload) } as any, "prod");
   runtime.snapshot.mockImplementationOnce(() => api.snapshot());

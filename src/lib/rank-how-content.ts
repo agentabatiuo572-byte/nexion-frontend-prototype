@@ -9,7 +9,7 @@ import { formatComputePoints } from "../i18n/compute-points";
 const COPY = {
   zh: {
     headline: "看懂晋升条件，了解每阶权益。", unavailable: "等级说明暂不可用，请稍后重试。", loading: "正在加载等级说明…",
-    example: "完整范例 · 按当前规则演示", noThreshold: "本阶未设置此门槛", noReferralMinimum: "0 USD（不要求正数自购）", noExample: "当前没有可演示的相邻等级门槛。", emptyLadder: "暂无可展示的等级", retry: "重新加载",
+    example: "完整范例 · 按当前规则演示", noThreshold: "本阶未设置此门槛", noReferralMinimum: "不要求自购算力点", noExample: "当前没有可演示的相邻等级门槛。", emptyLadder: "暂无可展示的等级", retry: "重新加载",
     protected: "已开启保级；算力额回落时保留当前等级。已结算奖励的退款和撤销仍按结算规则处理。",
     unprotected: "未开启保级；算力额或合格条件变化后，可能降至当前符合条件的等级。",
     leadershipReady: "团队激励池参与资格、限额和到账以实际结算结果为准。",
@@ -18,7 +18,7 @@ const COPY = {
   },
   en: {
     headline: "Understand each step and its benefits.", unavailable: "The rank guide is temporarily unavailable. Please try again later.", loading: "Loading the rank guide…",
-    example: "Worked example · current rules", noThreshold: "No threshold set for this rank", noReferralMinimum: "0 USD (no positive self-purchase minimum)", noExample: "No adjacent rank thresholds are currently available for an example.", emptyLadder: "No visible ranks", retry: "Reload",
+    example: "Worked example · current rules", noThreshold: "No threshold set for this rank", noReferralMinimum: "No self compute-point minimum", noExample: "No adjacent rank thresholds are currently available for an example.", emptyLadder: "No visible ranks", retry: "Reload",
     protected: "Rank protection is enabled: falling performance retains the current rank. Refunds and reversals still follow settlement rules.",
     unprotected: "Rank protection is disabled: changes in performance or qualification may lower the rank to the level currently reached.",
     leadershipReady: "Team incentive pool eligibility, limits and payment are subject to actual settlement.",
@@ -27,7 +27,7 @@ const COPY = {
   },
   vi: {
     headline: "Hiểu điều kiện và quyền lợi từng bậc.", unavailable: "Hướng dẫn về hạng hiện chưa khả dụng. Vui lòng thử lại sau.", loading: "Đang tải hướng dẫn về hạng…",
-    example: "Ví dụ · theo quy tắc hiện tại", noThreshold: "Bậc này không đặt ngưỡng", noReferralMinimum: "0 USD (không yêu cầu mức tự mua dương)", noExample: "Hiện chưa có ngưỡng của hai bậc liền nhau để minh họa.", emptyLadder: "Chưa có hạng được hiển thị", retry: "Tải lại",
+    example: "Ví dụ · theo quy tắc hiện tại", noThreshold: "Bậc này không đặt ngưỡng", noReferralMinimum: "Không yêu cầu điểm tính toán tự mua", noExample: "Hiện chưa có ngưỡng của hai bậc liền nhau để minh họa.", emptyLadder: "Chưa có hạng được hiển thị", retry: "Tải lại",
     protected: "Đã bật bảo vệ hạng: giữ hạng khi doanh số giảm. Hoàn tiền và thu hồi thưởng vẫn theo quy tắc quyết toán.",
     unprotected: "Chưa bật bảo vệ hạng: thay đổi doanh số hoặc điều kiện có thể làm giảm hạng về mức thực tế đạt được.",
     leadershipReady: "Điều kiện tham gia, hạn mức và thanh toán của quỹ khuyến khích đội nhóm theo kết quả quyết toán thực tế.",
@@ -65,30 +65,16 @@ export function formatHowNumber(value: number | string, locale: string) {
     + (decimals ? `${vietnamese ? "," : "."}${decimals}` : "");
 }
 
-/** Legacy USD gates retain the canonical number's decimal precision, even below
- * six decimals. Rounding a qualification threshold can change its meaning. */
-function formatThresholdUSD(value: number, locale: string): string {
-  const [mantissa, exponent = "0"] = value.toString().split("e");
-  const [integer, fraction = ""] = mantissa.split(".");
-  const digits = integer + fraction, point = integer.length + Number(exponent);
-  const whole = point > 0 ? digits.slice(0, point).padEnd(point, "0") : "0";
-  const tail = ((point < 0 ? "0".repeat(-point) : "") + digits.slice(Math.max(point, 0))).replace(/0+$/, "");
-  const vietnamese = locale.split("-")[0] === "vi";
-  return whole.replace(/\B(?=(\d{3})+(?!\d))/g, vietnamese ? "." : ",")
-    + (tail ? `${vietnamese ? "," : "."}${tail}` : "") + " USD";
-}
-
 export function buildRankHowContent(policy: RankHowPolicy | null, ranks: CanonicalVRankRow[], capabilities: CommissionCapabilities, locale: string, labels: RankHowConditionLabels) {
   const copy = rankHowCopy(locale);
   const ladder = ranks.filter(rank => rank.visible).sort((a, b) => a.v - b.v);
-  const hasGate = (rank: CanonicalVRankRow) => [rank.selfComputePoints, rank.teamComputePoints, rank.selfBuyUSD, rank.directRefs, rank.teamVolumeUSD].some(value => (value ?? 0) > 0)
+  const hasGate = (rank: CanonicalVRankRow) => [rank.selfComputePoints, rank.teamComputePoints, rank.directRefs].some(value => (value ?? 0) > 0)
     || ((rank.requiredDownlineRank ?? 0) > 0 && (rank.requiredDownlineCount ?? 0) > 0);
   const pairs = ladder.filter(rank => rank.v > 0 && hasGate(rank) && ladder.some(previous => previous.v === rank.v - 1));
   // Prefer an example containing both team and qualified-leg conditions; never invent thresholds.
-  const target = pairs.find(rank => (rank.teamComputePoints ?? rank.teamVolumeUSD ?? 0) > 0 && (rank.requiredDownlineCount ?? 0) > 0) ?? pairs[0];
+  const target = pairs.find(rank => (rank.teamComputePoints ?? 0) > 0 && (rank.requiredDownlineCount ?? 0) > 0) ?? pairs[0];
   const example = target ? { from: ladder.find(rank => rank.v === target.v - 1)!, to: target } : null;
   const number = (value: number) => formatHowNumber(value, locale);
-  const money = (value: number | undefined) => value !== undefined && value > 0 ? formatThresholdUSD(value, locale) : copy.noThreshold;
   const tokens: Record<string, string | undefined> = {
     firstRank: ladder.length ? `V${ladder[0].v}` : undefined,
     lastRank: ladder.length ? `V${ladder[ladder.length - 1].v}` : undefined,
@@ -97,11 +83,9 @@ export function buildRankHowContent(policy: RankHowPolicy | null, ranks: Canonic
   if (example) {
     Object.assign(tokens, {
       fromRank: `V${example.from.v}`, toRank: `V${example.to.v}`,
-      // New point tokens never fall back to the legacy monetary tokens below.
       selfComputePoints: target.selfComputePoints === undefined ? undefined : formatComputePoints(target.selfComputePoints, locale),
       teamComputePoints: target.teamComputePoints === undefined ? undefined : formatComputePoints(target.teamComputePoints, locale),
-      selfBuy: money(target.selfBuyUSD), directRefs: (target.directRefs ?? 0) > 0 ? number(target.directRefs!) : copy.noThreshold,
-      teamVolume: money(target.teamVolumeUSD),
+      directRefs: (target.directRefs ?? 0) > 0 ? number(target.directRefs!) : copy.noThreshold,
       rankLegs: (target.requiredDownlineRank ?? 0) > 0 && (target.requiredDownlineCount ?? 0) > 0
         ? labels.vDownlines.replace("{n}", number(target.requiredDownlineCount!)).replace("{v}", String(target.requiredDownlineRank)) : copy.noThreshold,
       directRate: `${number(target.directBonus * 100)}%`,
@@ -112,8 +96,8 @@ export function buildRankHowContent(policy: RankHowPolicy | null, ranks: Canonic
   if (policy?.rules) {
     tokens.protection = policy.rules.permanentProtection ? copy.protected : copy.unprotected;
     tokens.leadershipStatus = policy.rules.leadershipConfigured ? copy.leadershipReady : copy.leadershipHold;
-    if (policy.rules.qualifiedReferralSelfBuyUSD !== null) tokens.referralThreshold = policy.rules.qualifiedReferralSelfBuyUSD === 0
-      ? copy.noReferralMinimum : formatThresholdUSD(policy.rules.qualifiedReferralSelfBuyUSD, locale);
+    if (policy.rules.qualifiedReferralSelfComputePoints !== null) tokens.referralThreshold = policy.rules.qualifiedReferralSelfComputePoints === 0
+      ? copy.noReferralMinimum : formatComputePoints(policy.rules.qualifiedReferralSelfComputePoints, locale);
   }
   const sections = new Map(policy?.sections.map(section => [section.id, section]));
   function section(id: string, fallbackTitle = copy.unavailable) {

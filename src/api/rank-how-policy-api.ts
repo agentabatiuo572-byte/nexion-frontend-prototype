@@ -6,7 +6,7 @@ import { matchesRuntimeProvenance } from "./runtime-provenance";
 export interface RankHowPolicySection { id: string; title: string; body: string; order: number }
 export interface RankHowRules {
   permanentProtection: boolean;
-  qualifiedReferralSelfBuyUSD: number | null;
+  qualifiedReferralSelfComputePoints: number | null;
   leadershipConfigured: boolean;
 }
 export interface RankHowPolicy { version: string; locale: string; hero: string; sections: RankHowPolicySection[]; rules: RankHowRules; source: "server"; sourceEnvironment: "SANDBOX" | "PRODUCTION"; runId: string }
@@ -27,10 +27,10 @@ function parse(value: unknown, mode: ApiEnvironment): RankHowPolicy {
   {
     if (!row.rules || typeof row.rules !== "object" || Array.isArray(row.rules)) return invalid();
     const snapshot = row.rules as Record<string, unknown>;
-    const threshold = snapshot.qualifiedReferralSelfBuyUSD;
+    const threshold = snapshot.qualifiedReferralSelfComputePoints;
     if (typeof snapshot.permanentProtection !== "boolean" || typeof snapshot.leadershipConfigured !== "boolean"
-        || (threshold !== null && (typeof threshold !== "number" || !Number.isFinite(threshold) || threshold < 0))) return invalid();
-    rules = { permanentProtection: snapshot.permanentProtection, leadershipConfigured: snapshot.leadershipConfigured, qualifiedReferralSelfBuyUSD: threshold as number | null };
+        || (threshold !== null && (typeof threshold !== "number" || !Number.isSafeInteger(threshold) || threshold < 0))) return invalid();
+    rules = { permanentProtection: snapshot.permanentProtection, leadershipConfigured: snapshot.leadershipConfigured, qualifiedReferralSelfComputePoints: threshold as number | null };
   }
   return { version: row.version, locale: row.locale, hero: row.hero, sections, rules, source: "server", sourceEnvironment: row.sourceEnvironment as "SANDBOX" | "PRODUCTION", runId: row.runId as string };
 }

@@ -8,33 +8,35 @@ function page(startId: number, size: number, nextCursor: string | null = null) {
   const members = Array.from({ length: size }, (_, index) => {
     const id = String(startId + index);
     return { id, name: `Member ${id}`, avatarUrl: null, vRank: 1, layer: 1,
-      leg: "A", joinedAt: "2026-08-13T00:00:00Z", monthVolumeUsdt: 1,
-      lifetimeVolumeUsdt: null, status: "ACTIVE", region: "SG" };
+      leg: "A", joinedAt: "2026-08-13T00:00:00Z", monthComputePoints: 1,
+      lifetimeComputePoints: 0, status: "ACTIVE", region: "SG" };
   });
   return { totalMembers: size, directMembers: size, activeMembers: size,
-    monthVolumeUsdt: size, lifetimeVolumeUsdt: null, members, nextCursor,
+    monthComputePoints: size, lifetimeComputePoints: 0, members, nextCursor,
     ...PRODUCTION_PROOF, generatedAt: "2026-08-13T00:00:00Z" };
 }
 
 describe("team network API", () => {
-  it("keeps independent point quantities and never infers them from monetary totals", async () => {
+  it("requires whole point quantities on the snapshot and every member", async () => {
     const data = page(1, 1);
     const request = vi.fn().mockResolvedValue(data);
     const api = createTeamNetworkApi({ request } as unknown as ApiClient, "prod");
-    expect((await api.snapshot()).monthComputePoints).toBeNull();
     Object.assign(data, {monthComputePoints: 320, lifetimeComputePoints: 1280});
     Object.assign(data.members[0], {monthComputePoints: 320, lifetimeComputePoints: 1280});
-    expect(await api.snapshot()).toMatchObject({monthVolumeUsdt:1,monthComputePoints:320,members:[{monthComputePoints:320}]});
-    Object.assign(data, {monthComputePoints:-1});
-    await expect(api.snapshot()).rejects.toMatchObject({kind:'protocol'});
+    expect(await api.snapshot()).toMatchObject({monthComputePoints:320,lifetimeComputePoints:1280,members:[{monthComputePoints:320}]});
+    expect(await api.snapshot()).not.toHaveProperty("monthVolumeUsdt");
+    for (const invalid of [-1, 1.5, null]) {
+      Object.assign(data, {monthComputePoints: invalid});
+      await expect(api.snapshot()).rejects.toMatchObject({kind:'protocol'});
+    }
   });
   it("accepts a server-owned seven-level projection", async () => {
     const request = vi.fn().mockResolvedValue({
       totalMembers: 1, directMembers: 1, activeMembers: 1,
-      monthVolumeUsdt: 12.5, lifetimeVolumeUsdt: null,
+      monthComputePoints: 125, lifetimeComputePoints: 0,
       members: [{ id: "42", name: "Member 42", avatarUrl: null, vRank: 1, layer: 1,
         leg: "A", joinedAt: "2026-08-13T00:00:00Z",
-        monthVolumeUsdt: 12.5, lifetimeVolumeUsdt: null, status: "ACTIVE", region: "SG" }],
+        monthComputePoints: 125, lifetimeComputePoints: 0, status: "ACTIVE", region: "SG" }],
       ...PRODUCTION_PROOF, generatedAt: "2026-08-13T00:00:00Z",
     });
     const api = createTeamNetworkApi({ request } as unknown as ApiClient, "prod");
@@ -43,7 +45,7 @@ describe("team network API", () => {
 
   it("accepts the Java production authority rail in development mode", async () => {
     const request = vi.fn().mockResolvedValue({
-      totalMembers: 0, directMembers: 0, activeMembers: 0, monthVolumeUsdt: 0, lifetimeVolumeUsdt: null,
+      totalMembers: 0, directMembers: 0, activeMembers: 0, monthComputePoints: 0, lifetimeComputePoints: 0,
       members: [], ...PRODUCTION_PROOF, generatedAt: "2026-08-13T00:00:00Z",
     });
     const api = createTeamNetworkApi({ request } as unknown as ApiClient, "dev");
@@ -111,7 +113,7 @@ describe("team network API", () => {
 
   it("rejects missing proof and retired sandbox responses", async () => {
     const payload = {
-      totalMembers: 0, directMembers: 0, activeMembers: 0, monthVolumeUsdt: 0, lifetimeVolumeUsdt: null,
+      totalMembers: 0, directMembers: 0, activeMembers: 0, monthComputePoints: 0, lifetimeComputePoints: 0,
       members: [], source: "server", generatedAt: "2026-08-13T00:00:00Z",
     };
     const missingProof = createTeamNetworkApi({ request: vi.fn().mockResolvedValue(payload) } as unknown as ApiClient, "dev");
@@ -124,10 +126,10 @@ describe("team network API", () => {
 
   it("rejects internal sponsor identity fields instead of carrying them into the App", async () => {
     const request = vi.fn().mockResolvedValue({
-      totalMembers: 1, directMembers: 1, activeMembers: 1, monthVolumeUsdt: 0, lifetimeVolumeUsdt: null,
+      totalMembers: 1, directMembers: 1, activeMembers: 1, monthComputePoints: 0, lifetimeComputePoints: 0,
       members: [{ id: "42", name: "Member 42", avatarUrl: null, vRank: 1, layer: 1, leg: null,
-        sponsorId: "7", joinedAt: "2026-08-13T00:00:00Z", monthVolumeUsdt: 0,
-        lifetimeVolumeUsdt: null, status: "ACTIVE", region: null }],
+        sponsorId: "7", joinedAt: "2026-08-13T00:00:00Z", monthComputePoints: 0,
+        lifetimeComputePoints: 0, status: "ACTIVE", region: null }],
       ...PRODUCTION_PROOF, generatedAt: "2026-08-13T00:00:00Z",
     });
     const api = createTeamNetworkApi({ request } as unknown as ApiClient, "prod");
@@ -136,7 +138,7 @@ describe("team network API", () => {
 
   it("rejects inconsistent member counts", async () => {
     const request = vi.fn().mockResolvedValue({ totalMembers: 2, directMembers: 0, activeMembers: 0,
-      monthVolumeUsdt: 0, lifetimeVolumeUsdt: 0, members: [], ...PRODUCTION_PROOF, generatedAt: "2026-08-13T00:00:00Z" });
+      monthComputePoints: 0, lifetimeComputePoints: 0, members: [], ...PRODUCTION_PROOF, generatedAt: "2026-08-13T00:00:00Z" });
     const api = createTeamNetworkApi({ request } as unknown as ApiClient, "prod");
     await expect(api.snapshot()).rejects.toMatchObject({ message: "TEAM_NETWORK_RESPONSE_INVALID" });
   });

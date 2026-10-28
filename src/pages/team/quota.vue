@@ -193,8 +193,8 @@ function buildTier(productId: string, tint: string): QuotaTier | null {
     conditions.push({ label: fmt(t.value.quota.condRank, { v: g.rankMin }), current: vRank.myRank, required: g.rankMin, kind: "invites" });
   if (g.activeDirectMin != null)
     conditions.push({ label: t.value.quota.condActivatedDirect, current: activeDirect.value, required: g.activeDirectMin, kind: "invites" });
-  if (g.teamVolumeMin != null)
-    conditions.push({ label: t.value.quota.condTeamVol, current: vRank.teamVolumeUSD, required: g.teamVolumeMin, kind: "legacyUSD" });
+  if (g.teamComputePointsMin != null)
+    conditions.push({ label: t.value.quota.condTeamVol, current: vRank.teamComputePoints ?? 0, required: g.teamComputePointsMin, kind: "volume" });
   return {
     productId,
     imageUrl: p.imageUrl,
@@ -275,11 +275,11 @@ const tiers = computed<QuotaTier[]>(() =>
       available: tier.available,
       unlockKind: tier.unlockKind === "EITHER" ? "either" : "all",
       conditions: tier.conditions.map((condition) => ({
-        label: condition.kind === "teamVolume" || condition.kind === "teamComputePoints" ? t.value.quota.condTeamVol
+        label: condition.kind === "teamComputePoints" ? t.value.quota.condTeamVol
           : condition.kind === "rank" ? fmt(t.value.quota.condRank, { v: condition.required })
           : t.value.quota.condActivatedDirect,
         current: condition.current, required: condition.required,
-        kind: condition.kind === "teamVolume" ? "legacyUSD" : condition.kind === "teamComputePoints" ? "volume" : "invites",
+        kind: condition.kind === "teamComputePoints" ? "volume" : "invites",
       })), perks: catalogProductPerks(tier.productId, tier.perks),
       roiBasis: catalogProductRoiBasis(tier.productId), tint: index % 2 ? "var(--v5-warning)" : "var(--v5-brand)",
     }))

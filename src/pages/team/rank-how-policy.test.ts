@@ -13,8 +13,8 @@ const labels = {
 };
 
 describe("rank-how server policy boundary", () => {
-  it("formats canonical points independently of legacy dollar labels", () => {
-    expect(formatCanonicalRankConditions({ v: 1, conditions: { selfBuyUSD: 299, teamVolumeUSD: 5000, selfComputePoints: 2000, teamComputePoints: 20000 } }, labels, "zh"))
+  it("formats canonical point conditions", () => {
+    expect(formatCanonicalRankConditions({ v: 1, conditions: { selfComputePoints: 2000, teamComputePoints: 20000 } }, labels, "zh"))
       .toEqual(["自购算力 ≥ 2,000 算力点", "团队算力 ≥ 20,000 算力点"]);
     expect(formatCanonicalRankConditions({ v: 1, conditions: { selfComputePoints: 0 } }, labels, "vi"))
       .toEqual(["Năng lực tự mua ≥ 0 điểm tính toán"]);
@@ -29,8 +29,8 @@ describe("rank-how server policy boundary", () => {
   it("formats only server-provided ladder conditions", () => {
     expect(formatCanonicalRankConditions({
       v: 4,
-      conditions: { selfBuyUSD: 299, teamVolumeUSD: 50_000, vDownlines: { 2: 3 } },
-    }, labels)).toEqual(["Own compute · Compute requirements pending", "Team compute · Compute requirements pending", "3× V2"]);
+      conditions: { teamComputePoints: 50_000, vDownlines: { 2: 3 } },
+    }, labels)).toEqual(["Team compute ≥ 50,000 compute pts", "3× V2"]);
     expect(formatCanonicalRankConditions({ v: 0, conditions: {} }, labels))
       .toEqual(["Register immediately"]);
   });

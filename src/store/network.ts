@@ -214,17 +214,18 @@ export const useNetwork = defineStore("network", () => {
         id: member.id, name: member.name, avatar: member.avatarUrl ?? member.name.slice(0, 1).toUpperCase(),
         vRank: member.vRank as VRank, layer: member.layer,
         binary: member.leg === "A" ? "left" : member.leg === "B" ? "right" : "unassigned",
-        isSpillover: false, joinedAt: Date.parse(member.joinedAt), monthVolumeUSD: member.monthVolumeUsdt,
-        totalVolumeUSD: member.lifetimeVolumeUsdt,
-        monthComputePoints: member.monthComputePoints ?? null, lifetimeComputePoints: member.lifetimeComputePoints ?? null,
+        // The server reports member contribution in compute points only; USD volume
+        // feeds the local demo's commission estimates and stays unknown here.
+        isSpillover: false, joinedAt: Date.parse(member.joinedAt), monthVolumeUSD: 0, totalVolumeUSD: null,
+        monthComputePoints: member.monthComputePoints, lifetimeComputePoints: member.lifetimeComputePoints,
         status: member.status === "ACTIVE" ? "active" : member.status === "IDLE" ? "idle" : "offline",
         city: member.region ?? "—",
       }));
       totalMembers.value = snapshot.totalMembers;
-      totalMonthVolumeUSD.value = snapshot.monthVolumeUsdt;
-      totalAllTimeVolumeUSD.value = snapshot.lifetimeVolumeUsdt;
-      totalMonthComputePoints.value = snapshot.monthComputePoints ?? null;
-      totalLifetimeComputePoints.value = snapshot.lifetimeComputePoints ?? null;
+      totalMonthVolumeUSD.value = 0;
+      totalAllTimeVolumeUSD.value = null;
+      totalMonthComputePoints.value = snapshot.monthComputePoints;
+      totalLifetimeComputePoints.value = snapshot.lifetimeComputePoints;
       retryAt = 0;
       remoteStatus.value = "ready";
       remoteRateLimited.value = false;

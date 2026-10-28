@@ -9,7 +9,6 @@ import conditionSource from '@/components/team/quota-condition-bar.vue?raw';
 import { mountEntry, all, text, flush, slot } from '@/lib/entry-review.test-support';
 import { formatFinanceAmount } from '@/lib/finance-amount-display';
 import { formatAmount } from '@/lib/amount-display';
-import { formatLegacyUSD } from '@/lib/v-rank-copy';
 import { formatComputePoints } from '@/i18n/compute-points';
 import { teamLogicCopy } from '@/i18n/team-logic-copy';
 import { networkReauditCopy } from '@/i18n/network-reaudit';
@@ -51,7 +50,7 @@ async function page(code: keyof typeof dictionaries = 'en', kind = 'ineligible')
   const navTo = vi.fn(), api = { snapshot: vi.fn(async () => quota(kind)) };
   const app = Vue.reactive({ accountKey: 'user:A', accountBindingEpoch: 1 }), locale = Vue.reactive({ code });
   const common = {
-    '@/lib/finance-amount-display': { formatFinanceAmount }, '@/i18n/team-logic-copy': { teamLogicCopy }, '@/lib/v-rank-copy': { formatLegacyUSD }, '@/i18n/compute-points': { formatComputePoints },
+    '@/lib/finance-amount-display': { formatFinanceAmount }, '@/i18n/team-logic-copy': { teamLogicCopy }, '@/i18n/compute-points': { formatComputePoints },
     '@/store/locale': { useLocaleStore: () => locale }, '@/i18n/network-reaudit': { networkReauditCopy }, '@/i18n/use-t': { useT: () => Vue.computed(() => dictionaries[locale.code]) }, '@/i18n/format': { fmt },
     '@/lib/brand-copy': { nexGridBrandText }, '@/lib/product-media': { getProductMedia },
     '@/composables/use-scroll-grow-progress': { useScrollGrowProgress: () => ({ elRef: Vue.ref(null), inView: Vue.ref(true) }), PROGRESS_GROW_TRANSITION: 'none' },

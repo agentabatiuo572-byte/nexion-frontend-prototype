@@ -5,18 +5,11 @@ import { teamLogicCopy } from "../i18n/team-logic-copy";
 const sources = import.meta.glob("../pages/developer/developer.vue", { query: "?raw", import: "default", eager: true }) as Record<string, string>;
 
 describe("audit display contracts", () => {
-  it("keeps monetary rank requirements without internal migration labels in all languages", () => {
-    for (const [locale, own, team] of [
-      ['zh', '自购金额', '团队购买金额'],
-      ['en', 'Own purchase amount', 'Team purchase amount'],
-      ['vi', 'Số tiền tự mua', 'Số tiền mua của đội'],
-    ]) {
-      const copy = teamLogicCopy(locale);
-      expect(copy.legacySelf).toBe(own);
-      expect(copy.legacyTeam).toBe(team);
-      expect(copy.legacyNeedSelf).toContain('{amount}');
-      expect(copy.legacyNeedTeam).toContain('{amount}');
-      expect(JSON.stringify(copy)).not.toMatch(/旧规则|Legacy rule|Quy tắc cũ/);
+  it("keeps rank copy free of dollar-volume wording and internal migration labels in all languages", () => {
+    for (const locale of ['zh', 'en', 'vi']) {
+      const copy = JSON.stringify(teamLogicCopy(locale));
+      expect(copy).not.toMatch(/legacy|自购金额|团队购买金额|purchase amount|Số tiền tự mua/i);
+      expect(copy).not.toMatch(/旧规则|Legacy rule|Quy tắc cũ/);
     }
   });
   it("uses the final server deadline for an extended trial progress bar", () => {

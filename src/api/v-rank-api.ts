@@ -18,10 +18,8 @@ export interface CanonicalVRankRow {
   v: number;
   title: string;
   cnTitle: string;
-  selfBuyUSD?: number;
   selfComputePoints?: number;
   directRefs?: number;
-  teamVolumeUSD?: number;
   teamComputePoints?: number;
   requiredDownlineRank?: number;
   requiredDownlineCount?: number;
@@ -60,7 +58,7 @@ export interface CanonicalVRankLadder {
    * 服务端能力位:某类收益今天是否真的会派发。
    *
    * 🔴 等级阶梯里的 peerBonus 是「该等级配置的比例」,不是「现在会发」。没有这个
-   *   能力位,App 只能把配置比例当成已生效权益展示(V3–V12 逐级「平级 5%」),
+   *   能力位,App 只能把配置比例当成已生效权益展示(V3–V8 逐级「平级 5%」),
    *   与玩法说明的「未开放」自相矛盾(zentao #79)。
    */
   capabilities: CommissionCapabilities;
@@ -77,11 +75,9 @@ export interface CanonicalVRankState {
   runId: string;
   rankCode: string;
   progress: {
-    selfBuyUSD: number;
-    selfComputePoints?: number;
+    selfComputePoints: number;
     directRefs: number;
-    teamVolumeUSD: number;
-    teamComputePoints?: number;
+    teamComputePoints: number;
     vDownlineCounts: Record<string, number>;
   };
 }
@@ -119,7 +115,11 @@ function optionalNumber(value: unknown, minimum = 0): number | undefined {
 /** Additive platform-count fields. Missing is unknown; never coerce money or strings. */
 function optionalComputePoints(value: unknown): number | undefined {
   if (value === undefined) return undefined;
-  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return invalid();
+  return computePoints(value);
+}
+
+function computePoints(value: unknown): number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) return invalid();
   return value;
 }
 
@@ -151,7 +151,7 @@ function reward(value: unknown): CanonicalVRankReward {
 function rankRow(value: unknown): CanonicalVRankRow {
   const source = record(value);
   const v = integer(source.v);
-  if (v > 12 || typeof source.visible !== "boolean") return invalid();
+  if (v > 8 || typeof source.visible !== "boolean") return invalid();
   const requiredRank = source.requiredDownlineRank == null || source.requiredDownlineRank === ""
     ? undefined
     : integer(String(source.requiredDownlineRank).replace(/^V/i, ""));
@@ -160,10 +160,8 @@ function rankRow(value: unknown): CanonicalVRankRow {
     v,
     title: text(source.title),
     cnTitle: text(source.cnTitle),
-    selfBuyUSD: optionalNumber(source.selfBuyUSD),
     selfComputePoints: optionalComputePoints(source.selfComputePoints),
     directRefs: optionalNumber(source.directRefs),
-    teamVolumeUSD: optionalNumber(source.teamVolumeUSD),
     teamComputePoints: optionalComputePoints(source.teamComputePoints),
     requiredDownlineRank: requiredRank,
     requiredDownlineCount: optionalNumber(source.requiredDownlineCount),
@@ -215,21 +213,19 @@ function current(value: unknown, mode: ApiEnvironment): CanonicalVRankState {
   const rawCounts = record(progress.vDownlineCounts);
   const counts: Record<string, number> = {};
   for (const [key, count] of Object.entries(rawCounts)) {
-    if (!/^(?:[0-9]|1[0-2])$/.test(key)) return invalid();
+    if (!/^[0-8]$/.test(key)) return invalid();
     counts[key] = integer(count);
   }
   const rankCode = text(source.rankCode).toUpperCase();
-  if (!/^V(?:[0-9]|1[0-2])$/.test(rankCode)) return invalid();
+  if (!/^V[0-8]$/.test(rankCode)) return invalid();
   return {
     source: text(source.source),
     ...proof,
     rankCode,
     progress: {
-      selfBuyUSD: number(progress.selfBuyUSD),
-      selfComputePoints: optionalComputePoints(progress.selfComputePoints),
+      selfComputePoints: computePoints(progress.selfComputePoints),
       directRefs: integer(progress.directRefs),
-      teamVolumeUSD: number(progress.teamVolumeUSD),
-      teamComputePoints: optionalComputePoints(progress.teamComputePoints),
+      teamComputePoints: computePoints(progress.teamComputePoints),
       vDownlineCounts: counts,
     },
   };

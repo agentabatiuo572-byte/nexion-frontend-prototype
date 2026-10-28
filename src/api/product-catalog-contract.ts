@@ -131,7 +131,7 @@ function purchaseGate(value: unknown): PurchaseGate | undefined {
   return {
     rankMin: optionalInteger(gate.rankMin),
     activeDirectMin: optionalInteger(gate.activeDirectMin),
-    teamVolumeMin: optionalNumber(gate.teamVolumeMin),
+    teamComputePointsMin: optionalNumber(gate.teamComputePointsMin),
     mode: gate.mode as PurchaseGate["mode"],
     quotaCap: optionalInteger(gate.quotaCap),
     quotaSold: optionalInteger(gate.quotaSold),

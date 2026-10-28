@@ -1,3 +1,4 @@
+import { formatComputePoints } from '@/i18n/compute-points';
 import * as Vue from 'vue';
 import { afterEach, expect, it, vi } from 'vitest';
 import source from './rank-how.vue?raw';
@@ -18,14 +19,14 @@ const ids = ['overview', 'overview-detail', 'ladder', 'promotion', 'stepwise', '
   'result-network', 'result-peer', 'result-leadership', 'result-cultivation', 'faq-members', 'faq-rank', 'faq-rewards'];
 const policy = (): RankHowPolicy => ({ version: 'published-test', locale: 'en', hero: 'Published policy overview',
   source: 'server', sourceEnvironment: 'PRODUCTION', runId: '',
-  rules: { permanentProtection: true, qualifiedReferralSelfBuyUSD: 300, leadershipConfigured: false },
+  rules: { permanentProtection: true, qualifiedReferralSelfComputePoints: 3000, leadershipConfigured: false },
   sections: ids.map((id, order) => ({ id, order, title: `Title ${id}`, body:
     id === 'requirement-self' || id === 'example-self' ? '{selfComputePoints}'
       : id === 'requirement-team' || id === 'example-team' ? '{teamComputePoints}' : `Published ${id}` })),
 });
 const ranks: CanonicalVRankRow[] = [0, 1].map(v => ({ v, title: `Published rank ${v}`, cnTitle: `公开等级 ${v}`,
   directBonus: .1, unilevelDepth: 1, peerBonus: .05, leadershipVotes: 2, cultivationBonus: 900,
-  selfComputePoints: v * 2000, teamComputePoints: v * 20000, selfBuyUSD: 987, teamVolumeUSD: 45678,
+  selfComputePoints: v * 2000, teamComputePoints: v * 20000,
   rewards: [], visible: true }));
 const button = { default: Vue.defineComponent({ props: ['label', 'disabled', 'busy'], emits: ['click'],
   setup: (props, { emit, slots }) => () => Vue.h('view', { role: 'button', 'aria-label': props.label,
@@ -95,26 +96,19 @@ it.each([
   back.props.onClick(); expect(p.navBack).toHaveBeenCalledWith('/pages/team/rank');
 });
 
-it.each(['zh', 'en', 'vi'] as const)('R1-R01 renders the real %s guide steps and referral condition with precise legacy USD', async locale => {
+it.each(['zh', 'en', 'vi'] as const)('R1-R01 renders the real %s guide steps and referral condition in compute points', async locale => {
   const p = page(locale);
-  const legacyPolicy = policy();
-  legacyPolicy.rules.qualifiedReferralSelfBuyUSD = 0.000001;
-  legacyPolicy.sections = legacyPolicy.sections.map(section => ({ ...section, body:
-    section.id === 'requirement-self' || section.id === 'example-self' ? '{selfBuy}'
-      : section.id === 'requirement-team' || section.id === 'example-team' ? '{teamVolume}'
+  const pointsPolicy = policy();
+  pointsPolicy.sections = pointsPolicy.sections.map(section => ({ ...section, body:
+    section.id === 'requirement-self' || section.id === 'example-self' ? '{selfComputePoints}'
+      : section.id === 'requirement-team' || section.id === 'example-team' ? '{teamComputePoints}'
         : section.id === 'requirement-direct' ? '{referralThreshold}' : section.body }));
-  const legacyRanks = ranks.map(rank => ({ ...rank, selfComputePoints: undefined, teamComputePoints: undefined,
-    selfBuyUSD: 0.000001, teamVolumeUSD: 299.000001 }));
-  const before = JSON.stringify({ legacyPolicy, legacyRanks });
-  p.published.mockResolvedValueOnce(legacyPolicy);
-  p.ladder.mockResolvedValueOnce({ ranks: legacyRanks, capabilities: { peer: false, genesis: false } });
+  const before = JSON.stringify({ pointsPolicy, ranks });
+  p.published.mockResolvedValueOnce(pointsPolicy);
+  p.ladder.mockResolvedValueOnce({ ranks, capabilities: { peer: false, genesis: false } });
   await p.show();
-  const tiny = locale === 'vi' ? '0,000001 USD' : '0.000001 USD';
-  const team = locale === 'vi' ? '299,000001 USD' : '299.000001 USD';
   expect(p.nodes('how-state')).toHaveLength(0);
-  expect(text(p.nodes('how-step')[0])).toContain(tiny);
-  expect(text(p.nodes('how-step')[1])).toContain(team);
-  expect(text(p.nodes('how-rule__body')[0])).toContain(tiny);
-  expect(all(p.root).map(node => node.text).join('\n')).not.toContain('USDT');
-  expect(JSON.stringify({ legacyPolicy, legacyRanks })).toBe(before);
+  expect(text(p.nodes('how-rule__body')[0])).toContain(formatComputePoints(3000, locale));
+  expect(all(p.root).map(node => node.text).join('\n')).not.toMatch(/USD|\$/);
+  expect(JSON.stringify({ pointsPolicy, ranks })).toBe(before);
 });

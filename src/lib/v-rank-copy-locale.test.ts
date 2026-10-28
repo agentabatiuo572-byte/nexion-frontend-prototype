@@ -67,19 +67,14 @@ describe("canonical V-rank title locale", () => {
     expect(rankName({ title: "Server Rank", cnTitle: "注册会员" }, "en")).toBe("Server Rank");
   });
   it.each([
-    ["en", en, "Compute requirements pending"],
-    ["zh", zh, "算力条件待公布"],
-    ["vi", vietnamese, "Chưa công bố điều kiện điểm"],
-  ] as const)("discloses real %s legacy USD thresholds without relabeling money as points", (locale, copy, pending) => {
-    vi.stubGlobal("Intl", undefined);
-    try {
-      expect(rankGapText(copy, { kind: "selfBuy", amount: 500 - 499.999999 }, locale, [])).toContain(locale === "vi" ? "0,000001 USD" : "0.000001 USD");
-      expect(rankGapText(copy, { kind: "teamVolume", amount: 2_000 - 1234.123456 }, locale, [])).toContain("USD");
-      const legacy = rankConditionsText(copy, { teamVolumeUSD: 1234.123456 }, locale);
-      expect(legacy).toContain(teamLogicCopy(locale).legacyTeam);
-      expect(legacy).toContain(locale === "vi" ? "1.234,123456 USD" : "1,234.123456 USD");
-      expect(legacy).not.toContain(pending);
-    } finally { vi.unstubAllGlobals(); }
+    ["en", en],
+    ["zh", zh],
+    ["vi", vietnamese],
+  ] as const)("states %s rank thresholds in compute points only", (locale, copy) => {
+    const text = rankConditionsText(copy, { selfComputePoints: 2000, teamComputePoints: 20000 }, locale);
+    expect(text).toContain(formatComputePoints(2000, locale));
+    expect(text).toContain(formatComputePoints(20000, locale));
+    expect(text).not.toMatch(/USD|\$/);
   });
 });
 
@@ -93,7 +88,7 @@ describe("platform point formatting and copy", () => {
     try {
       expect(formatComputePoints(1280.125, locale)).toBe(formatted);
       expect(rankGapText(copy, { kind: "selfComputePoints", amount: 720 }, locale, [])).toBe(gap);
-      expect(rankConditionsText(copy, { teamComputePoints: 20000, teamVolumeUSD: 5000 }, locale)).toBe(condition);
+      expect(rankConditionsText(copy, { teamComputePoints: 20000 }, locale)).toBe(condition);
       expect(rankGapText(copy, { kind: "teamComputePoints", amount: undefined }, locale, [])).toBe(computePointsCopy(locale).conditionsPending);
       expect(formatComputePoints(0, locale)).toBe(`0 ${computePointsCopy(locale).unit}`);
     } finally { vi.unstubAllGlobals(); }

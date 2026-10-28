@@ -69,7 +69,7 @@ import NxButton from "@/components/ui/nx-button.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useVRank, type VRank, type VRankDef, type VRankReward, type VRankConditions } from "@/store/v-rank";
-import { rankGapText, rankConditionsText, rankLabel, rankCultivationCopy, formatLegacyUSD } from "@/lib/v-rank-copy";
+import { rankGapText, rankConditionsText, rankLabel, rankCultivationCopy } from "@/lib/v-rank-copy";
 import { formatHowNumber } from "@/lib/rank-how-content";
 import { computePointsCopy, formatComputePoints } from "@/i18n/compute-points";
 import { useLocaleStore } from "@/store/locale";
@@ -93,10 +93,8 @@ const rankAvailable = computed(() => !remoteApiEnabled || vState.remoteReady);
 // each required rank. This projection is only for the observed progress display.
 const previewData = computed(() => ({
   myRank: vState.myRank,
-  selfBuyUSD: vState.selfBuyUSD,
   selfComputePoints: vState.selfComputePoints,
   directRefs: vState.directRefs,
-  teamVolumeUSD: vState.teamVolumeUSD,
   teamComputePoints: vState.teamComputePoints,
   vDownlineCounts: Object.fromEntries(rankDefs.value.map(({ v }) => [v,
     Object.entries(vState.vDownlineCounts).reduce((sum, [level, count]) => sum + (Number(level) >= v ? count : 0), 0),
@@ -110,7 +108,7 @@ const rankGapSummary = computed(() => [
 ].join(' · '));
 const rankActions = computed(() => prog.value.missing.map(row => {
   const gap = row.gap!;
-  const self = gap.kind === 'selfComputePoints' || gap.kind === 'selfBuy';
+  const self = gap.kind === 'selfComputePoints';
   return {
     title: self ? copy.value.catalogue : gap.kind === 'directRefs' ? t.value.team.inviteFriends : copy.value.teamComputeDetails,
     key: row.key, kind: gap.kind,
@@ -144,12 +142,10 @@ const allConditions = computed(() => prog.value.rows
   .map(row => {
     const { kind, current, required } = row;
     const points = kind === 'selfComputePoints' || kind === 'teamComputePoints';
-    const money = kind === 'selfBuy' || kind === 'teamVolume';
     const known = row.status !== 'unknown';
     const valueText = (value: number | undefined) => points ? formatComputePoints(value, locale.code)
-      : money ? formatLegacyUSD(value, locale.code) : value === undefined ? '—' : formatHowNumber(value, locale.code);
+      : value === undefined ? '—' : formatHowNumber(value, locale.code);
     const name = kind === 'selfComputePoints' ? pointCopy.value.self : kind === 'teamComputePoints' ? pointCopy.value.team
-      : kind === 'selfBuy' ? logicCopy.value.legacySelf : kind === 'teamVolume' ? logicCopy.value.legacyTeam
       : kind === 'directRefs' ? copy.value.directInvites : fmt(copy.value.teamRankMembers, { n: row.vLevel ?? 0 });
     return {
       tier: row.tier, key: row.key,
@@ -199,9 +195,9 @@ function rewardText(reward: VRankReward): string {
 const formatConditions = (r: VRankDef): string => rankConditionsText(t.value, r.conditions, locale.code);
 function conditionItems(r: VRankDef): string[] {
   const c = r.conditions, items: VRankConditions[] = [];
-  if (c.selfComputePoints !== undefined || c.selfBuyUSD !== undefined) items.push({selfComputePoints:c.selfComputePoints,selfBuyUSD:c.selfBuyUSD});
+  if (c.selfComputePoints !== undefined) items.push({selfComputePoints:c.selfComputePoints});
   if (c.directRefs) items.push({directRefs:c.directRefs});
-  if (c.teamComputePoints !== undefined || c.teamVolumeUSD !== undefined) items.push({teamComputePoints:c.teamComputePoints,teamVolumeUSD:c.teamVolumeUSD});
+  if (c.teamComputePoints !== undefined) items.push({teamComputePoints:c.teamComputePoints});
   for (const [v,n] of Object.entries(c.vDownlines ?? {})) if(n) items.push({vDownlines:{[v]:n}});
   return (items.length ? items : [{}]).map(item=>rankConditionsText(t.value,item,locale.code));
 }

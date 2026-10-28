@@ -43,39 +43,27 @@ const template = parse(source).descriptor.template!.content;
 const basis = template.match(/<view class="reward-binary-basis">[\s\S]*?<\/view>/)?.[0];
 if (!basis) throw new Error("Missing visible binary calculation basis");
 const render = new Function("Vue", compile(basis, { mode: "function", prefixIdentifiers: true }).code)(Vue);
-const lowerStart = source.indexOf("const lowerComputePoints = computed(");
-const lowerEnd = source.indexOf("const smallerPointSide", lowerStart);
-if (lowerStart < 0 || lowerEnd < lowerStart) throw new Error("Missing lower point aggregate");
-const lower = new Function("computed", "leftPoints", "rightPoints", `${source.slice(lowerStart, lowerEnd)}; return lowerComputePoints;`);
-
-async function showBasis(points: [number | null, number | null], dict = en, locale = "en-US") {
+async function showBasis(weakVol: number, dict = en, locale = "en-US") {
   const period = dict.binary.settlePeriodLabel.weekly;
   return renderToString(Vue.createSSRApp({ render, setup: () => ({
-    t: dict, locale: { code: locale }, formatComputePoints,
-    lowerComputePoints: lower(computed, ref(points[0]), ref(points[1])),
+    t: dict, locale: { code: locale }, formatFinanceAmount, weakVol,
     formulaText: build(computed, fmt, ref(dict), ref(.1375), ref(4321), ref(period), () => locale, formatFinanceAmount),
     gapHintText: fmt(dict.binary.gapHint, { freq: period }),
   }) }));
 }
 
 describe("visible binary calculation basis", () => {
-  it.each([[en, "en-US"], [zh, "zh-CN"], [vi, "vi-VN"]] as const)("renders the authoritative rate, cycle and lower points (%s)", async (dict, locale) => {
-    const html = await showBasis([1720, 1480], dict, locale);
-    expect(html).toContain(formatComputePoints(1480, locale));
+  it.each([[en, "en-US"], [zh, "zh-CN"], [vi, "vi-VN"]] as const)("renders the authoritative rate, cycle and weaker group volume in USDT (%s)", async (dict, locale) => {
+    const html = await showBasis(1480, dict, locale);
+    expect(html).toContain(`${dict.binary.weak} · $${formatFinanceAmount(1480)}`);
     expect(html).toContain(`${(13.75).toLocaleString(locale)}%`);
     expect(html).toContain(dict.binary.settlePeriodLabel.weekly);
     expect(html).toContain("4,321.00");
     expect(html).toContain(dict.binary.gapHint);
-    expect(html).not.toContain("$1480");
+    expect(html).not.toContain(formatComputePoints(1480, locale));
     expect(html).not.toContain("10%");
   });
-  it.each([[null, 1480], [1720, null], [null, null]] as [number | null, number | null][])("keeps a missing point aggregate unknown (%s, %s)", async (a, b) => {
-    const html = await showBasis([a, b]);
-    expect(html).toContain(`${en.binary.weak} · —`);
-    expect(html).not.toContain("0 compute pts");
-    expect(html).toContain("13.75%");
-  });
-  it("retains a known zero point total", async () => {
-    expect(await showBasis([0, 1480])).toContain("0 compute pts");
+  it("shows a zero weaker group as zero dollars", async () => {
+    expect(await showBasis(0)).toContain(`${en.binary.weak} · $${formatFinanceAmount(0)}`);
   });
 });
