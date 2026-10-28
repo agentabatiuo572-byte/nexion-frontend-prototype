@@ -17,6 +17,11 @@ export interface CalibrationSignals {
   batteryLevel: number | null;
   charging: boolean | null;
   networkReachable: boolean | null;
+  /** iPhone OS version, screen in points and screen scale, for the server's model consistency checks; omitted when unknown. */
+  osVersion?: string;
+  screenWidth?: number;
+  screenHeight?: number;
+  pixelRatio?: number;
 }
 
 /** Raw device observations may be unavailable; null is preserved to the server. */
@@ -170,6 +175,10 @@ function signals(value: unknown): CalibrationSignals {
     memGB: nullableNumber(row.memGB, 0, 128), cores: nullableBoundedInteger(row.cores, 1, 256), model: optionalText(row.model, 128), brand: optionalText(row.brand, 128),
     gpu: optionalText(row.gpu, 256), pxDensity: nullableNumber(row.pxDensity, 1, 10_000), pingMs: nullableNumber(row.pingMs, 0, 5_000),
     batteryLevel: nullableBoundedInteger(row.batteryLevel, 0, 100), charging: row.charging === null ? null : bool(row.charging), networkReachable: row.networkReachable === null ? null : bool(row.networkReachable),
+    ...(row.osVersion == null ? {} : { osVersion: optionalText(row.osVersion, 32) }),
+    ...(row.screenWidth == null ? {} : { screenWidth: boundedInteger(row.screenWidth, 1, 10_000) }),
+    ...(row.screenHeight == null ? {} : { screenHeight: boundedInteger(row.screenHeight, 1, 10_000) }),
+    ...(row.pixelRatio == null ? {} : { pixelRatio: number(row.pixelRatio, 1, 10) }),
   };
 }
 

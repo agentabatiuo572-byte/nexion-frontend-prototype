@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-tick-range",
+  "sourcePath": "/Volumes/HD1/Projects/UVEL/nexion-uniapp-risk",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "d043ec7b829af7b2c07f7bb2bec6bc988dd5b142",
-  "sourceRef": "d043ec7b829af7b2c07f7bb2bec6bc988dd5b142",
+  "sourceHead": "62d1444886e5bfa3920cc79402adafed99b72819",
+  "sourceRef": "62d1444886e5bfa3920cc79402adafed99b72819",
   "sourceRefKind": "commit",
-  "sourceTree": "ed5390c39ab14471511f9c530b112cb7eb599b7f",
+  "sourceTree": "fbd82cb7de1bce5b4b6985cd2bbd704b36610551",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -12277,10 +12277,10 @@
       "mode": "100644"
     },
     "docs/plans/2026-10-28-iphone-model-risk-control.md": {
-      "sourceBlob": "eb610fad2f16c17cd6ebfc3b50050ae3db16db39",
-      "sourceSha256": "b43b9f2b59e35c3ab375d8b73a5c22ca216b0b9a0ba16b0e8c098a3652d4b821",
-      "targetBlob": "eb610fad2f16c17cd6ebfc3b50050ae3db16db39",
-      "targetSha256": "b43b9f2b59e35c3ab375d8b73a5c22ca216b0b9a0ba16b0e8c098a3652d4b821",
+      "sourceBlob": "455e43968f810124edbc51b2b073adc29c8a5573",
+      "sourceSha256": "5521864a61e879e573d1feaab1f16d495c40f451dc70a84b12b69497fd40f2ed",
+      "targetBlob": "455e43968f810124edbc51b2b073adc29c8a5573",
+      "targetSha256": "5521864a61e879e573d1feaab1f16d495c40f451dc70a84b12b69497fd40f2ed",
       "mode": "100644"
     },
     "docs/specs/PAY-NexGrid_越南支付架构规格_v1.0.md": {
@@ -12410,10 +12410,10 @@
       "mode": "100644"
     },
     "docs/前端产品更新日志.md": {
-      "sourceBlob": "c979e038f167af5cadcf0bac9ecd89a8c5d9add5",
-      "sourceSha256": "725a64e863abfad820255d25ebfecd447244d550f306af309b933cfd2147aa1c",
-      "targetBlob": "c979e038f167af5cadcf0bac9ecd89a8c5d9add5",
-      "targetSha256": "725a64e863abfad820255d25ebfecd447244d550f306af309b933cfd2147aa1c",
+      "sourceBlob": "cf667358938a5246d858f91d2c3f2a377496e097",
+      "sourceSha256": "2aa05c67bb3460c26583b6868dab43e618f346be977143429fd1370bfeb72985",
+      "targetBlob": "cf667358938a5246d858f91d2c3f2a377496e097",
+      "targetSha256": "2aa05c67bb3460c26583b6868dab43e618f346be977143429fd1370bfeb72985",
       "mode": "100644"
     },
     "index.html": {
@@ -15840,10 +15840,10 @@
       "mode": "100644"
     },
     "src/api/onboarding-calibration-api.ts": {
-      "sourceBlob": "7c09199c7ccb8cd74fe429dd06cc93c577c48eee",
-      "sourceSha256": "1ec157f27c81b98a8d2c4b5f3842359f739abfc56793ad7798a9123c5cca4f02",
-      "targetBlob": "7c09199c7ccb8cd74fe429dd06cc93c577c48eee",
-      "targetSha256": "1ec157f27c81b98a8d2c4b5f3842359f739abfc56793ad7798a9123c5cca4f02",
+      "sourceBlob": "1a13446cfdf25fc34419fd4975327bc401648a97",
+      "sourceSha256": "fe2a6e1bbeacbca5a0035836edbdf5c12d757553a00a9e3d4031d88f3e2bf81d",
+      "targetBlob": "1a13446cfdf25fc34419fd4975327bc401648a97",
+      "targetSha256": "fe2a6e1bbeacbca5a0035836edbdf5c12d757553a00a9e3d4031d88f3e2bf81d",
       "mode": "100644"
     },
     "src/api/order-api-cancel.test.ts": {
@@ -20656,17 +20656,17 @@
       "mode": "100644"
     },
     "src/lib/device-signals.test.ts": {
-      "sourceBlob": "22b1247b68bd69e6ae817277f8021eb002f30b23",
-      "sourceSha256": "4f2d51a6cce64ed4ae93c91995be7c916b319a934909126f08998a76a6c07bb9",
-      "targetBlob": "22b1247b68bd69e6ae817277f8021eb002f30b23",
-      "targetSha256": "4f2d51a6cce64ed4ae93c91995be7c916b319a934909126f08998a76a6c07bb9",
+      "sourceBlob": "fd6eb531cdb59842cfc93647b08b1483f8666e84",
+      "sourceSha256": "0591c315f11650a58b88035ea43dc33c7da805bd3222f4c0a0ffc865838ab8f8",
+      "targetBlob": "fd6eb531cdb59842cfc93647b08b1483f8666e84",
+      "targetSha256": "0591c315f11650a58b88035ea43dc33c7da805bd3222f4c0a0ffc865838ab8f8",
       "mode": "100644"
     },
     "src/lib/device-signals.ts": {
-      "sourceBlob": "c683879bd9fd3c63a85a81746164106017ada49d",
-      "sourceSha256": "bb48c7749d796925e3c64ba8fcc9529962fc8616cbc14dfa26cb5e2ec1a75a03",
-      "targetBlob": "c683879bd9fd3c63a85a81746164106017ada49d",
-      "targetSha256": "bb48c7749d796925e3c64ba8fcc9529962fc8616cbc14dfa26cb5e2ec1a75a03",
+      "sourceBlob": "87cb020e78ca8bcf3db7dd70f3d976a3a149da5a",
+      "sourceSha256": "af01907de1b464b7f8aa672355a24dbbdc47a15ddead8ade90f93fe50f7e3605",
+      "targetBlob": "87cb020e78ca8bcf3db7dd70f3d976a3a149da5a",
+      "targetSha256": "af01907de1b464b7f8aa672355a24dbbdc47a15ddead8ade90f93fe50f7e3605",
       "mode": "100644"
     },
     "src/lib/device-slot-policy.contract.test.ts": {
