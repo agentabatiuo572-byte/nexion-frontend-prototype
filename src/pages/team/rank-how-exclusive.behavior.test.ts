@@ -38,12 +38,15 @@ function page(language: keyof typeof dictionaries = 'en') {
   const published = vi.fn(async () => policy());
   const ladder = vi.fn(async () => ({ ranks, capabilities: { peer: false, genesis: false } }));
   const p = mountEntry(source, {
-    '@dcloudio/uni-app': { onShow: (fn: () => void) => shown.push(fn) },
+    '@dcloudio/uni-app': { onHide: () => {}, onShow: (fn: () => void) => shown.push(fn) },
     '@/components/app-chassis.vue': slot, '@/components/sub-page-header.vue': slot,
     '@/components/team/team-art.vue': slot, '@/components/ui/nx-button.vue': button,
     '@/components/team/v-badge-icon.vue': { default: Vue.defineComponent({ props: ['v', 'size'], setup: props => () => Vue.h('view', { 'data-rank': props.v }) }) },
     '@/i18n/use-t': { useT: () => Vue.ref(dictionaries[language]) }, '@/store/locale': { useLocaleStore: () => ({ code: language }) },
-    '@/lib/route': { navTo, navBack }, '@/api/runtime': { apiClient: {}, expectedApiEnvironment: 'prod', vRankApi: { ladder } },
+     '@/store/app': { useApp: () => Vue.reactive({ accountKey: 'user:A', accountBindingEpoch: 1 }) },
+    '@/store/auth': { useAuth: () => Vue.reactive({ isAuthenticated: true }) },
+    '@/lib/account-scope': { captureAccountScope: () => 1, isCurrentAccountScope: () => true },
+    '@/lib/route': { navTo, navBack }, '@/api/runtime': { apiClient: {}, apiRuntimeConfig: { environment: 'prod', baseUrl: 'https://fixture.invalid' }, expectedApiEnvironment: 'prod', vRankApi: { ladder } },
     '@/api/rank-how-policy-api': { createRankHowPolicyApi: () => ({ published }) },
     '@/lib/rank-how-content': { buildRankHowContent, createRankHowResource }, '@/lib/v-rank-copy': { rankName },
   }); stop.push(p.unmount);
@@ -53,7 +56,7 @@ it('keeps loading, failed reads and retry separate from published rules', async 
   const p = page();
   expect(p.nodes('how-state')).toHaveLength(1);
   expect(p.nodes('how-rules')).toHaveLength(0);
-  expect(text(p.root)).not.toContain(en.rankHowItWorks.ctaBack);
+  expect(text(p.root)).toContain(en.rankHowItWorks.ctaBack);
   p.published.mockRejectedValueOnce(new Error('offline')); await p.show();
   expect(p.nodes('how-state')).toHaveLength(1); expect(p.nodes('how-rules')).toHaveLength(0);
   const retry = all(p.root).find(n => n.props.role === 'button' && n.props['aria-label'] === 'Reload')!;

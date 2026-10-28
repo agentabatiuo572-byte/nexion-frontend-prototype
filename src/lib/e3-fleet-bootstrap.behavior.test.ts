@@ -15,7 +15,7 @@ vi.mock("@/api/runtime", () => ({
   sessionVault: { read: () => state.session },
   productCatalogApi: { catalog: state.catalog },
 }));
-vi.mock("@/api/order-api", () => ({ advanceRuntimeRevision: vi.fn() }));
+vi.mock("@/api/order-api", async importOriginal => await importOriginal());
 vi.mock("@/store/auth", () => ({ useAuth: () => state.auth }));
 vi.mock("@/store/app", () => ({ useApp: () => ({ refreshRemoteFleet: state.fleet }) }));
 

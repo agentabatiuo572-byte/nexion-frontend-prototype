@@ -2,11 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import type { CanonicalE3Fleet } from "@/api/device-e3-api";
 import type { CanonicalTaskAssignments } from "@/api/task-assignment-api";
+import { ApiError } from "@/api/errors";
 
 const remote = vi.hoisted(() => ({
   remoteApiEnabled: true,
   fundsServerEnabled: true,
   expectedApiEnvironment: "dev",
+  apiRuntimeClientOrigin: Object.freeze({ environment: "dev", baseUrl: "https://test.example" }),
+  apiRuntimeConfig: { environment: "dev", baseUrl: "https://test.example" },
   sessionVault: { read: vi.fn() },
   deviceE3Api: { fleet: vi.fn() },
   taskAssignmentApi: { state: vi.fn() },
@@ -122,7 +125,7 @@ describe("App remote fleet refresh wiring", () => {
     };
     remote.appHomeApi.fetch
       .mockResolvedValueOnce(overview)
-      .mockRejectedValueOnce(new Error("home offline"));
+      .mockRejectedValueOnce(new ApiError({ kind: "network", message: "home offline" }));
     const app = useApp();
     app.bindAccount("user:1001");
 

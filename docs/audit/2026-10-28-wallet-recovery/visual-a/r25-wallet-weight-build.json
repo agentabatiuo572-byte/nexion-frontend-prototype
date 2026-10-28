@@ -1,0 +1,29 @@
+{
+  "at": "2026-10-27T19:14:06.3971776Z",
+  "fixedRoot": "wallet-r25/web-wallet-weight",
+  "qaOrigin": "http://127.0.0.1:5291",
+  "expectedHtmlSha256": "a0e8a98f80207ed78c1209aa0d2d12118c7d156c25afd1da2bc28c7e63cb6073",
+  "files": [
+    {
+      "path": "web-wallet-weight/index.html",
+      "sha256": "a0e8a98f80207ed78c1209aa0d2d12118c7d156c25afd1da2bc28c7e63cb6073"
+    },
+    {
+      "path": "web-final/index.html",
+      "sha256": "a0e8a98f80207ed78c1209aa0d2d12118c7d156c25afd1da2bc28c7e63cb6073"
+    },
+    {
+      "path": "web-wallet-weight/assets/index-DQPnbcrO.js",
+      "sha256": "a9538d76e32d5f8b50ee8396628fac2023e8b3af5da859b345abc7fe1cb9690d"
+    },
+    {
+      "path": "web-wallet-weight/assets/index-H57LADHv.css",
+      "sha256": "202098a25c0dd1a2d6fa7644105aeeb86dc5833339b9059c794daea119f96c5b"
+    }
+  ],
+  "httpEntryAssets": [
+    "/assets/uni.c39fe708.css",
+    "/assets/index-DQPnbcrO.js",
+    "/assets/index-H57LADHv.css"
+  ]
+}

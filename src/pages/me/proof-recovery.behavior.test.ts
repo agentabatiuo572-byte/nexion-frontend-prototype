@@ -81,7 +81,7 @@ it.each(["zh", "en", "vi"])("keeps the clipboard sentinel and hides sharing on c
   expect(text(p.page.root)).toContain(copy.unavailable);
   expect(text(p.page.root)).not.toContain(p.copy.network.projectionErrorTitle);
   expect(text(p.page.root)).not.toMatch(/hash|哈希/i);
-  expect(p.page.control(p.copy.proof.shareDestinations.copy)).toBeUndefined();
+  expect(p.page.control(p.copy.proof.shareDestinations.copy)?.props["aria-disabled"]).toBe(true);
   await p.blockedActions();
   expect(p.copyText).not.toHaveBeenCalled(); expect(p.uni.share).not.toHaveBeenCalled(); expect(p.uni.createCanvasContext).not.toHaveBeenCalled();
   expect(p.toast.success).not.toHaveBeenCalled(); expect(p.clipboard()).toBe("AUDIT_SENTINEL");
@@ -153,4 +153,21 @@ it("does not run a native-share fallback or save an export after an account rebi
   p.app.accountBindingEpoch += 1; shareOptions.fail(); finishDraw(); await exporting; await flush();
   expect(p.copyText).not.toHaveBeenCalled(); expect(p.uni.canvasToTempFilePath).not.toHaveBeenCalled(); expect(p.toast.success).not.toHaveBeenCalled();
   p.page.unmount();
+});
+
+it("retains warm facts and static sharing controls while a new read blocks every share command", async () => {
+  const p=setup(); p.api.snapshot.mockResolvedValue(snapshot());
+  await p.actions.refreshRemoteProof(); await flush();
+  let finish!: (value: ProofSnapshot)=>void;
+  p.api.snapshot.mockImplementationOnce(()=>new Promise(done=>{finish=done;}));
+  const reading=p.actions.refreshRemoteProof(); await flush();
+  expect(text(p.page.root)).toContain("123.45");
+  expect(text(p.page.root)).not.toContain(proofRecoveryCopyFor("zh").loading);
+  expect(p.page.control(p.copy.proof.shareDestinations.copy)?.props["aria-disabled"]).toBe(true);
+  await p.blockedActions(); expect(p.copyText).not.toHaveBeenCalled(); expect(p.uni.share).not.toHaveBeenCalled();
+  p.api.snapshot.mockImplementation(()=>new Promise(()=>{}));
+  p.app.accountBindingEpoch++; await flush();
+  expect(text(p.page.root)).not.toContain("123.45");
+  finish(snapshot()); await reading; await flush();
+  expect(text(p.page.root)).not.toContain("123.45"); p.page.unmount();
 });

@@ -43,7 +43,7 @@
           <text class="block" :style="unavailableBodyStyle">{{ unavailableBody }}</text>
         </view>
 
-        <view v-else-if="isRemote && !remoteReady" :style="unavailableStyle" role="status" :aria-busy="repurchase.loading">
+        <view v-else-if="isRemote && !remoteReady && (!repurchase.loading || !repurchaseDisplayable)" :style="unavailableStyle" role="status" :aria-busy="repurchase.loading">
           <text class="block" :style="unavailableTitleStyle">{{ repurchase.loading ? loadingLabel : unavailableTitle }}</text>
           <text v-if="!repurchase.loading" class="block" :style="unavailableBodyStyle">{{ unavailableBody }}</text>
           <view v-if="recovering" role="button" tabindex="0" :aria-disabled="repurchase.submitting" :style="retryCtaStyle" @click="handleRepurchase" @keydown.enter.prevent="handleRepurchase" @keydown.space.prevent="handleRepurchase">
@@ -54,10 +54,10 @@
           </view>
         </view>
 
-        <template v-else>
-        <view v-if="repurchase.historyLoading || repurchase.historyError" :style="cardStyle" role="status" aria-live="polite">
+        <template v-if="!isSandboxHold">
+        <view v-if="repurchase.historyError || (repurchase.historyLoading && repurchase.submitting)" :style="cardStyle" role="status" aria-live="polite">
           <text>{{ repurchase.historyLoading ? w.historySyncing : w.historySyncFailed }}</text>
-          <view v-if="!repurchase.historyLoading" role="button" tabindex="0" :style="retryCtaStyle" @click="repurchase.refreshHistory()"  @keydown.enter.prevent="repurchase.refreshHistory()" @keydown.space.prevent="repurchase.refreshHistory()">
+          <view v-if="!repurchase.historyLoading" role="button" tabindex="0" class="nx-card-recovery-action nx-card-recovery-action--quiet" @click="repurchase.refreshHistory()"  @keydown.enter.prevent="repurchase.refreshHistory()" @keydown.space.prevent="repurchase.refreshHistory()">
             <text>{{ retryLabel }}</text>
           </view>
         </view>
@@ -67,10 +67,11 @@
           <view class="flex items-baseline" style="gap: 8px; margin-top: 8px">
             <text class="shrink-0" :style="dollarStyle">$</text>
             <input
-              :value="formatCommandAmount(amount)"
+              :value="isRemote && !repurchaseDisplayable ? '' : formatCommandAmount(amount)"
+              :placeholder="isRemote && !repurchaseDisplayable ? '—' : undefined"
               :aria-label="w.amountLabel"
               type="digit"
-              :disabled="confirming || repurchase.submitting || recovering"
+              :disabled="confirming || repurchase.submitting || recovering || (isRemote && !remoteReady)"
               :style="amountInputStyle"
               @input="onAmount"
             />
@@ -78,23 +79,23 @@
           </view>
           <view class="grid grid-cols-4" style="gap: 8px; margin-top: 12px">
             <!-- 反馈恒定:选中档原是空 class,按下零反馈 -->
-            <view v-for="p in presets" :key="p" class="active:opacity-70 transition-opacity" :style="presetStyle(amount === p)" role="button" tabindex="0" @click="selectPreset(p)">
+            <view v-for="p in presets" :key="p" class="active:opacity-70 transition-opacity" :style="presetStyle(amount === p)" role="button" :tabindex="isRemote && !remoteReady ? -1 : 0" :aria-disabled="isRemote && !remoteReady" @click="selectPreset(p)">
               <text>${{ formatAmount(p) }}</text>
             </view>
           </view>
           <view style="margin-top: 12px">
             <text :style="balanceLabelStyle">{{ w.balanceLabel }}</text>
-            <text :style="balanceValueStyle"> ${{ formatAmount(displayBalance) }}</text>
+            <text :style="balanceValueStyle"> {{ repurchaseDisplayable ? '$' + formatAmount(displayBalance) : '—' }}</text>
           </view>
-          <text v-if="isRemote && repurchase.config" class="block" :style="lockedNoticeStyle">{{ fmt(w.minimumAmount, { amount: formatCommandAmount(repurchase.config.minAmountUsdt) }) }}</text>
+          <text v-if="isRemote" class="block" :style="lockedNoticeStyle">{{ fmt(w.minimumAmount, { amount: repurchaseDisplayable && repurchase.config ? formatCommandAmount(repurchase.config.minAmountUsdt) : '—' }) }}</text>
         </view>
 
         <!-- projection -->
         <view :style="cardStyle">
-          <text class="block" :style="monoLabelStyle">{{ isRemote ? fmt(w.afterDays, { days: repurchase.config?.lockDays ?? '—' }) : w.after90 }}</text>
+          <text class="block" :style="monoLabelStyle">{{ isRemote ? fmt(w.afterDays, { days: repurchaseDisplayable ? repurchase.config?.lockDays ?? '—' : '—' }) : w.after90 }}</text>
           <view style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px">
-            <Row :label="w.principal" :value="`$${formatAmount(amount)}`" />
-            <Row :label="isRemote ? fmt(w.interestCanonical, { apy: repurchase.config?.apyPct ?? '—', days: repurchase.config?.lockDays ?? '—' }) : w.interest" :value="projectedYield === null ? '—' : `+$${formatAmount(projectedYield)}`" tint="var(--v5-brand)" />
+            <Row :label="w.principal" :value="repurchaseDisplayable ? `$${formatAmount(amount)}` : '—'" />
+            <Row :label="isRemote ? fmt(w.interestCanonical, { apy: repurchaseDisplayable ? repurchase.config?.apyPct ?? '—' : '—', days: repurchaseDisplayable ? repurchase.config?.lockDays ?? '—' : '—' }) : w.interest" :value="projectedYield === null ? '—' : `+$${formatAmount(projectedYield)}`" tint="var(--v5-brand)" />
             <view :style="dividerStyle" />
             <Row :label="w.unlockable" :value="projectedYield === null ? '—' : `$${formatAmount(amount + projectedYield)}`" bold />
           </view>
@@ -105,7 +106,7 @@
         <!-- 置灰必须**说出来**:光换配色 + handler 里静默 return,读屏念的还是「按钮」、
              眼睛看到的还是「复投 $100.00」——实测复现单(#165)正是这么读成「仍启用」的。
              aria-disabled 同时是平台键盘激活层的第三道闸(a11y-activate 不激活置灰控件)。 -->
-        <view class="nx-repurchase-submit-cta w-full flex items-center justify-center" :class="{ 'active:scale-[0.98]': canSubmit }" :style="ctaStyle" role="button" tabindex="0" :aria-disabled="canSubmit ? 'false' : 'true'" :aria-busy="repurchase.submitting" @click="handleRepurchase">
+        <view v-if="!(isRemote && !remoteReady && recovering)" class="nx-repurchase-submit-cta w-full flex items-center justify-center" :class="{ 'active:scale-[0.98]': canSubmit }" :style="ctaStyle" role="button" tabindex="0" :aria-disabled="canSubmit ? 'false' : 'true'" :aria-busy="repurchase.submitting" @click="handleRepurchase">
           <text>{{ ctaLabel }}</text>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" :stroke="canSubmit ? 'var(--v5-on-brand)' : 'var(--v5-ink-4)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 8px"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
         </view>
@@ -121,13 +122,14 @@
           </view>
         </view>
 
-        <text class="block" :style="lockedNoticeStyle">{{ isRemote ? fmt(w.confirmMessage, { amount: formatAmount(amount), days: repurchase.config?.lockDays ?? '—', penalty: repurchase.config?.earlyPenaltyPct ?? '—' }) : w.lockedNotice }}</text>
+        <text class="block" :style="lockedNoticeStyle">{{ isRemote ? fmt(w.confirmMessage, { amount: repurchaseDisplayable ? formatAmount(amount) : '—', days: repurchaseDisplayable ? repurchase.config?.lockDays ?? '—' : '—', penalty: repurchaseDisplayable ? repurchase.config?.earlyPenaltyPct ?? '—' : '—' }) : w.lockedNotice }}</text>
         </template>
-        <view v-if="isRemote && remoteReady" :style="cardStyle">
+        <view v-if="isRemote" :style="cardStyle">
           <text class="block" :style="heroTitleStyle">{{ w.ordersTitle }}</text>
-          <view role="button" tabindex="0" :aria-disabled="confirming || repurchase.submitting || repurchase.loading" :style="retryCtaStyle" @click="refreshOrders"  @keydown.enter.prevent="refreshOrders" @keydown.space.prevent="refreshOrders"><text>{{ repurchase.loading ? w.loading : w.retry }}</text></view>
-          <text v-if="!repurchase.loading && !repurchase.error && !repurchase.orders.length">{{ w.ordersEmpty }}</text>
-          <view v-for="order in repurchase.orders" :key="order.orderNo" style="padding: 16px 0; border-top: 1px solid var(--v5-border)">
+          <view role="button" tabindex="0" :aria-disabled="confirming || repurchase.submitting || repurchase.loading" :style="retryCtaStyle" @click="refreshOrders"  @keydown.enter.prevent="refreshOrders" @keydown.space.prevent="refreshOrders"><text>{{ w.retry }}</text></view>
+          <text v-if="remoteReady && !repurchase.orders.length">{{ w.ordersEmpty }}</text>
+          <text v-if="!repurchaseDisplayable" role="status">—</text>
+          <view v-for="order in repurchaseDisplayable ? repurchase.orders : []" :key="order.orderNo" style="padding: 16px 0; border-top: 1px solid var(--v5-border)">
             <text class="block" style="overflow-wrap: anywhere">{{ order.orderNo }}</text>
             <Row :label="orderStatusLabel(order.status)" :value="`${formatAmount(order.amountUsdt)} USDT`" />
             <Row :label="w.maturesAt" :value="formatDisplayDateTime(order.unlockAt, dateLocale(), true)" />
@@ -212,14 +214,15 @@ const recovering = computed(() => isRemote.value && repurchase.pendingOpenAmount
 watch(() => repurchase.pendingOpenAmount, (pending) => {
   if (pending !== null) amount.value = pending;
 }, { immediate: true });
-const presets = computed(() => (isRemote.value ? (repurchase.config?.presets ?? []) : PRESETS));
+const presets = computed(() => (isRemote.value ? (repurchaseDisplayable.value ? repurchase.config?.presets ?? [] : []) : PRESETS));
 const displayBalance = computed(() => (isRemote.value ? repurchase.walletBalanceUsdt : user.value.usdtBalance));
 const remoteReady = computed(() => isRemote.value && repurchase.config !== null
   && !repurchase.loading && repurchase.serverTime > 0 && !repurchase.error);
+const repurchaseDisplayable = computed(() => !isRemote.value || (repurchase.config !== null && repurchase.serverTime > 0 && !repurchase.error));
 
 const projectedYield = computed<number | null>(() => {
   if (!isRemote.value) return amount.value * 0.35 * (90 / 365);
-  const config = repurchase.config;
+  const config = repurchaseDisplayable.value ? repurchase.config : null;
   return config ? amount.value * (config.apyPct / 100) * (config.lockDays / 365) : null;
 });
 const canSubmit = computed(() => {
@@ -269,14 +272,14 @@ const submitHint = computed(() => {
 
 const ctaLabel = computed(() => recovering.value
   ? fmt(w.value.recoveryCta, { amount: formatAmount(amount.value) })
-  : fmt(w.value.cta, { amount: formatAmount(amount.value) }));
+  : fmt(w.value.cta, { amount: repurchaseDisplayable.value ? formatAmount(amount.value) : "—" }));
 const unavailableTitle = computed(() => w.value.unavailableTitle);
 const unavailableBody = computed(() => w.value.unavailableBody);
 const retryLabel = computed(() => w.value.retry);
 const loadingLabel = computed(() => w.value.loading);
 const heroApy = computed(() => {
   if (!isRemote.value) return w.value.benefits.apy;
-  const config = repurchase.config;
+  const config = repurchaseDisplayable.value ? repurchase.config : null;
   return config ? fmt(w.value.benefits.apyCanonical, { apy: config.apyPct, days: config.lockDays }) : "—";
 });
 
@@ -288,27 +291,26 @@ const BENEFIT_SVG = {
 };
 
 const benefitTiles = computed(() => {
-  const config = repurchase.config;
-  if (isRemote.value && !config) return [];
+  const config = repurchaseDisplayable.value ? repurchase.config : null;
   return [
     {
       icon: BENEFIT_SVG.zap,
       text: isRemote.value
-        ? fmt(w.value.benefits.apyCanonical, { apy: config!.apyPct, days: config!.lockDays })
+        ? fmt(w.value.benefits.apyCanonical, { apy: config?.apyPct ?? "—", days: config?.lockDays ?? "—" })
         : w.value.benefits.apy,
       tint: "var(--v5-ink-2)",
     },
     {
       icon: BENEFIT_SVG.check,
       text: isRemote.value
-        ? fmt(w.value.benefits.cultivationCanonical, { multiplier: config!.effectiveNurtureMultiplier })
+        ? fmt(w.value.benefits.cultivationCanonical, { multiplier: config?.effectiveNurtureMultiplier ?? "—" })
         : w.value.benefits.cultivation,
       tint: "var(--v5-ink-2)",
     },
     {
       icon: BENEFIT_SVG.diamond,
       text: isRemote.value
-        ? fmt(w.value.benefits.genesisCanonical, { tickets: config!.ticketPerOrder })
+        ? fmt(w.value.benefits.genesisCanonical, { tickets: config?.ticketPerOrder ?? "—" })
         : w.value.benefits.genesis,
       tint: "var(--v5-ink-2)",
     },
@@ -319,13 +321,13 @@ function detailVal(e: Event): string {
   return (e as unknown as { detail: { value: string } }).detail.value;
 }
 function onAmount(e: Event) {
-  if (confirming.value || repurchase.submitting || recovering.value) return;
+  if (confirming.value || repurchase.submitting || recovering.value || (isRemote.value && !remoteReady.value)) return;
   amountTouched.value = true;
   amount.value = normalizeCommandAmount(detailVal(e));
 }
 
 function selectPreset(preset: number) {
-  if (confirming.value || repurchase.submitting || recovering.value) return;
+  if (confirming.value || repurchase.submitting || recovering.value || (isRemote.value && !remoteReady.value)) return;
   amountTouched.value = true;
   amount.value = preset;
 }

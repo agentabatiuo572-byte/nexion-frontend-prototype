@@ -2,7 +2,7 @@
   <view v-if="providers.length || intent === 'LINK'" class="third-party-auth" data-testid="third-party-auth">
     <text class="oauth-title">{{ intent === "LINK" ? t.thirdParty.linkTitle : t.thirdParty.signInTitle }}</text>
     <text v-if="intent === 'LINK' && !providers.length" class="oauth-copy">{{ t.thirdParty.unavailable }}</text>
-    <AuthProviderGrid v-if="labels.length" :providers="labels" :linked="linkedLabels" :busy="!!flow || submitting || disabled" @select="start" />
+    <AuthProviderGrid v-if="labels.length" :providers="labels" :linked="linkedLabels" :busy="!!flow || submitting || disabled" :preserve-appearance="disabled && !flow && !submitting" @select="start" />
     <view v-if="flow" class="oauth-panel" aria-live="polite">
       <text class="oauth-copy">{{ verified ? t.thirdParty.confirmIdentity : t.thirdParty.browserPrompt }}</text>
       <text v-if="verified" class="oauth-identity">{{ label(selected) }} · {{ displayName }}</text>

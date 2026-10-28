@@ -7,9 +7,9 @@
     <DeviceSlot :device="device" :online="false" />
     <view class="hf-device-meta">
       <text class="hf-device-name">{{ displayName }}</text>
-      <text class="hf-device-status" :class="{ 'hf-device-status--offline': onlineState === 'offline' }"><text class="hf-status-dot" :style="dotStyle" />{{ statusText }}</text>
+      <view class="hf-device-status" :class="{ 'hf-device-status--offline': onlineState === 'offline' }"><view class="hf-status-dot" :style="dotStyle" aria-hidden="true" /><text>{{ statusText }}</text></view>
     </view>
-    <view class="hf-device-income"><text class="font-mono-tabular">{{ runtimeConfirmed ? (device.todayEarnings > 0 ? '+' : '') + fmtMoney(device.todayEarnings) : '-' }}</text><text class="hf-device-today">{{ copy.today }}</text></view>
+    <view class="hf-device-income"><text class="font-mono-tabular">{{ visibility.mask(runtimeConfirmed ? (device.todayEarnings > 0 ? '+' : '') + fmtMoney(device.todayEarnings) : '-') }}</text><text class="hf-device-today">{{ copy.today }}</text></view>
     <view class="nx-home-arrow" aria-hidden="true">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6" /></svg>
     </view>
@@ -17,6 +17,7 @@
 </template>
 
 <script setup lang="ts">
+import { useDataVisibility } from "@/store/data-visibility";
 import { formatAmount } from "@/lib/amount-display";
 import { fmtMoney } from '@/i18n/format';
 import { useAuditUiCopy } from '@/i18n/audit-ui';
@@ -27,6 +28,7 @@ import { deviceOnlineState } from "@/lib/hashpower";
 import { deviceName } from "@/lib/device-copy";
 import type { Device } from "@/store/types";
 
+const visibility = useDataVisibility();
 const props = defineProps<{ device: Device; divider?: boolean; runtimeConfirmed: boolean }>();
 const t = useT();
 const copy = useAuditUiCopy();
@@ -66,10 +68,10 @@ import DeviceSlot from "./device-slot.vue";
 .nx-device-row :deep(.nx-home-art) { width: 52px;max-width:none; height: 52px; animation: none; }
 .nx-device-row :deep(.hf-computer) { height: 48px; }
 .hf-device-meta { min-width: 0; flex: 1; }
-.hf-device-name { display: block; font: 500 15px/20px var(--font-v5); color: var(--v5-ink); overflow-wrap: anywhere; }
-.hf-device-status { display: flex;align-items:center;gap:6px; margin-top: 2px; font: 400 13px/18px var(--font-v5); color: var(--v5-ink-3); }
+.hf-device-name { display: block; font: 500 clamp(13px,3.85vw,15px)/20px var(--font-v5); color: var(--v5-ink); overflow-wrap: anywhere; }
+.hf-device-status { display: flex;align-items:center;gap:6px; margin-top: 2px; font: 400 clamp(11px,3.08vw,12px)/18px var(--font-v5); color: var(--v5-ink-3); }
 .hf-device-status--offline { color: var(--v5-warning-ink); }
-.hf-device-income { flex-shrink: 0; font: 600 15px/20px var(--font-v5); color: var(--v5-brand);text-align:right; }
-.hf-device-today {display:block;font:400 12.5px/18px var(--font-v5);color:var(--v5-ink-3);}
+.hf-device-income { flex-shrink: 0; font: 600 clamp(13px,3.85vw,15px)/20px var(--font-v5); color: var(--v5-brand);text-align:right; }
+.hf-device-today {display:block;font:400 clamp(11px,3.08vw,12px)/18px var(--font-v5);color:var(--v5-ink-3);}
 .nx-home-arrow { display: flex; align-items: center; width: 16px; color: var(--v5-ink-4);background:none;box-shadow:none; }
 </style>

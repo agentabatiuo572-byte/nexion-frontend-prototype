@@ -29,14 +29,14 @@
           <view v-if="remoteApiEnabled && selectedType !== 'ai' && convStore.realtimeFallback && !humanReadFailed && !convStore.advisorError" class="nx-conv-refresh-warning" role="status" aria-live="polite">
             <text class="nx-conv-refresh-warning__text">{{ t.conversations.realtimeFallback }}</text>
             <view role="button" :tabindex="retrying ? -1 : 0" :aria-disabled="retrying" class="nx-conv-refresh-warning__retry family-control" @click="retryConversations"  @keydown.enter.prevent="retryConversations" @keydown.space.prevent="retryConversations">
-              <text>{{ t.conversations.retry }}</text>
+              <text>{{ t.ui.retry }}</text>
             </view>
           </view>
           <view v-if="remoteApiEnabled && selectedType !== 'ai' && convStore.advisorError && !humanReadFailed" class="nx-conv-refresh-warning" role="alert">
             <text class="nx-conv-refresh-warning__text">{{ t.conversations.image.advisorUnavailable }}</text>
             <view role="button" :tabindex="retrying ? -1 : 0" :aria-disabled="retrying" class="nx-conv-refresh-warning__retry family-control" :aria-label="t.conversations.retry"
               @click="retryConversations"  @keydown.enter.prevent="retryConversations" @keydown.space.prevent="retryConversations">
-              <text>{{ t.conversations.retry }}</text>
+              <text>{{ t.ui.retry }}</text>
             </view>
           </view>
           <!-- A new turn opens a composer first. The authenticated user's text is the
@@ -63,7 +63,7 @@
           >
             <text class="nx-conv-refresh-warning__text">{{ t.conversations.staleSnapshot }}</text>
             <view role="button" :tabindex="retrying ? -1 : 0" :aria-disabled="retrying" class="nx-conv-refresh-warning__retry family-control" @click="retryConversations">
-              <text>{{ t.conversations.retry }}</text>
+              <text>{{ t.ui.retry }}</text>
             </view>
           </view>
           <view v-if="(convStore.error || convStore.categoryAvailabilityStatus === 'failed') && rows.length === 0" class="nx-conv-retry-state">
@@ -475,32 +475,32 @@ const typeOptions = computed(() => TYPES.value.map(type => ({ value: type.key, l
   color: var(--v5-ink-3);
 }
 .nx-conv-refresh-warning {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
   margin: 8px 0;
   padding: 0;
   background: transparent;
 }
 .nx-conv-refresh-warning__text {
-  flex: 0 0 auto;
   min-width: 0;
+  overflow-wrap: anywhere;
   font-size: 12px;
   line-height: 1.45;
   color: var(--v5-ink-3);
 }
 .nx-conv-refresh-warning__retry {
-  width: 100%;
+  min-width: 44px;
   min-height: 44px;
-  padding: 0 16px;
+  padding: 0;
+  white-space: nowrap;
   display: grid;
   place-items: center;
   border-radius: 999px;
   background: transparent;
   color: var(--v5-ink-2);
-  font-size: 12px;
-  font-weight: 600;
+  font: 600 13px/20px var(--font-v5);
 }
 .nx-conv-listempty {
   padding: 40px 20px;

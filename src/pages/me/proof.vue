@@ -15,13 +15,13 @@
       <view style="color: var(--v5-ink)">
         <SubPageHeader back="/pages/me/me" :title="t.proof.title" />
 
-        <view v-if="!proofReady" :style="remoteErrorStyle" role="status" :aria-busy="remoteLoading">
+        <view v-if="!proofDisplayReady || (!remoteLoading && !proofReady)" :style="remoteErrorStyle" role="status" :aria-busy="remoteLoading">
           <text class="block" style="font-weight: 600">{{ recoveryTitle }}</text>
           <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ recoveryHint }}</text>
           <view v-if="!remoteLoading" role="button" tabindex="0" :style="remoteRetryStyle" @click="refreshRemoteProof" @keydown.enter.stop.prevent="refreshRemoteProof" @keydown.space.stop.prevent="refreshRemoteProof"><text>{{ t.ui.retry }}</text></view>
         </view>
 
-      <view v-if="proofReady" :style="bodyStyle">
+      <view :style="bodyStyle">
         <!-- Variant tabs -->
         <view>
           <text class="block font-mono-tabular" :style="variantLabelStyle">{{ t.proof.variantLabel }}</text>
@@ -29,7 +29,7 @@
         </view>
 
         <!-- Share card -->
-        <view v-if="!remoteApiEnabled || remoteSnapshot" class="nx-glass-card relative overflow-hidden" :style="shareCardStyle">
+        <view class="nx-glass-card relative overflow-hidden" :style="shareCardStyle">
           <text v-if="!remoteApiEnabled || remoteSnapshot?.sourceEnvironment === 'SANDBOX'" class="block" style="margin-bottom: var(--ui-space-inline); font-size: 12px; color: var(--v5-ink-3)">{{ t.proof.shareDemo }}</text>
           <!-- brand -->
           <view class="flex items-center" style="gap: 8px">
@@ -108,6 +108,7 @@
                 role="button"
                 tabindex="0"
                 :aria-label="t.proof.shareDestinations.copy"
+                :aria-disabled="!proofReady"
                 @click="copyLink"
 
                 @keydown.enter.stop.prevent="copyLink" @keydown.space.stop.prevent="copyLink"
@@ -132,6 +133,7 @@
             role="button"
             tabindex="0"
             :aria-label="t.proof.shareNative"
+            :aria-disabled="!proofReady"
             @click="nativeShare"
 
             @keydown.enter.stop.prevent="nativeShare" @keydown.space.stop.prevent="nativeShare"
@@ -152,6 +154,7 @@
             role="button"
             tabindex="0"
             :aria-label="d.label"
+            :aria-disabled="!proofReady"
             @click="d.onClick"
 
             @keydown.enter.stop.prevent="d.onClick" @keydown.space.stop.prevent="d.onClick"
@@ -207,7 +210,7 @@ import { useConfig } from "@/store/config";
 import { proofRecoveryCopyFor } from "./proof-recovery-copy";
 import { useNetwork } from "@/store/network";
 import { useNexFaucet } from "@/store/nex-faucet";
-import { proofApi, remoteApiEnabled } from "@/api/runtime";
+import { proofApi, remoteApiEnabled, apiRuntimeConfig } from "@/api/runtime";
 import type { ProofSnapshot } from "@/api/proof-api";
 import { proofStreakFacts } from "@/lib/proof-streak";
 import { proofPosterText } from "@/lib/proof-poster-values";
@@ -244,6 +247,9 @@ const remoteError = ref(false);
 const remoteLoading = ref(remoteApiEnabled);
 let remoteRequest = 0;
 let remoteMounted = true;
+let proofEnvironmentInvalidated = false;
+watch(() => apiRuntimeConfig?.environment, () => { proofEnvironmentInvalidated = true; clearRemoteProof(); }, { flush: 'sync' });
+watch(() => locale.code, () => { if (remoteApiEnabled) { clearRemoteProof(); void refreshRemoteProof(); } }, { flush: 'sync' });
 
 function clearRemoteProof(): void {
   remoteRequest += 1;
@@ -259,7 +265,7 @@ function invalidateRemoteProof(): void {
 }
 
 async function refreshRemoteProof() {
-  if (!remoteMounted) return;
+  if (!remoteMounted || proofEnvironmentInvalidated) return;
   const request = ++remoteRequest;
   remoteError.value = false;
   remoteLoading.value = true;
@@ -293,7 +299,7 @@ watch([() => String(app.accountKey), () => app.accountBindingEpoch], () => {
 }, { flush: "sync" });
 const unsubscribeProofRun = subscribeRuntimeRevision(() => {
   if (!remoteApiEnabled || !remoteMounted) return;
-  clearRemoteProof();
+  remoteRequest += 1;
   void refreshRemoteProof();
 });
 onUnload(invalidateRemoteProof);
@@ -340,6 +346,7 @@ const activeDays = computed<number | null>(() => remoteApiEnabled ? remoteSnapsh
 // [FEAT-SHARE1] 链接单源收编:构造走 lib/share(禁自拼 nexgrid.ai/ref/)。
 const refCode = computed(() => remoteApiEnabled ? remoteSnapshot.value?.referralCode ?? "—" : app.user.referralCode);
 const referralLink = computed(() => refCode.value === "—" ? "" : buildShareLink(refCode.value));
+const proofDisplayReady = computed(() => !remoteApiEnabled || (!remoteError.value && remoteSnapshot.value !== null));
 const proofReady = computed(() => remoteMounted && !remoteLoading.value
   && (!remoteApiEnabled || (!remoteError.value && remoteSnapshot.value !== null))
   && referralLink.value.trim().length > 0);
@@ -616,7 +623,7 @@ function tint(svg: string, color: string): string {
 // ── styles ──
 const bodyStyle: CSSProperties = { padding: "0 16px 32px" };
 const remoteErrorStyle: CSSProperties = { margin: "0 16px 12px", padding: "var(--ui-space-inline)", borderRadius: "12px", background: "color-mix(in srgb, var(--v5-warning) 10%, transparent)" };
-const remoteRetryStyle: CSSProperties = { minHeight: "44px", display: "grid", placeItems: "center", marginTop: "6px", color: "var(--v5-warning)" };
+const remoteRetryStyle: CSSProperties = { minHeight: "44px", display: "grid", placeItems: "center", marginTop: "6px", color: "var(--v5-warning)", font: "600 13px/20px var(--font-v5)" };
 const variantLabelStyle: CSSProperties = {
   marginBottom: "6px",
   fontSize: "12px",

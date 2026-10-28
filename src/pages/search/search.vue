@@ -28,9 +28,9 @@
         </view>
       </view>
 
-      <view v-if="navigationError" class="mx-4 mt-3" :style="navigationErrorStyle" role="alert">
-        <text class="block" :style="navigationErrorTextStyle">{{ t.search.navigationFailed }}</text>
-        <view class="active:opacity-70" :style="navigationRetryStyle" role="button" tabindex="0"
+      <view v-if="navigationError" class="mx-4 mt-3 nx-inline-recovery" :style="navigationErrorStyle" role="alert">
+        <text class="nx-inline-recovery__copy" :style="navigationErrorTextStyle">{{ t.search.navigationFailed }}</text>
+        <view class="active:opacity-70 nx-inline-recovery__action" :style="navigationRetryStyle" role="button" tabindex="0"
           @click="retryNavigation" @keydown.enter.prevent="retryNavigation" @keydown.space.prevent="retryNavigation">
           <text>{{ t.search.retryNavigation }}</text>
         </view>
@@ -70,9 +70,9 @@
         @cta="openHelp"
       />
 
-      <view v-if="searchResultState.showSourceError" class="nx-search-source-note mx-4 mt-3" role="status">
-        <text>{{ recoveryCopy.partial }}</text>
-        <view class="nx-search-source-retry" role="button" tabindex="0" @click="retrySearchSources" @keydown.enter.prevent="retrySearchSources" @keydown.space.prevent="retrySearchSources"><text>{{ t.ui.retry }}</text></view>
+      <view v-if="searchResultState.showSourceError" class="nx-search-source-note nx-inline-recovery mx-4 mt-3" role="status">
+        <text class="nx-inline-recovery__copy">{{ recoveryCopy.partial }}</text>
+        <view class="nx-search-source-retry nx-inline-recovery__action" role="button" tabindex="0" @click="retrySearchSources" @keydown.enter.prevent="retrySearchSources" @keydown.space.prevent="retrySearchSources"><text>{{ t.ui.retry }}</text></view>
       </view>
 
       <!-- Results -->
@@ -427,7 +427,7 @@ const navigationErrorStyle: CSSProperties = {
   background: "color-mix(in srgb, var(--v5-danger) 8%, transparent)",
 };
 const navigationErrorTextStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink)" };
-const navigationRetryStyle: CSSProperties = { display: "inline-flex", minHeight: "44px", alignItems: "center", color: "var(--v5-brand)", fontSize: "12px", fontWeight: 600 };
+const navigationRetryStyle: CSSProperties = { color: "var(--v5-brand)" };
 const groupLabelStyle: CSSProperties = {
   marginBottom: "6px",
   paddingLeft: "2px",
@@ -452,9 +452,6 @@ function rowStyle(isLast: boolean): CSSProperties {
 
 <style scoped>
 .nx-search-source-note {
-  display: flex;
-  align-items: center;
-  gap: 12px;
   color: var(--v5-ink-3);
   font-size: 12px;
   line-height: 1.5;

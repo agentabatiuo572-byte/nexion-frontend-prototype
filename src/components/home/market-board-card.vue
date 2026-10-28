@@ -56,7 +56,7 @@
     </view>
     <view v-else class="rounded-xl flex items-center justify-between" style="min-height: 60px; gap: 12px; background: var(--v5-surface); padding: 14px">
       <text class="font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-3)">{{ marketBoardStatusText }}</text>
-      <text v-if="app.homeTruthStatus === 'error'" class="font-mono-tabular active:opacity-70" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font-size: 12px; color: var(--v5-brand); font-weight: 600" role="button" tabindex="0" data-home-action="compute-market-retry" @click="retryHome"  @keydown.enter.stop.prevent="retryHome" @keydown.space.stop.prevent="retryHome">{{ t.ui.retry }}</text>
+      <text v-if="app.homeTruthStatus === 'error'" class="active:opacity-70" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font: 600 13px/20px var(--font-v5); color: var(--v5-brand)" role="button" tabindex="0" data-home-action="compute-market-retry" @click="retryHome"  @keydown.enter.stop.prevent="retryHome" @keydown.space.stop.prevent="retryHome">{{ t.ui.retry }}</text>
     </view>
   </view>
 </template>

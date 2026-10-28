@@ -202,3 +202,9 @@ describe("BUG 381 canonical order data-center and activation truth", () => {
     expect(html).not.toContain(en.uiChrome.viewOnEarn);
   });
 });
+
+it('keeps static order summary and timeline labels while the first detail read is pending',async()=>{
+ const {view}=await detail('Cloud-Global');
+ const html=await rendered({...view,showRemoteOrderLoading:Vue.ref(true),order:Vue.ref(undefined)});
+ expect(html).toContain(en.orders.orderSummary);expect(html).toContain(en.orders.timelineTitle);
+});

@@ -19,8 +19,8 @@ export function resolvePublishedNexNarrative(
   status: PublishedTrustStatus,
   locale: TrustLocale,
 ): PublishedNexNarrative {
-  if (status === "idle" || status === "loading") return { state: "loading" };
-  if (status !== "ready") return { state: "error" };
+  if (status === "idle" || (status === "loading" && sections.length === 0)) return { state: "loading" };
+  if (status !== "ready" && status !== "loading") return { state: "error" };
   const section = sections.find((item) => item.sectionKey === "nexNarrative");
   if (!section) return { state: "unpublished" };
   const hero = localizedTrustFieldValue(section.fields, "hero", locale);

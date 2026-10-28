@@ -55,6 +55,8 @@ describe("commission config remote scope", () => {
     expect(store.config?.unilevelUsdt[1]).toBe(0.13);
     remote.commissionConfigApi.rates.mockResolvedValueOnce(config("a", 0.14));
     await store.ensureCanonicalConfig();
+    expect(remote.commissionConfigApi.rates).toHaveBeenCalledTimes(1);
+    await store.refreshCanonicalConfig();
     expect(remote.commissionConfigApi.rates).toHaveBeenCalledTimes(2);
   });
   it("refreshes config and derives display rates from the server snapshot", async () => {
@@ -138,7 +140,7 @@ describe("commission config remote scope", () => {
     await Promise.all([current, rejoined]);
     expect(store.configStatus).toBe("error");
     remote.commissionConfigApi.rates.mockResolvedValueOnce(config("retry", 0.18));
-    await store.ensureCanonicalConfig();
+    await store.refreshCanonicalConfig();
     expect(store.config?.unilevelUsdt[1]).toBe(0.18);
     expect(remote.commissionConfigApi.rates).toHaveBeenCalledTimes(3);
   });

@@ -1,0 +1,1338 @@
+{
+  "cases": [
+    {
+      "time": "2026-10-27T15:52:45.901Z",
+      "url": "http://127.0.0.1:5252/?nx_device=off#/pages/onboarding/intro",
+      "entry": [
+        "http://127.0.0.1:5252/assets/index-PPFyVDQc.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5252/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5252/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5252/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5252/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5252/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5252/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5252/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5252/assets/app-chassis-DSCGxZok.css",
+        "http://127.0.0.1:5252/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5252/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5252/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5252/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5252/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5252/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5252/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5252/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5252/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5252/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5252/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5252/assets/index-BzGQwxRU.css",
+        "http://127.0.0.1:5252/assets/standalone-page-shell-B6WTKa80.css",
+        "http://127.0.0.1:5252/assets/intro-BZbJTasF.css"
+      ],
+      "theme": "light",
+      "viewport": [
+        320,
+        693
+      ],
+      "document": {
+        "client": [
+          320,
+          693
+        ],
+        "scroll": [
+          320,
+          693
+        ],
+        "body": [
+          320,
+          693,
+          320,
+          693
+        ]
+      },
+      "frame": {
+        "x": 846,
+        "y": 266.8333435058594,
+        "width": 320,
+        "height": 693,
+        "top": 266.8333435058594,
+        "right": 1166,
+        "bottom": 959.8333435058594,
+        "left": 846
+      },
+      "text": "VI\nUVEL. Sức mạnh tính toán luân chuyển.\nKết nối sức mạnh tính toán của thế giới để tiếp sức cho AI.\n—\nthiết bị trực tuyến\n—\ntổng đã chi trả\nBắt đầu\nĐăng nhập\nTiếp tục nghĩa là bạn đồng ý với\nĐiều khoản\n·\nChính sách quyền riêng tư",
+      "reduced": false,
+      "smil": 10,
+      "controls": [
+        {
+          "selector": ".intro-root",
+          "cls": "nx-standalone-page intro-root",
+          "tag": "UNI-VIEW",
+          "text": "VI\nUVEL. Sức mạnh tính toán luân chuyển.\nKết nối sức mạnh tính toán của thế giới để tiếp sức cho AI.\n—\nthiết bị trực tuyến\n—\ntổng đã chi trả\nBắt đầu\nĐăng nhập\nTiếp tục nghĩa là bạn đồng ý với\nĐiều khoản\n·\nChính sách quyền riêng tư",
+          "label": null,
+          "role": null,
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 320,
+            "height": 693.3333740234375,
+            "top": 0,
+            "right": 320,
+            "bottom": 693.3333740234375,
+            "left": 0
+          },
+          "font": [
+            "16px",
+            "400",
+            "normal"
+          ],
+          "display": "block",
+          "opacity": "1",
+          "padding": "0px 0px 38px",
+          "overflow": [
+            "hidden",
+            "auto"
+          ],
+          "client": [
+            320,
+            693
+          ],
+          "scroll": [
+            320,
+            693,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".intro-content",
+          "cls": "intro-content",
+          "tag": "UNI-VIEW",
+          "text": "VI\nUVEL. Sức mạnh tính toán luân chuyển.\nKết nối sức mạnh tính toán của thế giới để tiếp sức cho AI.\n—\nthiết bị trực tuyến\n—\ntổng đã chi trả\nBắt đầu\nĐăng nhập\nTiếp tục nghĩa là bạn đồng ý với\nĐiều khoản\n·\nChính sách quyền riêng tư",
+          "label": null,
+          "role": null,
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 320,
+            "height": 655.3333740234375,
+            "top": 0,
+            "right": 320,
+            "bottom": 655.3333740234375,
+            "left": 0
+          },
+          "font": [
+            "16px",
+            "400",
+            "normal"
+          ],
+          "display": "flex",
+          "opacity": "1",
+          "padding": "0px 20px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            320,
+            655
+          ],
+          "scroll": [
+            320,
+            655,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".intro-orb",
+          "cls": "intro-orb anim-orb",
+          "tag": "UNI-VIEW",
+          "text": "",
+          "label": null,
+          "role": null,
+          "box": {
+            "x": 78.33333587646484,
+            "y": 100.35417175292969,
+            "width": 163.3229217529297,
+            "height": 163.3229217529297,
+            "top": 100.35417175292969,
+            "right": 241.65625762939453,
+            "bottom": 263.6770935058594,
+            "left": 78.33333587646484
+          },
+          "font": [
+            "16px",
+            "400",
+            "normal"
+          ],
+          "display": "block",
+          "opacity": "1",
+          "padding": "0px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            163,
+            163
+          ],
+          "scroll": [
+            167,
+            163,
+            0
+          ],
+          "animations": [
+            {
+              "state": "finished",
+              "time": 900,
+              "timing": {
+                "delay": 0,
+                "direction": "normal",
+                "duration": 900,
+                "easing": "linear",
+                "endDelay": 0,
+                "fill": "both",
+                "iterationStart": 0,
+                "iterations": 1
+              }
+            }
+          ]
+        },
+        {
+          "selector": ".intro-title",
+          "cls": "intro-title",
+          "tag": "UNI-TEXT",
+          "text": "UVEL. Sức mạnh tính toán luân chuyển.",
+          "label": null,
+          "role": null,
+          "box": {
+            "x": 20,
+            "y": 320.04168701171875,
+            "width": 280,
+            "height": 62.395835876464844,
+            "top": 320.04168701171875,
+            "right": 300,
+            "bottom": 382.4375228881836,
+            "left": 20
+          },
+          "font": [
+            "26px",
+            "600",
+            "31.2px"
+          ],
+          "display": "block",
+          "opacity": "1",
+          "padding": "0px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            280,
+            62
+          ],
+          "scroll": [
+            280,
+            63,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".intro-sub",
+          "cls": "intro-sub",
+          "tag": "UNI-TEXT",
+          "text": "Kết nối sức mạnh tính toán của thế giới để tiếp sức cho AI.",
+          "label": null,
+          "role": null,
+          "box": {
+            "x": 20,
+            "y": 390.4375,
+            "width": 280,
+            "height": 39,
+            "top": 390.4375,
+            "right": 300,
+            "bottom": 429.4375,
+            "left": 20
+          },
+          "font": [
+            "13px",
+            "400",
+            "19.5px"
+          ],
+          "display": "block",
+          "opacity": "1",
+          "padding": "0px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            280,
+            39
+          ],
+          "scroll": [
+            280,
+            39,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".home-display-stats",
+          "cls": "home-display-stats",
+          "tag": "UNI-VIEW",
+          "text": "—\nthiết bị trực tuyến\n—\ntổng đã chi trả",
+          "label": null,
+          "role": null,
+          "box": {
+            "x": 46.552085876464844,
+            "y": 441.4375,
+            "width": 226.8854217529297,
+            "height": 30.5,
+            "top": 441.4375,
+            "right": 273.43750762939453,
+            "bottom": 471.9375,
+            "left": 46.552085876464844
+          },
+          "font": [
+            "11px",
+            "400",
+            "16.5px"
+          ],
+          "display": "inline-flex",
+          "opacity": "1",
+          "padding": "7px 10px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            227,
+            31
+          ],
+          "scroll": [
+            227,
+            31,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".home-display-item",
+          "cls": "home-display-item",
+          "tag": "UNI-VIEW",
+          "text": "—\nthiết bị trực tuyến",
+          "label": null,
+          "role": null,
+          "box": {
+            "x": 56.552085876464844,
+            "y": 448.4375,
+            "width": 109.88542175292969,
+            "height": 16.5,
+            "top": 448.4375,
+            "right": 166.43750762939453,
+            "bottom": 464.9375,
+            "left": 56.552085876464844
+          },
+          "font": [
+            "11px",
+            "400",
+            "16.5px"
+          ],
+          "display": "flex",
+          "opacity": "1",
+          "padding": "0px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            110,
+            17
+          ],
+          "scroll": [
+            110,
+            17,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".home-display-item",
+          "cls": "home-display-item",
+          "tag": "UNI-VIEW",
+          "text": "—\ntổng đã chi trả",
+          "label": null,
+          "role": null,
+          "box": {
+            "x": 179.1041717529297,
+            "y": 448.4375,
+            "width": 84.33333587646484,
+            "height": 16.5,
+            "top": 448.4375,
+            "right": 263.43750762939453,
+            "bottom": 464.9375,
+            "left": 179.1041717529297
+          },
+          "font": [
+            "11px",
+            "400",
+            "16.5px"
+          ],
+          "display": "flex",
+          "opacity": "1",
+          "padding": "0px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            84,
+            17
+          ],
+          "scroll": [
+            84,
+            17,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".cta-primary",
+          "cls": "cta-primary active:scale-[0.98]",
+          "tag": "UNI-VIEW",
+          "text": "Bắt đầu",
+          "label": null,
+          "role": "button",
+          "box": {
+            "x": 20,
+            "y": 491.9375,
+            "width": 280,
+            "height": 44,
+            "top": 491.9375,
+            "right": 300,
+            "bottom": 535.9375,
+            "left": 20
+          },
+          "font": [
+            "16px",
+            "400",
+            "normal"
+          ],
+          "display": "flex",
+          "opacity": "1",
+          "padding": "0px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            280,
+            44
+          ],
+          "scroll": [
+            280,
+            44,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".cta-secondary",
+          "cls": "cta-secondary active:scale-[0.98]",
+          "tag": "UNI-VIEW",
+          "text": "Đăng nhập",
+          "label": null,
+          "role": "button",
+          "box": {
+            "x": 20,
+            "y": 543.9375,
+            "width": 280,
+            "height": 44,
+            "top": 543.9375,
+            "right": 300,
+            "bottom": 587.9375,
+            "left": 20
+          },
+          "font": [
+            "16px",
+            "400",
+            "normal"
+          ],
+          "display": "flex",
+          "opacity": "1",
+          "padding": "0px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            280,
+            44
+          ],
+          "scroll": [
+            280,
+            44,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".intro-terms",
+          "cls": "intro-terms",
+          "tag": "UNI-VIEW",
+          "text": "Tiếp tục nghĩa là bạn đồng ý với\nĐiều khoản\n·\nChính sách quyền riêng tư",
+          "label": null,
+          "role": null,
+          "box": {
+            "x": 20,
+            "y": 595.9375,
+            "width": 280,
+            "height": 59.395835876464844,
+            "top": 595.9375,
+            "right": 300,
+            "bottom": 655.3333358764648,
+            "left": 20
+          },
+          "font": [
+            "11px",
+            "400",
+            "15.4px"
+          ],
+          "display": "flex",
+          "opacity": "1",
+          "padding": "0px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            280,
+            59
+          ],
+          "scroll": [
+            280,
+            59,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".terms-link",
+          "cls": "terms-link active:opacity-70",
+          "tag": "UNI-TEXT",
+          "text": "Điều khoản",
+          "label": null,
+          "role": "link",
+          "box": {
+            "x": 60.270835876464844,
+            "y": 611.3333740234375,
+            "width": 55.427085876464844,
+            "height": 44,
+            "top": 611.3333740234375,
+            "right": 115.69792175292969,
+            "bottom": 655.3333740234375,
+            "left": 60.270835876464844
+          },
+          "font": [
+            "11px",
+            "400",
+            "15.4px"
+          ],
+          "display": "flex",
+          "opacity": "1",
+          "padding": "0px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            55,
+            44
+          ],
+          "scroll": [
+            55,
+            44,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".terms-link",
+          "cls": "terms-link active:opacity-70",
+          "tag": "UNI-TEXT",
+          "text": "Chính sách quyền riêng tư",
+          "label": null,
+          "role": "link",
+          "box": {
+            "x": 130.5416717529297,
+            "y": 611.3333740234375,
+            "width": 129.17709350585938,
+            "height": 44,
+            "top": 611.3333740234375,
+            "right": 259.71876525878906,
+            "bottom": 655.3333740234375,
+            "left": 130.5416717529297
+          },
+          "font": [
+            "11px",
+            "400",
+            "15.4px"
+          ],
+          "display": "flex",
+          "opacity": "1",
+          "padding": "0px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            129,
+            44
+          ],
+          "scroll": [
+            129,
+            44,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".intro-lang",
+          "cls": "intro-lang active:scale-[0.96] active:opacity-80",
+          "tag": "UNI-VIEW",
+          "text": "VI",
+          "label": "Ngôn ngữ",
+          "role": "button",
+          "box": {
+            "x": 241.08334350585938,
+            "y": 10,
+            "width": 62.91666793823242,
+            "height": 44,
+            "top": 10,
+            "right": 304.0000114440918,
+            "bottom": 54,
+            "left": 241.08334350585938
+          },
+          "font": [
+            "16px",
+            "400",
+            "normal"
+          ],
+          "display": "flex",
+          "opacity": "1",
+          "padding": "0px 14px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            63,
+            44
+          ],
+          "scroll": [
+            63,
+            44,
+            0
+          ],
+          "animations": []
+        }
+      ],
+      "beforeBuild": {
+        "time": "2026-10-27T15:52:45.788Z",
+        "entry": "/assets/index-PPFyVDQc.js",
+        "css": "/assets/index-DPMvPy7r.css"
+      },
+      "afterEntry": [
+        "http://127.0.0.1:5252/assets/index-PPFyVDQc.js"
+      ],
+      "afterBuild": {
+        "time": "2026-10-27T15:52:46.050Z",
+        "entry": "/assets/index-PPFyVDQc.js",
+        "css": "/assets/index-DPMvPy7r.css"
+      },
+      "file": "01-intro-320693-vi-light.jpg"
+    },
+    {
+      "time": "2026-10-27T15:53:27.097Z",
+      "url": "http://127.0.0.1:5252/?nx_device=off#/pages/onboarding/intro",
+      "entry": [
+        "http://127.0.0.1:5252/assets/index-PPFyVDQc.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5252/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5252/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5252/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5252/assets/standalone-page-shell-B6WTKa80.css",
+        "http://127.0.0.1:5252/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5252/assets/intro-BZbJTasF.css",
+        "http://127.0.0.1:5252/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5252/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5252/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5252/assets/app-chassis-DSCGxZok.css",
+        "http://127.0.0.1:5252/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5252/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5252/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5252/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5252/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5252/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5252/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5252/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5252/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5252/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5252/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5252/assets/index-BzGQwxRU.css"
+      ],
+      "theme": "dark",
+      "viewport": [
+        320,
+        568
+      ],
+      "document": {
+        "client": [
+          320,
+          568
+        ],
+        "scroll": [
+          320,
+          568
+        ],
+        "body": [
+          320,
+          568,
+          320,
+          568
+        ]
+      },
+      "frame": {
+        "x": 846,
+        "y": 329.3333435058594,
+        "width": 320,
+        "height": 568,
+        "top": 329.3333435058594,
+        "right": 1166,
+        "bottom": 897.3333435058594,
+        "left": 846
+      },
+      "text": "VI\nUVEL. Sức mạnh tính toán luân chuyển.\nKết nối sức mạnh tính toán của thế giới để tiếp sức cho AI.\n—\nthiết bị trực tuyến\n—\ntổng đã chi trả\nBắt đầu\nĐăng nhập\nTiếp tục nghĩa là bạn đồng ý với\nĐiều khoản\n·\nChính sách quyền riêng tư",
+      "reduced": false,
+      "smil": 10,
+      "controls": [
+        {
+          "selector": ".intro-root",
+          "cls": "nx-standalone-page intro-root",
+          "tag": "UNI-VIEW",
+          "text": "VI\nUVEL. Sức mạnh tính toán luân chuyển.\nKết nối sức mạnh tính toán của thế giới để tiếp sức cho AI.\n—\nthiết bị trực tuyến\n—\ntổng đã chi trả\nBắt đầu\nĐăng nhập\nTiếp tục nghĩa là bạn đồng ý với\nĐiều khoản\n·\nChính sách quyền riêng tư",
+          "label": null,
+          "role": null,
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 320,
+            "height": 568,
+            "top": 0,
+            "right": 320,
+            "bottom": 568,
+            "left": 0
+          },
+          "font": [
+            "16px",
+            "400",
+            "normal"
+          ],
+          "display": "block",
+          "opacity": "1",
+          "padding": "0px 0px 38px",
+          "overflow": [
+            "hidden",
+            "auto"
+          ],
+          "client": [
+            320,
+            568
+          ],
+          "scroll": [
+            320,
+            568,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".intro-content",
+          "cls": "intro-content",
+          "tag": "UNI-VIEW",
+          "text": "VI\nUVEL. Sức mạnh tính toán luân chuyển.\nKết nối sức mạnh tính toán của thế giới để tiếp sức cho AI.\n—\nthiết bị trực tuyến\n—\ntổng đã chi trả\nBắt đầu\nĐăng nhập\nTiếp tục nghĩa là bạn đồng ý với\nĐiều khoản\n·\nChính sách quyền riêng tư",
+          "label": null,
+          "role": null,
+          "box": {
+            "x": 0,
+            "y": 0,
+            "width": 320,
+            "height": 530,
+            "top": 0,
+            "right": 320,
+            "bottom": 530,
+            "left": 0
+          },
+          "font": [
+            "16px",
+            "400",
+            "normal"
+          ],
+          "display": "flex",
+          "opacity": "1",
+          "padding": "0px 20px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            320,
+            530
+          ],
+          "scroll": [
+            320,
+            530,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".intro-orb",
+          "cls": "intro-orb anim-orb",
+          "tag": "UNI-VIEW",
+          "text": "",
+          "label": null,
+          "role": null,
+          "box": {
+            "x": 108,
+            "y": 78.76042175292969,
+            "width": 104,
+            "height": 104,
+            "top": 78.76042175292969,
+            "right": 212,
+            "bottom": 182.7604217529297,
+            "left": 108
+          },
+          "font": [
+            "16px",
+            "400",
+            "normal"
+          ],
+          "display": "block",
+          "opacity": "1",
+          "padding": "0px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            104,
+            104
+          ],
+          "scroll": [
+            137,
+            104,
+            0
+          ],
+          "animations": [
+            {
+              "state": "finished",
+              "time": 900,
+              "timing": {
+                "delay": 0,
+                "direction": "normal",
+                "duration": 900,
+                "easing": "linear",
+                "endDelay": 0,
+                "fill": "both",
+                "iterationStart": 0,
+                "iterations": 1
+              }
+            }
+          ]
+        },
+        {
+          "selector": ".intro-title",
+          "cls": "intro-title",
+          "tag": "UNI-TEXT",
+          "text": "UVEL. Sức mạnh tính toán luân chuyển.",
+          "label": null,
+          "role": null,
+          "box": {
+            "x": 20,
+            "y": 217.52084350585938,
+            "width": 280,
+            "height": 57.583335876464844,
+            "top": 217.52084350585938,
+            "right": 300,
+            "bottom": 275.1041793823242,
+            "left": 20
+          },
+          "font": [
+            "24px",
+            "600",
+            "28.8px"
+          ],
+          "display": "block",
+          "opacity": "1",
+          "padding": "0px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            280,
+            58
+          ],
+          "scroll": [
+            280,
+            58,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".intro-sub",
+          "cls": "intro-sub",
+          "tag": "UNI-TEXT",
+          "text": "Kết nối sức mạnh tính toán của thế giới để tiếp sức cho AI.",
+          "label": null,
+          "role": null,
+          "box": {
+            "x": 20,
+            "y": 281.10418701171875,
+            "width": 280,
+            "height": 39,
+            "top": 281.10418701171875,
+            "right": 300,
+            "bottom": 320.10418701171875,
+            "left": 20
+          },
+          "font": [
+            "13px",
+            "400",
+            "19.5px"
+          ],
+          "display": "block",
+          "opacity": "1",
+          "padding": "0px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            280,
+            39
+          ],
+          "scroll": [
+            280,
+            39,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".home-display-stats",
+          "cls": "home-display-stats",
+          "tag": "UNI-VIEW",
+          "text": "—\nthiết bị trực tuyến\n—\ntổng đã chi trả",
+          "label": null,
+          "role": null,
+          "box": {
+            "x": 46.552085876464844,
+            "y": 328.10418701171875,
+            "width": 226.8854217529297,
+            "height": 30.5,
+            "top": 328.10418701171875,
+            "right": 273.43750762939453,
+            "bottom": 358.60418701171875,
+            "left": 46.552085876464844
+          },
+          "font": [
+            "11px",
+            "400",
+            "16.5px"
+          ],
+          "display": "inline-flex",
+          "opacity": "1",
+          "padding": "7px 10px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            227,
+            31
+          ],
+          "scroll": [
+            227,
+            31,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".home-display-item",
+          "cls": "home-display-item",
+          "tag": "UNI-VIEW",
+          "text": "—\nthiết bị trực tuyến",
+          "label": null,
+          "role": null,
+          "box": {
+            "x": 56.552085876464844,
+            "y": 335.10418701171875,
+            "width": 109.88542175292969,
+            "height": 16.5,
+            "top": 335.10418701171875,
+            "right": 166.43750762939453,
+            "bottom": 351.60418701171875,
+            "left": 56.552085876464844
+          },
+          "font": [
+            "11px",
+            "400",
+            "16.5px"
+          ],
+          "display": "flex",
+          "opacity": "1",
+          "padding": "0px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            110,
+            17
+          ],
+          "scroll": [
+            110,
+            17,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".home-display-item",
+          "cls": "home-display-item",
+          "tag": "UNI-VIEW",
+          "text": "—\ntổng đã chi trả",
+          "label": null,
+          "role": null,
+          "box": {
+            "x": 179.1041717529297,
+            "y": 335.10418701171875,
+            "width": 84.33333587646484,
+            "height": 16.5,
+            "top": 335.10418701171875,
+            "right": 263.43750762939453,
+            "bottom": 351.60418701171875,
+            "left": 179.1041717529297
+          },
+          "font": [
+            "11px",
+            "400",
+            "16.5px"
+          ],
+          "display": "flex",
+          "opacity": "1",
+          "padding": "0px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            84,
+            17
+          ],
+          "scroll": [
+            84,
+            17,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".cta-primary",
+          "cls": "cta-primary active:scale-[0.98]",
+          "tag": "UNI-VIEW",
+          "text": "Bắt đầu",
+          "label": null,
+          "role": "button",
+          "box": {
+            "x": 20,
+            "y": 370.60418701171875,
+            "width": 280,
+            "height": 44,
+            "top": 370.60418701171875,
+            "right": 300,
+            "bottom": 414.60418701171875,
+            "left": 20
+          },
+          "font": [
+            "16px",
+            "400",
+            "normal"
+          ],
+          "display": "flex",
+          "opacity": "1",
+          "padding": "0px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            280,
+            44
+          ],
+          "scroll": [
+            280,
+            44,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".cta-secondary",
+          "cls": "cta-secondary active:scale-[0.98]",
+          "tag": "UNI-VIEW",
+          "text": "Đăng nhập",
+          "label": null,
+          "role": "button",
+          "box": {
+            "x": 20,
+            "y": 420.60418701171875,
+            "width": 280,
+            "height": 44,
+            "top": 420.60418701171875,
+            "right": 300,
+            "bottom": 464.60418701171875,
+            "left": 20
+          },
+          "font": [
+            "16px",
+            "400",
+            "normal"
+          ],
+          "display": "flex",
+          "opacity": "1",
+          "padding": "0px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            280,
+            44
+          ],
+          "scroll": [
+            280,
+            44,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".intro-terms",
+          "cls": "intro-terms",
+          "tag": "UNI-VIEW",
+          "text": "Tiếp tục nghĩa là bạn đồng ý với\nĐiều khoản\n·\nChính sách quyền riêng tư",
+          "label": null,
+          "role": null,
+          "box": {
+            "x": 20,
+            "y": 470.60418701171875,
+            "width": 280,
+            "height": 59.395835876464844,
+            "top": 470.60418701171875,
+            "right": 300,
+            "bottom": 530.0000228881836,
+            "left": 20
+          },
+          "font": [
+            "11px",
+            "400",
+            "15.4px"
+          ],
+          "display": "flex",
+          "opacity": "1",
+          "padding": "0px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            280,
+            59
+          ],
+          "scroll": [
+            280,
+            59,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".terms-link",
+          "cls": "terms-link active:opacity-70",
+          "tag": "UNI-TEXT",
+          "text": "Điều khoản",
+          "label": null,
+          "role": "link",
+          "box": {
+            "x": 60.270835876464844,
+            "y": 486,
+            "width": 55.427085876464844,
+            "height": 44,
+            "top": 486,
+            "right": 115.69792175292969,
+            "bottom": 530,
+            "left": 60.270835876464844
+          },
+          "font": [
+            "11px",
+            "400",
+            "15.4px"
+          ],
+          "display": "flex",
+          "opacity": "1",
+          "padding": "0px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            55,
+            44
+          ],
+          "scroll": [
+            55,
+            44,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".terms-link",
+          "cls": "terms-link active:opacity-70",
+          "tag": "UNI-TEXT",
+          "text": "Chính sách quyền riêng tư",
+          "label": null,
+          "role": "link",
+          "box": {
+            "x": 130.5416717529297,
+            "y": 486,
+            "width": 129.17709350585938,
+            "height": 44,
+            "top": 486,
+            "right": 259.71876525878906,
+            "bottom": 530,
+            "left": 130.5416717529297
+          },
+          "font": [
+            "11px",
+            "400",
+            "15.4px"
+          ],
+          "display": "flex",
+          "opacity": "1",
+          "padding": "0px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            129,
+            44
+          ],
+          "scroll": [
+            129,
+            44,
+            0
+          ],
+          "animations": []
+        },
+        {
+          "selector": ".intro-lang",
+          "cls": "intro-lang active:scale-[0.96] active:opacity-80",
+          "tag": "UNI-VIEW",
+          "text": "VI",
+          "label": "Ngôn ngữ",
+          "role": "button",
+          "box": {
+            "x": 241.08334350585938,
+            "y": 10,
+            "width": 62.91666793823242,
+            "height": 44,
+            "top": 10,
+            "right": 304.0000114440918,
+            "bottom": 54,
+            "left": 241.08334350585938
+          },
+          "font": [
+            "16px",
+            "400",
+            "normal"
+          ],
+          "display": "flex",
+          "opacity": "1",
+          "padding": "0px 14px",
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "client": [
+            63,
+            44
+          ],
+          "scroll": [
+            63,
+            44,
+            0
+          ],
+          "animations": []
+        }
+      ],
+      "beforeBuild": {
+        "time": "2026-10-27T15:53:25.225Z",
+        "entry": "/assets/index-PPFyVDQc.js",
+        "css": "/assets/index-DPMvPy7r.css"
+      },
+      "afterEntry": [
+        "http://127.0.0.1:5252/assets/index-PPFyVDQc.js"
+      ],
+      "afterBuild": {
+        "time": "2026-10-27T15:53:27.251Z",
+        "entry": "/assets/index-PPFyVDQc.js",
+        "css": "/assets/index-DPMvPy7r.css"
+      },
+      "file": "02-intro-320568-vi-dark.jpg"
+    }
+  ],
+  "actions": [
+    {
+      "name": "Partial language interaction before artifact change",
+      "observation": "Original .intro-lang Enter opened in-place Ngôn ngữ panel; AX exposed 中文, English, Tiếng Việt. No selection was executed: following capture pre-gate detected changed web dist.",
+      "score": "N/T"
+    }
+  ],
+  "issues": [
+    {
+      "type": "artifact-change-stop",
+      "time": "2026-10-27T15:55:58.441Z",
+      "previousEntry": "/assets/index-PPFyVDQc.js",
+      "detectedEntry": "/assets/index-B0QjbsFt.js",
+      "css": "/assets/index-DPMvPy7r.css",
+      "where": "Pre-capture gate before language-sheet screenshot",
+      "action": "Stopped immediately; no B0 screenshot, language selection, other route tests or mixed-build sign-off."
+    }
+  ]
+}

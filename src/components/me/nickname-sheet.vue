@@ -143,10 +143,13 @@ const titleStyle: CSSProperties = {
   color: "var(--v5-ink)",
 };
 const closeBtnStyle: CSSProperties = {
-  width: "32px",
-  height: "32px",
+  width: "44px",
+  height: "44px",
+  boxSizing: "border-box",
+  padding: "6px",
   borderRadius: "999px",
   background: "var(--v5-surface-2)",
+  backgroundClip: "content-box",
 };
 const hintStyle: CSSProperties = {
   marginTop: "4px",

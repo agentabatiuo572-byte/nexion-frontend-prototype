@@ -223,10 +223,13 @@ export function createAccountApi(client: ApiClient): AccountApi {
       const result = await client.request({ method: "GET", path: `/api/app/security/password/commands/${encodeURIComponent(key)}` });
       return result === null ? null : parseMutation(result);
     },
-    securityOverview: async (cursor) => parseSecurityState(await client.request({
+    securityOverview: async (cursor) => {
+      invalidateBeforePassiveTabRead("security-overview");
+      return parseSecurityState(await client.request({
       method: "GET",
       path: cursor ? `/api/app/security?cursor=${encodeURIComponent(cursor)}` : "/api/app/security",
-    })),
+      }));
+    },
     changePassword: async (currentPassword, newPassword, idempotencyKey) => parseMutation(await client.request({
       method: "POST",
       path: "/api/app/security/password",
@@ -290,3 +293,4 @@ export function createAccountApi(client: ApiClient): AccountApi {
     },
   };
 }
+import { invalidateBeforePassiveTabRead } from "@/lib/passive-read-window";

@@ -1,3 +1,4 @@
+import { invalidateBeforePassiveTabRead } from "@/lib/passive-tab-read";
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { normalizeAccountKey } from "@/store/account-cloud";
@@ -307,10 +308,17 @@ export const useGenesis = defineStore("genesis", () => {
   const remoteSecondaryCommandProtocol = ref(0);
   const remoteAccountEpoch = createRemoteAccountEpoch(boundKey);
   let remoteReadGeneration = 0;
+  // Read-only success evidence for consumers; never a command capability.
+  const remotePublicSuccessRevision = ref(0);
+  const remoteAccountSuccessRevision = ref(0);
+  const remotePublicSuccessScope = ref<RemoteAccountRequest | null>(null);
+  const remoteAccountSuccessScope = ref<RemoteAccountRequest | null>(null);
 
   const tokenIdFor = genesisHoldingId;
 
   function applyPublicState(state: GenesisPublicState): void {
+    remotePublicSuccessRevision.value++;
+    remotePublicSuccessScope.value = remoteAccountEpoch.snapshot();
     remotePublicError.value = null;
     remoteSecondaryCommandProtocol.value = state.secondaryCommandProtocol === 2 ? 2 : 0;
     remotePublicReadState.value = "ready";
@@ -332,6 +340,8 @@ export const useGenesis = defineStore("genesis", () => {
   }
 
   function applyAccountState(state: GenesisAccountState): void {
+    remoteAccountSuccessRevision.value++;
+    remoteAccountSuccessScope.value = remoteAccountEpoch.snapshot();
     remoteAccountReadState.value = "ready";
     // Account responses are canonical development/production facts. Supply is
     // still owned by GET /api/genesis/state; account reads cannot replace it.
@@ -426,6 +436,7 @@ export const useGenesis = defineStore("genesis", () => {
     request: RemoteAccountRequest = remoteAccountEpoch.snapshot(),
     runScope: RuntimeRevisionScope = captureRuntimeRevision(),
   ): Promise<boolean> {
+    invalidateBeforePassiveTabRead("genesis-state");
     if (!remoteApiEnabled) return true;
     if (!remoteScopeCurrent(request, runScope)) return false;
     const readGeneration = ++remoteReadGeneration;
@@ -934,7 +945,8 @@ export const useGenesis = defineStore("genesis", () => {
     nexListed, nexListedAt, dividendsOpen, currentTier,
     remaining, soldPct, tierRemaining, setNexListed, emissionSnapshot, reservedAllocationNEX,
     remoteListings, remoteTransactions, remoteMarketStats, remoteRoyaltyPct, remoteEligibility, remoteEligibilityError, remotePublicError,
-    remotePublicReadState, remoteAccountReadState, remoteHalted,
+    remotePublicReadState, remoteAccountReadState, remotePublicSuccessRevision, remoteAccountSuccessRevision, remotePublicSuccessScope, remoteAccountSuccessScope,
+    captureRemoteReadBinding: remoteAccountEpoch.snapshot, remoteHalted,
     activityPage: activityPager.state, loadMoreActivity: activityPager.more,
     orderPage: orderPager.state, loadMoreGenesisOrders: orderPager.more,
     emissionPage: emissionPager.state, loadMoreEmissions: emissionPager.more, remoteEmissionTotals,

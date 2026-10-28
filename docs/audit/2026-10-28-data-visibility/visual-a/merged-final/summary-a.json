@@ -1,0 +1,66 @@
+{
+  "recordedAt": "2026-10-27T20:51:37.180Z",
+  "entries": [
+    "/assets/index-CFxCm3fm.js"
+  ],
+  "records": 29,
+  "screenshots": 17,
+  "overflow": [],
+  "eyeSizes": [
+    "44x44"
+  ],
+  "hiddenHomeGraph": [
+    {
+      "label": "320-vi-dark-home-hidden",
+      "circles": 1,
+      "dash": [
+        null
+      ]
+    },
+    {
+      "label": "320-vi-dark-home-warm-return",
+      "circles": 1,
+      "dash": [
+        null
+      ]
+    },
+    {
+      "label": "390-zh-light-home-hidden",
+      "circles": 1,
+      "dash": [
+        null
+      ]
+    }
+  ],
+  "warmObservation": {
+    "durationMs": 56802.09999999404,
+    "samples": {
+      "#/": 33,
+      "#/pages/earn/earn": 41,
+      "#/pages/me/me": 36,
+      "#/pages/team/team": 32
+    },
+    "ticks": {
+      "mutation": 72,
+      "raf": 70
+    },
+    "findings": []
+  },
+  "rocket": {
+    "styleSamples": 29,
+    "hitSizes": [
+      "44x44"
+    ],
+    "glyphSizes": [
+      "22x22"
+    ]
+  },
+  "sheen": {
+    "samples": 96,
+    "hoverSamples": 0
+  },
+  "notes": [
+    "Initial rocket-normal-a used mixed outer/iframe time origins; zero style samples are not used as proof. Corrected sample file retained separately.",
+    "320-vi-dark-store-sheen.png captures approach before the grid is fully in view; use settled screenshot for product visual result."
+  ]
+}

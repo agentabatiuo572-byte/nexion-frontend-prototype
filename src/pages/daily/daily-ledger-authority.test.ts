@@ -49,9 +49,11 @@ function mount(bills: ReturnType<typeof useBills>) {
   if (start < 0 || end < start) throw new Error("Daily ledger projection missing");
   const code = ts.transpileModule(source.slice(start, end), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
   const faucet = reactive({ history: [{ delta: 999, ts: 1, reason: "cached reward" }, { delta: -50, ts: 2, reason: "cached swap" }] });
-  return new Function("formatAmount", "computed", "remoteApiEnabled", "bills", "faucet", "t", "resolveWalletBillMemo",
-    `${code}\nreturn { lifetimeEarned, lifetimeSpent, historyRows };`,
-  )(formatAmount, computed, true, bills, faucet, ref({ bills: { memo: {} }, wallet: { pending: "Pending" } }), resolveWalletBillMemo);
+  const display = source.slice(source.indexOf('const summaryScope ='), source.indexOf('async function refreshBalance'));
+  const displayCode = ts.transpileModule(display, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  return new Function("ref", "watch", "app", "locale", "apiRuntimeConfig", "formatAmount", "computed", "remoteApiEnabled", "bills", "faucet", "t", "resolveWalletBillMemo",
+    `${displayCode}\n${code}\nreturn { lifetimeEarned, lifetimeSpent, historyRows };`,
+  )(Vue.ref, Vue.watch, { accountKey: "user:test", accountBindingEpoch: 1 }, { code: "en" }, { environment: "dev" }, formatAmount, computed, true, bills, faucet, ref({ bills: { memo: {} }, wallet: { pending: "Pending" } }), resolveWalletBillMemo);
 }
 
 function commands(bills: ReturnType<typeof useBills>, accepted: boolean) {

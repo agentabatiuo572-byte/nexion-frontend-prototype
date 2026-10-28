@@ -14,11 +14,11 @@
           <text class="quota-body">{{ t.quota.heroBody }}</text>
         </view>
 
-        <view v-if="remoteApiEnabled && remoteError" class="quota-state" role="alert"><text class="quota-body">{{ auditCopy.quotaLoadError }}</text><NxButton variant="text" :label="t.store.catalogRetry" :busy="remoteRefreshing" @click="refreshRemoteQuota" /></view>
+        <view v-if="remoteApiEnabled && remoteError" class="quota-state nx-inline-recovery" role="alert"><text class="quota-body nx-inline-recovery__copy">{{ auditCopy.quotaLoadError }}</text><NxButton class="nx-inline-recovery__action" variant="text" :label="t.store.catalogRetry" :busy="remoteRefreshing" @click="refreshRemoteQuota" /></view>
         <view v-else-if="remoteApiEnabled && !remoteSnapshot" class="quota-state" role="status" aria-live="polite" aria-busy="true"><text>{{ auditCopy.loading }}</text></view>
-        <view v-if="remoteApiEnabled && !catalogDisplayReady" class="quota-state" :role="productCatalogState.status === 'error' ? 'alert' : 'status'">
-          <text class="quota-body">{{ productCatalogState.status === 'error' ? t.store.catalogErrorTitle : t.store.catalogLoadingTitle }}</text>
-          <NxButton v-if="productCatalogState.status === 'error'" variant="text" :label="t.store.catalogRetry" @click="retryCatalog" />
+        <view v-if="remoteApiEnabled && !catalogDisplayReady" class="quota-state" :class="{ 'nx-inline-recovery': productCatalogState.status === 'error' }" :role="productCatalogState.status === 'error' ? 'alert' : 'status'">
+          <text class="quota-body nx-inline-recovery__copy">{{ productCatalogState.status === 'error' ? t.store.catalogErrorTitle : t.store.catalogLoadingTitle }}</text>
+          <NxButton v-if="productCatalogState.status === 'error'" class="nx-inline-recovery__action" variant="text" :label="t.store.catalogRetry" @click="retryCatalog" />
         </view>
         <view v-if="quotaReady && !focusedTiers.length" class="quota-state" role="status"><text>{{ t.empty.listTitle }}</text></view>
         <QuotaTierCard v-for="tier in focusedTiers" :key="tier.productId" :tier="tier" :pending="remoteApiEnabled && !quotaReady" @navigate="go" />
@@ -292,6 +292,7 @@ const quotaReady = computed(() => !remoteApiEnabled || (remoteSnapshot.value !==
 .quota-hero__image { flex:none;width:42%;height:170px;object-fit:contain; }.quota-invite-count { display:flex;justify-content:space-between;align-items:center;gap:var(--ui-space-inset);margin:18px 0;font:400 13px/1.5 var(--font-v5);color:var(--v5-ink-2); }.quota-invite-count > view { display:flex;align-items:baseline;gap:8px;flex-wrap:wrap; }.quota-invite-count__number { font:600 27px/1.2 var(--font-v5);color:var(--v5-ink); }
 .quota-body { display:block;margin-top:8px;font:400 13px/1.7 var(--font-v5);color:var(--v5-ink-2);overflow-wrap:anywhere; }.quota-caption { display:block;font:400 12px/1.6 var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }
 .quota-state { padding-block:28px;display:flex;flex-direction:column;gap:var(--ui-space-inset); }.quota-footer { margin-top:28px; }.quota-footer > :deep(.nx-button) { width:100%;box-sizing:border-box; }
+.quota-state.nx-inline-recovery { display:grid; align-items:center; gap:12px; }
 .quota-route { display:flex;justify-content:space-between;align-items:center;gap:14px;padding:var(--ui-space-inset) 0;min-height:44px;font:500 13px/1.6 var(--font-v5);color:var(--v5-ink-2);cursor:pointer; }.quota-route + .quota-route { border-top:1px solid var(--v5-border); }.quota-route > view { flex:1;min-width:0;overflow-wrap:anywhere; }.quota-route svg { flex:none; }.quota-route:focus-visible { outline:2px solid var(--v5-brand);outline-offset:3px; }
 @media(max-width:350px) { .quota-content { padding-inline:16px; }.quota-headline { font-size:22px; }.quota-hero__image { height:146px; } }
 </style>

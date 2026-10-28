@@ -1,3 +1,4 @@
+import { invalidateBeforePassiveTabRead, invalidatePassiveTabRead, rememberPassiveTabRead } from "@/lib/passive-tab-read";
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import { createRemoteAccountEpoch, type RemoteAccountRequest } from "@/lib/remote-account-epoch";
@@ -59,6 +60,7 @@ export const useNotifications = defineStore("notifications", () => {
   });
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const hasRemoteSnapshot = ref(false);
   const nextCursor = ref<string | null>(null);
   let historyLoaded = false;
   let refreshGeneration = 0;
@@ -99,28 +101,44 @@ export const useNotifications = defineStore("notifications", () => {
     unreadByKind.value = page.unreadByKind ? { ...page.unreadByKind } : null;
     if (!head || !historyLoaded || !page.nextCursor || !overlaps) nextCursor.value = page.nextCursor;
   }
-  async function refreshRemote(request: RemoteAccountRequest = remoteAccountEpoch.snapshot(), active: () => boolean = () => true) {
-    if (!remoteApiEnabled) return;
+  function refreshRemote(request: RemoteAccountRequest = remoteAccountEpoch.snapshot(), active: () => boolean = () => true): Promise<void> {
+    invalidateBeforePassiveTabRead("notifications");
+    if (!remoteApiEnabled || !remoteAccountEpoch.isCurrent(request)) return Promise.resolve();
+    let confirmed = false, resolve!: () => void, reject!: (cause: unknown) => void;
+    const promise = new Promise<void>((done, fail) => { resolve = done; reject = fail; });
+    // Register before loading notifies synchronous page watchers. Polls and page
+    // activations then consume the same actual dispatch, including absent summaries.
+    rememberPassiveTabRead("notifications", promise, undefined, undefined,
+      () => confirmed && hasRemoteSnapshot.value && remoteAccountEpoch.isCurrent(request) && !loading.value && !error.value);
+    void readRemote(request, active).then(success => { confirmed = success; resolve(); }, reject);
+    return promise;
+  }
+  async function readRemote(request: RemoteAccountRequest, active: () => boolean): Promise<boolean> {
     const cancellation = cancelGeneration;
     const stillActive = () => cancellation === cancelGeneration && active();
-    if (!remoteAccountEpoch.isCurrent(request)) return;
+    if (!remoteAccountEpoch.isCurrent(request)) return false;
     while (mutations.pending > 0) {
       await mutations.tail;
-      if (!remoteAccountEpoch.isCurrent(request) || !stillActive()) return;
+      if (!remoteAccountEpoch.isCurrent(request) || !stillActive()) return false;
     }
-    if (!stillActive()) return;
+    if (!stillActive()) return false;
     const generation = ++refreshGeneration;
     const isCurrent = () => generation === refreshGeneration && remoteAccountEpoch.isCurrent(request) && stillActive();
     loading.value = true;
     error.value = null;
     try {
       const page = await notificationApi.page();
-      if (!isCurrent()) return;
+      if (!isCurrent()) return false;
       appendRemote(page, true);
+      if (!isCurrent()) return false;
+      hasRemoteSnapshot.value = true;
+      return isCurrent();
     } catch (cause) {
-      if (!isCurrent()) return;
+      if (!isCurrent()) return false;
       actionableUnread.value = null;
+      hasRemoteSnapshot.value = false;
       error.value = cause instanceof Error ? cause.message : "NOTIFICATION_UNAVAILABLE";
+      return false;
     } finally {
       if (generation === refreshGeneration && remoteAccountEpoch.isCurrent(request)) loading.value = false;
     }
@@ -165,6 +183,7 @@ export const useNotifications = defineStore("notifications", () => {
     finally { if (retryInFlight === attempt) retryInFlight = null; }
   }
   function cancelRefresh() {
+    invalidatePassiveTabRead("notifications");
     cancelGeneration += 1;
     refreshGeneration += 1;
     loading.value = false;
@@ -192,6 +211,7 @@ export const useNotifications = defineStore("notifications", () => {
     mutations = { pending: 0, tail: Promise.resolve() };
     unreadByKind.value = null;
     actionableUnread.value = null;
+    hasRemoteSnapshot.value = false;
     if (remoteApiEnabled) {
       items.value = [];
       unread.value = 0;
@@ -355,5 +375,5 @@ export const useNotifications = defineStore("notifications", () => {
   async function recordSwipeConversion(id: string) { return recordRemoteAction(id, "swipe_conversion"); }
   function clearAll() { if (remoteApiEnabled) { void refreshRemote(); return; } items.value = []; recount(); persist(); }
   function removeOne(id: string) { if (remoteApiEnabled) return; items.value = items.value.filter((item) => item.id !== id); recount(); persist(); }
-  return { items, unread, actionableUnread, unreadByKind, unreadByCategory, unreadByCategoryExact, loading, error, nextCursor, push, markRead, markAllRead, clearRead, clearAll, removeOne, bindAccount, refreshRemote, cancelRefresh, loadMoreRemote, retryRemote, recordCta, recordSwipeConversion };
+  return { items, unread, actionableUnread, unreadByKind, unreadByCategory, unreadByCategoryExact, loading, error, hasRemoteSnapshot, nextCursor, push, markRead, markAllRead, clearRead, clearAll, removeOne, bindAccount, refreshRemote, cancelRefresh, loadMoreRemote, retryRemote, recordCta, recordSwipeConversion };
 });

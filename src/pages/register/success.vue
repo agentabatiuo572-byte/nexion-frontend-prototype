@@ -368,7 +368,7 @@ onBackPress(() => {
 .rs-why__ic { width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .rs-why__t { flex: 1; font-size: 12px; color: var(--v5-ink-2); line-height: 1.5; text-wrap: pretty; }
 .rs-h5-download { flex-shrink: 0; margin-bottom: 16px; }
-.rs-retry { min-height: 44px; margin-top: 4px; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: var(--v5-surface); color: var(--v5-brand); font-size: 12px; }
+.rs-retry { min-height: 44px; margin-top: 4px; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: var(--v5-surface); color: var(--v5-brand); font: 600 13px/20px var(--font-v5); }
 .rs-retry:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
 .rs-h5-download__hint { display: block; font-size: 12px; color: var(--v5-ink-2); line-height: 1.5; text-wrap: pretty; }
 .rs-h5-download__action { min-height: 44px; margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 5px; border-radius: 9999px; color: var(--v5-brand); background: color-mix(in srgb, var(--v5-brand) 10%, transparent); }

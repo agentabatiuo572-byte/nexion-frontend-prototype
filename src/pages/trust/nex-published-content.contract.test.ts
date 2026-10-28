@@ -10,7 +10,7 @@ describe("NEX page published-content contract", () => {
     expect(source).toContain("narrative.state === 'loading'");
     expect(source).toContain("narrative.state === 'error'");
     expect(source).toContain("narrative.state === 'unpublished'");
-    expect(source).toContain(':title="narrative.hero"');
+    expect(source).toContain(`:title="narrative.state === 'ready' ? narrative.hero : '—'"`);
     expect(source).not.toContain(':title="w.heroTitle"');
     expect(source).not.toContain(':sub="w.heroSub"');
   });

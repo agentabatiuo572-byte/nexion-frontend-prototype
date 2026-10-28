@@ -47,10 +47,24 @@ async function renderHeader(translations: typeof zh | typeof en | typeof vi, tot
   const render = new Function("Vue", code)(Vue) as Vue.RenderFunction;
   const app = Vue.createSSRApp({
     components: { LiquidGlass: { render: () => null } },
-    setup: () => ({ t: translations, actionCopy: notificationActionsCopy[translations === zh ? 'zh' : translations === en ? 'en' : 'vi'], center: { totalUnread, error: null, loading: false, refresh: () => {} }, notifs: { unread: totalUnread }, markingAll: false, clearingRead: false, markAll: () => {}, section: 'notifications', headerState: { title: expanded }, unreadLabel: unreadLabel(translations, totalUnread), navBack: () => {}, navTo: () => {}, ...overrides }),
+    setup: () => {
+      const copy = notificationActionsCopy[translations === zh ? 'zh' : translations === en ? 'en' : 'vi'];
+      const context = { t: translations, actionCopy: copy, center: { totalUnread, error: null, loading: false, refresh: () => {} }, notifs: { unread: totalUnread }, markingAll: false, clearingRead: false, markAll: () => {}, section: 'notifications', headerState: { title: expanded }, unreadLabel: unreadLabel(translations, totalUnread), navBack: () => {}, navTo: () => {}, ...overrides };
+      return { ...context, ...recoveryBindings(context.center, Vue.ref(context.section), Vue.reactive({ realtimeFallback: overrides.liveFallback === true, categoryLoading: false, stopRealtime() {}, startRealtime() {} }), copy) };
+    },
     render,
   });
   return renderToString(app);
+}
+
+function recoveryBindings(center: any, section: Vue.Ref<string>, conversations: any, copy = notificationActionsCopy.zh, visible = true, disposed = false) {
+  const ast = ts.createSourceFile('page.ts', descriptor.scriptSetup!.content, ts.ScriptTarget.Latest, true);
+  const names = new Set(['summaryRecovery', 'retrySummary']);
+  const nodes = ast.statements.filter(node => ts.isFunctionDeclaration(node) ? names.has(node.name?.text ?? '')
+    : ts.isVariableStatement(node) && node.declarationList.declarations.some(d => names.has(d.name.getText(ast))));
+  const code = ts.transpileModule(nodes.map(node => node.getText(ast)).join('\n'), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  return new Function('computed', 'center', 'section', 'conversations', 'actionCopy', 'pageVisible', 'disposed', code + ';return { summaryRecovery, retrySummary };')(
+    Vue.computed, center, section, conversations, Vue.ref(copy), visible, disposed);
 }
 
 describe("message page header content contract", () => {
@@ -85,7 +99,7 @@ describe("message page header content contract", () => {
     expect(children[0].loc.source).toContain("navBack('/pages/me/me')");
     expect(children[2].loc.source).toContain("navTo('/pages/me/preferences')");
     expect(children[1].loc.source).toContain('message-summary-recovery');
-    expect(children[1].loc.source).toContain('@click="center.refresh()"');
+    expect(children[1].loc.source).toContain('@click="retrySummary"');
     const titles = all.filter(node => hasClass(node, "message-title"));
     expect(titles).toHaveLength(1);
     expect(elements(heading.children)).toContain(titles[0]);
@@ -116,7 +130,7 @@ describe("message page header content contract", () => {
     const compact = all.find(node => hasClass(node, "message-compact"))!;
     expect(compact.loc.source).toContain("'message-compact--visible': !headerState.title");
     expect(compact.loc.source).toContain(':aria-hidden="headerState.title"');
-    expect(compact.props.find(prop => prop.type === 7 && prop.name === 'if')).toMatchObject({ exp: { content: '!center.error' } });
+    expect(compact.props.find(prop => prop.type === 7 && prop.name === 'if')).toMatchObject({ exp: { content: '!summaryRecovery.visible' } });
     const html = await renderHeader(zh, 298, false);
     const titleMarkup = html.match(/<text[^>]*role="heading"[^>]*>/)?.[0];
     expect(titleMarkup).toContain("message-title--hidden");
@@ -170,7 +184,7 @@ describe("message page header content contract", () => {
     const failed = await renderHeader(zh, 0, true, { center: { totalUnread: 0, error: 'failed', loading: false, refresh() {} }, unreadLabel: zh.notifs.unreadUnavailable });
     expect(failed).toContain('message-summary-recovery'); expect(failed).toContain(zh.ui.retry);
     expect(failed).not.toContain(zh.notifs.allCaughtUp);
-    expect(source).toContain('@click="center.refresh()"');
+    expect(source).toContain('void center.refresh();');
     expect(source).toContain('@click="notifs.retryRemote()"');
   });
 
@@ -181,7 +195,7 @@ describe("message page header content contract", () => {
       });
       expect(failed).toContain(failure); expect(failed).toContain(copy.ui.retry);
       expect(nav.loc.source).toContain('role="alert"');
-      expect(all.find(node => hasClass(node, 'message-compact'))!.loc.source).toContain('v-if="!center.error"');
+      expect(all.find(node => hasClass(node, 'message-compact'))!.loc.source).toContain('v-if="!summaryRecovery.visible"');
       expect(heading.loc.source).not.toContain('message-summary-recovery');
       expect(failed).not.toContain(copy.notifs.allCaughtUp);
     });
@@ -198,11 +212,12 @@ describe("message page header content contract", () => {
 
   it("executes the actual fixed-nav retry for pointer and keyboard without claiming unavailable unread is zero", () => {
     let calls = 0;
-    const center = { error: 'offline', loading: false, refresh() { calls++; } };
+    const center = Vue.reactive({ error: 'offline', loading: false, refresh() { calls++; } });
     const code = compile(nav.loc.source, { mode: 'function', prefixIdentifiers: true,
       isCustomElement: tag => ['view', 'text'].includes(tag) }).code;
     const render = new Function('Vue', code)({ ...Vue, resolveComponent: () => ({ render: () => null }) });
-    const context = { center, t: zh, actionCopy: notificationActionsCopy.zh, headerState: { title: false }, navBack() {}, navTo() {} };
+    const context = Vue.proxyRefs({ center, t: zh, actionCopy: notificationActionsCopy.zh, headerState: { title: false }, navBack() {}, navTo() {},
+      ...recoveryBindings(center, Vue.ref('service'), Vue.reactive({ realtimeFallback: false, categoryLoading: false, stopRealtime() {}, startRealtime() {} })) });
     const nodes = (node: Vue.VNode): Vue.VNode[] => [node, ...(Array.isArray(node.children) ? node.children.filter(Vue.isVNode).flatMap(nodes) : [])];
     const retry = () => nodes(render(context, [])).find(node => node.props?.['aria-label'] === '更新失败 · ' + zh.ui.retry)!;
     retry().props!.onClick();
@@ -211,6 +226,42 @@ describe("message page header content contract", () => {
     center.loading = true;
     expect(retry().props!.tabindex).toBe(-1); expect(retry().props!['aria-disabled']).toBe(true);
     expect(unreadLabel(zh, 0, 'offline')).toBe(zh.notifs.unreadUnavailable);
+  });
+
+  it('limits live degradation to Service and preserves current busy, read-error priority and reconnect retry', () => {
+    const calls: string[] = [];
+    const center = Vue.reactive({ error: null as string | null, loading: false, refresh() { calls.push('refresh'); } });
+    const conversations = Vue.reactive({ realtimeFallback: true, categoryLoading: false,
+      stopRealtime() { calls.push('stop'); }, startRealtime() { calls.push('start'); } });
+    const section = Vue.ref('notifications'), view = recoveryBindings(center, section, conversations);
+    expect(view.summaryRecovery.value.visible).toBe(false);
+    section.value = 'service'; expect(view.summaryRecovery.value.visible).toBe(true);
+    expect(view.summaryRecovery.value.label).toBe(notificationActionsCopy.zh.liveUnavailable);
+    conversations.categoryLoading = true; view.retrySummary(); expect(calls).toEqual([]);
+    conversations.categoryLoading = false; view.retrySummary(); expect(calls).toEqual(['stop', 'start', 'refresh']);
+    center.error = 'offline'; expect(view.summaryRecovery.value.label).toBe(notificationActionsCopy.zh.refreshFailed);
+    center.loading = true; view.retrySummary(); expect(calls).toHaveLength(3);
+    center.loading = false; section.value = 'notifications'; view.retrySummary();
+    expect(calls).toEqual(['stop', 'start', 'refresh', 'refresh']);
+    center.error = null; expect(view.summaryRecovery.value.visible).toBe(false);
+    section.value = 'service'; conversations.realtimeFallback = false;
+    expect(view.summaryRecovery.value.visible).toBe(false);
+  });
+
+  it.each([[zh, 'zh'], [en, 'en'], [vi, 'vi']] as const)('keeps the localized live warning reachable in the collapsed Service nav', async (copy, language) => {
+    const service = await renderHeader(copy, 0, false, { section: 'service', liveFallback: true });
+    expect(service).toContain(notificationActionsCopy[language].liveUnavailable);
+    expect(service).toContain(copy.ui.retry);
+    const notifications = await renderHeader(copy, 0, false, { section: 'notifications', liveFallback: true });
+    expect(notifications).not.toContain(notificationActionsCopy[language].liveUnavailable);
+  });
+
+  it.each(['hidden', 'disposed'])('cannot reconnect from an old %s page action', boundary => {
+    const calls: string[] = [];
+    const view = recoveryBindings({ error: null, loading: false, refresh() { calls.push('refresh'); } }, Vue.ref('service'),
+      { realtimeFallback: true, categoryLoading: false, stopRealtime() { calls.push('stop'); }, startRealtime() { calls.push('start'); } },
+      notificationActionsCopy.zh, boundary !== 'hidden', boundary === 'disposed');
+    view.retrySummary(); expect(calls).toEqual([]);
   });
 
   it("matches the reference glass highlights without painting over the category label or dot", () => {

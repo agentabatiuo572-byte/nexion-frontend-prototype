@@ -13,7 +13,7 @@
     <view class="relative" style="padding: 16px">
       <!-- Brand -->
       <view class="flex items-center" style="gap: 8px; margin-bottom: 16px">
-        <BrandLockup :height="40" />
+        <BrandLockup :height="32" />
         <text v-if="hasCode" :style="refChipStyle">REF/{{ codeUpper }}</text>
       </view>
 
@@ -58,7 +58,6 @@
             <view v-html="p.icon" />
           </view>
           <text :style="perkTextStyle" style="flex: 1">{{ perkLabel(p.key) }}</text>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="M20 6 9 17l-5-5" /></svg>
         </view>
       </view>
 
@@ -74,7 +73,7 @@
       </view>
       <view v-if="remoteApiEnabled && (remotePreviewState === 'unavailable' || remotePreviewState === 'loading')" class="ref-preview-status" role="status" aria-live="polite" :aria-busy="remotePreviewState === 'loading'">
         <text>{{ remotePreviewState === 'loading' ? recoveryCopy.referralLoading : requestedCode ? recoveryCopy.referralUnavailable : recoveryCopy.referralInvalid }}</text>
-        <view v-if="requestedCode" class="ref-preview-retry" role="button" :tabindex="remotePreviewState === 'loading' ? -1 : 0" :aria-disabled="remotePreviewState === 'loading'" @click="loadRemotePreview" @keydown.enter.prevent="loadRemotePreview" @keydown.space.prevent="loadRemotePreview">
+        <view v-if="requestedCode" class="ref-preview-retry nx-card-recovery-action nx-card-recovery-action--quiet nx-card-recovery-action--inline" role="button" :tabindex="remotePreviewState === 'loading' ? -1 : 0" :aria-disabled="remotePreviewState === 'loading'" @click="loadRemotePreview" @keydown.enter.prevent="loadRemotePreview" @keydown.space.prevent="loadRemotePreview">
           <text>{{ t.ui.retry }}</text>
         </view>
       </view>
@@ -97,7 +96,7 @@
       </view>
 
       <!-- Network social proof -->
-      <view class="nx-glass-card" :style="proofCardStyle">
+      <view :style="proofCardStyle">
         <view class="flex items-center" :style="proofHeadStyle">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px"><path d="M16 7h6v6" /><path d="m22 7-8.5 8.5-5-5L2 17" /></svg>
           <text>{{ t.ref.platformTotals }}</text>
@@ -114,7 +113,7 @@
            role="link" takes Enter only (Space stays with page scrolling); the shared
            activation layer supplies the key handling, so no keydown is hand-written. -->
       <view class="text-center" :style="footerStyle">
-        <text>{{ t.ref.legalLine }} </text>
+        <text v-if="!authed">{{ t.ref.legalLine }} </text>
         <text class="nx-ref-footer-link" :style="footerLinkStyle" role="link" tabindex="0" :aria-label="t.ref.terms" @click="goTerms">{{ t.ref.terms }}</text>
         <text aria-hidden="true"> · </text>
         <text class="nx-ref-footer-link" :style="footerLinkStyle" role="link" tabindex="0" :aria-label="t.ref.privacy" @click="goPrivacy">{{ t.ref.privacy }}</text>
@@ -324,7 +323,7 @@ const cornerGlowStyle: CSSProperties = {
 };
 const refChipStyle: CSSProperties = {
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "12px",
+  fontSize: "10px",
   color: "var(--v5-ink-3)",
   letterSpacing: "0.05em",
   padding: "2px 6px",
@@ -334,7 +333,7 @@ const refChipStyle: CSSProperties = {
 const sponsorCardStyle: CSSProperties = { padding: "16px", marginBottom: "12px" };
 const alreadyBarStyle: CSSProperties = {
   borderRadius: "12px",
-  padding: "10px 12px",
+  padding: "8px 10px",
   marginBottom: "12px",
   background: "color-mix(in srgb, var(--v5-warning) 10%, transparent)",
   fontSize: "12px",
@@ -370,31 +369,35 @@ const giftNexStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "2
 const giftSubStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginTop: "8px", lineHeight: 1.625 };
 const perksCardStyle: CSSProperties = { marginBottom: "12px", overflow: "hidden" };
 function perkRowStyle(divider: boolean): CSSProperties {
-  return { gap: "12px", padding: "12px 16px", borderBottom: divider ? "1px solid color-mix(in srgb, var(--v5-border) 70%, transparent)" : "none" };
+  return { gap: "10px", padding: "10px 12px", borderBottom: divider ? "1px solid color-mix(in srgb, var(--v5-border) 70%, transparent)" : "none" };
 }
 function perkIconBoxStyle(tint: string): CSSProperties {
-  return { width: "36px", height: "36px", borderRadius: "12px", background: `color-mix(in srgb, ${tint} 18%, transparent)` };
+  return { width: "28px", height: "28px", borderRadius: "9px", background: `color-mix(in srgb, ${tint} 18%, transparent)` };
 }
-const perkTextStyle: CSSProperties = { fontSize: "13px", color: "color-mix(in srgb, var(--v5-ink) 90%, transparent)", lineHeight: 1.375 };
+const perkTextStyle: CSSProperties = { minWidth: 0, fontSize: "12.5px", color: "var(--v5-ink-2)", lineHeight: 1.45 };
 const ctaStyle: CSSProperties = {
-  width: "100%",
-  height: "56px",
+  width: "fit-content",
+  maxWidth: "100%",
+  minHeight: "44px",
+  boxSizing: "border-box",
+  padding: "8px 12px",
+  marginLeft: "auto",
   borderRadius: "999px",
   background: "linear-gradient(90deg, var(--v5-brand), color-mix(in srgb, var(--v5-brand) 80%, var(--v5-warning)))",
   color: "var(--v5-on-brand)",
   fontFamily: "var(--font-v5)",
   fontWeight: 600,
-  fontSize: "15px",
-  boxShadow: "var(--v5-spotlight-brand)",
+  fontSize: "13px",
+  lineHeight: 1.4,
 };
 const signinStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)" };
-const signinLinkStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-brand)" };
-const proofCardStyle: CSSProperties = { marginTop: "20px", padding: "16px" };
+const signinLinkStyle: CSSProperties = { display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: "44px", minHeight: "44px", fontSize: "12px", color: "var(--v5-brand)" };
+const proofCardStyle: CSSProperties = { marginTop: "16px", paddingTop: "12px", borderTop: "1px solid var(--v5-border)" };
 const proofHeadStyle: CSSProperties = {
-  marginBottom: "12px",
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
+  marginBottom: "8px",
+  fontFamily: "var(--font-v5)",
   fontSize: "12px",
-  letterSpacing: "0.16em",
+  letterSpacing: "0.02em",
   color: "var(--v5-ink-3)",
 };
 const partnerCardStyle: CSSProperties = { marginTop: "12px", borderRadius: "16px", padding: "16px", background: "var(--v5-surface)" };
@@ -415,7 +418,7 @@ const partnerChipStyle: CSSProperties = {
   color: "color-mix(in srgb, var(--v5-ink) 85%, transparent)",
 };
 const badgeRowStyle: CSSProperties = { marginTop: "12px", flexWrap: "wrap", gap: "4px 12px", fontSize: "12px", color: "var(--v5-ink-3)" };
-const footerStyle: CSSProperties = { display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "0 6px", marginTop: "24px", fontSize: "12px", color: "var(--v5-ink-4)", lineHeight: 1.625, padding: "0 16px" };
+const footerStyle: CSSProperties = { display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "0 6px", marginTop: "12px", fontSize: "11.5px", color: "var(--v5-ink-4)", lineHeight: 1.5 };
 // inline 目标吃 WCAG 2.5.8 豁免,纵向 padding 只扩热区不撑行高(原 61×14)
 const footerLinkStyle: CSSProperties = { color: "var(--v5-ink-3)", display: "inline-flex", alignItems: "center", minHeight: "44px", padding: "0 2px" };
 
@@ -426,7 +429,6 @@ const footerLinkStyle: CSSProperties = { color: "var(--v5-ink-3)", display: "inl
 .ref-signin-row { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px 6px; }
 .ref-preview-status { display: flex; align-items: center; gap: 12px; padding: 16px 0; font-size: 13px; line-height: 1.55; color: var(--v5-ink-3); }
 .ref-preview-status > text { flex: 1; }
-.ref-preview-retry { flex-shrink: 0; min-height: 44px; padding: 0 14px; display: flex; align-items: center; border-radius: 9999px; background: var(--v5-surface); color: var(--v5-brand); }
 .ref-preview-retry[aria-disabled="true"] { opacity: 0.5; }
 .ref-preview-retry:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
 /* 《08》§2:footer 的两个法务链接是 inline style 对象驱动的,加不了 :active,故走 class。

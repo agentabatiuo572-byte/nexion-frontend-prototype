@@ -10,7 +10,7 @@ describe("wallet authority failure contract", () => {
     expect(page).toContain("t.wallet.fundsStaleBody");
     expect(page).toContain("app.remoteWalletReceiptHasSnapshot");
     expect(page).toContain("t.wallet.fundsReceiptOnlyBody");
-    expect(page).toContain("t.wallet.retryFunds");
+    expect(page).toContain(":aria-label=\"t.ui.retry\"");
   });
 
   it("does not render the backend error string as customer copy", () => {

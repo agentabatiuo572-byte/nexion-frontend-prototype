@@ -86,14 +86,7 @@ describe("accessibility remediation contracts", () => {
     expect(team).toMatch(/<view[^>]*class="[^"]*nx-team-rank-link[^"]*"[^>]*role="link" tabindex="0"[^>]*@click="go\('\/pages\/team\/rank'\)"/);
     expect(team).toMatch(/<view[^>]*class="[^"]*nx-team-leaderboard-link[^"]*"[^>]*role="link" tabindex="0"/);
 
-    const download = read("../pages/compute-share/download.vue");
-    expect(download).toContain('role="button" tabindex="0" :aria-label="t.computeShare.downloadCta"');
-    expect(download).toContain('role="button"');
-    // Actual model input and the optional single-choice quick-fill group each have a name.
-    expect(download).toContain(':aria-label="t.computeShare.modelLabel"');
-    expect(download).toContain('data-proof="compute-share-gpu-model-input"');
-    expect(download).toContain('role="radiogroup" :aria-label="t.computeShare.modelPresets"');
-    expect(download).toContain(':aria-checked="selectedModel === model ? \'true\' : \'false\'"');
+    expect(read("../pages/compute-share/download.vue")).toContain('role="status"');
 
     const course = read("../pages/learn/course.vue");
     expect(course).toContain('role="button" tabindex="0" :aria-label="t.learning.centerTitle" @click="backToCourses" @keydown.enter.prevent="onKeyboardActivate($event, backToCourses)" @keydown.space.prevent="onKeyboardActivate($event, backToCourses)"');

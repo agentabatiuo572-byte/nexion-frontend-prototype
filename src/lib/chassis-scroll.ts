@@ -11,14 +11,15 @@ export function scrollNativeCurrentTabToTop(page: { $getAppWebview?: () => { eva
   try {
     const webview = page?.$getAppWebview?.();
     if (!webview) return false;
-    webview.evalJS("var content = document.querySelector('.nx-content'); if (content) content.scrollTop = 0;");
+    webview.evalJS("var content = document.querySelector('.nx-content'); if (content) { content.dispatchEvent(new Event('uvel-scroll-to-top')); content.scrollTop = 0; }");
     return true;
   } catch {
     return false;
   }
 }
 
-export function scrollCurrentTabToTop(target: { scrollTop: number; scrollTo?: (options: ScrollToOptions) => void }, reduceMotion: boolean): void {
+export function scrollCurrentTabToTop(target: { scrollTop: number; scrollTo?: (options: ScrollToOptions) => void; dispatchEvent?: (event: Event) => boolean }, reduceMotion: boolean): void {
+  target.dispatchEvent?.(new Event("uvel-scroll-to-top"));
   try {
     if (typeof target.scrollTo === "function") {
       target.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });

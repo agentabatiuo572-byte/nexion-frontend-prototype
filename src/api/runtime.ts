@@ -34,7 +34,6 @@ import { createNotificationApi } from "./notification-api";
 import { createNotificationPreferencesApi } from "./notification-preferences-api";
 import { createTrustSectionApi } from "./trust-section-api";
 import { createI18nApi } from "./i18n-api";
-import { createJanusApi } from "./janus-api";
 import { createBehaviorAnalyticsApi } from "./behavior-analytics-api";
 import { createEarningsReleaseApi } from "./earnings-release-api";
 import { createTaskAssignmentApi } from "./task-assignment-api";
@@ -43,7 +42,6 @@ import { createSupportApi } from "./support-api";
 import { renewAppConversationRealtime, withConversationRealtime } from "./app-conversation-realtime";
 import { createProfileApi } from "./profile-api";
 import { createNovaAiApi } from "./nova-ai-api";
-import { createComputeShareApi } from "./compute-share-api";
 import { createNetworkRegionsApi } from "./network-regions-api";
 import { createTeamNetworkApi } from "./team-network-api";
 import { createDeveloperAccessApi } from "./developer-access-api";
@@ -76,6 +74,8 @@ import { getDeviceId } from "@/lib/device-id";
 import { hasNativePhoneRuntime } from "@/lib/native-phone-runtime";
 
 export const apiRuntimeConfig = readApiRuntimeConfig();
+/** Immutable identity of the client constructed below; mutable UI config cannot rebind it. */
+export const apiRuntimeClientOrigin = Object.freeze({ environment: apiRuntimeConfig.environment, baseUrl: apiRuntimeConfig.baseUrl });
 export const expectedApiEnvironment: ApiEnvironment = apiRuntimeConfig.environment;
 export const remoteApiEnabled = true;
 // The formal App uses the Java service's canonical development contract in
@@ -176,7 +176,6 @@ export const notificationApi = createNotificationApi(apiClient);
 export const notificationPreferencesApi = createNotificationPreferencesApi(apiClient);
 export const trustSectionApi = createTrustSectionApi(apiClient, expectedApiEnvironment);
 export const i18nApi = createI18nApi(apiClient);
-export const janusApi = createJanusApi(apiClient);
 export const behaviorAnalyticsApi = createBehaviorAnalyticsApi(apiClient);
 export const earningsReleaseApi = createEarningsReleaseApi(apiClient);
 export const taskAssignmentApi = createTaskAssignmentApi(apiClient, expectedApiEnvironment);
@@ -184,7 +183,6 @@ export const referralRewardApi = createReferralRewardApi(apiClient, expectedApiE
 export const supportApi = createSupportApi(withConversationRealtime(apiClient));
 export const profileApi = createProfileApi(apiClient);
 export const novaAiApi = createNovaAiApi(apiClient);
-export const computeShareApi = createComputeShareApi(apiClient);
 export const networkRegionsApi = createNetworkRegionsApi(apiClient);
 export const teamNetworkApi = createTeamNetworkApi(apiClient, expectedApiEnvironment);
 export const developerAccessApi = createDeveloperAccessApi(apiClient, expectedApiEnvironment);

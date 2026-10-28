@@ -2,7 +2,7 @@
   <view class="quota-tier" :aria-busy="pending">
     <view class="quota-product" role="link" tabindex="0" :aria-label="displayName" @click="openProduct" @keydown.enter.prevent="openProduct" @keydown.space.prevent="openProduct">
       <image v-if="productImage" :src="productImage" mode="aspectFit" class="quota-product__image" :alt="displayName" />
-      <view class="quota-product__copy"><text class="quota-product__name">{{ displayName }}</text><text class="quota-product__price">{{ priceLineText }}</text><text class="quota-product__qualification" :class="{ 'quota-product__qualification--met': !pending && unlocked }">{{ pending ? auditCopy.loading : unlocked ? t.quota.unlocked : t.quota.locked }}</text></view>
+      <view class="quota-product__copy"><text class="quota-product__name">{{ displayName }}</text><text class="quota-product__price">{{ priceLineText }}</text><text class="quota-product__qualification" :class="{ 'quota-product__qualification--met': !pending && unlocked }">{{ pending ? '—' : unlocked ? t.quota.unlocked : t.quota.locked }}</text></view>
       <svg class="quota-product__arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
     </view>
     <view class="quota-stock">
@@ -19,7 +19,7 @@
     <text v-if="tier.conditions.some(condition => condition.kind === 'legacyUSD') && !tier.conditions.some(condition => condition.kind === 'volume')" class="quota-unavailable">{{ logicCopy.pointsUnavailable }}</text>
     <view v-if="tier.perks.length" class="quota-perks"><text v-for="(perk, index) in tier.perks" :key="index">{{ perk }}</text></view>
     <view class="quota-actions">
-      <NxButton v-if="pending" variant="secondary" :label="auditCopy.loading" :disabled="true" :busy="true" />
+      <NxButton v-if="pending" class="quota-pending-action" variant="secondary" :label="fmt(t.quota.buyCta, { name: displayName })" :disabled="true"><text>{{ fmt(t.quota.buyCta, { name: displayName }) }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
       <NxButton v-else-if="unlocked && stockLeft > 0 && tier.available !== false" variant="secondary" :label="fmt(t.quota.buyCta, { name: displayName })" @click="openProduct"><text>{{ fmt(t.quota.buyCta, { name: displayName }) }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
       <text v-else-if="stockLeft <= 0" class="quota-unavailable" aria-disabled="true">{{ t.quota.stockUnavailable }}</text>
       <text v-else-if="unlocked && tier.available === false" class="quota-unavailable" aria-disabled="true">{{ auditCopy.quotaUnavailable }}</text>
@@ -99,6 +99,7 @@ function conditionValue(condition: QuotaCondition) {
 function openProduct() { emit('navigate', `/pages/store/detail?id=${encodeURIComponent(props.tier.productId)}`); }
 </script>
 <style scoped>
+.quota-pending-action :deep(.nx-button--disabled), .quota-pending-action { opacity: 1; }
 .quota-tier { padding:var(--ui-space-section) 18px 22px;margin-bottom:18px;border:1px solid var(--v5-border);border-radius:24px;background:var(--v5-surface);color:var(--v5-ink); }
 .quota-product { display:flex;align-items:center;gap:14px;min-height:80px;cursor:pointer; }
 .quota-product__image { width:76px;height:80px;flex:none; }.quota-product__copy { min-width:0;flex:1; }

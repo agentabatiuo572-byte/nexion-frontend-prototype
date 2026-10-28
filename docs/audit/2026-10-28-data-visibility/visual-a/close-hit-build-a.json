@@ -1,0 +1,19 @@
+{
+  "recordedAt": "2026-10-27T20:16:40.962Z",
+  "qa": "http://127.0.0.1:5291/preview",
+  "publishedRoot": "D:/WORKS/PLAN/.wt/uvel-design-preview/wallet-r25/web-final",
+  "htmlSha256": "DC5B30AEC3A8A1DD584F538B6A7BE8D8831207F701D236ED6FFC06346925280C",
+  "hashSource": "Get-FileHash published index.html",
+  "entry": "index-C5I8XvUO.js",
+  "mainCss": "index-H57LADHv.css",
+  "capturedEntries": [
+    "/assets/index-C5I8XvUO.js"
+  ],
+  "parentReportedOnly": {
+    "testFiles": 2,
+    "testsPassed": 26,
+    "webBuild": "complete",
+    "nativeBuild": "compiling at handoff; not independently verified"
+  },
+  "scope": "Only capacity explainer close button hit box and actual edge closing; prior accepted matrix inherited"
+}

@@ -1,5 +1,4 @@
 import { createProofApi } from "./proof-api";
-import { createComputeShareApi } from './compute-share-api';
 import { parseAppHomeOverview } from './app-home-api';
 import { createDirectReferralApi } from "./direct-referral-api";
 import { describe, expect, it } from 'vitest';
@@ -69,7 +68,7 @@ function demo(locale='zh',patch:Record<string,unknown>={}) {
   const client={request:async(input:{path:string;body?:unknown;method?:string;idempotencyKey?:string})=>get(input.path,input.body,input.method||'GET',input.idempotencyKey)} as ApiClient;
   return {state,get,client};
 }
-describe('prototype account and compute-share readbacks', () => {
+describe('prototype account readbacks', () => {
   it('saves a nickname, handles a repeated save, and preserves language', async () => {
     const d = demo();
     const api = createProfileApi(d.client);
@@ -79,18 +78,6 @@ describe('prototype account and compute-share readbacks', () => {
     await expect(api.updateNickname('Alex', 'Golden River 43', 'demo-conflict')).rejects.toThrow('PROFILE_NICKNAME_CONFLICT');
     await expect(api.updateLanguage('vi')).resolves.toBe('vi');
     expect(await api.profile()).toMatchObject({ nickname: 'Silver River 42', language: 'vi' });
-  });
-  it('supports pending, connected and expired pairing through the real API parser', async () => {
-    const d = demo();
-    const api = createComputeShareApi(d.client);
-    const created = await api.create('NVIDIA RTX 4090', 'demo-pairing');
-    expect(created).toMatchObject({ status: 'PENDING', pairingCode: '482719', deviceId: null });
-    expect(await api.create('NVIDIA RTX 4090', 'demo-pairing')).toEqual(created);
-    d.state.pairingState = 'connected';
-    expect(await api.status(created.enrollmentNo)).toMatchObject({ status: 'CONNECTED', deviceId: 43, pairingCode: null });
-    d.state.pairingState = 'expired';
-    expect(await api.status(created.enrollmentNo)).toMatchObject({ status: 'EXPIRED', deviceId: null, pairingCode: null });
-    await expect(api.status('CSE-UNKNOWN')).rejects.toThrow('COMPUTE_SHARE_ENROLLMENT_NOT_FOUND');
   });
   it('provides settled micro-amount examples and a truly empty ledger', () => {
     const d = demo();

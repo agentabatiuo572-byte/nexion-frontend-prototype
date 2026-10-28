@@ -1,13 +1,13 @@
 <template>
-  <view v-if="items.length || status !== 'ready' || mode !== 'home'" class="promotion promotion-entry" :class="{'promotion-entry-home':mode==='home'}" :data-testid="'promotion-entry-'+mode">
+  <view v-if="items.length || (!listRead && status !== 'ready') || status === 'error' || mode !== 'home'" class="promotion promotion-entry" :class="{'promotion-entry-home':mode==='home'}" :data-testid="'promotion-entry-'+mode">
     <view v-if="mode==='events'" class="entry-navigation">
       <text class="promotion-title">{{ t.promotion.promotionList }}</text>
       <view class="promotion-link" role="button" tabindex="0" @click="navTo('/pages/me/rewards-list?cat=promotion')" @keydown.enter.prevent="navTo('/pages/me/rewards-list?cat=promotion')" @keydown.space.prevent="navTo('/pages/me/rewards-list?cat=promotion')"><text>{{ t.promotion.rewards }}</text><text aria-hidden="true">›</text></view>
     </view>
-    <view v-if="status==='loading'&&!items.length" class="entry-status" role="status" aria-live="polite"><text>{{ t.promotion.loading }}</text></view>
-    <view v-if="status==='error'" class="entry-status" role="alert">
-      <text class="promotion-title">{{ t.promotion.error }}</text><text class="promotion-copy">{{ t.promotion.errorNote }}</text>
-      <NxButton class="entry-retry" variant="text" size="medium" :label="t.promotion.retry" @click="load(true)"><text>{{ t.promotion.retry }}</text><text aria-hidden="true">→</text></NxButton>
+    <view v-if="(status==='idle'||status==='loading')&&!items.length&&!listRead" class="entry-placeholder" role="status" aria-busy="true" :aria-label="t.promotion.loading"><view /><view /></view>
+    <view v-if="status==='error'" class="entry-status nx-inline-recovery" role="alert">
+      <view class="nx-inline-recovery__copy"><text class="promotion-title">{{ t.promotion.error }}</text><text class="promotion-copy">{{ t.promotion.errorNote }}</text></view>
+      <NxButton class="entry-retry nx-inline-recovery__action" variant="text" size="medium" :label="t.promotion.retry" @click="load(true)"><text>{{ t.promotion.retry }}</text><text aria-hidden="true">→</text></NxButton>
     </view>
     <view v-if="status==='ready'&&!items.length&&mode==='events'" class="entry-status">
       <text class="promotion-title">{{ t.promotion.empty }}</text><text class="promotion-copy">{{ t.promotion.emptyNote }}</text>
@@ -62,7 +62,7 @@ import { useLocaleStore } from '@/store/locale';
 import { useTheme } from '@/store/theme';
 import { useT } from '@/i18n/use-t';
 import { getProduct } from '@/mock/products';
-import { productCatalogState,refreshProductCatalog } from '@/store/product-catalog';
+import { productCatalogState,refreshProductCatalog,revalidateProductCatalog } from '@/store/product-catalog';
 import { navTo } from '@/lib/route';
 import { localized,displayDeadline,rewardSummary } from '@/lib/promotion-display';
 import { createPromotionReadFence,isPromotionActive,promotionDisclosures,promotionStoreHref } from '@/lib/promotion-entry';
@@ -71,9 +71,11 @@ import TeamArt from '@/components/team/team-art.vue';
 import PromotionTerms from './promotion-terms.vue';
 import CatalogMachineImage from '@/components/catalog-machine-image.vue';
 import { promotionMachineSlots } from '@/components/catalog-machine-image';
+import { readHomePromotions } from '@/store/home-promotions';
 const props=withDefaults(defineProps<{mode?:'home'|'events';activities?:PublicPromotion[];active?:boolean}>(),{mode:'home',active:true});
 const app=useApp(),locale=useLocaleStore(),theme=useTheme(),t=useT();
 const items=ref<PublicPromotion[]>([]),status=ref<'idle'|'loading'|'ready'|'error'>('idle');
+const listRead=ref(false);
 const cursor=ref<string|null>(null),hasMore=ref(false),activeIndex=ref(0),termsActivity=ref<PublicPromotion|null>(null);
 const loadedBanners=ref(new Set<string>()),imageRefresh=ref(0);
 const catalogRefreshKey=computed(()=>imageRefresh.value);
@@ -91,7 +93,7 @@ function promoSlots(activity:PublicPromotion) {
   const ready=(productCatalogState.status==='ready'||(productCatalogState.status==='loading'&&productCatalogState.serverCanonical))&&!!sessionVault.read();
   return promotionMachineSlots(activity).map(slot=>({...slot,imageUrl:ready?getProduct(slot.sku)?.imageUrl:undefined}));
 }
-const fence=createPromotionReadFence();let visible=true;
+const fence=createPromotionReadFence();let visible=true,pendingTicket:number|null=null;
 const visibleItems=computed(()=>props.mode==='home'?items.value.slice(activeIndex.value,activeIndex.value+1):items.value);
 // The published banner contract has no theme variants. In light mode use the
 // same published rules and catalog images in a theme-aware, readable layout.
@@ -105,7 +107,7 @@ function bannerImageProps(activity:PublicPromotion){
     if(ready)loadedBanners.value.add(key);else loadedBanners.value.delete(key);
   }};
 }
-function clear(resetBanners=true){items.value=[];cursor.value=null;hasMore.value=false;activeIndex.value=0;termsActivity.value=null;if(resetBanners){imageRefresh.value++;loadedBanners.value.clear();}}
+function clear(resetBanners=true){items.value=[];listRead.value=false;cursor.value=null;hasMore.value=false;activeIndex.value=0;termsActivity.value=null;if(resetBanners){imageRefresh.value++;loadedBanners.value.clear();}}
 function publicName(id:string){void productCatalogState.status;return sessionVault.read()?getProduct(id)?.name??id:id;}
 function rewardSummaries(activity:PublicPromotion){return activity.rewardRules.map(rule=>{
   const rewards=[rule.buyerReward,rule.inviterReward].filter((reward):reward is NonNullable<typeof reward>=>!!reward);
@@ -129,22 +131,30 @@ const termsText=computed(()=>termsActivity.value?[localized(termsActivity.value.
 async function load(reset:boolean,preserveImages=false){
   if(!visible)return;
   if(!reset&&(status.value==='loading'||!hasMore.value)) return;
+  if(props.activities===undefined&&pendingTicket!==null&&fence.current(pendingTicket))return;
   if(reset&&!preserveImages){imageRefresh.value++;loadedBanners.value.clear();termsActivity.value=null;}
   // Join a shared read already in flight; otherwise explicitly revalidate the catalog.
   const catalogRead=reset&&remoteApiEnabled&&sessionVault.read()
-    ?refreshProductCatalog(productCatalogState.status!=='loading'):Promise.resolve();
-  if(props.activities!==undefined){fence.invalidate();items.value=props.activities.filter(isPromotionActive);cursor.value=null;hasMore.value=false;activeIndex.value=Math.min(activeIndex.value,Math.max(0,items.value.length-1));status.value='ready';await catalogRead;return;}
+    ?preserveImages?revalidateProductCatalog():refreshProductCatalog(productCatalogState.status!=='loading'):Promise.resolve();
+  if(props.activities!==undefined){fence.invalidate();items.value=props.activities.filter(isPromotionActive);listRead.value=true;cursor.value=null;hasMore.value=false;activeIndex.value=Math.min(activeIndex.value,Math.max(0,items.value.length-1));status.value='ready';await catalogRead;return;}
   const ticket=fence.next(),identity=`${app.accountKey}:${app.accountBindingEpoch}:${locale.code}`;
+  pendingTicket=ticket;
   status.value='loading';
   if(!remoteApiEnabled){clear();status.value=props.mode==='home'?'ready':'error';return;}
   try{
-    const [page]=await Promise.all([promotionApi.list({limit:20,cursor:reset?null:cursor.value,...(props.mode==='home'?{placement:'home.purchase-promotion' as const}:{})},!!sessionVault.read()),catalogRead]);
-    if(!visible||!fence.current(ticket)||identity!==`${app.accountKey}:${app.accountBindingEpoch}:${locale.code}`)return;
+    const read=props.mode==='home'&&reset?readHomePromotions(identity,!!sessionVault.read(),!preserveImages)
+      :promotionApi.list({limit:20,cursor:reset?null:cursor.value,...(props.mode==='home'?{placement:'home.purchase-promotion' as const}:{})},!!sessionVault.read());
+    const [page]=await Promise.all([read,catalogRead]);
+    if(!fence.current(ticket)||identity!==`${app.accountKey}:${app.accountBindingEpoch}:${locale.code}`)return;
     const rows=reset?[]:items.value;
     items.value=[...new Map([...rows,...page.items.filter(isPromotionActive)].map(item=>[item.activityId,item])).values()];
     activeIndex.value=Math.min(activeIndex.value,Math.max(0,items.value.length-1));
     cursor.value=page.nextCursor;hasMore.value=page.hasMore;status.value='ready';
-  }catch{if(visible&&fence.current(ticket)&&identity===`${app.accountKey}:${app.accountBindingEpoch}:${locale.code}`){clear();status.value='error';}}
+    listRead.value=true;
+  }catch(cause){if(fence.current(ticket)&&identity===`${app.accountKey}:${app.accountBindingEpoch}:${locale.code}`){
+    if(cause instanceof Error && 'status' in cause && (cause.status===401||cause.status===403))clear();
+    status.value='error';
+  }}finally{if(pendingTicket===ticket)pendingTicket=null;}
 }
 async function move(delta:number){
   const next=activeIndex.value+delta;if(next<0)return;
@@ -154,19 +164,24 @@ async function move(delta:number){
 watch([()=>app.accountKey,()=>app.accountBindingEpoch,()=>locale.code],()=>{
   fence.invalidate();clear();status.value='idle';
   if(visible)void load(true);
-});
+},{flush:'sync'});
 watch(()=>props.activities,(next,previous)=>{if(visible&&(next!==undefined||previous!==undefined))void load(true,true);},{immediate:true});
 watch(()=>theme.resolved,()=>{imageRefresh.value++;loadedBanners.value.clear();});
 onMounted(()=>{void load(true,true);});onShow(()=>{visible=true;void load(true,true);});
-onHide(()=>{visible=false;fence.invalidate();termsActivity.value=null;});
+onHide(()=>{visible=false;termsActivity.value=null;});
 onBeforeUnmount(()=>{visible=false;fence.invalidate();clear();});
 </script>
 <style src="./promotion.css"></style>
 <style scoped>
 .promotion-entry { display: flex; flex-direction: column; gap: var(--ui-space-inset); }
 .promotion-entry-home { gap: 0; }
-.entry-retry { width: 100%; }
+.entry-placeholder { min-height:146px;box-sizing:border-box;padding:20px;border-radius:24px;background:var(--v5-surface);border:1px solid var(--v5-border); }
+.entry-placeholder > view { width:70%;height:18px;border-radius:8px;background:var(--v5-surface-2); }
+.entry-placeholder > view + view { width:50%;height:30px;margin-top:18px; }
+.entry-retry { width: auto; }
 .entry-status { display: flex; flex-direction: column; align-items: flex-start; gap: var(--ui-space-row-y); padding: var(--ui-space-inline) 0; }
+.entry-status.nx-inline-recovery { display:grid; align-items:center; gap:12px; }
+.entry-status.nx-inline-recovery .promotion-title { text-wrap: balance; }
 .entry-advert,.entry-event { position: relative; overflow: hidden; border: 1px solid var(--v5-border); border-radius: 24px; background: linear-gradient(140deg,var(--ui-spotlight-top),var(--ui-ticket-bottom)); }
 .entry-advert { min-height: 146px; border: 0; background: radial-gradient(70% 90% at 82% 72%,rgba(158,220,29,.24),transparent 62%),radial-gradient(50% 70% at 100% 0%,rgba(255,255,255,.08),transparent 60%),linear-gradient(135deg,#171717,#101010); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
 .entry-advert[data-color-scheme="light"] { --promotion-copy-ink: var(--v5-ink); background: radial-gradient(70% 90% at 82% 72%,color-mix(in srgb,var(--v5-brand) 12%,transparent),transparent 64%),linear-gradient(135deg,var(--ui-spotlight-top),var(--ui-ticket-bottom)); box-shadow: inset 0 0 0 1px var(--v5-border); }

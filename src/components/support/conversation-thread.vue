@@ -1272,7 +1272,7 @@ function onKeyboardActivate(event: KeyboardEvent, action: () => void) {
   background: transparent;
 }
 .nx-conv-composer > * { pointer-events: auto; }
-.nx-conv-policy-retry { min-height:44px; display:flex; align-items:center; justify-content:center; padding:0 16px; color:var(--v5-ink-3); font-size:12px; }
+.nx-conv-policy-retry { min-height:44px; display:flex; align-items:center; justify-content:center; padding:0 16px; color:var(--v5-ink-3); font:600 13px/20px var(--font-v5); }
 .nx-conv-input-row {
   display: flex;
   align-items: flex-end;

@@ -1,0 +1,24 @@
+{
+  "at": "2026-10-27T19:47:09.6934107Z",
+  "qa": "http://127.0.0.1:5291",
+  "fixedRoot": "wallet-r25/web-privacy",
+  "expectedHtml": "2656b0a493fe71fbecf32ab7fa4a0340087c79dbc90dc70d4fc6d8ae1d941a9f",
+  "files": [
+    {
+      "path": "web-privacy/index.html",
+      "sha256": "2656b0a493fe71fbecf32ab7fa4a0340087c79dbc90dc70d4fc6d8ae1d941a9f"
+    },
+    {
+      "path": "web-final/index.html",
+      "sha256": "2656b0a493fe71fbecf32ab7fa4a0340087c79dbc90dc70d4fc6d8ae1d941a9f"
+    },
+    {
+      "path": "web-privacy/assets/index-BfQ3iod9.js",
+      "sha256": "b3523f5efe25bf70a338a3b960b94a5f71a605020367c1663f76c18e5aca5ea2"
+    },
+    {
+      "path": "web-privacy/assets/index-H57LADHv.css",
+      "sha256": "202098a25c0dd1a2d6fa7644105aeeb86dc5833339b9059c794daea119f96c5b"
+    }
+  ]
+}

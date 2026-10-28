@@ -1,0 +1,179 @@
+{
+  "normal": {
+    "records": [
+      {
+        "at": 57252.19999998808,
+        "duration": "0.26s",
+        "easing": "cubic-bezier(0.2, 0.8, 0.2, 1)",
+        "elapsed": 0,
+        "icon": {
+          "bottom": 775.705322265625,
+          "height": 27.41064453125,
+          "left": 173.96133422851562,
+          "right": 201.37202072143555,
+          "top": 748.294677734375,
+          "width": 27.41068649291992,
+          "x": 173.96133422851562,
+          "y": 748.294677734375
+        },
+        "key": "store",
+        "name": "nx-tab-select-d84abd90",
+        "route": "#/pages/store/store",
+        "transform": "matrix(1.24594, 0, 0, 1.24594, 0, 0)",
+        "type": "animationstart"
+      },
+      {
+        "at": 57466,
+        "duration": "0.26s",
+        "easing": "cubic-bezier(0.2, 0.8, 0.2, 1)",
+        "elapsed": 0.26,
+        "icon": {
+          "bottom": 773.989990234375,
+          "height": 23.97998046875,
+          "left": 175.6766815185547,
+          "right": 199.6566619873047,
+          "top": 750.010009765625,
+          "width": 23.97998046875,
+          "x": 175.6766815185547,
+          "y": 750.010009765625
+        },
+        "key": "store",
+        "name": "nx-tab-select-d84abd90",
+        "route": "#/pages/store/store",
+        "transform": "matrix(1.09, 0, 0, 1.09, 0, 0)",
+        "type": "animationend"
+      }
+    ],
+    "reduce": false,
+    "route": "#/pages/store/store",
+    "selected": [
+      {
+        "icon": {
+          "bottom": 773.989990234375,
+          "height": 23.97998046875,
+          "left": 175.6766815185547,
+          "right": 199.6566619873047,
+          "top": 750.010009765625,
+          "width": 23.97998046875,
+          "x": 175.6766815185547,
+          "y": 750.010009765625
+        },
+        "name": "商城",
+        "rect": {
+          "bottom": 785,
+          "height": 46,
+          "left": 154.33334350585938,
+          "right": 221.00001525878903,
+          "top": 739,
+          "width": 66.66667175292969,
+          "x": 154.33334350585938,
+          "y": 739
+        }
+      }
+    ]
+  },
+  "reduced": {
+    "baseline": {
+      "count": 2,
+      "reduce": true
+    },
+    "result": {
+      "animations": [
+        {
+          "playState": "paused",
+          "timing": {
+            "delay": 0,
+            "direction": "normal",
+            "duration": 1,
+            "easing": "linear",
+            "endDelay": 0,
+            "fill": "both",
+            "iterationStart": 0,
+            "iterations": 1
+          }
+        },
+        {
+          "playState": "paused",
+          "timing": {
+            "delay": 0,
+            "direction": "normal",
+            "duration": 1,
+            "easing": "linear",
+            "endDelay": 0,
+            "fill": "both",
+            "iterationStart": 0,
+            "iterations": 1
+          }
+        }
+      ],
+      "records": [
+        {
+          "at": 57252.19999998808,
+          "duration": "0.26s",
+          "easing": "cubic-bezier(0.2, 0.8, 0.2, 1)",
+          "elapsed": 0,
+          "icon": {
+            "bottom": 775.705322265625,
+            "height": 27.41064453125,
+            "left": 173.96133422851562,
+            "right": 201.37202072143555,
+            "top": 748.294677734375,
+            "width": 27.41068649291992,
+            "x": 173.96133422851562,
+            "y": 748.294677734375
+          },
+          "key": "store",
+          "name": "nx-tab-select-d84abd90",
+          "route": "#/pages/store/store",
+          "transform": "matrix(1.24594, 0, 0, 1.24594, 0, 0)",
+          "type": "animationstart"
+        },
+        {
+          "at": 57466,
+          "duration": "0.26s",
+          "easing": "cubic-bezier(0.2, 0.8, 0.2, 1)",
+          "elapsed": 0.26,
+          "icon": {
+            "bottom": 773.989990234375,
+            "height": 23.97998046875,
+            "left": 175.6766815185547,
+            "right": 199.6566619873047,
+            "top": 750.010009765625,
+            "width": 23.97998046875,
+            "x": 175.6766815185547,
+            "y": 750.010009765625
+          },
+          "key": "store",
+          "name": "nx-tab-select-d84abd90",
+          "route": "#/pages/store/store",
+          "transform": "matrix(1.09, 0, 0, 1.09, 0, 0)",
+          "type": "animationend"
+        }
+      ],
+      "reduce": true,
+      "route": "#/pages/me/me",
+      "selected": [
+        {
+          "icon": {
+            "bottom": 773.989990234375,
+            "height": 23.97998046875,
+            "left": 313.010009765625,
+            "right": 336.989990234375,
+            "top": 750.010009765625,
+            "width": 23.97998046875,
+            "x": 313.010009765625,
+            "y": 750.010009765625
+          },
+          "iconAnimation": "none",
+          "iconTransform": "matrix(1.09, 0, 0, 1.09, 0, 0)",
+          "name": "我的"
+        }
+      ]
+    },
+    "newEvents": []
+  },
+  "cleanup": {
+    "observerRemoved": true,
+    "reduce": false
+  }
+}

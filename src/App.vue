@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { runPassiveTabRead } from "@/lib/passive-tab-read";
 import { formatAmount } from "@/lib/amount-display";
 import { acceptNativeOAuthReturn } from "@/auth/oauth-browser-return";
 import { navReset } from "@/lib/route";
@@ -1034,7 +1035,7 @@ function checkQuestRoute() {
     // In formal server mode, task identity, completion facts and reward state
     // all come from the backend. A route visit only triggers a fresh readback;
     // the legacy task-code table below is never consulted.
-    void useQuest().refreshRemote();
+    void runPassiveTabRead("quest", () => useQuest().refreshRemote(), undefined, () => useQuest().remoteStatus === "ready");
     return;
   }
   const id = questIdForRoute(route);

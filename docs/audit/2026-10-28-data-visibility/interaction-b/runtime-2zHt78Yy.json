@@ -1,0 +1,558 @@
+{
+  "entry": "index-2zHt78Yy.js",
+  "css": "index-H57LADHv.css",
+  "htmlSha256": "9BA0E17CFDCB960FB0B4C456BF750DF6F5B416647020968A270FD6EC5510534B",
+  "jsSha256": "A1609A341A4BC2FA2A76F5EF6C1ACA6EBAF1352FCFC687BD97F90376C94962A3",
+  "reads": [
+    {
+      "label": "compat-final-rank-persisted",
+      "at": "2026-10-27T20:05:54.161Z",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-2zHt78Yy.js"
+      ],
+      "pressed": "true",
+      "progressValuedCircle": 0,
+      "public": [
+        "12,775",
+        "3,206"
+      ],
+      "rank": "Hạng thiết bị ước tính\n••••",
+      "ringAria": "Nhiệm vụ mới · ••••",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/index/index"
+    },
+    {
+      "label": "compat-P2-close-under44",
+      "close": {
+        "after": "none",
+        "before": "none",
+        "hitLeft6": false,
+        "hitTop6": false,
+        "rect": {
+          "bottom": 255.0729217529297,
+          "height": 30,
+          "left": 272.65625,
+          "right": 302,
+          "top": 225.0729217529297,
+          "width": 29.34375,
+          "x": 272.65625,
+          "y": 225.0729217529297
+        }
+      },
+      "dialogs": 1,
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-2zHt78Yy.js"
+      ],
+      "title": "Công suất tác vụ & trợ cấp máy mới",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn"
+    },
+    {
+      "aria": [
+        {
+          "cls": "nx-brand-lockup",
+          "label": "UVEL",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-icon-btn nx-design-glass",
+          "label": "Tìm kiếm",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-icon-btn nx-bell nx-design-glass",
+          "label": "Tin nhắn · 4",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "data-visibility-toggle",
+          "label": "Ẩn tài sản, thu nhập, sức mạnh tính toán và thống kê nhóm",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-button nx-button--primary nx-button--medium daily-check-in-row__action",
+          "label": "Điểm danh",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "filled",
+          "label": "Ngày 1 · Đã điểm danh",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "filled",
+          "label": "Ngày 2 · Đã điểm danh",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "today",
+          "label": "Ngày 3 · Hôm nay · UVT 20.00",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "",
+          "label": "Ngày 4",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "",
+          "label": "Ngày 5",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "",
+          "label": "Ngày 6",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "gift",
+          "label": "Ngày 7 · UVT 40.00",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "vb-card",
+          "label": "Phiếu giảm giá thiết bị",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "trial-cta",
+          "label": "Nhận dùng thử",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "home-action-ring",
+          "label": "Đã hoàn thành 3/6",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-button nx-button--text nx-button--medium",
+          "label": "Quản lý",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-device-row",
+          "label": "Chi tiết thiết bị: UVEL Box S1 · Online",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-device-row",
+          "label": "Chi tiết thiết bị: UVELBox Pro · Online",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "hf-add-device",
+          "label": "Thêm thiết bị",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "entry-advert-target",
+          "label": "Mua UVELBox S1 · Xem sản phẩm áp dụng",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "entry-home-deadline",
+          "label": "Thể lệ",
+          "tag": "UNI-TEXT",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "entry-pagination",
+          "label": "Ưu đãi tiếp theo · 1 / 3",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-button nx-button--text nx-button--medium",
+          "label": "Xem chi tiết",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-nova-bubble nx-nova-bubble--dimmed",
+          "label": "Nova · Trợ giúp & hỗ trợ",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-glass-segments nx-glass-segments--equal nx-glass-segments--navigation nx-tabbar-pill",
+          "label": "",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-glass-option nx-glass-option--selected nx-tab nx-tab--bounce",
+          "label": "Trang chủ",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-glass-option nx-tab",
+          "label": "Sinh lời",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-glass-option nx-tab",
+          "label": "Cửa hàng",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-glass-option nx-tab",
+          "label": "Đội nhóm",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-glass-option nx-tab",
+          "label": "Của tôi",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        }
+      ],
+      "at": "2026-10-27T20:08:42.383Z",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-2zHt78Yy.js"
+      ],
+      "eyes": [
+        {
+          "html": "<svg data-v-944469b2=\"\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><path data-v-944469b2=\"\" d=\"M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z\"></path><circle data-v-944469b2=\"\" cx=\"12\" cy=\"12\" r=\"3\"></circle><!----></svg>",
+          "label": "Ẩn tài sản, thu nhập, sức mạnh tính toán và thống kê nhóm",
+          "pressed": "false",
+          "rect": {
+            "bottom": 151,
+            "height": 44,
+            "left": 144.8854217529297,
+            "right": 188.8854217529297,
+            "top": 107,
+            "width": 44,
+            "x": 144.8854217529297,
+            "y": 107
+          }
+        }
+      ],
+      "graphs": [],
+      "height": 693,
+      "overflow": 0,
+      "reduced": false,
+      "text": "4\nChào buổi sáng, Alex\nThu nhập hôm nay\nUSDT\n$\n16.24\n→ 0.0% so với hôm qua · đã hoàn tất 10 tác vụ\nChuỗi 2 ngày\nĐiểm danh nhận 5 UVT· Ngày 3 UVT 20.00\nĐiểm danh\n1\n2\n+5\nHôm nay\n·\n4\n·\n5\n·\n6\n+40\nƯu đãi của bạn\nPhiếu giảm\n1\n$\n50\nGiảm tối đa\nNhận để dùng khi mua\nDùng thử 3 ngày\nUVELBox S1\nKhông cần thanh toán\nNhận\nViệc cần làm\n1\n3/6\nNhiệm vụ mới\nHoàn tất để nhận\n500 UVT\n·Còn 16 giờ\nĐội thiết bị của tôi\n2 / 6\nQuản lý\nUVEL Box S1\nOnline\n+$2.34\nHôm nay\nUVELBox Pro\nOnline\n+$13.90\nHôm nay\nThêm thiết bị\nQuà mua thiết bị\nMua UVELBox S1\nTặng 1 Cloud Share\nCòn 29 ngày · Thể lệ ›\nHoạt động mạng\nXem chi tiết\nThành viên (ước tính)\n12,781\nThiết bị\n3,206\nHạng thiết bị ước tính\n#184\n1",
+      "theme": "dark",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/",
+      "width": 320,
+      "label": "cleanup-restore-original-visible-preference"
+    },
+    {
+      "label": "final-cleanup-preference-restored",
+      "at": "2026-10-27T20:08:43.294Z",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-2zHt78Yy.js"
+      ],
+      "eyes": [
+        "false"
+      ],
+      "reduced": false,
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/",
+      "width": 390
+    }
+  ],
+  "actions": [
+    {
+      "label": "compat-rocket-pointer-click",
+      "before": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn",
+      "close": {
+        "after": "none",
+        "before": "none",
+        "hitLeft6": false,
+        "hitTop6": false,
+        "rect": {
+          "bottom": 255.0729217529297,
+          "height": 30,
+          "left": 272.65625,
+          "right": 302,
+          "top": 225.0729217529297,
+          "width": 29.34375,
+          "x": 272.65625,
+          "y": 225.0729217529297
+        }
+      },
+      "dialogs": 1,
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-2zHt78Yy.js"
+      ],
+      "title": "Công suất tác vụ & trợ cấp máy mới",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn"
+    },
+    {
+      "label": "compat-rocket-reduced-Space",
+      "dialog": "Công suất tác vụ & trợ cấp máy mới"
+    },
+    {
+      "label": "compat-sheet-Escape",
+      "closed": true
+    },
+    {
+      "label": "cleanup-restore-original-visible-preference",
+      "key": "Enter",
+      "before": "http://127.0.0.1:5294/?nx_device=off#/",
+      "after": "http://127.0.0.1:5294/?nx_device=off#/",
+      "sameRoute": true,
+      "pressed": "false"
+    }
+  ],
+  "animations": [
+    {
+      "kind": "compat-final-rocket-normal",
+      "at": "2026-10-27T20:05:54.952Z",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-2zHt78Yy.js"
+      ],
+      "parts": [
+        {
+          "cls": "earn-capacity-info__rocket",
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "transform": "matrix(1, 0, 0, 1, 0, 0.719759)"
+        },
+        {
+          "cls": "earn-capacity-info__flame",
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.789332",
+          "transform": "matrix(1, 0, 0, 0.892517, 0, 0)"
+        },
+        {
+          "cls": "earn-capacity-info__exhaust",
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.619858",
+          "transform": "matrix(1, 0, 0, 1, 0, 0.797143)"
+        }
+      ],
+      "reduced": false,
+      "root": {
+        "bottom": 374.2918510437012,
+        "height": 43.99998092651367,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330.2918701171875,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330.2918701171875
+      },
+      "svg": {
+        "bottom": 363.2918510437012,
+        "height": 21.999980926513672,
+        "left": 157.90625,
+        "right": 179.90625,
+        "top": 341.2918701171875,
+        "width": 22,
+        "x": 157.90625,
+        "y": 341.2918701171875
+      },
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn"
+    },
+    {
+      "kind": "compat-final-rocket-iterations",
+      "events": [
+        {
+          "duration": "0.72s",
+          "elapsed": 0.72,
+          "name": "earn-rocket-flame-4b6766d5"
+        },
+        {
+          "duration": "0.9s",
+          "elapsed": 0.9,
+          "name": "earn-rocket-exhaust-4b6766d5"
+        },
+        {
+          "duration": "0.72s",
+          "elapsed": 1.44,
+          "name": "earn-rocket-flame-4b6766d5"
+        },
+        {
+          "duration": "1.6s",
+          "elapsed": 1.6,
+          "name": "earn-rocket-hop-4b6766d5"
+        },
+        {
+          "duration": "0.9s",
+          "elapsed": 1.8,
+          "name": "earn-rocket-exhaust-4b6766d5"
+        },
+        {
+          "duration": "0.72s",
+          "elapsed": 2.16,
+          "name": "earn-rocket-flame-4b6766d5"
+        },
+        {
+          "duration": "0.9s",
+          "elapsed": 2.7,
+          "name": "earn-rocket-exhaust-4b6766d5"
+        },
+        {
+          "duration": "0.72s",
+          "elapsed": 2.88,
+          "name": "earn-rocket-flame-4b6766d5"
+        },
+        {
+          "duration": "1.6s",
+          "elapsed": 3.2,
+          "name": "earn-rocket-hop-4b6766d5"
+        },
+        {
+          "duration": "0.72s",
+          "elapsed": 3.5999999999999996,
+          "name": "earn-rocket-flame-4b6766d5"
+        },
+        {
+          "duration": "0.9s",
+          "elapsed": 3.6,
+          "name": "earn-rocket-exhaust-4b6766d5"
+        }
+      ]
+    },
+    {
+      "kind": "compat-final-reduce",
+      "animations": 0,
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-2zHt78Yy.js"
+      ],
+      "parts": [
+        {
+          "cls": "earn-capacity-info__rocket",
+          "name": "none",
+          "opacity": "1",
+          "transform": "none"
+        },
+        {
+          "cls": "earn-capacity-info__flame",
+          "name": "none",
+          "opacity": "1",
+          "transform": "none"
+        },
+        {
+          "cls": "earn-capacity-info__exhaust",
+          "name": "none",
+          "opacity": "0",
+          "transform": "none"
+        }
+      ],
+      "reduced": true,
+      "root": {
+        "bottom": 368.6666870117187,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 324.66668701171875,
+        "width": 44,
+        "x": 146.90625,
+        "y": 324.66668701171875
+      }
+    }
+  ],
+  "images": [
+    {
+      "name": "compat-2z-rocket-320-vi-dark",
+      "sha256": "afa44c9e50cb0773d89ad915b0e09547b02a04809aa749323b380d5329fba63f"
+    },
+    {
+      "name": "compat-2z-P2-close-320-vi-dark",
+      "sha256": "e3009d8e0c2db60751cad03e14eb655d55bbb7141ca32efa1ca3a14a45bdbdaa"
+    },
+    {
+      "name": "compat-2z-rank-hidden-320-vi-dark",
+      "sha256": "0e9ebc5bf1d1b51afdfef4f39d45454606e0e96f10c7821bed05a99a0a7ac238",
+      "note": "Planned filename corrected before report: actual viewport320x693, screenshot not390"
+    }
+  ],
+  "notes": [
+    "Only final rocket/deep compatibility/rank and unchanged close hitbox increment, no unrelated retest",
+    "Real browser iteration1.6/.72/.9 and reduced animations0 captured",
+    "One genuine P2 close29.34375x30 remains; no44 pseudo extension and outside hit tests false",
+    "Original private display preferencefalse restored through original eye; no storage clearing",
+    "Native App install not tested; parent compile/unit evidence not called own runtime proof"
+  ]
+}

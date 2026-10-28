@@ -3,6 +3,7 @@ import { compileScript, parse } from '@vue/compiler-sfc';
 import ts from 'typescript';
 import { afterEach, expect, it, vi } from 'vitest';
 import source from './upgrade-spotlight.vue?raw';
+import { catalogMachineImageIdentity } from '../catalog-machine-image';
 
 const code=ts.transpileModule(compileScript(parse(source).descriptor,{id:'upgrade-images'}).content,
   {compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
@@ -16,7 +17,7 @@ function mount(){
     target:{id:'sku-target',name:'Target device',dailyEarn:2,imageUrl:'https://images.example/target'},
   });
   const navTo=vi.fn(),modules:Record<string,unknown>={vue:Vue,
-    '@/components/catalog-machine-image.vue':{default:{}},'@/components/ui/nx-button.vue':{default:{}},
+    '@/components/catalog-machine-image.vue':{default:{}},'@/components/catalog-machine-image':{catalogMachineImageIdentity},'@/components/ui/nx-button.vue':{default:{}},
     '@/store/app':{useApp:()=>app},'@/store/product-catalog':{productCatalogState:catalog},
     '@/i18n/audit-ui':{useAuditUiCopy:()=>({upgrade:'Upgrade',details:'Details'})},
     '@/i18n/use-t':{useT:()=>Vue.ref({store:{}})},'@/store/locale':{useLocaleStore:()=>({code:'zh'})},
@@ -35,6 +36,17 @@ it('uses provided catalog images for both sides and leaves a phone without an im
   expect(screen.view.baseImageProps.value).toMatchObject({sku:'owned-sku',imageUrl:'https://images.example/base'});
   screen.props.baseImageUrl=undefined;expect(screen.view.baseImageProps.value.imageUrl).toBeUndefined();
   expect(source).not.toContain('phone.webp');
+});
+
+it('keeps both decoded public images and their request identity through a warm catalog read',()=>{
+  const screen=mount();screen.props.base.kind='stellarbox-s1';screen.props.baseImageUrl='https://images.example/base';
+  const base=screen.view.baseImageProps.value,target=screen.view.targetImageProps.value;base.onReady(true);target.onReady(true);
+  for(const status of ['loading','ready','error','ready']){
+    screen.catalog.status=status;screen.catalog.revision=status==='error'?null as any:'new-revision';
+    expect(screen.view.baseImageProps.value.imageUrl).toBe(base.imageUrl);expect(screen.view.targetImageProps.value.imageUrl).toBe(target.imageUrl);
+    expect(screen.view.baseImageProps.value.refreshKey).toBe(base.refreshKey);expect(screen.view.targetImageProps.value.refreshKey).toBe(target.refreshKey);
+    expect(screen.view.baseReady.value).toBe(true);expect(screen.view.targetReady.value).toBe(true);
+  }
 });
 
 it.each(['base','target'] as const)('resets only the changed %s side and rejects its old ready callback',side=>{
@@ -58,19 +70,19 @@ it('resets decode readiness when the target SKU changes while its URL stays the 
   expect(screen.view.targetImageProps.value.imageUrl).toBe(old.imageUrl);
 });
 
-it.each(['account','epoch','catalog'] as const)('isolates both sides across the %s boundary and permits same-URL recovery',boundary=>{
+it.each(['account','epoch','withdrawal'] as const)('isolates both sides across the %s boundary and permits same-URL recovery',boundary=>{
   const screen=mount();screen.props.baseImageUrl='https://images.example/base';
   const oldBase=screen.view.baseImageProps.value,oldTarget=screen.view.targetImageProps.value;
   oldBase.onReady(true);oldTarget.onReady(true);
   if(boundary==='account')screen.app.accountKey='user:8';
   if(boundary==='epoch')screen.app.accountBindingEpoch++;
-  if(boundary==='catalog')screen.catalog.status='error';
+  if(boundary==='withdrawal'){screen.props.baseImageUrl=undefined;screen.props.target.imageUrl=undefined;}
   expect(screen.view.baseReady.value).toBe(false);expect(screen.view.targetReady.value).toBe(false);
   oldBase.onReady(true);oldTarget.onReady(true);
   expect(screen.view.baseReady.value).toBe(false);expect(screen.view.targetReady.value).toBe(false);
-  if(boundary==='catalog'){
+  if(boundary==='withdrawal'){
     expect(screen.view.baseImageProps.value.imageUrl).toBeUndefined();expect(screen.view.targetImageProps.value.imageUrl).toBeUndefined();
-    screen.catalog.status='ready';
+    screen.props.baseImageUrl=oldBase.imageUrl;screen.props.target.imageUrl=oldTarget.imageUrl;
   }
   screen.view.baseImageProps.value.onReady(true);screen.view.targetImageProps.value.onReady(true);
   expect(screen.view.baseReady.value).toBe(true);expect(screen.view.targetReady.value).toBe(true);

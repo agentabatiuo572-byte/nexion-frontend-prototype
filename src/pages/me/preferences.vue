@@ -7,9 +7,9 @@
   <AppChassis active="me">
     <view class="message-family" style="padding-bottom: 24px">
       <SubPageHeader back="/pages/me/me" />
-      <view v-if="prefs.error" class="mx-4" style="margin-bottom: 12px; color: var(--v5-danger);" data-testid="notification-preferences-error">
-        <text>{{ preferenceError }}</text>
-        <view class="family-control family-control--text preferences-retry" role="button" tabindex="0" :aria-label="t.ui.retry" @click="prefs.refreshRemote()">
+      <view v-if="prefs.error" class="mx-4 nx-inline-recovery" style="margin-bottom: 12px; color: var(--v5-danger);" data-testid="notification-preferences-error">
+        <text class="nx-inline-recovery__copy">{{ preferenceError }}</text>
+        <view class="family-control family-control--text nx-inline-recovery__action" role="button" tabindex="0" :aria-label="t.ui.retry" @click="prefs.refreshRemote()">
           <text>{{ t.ui.retry }}</text>
         </view>
       </view>
@@ -35,12 +35,13 @@
       <view class="mx-4" style="margin-top: 20px">
         <text class="block" :style="headingStyle">{{ w.notifHeading }}</text>
         <text v-if="!prefs.remoteReady && !prefs.error" class="block" role="status" aria-live="polite">{{ w.loading }}</text>
-        <view v-if="prefs.remoteReady" class="nx-glass-card" :style="cardStyle">
+        <view class="nx-glass-card" :style="cardStyle">
           <ToggleRow
             v-for="(k, i) in notifKinds"
             :key="k"
             :label="w.notifKinds[k]"
-            :value="prefs.notifPrefs[k]"
+            :value="prefs.remoteReady ? prefs.notifPrefs[k] : null"
+            :unknown-label="t.uiChrome.unavailable"
             :last="i === notifKinds.length - 1"
             :locked="isMandatoryNotifKind(k)"
             :hint="isMandatoryNotifKind(k) ? w.notifMandatoryHint : undefined"
@@ -56,12 +57,12 @@
 
       <view class="mx-4 notification-management">
         <text class="block" :style="headingStyle">{{ t.notifs.drawerTitle }}</text>
-        <text v-if="notifs.loading" class="block" role="status" aria-live="polite">{{ t.help.loadingMore }}</text>
-        <view v-if="notifs.error" class="notification-management-error" role="alert" data-testid="notification-clear-error">
-          <text>{{ t.notifs.loadFailed }}</text>
-          <view class="family-control family-control--text preferences-retry" role="button" :tabindex="notifs.loading ? -1 : 0" :aria-disabled="notifs.loading" :aria-label="t.ui.retry" @click="refreshNotifications"><text>{{ t.ui.retry }}</text></view>
+        <text v-if="notifs.loading && !notificationsHasRead" class="block" role="status" aria-live="polite">{{ t.help.loadingMore }}</text>
+        <view v-if="notifs.error" class="notification-management-error nx-inline-recovery" role="alert" data-testid="notification-clear-error">
+          <text class="nx-inline-recovery__copy">{{ t.notifs.loadFailed }}</text>
+          <view class="family-control family-control--text nx-inline-recovery__action" role="button" :tabindex="notifs.loading ? -1 : 0" :aria-disabled="notifs.loading" :aria-label="t.ui.retry" @click="refreshNotifications"><text>{{ t.ui.retry }}</text></view>
         </view>
-        <view class="family-control notification-clear-read" role="button" :tabindex="clearingRead || notifs.loading ? -1 : 0" :aria-disabled="clearingRead || notifs.loading" :aria-label="t.notifs.clearReadAria" @click="confirmClearRead"><LiquidGlass :radius="24" /><text>{{ t.notifs.clearReadAria }}</text></view>
+        <view class="family-control notification-clear-read" role="button" :tabindex="clearingRead || notifs.loading ? -1 : 0" :aria-disabled="clearingRead || notifs.loading" :style="{ opacity: notifs.loading && !clearingRead ? 1 : undefined }" :aria-label="t.notifs.clearReadAria" @click="confirmClearRead"><LiquidGlass :radius="24" /><text>{{ t.notifs.clearReadAria }}</text></view>
       </view>
     </view>
   </AppChassis>
@@ -91,6 +92,7 @@ const notifs = useNotifications();
 const app = useApp();
 const ui = useUI();
 const clearingRead = ref(false);
+const notificationsHasRead = ref(false);
 const confirmOwner = `notification-settings:${typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
   ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
 let pageGeneration = 0;
@@ -103,10 +105,11 @@ function isCurrentIntent(intent: ReturnType<typeof captureIntent>) {
   return !disposed && pageVisible && intent.generation === pageGeneration
     && remoteAccountScope.isCurrent(intent.account);
 }
-function refreshNotifications() {
+async function refreshNotifications() {
   const intent = captureIntent();
   if (!isCurrentIntent(intent) || notifs.loading) return;
-  return notifs.refreshRemote(undefined, () => isCurrentIntent(intent));
+  await notifs.refreshRemote(undefined, () => isCurrentIntent(intent));
+  if (isCurrentIntent(intent) && !notifs.loading && !notifs.error) notificationsHasRead.value = true;
 }
 async function confirmClearRead() {
   const intent = captureIntent();
@@ -131,7 +134,10 @@ function invalidatePendingIntents() {
   clearingRead.value = false;
   ui.clearConfirmsBy(confirmOwner);
 }
-watch(() => [app.accountKey, app.accountBindingEpoch], invalidatePendingIntents, { flush: "sync" });
+watch(() => [app.accountKey, app.accountBindingEpoch], () => {
+  notificationsHasRead.value = false;
+  invalidatePendingIntents();
+}, { flush: "sync" });
 onShow(() => {
   if (disposed) return;
   pageVisible = true;
@@ -196,7 +202,6 @@ const footerStyle: CSSProperties = {
 </script>
 
 <style scoped>
-.preferences-retry { margin-top: 8px; }
 .notification-management { margin-top: 20px; }
 .notification-clear-read { min-height: 44px; margin-top: 8px; }
 .notification-management-error { color: var(--v5-danger); }

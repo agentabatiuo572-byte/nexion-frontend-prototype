@@ -2,11 +2,21 @@ import ts from "typescript";
 import * as Vue from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createPinia, setActivePinia } from 'pinia';
+import { installSupportStorage } from '@/test/storage-setup';
 import source from "./service-message-list.vue?raw";
 import deleteSource from "@/composables/use-conversation-delete.ts?raw";
 import { zh } from "@/i18n/messages/zh";
 import { fmt } from "@/i18n/format";
 import { conversationActionsCopy } from "@/i18n/conversation-actions";
+
+installSupportStorage();
+const remote = vi.hoisted(() => ({ remoteApiEnabled: true, supportApi: {
+  authorityRevision: vi.fn(async () => 'run-1'), commandResult: vi.fn(async () => null),
+  conversations: vi.fn(), conversationDismissals: vi.fn(async () => []),
+} }));
+vi.mock('@/api/runtime', () => remote);
+const { useConversations } = await import('@/store/conversations');
 import { groupConversationThreads } from "@/api/conversation-threads";
 import type { Conversation } from "@/domain/support";
 import { localizedIdleClose } from "@/lib/support-idle-message";
@@ -61,7 +71,7 @@ function mount(initial = [
   conversation("a/active", "7", 40, 2),
   conversation("a/history", "7", 60, 3, "closed"),
   conversation("b/active", "9", 20, 1),
-]) {
+], sourceStore?: ReturnType<typeof useConversations>) {
   const conversations = Vue.reactive({
     loading: false, error: null as string | null, categoryLoading: false, categoryAvailabilityStatus: "ready", realtimeFallback: false,
     deletionAvailable: true, deletingIds: {} as Record<string, boolean>, typingIds: {} as Record<string, boolean>,
@@ -74,7 +84,7 @@ function mount(initial = [
   const toast = { error: vi.fn() }, account = Vue.reactive({ accountBindingEpoch: 1 });
   const modules: Record<string, any> = {
     vue: Vue, "@dcloudio/uni-app": { onHide: vi.fn() },
-    "@/store/conversations": { useConversations: () => conversations },
+    "@/store/conversations": { useConversations: () => sourceStore ?? conversations },
     "@/store/message-drawer": { useMessageDrawer: () => ({ refresh }) },
     "@/store/app": { useApp: () => account }, "@/store/locale": { useLocaleStore: () => ({ code: "zh" }) },
     "@/store/ui": { confirm, toast, useUI: () => ({ clearConfirmsBy: vi.fn() }) },
@@ -100,6 +110,37 @@ function mount(initial = [
 async function settle() { await Promise.resolve(); await Promise.resolve(); await Vue.nextTick(); }
 
 describe("rendered service threads and deletion", () => {
+  it('keeps the real store row and flow prefix through repeated offline refresh error/fallback windows', async () => {
+    setActivePinia(createPinia());
+    remote.supportApi.conversations.mockResolvedValue({ items: [conversation('current', '7', 40, 2)], total: 1 });
+    const store = useConversations(); store.bindAccount('user:fixture'); await store.refresh();
+    store.categoryLoading = false; store.categoryAvailabilityStatus = 'ready';
+    store.realtimeFallback = true; store.error = 'offline';
+    const h = mount(undefined, store); await Vue.nextTick();
+    const row = h.rows()[0], prefix = () => h.root.children[0].children.filter(n => n.tag !== '#comment').slice(0, 1).map(n => n.tag);
+    const before = prefix();
+    for (let cycle = 0; cycle < 3; cycle++) {
+      let reject!: (cause: Error) => void;
+      remote.supportApi.authorityRevision.mockReturnValueOnce(new Promise((_resolve, fail) => { reject = fail; }));
+      const refresh = store.refresh().catch(() => undefined);
+      expect(store.loading).toBe(true); expect(store.error).toBeNull();
+      await Vue.nextTick();
+      expect(store.conversations).toHaveLength(1); expect(h.rows()[0]).toBe(row);
+      expect(prefix()).toEqual(before);
+      const nodes = flatten(h.root), state = byClass(h.root, 'service-state')[0];
+      expect(nodes.indexOf(state)).toBeGreaterThan(nodes.indexOf(row));
+      expect(textOf(state)).toContain(zh.conversations.realtimeFallback);
+      reject(new Error('offline')); await refresh; await Vue.nextTick();
+      expect(store.error).toBe('offline'); expect(h.rows()[0]).toBe(row); expect(prefix()).toEqual(before);
+      expect(textOf(h.root)).toContain(zh.conversations.staleSnapshot);
+    }
+    let reject!: (cause: Error) => void;
+    remote.supportApi.authorityRevision.mockReturnValueOnce(new Promise((_resolve, fail) => { reject = fail; }));
+    const oldRead = store.refresh().catch(() => undefined);
+    store.bindAccount('user:replacement'); await Vue.nextTick(); expect(h.rows()).toHaveLength(0);
+    reject(new Error('old scope offline')); await oldRead; await Vue.nextTick();
+    expect(h.rows()).toHaveLength(0); expect(store.error).toBeNull(); store.reset();
+  });
   it("merges the same staff ID, keeps another ID separate despite the same name, and routes to the replyable member", () => {
     const h = mount();
     expect(h.rows()).toHaveLength(2);

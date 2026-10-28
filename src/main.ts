@@ -17,7 +17,10 @@ import { mountAuthOtpDevBridge } from "@/store/auth-otp";
 import { useI18nRuntime } from "@/store/i18n-runtime";
 import { useLocaleStore } from "@/store/locale";
 import { syncExplicitProfileLocale } from "@/lib/locale-profile-sync-runtime";
+import { installH5PageReadActivation, installNativePageReadActivation, type PageReadRouter } from "@/lib/page-read-activation";
+import { notifyPageActivation } from "@/lib/passive-read-window";
 import "./styles/tokens.css";
+import "./styles/inline-recovery.css";
 import "uno.css";
 
 declare global {
@@ -54,7 +57,15 @@ export function createApp() {
 
   const pinia = createPinia();
   app.use(pinia);
+  // #ifdef H5
+  if (typeof window !== "undefined") {
+    const initialRoute = window.location.hash.replace(/^#/, "") || window.location.pathname;
+    notifyPageActivation(initialRoute);
+  }
+  app.mixin({ beforeCreate() { installH5PageReadActivation((this as unknown as { $router?: PageReadRouter }).$router); } });
+  // #endif
   // #ifdef APP-PLUS
+  installNativePageReadActivation();
   app.component("NxNativeSvg", NativeSvg);
   app.mixin({
     onShow() {

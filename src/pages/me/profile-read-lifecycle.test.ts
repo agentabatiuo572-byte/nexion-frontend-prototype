@@ -16,7 +16,7 @@ import { reconcileProfileEdit } from "@/lib/profile-save-flow";
 import { displayNickname } from "@/lib/brand-copy";
 import { ApiError } from "@/api/errors";
 
-const remote = vi.hoisted(() => ({ remoteApiEnabled: true, vRankApi: { ladder: vi.fn(), current: vi.fn() } }));
+const remote = vi.hoisted(() => ({ remoteApiEnabled: true, apiRuntimeConfig: { environment: "dev", baseUrl: "https://test.invalid" }, vRankApi: { ladder: vi.fn(), current: vi.fn() } }));
 vi.mock("@/api/runtime", () => remote);
 const { useVRank } = await import("@/store/v-rank");
 function deferred() {

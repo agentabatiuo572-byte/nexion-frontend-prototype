@@ -3,9 +3,12 @@ import { createPinia, setActivePinia } from "pinia";
 import { createApiClient, type HttpRequest } from "@/api/api-client";
 import { createPointsApi } from "@/api/points-api";
 import { createSessionVault } from "@/api/session-vault";
+import { ApiError } from '@/api/errors';
+import { advanceRuntimeRevision } from '@/api/order-api';
 
 const remote = vi.hoisted(() => ({
   remoteApiEnabled: true,
+  apiRuntimeConfig:{environment:"dev",baseUrl:"https://test.invalid"},
   sessionUserId: 1 as number | null,
   sessionVault: { read: (): {user:{userId:number}} | null => remote.sessionUserId === null ? null : {user:{userId:remote.sessionUserId}} },
   pointsApi: {
@@ -85,6 +88,67 @@ beforeEach(() => {
 });
 
 describe("NEX faucet remote failure resilience", () => {
+  it.each([0,2_000,undefined])('all Daily reads and unsent claims respect Retry-After %s',async delay=>{
+    const now=vi.spyOn(Date,'now').mockReturnValue(100_000);remote.pointsApi.state.mockResolvedValueOnce(dailySnapshot(2));const store=createBoundStore();await flush();
+    remote.pointsApi.state.mockRejectedValueOnce(new ApiError({kind:'http',status:429,message:'limited',retryAfterMs:delay}));expect(await store.refreshRemote()).toBe(false);const calls=remote.pointsApi.state.mock.calls.length,wait=delay??30_000;
+    if(wait>0){
+      advanceRuntimeRevision();expect(await Promise.all([store.refreshRemote(),store.ensureRemote(),store.ensureRemote(10_000),store.claimMilestoneRemote(3)])).toEqual([false,false,false,false]);expect(await store.checkInRemote()).toMatchObject({ok:false});expect(await store.useSaverRemote()).toBe(false);
+      expect(remote.pointsApi.checkIn).not.toHaveBeenCalled();expect(remote.pointsApi.claimMilestone).not.toHaveBeenCalled();expect(remote.pointsApi.useSaver).not.toHaveBeenCalled();expect(remote.pointsApi.state).toHaveBeenCalledTimes(calls);
+      now.mockReturnValue(100_000+wait-1);expect(await store.refreshRemote()).toBe(false);
+    }
+    now.mockReturnValue(100_000+wait);remote.pointsApi.state.mockResolvedValueOnce(dailySnapshot(3));expect(await store.refreshRemote()).toBe(true);expect(remote.pointsApi.state).toHaveBeenCalledTimes(calls+1);now.mockRestore();
+  });
+  it('a confirmed check-in POST remains successful when its follow-up read is cooling, without replaying the POST',async()=>{
+    remote.pointsApi.state.mockResolvedValue(dailySnapshot(2));const store=createBoundStore();await flush();const post=deferred<any>();remote.pointsApi.checkIn.mockReturnValueOnce(post.promise);const action=store.checkInRemote();await flush();expect(remote.pointsApi.checkIn).toHaveBeenCalledTimes(1);
+    remote.pointsApi.state.mockRejectedValueOnce(new ApiError({kind:'http',status:429,message:'limited',retryAfterMs:60_000}));await store.refreshRemote();const calls=remote.pointsApi.state.mock.calls.length;
+    post.resolve({checkInDate:'2026-08-22',streakDays:3,rewardNex:2,multiplier:1});expect(await action).toMatchObject({ok:true,gained:2,streak:3});expect(store.signInStreak).toBe(3);expect(store.remoteCheckedInToday).toBe(true);expect(remote.pointsApi.state).toHaveBeenCalledTimes(calls);expect(await store.refreshRemote()).toBe(false);expect(remote.pointsApi.checkIn).toHaveBeenCalledTimes(1);
+  });
+  it('binding a new Daily account clears cooldown, and its old 429 cannot poison that account',async()=>{
+    remote.pointsApi.state.mockResolvedValueOnce(dailySnapshot(2));const store=createBoundStore();await flush();remote.pointsApi.state.mockRejectedValueOnce(new ApiError({kind:'http',status:429,message:'limited',retryAfterMs:60_000}));await store.refreshRemote();remote.sessionUserId=2;remote.pointsApi.state.mockResolvedValueOnce(dailySnapshot(4));store.bindAccount('user:2');await flush();expect(store.remoteReadState).toBe('ready');expect(store.signInStreak).toBe(4);
+    let rejectOld!:(cause:unknown)=>void;remote.pointsApi.state.mockReturnValueOnce(new Promise((_done,fail)=>rejectOld=fail));const old=store.refreshRemote();remote.sessionUserId=3;remote.pointsApi.state.mockResolvedValueOnce(dailySnapshot(5));store.bindAccount('user:3');await flush();rejectOld(new ApiError({kind:'http',status:429,message:'old',retryAfterMs:60_000}));await old;
+    remote.pointsApi.state.mockResolvedValueOnce(dailySnapshot(6));expect(await store.refreshRemote()).toBe(true);expect(store.signInStreak).toBe(6);
+  });
+  it('automatically reads the current runtime after an owned cold read expires, rejecting its old data',async()=>{
+    const old=deferred<ReturnType<typeof dailySnapshot>>();remote.pointsApi.state.mockReturnValueOnce(old.promise).mockResolvedValueOnce(dailySnapshot(2));const store=createBoundStore();const joined=store.ensureRemote();advanceRuntimeRevision();old.resolve(dailySnapshot(99));expect(await joined).toBe(true);
+    expect(store.remoteHasSnapshot).toBe(true);expect(store.signInStreak).toBe(2);expect(store.remoteReadState).toBe('ready');expect(remote.pointsApi.state).toHaveBeenCalledTimes(2);
+  });
+  it('joins an already current read when runtime changes again during recovery, without multiplying requests',async()=>{
+    const first=deferred<any>(),second=deferred<any>(),latest=deferred<any>();remote.pointsApi.state.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise).mockReturnValueOnce(latest.promise);const store=createBoundStore();const original=store.ensureRemote();advanceRuntimeRevision();first.resolve(dailySnapshot(99));await flush();expect(remote.pointsApi.state).toHaveBeenCalledTimes(2);
+    advanceRuntimeRevision();const current=store.ensureRemote(),alsoCurrent=store.ensureRemote();expect(remote.pointsApi.state).toHaveBeenCalledTimes(3);second.resolve(dailySnapshot(88));await flush();expect(remote.pointsApi.state).toHaveBeenCalledTimes(3);latest.resolve(dailySnapshot(2));expect(await Promise.all([original,current,alsoCurrent])).toEqual([true,true,true]);expect(store.signInStreak).toBe(2);expect(store.remoteReadState).toBe('ready');
+  });
+  it('keeps a stale-runtime HTTP429 cooling rather than launching recovery or leaving cold loading',async()=>{
+    let reject!:(cause:unknown)=>void;remote.pointsApi.state.mockReturnValueOnce(new Promise((_yes,no)=>reject=no));const store=createBoundStore();const original=store.ensureRemote();advanceRuntimeRevision();reject(new ApiError({kind:'http',status:429,message:'limited',retryAfterMs:60_000}));expect(await original).toBe(false);expect(store.remoteReadState).toBe('error');expect(store.remoteHasSnapshot).toBe(false);expect(await store.ensureRemote()).toBe(false);expect(remote.pointsApi.state).toHaveBeenCalledTimes(1);
+  });
+  it('recovers an owned stale-runtime ordinary failure with one fresh read and stops if that current read fails',async()=>{
+    let rejectOld!:(cause:unknown)=>void;remote.pointsApi.state.mockReturnValueOnce(new Promise((_yes,no)=>rejectOld=no)).mockRejectedValueOnce(new Error('current offline'));
+    const store=createBoundStore(),original=store.ensureRemote();advanceRuntimeRevision();rejectOld(new Error('old offline'));expect(await original).toBe(false);expect(remote.pointsApi.state).toHaveBeenCalledTimes(2);expect(store.remoteReadState).toBe('error');expect(store.remoteHasSnapshot).toBe(false);
+    remote.pointsApi.state.mockResolvedValueOnce(dailySnapshot(2));expect(await store.ensureRemote()).toBe(true);expect(remote.pointsApi.state).toHaveBeenCalledTimes(3);expect(store.signInStreak).toBe(2);
+  });
+  it('shares the current Home visit, reads normal reentry fresh, and honors 429 without skipping command refresh',async()=>{
+    const now=vi.spyOn(Date,'now').mockReturnValue(100_000);remote.pointsApi.state.mockResolvedValueOnce(dailySnapshot(2));const store=createBoundStore();await flush();
+    expect(store.remoteHasSnapshot).toBe(true);await store.ensureRemote(10_000);expect(remote.pointsApi.state).toHaveBeenCalledTimes(1);
+    const {notifyPageActivation}=await import('@/lib/passive-tab-read');notifyPageActivation('home-reentry');now.mockReturnValue(101_000);let reject!:(error:unknown)=>void;remote.pointsApi.state.mockReturnValueOnce(new Promise((_yes,no)=>reject=no));
+    const first=store.ensureRemote(10_000),second=store.ensureRemote(10_000);expect(remote.pointsApi.state).toHaveBeenCalledTimes(2);
+    reject(new ApiError({kind:'http',status:429,message:'limited',retryAfterMs:2_000}));expect(await Promise.all([first,second])).toEqual([false,false]);expect(store.remoteHasSnapshot).toBe(true);expect(store.signInStreak).toBe(2);
+    now.mockReturnValue(102_999);notifyPageActivation('earn-during-cooldown');await store.ensureRemote(10_000);expect(remote.pointsApi.state).toHaveBeenCalledTimes(2);
+    now.mockReturnValue(103_000);notifyPageActivation('home-after-cooldown');remote.pointsApi.state.mockResolvedValueOnce(dailySnapshot(3));await store.ensureRemote(10_000);expect(remote.pointsApi.state).toHaveBeenCalledTimes(3);
+    remote.pointsApi.state.mockRejectedValueOnce(new Error('offline'));await store.checkInRemote();expect(remote.pointsApi.state).toHaveBeenCalledTimes(4);expect(remote.pointsApi.checkIn).not.toHaveBeenCalled();now.mockRestore();
+  });
+  it.each([401,403])('clears confirmed presentation on exact HTTP %s',async status=>{
+    remote.pointsApi.state.mockResolvedValueOnce(dailySnapshot(2));const store=createBoundStore();await flush();expect(store.remoteHasSnapshot).toBe(true);
+    remote.pointsApi.state.mockRejectedValueOnce(new ApiError({kind:'http',status,message:'denied'}));await store.refreshRemote();expect(store.remoteHasSnapshot).toBe(false);expect(store.signInStreak).toBe(0);expect(store.remoteReadState).toBe('error');
+  });
+  it.each([401,403])('an owned stale-runtime HTTP %s clears private facts without a recovery read',async status=>{
+    remote.pointsApi.state.mockResolvedValueOnce(dailySnapshot(7));const store=createBoundStore();await flush();expect(store.remoteHasSnapshot).toBe(true);
+    let reject!:(cause:unknown)=>void;remote.pointsApi.state.mockReturnValueOnce(new Promise((_yes,no)=>reject=no)).mockResolvedValueOnce(dailySnapshot(99));const denied=store.refreshRemote();advanceRuntimeRevision();reject(new ApiError({kind:'http',status,message:'denied'}));expect(await denied).toBe(false);
+    expect(store.remoteReadState).toBe('error');expect(store.remoteHasSnapshot).toBe(false);expect(store.signInStreak).toBe(0);expect(store.remoteRules).toEqual([]);expect(store.remoteMilestones).toEqual([]);expect(remote.pointsApi.state).toHaveBeenCalledTimes(2);
+  });
+  it.each([401,403])('an HTTP %s superseded by a current generation or account never clears the new owner',async status=>{
+    let reject!:(cause:unknown)=>void;remote.pointsApi.state.mockReturnValueOnce(new Promise((_yes,no)=>reject=no));const store=createBoundStore();const old=store.ensureRemote();advanceRuntimeRevision();remote.pointsApi.state.mockResolvedValueOnce(dailySnapshot(2));expect(await store.ensureRemote()).toBe(true);
+    reject(new ApiError({kind:'http',status,message:'old generation'}));await old;expect(store.remoteReadState).toBe('ready');expect(store.signInStreak).toBe(2);expect(store.remoteHasSnapshot).toBe(true);expect(remote.pointsApi.state).toHaveBeenCalledTimes(2);
+    let rejectAccount!:(cause:unknown)=>void;remote.pointsApi.state.mockReturnValueOnce(new Promise((_yes,no)=>rejectAccount=no));const previous=store.refreshRemote();remote.sessionUserId=2;remote.pointsApi.state.mockResolvedValueOnce(dailySnapshot(3));store.bindAccount('user:2');await flush();rejectAccount(new ApiError({kind:'http',status,message:'old account'}));await previous;
+    expect(store.remoteReadState).toBe('ready');expect(store.signInStreak).toBe(3);expect(store.remoteHasSnapshot).toBe(true);expect(remote.pointsApi.state).toHaveBeenCalledTimes(4);
+  });
   it('shares the pending bound-account read with the page instead of racing another read', async () => {
     const pending = deferred<ReturnType<typeof dailySnapshot>>();
     remote.pointsApi.state.mockReturnValueOnce(pending.promise).mockRejectedValueOnce(new Error('second read failed'));

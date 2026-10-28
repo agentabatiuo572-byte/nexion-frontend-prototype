@@ -1,0 +1,637 @@
+{
+  "scope": "Limited incremental review. r7 font evidence inherited to r8 by unchanged index-8t-HDpGw.css; final Store copy captured on r8. No new page matrix.",
+  "r7Cases": [
+    {
+      "name": "r7-01-store-title-zh-dark-320",
+      "controls": [
+        {
+          "box": {
+            "bottom": 241.3854217529297,
+            "height": 44,
+            "left": 214.89584350585935,
+            "right": 304.00001525878906,
+            "top": 197.3854217529297,
+            "width": 89.10417175292969,
+            "x": 214.89584350585935,
+            "y": 197.3854217529297
+          },
+          "className": "nx-button nx-button--text nx-button--medium entry-retry nx-inline-recovery__action",
+          "fontSize": "13px",
+          "hit": true,
+          "label": "重新加载",
+          "lineHeight": "20px",
+          "overflow": false,
+          "parent": {
+            "box": {
+              "bottom": 266.78125,
+              "height": 94.78125,
+              "left": 16,
+              "right": 304,
+              "top": 172,
+              "width": 288,
+              "x": 16,
+              "y": 172
+            },
+            "className": "entry-status nx-inline-recovery",
+            "columns": "186.896px 89.1042px",
+            "display": "grid"
+          },
+          "selector": ".nx-inline-recovery__action",
+          "text": "重新加载\n→",
+          "weight": "600",
+          "whiteSpace": "nowrap"
+        }
+      ],
+      "css": [
+        "http://127.0.0.1:5252/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5252/assets/index-8t-HDpGw.css",
+        "http://127.0.0.1:5252/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5252/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5252/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5252/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5252/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5252/assets/app-chassis-BP8eDo1x.css",
+        "http://127.0.0.1:5252/assets/card-stagger-BAUXl1m9.css",
+        "http://127.0.0.1:5252/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5252/assets/reward-rows-BiWv8z9R.css",
+        "http://127.0.0.1:5252/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5252/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5252/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5252/assets/promotion-CdusBIV4.css",
+        "http://127.0.0.1:5252/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5252/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5252/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5252/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5252/assets/nx-list-row-TJWSpHkz.css",
+        "http://127.0.0.1:5252/assets/store-CWwZOLTz.css"
+      ],
+      "entry": [
+        "http://127.0.0.1:5252/assets/index-BYkotkfZ.js"
+      ],
+      "frame": {
+        "bottom": 915.8333435058594,
+        "height": 693,
+        "left": 380,
+        "right": 700,
+        "top": 222.83334350585935,
+        "width": 320,
+        "x": 380,
+        "y": 222.83334350585935
+      },
+      "overflow": false,
+      "text": "$\n50\n代金券 · 1 张\n最高可减\n领取后结算使用\n信息暂不可用\n已保留当前选择，请重试后再确认。\n重新加载\n→\n设备目录加载失败\n请稍后重试,再进行购买或置换。\n重新同步\n组合购买\n›\n全程托管 · 零物流\n首页\n赚取\n商城\n团队\n我的",
+      "theme": "dark",
+      "time": "2026-10-27T10:26:33.575Z",
+      "url": "http://127.0.0.1:5252/?nx_device=off#/pages/store/store",
+      "viewport": [
+        320,
+        693
+      ]
+    },
+    {
+      "name": "r7-02-team-ledger-zh-dark-320",
+      "controls": [
+        {
+          "box": {
+            "bottom": 379.8223876953125,
+            "height": 44,
+            "left": 260,
+            "right": 304,
+            "top": 335.8223876953125,
+            "width": 44,
+            "x": 260,
+            "y": 335.8223876953125
+          },
+          "className": "team-ledger__retry",
+          "fontSize": "13px",
+          "hit": true,
+          "label": null,
+          "lineHeight": "20px",
+          "overflow": false,
+          "parent": {
+            "box": {
+              "bottom": 379.8223876953125,
+              "height": 44,
+              "left": 16,
+              "right": 304,
+              "top": 335.8223876953125,
+              "width": 288,
+              "x": 16,
+              "y": 335.8223876953125
+            },
+            "className": "team-ledger__feedback-item is-active",
+            "columns": "none",
+            "display": "flex"
+          },
+          "selector": ".team-ledger__retry",
+          "text": "重试",
+          "weight": "600",
+          "whiteSpace": "nowrap"
+        }
+      ],
+      "css": [
+        "http://127.0.0.1:5252/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5252/assets/index-8t-HDpGw.css",
+        "http://127.0.0.1:5252/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5252/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5252/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5252/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5252/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5252/assets/app-chassis-BP8eDo1x.css",
+        "http://127.0.0.1:5252/assets/card-stagger-BAUXl1m9.css",
+        "http://127.0.0.1:5252/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5252/assets/reward-rows-BiWv8z9R.css",
+        "http://127.0.0.1:5252/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5252/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5252/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5252/assets/promotion-CdusBIV4.css",
+        "http://127.0.0.1:5252/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5252/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5252/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5252/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5252/assets/nx-list-row-TJWSpHkz.css",
+        "http://127.0.0.1:5252/assets/store-CWwZOLTz.css",
+        "http://127.0.0.1:5252/assets/team-BK3gos4J.css"
+      ],
+      "entry": [
+        "http://127.0.0.1:5252/assets/index-BYkotkfZ.js"
+      ],
+      "frame": {
+        "bottom": 915.8333435058594,
+        "height": 693,
+        "left": 380,
+        "right": 700,
+        "top": 222.83334350585935,
+        "width": 320,
+        "x": 380,
+        "y": 222.83334350585935
+      },
+      "overflow": false,
+      "text": "本月团队收入\n—\n— UVT\n查看明细\n累计结算状态\n已到账\n—\n冷却中\n—\n团队数据暂时无法加载，请重试。\n重试\n邀请好友\n规则\n›\n10\nUVT\n每位好友达标后可获\n邀请好友\n海报\n邀请码\n链接\n我的团队\n—\n成员\n直接邀请\n—\n暂时无法读取团队成员，请重试。\n重试\n我的等级\nV—\n权益与奖励\n信息暂不可用\n重新加载\n→\n团队奖励\n邀请榜\n查看当前排名与奖池\n团队奖励\n直属购买 · 网络购买 · 设备收益分成\n—\n双区贡献奖励\nA · — / B · —\n预估\n—\n本周团队激励池\n团队数据暂时无法加载，请重试。\n—\n更多功能\n硬件配额\n查看设备配额\n区域合作\n查看区域合作\n成员网络\n查看成员分布\n成员关系\n查看团队成员\n首页\n赚取\n商城\n团队\n我的",
+      "theme": "dark",
+      "time": "2026-10-27T10:26:33.902Z",
+      "url": "http://127.0.0.1:5252/?nx_device=off#/pages/team/team",
+      "viewport": [
+        320,
+        693
+      ]
+    },
+    {
+      "name": "r7-03-team-summary-zh-dark-320",
+      "controls": [
+        {
+          "box": {
+            "bottom": 368.3958435058594,
+            "height": 44,
+            "left": 63,
+            "right": 107,
+            "top": 324.3958435058594,
+            "width": 44,
+            "x": 63,
+            "y": 324.3958435058594
+          },
+          "className": "nx-button nx-button--text nx-button--medium team-summary__action",
+          "fontSize": "13px",
+          "hit": true,
+          "label": "重试",
+          "lineHeight": "20px",
+          "overflow": false,
+          "parent": {
+            "box": {
+              "bottom": 368.3958435058594,
+              "height": 95,
+              "left": 28.666667938232425,
+              "right": 141.3333396911621,
+              "top": 273.3958435058594,
+              "width": 112.66667175292967,
+              "x": 28.666667938232425,
+              "y": 273.3958435058594
+            },
+            "className": "team-summary__status",
+            "columns": "none",
+            "display": "flex"
+          },
+          "selector": ".team-summary__status .team-summary__action",
+          "text": "重试",
+          "weight": "600",
+          "whiteSpace": "normal"
+        }
+      ],
+      "css": [
+        "http://127.0.0.1:5252/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5252/assets/index-8t-HDpGw.css",
+        "http://127.0.0.1:5252/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5252/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5252/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5252/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5252/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5252/assets/app-chassis-BP8eDo1x.css",
+        "http://127.0.0.1:5252/assets/card-stagger-BAUXl1m9.css",
+        "http://127.0.0.1:5252/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5252/assets/reward-rows-BiWv8z9R.css",
+        "http://127.0.0.1:5252/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5252/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5252/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5252/assets/promotion-CdusBIV4.css",
+        "http://127.0.0.1:5252/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5252/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5252/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5252/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5252/assets/nx-list-row-TJWSpHkz.css",
+        "http://127.0.0.1:5252/assets/store-CWwZOLTz.css",
+        "http://127.0.0.1:5252/assets/team-BK3gos4J.css"
+      ],
+      "entry": [
+        "http://127.0.0.1:5252/assets/index-BYkotkfZ.js"
+      ],
+      "frame": {
+        "bottom": 915.8333435058594,
+        "height": 693,
+        "left": 380,
+        "right": 700,
+        "top": 222.83334350585935,
+        "width": 320,
+        "x": 380,
+        "y": 222.83334350585935
+      },
+      "overflow": false,
+      "text": "本月团队收入\n—\n— UVT\n查看明细\n累计结算状态\n已到账\n—\n冷却中\n—\n团队数据暂时无法加载，请重试。\n重试\n邀请好友\n规则\n›\n10\nUVT\n每位好友达标后可获\n邀请好友\n海报\n邀请码\n链接\n我的团队\n—\n成员\n直接邀请\n—\n暂时无法读取团队成员，请重试。\n重试\n我的等级\nV—\n权益与奖励\n信息暂不可用\n重新加载\n→\n团队奖励\n邀请榜\n查看当前排名与奖池\n团队奖励\n直属购买 · 网络购买 · 设备收益分成\n—\n双区贡献奖励\nA · — / B · —\n预估\n—\n本周团队激励池\n团队数据暂时无法加载，请重试。\n—\n更多功能\n硬件配额\n查看设备配额\n区域合作\n查看区域合作\n成员网络\n查看成员分布\n成员关系\n查看团队成员\n首页\n赚取\n商城\n团队\n我的",
+      "theme": "dark",
+      "time": "2026-10-27T10:27:53.394Z",
+      "url": "http://127.0.0.1:5252/?nx_device=off#/pages/team/team",
+      "viewport": [
+        320,
+        693
+      ]
+    },
+    {
+      "name": "r7-04-share-sheet-retry-zh-dark-320",
+      "controls": [
+        {
+          "box": {
+            "bottom": 548.5875244140625,
+            "height": 44,
+            "left": 242,
+            "right": 300,
+            "top": 504.5875244140625,
+            "width": 58,
+            "x": 242,
+            "y": 504.5875244140625
+          },
+          "className": "ss-retry",
+          "fontSize": "13px",
+          "hit": true,
+          "label": null,
+          "lineHeight": "20px",
+          "overflow": false,
+          "parent": {
+            "box": {
+              "bottom": 548.5875244140625,
+              "height": 44,
+              "left": 20,
+              "right": 300,
+              "top": 504.5875244140625,
+              "width": 280,
+              "x": 20,
+              "y": 504.5875244140625
+            },
+            "className": "ss-status",
+            "columns": "none",
+            "display": "flex"
+          },
+          "selector": ".ss-retry",
+          "text": "重试",
+          "weight": "600",
+          "whiteSpace": "normal"
+        }
+      ],
+      "css": [
+        "http://127.0.0.1:5252/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5252/assets/index-8t-HDpGw.css",
+        "http://127.0.0.1:5252/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5252/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5252/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5252/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5252/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5252/assets/app-chassis-BP8eDo1x.css",
+        "http://127.0.0.1:5252/assets/card-stagger-BAUXl1m9.css",
+        "http://127.0.0.1:5252/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5252/assets/reward-rows-BiWv8z9R.css",
+        "http://127.0.0.1:5252/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5252/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5252/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5252/assets/promotion-CdusBIV4.css",
+        "http://127.0.0.1:5252/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5252/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5252/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5252/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5252/assets/nx-list-row-TJWSpHkz.css",
+        "http://127.0.0.1:5252/assets/store-CWwZOLTz.css",
+        "http://127.0.0.1:5252/assets/team-BK3gos4J.css"
+      ],
+      "entry": [
+        "http://127.0.0.1:5252/assets/index-BYkotkfZ.js"
+      ],
+      "frame": {
+        "bottom": 915.8333435058594,
+        "height": 693,
+        "left": 380,
+        "right": 700,
+        "top": 222.83334350585935,
+        "width": 320,
+        "x": 380,
+        "y": 222.83334350585935
+      },
+      "overflow": false,
+      "text": "本月团队收入\n—\n— UVT\n查看明细\n累计结算状态\n已到账\n—\n冷却中\n—\n团队数据暂时无法加载，请重试。\n重试\n邀请好友\n规则\n›\n10\nUVT\n每位好友达标后可获\n邀请好友\n海报\n邀请码\n链接\n邀请好友\n10.00 UVT\n每位好友达标后可获\n分享方式加载失败，请检查网络后重试。\n重试\n分享海报\n复制邀请码\nUVELDEMO\n复制链接\n邀请奖励规则\n+\n取消\n我的团队\n—\n成员\n直接邀请\n—\n暂时无法读取团队成员，请重试。\n重试\n我的等级\nV—\n权益与奖励\n信息暂不可用\n重新加载\n→\n团队奖励\n邀请榜\n查看当前排名与奖池\n团队奖励\n直属购买 · 网络购买 · 设备收益分成\n—\n双区贡献奖励\nA · — / B · —\n预估\n—\n本周团队激励池\n团队数据暂时无法加载，请重试。\n—\n更多功能\n硬件配额\n查看设备配额\n区域合作\n查看区域合作\n成员网络\n查看成员分布\n成员关系\n查看团队成员\n首页\n赚取\n商城\n团队\n我的",
+      "theme": "dark",
+      "time": "2026-10-27T10:27:54.506Z",
+      "url": "http://127.0.0.1:5252/?nx_device=off#/pages/team/team",
+      "viewport": [
+        320,
+        693
+      ]
+    }
+  ],
+  "r7Clicks": [
+    {
+      "name": "team-ledger-font-r7",
+      "entry": "index-BYkotkfZ.js",
+      "requests": [
+        {
+          "id": "22408.447",
+          "method": "GET",
+          "path": "/api/quests/state"
+        },
+        {
+          "id": "22408.448",
+          "method": "GET",
+          "path": "/api/trial/state"
+        },
+        {
+          "id": "22408.449",
+          "method": "POST",
+          "path": "/api/app/analytics/events"
+        },
+        {
+          "id": "22408.450",
+          "method": "GET",
+          "path": "/api/app/team/network"
+        },
+        {
+          "id": "22408.451",
+          "method": "GET",
+          "path": "/api/app/team/insights/commissions"
+        }
+      ],
+      "statuses": [
+        {
+          "id": "22408.447",
+          "path": "/api/quests/state",
+          "status": 503
+        },
+        {
+          "id": "22408.448",
+          "path": "/api/trial/state",
+          "status": 200
+        },
+        {
+          "id": "22408.449",
+          "path": "/api/app/analytics/events",
+          "status": 409
+        },
+        {
+          "id": "22408.450",
+          "path": "/api/app/team/network",
+          "status": 503
+        },
+        {
+          "id": "22408.451",
+          "path": "/api/app/team/insights/commissions",
+          "status": 503
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "name": "team-summary-font-r7",
+      "entry": "index-BYkotkfZ.js",
+      "requests": [
+        {
+          "id": "22408.580",
+          "method": "POST",
+          "path": "/api/app/analytics/events"
+        },
+        {
+          "id": "22408.581",
+          "method": "GET",
+          "path": "/api/app/team/network"
+        }
+      ],
+      "statuses": [
+        {
+          "id": "22408.580",
+          "path": "/api/app/analytics/events",
+          "status": 409
+        },
+        {
+          "id": "22408.581",
+          "path": "/api/app/team/network",
+          "status": 503
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "name": "share-sheet-font-r7",
+      "entry": "index-BYkotkfZ.js",
+      "requests": [
+        {
+          "id": "22408.590",
+          "method": "POST",
+          "path": "/api/app/analytics/events"
+        },
+        {
+          "id": "22408.591",
+          "method": "GET",
+          "path": "/api/config/platform"
+        },
+        {
+          "id": "22408.592",
+          "method": "GET",
+          "path": "/api/config/referral-rewards"
+        }
+      ],
+      "statuses": [
+        {
+          "id": "22408.590",
+          "path": "/api/app/analytics/events",
+          "status": 409
+        },
+        {
+          "id": "22408.591",
+          "path": "/api/config/platform",
+          "status": 503
+        },
+        {
+          "id": "22408.592",
+          "path": "/api/config/referral-rewards",
+          "status": 200
+        }
+      ],
+      "truncated": false
+    }
+  ],
+  "r8Store": {
+    "time": "2026-10-27T10:31:47.050Z",
+    "url": "http://127.0.0.1:5252/?nx_device=off#/pages/store/store",
+    "entry": [
+      "http://127.0.0.1:5252/assets/index-BSpOlTnk.js"
+    ],
+    "css": [
+      "http://127.0.0.1:5252/assets/uni.c39fe708.css",
+      "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+      "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+      "http://127.0.0.1:5252/assets/index-8t-HDpGw.css",
+      "http://127.0.0.1:5252/assets/liquid-glass-CtBmG5K8.css",
+      "http://127.0.0.1:5252/assets/brand-lockup-BuVYk5AL.css",
+      "http://127.0.0.1:5252/assets/global-ui-rtRD1Jcw.css",
+      "http://127.0.0.1:5252/assets/nova-avatar-D5GOd_PR.css",
+      "http://127.0.0.1:5252/assets/device-status-bar-Q_PY6aEV.css",
+      "http://127.0.0.1:5252/assets/app-chassis-BP8eDo1x.css",
+      "http://127.0.0.1:5252/assets/card-stagger-BAUXl1m9.css",
+      "http://127.0.0.1:5252/assets/catalog-machine-image-Sr0pZ4Bd.css",
+      "http://127.0.0.1:5252/assets/reward-rows-BiWv8z9R.css",
+      "http://127.0.0.1:5252/assets/nx-sheet-DbVsiSWQ.css",
+      "http://127.0.0.1:5252/assets/disclosure-details-BnM275Gf.css",
+      "http://127.0.0.1:5252/assets/promotion-terms-BV3PvWse.css",
+      "http://127.0.0.1:5252/assets/promotion-CdusBIV4.css",
+      "http://127.0.0.1:5252/assets/team-art-DR37f503.css",
+      "http://127.0.0.1:5252/assets/promotion-entry-zHMQocHU.css",
+      "http://127.0.0.1:5252/assets/nx-section-rLmXDH8J.css",
+      "http://127.0.0.1:5252/assets/nx-list-group-BmH7i_UJ.css",
+      "http://127.0.0.1:5252/assets/nx-list-row-TJWSpHkz.css",
+      "http://127.0.0.1:5252/assets/store-CWwZOLTz.css"
+    ],
+    "frame": {
+      "x": 380,
+      "y": 222.83334350585938,
+      "width": 320,
+      "height": 693,
+      "top": 222.83334350585938,
+      "right": 700,
+      "bottom": 915.8333435058594,
+      "left": 380
+    },
+    "viewport": [
+      320,
+      693
+    ],
+    "theme": "dark",
+    "overflow": false,
+    "rows": [
+      {
+        "className": "entry-status nx-inline-recovery",
+        "text": "信息暂不可用\n选择已保留，重试后确认。\n重新加载\n→",
+        "box": {
+          "x": 16,
+          "y": 172,
+          "width": 288,
+          "height": 72.6875,
+          "top": 172,
+          "right": 304,
+          "bottom": 244.6875,
+          "left": 16
+        },
+        "fontSize": "16px",
+        "lineHeight": "normal",
+        "weight": "400",
+        "grid": "186.896px 89.1042px",
+        "whiteSpace": "normal"
+      },
+      {
+        "className": "nx-button nx-button--text nx-button--medium entry-retry nx-inline-recovery__action",
+        "text": "重新加载\n→",
+        "box": {
+          "x": 214.89584350585938,
+          "y": 186.34375,
+          "width": 89.10417175292969,
+          "height": 44,
+          "top": 186.34375,
+          "right": 304.00001525878906,
+          "bottom": 230.34375,
+          "left": 214.89584350585938
+        },
+        "fontSize": "13px",
+        "lineHeight": "20px",
+        "weight": "600",
+        "grid": "none",
+        "whiteSpace": "nowrap"
+      }
+    ],
+    "text": [
+      {
+        "text": "信息暂不可用",
+        "box": {
+          "x": 16,
+          "y": 184.6666717529297,
+          "width": 114,
+          "height": 24,
+          "top": 184.6666717529297,
+          "right": 130,
+          "bottom": 208.6666717529297,
+          "left": 16
+        },
+        "fontSize": "19px",
+        "lineHeight": "26.6px",
+        "lines": [
+          {
+            "x": 16,
+            "y": 184.6666717529297,
+            "width": 114,
+            "height": 24,
+            "top": 184.6666717529297,
+            "right": 130,
+            "bottom": 208.6666717529297,
+            "left": 16
+          }
+        ]
+      },
+      {
+        "text": "选择已保留，重试后确认。",
+        "box": {
+          "x": 16,
+          "y": 213.2604217529297,
+          "width": 156,
+          "height": 16.666667938232422,
+          "top": 213.2604217529297,
+          "right": 172,
+          "bottom": 229.9270896911621,
+          "left": 16
+        },
+        "fontSize": "13px",
+        "lineHeight": "22.1px",
+        "lines": [
+          {
+            "x": 16,
+            "y": 213.2604217529297,
+            "width": 156,
+            "height": 16.666671752929688,
+            "top": 213.2604217529297,
+            "right": 172,
+            "bottom": 229.92709350585938,
+            "left": 16
+          }
+        ]
+      }
+    ]
+  }
+}

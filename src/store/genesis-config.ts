@@ -1,3 +1,4 @@
+import { invalidateBeforePassiveTabRead } from "@/lib/passive-tab-read";
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import type { Listing } from "@/components/genesis/listing-card.vue";
@@ -381,6 +382,7 @@ export const useGenesisConfig = defineStore("genesisConfig", () => {
    *      判定读的不再是构造时的内存快照,而是当下的权威源。
    */
   async function refresh() {
+    invalidateBeforePassiveTabRead("genesis-config");
     const generation = ++refreshGeneration;
     // 🔴🔴 mock 模式没有服务端可读,而下面的 catch 是 **fail-closed**(把市场钉成 closed、
     //   loaded 置 false)。少了这个分支,mock 下 refresh 必然走进 catch ⇒

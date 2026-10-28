@@ -1,0 +1,26 @@
+{
+  "frozenBuild": "index-BQJ7beyl.js / index-DPMvPy7r.css",
+  "readyForRebuild": true,
+  "requiredNewDelta": [
+    "390ZH and320ZH capacity copy + original manage entry; A original8.8 remains OPEN until actual r18 build"
+  ],
+  "closedTestedR17": [
+    "icon-only navigation 320 both themes;390ZH baseline both themes;260ms/reduced-motion",
+    "VI capacity320/390 both themes",
+    "local-mock original sign-in + checked compact route",
+    "wallet normal/long/zero/stale-failure and original Enter recovery",
+    "Ref error/off/original Enter recovery, root scrollbar and real wheel, logged-in compact CTA/legal route",
+    "staking FAQ exact caps fault Enter disabled/off outer-hit recovery",
+    "slot dark material/safe gap/pointer-edge/Space/backdrop closure"
+  ],
+  "notTested": [
+    "sign-in busy duplicate/request count",
+    "wallet no-snapshot guard",
+    "unlogged Ref registration CTA",
+    "legacy wallet-cards gate",
+    "repurchase historyError read-only entry",
+    "nextPage append error",
+    "physical APP/production"
+  ],
+  "doNotRepeat": "No whole historical matrix; keep original r15/r16 failures and r17 excluded-frame notes."
+}

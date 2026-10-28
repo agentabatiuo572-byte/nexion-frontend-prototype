@@ -20,6 +20,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import CatalogMachineImage from '@/components/catalog-machine-image.vue';
+import { catalogMachineImageIdentity } from '@/components/catalog-machine-image';
 import { useApp } from '@/store/app';
 import { productCatalogState } from '@/store/product-catalog';
 import { useAuditUiCopy } from '@/i18n/audit-ui';
@@ -39,22 +40,27 @@ const comparisonCopy = computed(() => locale.code === 'zh'
     ? { current: 'Hiện tại · ước tính', upgraded: 'Sau nâng cấp · ước tính' }
     : { current: 'Now · estimated', upgraded: 'After upgrade · estimated' });
 const baseReady = ref(false), targetReady = ref(false);
+const baseRefreshKey = ref(0), targetRefreshKey = ref(0);
 const app = useApp();
-const catalogRefreshKey = computed(() => JSON.stringify([productCatalogState.status, productCatalogState.revision]));
-const baseIdentity = computed(() => JSON.stringify([app.accountKey, app.accountBindingEpoch, props.base.kind, props.baseImageUrl, catalogRefreshKey.value]));
-const targetIdentity = computed(() => JSON.stringify([app.accountKey, app.accountBindingEpoch, props.target.id, props.target.imageUrl, catalogRefreshKey.value]));
+const baseIdentity = computed(() => JSON.stringify([app.accountKey, app.accountBindingEpoch, props.base.kind, catalogMachineImageIdentity(props.baseImageUrl), baseRefreshKey.value]));
+const targetIdentity = computed(() => JSON.stringify([app.accountKey, app.accountBindingEpoch, props.target.id, catalogMachineImageIdentity(props.target.imageUrl), targetRefreshKey.value]));
 const baseImageProps = computed(() => {
   const identity = baseIdentity.value;
-  return { sku: props.base.kind, imageUrl: productCatalogState.status === 'ready' ? props.baseImageUrl : undefined, scopeKey: 'upgrade-base', refreshKey: catalogRefreshKey.value,
+  return { sku: props.base.kind, imageUrl: props.baseImageUrl, scopeKey: 'upgrade-base', refreshKey: baseRefreshKey.value,
     onReady: (ready: boolean) => { if (identity === baseIdentity.value) baseReady.value = ready; } };
 });
 const targetImageProps = computed(() => {
   const identity = targetIdentity.value;
-  return { sku: props.target.id, imageUrl: productCatalogState.status === 'ready' ? props.target.imageUrl : undefined, scopeKey: 'upgrade-target', refreshKey: catalogRefreshKey.value,
+  return { sku: props.target.id, imageUrl: props.target.imageUrl, scopeKey: 'upgrade-target', refreshKey: targetRefreshKey.value,
     onReady: (ready: boolean) => { if (identity === targetIdentity.value) targetReady.value = ready; } };
 });
 watch(baseIdentity, () => { baseReady.value = false; }, { flush: 'sync' });
 watch(targetIdentity, () => { targetReady.value = false; }, { flush: 'sync' });
+watch(() => productCatalogState.status, status => {
+  if (status !== 'ready') return;
+  if (!baseReady.value && props.baseImageUrl) baseRefreshKey.value++;
+  if (!targetReady.value && props.target.imageUrl) targetRefreshKey.value++;
+}, { flush: 'post' });
 function open() { navTo('/pages/store/detail?id=' + encodeURIComponent(props.target.id)); }
 </script>
 <style scoped>

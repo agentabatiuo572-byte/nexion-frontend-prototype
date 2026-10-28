@@ -1,0 +1,206 @@
+[
+  {
+    "label": "close-hit-320-vi-dark-before",
+    "at": "2026-10-27T20:14:43.753Z",
+    "data": {
+      "close": {
+        "ariaLabel": "Đóng",
+        "rect": {
+          "bottom": 260.7395935058594,
+          "height": 44,
+          "left": 258,
+          "right": 302,
+          "top": 216.73959350585935,
+          "width": 44,
+          "x": 258,
+          "y": 216.73959350585935
+        },
+        "role": "button",
+        "styles": {
+          "boxSizing": "border-box",
+          "flex": "0 0 auto",
+          "flexShrink": "0",
+          "height": "44px",
+          "width": "44px"
+        },
+        "tabindex": "0",
+        "tag": "UNI-VIEW"
+      },
+      "dialog": {
+        "label": "Công suất tác vụ & trợ cấp máy mới",
+        "rect": {
+          "bottom": 693.3333740234375,
+          "height": 669.3333740234375,
+          "left": 0,
+          "right": 320,
+          "top": 24,
+          "width": 320,
+          "x": 0,
+          "y": 24
+        }
+      },
+      "dialogCount": 1,
+      "entry": [
+        "/assets/index-C5I8XvUO.js"
+      ],
+      "face": {
+        "ariaLabel": null,
+        "rect": {
+          "bottom": 253.73959350585935,
+          "height": 30,
+          "left": 265,
+          "right": 295,
+          "top": 223.73959350585935,
+          "width": 30,
+          "x": 265,
+          "y": 223.73959350585935
+        },
+        "role": null,
+        "styles": {
+          "boxSizing": "border-box",
+          "flex": "0 1 auto",
+          "flexShrink": "1",
+          "height": "30px",
+          "width": "30px"
+        },
+        "tabindex": null,
+        "tag": "UNI-VIEW"
+      },
+      "privacy": "false",
+      "reduced": false,
+      "theme": "#F5F7FA",
+      "url": "http://127.0.0.1:5291/?nx_device=off#/pages/earn/earn",
+      "viewport": {
+        "height": 693,
+        "scrollWidth": 320,
+        "width": 320
+      }
+    },
+    "screenshot": "close-hit-320-vi-dark-before.png"
+  },
+  {
+    "label": "close-hit-320-vi-dark-returned",
+    "at": "2026-10-27T20:15:26.258Z",
+    "data": {
+      "close": null,
+      "dialog": null,
+      "dialogCount": 0,
+      "entry": [
+        "/assets/index-C5I8XvUO.js"
+      ],
+      "face": null,
+      "privacy": "false",
+      "reduced": false,
+      "theme": "#F5F7FA",
+      "url": "http://127.0.0.1:5291/?nx_device=off#/pages/earn/earn",
+      "viewport": {
+        "height": 693,
+        "scrollWidth": 320,
+        "width": 320
+      }
+    },
+    "screenshot": "close-hit-320-vi-dark-returned.png"
+  },
+  {
+    "label": "close-hit-390-zh-light-before",
+    "at": "2026-10-27T20:15:40.819Z",
+    "data": {
+      "close": {
+        "ariaLabel": "关闭",
+        "rect": {
+          "bottom": 545.2604370117188,
+          "height": 44,
+          "left": 328,
+          "right": 372,
+          "top": 501.2604370117187,
+          "width": 44,
+          "x": 328,
+          "y": 501.2604370117187
+        },
+        "role": "button",
+        "styles": {
+          "boxSizing": "border-box",
+          "flex": "0 0 auto",
+          "flexShrink": "0",
+          "height": "44px",
+          "width": "44px"
+        },
+        "tabindex": "0",
+        "tag": "UNI-VIEW"
+      },
+      "dialog": {
+        "label": "作业产能与新机补贴",
+        "rect": {
+          "bottom": 843.8333129882812,
+          "height": 1552.5,
+          "left": 0,
+          "right": 390,
+          "top": -708.6666870117188,
+          "width": 390,
+          "x": 0,
+          "y": -708.6666870117188
+        }
+      },
+      "dialogCount": 1,
+      "entry": [
+        "/assets/index-C5I8XvUO.js"
+      ],
+      "face": {
+        "ariaLabel": null,
+        "rect": {
+          "bottom": 538.2604370117188,
+          "height": 30,
+          "left": 335,
+          "right": 365,
+          "top": 508.2604370117187,
+          "width": 30,
+          "x": 335,
+          "y": 508.2604370117187
+        },
+        "role": null,
+        "styles": {
+          "boxSizing": "border-box",
+          "flex": "0 1 auto",
+          "flexShrink": "1",
+          "height": "30px",
+          "width": "30px"
+        },
+        "tabindex": null,
+        "tag": "UNI-VIEW"
+      },
+      "privacy": "false",
+      "reduced": false,
+      "theme": "#13141A",
+      "url": "http://127.0.0.1:5291/?nx_device=off#/pages/earn/earn",
+      "viewport": {
+        "height": 844,
+        "scrollWidth": 390,
+        "width": 390
+      }
+    },
+    "screenshot": "close-hit-390-zh-light-before.png"
+  },
+  {
+    "label": "close-hit-390-zh-light-returned",
+    "at": "2026-10-27T20:16:05.234Z",
+    "data": {
+      "close": null,
+      "dialog": null,
+      "dialogCount": 0,
+      "entry": [
+        "/assets/index-C5I8XvUO.js"
+      ],
+      "face": null,
+      "privacy": "false",
+      "reduced": false,
+      "theme": "#13141A",
+      "url": "http://127.0.0.1:5291/?nx_device=off#/pages/earn/earn",
+      "viewport": {
+        "height": 844,
+        "scrollWidth": 390,
+        "width": 390
+      }
+    },
+    "screenshot": "close-hit-390-zh-light-returned.png"
+  }
+]

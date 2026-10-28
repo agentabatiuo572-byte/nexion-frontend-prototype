@@ -5,7 +5,7 @@
       <SubPageHeader back="/pages/team/team" :title="t.directReferral.title" :action-label="t.unilevel.howItWorksEntry" :action="openRules" plain />
       <view class="px-4" style="display: flex; flex-direction: column; gap: 16px">
         <EmptyState v-if="remoteState === 'error'" kind="recoverable-error" :title="updateRequired ? t.directReferral.updateRequired : t.network.projectionErrorTitle" :desc="updateRequired ? t.directReferral.updateHint : t.network.projectionErrorDesc" :cta-label="t.network.retry" @cta="retryRemote" />
-        <view v-else-if="remoteState !== 'ready'" role="status" aria-busy="true"><text>{{ t.network.projectionLoadingTitle }}</text></view>
+        <view v-else-if="remoteState !== 'ready' && !remoteSnapshot" role="status" aria-busy="true"><text>{{ t.network.projectionLoadingTitle }}</text></view>
         <template v-else-if="remoteSnapshot">
           <RewardHero kind="members" panel>
             <text class="block" style="font-size: 15px; font-weight: 600">{{ filter === 'device_earning' ? t.directReferral.deviceEarning : t.directReferral.purchaseTotal }}</text>
@@ -19,7 +19,7 @@
         </template>
         <GlassSegments :label="t.directReferral.period" v-model="period" :options="periodOptions" layout="scroll" />
         <GlassSegments :label="t.directReferral.source" v-model="filter" :options="filterOptions" layout="wrap" />
-        <view v-if="remoteState === 'ready' && remoteSnapshot" style="border-top: 1px solid var(--v5-border)">
+        <view v-if="(remoteState === 'ready' || remoteState === 'loading') && remoteSnapshot" style="border-top: 1px solid var(--v5-border)">
           <view v-for="event in remoteSnapshot.events" :key="event.id" class="nx-direct-event" style="padding: 14px 0; border-bottom: 1px solid var(--v5-border)">
             <view :class="{ 'nx-royalty-event-large': wideAmount(event.amountUSDT) || wideAmount(event.amountNEX) }" style="display: flex; justify-content: space-between; gap: 10px">
               <view style="flex: 1; min-width: 0">
@@ -45,13 +45,13 @@
           </view>
           <EmptyState v-if="remoteSnapshot.totalRows === 0" kind="no-filter-results" :title="t.directReferral.empty" :desc="t.directReferral.emptyDesc" />
           <view v-if="remoteSnapshot.totalRows === 0" role="button" tabindex="0" class="nx-unilevel-focus reward-cta" @click="go('/pages/team/team')" @keydown.enter.prevent="go('/pages/team/team')" @keydown.space.prevent="go('/pages/team/team')"><text>{{ t.directReferral.invite }}</text></view>
-          <view v-if="remoteSnapshot.events.length < remoteSnapshot.totalRows" class="nx-unilevel-load-more nx-unilevel-focus reward-cta reward-cta--wide" role="button" tabindex="0" :aria-disabled="remoteLoadMoreStatus === 'loading'"  @click="loadMoreRemote" @keydown.enter.prevent="loadMoreRemote" @keydown.space.prevent="loadMoreRemote"><text>{{ remoteLoadMoreStatus === 'loading' ? t.network.projectionLoadingTitle : remoteLoadMoreStatus === 'error' ? t.network.retry : t.unilevel.loadMore }}</text></view>
+          <view v-if="remoteSnapshot.events.length < remoteSnapshot.totalRows" class="nx-unilevel-load-more nx-unilevel-focus reward-cta reward-cta--wide" role="button" :tabindex="remoteState !== 'ready' || remoteLoadMoreStatus === 'loading' ? -1 : 0" :aria-disabled="remoteState !== 'ready' || remoteLoadMoreStatus === 'loading'"  @click="loadMoreRemote" @keydown.enter.prevent="loadMoreRemote" @keydown.space.prevent="loadMoreRemote"><text>{{ remoteLoadMoreStatus === 'error' ? t.network.retry : t.unilevel.loadMore }}</text></view>
         </view>
         <view v-if="policyState === 'error'" role="alert">
           <text class="block">{{ t.directReferral.policyError }}</text>
           <view role="button" tabindex="0" class="nx-unilevel-focus reward-cta" @click="retryRemote" @keydown.enter.prevent="retryRemote" @keydown.space.prevent="retryRemote"><text>{{ t.network.retry }}</text></view>
         </view>
-        <view v-else-if="policyState !== 'ready'" role="status" aria-busy="true"><text>{{ t.network.projectionLoadingTitle }}</text></view>
+        <view v-else-if="policyState !== 'ready' && !policy" role="status" aria-busy="true"><text>{{ t.network.projectionLoadingTitle }}</text></view>
         <view v-else-if="policy" style="display: flex; flex-direction: column; gap: 8px">
           <text v-if="!policy.configured" style="font-size: 12px; color: var(--v5-ink-3)">{{ t.directReferral.unconfigured }}</text>
           <text v-else-if="policy.nexUsdtPrice === null" style="font-size: 12px; color: var(--v5-warning)">{{ t.directReferral.priceUnavailable }}</text>
@@ -60,7 +60,7 @@
         <view v-if="showSettlementDetails" class="nx-unilevel-details">
           <text class="block">{{ t.directReferral.netHint }}</text>
           <text v-if="filter === 'device_earning'" class="block">{{ t.directReferral.platformPays }}</text>
-          <template v-if="policyState === 'ready' && policy">
+          <template v-if="(policyState === 'ready' || policyState === 'loading') && policy">
             <text class="block">{{ ruleDescription }}</text>
           </template>
         </view>
@@ -88,7 +88,7 @@ import { networkReauditCopy } from "@/i18n/network-reaudit";
 import { fmt, dateLocale } from "@/i18n/format";
 import { useApp } from "@/store/app";
 import { useAuth } from "@/store/auth";
-import { apiClient, expectedApiEnvironment, remoteApiEnabled, sessionVault } from "@/api/runtime";
+import { apiClient, apiRuntimeConfig, expectedApiEnvironment, remoteApiEnabled, sessionVault } from "@/api/runtime";
 import { createDirectReferralApi, type DirectReferralPolicy, type DirectReferralSnapshot, type DirectReferralEvent, type DirectReferralPeriod } from "@/api/direct-referral-api";
 import { createTeamInsightsApi, type TeamUnilevelSnapshot, type TeamUnilevelEvent } from "@/api/team-insights-api";
 import { binarySessionReady as accountSessionReady } from "@/lib/binary-session-ready";
@@ -108,6 +108,10 @@ function toggleRecord(id: string) {
   expandedRecords.value = expandedRecords.value.includes(id)
     ? expandedRecords.value.filter(value => value !== id) : [...expandedRecords.value, id];
 }
+const readEnvironment = [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const;
+let environmentInvalidated = false;
+watch(() => [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const, () => { environmentInvalidated = true; }, { flush: 'sync' });
+const environmentCurrent = () => !environmentInvalidated && readEnvironment[0] === apiRuntimeConfig.environment && readEnvironment[1] === apiRuntimeConfig.baseUrl;
 const directApi = createDirectReferralApi(apiClient, expectedApiEnvironment);
 const purchaseApi = createTeamInsightsApi(apiClient, expectedApiEnvironment);
 let readCoalescer = createScopedReadCoalescer();
@@ -130,25 +134,25 @@ function readPage(page = 1, pageSize = 20) {
     : purchaseApi.unilevel(period.value, page, pageSize, querySnapshotAt, filter.value);
 }
 async function loadRemote() {
-  if (!remoteSessionReady.value || !mounted) return;
+  if (!remoteSessionReady.value || !mounted || !environmentCurrent()) return;
   const request = ++remoteRequest, accountKey = app.accountKey, selectedPeriod = period.value, selectedFilter = filter.value;
   const accountScope = captureAccountScope(), runScope = captureRuntimeRevision();
   remoteState.value = "loading"; policyState.value = "loading"; remoteLoadMoreStatus.value = "idle"; updateRequired.value = false;
-  remoteSnapshot.value = null; policy.value = null;
+  const readLocale = locale.code;
   const current = () => mounted && request === remoteRequest && accountKey === app.accountKey && selectedPeriod === period.value && selectedFilter === filter.value
-    && isCurrentAccountScope(accountScope) && isCurrentRuntimeRevision(runScope);
+    && isCurrentAccountScope(accountScope) && isCurrentRuntimeRevision(runScope) && readLocale === locale.code && environmentCurrent();
   await Promise.all([
     readPage().then(snapshot => { if (current()) { querySnapshotAt = snapshot.snapshotAt; remoteSnapshot.value = snapshot; remoteState.value = "ready"; } })
-      .catch((error: unknown) => { if (current()) { updateRequired.value = error instanceof Error && ["TEAM_SCHEMA_UPDATE_REQUIRED", "TEAM_SCHEMA_VERSION_UNSUPPORTED", "DIRECT_REFERRAL_SCHEMA_VERSION_UNSUPPORTED"].includes(error.message); remoteState.value = "error"; } }),
+      .catch((error: unknown) => { if (current()) { remoteSnapshot.value = null; updateRequired.value = error instanceof Error && ["TEAM_SCHEMA_UPDATE_REQUIRED", "TEAM_SCHEMA_VERSION_UNSUPPORTED", "DIRECT_REFERRAL_SCHEMA_VERSION_UNSUPPORTED"].includes(error.message); remoteState.value = "error"; } }),
     directApi.policy().then(snapshot => { if (current()) { policy.value = snapshot; policyState.value = "ready"; } })
-      .catch(() => { if (current()) policyState.value = "error"; }),
+      .catch(() => { if (current()) { policy.value = null; policyState.value = "error"; } }),
   ]);
 }
 async function loadMoreRemote() {
   const snapshot = remoteSnapshot.value;
   if (!mounted || !remoteSessionReady.value || remoteState.value !== "ready" || !snapshot
     || remoteLoadMoreStatus.value === "loading" || snapshot.events.length >= snapshot.totalRows) return;
-  const request = remoteRequest, accountKey = app.accountKey, accountScope = captureAccountScope(), runScope = captureRuntimeRevision();
+  const request = remoteRequest, accountKey = app.accountKey, accountScope = captureAccountScope(), runScope = captureRuntimeRevision(), readLocale = locale.code;
   const current = () => mounted && request === remoteRequest && remoteSnapshot.value === snapshot && accountKey === app.accountKey
     && isCurrentAccountScope(accountScope) && isCurrentRuntimeRevision(runScope);
   remoteLoadMoreStatus.value = "loading";
@@ -174,9 +178,10 @@ function invalidate(resetSnapshot = true) {
 }
 watch(() => [app.accountKey, app.accountBindingEpoch] as const, () => { invalidate(); retryRemote(); }, { flush: "sync" });
 watch(remoteSessionReady, ready => { if (ready) retryRemote(); else invalidate(); }, { immediate: true, flush: "post" });
-watch(period, () => { invalidate(); retryRemote(); });
-watch(filter, () => { invalidate(false); retryRemote(); });
-const unsubscribeRuntimeRevision = subscribeRuntimeRevision(() => { invalidate(); retryRemote(); });
+watch(period, () => { invalidate(); retryRemote(); }, { flush: 'sync' });
+watch(filter, () => { invalidate(false); retryRemote(); }, { flush: 'sync' });
+watch(() => [locale.code, apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const, () => { invalidate(); retryRemote(); }, { flush: 'sync' });
+const unsubscribeRuntimeRevision = subscribeRuntimeRevision(() => { remoteRequest++; readCoalescer = createScopedReadCoalescer(); querySnapshotAt = null; retryRemote(); });
 onMounted(retryRemote); onShow(() => { querySnapshotAt = null; retryRemote(); });
 onUnmounted(() => { mounted = false; invalidate(); unsubscribeRuntimeRevision(); });
 const totals = computed(() => {

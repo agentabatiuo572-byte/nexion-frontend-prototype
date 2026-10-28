@@ -3,6 +3,8 @@ import { useLocaleStore } from '@/store/locale';
 
 export const trialLifecycleCopy = {
   zh: {
+    cardActiveTitle: '试用中', cardGraceTitle: '可抵扣',
+    cardCapacityFull: '队列已满，先腾出1位', cardManage: '管理',
     activeTitle: '免费试用中', graceTitle: '试用已到期 · 仍可抵扣', endedTitle: '试用已结束', convertedTitle: '已购入设备',
     remainingLabel: '剩余时间', creditUntilLabel: '抵扣剩余时间', creditLabel: '本次购机可抵',
     viewTrial: '查看试用', viewDevices: '查看设备', buyEarly: '提前购机', buyDevice: '选购设备',
@@ -23,6 +25,8 @@ export const trialLifecycleCopy = {
     retry: '重试', unavailable: '暂时无法读取，请重试。', loading: '正在读取试用…', close: '关闭',
   },
   en: {
+    cardActiveTitle: 'Trial', cardGraceTitle: 'Credit',
+    cardCapacityFull: 'Queue full. Free up 1 slot.', cardManage: 'Manage',
     activeTitle: 'Free trial active', graceTitle: 'Trial expired · Credit available', endedTitle: 'Trial ended', convertedTitle: 'Device purchased',
     remainingLabel: 'Time remaining', creditUntilLabel: 'Time to use credit', creditLabel: 'Toward device purchase',
     viewTrial: 'View trial', viewDevices: 'View devices', buyEarly: 'Buy early', buyDevice: 'Shop devices',
@@ -43,6 +47,8 @@ export const trialLifecycleCopy = {
     retry: 'Retry', unavailable: 'Unable to load your trial. Please retry.', loading: 'Loading your trial…', close: 'Close',
   },
   vi: {
+    cardActiveTitle: 'Dùng thử', cardGraceTitle: 'Khấu trừ',
+    cardCapacityFull: 'Hết chỗ. Giải phóng 1 vị trí.', cardManage: 'Quản lý',
     activeTitle: 'Đang dùng thử miễn phí', graceTitle: 'Đã hết dùng thử · Còn khấu trừ', endedTitle: 'Đã kết thúc dùng thử', convertedTitle: 'Đã mua thiết bị',
     remainingLabel: 'Thời gian còn lại', creditUntilLabel: 'Thời hạn dùng khấu trừ', creditLabel: 'Khấu trừ khi mua máy',
     viewTrial: 'Xem dùng thử', viewDevices: 'Xem thiết bị', buyEarly: 'Mua máy sớm', buyDevice: 'Chọn mua thiết bị',

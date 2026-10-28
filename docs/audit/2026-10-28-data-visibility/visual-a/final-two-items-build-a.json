@@ -1,0 +1,11 @@
+{
+  "at": "2026-10-27T20:01:25.3291202Z",
+  "qa": "http://127.0.0.1:5291",
+  "assets": [
+    "/assets/uni.c39fe708.css",
+    "/assets/index-BJuG9oWu.js",
+    "/assets/index-H57LADHv.css"
+  ],
+  "publishedHtmlSha256": "9f3bea70a5f8ad0bfc7adb1ba862432cdc9045c47ec375930598b5cc2932a7c6",
+  "expectedHtmlSha256": "9f3bea70a5f8ad0bfc7adb1ba862432cdc9045c47ec375930598b5cc2932a7c6"
+}

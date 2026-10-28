@@ -1,8 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, disposePinia, setActivePinia } from "pinia";
+import { computed } from 'vue';
+import ts from 'typescript';
+import storePage from '@/pages/store/store.vue?raw';
+import { ApiError } from '@/api/errors';
+import { voucherSupportsSurface } from '@/lib/voucher-sheet-authority';
 
 const remote = vi.hoisted(() => ({
   remoteApiEnabled: true,
+  apiRuntimeConfig: {environment:"dev",baseUrl:"https://test.invalid"},
   voucherApi: {
     state: vi.fn(),
     popupSeen: vi.fn(),
@@ -104,6 +110,50 @@ afterEach(() => {
 });
 
 describe("voucher remote account scope", () => {
+  it.each([0,2_000,undefined])('all voucher reads respect Retry-After %s across ordinary runtime invalidation',async delay=>{
+    const store=await createStore(),now=vi.spyOn(Date,'now').mockReturnValue(100_000);remote.voucherApi.state.mockResolvedValueOnce(snapshot('A'));store.bindAccount('A');await flush();
+    remote.voucherApi.state.mockRejectedValueOnce(new ApiError({kind:'http',status:429,message:'limited',retryAfterMs:delay}));expect(await store.refreshRemote()).toBe(false);
+    const calls=remote.voucherApi.state.mock.calls.length,wait=delay??30_000;
+    if(wait>0){
+      advanceRuntimeRevision();await flush();expect(store.remoteStatus).toBe('error');expect(store.remoteError).toBe('limited');expect(store.claimedUnused).toEqual([]);expect(store.presentationOffers).toHaveLength(1);
+      expect(await Promise.all([store.refreshRemote(),store.revalidateRemote(),store.refreshRemote(),store.claimRemote('A-voucher','store')])).toEqual([false,false,false,false]);
+      expect(remote.voucherApi.state).toHaveBeenCalledTimes(calls);expect(remote.voucherApi.claim).not.toHaveBeenCalled();now.mockReturnValue(100_000+wait-1);expect(await store.refreshRemote()).toBe(false);
+    }
+    now.mockReturnValue(100_000+wait);remote.voucherApi.state.mockResolvedValueOnce(snapshot('new'));expect(await store.refreshRemote()).toBe(true);expect(remote.voucherApi.state).toHaveBeenCalledTimes(calls+1);now.mockRestore();
+  });
+  it('a successful popup POST updates its canonical snapshot without clearing an active GET cooldown',async()=>{
+    const store=await createStore(),now=vi.spyOn(Date,'now').mockReturnValue(100_000);remote.voucherApi.state.mockRejectedValueOnce(new ApiError({kind:'http',status:429,message:'limited',retryAfterMs:60_000}));await store.refreshRemote();
+    remote.voucherApi.popupSeen.mockResolvedValueOnce(snapshot('confirmed'));expect(await store.markPopupSeen('confirmed-voucher')).toBe(true);expect(store.presentationOffers.map(v=>v.id)).toEqual(['confirmed-voucher']);
+    expect(await store.refreshRemote()).toBe(false);expect(await store.revalidateRemote()).toBe(false);expect(await store.claimRemote('confirmed-voucher','store')).toBe(false);expect(remote.voucherApi.state).toHaveBeenCalledTimes(1);expect(remote.voucherApi.claim).not.toHaveBeenCalled();now.mockRestore();
+  });
+  it('binding a new voucher scope clears an active HTTP cooldown',async()=>{
+    const store=await createStore();remote.voucherApi.state.mockRejectedValueOnce(new ApiError({kind:'http',status:429,message:'limited',retryAfterMs:60_000}));await store.refreshRemote();remote.voucherApi.state.mockResolvedValueOnce(snapshot('new'));store.bindAccount('new');await flush();expect(store.remoteStatus).toBe('ready');expect(store.presentationOffers.map(v=>v.id)).toEqual(['new-voucher']);
+  });
+  it('preserves the actual Store ticket through runtime invalidation without permitting a cached claim',async()=>{
+    const store=await createStore();remote.voucherApi.state.mockResolvedValueOnce({vouchers:[{...voucher('A','UNCLAIMED'),claimSurfaces:['store']},voucher('B')],source:'test'});store.bindAccount('A');await flush();
+    const script=storePage.split('<script setup lang="ts">')[1].split('</script>')[0],source=ts.createSourceFile('store.ts',script,ts.ScriptTarget.Latest,true);
+    const names=['voucherClaimable','voucherOffers','openStoreVouchers'];const declarations=source.statements.filter(s=>ts.isVariableStatement(s)?s.declarationList.declarations.some(d=>names.includes(d.name.getText(source))):ts.isFunctionDeclaration(s)&&names.includes(s.name?.text??''));
+    const js=ts.transpileModule(declarations.map(s=>s.getText(source)).join('\n')+'\nreturn {voucherClaimable,voucherOffers,openStoreVouchers};',{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
+    const show=vi.fn(),navTo=vi.fn();const view=new Function('computed','remoteApiEnabled','voucher','voucherSupportsSurface','voucherClaimSheet','navTo',js)(computed,true,store,voucherSupportsSurface,{show},navTo);
+    expect(view.voucherOffers.value).toHaveLength(2);view.openStoreVouchers();expect(show).toHaveBeenCalledOnce();show.mockClear();
+    const next=deferred<any>();remote.voucherApi.state.mockReturnValueOnce(next.promise);advanceRuntimeRevision();
+    expect(store.catalog).toEqual([]);expect(store.bestVoucherFor('sku',100)).toBeNull();expect(view.voucherOffers.value).toHaveLength(2);
+    view.openStoreVouchers();expect(show).not.toHaveBeenCalled();expect(navTo).toHaveBeenCalledWith('/pages/me/rewards-list?cat=voucher');
+    next.resolve({vouchers:[],source:'test'});await flush();expect(view.voucherOffers.value).toEqual([]);
+  });
+  it.each([401,403])('clears ticket presentation on exact HTTP %s and binding changes',async status=>{
+    const store=await createStore();remote.voucherApi.state.mockResolvedValueOnce(snapshot('A'));await store.refreshRemote();expect(store.presentationOffers).toHaveLength(1);
+    remote.voucherApi.state.mockRejectedValueOnce(new ApiError({kind:'http',status,message:'denied'}));await store.refreshRemote();expect(store.presentationOffers).toEqual([]);
+    remote.voucherApi.state.mockResolvedValueOnce(snapshot('new'));store.bindAccount('B');expect(store.presentationOffers).toEqual([]);await flush();expect(store.presentationOffers.map(v=>v.id)).toEqual(['new-voucher']);
+  });
+  it('joins passive voucher reads, shares one activation and reads normal reentry fresh, and retains presentation through 429 cooldown',async()=>{
+    const store=await createStore();const now=vi.spyOn(Date,'now').mockReturnValue(100_000);
+    remote.voucherApi.state.mockResolvedValueOnce(snapshot('A'));await store.refreshRemote();await store.revalidateRemote();expect(remote.voucherApi.state).toHaveBeenCalledTimes(1);
+    const {notifyPageActivation}=await import('@/lib/passive-tab-read');notifyPageActivation('voucher-reentry');now.mockReturnValue(101_000);const pending=deferred<any>();remote.voucherApi.state.mockReturnValueOnce(pending.promise);const first=store.revalidateRemote(),second=store.revalidateRemote();expect(remote.voucherApi.state).toHaveBeenCalledTimes(2);
+    pending.reject(new ApiError({kind:'http',status:429,message:'limited',retryAfterMs:2_000}));expect(await Promise.all([first,second])).toEqual([false,false]);expect(store.presentationOffers).toHaveLength(1);
+    now.mockReturnValue(102_999);notifyPageActivation('voucher-during-cooldown');await store.revalidateRemote();expect(remote.voucherApi.state).toHaveBeenCalledTimes(2);
+    now.mockReturnValue(103_000);notifyPageActivation('voucher-after-cooldown');remote.voucherApi.state.mockResolvedValueOnce(snapshot('new'));await store.revalidateRemote();expect(remote.voucherApi.state).toHaveBeenCalledTimes(3);now.mockRestore();
+  });
   it("advertises unrestricted offers across all valid entry surfaces using current server eligibility", async () => {
     const store = await createStore();
     remote.voucherApi.state.mockResolvedValueOnce({ vouchers: [{ ...voucher("any", "UNCLAIMED"), claimSurfaces: [] }], source: "test" });

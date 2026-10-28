@@ -1,0 +1,2717 @@
+{
+  "scope": "wallet standard550 increment; retains old-nav and small500 coverage",
+  "origin": "http://127.0.0.1:5294",
+  "entry": "index-DQPnbcrO.js",
+  "css": "index-H57LADHv.css",
+  "htmlSha256": "A0E8A98F80207ED78C1209AA0D2D12118C7D156C25AFD1DA2BC28C7E63CB6073",
+  "entrySha256": "A9538D76E32D5F8B50EE8396628FAC2023E8B3AF5DA859B345ABC7FE1CB9690D",
+  "source": {
+    "src/components/me/wallet-card.vue": "fea3592feea4c3cf26b0e04f4ceddec8396a4cb5c9b1f70657e5004aa580c25e",
+    "src/components/glass-segments.vue": "13c2affb9cc7f81c7c64ae039d4b2ec3a5ee86310ccbfe2f8e52991d2e745931",
+    "src/components/app-chassis.vue": "2834448c42bc483cd32c73870b7f6cc7f141c7a4e2daec7ad49824b4ef9187ef"
+  },
+  "reads": [
+    {
+      "at": "2026-10-27T19:12:41.023Z",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DQPnbcrO.js"
+      ],
+      "glass": [
+        {
+          "filter": "url(\"#nx-liquid-3\")",
+          "rim": true,
+          "specular": true,
+          "strategy": "svg"
+        },
+        {
+          "filter": "url(\"#nx-liquid-4\")",
+          "rim": true,
+          "specular": true,
+          "strategy": "svg"
+        }
+      ],
+      "height": 844,
+      "ink3": "#9BA3B5",
+      "nav": {
+        "color": "rgb(245, 247, 250)",
+        "font": "16px",
+        "h": 56,
+        "margin": "0px 12px",
+        "nowrap": "normal",
+        "overflow": 0,
+        "padding": "5px",
+        "text": "",
+        "w": 366,
+        "weight": "400",
+        "x": 12,
+        "y": 766
+      },
+      "overflow": 0,
+      "reduced": false,
+      "tabs": [
+        {
+          "aria": "首页",
+          "current": null,
+          "icon": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.98000144958496,
+            "weight": "400",
+            "x": 39.801666259765625,
+            "y": 782.010009765625
+          },
+          "root": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 69.59375,
+            "weight": "400",
+            "x": 17,
+            "y": 771
+          },
+          "text": ""
+        },
+        {
+          "aria": "赚取",
+          "current": null,
+          "icon": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.98000144958496,
+            "weight": "400",
+            "x": 111.40583801269533,
+            "y": 782.010009765625
+          },
+          "root": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 69.60417175292969,
+            "weight": "400",
+            "x": 88.59375,
+            "y": 771
+          },
+          "text": ""
+        },
+        {
+          "aria": "商城",
+          "current": null,
+          "icon": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.97998046875,
+            "weight": "400",
+            "x": 182.9996032714844,
+            "y": 782.010009765625
+          },
+          "root": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 69.59375,
+            "weight": "400",
+            "x": 160.1979217529297,
+            "y": 771
+          },
+          "text": ""
+        },
+        {
+          "aria": "团队",
+          "current": null,
+          "icon": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.97998046875,
+            "weight": "400",
+            "x": 254.603759765625,
+            "y": 782.010009765625
+          },
+          "root": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 69.60417175292969,
+            "weight": "400",
+            "x": 231.7916717529297,
+            "y": 771
+          },
+          "text": ""
+        },
+        {
+          "aria": "我的",
+          "current": "page",
+          "icon": {
+            "color": "rgb(158, 220, 29)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.97998046875,
+            "weight": "400",
+            "x": 326.20794677734375,
+            "y": 782.010009765625
+          },
+          "root": {
+            "color": "rgb(158, 220, 29)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 69.60417175292969,
+            "weight": "400",
+            "x": 303.3958435058594,
+            "y": 771
+          },
+          "text": ""
+        }
+      ],
+      "theme": "dark",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/me",
+      "wallet": {
+        "amount": {
+          "color": "rgb(245, 247, 250)",
+          "font": "36px",
+          "h": 39.59375,
+          "margin": "0px",
+          "nowrap": "nowrap",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "52,800.64",
+          "w": 162.11459350585938,
+          "weight": "550",
+          "x": 53.44791793823242,
+          "y": 224
+        },
+        "aria": "USDT 余额: $52,800.64",
+        "coin": {
+          "color": "rgb(0, 0, 0)",
+          "font": "15px",
+          "h": 20,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "",
+          "w": 20,
+          "weight": "500",
+          "x": 32,
+          "y": 295.59375
+        },
+        "coinSvg": {
+          "color": "rgb(0, 0, 0)",
+          "font": "15px",
+          "h": 16,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "w": 16,
+          "weight": "500",
+          "x": 34,
+          "y": 297.59375
+        },
+        "details": {
+          "color": "rgb(245, 247, 250)",
+          "font": "16px",
+          "h": 30,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "12px 0px 0px",
+          "text": "≈ 163.84 USDT · 1 UVT = 0.128 USDT",
+          "w": 326,
+          "weight": "400",
+          "x": 32,
+          "y": 327.59375
+        },
+        "fraction": {
+          "color": "rgb(155, 163, 181)",
+          "font": "36px",
+          "h": 45.33333587646485,
+          "margin": "0px",
+          "nowrap": "pre-line",
+          "overflow": 0,
+          "padding": "0px",
+          "text": ".64",
+          "w": 50.09375,
+          "weight": "550",
+          "x": 165.46875,
+          "y": 220.6666717529297
+        },
+        "nex": {
+          "color": "rgb(209, 213, 219)",
+          "font": "15px",
+          "h": 44,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "1,280.00 UVT",
+          "w": 326,
+          "weight": "500",
+          "x": 32,
+          "y": 283.59375
+        },
+        "symbol": {
+          "color": "rgb(180, 127, 255)",
+          "font": "16px",
+          "h": 24,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "",
+          "w": 24,
+          "weight": "400",
+          "x": 32,
+          "y": 170
+        },
+        "symbolSvg": {
+          "color": "rgb(180, 127, 255)",
+          "font": "16px",
+          "h": 24,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "w": 24,
+          "weight": "400",
+          "x": 32,
+          "y": 170
+        },
+        "total": {
+          "color": "rgb(245, 247, 250)",
+          "font": "16px",
+          "h": 39.59375,
+          "margin": "20px 0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "$\n52,800.64",
+          "w": 326,
+          "weight": "550",
+          "x": 32,
+          "y": 224
+        },
+        "valuation": {
+          "color": "rgb(155, 163, 181)",
+          "font": "12px",
+          "h": 18,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "≈ 163.84 USDT · 1 UVT = 0.128 USDT",
+          "w": 326,
+          "weight": "400",
+          "x": 32,
+          "y": 339.59375
+        }
+      },
+      "width": 390,
+      "label": "weight550-normal-390-zh-dark"
+    },
+    {
+      "at": "2026-10-27T19:12:44.299Z",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DQPnbcrO.js"
+      ],
+      "glass": [
+        {
+          "filter": "url(\"#nx-liquid-3\")",
+          "rim": true,
+          "specular": true,
+          "strategy": "svg"
+        },
+        {
+          "filter": "url(\"#nx-liquid-4\")",
+          "rim": true,
+          "specular": true,
+          "strategy": "svg"
+        }
+      ],
+      "height": 844,
+      "ink3": "#6A6E77",
+      "nav": {
+        "color": "rgb(19, 20, 26)",
+        "font": "16px",
+        "h": 56,
+        "margin": "0px 12px",
+        "nowrap": "normal",
+        "overflow": 0,
+        "padding": "5px",
+        "text": "",
+        "w": 366,
+        "weight": "400",
+        "x": 12,
+        "y": 766
+      },
+      "overflow": 0,
+      "reduced": false,
+      "tabs": [
+        {
+          "aria": "首页",
+          "current": null,
+          "icon": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.98000144958496,
+            "weight": "400",
+            "x": 39.801666259765625,
+            "y": 782.010009765625
+          },
+          "root": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 69.59375,
+            "weight": "400",
+            "x": 17,
+            "y": 771
+          },
+          "text": ""
+        },
+        {
+          "aria": "赚取",
+          "current": null,
+          "icon": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.98000144958496,
+            "weight": "400",
+            "x": 111.40583801269533,
+            "y": 782.010009765625
+          },
+          "root": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 69.60417175292969,
+            "weight": "400",
+            "x": 88.59375,
+            "y": 771
+          },
+          "text": ""
+        },
+        {
+          "aria": "商城",
+          "current": null,
+          "icon": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.97998046875,
+            "weight": "400",
+            "x": 182.9996032714844,
+            "y": 782.010009765625
+          },
+          "root": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 69.59375,
+            "weight": "400",
+            "x": 160.1979217529297,
+            "y": 771
+          },
+          "text": ""
+        },
+        {
+          "aria": "团队",
+          "current": null,
+          "icon": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.97998046875,
+            "weight": "400",
+            "x": 254.603759765625,
+            "y": 782.010009765625
+          },
+          "root": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 69.60417175292969,
+            "weight": "400",
+            "x": 231.7916717529297,
+            "y": 771
+          },
+          "text": ""
+        },
+        {
+          "aria": "我的",
+          "current": "page",
+          "icon": {
+            "color": "rgb(14, 72, 230)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.97998046875,
+            "weight": "400",
+            "x": 326.20794677734375,
+            "y": 782.010009765625
+          },
+          "root": {
+            "color": "rgb(14, 72, 230)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 69.60417175292969,
+            "weight": "400",
+            "x": 303.3958435058594,
+            "y": 771
+          },
+          "text": ""
+        }
+      ],
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/me",
+      "wallet": {
+        "amount": {
+          "color": "rgb(19, 20, 26)",
+          "font": "36px",
+          "h": 39.59375,
+          "margin": "0px",
+          "nowrap": "nowrap",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "52,800.64",
+          "w": 162.11459350585938,
+          "weight": "550",
+          "x": 53.44791793823242,
+          "y": 224
+        },
+        "aria": "USDT 余额: $52,800.64",
+        "coin": {
+          "color": "rgb(244, 241, 233)",
+          "font": "15px",
+          "h": 20,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "",
+          "w": 20,
+          "weight": "500",
+          "x": 32,
+          "y": 295.59375
+        },
+        "coinSvg": {
+          "color": "rgb(244, 241, 233)",
+          "font": "15px",
+          "h": 16,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "w": 16,
+          "weight": "500",
+          "x": 34,
+          "y": 297.59375
+        },
+        "details": {
+          "color": "rgb(19, 20, 26)",
+          "font": "16px",
+          "h": 30,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "12px 0px 0px",
+          "text": "≈ 163.84 USDT · 1 UVT = 0.128 USDT",
+          "w": 326,
+          "weight": "400",
+          "x": 32,
+          "y": 327.59375
+        },
+        "fraction": {
+          "color": "rgb(106, 110, 119)",
+          "font": "36px",
+          "h": 45.33333587646485,
+          "margin": "0px",
+          "nowrap": "pre-line",
+          "overflow": 0,
+          "padding": "0px",
+          "text": ".64",
+          "w": 50.09375,
+          "weight": "550",
+          "x": 165.46875,
+          "y": 220.6666717529297
+        },
+        "nex": {
+          "color": "rgb(60, 63, 71)",
+          "font": "15px",
+          "h": 44,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "1,280.00 UVT",
+          "w": 326,
+          "weight": "500",
+          "x": 32,
+          "y": 283.59375
+        },
+        "symbol": {
+          "color": "rgb(124, 92, 255)",
+          "font": "16px",
+          "h": 24,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "",
+          "w": 24,
+          "weight": "400",
+          "x": 32,
+          "y": 170
+        },
+        "symbolSvg": {
+          "color": "rgb(124, 92, 255)",
+          "font": "16px",
+          "h": 24,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "w": 24,
+          "weight": "400",
+          "x": 32,
+          "y": 170
+        },
+        "total": {
+          "color": "rgb(19, 20, 26)",
+          "font": "16px",
+          "h": 39.59375,
+          "margin": "20px 0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "$\n52,800.64",
+          "w": 326,
+          "weight": "550",
+          "x": 32,
+          "y": 224
+        },
+        "valuation": {
+          "color": "rgb(106, 110, 119)",
+          "font": "12px",
+          "h": 18,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "≈ 163.84 USDT · 1 UVT = 0.128 USDT",
+          "w": 326,
+          "weight": "400",
+          "x": 32,
+          "y": 339.59375
+        }
+      },
+      "width": 390,
+      "label": "weight550-normal-390-zh-light"
+    },
+    {
+      "at": "2026-10-27T19:12:46.712Z",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DQPnbcrO.js"
+      ],
+      "glass": [
+        {
+          "filter": "url(\"#nx-liquid-3\")",
+          "rim": true,
+          "specular": true,
+          "strategy": "svg"
+        },
+        {
+          "filter": "url(\"#nx-liquid-4\")",
+          "rim": true,
+          "specular": true,
+          "strategy": "svg"
+        }
+      ],
+      "height": 932,
+      "ink3": "#6A6E77",
+      "nav": {
+        "color": "rgb(19, 20, 26)",
+        "font": "16px",
+        "h": 56,
+        "margin": "0px 12px",
+        "nowrap": "normal",
+        "overflow": 0,
+        "padding": "5px",
+        "text": "",
+        "w": 406,
+        "weight": "400",
+        "x": 12,
+        "y": 854
+      },
+      "overflow": 0,
+      "reduced": false,
+      "tabs": [
+        {
+          "aria": "Home",
+          "current": null,
+          "icon": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.98000144958496,
+            "weight": "400",
+            "x": 43.801666259765625,
+            "y": 870.010009765625
+          },
+          "root": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 77.59375,
+            "weight": "400",
+            "x": 17,
+            "y": 859
+          },
+          "text": ""
+        },
+        {
+          "aria": "Earn",
+          "current": null,
+          "icon": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.98000144958496,
+            "weight": "400",
+            "x": 123.40583801269533,
+            "y": 870.010009765625
+          },
+          "root": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 77.60417175292969,
+            "weight": "400",
+            "x": 96.59375,
+            "y": 859
+          },
+          "text": ""
+        },
+        {
+          "aria": "Store",
+          "current": null,
+          "icon": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.97998046875,
+            "weight": "400",
+            "x": 202.9996032714844,
+            "y": 870.010009765625
+          },
+          "root": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 77.59375,
+            "weight": "400",
+            "x": 176.1979217529297,
+            "y": 859
+          },
+          "text": ""
+        },
+        {
+          "aria": "Team",
+          "current": null,
+          "icon": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.97998046875,
+            "weight": "400",
+            "x": 282.603759765625,
+            "y": 870.010009765625
+          },
+          "root": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 77.60417175292969,
+            "weight": "400",
+            "x": 255.7916717529297,
+            "y": 859
+          },
+          "text": ""
+        },
+        {
+          "aria": "Me",
+          "current": "page",
+          "icon": {
+            "color": "rgb(14, 72, 230)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.97998046875,
+            "weight": "400",
+            "x": 362.20794677734375,
+            "y": 870.010009765625
+          },
+          "root": {
+            "color": "rgb(14, 72, 230)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 77.60417175292969,
+            "weight": "400",
+            "x": 335.3958435058594,
+            "y": 859
+          },
+          "text": ""
+        }
+      ],
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/me",
+      "wallet": {
+        "amount": {
+          "color": "rgb(19, 20, 26)",
+          "font": "36px",
+          "h": 39.59375,
+          "margin": "0px",
+          "nowrap": "nowrap",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "52,800.64",
+          "w": 162.11459350585938,
+          "weight": "550",
+          "x": 55.39583587646485,
+          "y": 224
+        },
+        "aria": "USDT balance: $52,800.64",
+        "coin": {
+          "color": "rgb(244, 241, 233)",
+          "font": "15px",
+          "h": 20,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "",
+          "w": 20,
+          "weight": "500",
+          "x": 32,
+          "y": 295.59375
+        },
+        "coinSvg": {
+          "color": "rgb(244, 241, 233)",
+          "font": "15px",
+          "h": 16,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "w": 16,
+          "weight": "500",
+          "x": 34,
+          "y": 297.59375
+        },
+        "details": {
+          "color": "rgb(19, 20, 26)",
+          "font": "16px",
+          "h": 30,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "12px 0px 0px",
+          "text": "≈ 163.84 USDT · 1 UVT = 0.128 USDT",
+          "w": 366,
+          "weight": "400",
+          "x": 32,
+          "y": 327.59375
+        },
+        "fraction": {
+          "color": "rgb(106, 110, 119)",
+          "font": "36px",
+          "h": 45.33333587646485,
+          "margin": "0px",
+          "nowrap": "pre-line",
+          "overflow": 0,
+          "padding": "0px",
+          "text": ".64",
+          "w": 50.09375,
+          "weight": "550",
+          "x": 167.4166717529297,
+          "y": 220.6666717529297
+        },
+        "nex": {
+          "color": "rgb(60, 63, 71)",
+          "font": "15px",
+          "h": 44,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "1,280.00 UVT",
+          "w": 366,
+          "weight": "500",
+          "x": 32,
+          "y": 283.59375
+        },
+        "symbol": {
+          "color": "rgb(124, 92, 255)",
+          "font": "16px",
+          "h": 24,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "",
+          "w": 24,
+          "weight": "400",
+          "x": 32,
+          "y": 170
+        },
+        "symbolSvg": {
+          "color": "rgb(124, 92, 255)",
+          "font": "16px",
+          "h": 24,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "w": 24,
+          "weight": "400",
+          "x": 32,
+          "y": 170
+        },
+        "total": {
+          "color": "rgb(19, 20, 26)",
+          "font": "16px",
+          "h": 39.59375,
+          "margin": "20px 0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "$\n52,800.64",
+          "w": 366,
+          "weight": "550",
+          "x": 32,
+          "y": 224
+        },
+        "valuation": {
+          "color": "rgb(106, 110, 119)",
+          "font": "12px",
+          "h": 18,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "≈ 163.84 USDT · 1 UVT = 0.128 USDT",
+          "w": 366,
+          "weight": "400",
+          "x": 32,
+          "y": 339.59375
+        }
+      },
+      "width": 430,
+      "label": "weight550-normal-430-en-light"
+    },
+    {
+      "at": "2026-10-27T19:12:49.977Z",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DQPnbcrO.js"
+      ],
+      "glass": [
+        {
+          "filter": "url(\"#nx-liquid-3\")",
+          "rim": true,
+          "specular": true,
+          "strategy": "svg"
+        },
+        {
+          "filter": "url(\"#nx-liquid-4\")",
+          "rim": true,
+          "specular": true,
+          "strategy": "svg"
+        }
+      ],
+      "height": 932,
+      "ink3": "#9BA3B5",
+      "nav": {
+        "color": "rgb(245, 247, 250)",
+        "font": "16px",
+        "h": 56,
+        "margin": "0px 12px",
+        "nowrap": "normal",
+        "overflow": 0,
+        "padding": "5px",
+        "text": "",
+        "w": 406,
+        "weight": "400",
+        "x": 12,
+        "y": 854
+      },
+      "overflow": 0,
+      "reduced": false,
+      "tabs": [
+        {
+          "aria": "Home",
+          "current": null,
+          "icon": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.98000144958496,
+            "weight": "400",
+            "x": 43.801666259765625,
+            "y": 870.010009765625
+          },
+          "root": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 77.59375,
+            "weight": "400",
+            "x": 17,
+            "y": 859
+          },
+          "text": ""
+        },
+        {
+          "aria": "Earn",
+          "current": null,
+          "icon": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.98000144958496,
+            "weight": "400",
+            "x": 123.40583801269533,
+            "y": 870.010009765625
+          },
+          "root": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 77.60417175292969,
+            "weight": "400",
+            "x": 96.59375,
+            "y": 859
+          },
+          "text": ""
+        },
+        {
+          "aria": "Store",
+          "current": null,
+          "icon": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.97998046875,
+            "weight": "400",
+            "x": 202.9996032714844,
+            "y": 870.010009765625
+          },
+          "root": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 77.59375,
+            "weight": "400",
+            "x": 176.1979217529297,
+            "y": 859
+          },
+          "text": ""
+        },
+        {
+          "aria": "Team",
+          "current": null,
+          "icon": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.97998046875,
+            "weight": "400",
+            "x": 282.603759765625,
+            "y": 870.010009765625
+          },
+          "root": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 77.60417175292969,
+            "weight": "400",
+            "x": 255.7916717529297,
+            "y": 859
+          },
+          "text": ""
+        },
+        {
+          "aria": "Me",
+          "current": "page",
+          "icon": {
+            "color": "rgb(158, 220, 29)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.97998046875,
+            "weight": "400",
+            "x": 362.20794677734375,
+            "y": 870.010009765625
+          },
+          "root": {
+            "color": "rgb(158, 220, 29)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 77.60417175292969,
+            "weight": "400",
+            "x": 335.3958435058594,
+            "y": 859
+          },
+          "text": ""
+        }
+      ],
+      "theme": "dark",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/me",
+      "wallet": {
+        "amount": {
+          "color": "rgb(245, 247, 250)",
+          "font": "36px",
+          "h": 39.59375,
+          "margin": "0px",
+          "nowrap": "nowrap",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "52,800.64",
+          "w": 162.11459350585938,
+          "weight": "550",
+          "x": 55.39583587646485,
+          "y": 224
+        },
+        "aria": "USDT balance: $52,800.64",
+        "coin": {
+          "color": "rgb(0, 0, 0)",
+          "font": "15px",
+          "h": 20,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "",
+          "w": 20,
+          "weight": "500",
+          "x": 32,
+          "y": 295.59375
+        },
+        "coinSvg": {
+          "color": "rgb(0, 0, 0)",
+          "font": "15px",
+          "h": 16,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "w": 16,
+          "weight": "500",
+          "x": 34,
+          "y": 297.59375
+        },
+        "details": {
+          "color": "rgb(245, 247, 250)",
+          "font": "16px",
+          "h": 30,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "12px 0px 0px",
+          "text": "≈ 163.84 USDT · 1 UVT = 0.128 USDT",
+          "w": 366,
+          "weight": "400",
+          "x": 32,
+          "y": 327.59375
+        },
+        "fraction": {
+          "color": "rgb(155, 163, 181)",
+          "font": "36px",
+          "h": 45.33333587646485,
+          "margin": "0px",
+          "nowrap": "pre-line",
+          "overflow": 0,
+          "padding": "0px",
+          "text": ".64",
+          "w": 50.09375,
+          "weight": "550",
+          "x": 167.4166717529297,
+          "y": 220.6666717529297
+        },
+        "nex": {
+          "color": "rgb(209, 213, 219)",
+          "font": "15px",
+          "h": 44,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "1,280.00 UVT",
+          "w": 366,
+          "weight": "500",
+          "x": 32,
+          "y": 283.59375
+        },
+        "symbol": {
+          "color": "rgb(180, 127, 255)",
+          "font": "16px",
+          "h": 24,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "",
+          "w": 24,
+          "weight": "400",
+          "x": 32,
+          "y": 170
+        },
+        "symbolSvg": {
+          "color": "rgb(180, 127, 255)",
+          "font": "16px",
+          "h": 24,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "w": 24,
+          "weight": "400",
+          "x": 32,
+          "y": 170
+        },
+        "total": {
+          "color": "rgb(245, 247, 250)",
+          "font": "16px",
+          "h": 39.59375,
+          "margin": "20px 0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "$\n52,800.64",
+          "w": 366,
+          "weight": "550",
+          "x": 32,
+          "y": 224
+        },
+        "valuation": {
+          "color": "rgb(155, 163, 181)",
+          "font": "12px",
+          "h": 18,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "≈ 163.84 USDT · 1 UVT = 0.128 USDT",
+          "w": 366,
+          "weight": "400",
+          "x": 32,
+          "y": 339.59375
+        }
+      },
+      "width": 430,
+      "label": "weight550-normal-430-en-dark"
+    },
+    {
+      "label": "weight550-normal-375-en-dark",
+      "at": "2026-10-27T19:13:40.899Z",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DQPnbcrO.js"
+      ],
+      "height": 812,
+      "nav": {
+        "aria": [
+          "Home",
+          "Earn",
+          "Store",
+          "Team",
+          "Me"
+        ],
+        "height": 56,
+        "icons": [
+          23.98000144958496,
+          23.98000144958496,
+          23.97998046875,
+          23.97998046875,
+          23.97998046875
+        ],
+        "text": ""
+      },
+      "overflow": 0,
+      "theme": "dark",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/me",
+      "wallet": {
+        "amount": "52,800.64",
+        "color": "rgb(155, 163, 181)",
+        "font": "36px",
+        "fraction": ".64",
+        "margin": "20px 0px",
+        "rect": {
+          "bottom": 263.59375,
+          "height": 39.59375,
+          "left": 52.72916793823242,
+          "right": 214.8437614440918,
+          "top": 224,
+          "width": 162.11459350585938,
+          "x": 52.72916793823242,
+          "y": 224
+        },
+        "uvtHit": 44,
+        "weight": "550"
+      },
+      "width": 375
+    },
+    {
+      "label": "weight550-normal-375-en-light",
+      "at": "2026-10-27T19:14:03.431Z",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DQPnbcrO.js"
+      ],
+      "height": 812,
+      "nav": {
+        "aria": [
+          "Home",
+          "Earn",
+          "Store",
+          "Team",
+          "Me"
+        ],
+        "height": 56,
+        "icons": [
+          23.98000144958496,
+          23.98000144958496,
+          23.97998046875,
+          23.97998046875,
+          23.97998046875
+        ],
+        "text": ""
+      },
+      "overflow": 0,
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/me",
+      "wallet": {
+        "amount": "52,800.64",
+        "color": "rgb(106, 110, 119)",
+        "font": "36px",
+        "fraction": ".64",
+        "margin": "20px 0px",
+        "rect": {
+          "bottom": -863.7396240234375,
+          "height": 39.59375,
+          "left": 52.72916793823242,
+          "right": 214.8437614440918,
+          "top": -903.3333740234376,
+          "width": 162.11459350585938,
+          "x": 52.72916793823242,
+          "y": -903.3333740234376
+        },
+        "uvtHit": 44,
+        "weight": "550"
+      },
+      "width": 375
+    },
+    {
+      "at": "2026-10-27T19:14:46.289Z",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DQPnbcrO.js"
+      ],
+      "glass": [
+        {
+          "filter": "url(\"#nx-liquid-3\")",
+          "rim": true,
+          "specular": true,
+          "strategy": "svg"
+        },
+        {
+          "filter": "url(\"#nx-liquid-4\")",
+          "rim": true,
+          "specular": true,
+          "strategy": "svg"
+        }
+      ],
+      "height": 693,
+      "ink3": "#9BA3B5",
+      "nav": {
+        "color": "rgb(245, 247, 250)",
+        "font": "16px",
+        "h": 56,
+        "margin": "0px 12px",
+        "nowrap": "normal",
+        "overflow": 0,
+        "padding": "5px",
+        "text": "",
+        "w": 296,
+        "weight": "400",
+        "x": 12,
+        "y": 615.3333740234375
+      },
+      "overflow": 0,
+      "reduced": false,
+      "tabs": [
+        {
+          "aria": "Home",
+          "current": null,
+          "icon": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.98000144958496,
+            "weight": "400",
+            "x": 32.801666259765625,
+            "y": 631.3433837890625
+          },
+          "root": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 55.59375,
+            "weight": "400",
+            "x": 17,
+            "y": 620.3333740234375
+          },
+          "text": ""
+        },
+        {
+          "aria": "Earn",
+          "current": null,
+          "icon": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.98000144958496,
+            "weight": "400",
+            "x": 90.40583801269533,
+            "y": 631.3433837890625
+          },
+          "root": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 55.60416793823242,
+            "weight": "400",
+            "x": 74.59375,
+            "y": 620.3333740234375
+          },
+          "text": ""
+        },
+        {
+          "aria": "Store",
+          "current": null,
+          "icon": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.979991912841797,
+            "weight": "400",
+            "x": 147.9995880126953,
+            "y": 631.3433837890625
+          },
+          "root": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 55.59375,
+            "weight": "400",
+            "x": 132.1979217529297,
+            "y": 620.3333740234375
+          },
+          "text": ""
+        },
+        {
+          "aria": "Team",
+          "current": null,
+          "icon": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.97998046875,
+            "weight": "400",
+            "x": 205.603759765625,
+            "y": 631.3433837890625
+          },
+          "root": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 55.60416793823242,
+            "weight": "400",
+            "x": 189.7916717529297,
+            "y": 620.3333740234375
+          },
+          "text": ""
+        },
+        {
+          "aria": "Me",
+          "current": "page",
+          "icon": {
+            "color": "rgb(158, 220, 29)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.97998046875,
+            "weight": "400",
+            "x": 263.20794677734375,
+            "y": 631.3433837890625
+          },
+          "root": {
+            "color": "rgb(158, 220, 29)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 55.60416793823242,
+            "weight": "400",
+            "x": 247.39584350585935,
+            "y": 620.3333740234375
+          },
+          "text": ""
+        }
+      ],
+      "theme": "dark",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/me",
+      "wallet": {
+        "amount": {
+          "color": "rgb(245, 247, 250)",
+          "font": "36px",
+          "h": 39.59375,
+          "margin": "0px",
+          "nowrap": "nowrap",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "52,800.64",
+          "w": 157.0104217529297,
+          "weight": "500",
+          "x": 51.25,
+          "y": 224
+        },
+        "aria": "USDT balance: $52,800.64",
+        "coin": {
+          "color": "rgb(0, 0, 0)",
+          "font": "15px",
+          "h": 20,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "",
+          "w": 20,
+          "weight": "500",
+          "x": 32,
+          "y": 295.59375
+        },
+        "coinSvg": {
+          "color": "rgb(0, 0, 0)",
+          "font": "15px",
+          "h": 16,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "w": 16,
+          "weight": "500",
+          "x": 34,
+          "y": 297.59375
+        },
+        "details": {
+          "color": "rgb(245, 247, 250)",
+          "font": "16px",
+          "h": 30,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "12px 0px 0px",
+          "text": "≈ 163.84 USDT · 1 UVT = 0.128 USDT",
+          "w": 256,
+          "weight": "400",
+          "x": 32,
+          "y": 327.59375
+        },
+        "fraction": {
+          "color": "rgb(155, 163, 181)",
+          "font": "36px",
+          "h": 45.33333587646485,
+          "margin": "0px",
+          "nowrap": "pre-line",
+          "overflow": 0,
+          "padding": "0px",
+          "text": ".64",
+          "w": 48.40625,
+          "weight": "500",
+          "x": 159.8541717529297,
+          "y": 220.6666717529297
+        },
+        "nex": {
+          "color": "rgb(209, 213, 219)",
+          "font": "15px",
+          "h": 44,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "1,280.00 UVT",
+          "w": 256,
+          "weight": "500",
+          "x": 32,
+          "y": 283.59375
+        },
+        "symbol": {
+          "color": "rgb(180, 127, 255)",
+          "font": "16px",
+          "h": 24,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "",
+          "w": 24,
+          "weight": "400",
+          "x": 32,
+          "y": 170
+        },
+        "symbolSvg": {
+          "color": "rgb(180, 127, 255)",
+          "font": "16px",
+          "h": 24,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "w": 24,
+          "weight": "400",
+          "x": 32,
+          "y": 170
+        },
+        "total": {
+          "color": "rgb(245, 247, 250)",
+          "font": "16px",
+          "h": 39.59375,
+          "margin": "20px 0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "$\n52,800.64",
+          "w": 256,
+          "weight": "500",
+          "x": 32,
+          "y": 224
+        },
+        "valuation": {
+          "color": "rgb(155, 163, 181)",
+          "font": "12px",
+          "h": 18,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "≈ 163.84 USDT · 1 UVT = 0.128 USDT",
+          "w": 256,
+          "weight": "400",
+          "x": 32,
+          "y": 339.59375
+        }
+      },
+      "width": 320,
+      "label": "final-320-retains-weight500"
+    },
+    {
+      "at": "2026-10-27T19:15:09.589Z",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DQPnbcrO.js"
+      ],
+      "glass": [
+        {
+          "filter": "url(\"#nx-liquid-3\")",
+          "rim": true,
+          "specular": true,
+          "strategy": "svg"
+        },
+        {
+          "filter": "url(\"#nx-liquid-4\")",
+          "rim": true,
+          "specular": true,
+          "strategy": "svg"
+        }
+      ],
+      "height": 844,
+      "ink3": "#9BA3B5",
+      "nav": {
+        "color": "rgb(245, 247, 250)",
+        "font": "16px",
+        "h": 56,
+        "margin": "0px 12px",
+        "nowrap": "normal",
+        "overflow": 0,
+        "padding": "5px",
+        "text": "",
+        "w": 366,
+        "weight": "400",
+        "x": 12,
+        "y": 766
+      },
+      "overflow": 0,
+      "reduced": false,
+      "tabs": [
+        {
+          "aria": "Trang chủ",
+          "current": null,
+          "icon": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.98000144958496,
+            "weight": "400",
+            "x": 39.801666259765625,
+            "y": 782.010009765625
+          },
+          "root": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 69.59375,
+            "weight": "400",
+            "x": 17,
+            "y": 771
+          },
+          "text": ""
+        },
+        {
+          "aria": "Sinh lời",
+          "current": null,
+          "icon": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.98000144958496,
+            "weight": "400",
+            "x": 111.40583801269533,
+            "y": 782.010009765625
+          },
+          "root": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 69.60417175292969,
+            "weight": "400",
+            "x": 88.59375,
+            "y": 771
+          },
+          "text": ""
+        },
+        {
+          "aria": "Cửa hàng",
+          "current": null,
+          "icon": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.97998046875,
+            "weight": "400",
+            "x": 182.9996032714844,
+            "y": 782.010009765625
+          },
+          "root": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 69.59375,
+            "weight": "400",
+            "x": 160.1979217529297,
+            "y": 771
+          },
+          "text": ""
+        },
+        {
+          "aria": "Đội nhóm",
+          "current": null,
+          "icon": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.97998046875,
+            "weight": "400",
+            "x": 254.603759765625,
+            "y": 782.010009765625
+          },
+          "root": {
+            "color": "rgb(209, 213, 219)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 69.60417175292969,
+            "weight": "400",
+            "x": 231.7916717529297,
+            "y": 771
+          },
+          "text": ""
+        },
+        {
+          "aria": "Của tôi",
+          "current": "page",
+          "icon": {
+            "color": "rgb(158, 220, 29)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.97998046875,
+            "weight": "400",
+            "x": 326.20794677734375,
+            "y": 782.010009765625
+          },
+          "root": {
+            "color": "rgb(158, 220, 29)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 69.60417175292969,
+            "weight": "400",
+            "x": 303.3958435058594,
+            "y": 771
+          },
+          "text": ""
+        }
+      ],
+      "theme": "dark",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/me",
+      "wallet": {
+        "amount": {
+          "color": "rgb(245, 247, 250)",
+          "font": "30.3922px",
+          "h": 33.427085876464844,
+          "margin": "0px",
+          "nowrap": "nowrap",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "1,234,567,890.12",
+          "w": 215,
+          "weight": "550",
+          "x": 52.94791793823242,
+          "y": 224
+        },
+        "aria": "Số dư USDT: $1,234,567,890.12",
+        "coin": {
+          "color": "rgb(0, 0, 0)",
+          "font": "15px",
+          "h": 20,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "",
+          "w": 20,
+          "weight": "500",
+          "x": 32,
+          "y": 289.4270935058594
+        },
+        "coinSvg": {
+          "color": "rgb(0, 0, 0)",
+          "font": "15px",
+          "h": 16,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "w": 16,
+          "weight": "500",
+          "x": 34,
+          "y": 291.4270935058594
+        },
+        "details": {
+          "color": "rgb(245, 247, 250)",
+          "font": "16px",
+          "h": 30,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "12px 0px 0px",
+          "text": "≈ 163.84 USDT · 1 UVT = 0.128 USDT",
+          "w": 326,
+          "weight": "400",
+          "x": 32,
+          "y": 321.4270935058594
+        },
+        "fraction": {
+          "color": "rgb(155, 163, 181)",
+          "font": "30.3922px",
+          "h": 38,
+          "margin": "0px",
+          "nowrap": "pre-line",
+          "overflow": 0,
+          "padding": "0px",
+          "text": ".12",
+          "w": 32.8125,
+          "weight": "550",
+          "x": 235.1354217529297,
+          "y": 221.33334350585935
+        },
+        "nex": {
+          "color": "rgb(209, 213, 219)",
+          "font": "15px",
+          "h": 44,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "1,280.00 UVT",
+          "w": 326,
+          "weight": "500",
+          "x": 32,
+          "y": 277.4270935058594
+        },
+        "symbol": {
+          "color": "rgb(180, 127, 255)",
+          "font": "16px",
+          "h": 24,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "",
+          "w": 24,
+          "weight": "400",
+          "x": 32,
+          "y": 170
+        },
+        "symbolSvg": {
+          "color": "rgb(180, 127, 255)",
+          "font": "16px",
+          "h": 24,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "w": 24,
+          "weight": "400",
+          "x": 32,
+          "y": 170
+        },
+        "total": {
+          "color": "rgb(245, 247, 250)",
+          "font": "16px",
+          "h": 33.427085876464844,
+          "margin": "20px 0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "$\n1,234,567,890.12",
+          "w": 326,
+          "weight": "550",
+          "x": 32,
+          "y": 224
+        },
+        "valuation": {
+          "color": "rgb(155, 163, 181)",
+          "font": "12px",
+          "h": 18,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "≈ 163.84 USDT · 1 UVT = 0.128 USDT",
+          "w": 326,
+          "weight": "400",
+          "x": 32,
+          "y": 333.4270935058594
+        }
+      },
+      "width": 390,
+      "label": "weight550-long-390-vi-dark",
+      "originalPlannedLabel": "weight550-long-390-vi-light"
+    },
+    {
+      "label": "weight550-long-390-ranges",
+      "aria": "Số dư USDT: $1,234,567,890.12",
+      "rects": [
+        {
+          "bottom": 259.3333435058594,
+          "height": 38,
+          "left": 52.94791793823242,
+          "right": 235.1354179382324,
+          "top": 221.33334350585935,
+          "width": 182.1875,
+          "x": 52.94791793823242,
+          "y": 221.33334350585935
+        },
+        {
+          "bottom": 259.3333435058594,
+          "height": 38,
+          "left": 235.1354217529297,
+          "right": 267.94793701171875,
+          "top": 221.33334350585935,
+          "width": 32.81251525878906,
+          "x": 235.1354217529297,
+          "y": 221.33334350585935
+        },
+        {
+          "bottom": 259.3333435058594,
+          "height": 38,
+          "left": 52.94791793823242,
+          "right": 235.1354179382324,
+          "top": 221.33334350585935,
+          "width": 182.1875,
+          "x": 52.94791793823242,
+          "y": 221.33334350585935
+        },
+        {
+          "bottom": 259.3333435058594,
+          "height": 38,
+          "left": 235.1354217529297,
+          "right": 267.94793701171875,
+          "top": 221.33334350585935,
+          "width": 32.81251525878906,
+          "x": 235.1354217529297,
+          "y": 221.33334350585935
+        }
+      ],
+      "text": "1,234,567,890.12",
+      "weight": "550"
+    },
+    {
+      "at": "2026-10-27T19:15:48.076Z",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DQPnbcrO.js"
+      ],
+      "glass": [
+        {
+          "filter": "url(\"#nx-liquid-3\")",
+          "rim": true,
+          "specular": true,
+          "strategy": "svg"
+        },
+        {
+          "filter": "url(\"#nx-liquid-4\")",
+          "rim": true,
+          "specular": true,
+          "strategy": "svg"
+        }
+      ],
+      "height": 844,
+      "ink3": "#6A6E77",
+      "nav": {
+        "color": "rgb(19, 20, 26)",
+        "font": "16px",
+        "h": 56,
+        "margin": "0px 12px",
+        "nowrap": "normal",
+        "overflow": 0,
+        "padding": "5px",
+        "text": "",
+        "w": 366,
+        "weight": "400",
+        "x": 12,
+        "y": 766
+      },
+      "overflow": 0,
+      "reduced": false,
+      "tabs": [
+        {
+          "aria": "Trang chủ",
+          "current": null,
+          "icon": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.98000144958496,
+            "weight": "400",
+            "x": 39.801666259765625,
+            "y": 782.010009765625
+          },
+          "root": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 69.59375,
+            "weight": "400",
+            "x": 17,
+            "y": 771
+          },
+          "text": ""
+        },
+        {
+          "aria": "Sinh lời",
+          "current": null,
+          "icon": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.98000144958496,
+            "weight": "400",
+            "x": 111.40583801269533,
+            "y": 782.010009765625
+          },
+          "root": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 69.60417175292969,
+            "weight": "400",
+            "x": 88.59375,
+            "y": 771
+          },
+          "text": ""
+        },
+        {
+          "aria": "Cửa hàng",
+          "current": null,
+          "icon": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.97998046875,
+            "weight": "400",
+            "x": 182.9996032714844,
+            "y": 782.010009765625
+          },
+          "root": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 69.59375,
+            "weight": "400",
+            "x": 160.1979217529297,
+            "y": 771
+          },
+          "text": ""
+        },
+        {
+          "aria": "Đội nhóm",
+          "current": null,
+          "icon": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.97998046875,
+            "weight": "400",
+            "x": 254.603759765625,
+            "y": 782.010009765625
+          },
+          "root": {
+            "color": "rgb(60, 63, 71)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 69.60417175292969,
+            "weight": "400",
+            "x": 231.7916717529297,
+            "y": 771
+          },
+          "text": ""
+        },
+        {
+          "aria": "Của tôi",
+          "current": "page",
+          "icon": {
+            "color": "rgb(14, 72, 230)",
+            "font": "16px",
+            "h": 23.97998046875,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "0px",
+            "text": "",
+            "w": 23.97998046875,
+            "weight": "400",
+            "x": 326.20794677734375,
+            "y": 782.010009765625
+          },
+          "root": {
+            "color": "rgb(14, 72, 230)",
+            "font": "16px",
+            "h": 46,
+            "margin": "0px",
+            "nowrap": "normal",
+            "overflow": 0,
+            "padding": "4px 2px",
+            "text": "",
+            "w": 69.60417175292969,
+            "weight": "400",
+            "x": 303.3958435058594,
+            "y": 771
+          },
+          "text": ""
+        }
+      ],
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/me",
+      "wallet": {
+        "amount": {
+          "color": "rgb(19, 20, 26)",
+          "font": "30.3922px",
+          "h": 33.427085876464844,
+          "margin": "0px",
+          "nowrap": "nowrap",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "1,234,567,890.12",
+          "w": 215,
+          "weight": "550",
+          "x": 52.94791793823242,
+          "y": 224
+        },
+        "aria": "Số dư USDT: $1,234,567,890.12",
+        "coin": {
+          "color": "rgb(244, 241, 233)",
+          "font": "15px",
+          "h": 20,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "",
+          "w": 20,
+          "weight": "500",
+          "x": 32,
+          "y": 289.4270935058594
+        },
+        "coinSvg": {
+          "color": "rgb(244, 241, 233)",
+          "font": "15px",
+          "h": 16,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "w": 16,
+          "weight": "500",
+          "x": 34,
+          "y": 291.4270935058594
+        },
+        "details": {
+          "color": "rgb(19, 20, 26)",
+          "font": "16px",
+          "h": 30,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "12px 0px 0px",
+          "text": "≈ 163.84 USDT · 1 UVT = 0.128 USDT",
+          "w": 326,
+          "weight": "400",
+          "x": 32,
+          "y": 321.4270935058594
+        },
+        "fraction": {
+          "color": "rgb(106, 110, 119)",
+          "font": "30.3922px",
+          "h": 38,
+          "margin": "0px",
+          "nowrap": "pre-line",
+          "overflow": 0,
+          "padding": "0px",
+          "text": ".12",
+          "w": 32.8125,
+          "weight": "550",
+          "x": 235.1354217529297,
+          "y": 221.33334350585935
+        },
+        "nex": {
+          "color": "rgb(60, 63, 71)",
+          "font": "15px",
+          "h": 44,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "1,280.00 UVT",
+          "w": 326,
+          "weight": "500",
+          "x": 32,
+          "y": 277.4270935058594
+        },
+        "symbol": {
+          "color": "rgb(124, 92, 255)",
+          "font": "16px",
+          "h": 24,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "",
+          "w": 24,
+          "weight": "400",
+          "x": 32,
+          "y": 170
+        },
+        "symbolSvg": {
+          "color": "rgb(124, 92, 255)",
+          "font": "16px",
+          "h": 24,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "w": 24,
+          "weight": "400",
+          "x": 32,
+          "y": 170
+        },
+        "total": {
+          "color": "rgb(19, 20, 26)",
+          "font": "16px",
+          "h": 33.427085876464844,
+          "margin": "20px 0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "$\n1,234,567,890.12",
+          "w": 326,
+          "weight": "550",
+          "x": 32,
+          "y": 224
+        },
+        "valuation": {
+          "color": "rgb(106, 110, 119)",
+          "font": "12px",
+          "h": 18,
+          "margin": "0px",
+          "nowrap": "normal",
+          "overflow": 0,
+          "padding": "0px",
+          "text": "≈ 163.84 USDT · 1 UVT = 0.128 USDT",
+          "w": 326,
+          "weight": "400",
+          "x": 32,
+          "y": 333.4270935058594
+        }
+      },
+      "width": 390,
+      "label": "weight550-long-390-vi-light"
+    }
+  ],
+  "images": [
+    {
+      "name": "weight550-normal-390-zh-dark",
+      "at": "2026-10-27T19:12:41.113Z",
+      "sha256": "f2062f306744ce4f94e16b927d9dcf2ed7f4a79686a887865c8a9ffe08c06958"
+    },
+    {
+      "name": "weight550-normal-390-zh-light",
+      "at": "2026-10-27T19:12:44.384Z",
+      "sha256": "f557105a3e361e1b945253629144ca55d790c7c416db247990743f2a56d77541"
+    },
+    {
+      "name": "weight550-normal-430-en-light",
+      "at": "2026-10-27T19:12:46.793Z",
+      "sha256": "65214a4f6fca6d1a4cd0c32384ac58fd251d0807280bac1d33929182d3c777bc"
+    },
+    {
+      "name": "weight550-normal-430-en-dark",
+      "at": "2026-10-27T19:12:50.061Z",
+      "sha256": "abc3c8a999c12709cc7f81aac97d557992c05f1048d5da6412289532a94d63bd"
+    },
+    {
+      "name": "weight550-normal-375-en-dark",
+      "sha256": "1a4c991fcaea549e5b1b6e3920cddcbf6b422aeb04f08d39a2299abf73ad1849"
+    },
+    {
+      "name": "weight550-normal-375-en-light",
+      "sha256": "f1632532d773a25060e894ae1220eef2ffa3826f1fa40e64d150d4c7ebd66e9e"
+    },
+    {
+      "name": "weight550-long-390-vi-dark",
+      "at": "2026-10-27T19:15:09.693Z",
+      "sha256": "39ea5c74fad72cbe3801bb3796ee326a7714e7fa7a2fca0305e79504069c7a5b",
+      "note": "Corrected planned filename before report freeze; actual DOM and image dark"
+    },
+    {
+      "name": "weight550-long-390-vi-light",
+      "at": "2026-10-27T19:15:48.160Z",
+      "sha256": "3a16761902ec23be6eb80e445be8c73cb9fe275ed6fcda16694200fe67c6a70b"
+    }
+  ],
+  "cssCompare": {
+    "web-nav-final": [
+      {
+        "name": "app-chassis-C3XxXU7l.css",
+        "sha256": "7c590da8a69f34d7d2cfb8cf02f3e116cf9bf7dc5579a833dece9f3b8a91bd1b"
+      },
+      {
+        "name": "me-CRcXWIqs.css",
+        "sha256": "fc79e8acfa5d3118741b69b3b709934ded504bcc663fbe6b9330bb17801db0cc"
+      }
+    ],
+    "web-wallet-weight": [
+      {
+        "name": "app-chassis-C3XxXU7l.css",
+        "sha256": "7c590da8a69f34d7d2cfb8cf02f3e116cf9bf7dc5579a833dece9f3b8a91bd1b"
+      },
+      {
+        "name": "me-l-IteFiy.css",
+        "sha256": "0977499989d196d4674dc9ba0ad8bd5ab9d19e9f6d063a2c3c2c4d5013420695"
+      }
+    ]
+  },
+  "normalizedWalletCssEquivalence": {
+    "normalization": "Only wallet Vue scope/keyframe hash66f55062→6eb5586e replaced byWALLET for comparison",
+    "addedRule": "@media (min-width: 375px){.nx-wallet-total[data-v-WALLET]{font-weight:550}}",
+    "contains": true,
+    "equalAfterRemovingRule": true
+  },
+  "final": {
+    "amount": "52,800.64",
+    "at": "2026-10-27T19:18:33.107Z",
+    "css": [
+      "http://127.0.0.1:5294/assets/uni.c39fe708.css",
+      "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+      "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+      "http://127.0.0.1:5294/assets/index-H57LADHv.css",
+      "http://127.0.0.1:5294/assets/nova-avatar-D5GOd_PR.css",
+      "http://127.0.0.1:5294/assets/liquid-glass-CtBmG5K8.css",
+      "http://127.0.0.1:5294/assets/brand-lockup-BuVYk5AL.css",
+      "http://127.0.0.1:5294/assets/global-ui-rtRD1Jcw.css",
+      "http://127.0.0.1:5294/assets/device-status-bar-Q_PY6aEV.css",
+      "http://127.0.0.1:5294/assets/app-chassis-C3XxXU7l.css",
+      "http://127.0.0.1:5294/assets/card-stagger-BAUXl1m9.css",
+      "http://127.0.0.1:5294/assets/nx-section-DKnURi4h.css",
+      "http://127.0.0.1:5294/assets/nx-list-group-BmH7i_UJ.css",
+      "http://127.0.0.1:5294/assets/nx-list-row-Wr_g_i_N.css",
+      "http://127.0.0.1:5294/assets/me-l-IteFiy.css"
+    ],
+    "entry": [
+      "http://127.0.0.1:5294/assets/index-DQPnbcrO.js"
+    ],
+    "reduced": false,
+    "theme": "light",
+    "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/me",
+    "weight": "550",
+    "width": 390
+  },
+  "notes": [
+    "375 uses own375x812 CDPviewport emulation; no modification to DOM, store or other tab viewport",
+    "375 light measured typography before native upward scroll settled; screenshot later shows wallet visible; not claimed same-frame y geometry",
+    "Long390 dark planned filename corrected before report publication; actual theme dark preserved and separate actual light sample captured",
+    "Zero/unknown and small360 were tested on B_6NMEBX and explicitly inherited under only>=375550 CSS change; not relabeled DQP tests",
+    "Reduced-motion restored false; proxy off; old six-source matrix not rerun"
+  ]
+}

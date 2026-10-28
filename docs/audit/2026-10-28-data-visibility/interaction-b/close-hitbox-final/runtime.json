@@ -1,0 +1,893 @@
+{
+  "entry": "index-C5I8XvUO.js",
+  "css": "index-H57LADHv.css",
+  "htmlSha256": "DC5B30AEC3A8A1DD584F538B6A7BE8D8831207F701D236ED6FFC06346925280C",
+  "jsSha256": "CFAE0A5AD78097F310575C624471D4478B9003C0D2A360625E950229E48E582C",
+  "browser": "official CUA Chrome4",
+  "origin": "http://127.0.0.1:5294",
+  "tab": "1733373179",
+  "initial": {
+    "entry": [
+      "http://127.0.0.1:5294/assets/index-C5I8XvUO.js"
+    ],
+    "hidden": "false",
+    "reduced": false,
+    "theme": "light",
+    "url": "http://127.0.0.1:5294/?nx_device=off#/pages/index/index"
+  },
+  "reads": [
+    {
+      "at": "2026-10-27T20:16:04.637Z",
+      "close": {
+        "aria": "Đóng",
+        "boxSizing": "border-box",
+        "face": {
+          "bottom": 361.6145935058594,
+          "height": 30,
+          "left": 265,
+          "right": 295,
+          "top": 331.6145935058594,
+          "width": 30,
+          "x": 265,
+          "y": 331.6145935058594
+        },
+        "flex": "0 0 auto",
+        "minH": "auto",
+        "minW": "auto",
+        "rect": {
+          "bottom": 368.6145935058594,
+          "height": 44,
+          "left": 258,
+          "right": 302,
+          "top": 324.6145935058594,
+          "width": 44,
+          "x": 258,
+          "y": 324.6145935058594
+        }
+      },
+      "dialog": "Công suất tác vụ & trợ cấp máy mới",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-C5I8XvUO.js"
+      ],
+      "frame": {
+        "bottom": 973.5,
+        "height": 693,
+        "left": 980,
+        "right": 1300,
+        "top": 280.5,
+        "width": 320,
+        "x": 980,
+        "y": 280.5
+      },
+      "height": 693,
+      "hidden": "false",
+      "reduced": false,
+      "scroll": 860.6666870117188,
+      "theme": "dark",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn",
+      "width": 320,
+      "label": "320-vi-dark-initial"
+    },
+    {
+      "at": "2026-10-27T20:19:37.510Z",
+      "close": {
+        "aria": "Đóng",
+        "boxSizing": "border-box",
+        "face": {
+          "bottom": 253.73959350585935,
+          "height": 30,
+          "left": 265,
+          "right": 295,
+          "top": 223.73959350585935,
+          "width": 30,
+          "x": 265,
+          "y": 223.73959350585935
+        },
+        "flex": "0 0 auto",
+        "minH": "auto",
+        "minW": "auto",
+        "rect": {
+          "bottom": 260.7395935058594,
+          "height": 44,
+          "left": 258,
+          "right": 302,
+          "top": 216.73959350585935,
+          "width": 44,
+          "x": 258,
+          "y": 216.73959350585935
+        }
+      },
+      "dialog": "Công suất tác vụ & trợ cấp máy mới",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-C5I8XvUO.js"
+      ],
+      "frame": {
+        "bottom": 973.5,
+        "height": 693,
+        "left": 980,
+        "right": 1300,
+        "top": 280.5,
+        "width": 320,
+        "x": 980,
+        "y": 280.5
+      },
+      "height": 693,
+      "hidden": "false",
+      "reduced": false,
+      "scroll": 1139.3333740234375,
+      "theme": "dark",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn",
+      "width": 320,
+      "label": "320-vi-dark-settled"
+    },
+    {
+      "at": "2026-10-27T20:20:33.399Z",
+      "close": {
+        "aria": "关闭",
+        "boxSizing": "border-box",
+        "face": {
+          "bottom": 538.2604370117188,
+          "height": 30,
+          "left": 335,
+          "right": 365,
+          "top": 508.2604370117187,
+          "width": 30,
+          "x": 335,
+          "y": 508.2604370117187
+        },
+        "flex": "0 0 auto",
+        "minH": "auto",
+        "minW": "auto",
+        "rect": {
+          "bottom": 545.2604370117188,
+          "height": 44,
+          "left": 328,
+          "right": 372,
+          "top": 501.2604370117187,
+          "width": 44,
+          "x": 328,
+          "y": 501.2604370117187
+        }
+      },
+      "dialog": "作业产能与新机补贴",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-C5I8XvUO.js"
+      ],
+      "frame": {
+        "bottom": 1049,
+        "height": 844,
+        "left": 945,
+        "right": 1335,
+        "top": 205,
+        "width": 390,
+        "x": 945,
+        "y": 205
+      },
+      "height": 844,
+      "hidden": "false",
+      "reduced": false,
+      "scroll": 744.6666870117188,
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn",
+      "width": 390,
+      "label": "390-zh-light"
+    }
+  ],
+  "actualClicks": [
+    {
+      "label": "320-vi-dark-left",
+      "edge": "left",
+      "inset": 1.5,
+      "requestedLocal": {
+        "x": 259.5,
+        "y": 238.73959350585935
+      },
+      "outer": {
+        "x": 1239.5,
+        "y": 519.2395935058594
+      },
+      "before": {
+        "aria": "Đóng",
+        "entry": [
+          "http://127.0.0.1:5294/assets/index-C5I8XvUO.js"
+        ],
+        "face": {
+          "bottom": 253.73959350585935,
+          "height": 30,
+          "left": 265,
+          "right": 295,
+          "top": 223.73959350585935,
+          "width": 30,
+          "x": 265,
+          "y": 223.73959350585935
+        },
+        "frame": {
+          "bottom": 973.5,
+          "height": 693,
+          "left": 980,
+          "right": 1300,
+          "top": 280.5,
+          "width": 320,
+          "x": 980,
+          "y": 280.5
+        },
+        "height": 693,
+        "root": {
+          "bottom": 260.7395935058594,
+          "height": 44,
+          "left": 258,
+          "right": 302,
+          "top": 216.73959350585935,
+          "width": 44,
+          "x": 258,
+          "y": 216.73959350585935
+        },
+        "scroll": 1139.3333740234375,
+        "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn",
+        "width": 320
+      },
+      "event": {
+        "buttonLabel": "Đóng",
+        "buttonRect": {
+          "bottom": 260.7395935058594,
+          "height": 44,
+          "left": 258,
+          "right": 302,
+          "top": 216.73959350585935,
+          "width": 44,
+          "x": 258,
+          "y": 216.73959350585935
+        },
+        "cls": "grid place-items-center active:opacity-70",
+        "tag": "UNI-VIEW",
+        "trusted": true,
+        "x": 259,
+        "y": 238
+      },
+      "after": {
+        "dialogs": 0,
+        "focus": "earn-capacity-info",
+        "focusAria": "Kho tác vụ AI đang nâng cấp",
+        "hidden": "false",
+        "scroll": 5.333333492279053,
+        "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn"
+      },
+      "sameRoute": true
+    },
+    {
+      "label": "320-vi-dark-right",
+      "edge": "right",
+      "inset": 1.5,
+      "requestedLocal": {
+        "x": 300.5,
+        "y": 238.73959350585935
+      },
+      "outer": {
+        "x": 1280.5,
+        "y": 519.2395935058594
+      },
+      "before": {
+        "aria": "Đóng",
+        "entry": [
+          "http://127.0.0.1:5294/assets/index-C5I8XvUO.js"
+        ],
+        "face": {
+          "bottom": 253.73959350585935,
+          "height": 30,
+          "left": 265,
+          "right": 295,
+          "top": 223.73959350585935,
+          "width": 30,
+          "x": 265,
+          "y": 223.73959350585935
+        },
+        "frame": {
+          "bottom": 973.5,
+          "height": 693,
+          "left": 980,
+          "right": 1300,
+          "top": 280.5,
+          "width": 320,
+          "x": 980,
+          "y": 280.5
+        },
+        "height": 693,
+        "root": {
+          "bottom": 260.7395935058594,
+          "height": 44,
+          "left": 258,
+          "right": 302,
+          "top": 216.73959350585935,
+          "width": 44,
+          "x": 258,
+          "y": 216.73959350585935
+        },
+        "scroll": 5.333333492279053,
+        "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn",
+        "width": 320
+      },
+      "event": {
+        "buttonLabel": "Đóng",
+        "buttonRect": {
+          "bottom": 260.7395935058594,
+          "height": 44,
+          "left": 258,
+          "right": 302,
+          "top": 216.73959350585935,
+          "width": 44,
+          "x": 258,
+          "y": 216.73959350585935
+        },
+        "cls": "grid place-items-center active:opacity-70",
+        "tag": "UNI-VIEW",
+        "trusted": true,
+        "x": 300,
+        "y": 238
+      },
+      "after": {
+        "dialogs": 0,
+        "focus": "earn-capacity-info",
+        "focusAria": "Kho tác vụ AI đang nâng cấp",
+        "hidden": "false",
+        "scroll": 5.333333492279053,
+        "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn"
+      },
+      "sameRoute": true
+    },
+    {
+      "label": "320-vi-dark-top",
+      "edge": "top",
+      "inset": 1.5,
+      "requestedLocal": {
+        "x": 280,
+        "y": 218.23959350585935
+      },
+      "outer": {
+        "x": 1260,
+        "y": 498.7395935058594
+      },
+      "before": {
+        "aria": "Đóng",
+        "entry": [
+          "http://127.0.0.1:5294/assets/index-C5I8XvUO.js"
+        ],
+        "face": {
+          "bottom": 253.73959350585935,
+          "height": 30,
+          "left": 265,
+          "right": 295,
+          "top": 223.73959350585935,
+          "width": 30,
+          "x": 265,
+          "y": 223.73959350585935
+        },
+        "frame": {
+          "bottom": 973.5,
+          "height": 693,
+          "left": 980,
+          "right": 1300,
+          "top": 280.5,
+          "width": 320,
+          "x": 980,
+          "y": 280.5
+        },
+        "height": 693,
+        "root": {
+          "bottom": 260.7395935058594,
+          "height": 44,
+          "left": 258,
+          "right": 302,
+          "top": 216.73959350585935,
+          "width": 44,
+          "x": 258,
+          "y": 216.73959350585935
+        },
+        "scroll": 5.333333492279053,
+        "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn",
+        "width": 320
+      },
+      "event": {
+        "buttonLabel": "Đóng",
+        "buttonRect": {
+          "bottom": 260.7395935058594,
+          "height": 44,
+          "left": 258,
+          "right": 302,
+          "top": 216.73959350585935,
+          "width": 44,
+          "x": 258,
+          "y": 216.73959350585935
+        },
+        "cls": "grid place-items-center active:opacity-70",
+        "tag": "UNI-VIEW",
+        "trusted": true,
+        "x": 280,
+        "y": 218
+      },
+      "after": {
+        "dialogs": 0,
+        "focus": "earn-capacity-info",
+        "focusAria": "Kho tác vụ AI đang nâng cấp",
+        "hidden": "false",
+        "scroll": 5.333333492279053,
+        "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn"
+      },
+      "sameRoute": true
+    },
+    {
+      "label": "320-vi-dark-bottom",
+      "edge": "bottom",
+      "inset": 1.5,
+      "requestedLocal": {
+        "x": 280,
+        "y": 259.2395935058594
+      },
+      "outer": {
+        "x": 1260,
+        "y": 539.7395935058594
+      },
+      "before": {
+        "aria": "Đóng",
+        "entry": [
+          "http://127.0.0.1:5294/assets/index-C5I8XvUO.js"
+        ],
+        "face": {
+          "bottom": 253.73959350585935,
+          "height": 30,
+          "left": 265,
+          "right": 295,
+          "top": 223.73959350585935,
+          "width": 30,
+          "x": 265,
+          "y": 223.73959350585935
+        },
+        "frame": {
+          "bottom": 973.5,
+          "height": 693,
+          "left": 980,
+          "right": 1300,
+          "top": 280.5,
+          "width": 320,
+          "x": 980,
+          "y": 280.5
+        },
+        "height": 693,
+        "root": {
+          "bottom": 260.7395935058594,
+          "height": 44,
+          "left": 258,
+          "right": 302,
+          "top": 216.73959350585935,
+          "width": 44,
+          "x": 258,
+          "y": 216.73959350585935
+        },
+        "scroll": 5.333333492279053,
+        "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn",
+        "width": 320
+      },
+      "event": {
+        "buttonLabel": "Đóng",
+        "buttonRect": {
+          "bottom": 260.7395935058594,
+          "height": 44,
+          "left": 258,
+          "right": 302,
+          "top": 216.73959350585935,
+          "width": 44,
+          "x": 258,
+          "y": 216.73959350585935
+        },
+        "cls": "grid place-items-center active:opacity-70",
+        "tag": "UNI-VIEW",
+        "trusted": true,
+        "x": 280,
+        "y": 259
+      },
+      "after": {
+        "dialogs": 0,
+        "focus": "earn-capacity-info",
+        "focusAria": "Kho tác vụ AI đang nâng cấp",
+        "hidden": "false",
+        "scroll": 5.333333492279053,
+        "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn"
+      },
+      "sameRoute": true
+    },
+    {
+      "label": "390-zh-light-left",
+      "edge": "left",
+      "inset": 1.5,
+      "requestedLocal": {
+        "x": 329.5,
+        "y": 523.4270935058594
+      },
+      "outer": {
+        "x": 1274.5,
+        "y": 728.4270935058594
+      },
+      "before": {
+        "aria": "关闭",
+        "entry": [
+          "http://127.0.0.1:5294/assets/index-C5I8XvUO.js"
+        ],
+        "face": {
+          "bottom": 538.4270935058594,
+          "height": 30,
+          "left": 335,
+          "right": 365,
+          "top": 508.4270935058594,
+          "width": 30,
+          "x": 335,
+          "y": 508.4270935058594
+        },
+        "frame": {
+          "bottom": 1049,
+          "height": 844,
+          "left": 945,
+          "right": 1335,
+          "top": 205,
+          "width": 390,
+          "x": 945,
+          "y": 205
+        },
+        "height": 844,
+        "root": {
+          "bottom": 545.4270935058594,
+          "height": 44,
+          "left": 328,
+          "right": 372,
+          "top": 501.4270935058594,
+          "width": 44,
+          "x": 328,
+          "y": 501.4270935058594
+        },
+        "scroll": 1023.3333129882812,
+        "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn",
+        "width": 390
+      },
+      "event": {
+        "buttonLabel": "关闭",
+        "buttonRect": {
+          "bottom": 545.4270935058594,
+          "height": 44,
+          "left": 328,
+          "right": 372,
+          "top": 501.4270935058594,
+          "width": 44,
+          "x": 328,
+          "y": 501.4270935058594
+        },
+        "cls": "grid place-items-center active:opacity-70",
+        "tag": "UNI-VIEW",
+        "trusted": true,
+        "x": 329,
+        "y": 523
+      },
+      "after": {
+        "dialogs": 0,
+        "focus": "earn-capacity-info",
+        "focusAria": "AI 作业池升级中",
+        "hidden": "false",
+        "scroll": 0,
+        "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn"
+      },
+      "sameRoute": true
+    },
+    {
+      "label": "390-zh-light-right",
+      "edge": "right",
+      "inset": 1.5,
+      "requestedLocal": {
+        "x": 370.5,
+        "y": 523.4270935058594
+      },
+      "outer": {
+        "x": 1315.5,
+        "y": 728.4270935058594
+      },
+      "before": {
+        "aria": "关闭",
+        "entry": [
+          "http://127.0.0.1:5294/assets/index-C5I8XvUO.js"
+        ],
+        "face": {
+          "bottom": 538.4270935058594,
+          "height": 30,
+          "left": 335,
+          "right": 365,
+          "top": 508.4270935058594,
+          "width": 30,
+          "x": 335,
+          "y": 508.4270935058594
+        },
+        "frame": {
+          "bottom": 1049,
+          "height": 844,
+          "left": 945,
+          "right": 1335,
+          "top": 205,
+          "width": 390,
+          "x": 945,
+          "y": 205
+        },
+        "height": 844,
+        "root": {
+          "bottom": 545.4270935058594,
+          "height": 44,
+          "left": 328,
+          "right": 372,
+          "top": 501.4270935058594,
+          "width": 44,
+          "x": 328,
+          "y": 501.4270935058594
+        },
+        "scroll": 0,
+        "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn",
+        "width": 390
+      },
+      "event": {
+        "buttonLabel": "关闭",
+        "buttonRect": {
+          "bottom": 545.4270935058594,
+          "height": 44,
+          "left": 328,
+          "right": 372,
+          "top": 501.4270935058594,
+          "width": 44,
+          "x": 328,
+          "y": 501.4270935058594
+        },
+        "cls": "grid place-items-center active:opacity-70",
+        "tag": "UNI-VIEW",
+        "trusted": true,
+        "x": 370,
+        "y": 523
+      },
+      "after": {
+        "dialogs": 0,
+        "focus": "earn-capacity-info",
+        "focusAria": "AI 作业池升级中",
+        "hidden": "false",
+        "scroll": 0,
+        "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn"
+      },
+      "sameRoute": true
+    },
+    {
+      "label": "390-zh-light-top",
+      "edge": "top",
+      "inset": 1.5,
+      "requestedLocal": {
+        "x": 350,
+        "y": 502.9270935058594
+      },
+      "outer": {
+        "x": 1295,
+        "y": 707.9270935058594
+      },
+      "before": {
+        "aria": "关闭",
+        "entry": [
+          "http://127.0.0.1:5294/assets/index-C5I8XvUO.js"
+        ],
+        "face": {
+          "bottom": 538.4270935058594,
+          "height": 30,
+          "left": 335,
+          "right": 365,
+          "top": 508.4270935058594,
+          "width": 30,
+          "x": 335,
+          "y": 508.4270935058594
+        },
+        "frame": {
+          "bottom": 1049,
+          "height": 844,
+          "left": 945,
+          "right": 1335,
+          "top": 205,
+          "width": 390,
+          "x": 945,
+          "y": 205
+        },
+        "height": 844,
+        "root": {
+          "bottom": 545.4270935058594,
+          "height": 44,
+          "left": 328,
+          "right": 372,
+          "top": 501.4270935058594,
+          "width": 44,
+          "x": 328,
+          "y": 501.4270935058594
+        },
+        "scroll": 0,
+        "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn",
+        "width": 390
+      },
+      "event": {
+        "buttonLabel": "关闭",
+        "buttonRect": {
+          "bottom": 545.4270935058594,
+          "height": 44,
+          "left": 328,
+          "right": 372,
+          "top": 501.4270935058594,
+          "width": 44,
+          "x": 328,
+          "y": 501.4270935058594
+        },
+        "cls": "grid place-items-center active:opacity-70",
+        "tag": "UNI-VIEW",
+        "trusted": true,
+        "x": 350,
+        "y": 502
+      },
+      "after": {
+        "dialogs": 0,
+        "focus": "earn-capacity-info",
+        "focusAria": "AI 作业池升级中",
+        "hidden": "false",
+        "scroll": 0,
+        "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn"
+      },
+      "sameRoute": true
+    },
+    {
+      "label": "390-zh-light-bottom",
+      "edge": "bottom",
+      "inset": 1.5,
+      "requestedLocal": {
+        "x": 350,
+        "y": 543.9270935058594
+      },
+      "outer": {
+        "x": 1295,
+        "y": 748.9270935058594
+      },
+      "before": {
+        "aria": "关闭",
+        "entry": [
+          "http://127.0.0.1:5294/assets/index-C5I8XvUO.js"
+        ],
+        "face": {
+          "bottom": 538.4270935058594,
+          "height": 30,
+          "left": 335,
+          "right": 365,
+          "top": 508.4270935058594,
+          "width": 30,
+          "x": 335,
+          "y": 508.4270935058594
+        },
+        "frame": {
+          "bottom": 1049,
+          "height": 844,
+          "left": 945,
+          "right": 1335,
+          "top": 205,
+          "width": 390,
+          "x": 945,
+          "y": 205
+        },
+        "height": 844,
+        "root": {
+          "bottom": 545.4270935058594,
+          "height": 44,
+          "left": 328,
+          "right": 372,
+          "top": 501.4270935058594,
+          "width": 44,
+          "x": 328,
+          "y": 501.4270935058594
+        },
+        "scroll": 0,
+        "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn",
+        "width": 390
+      },
+      "event": {
+        "buttonLabel": "关闭",
+        "buttonRect": {
+          "bottom": 545.4270935058594,
+          "height": 44,
+          "left": 328,
+          "right": 372,
+          "top": 501.4270935058594,
+          "width": 44,
+          "x": 328,
+          "y": 501.4270935058594
+        },
+        "cls": "grid place-items-center active:opacity-70",
+        "tag": "UNI-VIEW",
+        "trusted": true,
+        "x": 350,
+        "y": 543
+      },
+      "after": {
+        "dialogs": 0,
+        "focus": "earn-capacity-info",
+        "focusAria": "AI 作业池升级中",
+        "hidden": "false",
+        "scroll": 0,
+        "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn"
+      },
+      "sameRoute": true
+    },
+    {
+      "label": "390-zh-light-Escape",
+      "dialogs": 0,
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-C5I8XvUO.js"
+      ],
+      "focus": "earn-capacity-info",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn"
+    }
+  ],
+  "images": [
+    {
+      "name": "close-root44-face30-320-vi-dark",
+      "sha256": "38955be8108f97f66a0376fbf21a9c9c8d0c5b8d622d5662f1962e7f270e31d7",
+      "note": "Initial frame preceded stable modal geometry; not the accepted visual frame. Cause not diagnosed in this bounded check; use settled image and fresh per-click geometry."
+    },
+    {
+      "name": "close-root44-face30-320-vi-dark-settled",
+      "sha256": "0afb4b27905f4ce00d8879bb8c8241cdc3a3f95108c1e2ab50a442a45494c1c5"
+    },
+    {
+      "name": "close-root44-face30-390-zh-light",
+      "sha256": "d1e27215bc5cacd57057c6b947288cae69efd9b9ed3ec404cc87f26b0e751bb6"
+    }
+  ],
+  "final": {
+    "at": "2026-10-27T20:23:39.468Z",
+    "dialogs": 0,
+    "entry": [
+      "http://127.0.0.1:5294/assets/index-C5I8XvUO.js"
+    ],
+    "hidden": "false",
+    "reduced": false,
+    "theme": "light",
+    "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn",
+    "width": 390
+  },
+  "notes": [
+    "Only two requested close-hitbox cases, no privacy/nav/store/rocket matrix rerun",
+    "Actual pointer clicks1.5px inside each44px root edge,5.5px outside30px face; capture event trusted and target close button before close handler",
+    "Not just background-dismiss or elementFromPoint evidence",
+    "All eight closed and stayedEarn; focus returnedRocket;390Escape sample passed",
+    "No product edit/build/tests/service restart; native compile green reported by parent, no physical device validation"
+  ],
+  "interimReloadSnapshot": {
+    "at": "2026-10-27T20:22:14.318Z",
+    "css": [
+      "http://127.0.0.1:5294/assets/uni.c39fe708.css",
+      "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+      "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+      "http://127.0.0.1:5294/assets/index-H57LADHv.css",
+      "http://127.0.0.1:5294/assets/nova-avatar-D5GOd_PR.css",
+      "http://127.0.0.1:5294/assets/liquid-glass-CtBmG5K8.css",
+      "http://127.0.0.1:5294/assets/brand-lockup-BuVYk5AL.css",
+      "http://127.0.0.1:5294/assets/global-ui-rtRD1Jcw.css",
+      "http://127.0.0.1:5294/assets/device-status-bar-Q_PY6aEV.css",
+      "http://127.0.0.1:5294/assets/app-chassis-C3XxXU7l.css",
+      "http://127.0.0.1:5294/assets/card-stagger-BAUXl1m9.css",
+      "http://127.0.0.1:5294/assets/nx-section-DKnURi4h.css",
+      "http://127.0.0.1:5294/assets/compute-share-entry-DZ0t_7vi.css",
+      "http://127.0.0.1:5294/assets/device-slot-CLCoDqc9.css",
+      "http://127.0.0.1:5294/assets/capacity-explainer-sheet-DKImQk7q.css",
+      "http://127.0.0.1:5294/assets/trial-device-row-CEdpHsI-.css",
+      "http://127.0.0.1:5294/assets/data-visibility-toggle-Bo6hXyBL.css",
+      "http://127.0.0.1:5294/assets/earn-B-T2JvLd.css"
+    ],
+    "dialogs": 0,
+    "entry": [
+      "http://127.0.0.1:5294/assets/index-C5I8XvUO.js"
+    ],
+    "height": 844,
+    "reduced": false,
+    "theme": "light",
+    "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn",
+    "width": 390
+  }
+}

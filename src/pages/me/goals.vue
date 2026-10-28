@@ -21,20 +21,20 @@
           <text :style="heroLabelStyle">{{ t.goals.heroLabel }}</text>
         </view>
         <text class="block" :style="heroTitleStyle">{{ t.goals.heroTitle }}</text>
-        <text v-if="editorHasSnapshot" class="block" :style="heroSubStyle">{{ heroSubLine }}</text>
+        <text v-if="editorDisplayReady" class="block" :style="heroSubStyle">{{ heroSubLine }}</text>
       </view>
 
-      <view v-if="remoteApiEnabled && !editorHasSnapshot" class="mx-4" :style="emptyStateStyle" role="status" :aria-busy="goalsStore.status !== 'error'">
+      <view v-if="remoteApiEnabled && !editorDisplayReady" class="mx-4" :style="emptyStateStyle" role="status" :aria-busy="goalsStore.status !== 'error'">
         <text>{{ goalsStore.status === 'error' ? t.goals.serverUnavailable : t.goals.loading }}</text>
-        <view v-if="goalsStore.status === 'error'" class="inline-flex items-center active:opacity-80" :style="recCtaStyle" role="button" tabindex="0" :aria-label="t.ui.retry" @click="retryGoals" @keydown.enter.prevent="retryGoals" @keydown.space.prevent="retryGoals"><text :style="recCtaLabelStyle">{{ t.ui.retry }}</text></view>
+        <view v-if="goalsStore.status === 'error'" class="inline-flex items-center active:opacity-80" :style="recCtaStyle" role="button" tabindex="0" :aria-label="t.ui.retry" @click="retryGoals" @keydown.enter.prevent="retryGoals" @keydown.space.prevent="retryGoals"><text :style="[recCtaLabelStyle, { font: '600 13px/20px var(--font-v5)' }]">{{ t.ui.retry }}</text></view>
       </view>
 
       <!-- Setter — de-carded: labels + L1-filled input sit on the page floor -->
-      <view v-if="editorHasSnapshot" class="mx-4" :style="setterWrapStyle">
+      <view class="mx-4" :style="setterWrapStyle">
         <text class="block" :style="fieldLabelStyle">{{ t.goals.targetLabel }}</text>
         <view class="flex items-center" :style="inputBoxStyle">
           <text :style="dollarStyle">$</text>
-          <input class="flex-1" :style="targetInputStyle" type="digit" :value="String(target)" :disabled="editorBlocked" :aria-label="t.goals.targetLabel" @input="onTarget" />
+          <input class="flex-1" :style="targetInputStyle" type="digit" :value="editorDisplayReady ? String(target) : ''" placeholder="—" :disabled="editorBlocked" :aria-label="t.goals.targetLabel" @input="onTarget" />
         </view>
         <view class="grid" style="grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px" role="radiogroup" :aria-label="t.goals.targetPresetsLabel">
           <view
@@ -45,7 +45,7 @@
             role="radio"
             :aria-disabled="editorBlocked"
             :tabindex="target === p || (pi === 0 && !PRESET_TARGETS.includes(target)) ? 0 : -1"
-            :aria-checked="target === p ? 'true' : 'false'"
+            :aria-checked="editorDisplayReady && target === p ? 'true' : 'false'"
             :aria-label="fmt(t.goals.targetPresetOption, { amount: formatAmount(p) })"
             @click="selectTarget(p)"
 
@@ -67,7 +67,7 @@
             role="radio"
             :aria-disabled="editorBlocked"
             :tabindex="days === d || (di === 0 && !PRESET_DEADLINES_DAYS.includes(days)) ? 0 : -1"
-            :aria-checked="days === d ? 'true' : 'false'"
+            :aria-checked="editorDisplayReady && days === d ? 'true' : 'false'"
             :aria-label="fmt(t.goals.deadlinePresetOption, { days: String(d) })"
             @click="selectDays(d)"
 
@@ -81,7 +81,12 @@
       </view>
 
       <!-- Recommendation -->
-      <view v-if="editorHasSnapshot && target > 0 && remoteApiEnabled && goalsStore.recommendationStatus === 'loading'" class="nx-glass-card mx-4" :style="recCardStyle">
+      <view v-if="recommendationWarmDisplay" class="mx-4" :style="recCardStyle">
+        <text class="block" :style="recHeaderStyle">{{ t.goals.recHeader }}</text>
+        <text class="block" :style="recPathStyle">{{ recommendationWarmDisplay }}</text>
+        <view class="inline-flex items-center" :style="recCtaStyle" role="button" tabindex="-1" aria-disabled="true" :aria-label="t.goals.shopCta"><text :style="recCtaLabelStyle">{{ t.goals.shopCta }}</text><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg></view>
+      </view>
+      <view v-else-if="editorHasSnapshot && target > 0 && remoteApiEnabled && goalsStore.recommendationStatus === 'loading'" class="nx-glass-card mx-4" :style="recCardStyle">
         <text class="block" :style="recHeaderStyle">{{ t.goals.recHeader }}</text>
         <text class="block" :style="recReasonStyle">{{ t.goals.loading }}</text>
       </view>
@@ -89,7 +94,7 @@
         <text class="block" :style="recHeaderStyle">{{ t.goals.recHeader }}</text>
         <text class="block" :style="recReasonStyle">{{ goalsStore.recommendationError === 'GOAL_NO_ELIGIBLE_PRODUCT' ? t.goals.noEligibleProduct : t.goals.serverUnavailable }}</text>
         <view v-if="goalsStore.recommendationError !== 'GOAL_NO_ELIGIBLE_PRODUCT'" class="inline-flex items-center active:opacity-80" :style="recCtaStyle" role="button" tabindex="0" :aria-label="t.ui.retry" @click="retryGoals"  @keydown.enter.prevent="retryGoals" @keydown.space.prevent="retryGoals">
-          <text :style="recCtaLabelStyle">{{ t.ui.retry }}</text>
+          <text :style="[recCtaLabelStyle, { font: '600 13px/20px var(--font-v5)' }]">{{ t.ui.retry }}</text>
         </view>
       </view>
       <view v-else-if="target > 0 && (!remoteApiEnabled || (!editorBlocked && goalsStore.recommendationStatus === 'ready' && goalsStore.recommendation?.purchaseRequired === true && goalsStore.recommendation.targetUsdt === target))" class="mx-4" :style="recCardStyle">
@@ -103,8 +108,8 @@
       </view>
 
       <!-- Save -->
-      <view v-if="editorHasSnapshot" style="padding: 0 16px; margin-top: 12px">
-        <view class="w-full flex items-center justify-center active:scale-[0.98]" :style="[saveBtnStyle, saveBlocked ? saveBtnPendingStyle : {}]" role="button" :tabindex="saveBlocked ? -1 : 0" :aria-label="t.goals.saveCta" :aria-disabled="saveBlocked" @click="onSave"  @keydown.enter.prevent="onSave" @keydown.space.prevent="onSave">
+      <view style="padding: 0 16px; margin-top: 12px">
+        <view class="w-full flex items-center justify-center active:scale-[0.98]" :style="[saveBtnStyle, savePending ? saveBtnPendingStyle : {}]" role="button" :tabindex="saveBlocked ? -1 : 0" :aria-label="t.goals.saveCta" :aria-disabled="saveBlocked" @click="onSave"  @keydown.enter.prevent="onSave" @keydown.space.prevent="onSave">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events: none"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>
           <text :style="saveLabelStyle" style="pointer-events: none">{{ t.goals.saveCta }}</text>
         </view>
@@ -151,7 +156,7 @@ import { fmt } from "@/i18n/format";
 import { useGoals, type Goal } from "@/store/goals";
 import { useApp } from "@/store/app";
 import { useUI } from "@/store/ui";
-import { remoteApiEnabled } from "@/api/runtime";
+import { remoteApiEnabled, apiRuntimeConfig } from "@/api/runtime";
 import { nexGridBrandText } from "@/lib/brand-copy";
 
 const PRESET_TARGETS = [500, 1000, 5000, 10000];
@@ -164,14 +169,18 @@ const app = useApp();
 const ui = useUI();
 
 const lifeTimeEarnings = computed(() => remoteApiEnabled ? goalsStore.lifetimeEarningsUsdt : app.earnings.total);
-const goals = computed(() => goalsStore.goals);
+const goals = computed(() => !remoteApiEnabled || editorDisplayReady.value ? goalsStore.goals : []);
 const target = ref(1000);
 const days = ref(90);
 const savePending = ref(false);
 const restoredGoal = ref<{ id: string; targetUSDT: number; days: number } | null>(null);
+const editorDisplayReady = ref(!remoteApiEnabled);
+let editorEnvironmentInvalidated = false;
+watch(() => apiRuntimeConfig?.environment, () => { editorEnvironmentInvalidated = true; editorDisplayReady.value = false; editorReadEpoch += 1; }, { flush: 'sync' });
+watch(() => goalsStore.status, status => { if (status === 'error') editorDisplayReady.value = false; }, { flush: 'sync' });
 const editorReadPending = ref(remoteApiEnabled && goalsStore.status !== "ready");
 const editorHasSnapshot = computed(() => !remoteApiEnabled || (!editorReadPending.value && goalsStore.status === "ready"));
-const editorBlocked = computed(() => savePending.value || !editorHasSnapshot.value);
+const editorBlocked = computed(() => savePending.value || !editorHasSnapshot.value || !editorDisplayReady.value);
 const saveBlocked = computed(() => editorBlocked.value || (remoteApiEnabled && restoredGoal.value !== null
     && target.value === restoredGoal.value.targetUSDT && days.value === restoredGoal.value.days));
 type GoalSaveIntent = { targetUSDT: number; days: number; deadlineMs: number; idempotencyKey: string };
@@ -197,7 +206,7 @@ const recommendation = computed(() => {
 });
 
 const heroSubLine = computed(() => {
-  if (!editorHasSnapshot.value) return "";
+  if (!editorDisplayReady.value) return "";
   return fmt(t.value.goals.heroSubtitle, { current: formatAmount(lifeTimeEarnings.value) });
 });
 const recPathLine = computed(() =>
@@ -208,6 +217,21 @@ const recPathLine = computed(() =>
     perDay: formatGoalDailyRate(goalsStore.recommendation?.requiredDaily ?? target.value / days.value),
   }),
 );
+
+const recommendationPresentation = ref<{ target: number; days: number; path: string } | null>(null);
+const recommendationWarmDisplay = computed(() => editorDisplayReady.value && recommendationPresentation.value?.target === target.value
+  && recommendationPresentation.value.days === days.value && (editorReadPending.value || goalsStore.recommendationStatus === 'loading')
+  ? recommendationPresentation.value.path : '');
+watch(() => goalsStore.recommendationStatus, status => {
+  if (status === 'error') recommendationPresentation.value = null;
+  if (status === 'ready' && editorDisplayReady.value && goalsStore.recommendation?.purchaseRequired
+    && goalsStore.recommendation.targetUsdt === target.value)
+    recommendationPresentation.value = {target: target.value, days: days.value, path: recPathLine.value};
+}, {flush:'sync'});
+watch(() => [app.accountKey, app.accountBindingEpoch, t.value] as const, () => {
+  editorReadEpoch += 1; editorDisplayReady.value = false; recommendationPresentation.value = null;
+  void refreshRemoteGoals();
+}, {flush:'sync'});
 
 function formatGoalDailyRate(value: number): string {
   return formatAmount(value);
@@ -250,6 +274,7 @@ function moveDays(index: number, delta: number): void { movePreset(".nx-goal-dea
 
 watch(() => goalsStore.accountEpoch, () => {
   editorReadEpoch += 1;
+  editorDisplayReady.value = false;
   editorReadPending.value = remoteApiEnabled;
   restoringEditor = true;
   target.value = 1000;
@@ -260,6 +285,12 @@ watch(() => goalsStore.accountEpoch, () => {
   savePending.value = false;
   retryableSaveIntents.clear();
 }, { flush: "sync" });
+
+// A same-account bind also replaces the store's pending read.
+watch(() => goalsStore.readBindingEpoch, () => {
+  editorDisplayReady.value = false; recommendationPresentation.value = null;
+  void refreshRemoteGoals();
+}, { flush: 'sync' });
 
 function restoreEditorFromGoal(goal: Goal | undefined): void {
   restoringEditor = true;
@@ -278,17 +309,25 @@ function latestActiveGoal(): Goal | undefined {
 if (remoteApiEnabled && goalsStore.status === "ready") restoreEditorFromGoal(latestActiveGoal());
 
 async function refreshRemoteGoals(force = false): Promise<void> {
-  if (!remoteApiEnabled) return;
+  if (!remoteApiEnabled || editorEnvironmentInvalidated) return;
   const expectedReadEpoch = ++editorReadEpoch;
   const expectedAccountEpoch = goalsStore.accountEpoch;
+  const owner = [app.accountKey, app.accountBindingEpoch, t.value] as const;
   editorReadPending.value = true;
+  const binding = goalsStore.captureReadBinding();
+  if (binding.accountKey !== String(app.accountKey).trim().toLowerCase()) { editorReadPending.value = false; return; }
+  const successRevision = goalsStore.readSuccessRevision;
   const list = force ? goalsStore.refresh() : goalsStore.ensure();
   await list;
-  if (expectedReadEpoch !== editorReadEpoch || expectedAccountEpoch !== goalsStore.accountEpoch) return;
-  if (goalsStore.status !== "ready" || savePending.value) {
+  if (expectedReadEpoch !== editorReadEpoch || expectedAccountEpoch !== goalsStore.accountEpoch
+    || owner[0] !== app.accountKey || owner[1] !== app.accountBindingEpoch || owner[2] !== t.value
+    || goalsStore.captureReadBinding().epoch !== binding.epoch) return;
+  if (goalsStore.status !== "ready" || goalsStore.readSuccessRevision <= successRevision
+    || goalsStore.readSuccessScope?.accountKey !== binding.accountKey || goalsStore.readSuccessScope?.epoch !== binding.epoch || savePending.value) {
     editorReadPending.value = false;
     return;
   }
+  editorDisplayReady.value = true;
   const latestActive = latestActiveGoal();
   restoreEditorFromGoal(latestActive);
   editorReadPending.value = false;
@@ -321,9 +360,7 @@ watch([target, days], () => {
   }
 }, { flush: "sync" });
 
-watch(() => [app.accountKey, app.accountBindingEpoch] as const, () => {
-  void refreshRemoteGoals();
-});
+
 
 function deadlineLine(deadlineMs: number): string {
   const daysLeft = Math.max(0, Math.ceil((deadlineMs - Date.now()) / ONE_DAY_MS));
@@ -418,14 +455,14 @@ function presetTargetStyle(p: number): CSSProperties {
     height: "44px",
     borderRadius: "8px",
     // 未选中原 surface-2 与页面底同色不可辨(亮色 ΔE 2.2),预设块直接坐在页面底上 → 改 L1
-    background: target.value === p ? "var(--v5-brand)" : "var(--v5-surface)",
+    background: editorDisplayReady.value && target.value === p ? "var(--v5-brand)" : "var(--v5-surface)",
   };
 }
 function presetTargetLabelStyle(p: number): CSSProperties {
   return {
     fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
     fontSize: "12px",
-    color: target.value === p ? "var(--v5-on-brand)" : "var(--v5-ink-3)",
+    color: editorDisplayReady.value && target.value === p ? "var(--v5-on-brand)" : "var(--v5-ink-3)",
   };
 }
 function presetDeadlineStyle(d: number): CSSProperties {
@@ -436,7 +473,7 @@ function presetDeadlineStyle(d: number): CSSProperties {
     boxSizing: "border-box",
     borderRadius: "8px",
     // 同上:与目标预设同容器同尺寸,未选中态一并改 L1
-    background: days.value === d ? "var(--v5-brand)" : "var(--v5-surface)",
+    background: editorDisplayReady.value && days.value === d ? "var(--v5-brand)" : "var(--v5-surface)",
   };
 }
 function presetDeadlineLabelStyle(d: number): CSSProperties {
@@ -447,8 +484,8 @@ function presetDeadlineLabelStyle(d: number): CSSProperties {
     whiteSpace: "nowrap",
     textAlign: "center",
     fontVariantNumeric: "tabular-nums",
-    fontWeight: days.value === d ? 600 : 400,
-    color: days.value === d ? "var(--v5-on-brand)" : "var(--v5-ink-3)",
+    fontWeight: editorDisplayReady.value && days.value === d ? 600 : 400,
+    color: editorDisplayReady.value && days.value === d ? "var(--v5-on-brand)" : "var(--v5-ink-3)",
   };
 }
 

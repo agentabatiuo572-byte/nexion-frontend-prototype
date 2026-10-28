@@ -1,0 +1,2196 @@
+{
+  "fingerprint": {
+    "entry": "index-CFxCm3fm.js",
+    "css": "index-H57LADHv.css",
+    "htmlSHA256": "723EE370587FE219A3C5D3B2A010A5851362AB12EA0ACC851646F883C3E80B5D",
+    "jsSHA256": "82CCA558C8D8AF2FB366F79240CABEAAC0FE83C3B05D404FA865056A079EDEF7"
+  },
+  "initial": {
+    "locale": "vi",
+    "theme": "light",
+    "width": 390,
+    "hidden": false,
+    "reduced": false
+  },
+  "observations": [
+    {
+      "label": "390ZH-dark-home-visible-before-warm",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "隐藏资产、收益、算力和团队统计",
+          "pressed": "false",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/pages/index/index",
+      "theme": "dark",
+      "values": [
+        {
+          "aria": null,
+          "selector": ".home-earnings-cluster",
+          "text": "早上好, Alex今日收益USDT$16.24→ 较昨日 0.0% · 已结算 10 单"
+        },
+        {
+          "aria": null,
+          "selector": ".network-compact__cell:nth-child(3) .network-compact__value",
+          "text": "#184"
+        }
+      ],
+      "width": 390
+    },
+    {
+      "label": "390ZH-dark-warm-赚取",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "隐藏资产、收益、算力和团队统计",
+          "pressed": "false",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/pages/earn/earn",
+      "theme": "dark",
+      "values": [
+        {
+          "aria": null,
+          "selector": ".earn-device-value",
+          "text": "$2.34"
+        },
+        {
+          "aria": null,
+          "selector": ".earn-device-value",
+          "text": "$13.90"
+        }
+      ],
+      "width": 390
+    },
+    {
+      "label": "390ZH-dark-warm-团队",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [],
+      "reduce": false,
+      "route": "#/pages/team/team",
+      "theme": "dark",
+      "values": [],
+      "width": 390
+    },
+    {
+      "label": "390ZH-dark-warm-我的",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "隐藏资产、收益、算力和团队统计",
+          "pressed": "false",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/pages/me/me",
+      "theme": "dark",
+      "values": [
+        {
+          "aria": "USDT 余额: $52,800.64",
+          "selector": ".nx-wallet-total",
+          "text": "$52,800.64"
+        },
+        {
+          "aria": "UVT 余额: 1,280.00 UVT",
+          "selector": ".nx-wallet-nex",
+          "text": "1,280.00 UVT"
+        },
+        {
+          "aria": null,
+          "selector": ".wallet-metric",
+          "text": "今日—"
+        },
+        {
+          "aria": null,
+          "selector": ".wallet-metric",
+          "text": "累计收益$266.24算力 $16.24 · 团队 $250.00"
+        },
+        {
+          "aria": null,
+          "selector": ".wallet-metric",
+          "text": "确认中收益—暂不可提现"
+        },
+        {
+          "aria": null,
+          "selector": ".wallet-metric",
+          "text": "待释放奖励—完成安全确认后释放"
+        }
+      ],
+      "width": 390
+    },
+    {
+      "label": "390ZH-dark-warm-首页",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "隐藏资产、收益、算力和团队统计",
+          "pressed": "false",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/",
+      "theme": "dark",
+      "values": [
+        {
+          "aria": null,
+          "selector": ".home-earnings-cluster",
+          "text": "早上好, Alex今日收益USDT$16.24→ 较昨日 0.0% · 已结算 10 单"
+        },
+        {
+          "aria": null,
+          "selector": ".network-compact__cell:nth-child(3) .network-compact__value",
+          "text": "#184"
+        }
+      ],
+      "width": 390
+    },
+    {
+      "label": "390ZH-dark-hide-on-home",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "显示资产、收益、算力和团队统计",
+          "pressed": "true",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/",
+      "theme": "dark",
+      "values": [
+        {
+          "aria": null,
+          "selector": ".home-earnings-cluster",
+          "text": "早上好, Alex今日收益USDT••••较昨日 •••• · 已结算 •••• 单"
+        },
+        {
+          "aria": null,
+          "selector": ".network-compact__cell:nth-child(3) .network-compact__value",
+          "text": "••••"
+        }
+      ],
+      "width": 390
+    },
+    {
+      "label": "warm-hidden-observer-赚取",
+      "count": 1,
+      "frames": [
+        {
+          "hidden": "true",
+          "leaks": [],
+          "nodes": [
+            {
+              "aria": null,
+              "selector": ".home-earnings-cluster",
+              "text": "早上好, Alex今日收益USDT••••较昨日 •••• · 已结算 •••• 单"
+            },
+            {
+              "aria": null,
+              "selector": ".network-compact__cell:nth-child(3) .network-compact__value",
+              "text": "••••"
+            }
+          ],
+          "route": "#/",
+          "t": 38211.19999998808
+        }
+      ],
+      "numericLeakFrames": [],
+      "routes": [
+        "#/"
+      ]
+    },
+    {
+      "label": "390ZH-dark-hidden-warm-赚取",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "显示资产、收益、算力和团队统计",
+          "pressed": "true",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/pages/earn/earn",
+      "theme": "dark",
+      "values": [
+        {
+          "aria": null,
+          "selector": ".earn-device-value",
+          "text": "••••"
+        },
+        {
+          "aria": null,
+          "selector": ".earn-device-value",
+          "text": "••••"
+        }
+      ],
+      "width": 390
+    },
+    {
+      "label": "warm-hidden-observer-团队",
+      "count": 0,
+      "frames": [],
+      "numericLeakFrames": [],
+      "routes": []
+    },
+    {
+      "label": "390ZH-dark-hidden-warm-团队",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "显示资产、收益、算力和团队统计",
+          "pressed": "true",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/pages/team/team",
+      "theme": "dark",
+      "values": [
+        {
+          "aria": null,
+          "selector": ".team-ledger__amount",
+          "text": "••••"
+        },
+        {
+          "aria": null,
+          "selector": ".team-ledger__nex",
+          "text": "•••• UVT"
+        },
+        {
+          "aria": null,
+          "selector": ".team-summary__number",
+          "text": "••••"
+        },
+        {
+          "aria": null,
+          "selector": ".team-rank__level",
+          "text": "••••"
+        }
+      ],
+      "width": 390
+    },
+    {
+      "label": "warm-hidden-observer-我的",
+      "count": 0,
+      "frames": [],
+      "numericLeakFrames": [],
+      "routes": []
+    },
+    {
+      "label": "390ZH-dark-hidden-warm-我的",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "显示资产、收益、算力和团队统计",
+          "pressed": "true",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/pages/me/me",
+      "theme": "dark",
+      "values": [
+        {
+          "aria": "USDT 余额: ••••",
+          "selector": ".nx-wallet-total",
+          "text": "••••"
+        },
+        {
+          "aria": "UVT 余额: •••• UVT",
+          "selector": ".nx-wallet-nex",
+          "text": "•••• UVT"
+        },
+        {
+          "aria": null,
+          "selector": ".wallet-metric",
+          "text": "今日••••"
+        },
+        {
+          "aria": null,
+          "selector": ".wallet-metric",
+          "text": "累计收益••••算力 •••• · 团队 ••••"
+        },
+        {
+          "aria": null,
+          "selector": ".wallet-metric",
+          "text": "确认中收益••••暂不可提现"
+        },
+        {
+          "aria": null,
+          "selector": ".wallet-metric",
+          "text": "待释放奖励••••完成安全确认后释放"
+        }
+      ],
+      "width": 390
+    },
+    {
+      "label": "warm-hidden-observer-首页",
+      "count": 1,
+      "frames": [
+        {
+          "hidden": "true",
+          "leaks": [],
+          "nodes": [
+            {
+              "aria": "USDT 余额: ••••",
+              "selector": ".nx-wallet-total",
+              "text": "••••"
+            },
+            {
+              "aria": "UVT 余额: •••• UVT",
+              "selector": ".nx-wallet-nex",
+              "text": "•••• UVT"
+            },
+            {
+              "aria": null,
+              "selector": ".wallet-metric",
+              "text": "今日••••"
+            },
+            {
+              "aria": null,
+              "selector": ".wallet-metric",
+              "text": "累计收益••••算力 •••• · 团队 ••••"
+            },
+            {
+              "aria": null,
+              "selector": ".wallet-metric",
+              "text": "确认中收益••••暂不可提现"
+            },
+            {
+              "aria": null,
+              "selector": ".wallet-metric",
+              "text": "待释放奖励••••完成安全确认后释放"
+            }
+          ],
+          "route": "#/pages/me/me",
+          "t": 41251.29999998212
+        }
+      ],
+      "numericLeakFrames": [],
+      "routes": [
+        "#/pages/me/me"
+      ]
+    },
+    {
+      "label": "390ZH-dark-hidden-warm-首页",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "显示资产、收益、算力和团队统计",
+          "pressed": "true",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/",
+      "theme": "dark",
+      "values": [
+        {
+          "aria": null,
+          "selector": ".home-earnings-cluster",
+          "text": "早上好, Alex今日收益USDT••••较昨日 •••• · 已结算 •••• 单"
+        },
+        {
+          "aria": null,
+          "selector": ".network-compact__cell:nth-child(3) .network-compact__value",
+          "text": "••••"
+        }
+      ],
+      "width": 390
+    },
+    {
+      "label": "warm-hidden-mutation-团队",
+      "numericLeakSamples": [],
+      "samples": [
+        {
+          "leaks": [],
+          "pressed": "true",
+          "route": "#/",
+          "t": 61651.69999998808,
+          "values": [
+            {
+              "aria": null,
+              "s": ".home-earnings-cluster",
+              "text": "早上好, Alex今日收益USDT••••较昨日 •••• · 已结算 •••• 单"
+            },
+            {
+              "aria": null,
+              "s": ".network-compact__cell:nth-child(3) .network-compact__value",
+              "text": "••••"
+            }
+          ]
+        },
+        {
+          "leaks": [],
+          "pressed": "true",
+          "route": "#/",
+          "t": 62665.69999998808,
+          "values": [
+            {
+              "aria": null,
+              "s": ".home-earnings-cluster",
+              "text": "早上好, Alex今日收益USDT••••较昨日 •••• · 已结算 •••• 单"
+            },
+            {
+              "aria": null,
+              "s": ".network-compact__cell:nth-child(3) .network-compact__value",
+              "text": "••••"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "warm-hidden-mutation-我的",
+      "numericLeakSamples": [],
+      "samples": [
+        {
+          "leaks": [],
+          "pressed": "true",
+          "route": "#/pages/team/team",
+          "t": 62914.79999998212,
+          "values": [
+            {
+              "aria": null,
+              "s": ".team-ledger__amount",
+              "text": "••••"
+            },
+            {
+              "aria": null,
+              "s": ".team-ledger__nex",
+              "text": "•••• UVT"
+            },
+            {
+              "aria": null,
+              "s": ".team-summary__number",
+              "text": "••••"
+            },
+            {
+              "aria": null,
+              "s": ".team-rank__level",
+              "text": "••••"
+            }
+          ]
+        },
+        {
+          "leaks": [],
+          "pressed": "true",
+          "route": "#/pages/me/me",
+          "t": 63791.69999998808,
+          "values": [
+            {
+              "aria": "USDT 余额: ••••",
+              "s": ".nx-wallet-total",
+              "text": "••••"
+            },
+            {
+              "aria": "UVT 余额: •••• UVT",
+              "s": ".nx-wallet-nex",
+              "text": "•••• UVT"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "今日••••"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "累计收益••••算力 •••• · 团队 ••••"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "确认中收益••••暂不可提现"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "待释放奖励••••完成安全确认后释放"
+            }
+          ]
+        },
+        {
+          "leaks": [],
+          "pressed": "true",
+          "route": "#/pages/me/me",
+          "t": 63800.40000000596,
+          "values": [
+            {
+              "aria": "USDT 余额: ••••",
+              "s": ".nx-wallet-total",
+              "text": "••••"
+            },
+            {
+              "aria": "UVT 余额: •••• UVT",
+              "s": ".nx-wallet-nex",
+              "text": "•••• UVT"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "今日••••"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "累计收益••••算力 •••• · 团队 ••••"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "确认中收益••••暂不可提现"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "待释放奖励••••完成安全确认后释放"
+            }
+          ]
+        },
+        {
+          "leaks": [],
+          "pressed": "true",
+          "route": "#/pages/me/me",
+          "t": 63862.40000000596,
+          "values": [
+            {
+              "aria": "USDT 余额: ••••",
+              "s": ".nx-wallet-total",
+              "text": "••••"
+            },
+            {
+              "aria": "UVT 余额: •••• UVT",
+              "s": ".nx-wallet-nex",
+              "text": "•••• UVT"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "今日••••"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "累计收益••••算力 •••• · 团队 ••••"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "确认中收益••••暂不可提现"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "待释放奖励••••完成安全确认后释放"
+            }
+          ]
+        },
+        {
+          "leaks": [],
+          "pressed": "true",
+          "route": "#/pages/me/me",
+          "t": 63862.90000000596,
+          "values": [
+            {
+              "aria": "USDT 余额: ••••",
+              "s": ".nx-wallet-total",
+              "text": "••••"
+            },
+            {
+              "aria": "UVT 余额: •••• UVT",
+              "s": ".nx-wallet-nex",
+              "text": "•••• UVT"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "今日••••"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "累计收益••••算力 •••• · 团队 ••••"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "确认中收益••••暂不可提现"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "待释放奖励••••完成安全确认后释放"
+            }
+          ]
+        },
+        {
+          "leaks": [],
+          "pressed": "true",
+          "route": "#/pages/me/me",
+          "t": 63868.19999998808,
+          "values": [
+            {
+              "aria": "USDT 余额: ••••",
+              "s": ".nx-wallet-total",
+              "text": "••••"
+            },
+            {
+              "aria": "UVT 余额: •••• UVT",
+              "s": ".nx-wallet-nex",
+              "text": "•••• UVT"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "今日••••"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "累计收益••••算力 •••• · 团队 ••••"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "确认中收益••••暂不可提现"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "待释放奖励••••完成安全确认后释放"
+            }
+          ]
+        },
+        {
+          "leaks": [],
+          "pressed": "true",
+          "route": "#/pages/me/me",
+          "t": 63870.5,
+          "values": [
+            {
+              "aria": "USDT 余额: ••••",
+              "s": ".nx-wallet-total",
+              "text": "••••"
+            },
+            {
+              "aria": "UVT 余额: •••• UVT",
+              "s": ".nx-wallet-nex",
+              "text": "•••• UVT"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "今日••••"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "累计收益••••算力 •••• · 团队 ••••"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "确认中收益••••暂不可提现"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "待释放奖励••••完成安全确认后释放"
+            }
+          ]
+        },
+        {
+          "leaks": [],
+          "pressed": "true",
+          "route": "#/pages/me/me",
+          "t": 63876.5,
+          "values": [
+            {
+              "aria": "USDT 余额: ••••",
+              "s": ".nx-wallet-total",
+              "text": "••••"
+            },
+            {
+              "aria": "UVT 余额: •••• UVT",
+              "s": ".nx-wallet-nex",
+              "text": "•••• UVT"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "今日••••"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "累计收益••••算力 •••• · 团队 ••••"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "确认中收益••••暂不可提现"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "待释放奖励••••完成安全确认后释放"
+            }
+          ]
+        },
+        {
+          "leaks": [],
+          "pressed": "true",
+          "route": "#/pages/me/me",
+          "t": 63916.79999998212,
+          "values": [
+            {
+              "aria": "USDT 余额: ••••",
+              "s": ".nx-wallet-total",
+              "text": "••••"
+            },
+            {
+              "aria": "UVT 余额: •••• UVT",
+              "s": ".nx-wallet-nex",
+              "text": "•••• UVT"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "今日••••"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "累计收益••••算力 •••• · 团队 ••••"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "确认中收益••••暂不可提现"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "待释放奖励••••完成安全确认后释放"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "warm-hidden-mutation-赚取",
+      "numericLeakSamples": [],
+      "samples": [
+        {
+          "leaks": [],
+          "pressed": "true",
+          "route": "#/pages/me/me",
+          "t": 63926,
+          "values": [
+            {
+              "aria": "USDT 余额: ••••",
+              "s": ".nx-wallet-total",
+              "text": "••••"
+            },
+            {
+              "aria": "UVT 余额: •••• UVT",
+              "s": ".nx-wallet-nex",
+              "text": "•••• UVT"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "今日••••"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "累计收益••••算力 •••• · 团队 ••••"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "确认中收益••••暂不可提现"
+            },
+            {
+              "aria": null,
+              "s": ".wallet-metric",
+              "text": "待释放奖励••••完成安全确认后释放"
+            }
+          ]
+        },
+        {
+          "leaks": [],
+          "pressed": "true",
+          "route": "#/pages/earn/earn",
+          "t": 64815.29999998212,
+          "values": [
+            {
+              "aria": null,
+              "s": ".earn-device-value",
+              "text": "••••"
+            },
+            {
+              "aria": null,
+              "s": ".earn-device-value",
+              "text": "••••"
+            }
+          ]
+        },
+        {
+          "leaks": [],
+          "pressed": "true",
+          "route": "#/pages/earn/earn",
+          "t": 64877.79999998212,
+          "values": [
+            {
+              "aria": null,
+              "s": ".earn-device-value",
+              "text": "••••"
+            },
+            {
+              "aria": null,
+              "s": ".earn-device-value",
+              "text": "••••"
+            }
+          ]
+        },
+        {
+          "leaks": [],
+          "pressed": "true",
+          "route": "#/pages/earn/earn",
+          "t": 64878.59999999404,
+          "values": [
+            {
+              "aria": null,
+              "s": ".earn-device-value",
+              "text": "••••"
+            },
+            {
+              "aria": null,
+              "s": ".earn-device-value",
+              "text": "••••"
+            }
+          ]
+        },
+        {
+          "leaks": [],
+          "pressed": "true",
+          "route": "#/pages/earn/earn",
+          "t": 64879.09999999404,
+          "values": [
+            {
+              "aria": null,
+              "s": ".earn-device-value",
+              "text": "••••"
+            },
+            {
+              "aria": null,
+              "s": ".earn-device-value",
+              "text": "••••"
+            }
+          ]
+        },
+        {
+          "leaks": [],
+          "pressed": "true",
+          "route": "#/pages/earn/earn",
+          "t": 64881.09999999404,
+          "values": [
+            {
+              "aria": null,
+              "s": ".earn-device-value",
+              "text": "••••"
+            },
+            {
+              "aria": null,
+              "s": ".earn-device-value",
+              "text": "••••"
+            }
+          ]
+        },
+        {
+          "leaks": [],
+          "pressed": "true",
+          "route": "#/pages/earn/earn",
+          "t": 64881.5,
+          "values": [
+            {
+              "aria": null,
+              "s": ".earn-device-value",
+              "text": "••••"
+            },
+            {
+              "aria": null,
+              "s": ".earn-device-value",
+              "text": "••••"
+            }
+          ]
+        },
+        {
+          "leaks": [],
+          "pressed": "true",
+          "route": "#/pages/earn/earn",
+          "t": 64939.09999999404,
+          "values": [
+            {
+              "aria": null,
+              "s": ".earn-device-value",
+              "text": "••••"
+            },
+            {
+              "aria": null,
+              "s": ".earn-device-value",
+              "text": "••••"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "390ZH-dark-hardreload-hidden",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "显示资产、收益、算力和团队统计",
+          "pressed": "true",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/pages/index/index",
+      "theme": "dark",
+      "values": [
+        {
+          "aria": null,
+          "selector": ".home-earnings-cluster",
+          "text": "早上好, Alex今日收益USDT••••较昨日 •••• · 已结算 •••• 单"
+        },
+        {
+          "aria": null,
+          "selector": ".network-compact__cell:nth-child(3) .network-compact__value",
+          "text": "••••"
+        }
+      ],
+      "width": 390
+    },
+    {
+      "label": "320VI-light-retained-hidden",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "Hiện tài sản, thu nhập, sức mạnh tính toán và thống kê nhóm",
+          "pressed": "true",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/pages/index/index",
+      "theme": "light",
+      "values": [
+        {
+          "aria": null,
+          "selector": ".home-earnings-cluster",
+          "text": "Chào buổi sáng, AlexThu nhập hôm nayUSDT•••••••• so với hôm qua · đã hoàn tất •••• tác vụ"
+        },
+        {
+          "aria": null,
+          "selector": ".network-compact__cell:nth-child(3) .network-compact__value",
+          "text": "••••"
+        }
+      ],
+      "width": 320
+    },
+    {
+      "label": "320VI-light-warm-hidden-Sinh lời",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "Hiện tài sản, thu nhập, sức mạnh tính toán và thống kê nhóm",
+          "pressed": "true",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/pages/earn/earn",
+      "theme": "light",
+      "values": [
+        {
+          "aria": null,
+          "selector": ".earn-device-value",
+          "text": "••••"
+        },
+        {
+          "aria": null,
+          "selector": ".earn-device-value",
+          "text": "••••"
+        }
+      ],
+      "width": 320
+    },
+    {
+      "label": "320VI-light-warm-hidden-Đội nhóm",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "Hiện tài sản, thu nhập, sức mạnh tính toán và thống kê nhóm",
+          "pressed": "true",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/pages/team/team",
+      "theme": "light",
+      "values": [
+        {
+          "aria": null,
+          "selector": ".team-ledger__amount",
+          "text": "••••"
+        },
+        {
+          "aria": null,
+          "selector": ".team-ledger__nex",
+          "text": "•••• UVT"
+        },
+        {
+          "aria": null,
+          "selector": ".team-summary__number",
+          "text": "••••"
+        },
+        {
+          "aria": null,
+          "selector": ".team-rank__level",
+          "text": "••••"
+        }
+      ],
+      "width": 320
+    },
+    {
+      "label": "320VI-light-warm-hidden-Của tôi",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "Hiện tài sản, thu nhập, sức mạnh tính toán và thống kê nhóm",
+          "pressed": "true",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/pages/me/me",
+      "theme": "light",
+      "values": [
+        {
+          "aria": "Số dư USDT: ••••",
+          "selector": ".nx-wallet-total",
+          "text": "••••"
+        },
+        {
+          "aria": "Số dư UVT: •••• UVT",
+          "selector": ".nx-wallet-nex",
+          "text": "•••• UVT"
+        },
+        {
+          "aria": null,
+          "selector": ".wallet-metric",
+          "text": "Hôm nay••••"
+        },
+        {
+          "aria": null,
+          "selector": ".wallet-metric",
+          "text": "Tổng thu nhập tích lũy••••Tính toán •••• · Đội nhóm ••••"
+        },
+        {
+          "aria": null,
+          "selector": ".wallet-metric",
+          "text": "Đang xác nhận••••Rút được sau khi xác nhận"
+        },
+        {
+          "aria": null,
+          "selector": ".wallet-metric",
+          "text": "Thưởng chờ mở khóa••••Mở khóa sau khi xác nhận an toàn"
+        }
+      ],
+      "width": 320
+    },
+    {
+      "label": "320VI-light-space-show-no-navigation",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "Ẩn tài sản, thu nhập, sức mạnh tính toán và thống kê nhóm",
+          "pressed": "false",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/pages/me/me",
+      "theme": "light",
+      "values": [
+        {
+          "aria": "Số dư USDT: $52,800.64",
+          "selector": ".nx-wallet-total",
+          "text": "$52,800.64"
+        },
+        {
+          "aria": "Số dư UVT: 1,280.00 UVT",
+          "selector": ".nx-wallet-nex",
+          "text": "1,280.00 UVT"
+        },
+        {
+          "aria": null,
+          "selector": ".wallet-metric",
+          "text": "Hôm nay+$16.24"
+        },
+        {
+          "aria": null,
+          "selector": ".wallet-metric",
+          "text": "Tổng thu nhập tích lũy$266.24Tính toán $16.24 · Đội nhóm $250.00"
+        },
+        {
+          "aria": null,
+          "selector": ".wallet-metric",
+          "text": "Đang xác nhận$12.50Rút được sau khi xác nhận"
+        },
+        {
+          "aria": null,
+          "selector": ".wallet-metric",
+          "text": "Thưởng chờ mở khóa$50.00Mở khóa sau khi xác nhận an toàn"
+        }
+      ],
+      "width": 320
+    },
+    {
+      "label": "320VI-light-team-restored",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "Ẩn tài sản, thu nhập, sức mạnh tính toán và thống kê nhóm",
+          "pressed": "false",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/pages/team/team",
+      "theme": "light",
+      "values": [
+        {
+          "aria": null,
+          "selector": ".team-ledger__amount",
+          "text": "$250.00"
+        },
+        {
+          "aria": null,
+          "selector": ".team-ledger__nex",
+          "text": "+ 40.00 UVT"
+        },
+        {
+          "aria": null,
+          "selector": ".team-summary__number",
+          "text": "8"
+        },
+        {
+          "aria": null,
+          "selector": ".team-rank__level",
+          "text": "V2"
+        }
+      ],
+      "width": 320
+    },
+    {
+      "label": "320VI-light-enter-hide-no-navigation",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "Hiện tài sản, thu nhập, sức mạnh tính toán và thống kê nhóm",
+          "pressed": "true",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/pages/team/team",
+      "theme": "light",
+      "values": [
+        {
+          "aria": null,
+          "selector": ".team-ledger__amount",
+          "text": "••••"
+        },
+        {
+          "aria": null,
+          "selector": ".team-ledger__nex",
+          "text": "•••• UVT"
+        },
+        {
+          "aria": null,
+          "selector": ".team-summary__number",
+          "text": "••••"
+        },
+        {
+          "aria": null,
+          "selector": ".team-rank__level",
+          "text": "••••"
+        }
+      ],
+      "width": 320
+    },
+    {
+      "label": "320VI-light-reload-retains-hidden",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "Hiện tài sản, thu nhập, sức mạnh tính toán và thống kê nhóm",
+          "pressed": "true",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/pages/index/index",
+      "theme": "light",
+      "values": [
+        {
+          "aria": null,
+          "selector": ".home-earnings-cluster",
+          "text": "Chào buổi sáng, AlexThu nhập hôm nayUSDT•••••••• so với hôm qua · đã hoàn tất •••• tác vụ"
+        },
+        {
+          "aria": null,
+          "selector": ".network-compact__cell:nth-child(3) .network-compact__value",
+          "text": "••••"
+        }
+      ],
+      "width": 390
+    },
+    {
+      "label": "390ZH-dark-rocket-normal",
+      "animations": [
+        {
+          "currentTime": 0,
+          "name": "earn-rocket-hop-23463e95",
+          "playState": "running"
+        },
+        {
+          "currentTime": 0,
+          "name": "earn-rocket-flame-23463e95",
+          "playState": "running"
+        },
+        {
+          "currentTime": 0,
+          "name": "earn-rocket-exhaust-23463e95",
+          "playState": "running"
+        }
+      ],
+      "control": {
+        "duration": "0s",
+        "iteration": "1",
+        "name": "none",
+        "opacity": "1",
+        "rect": {
+          "height": 44,
+          "width": 44,
+          "x": 108.92708587646484,
+          "y": 340
+        },
+        "selector": ".earn-capacity-info",
+        "transform": "none"
+      },
+      "exhaust": {
+        "duration": "0.9s",
+        "iteration": "infinite",
+        "name": "earn-rocket-exhaust-23463e95",
+        "opacity": "0",
+        "rect": {
+          "height": 0.9166666865348816,
+          "width": 7.333333492279053,
+          "x": 127.26042175292967,
+          "y": 371.1666870117187
+        },
+        "selector": ".earn-capacity-info__exhaust",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      "flame": {
+        "duration": "0.72s",
+        "iteration": "infinite",
+        "name": "earn-rocket-flame-23463e95",
+        "opacity": "0.55",
+        "rect": {
+          "height": 2.1999919414520264,
+          "width": 3.7401938438415527,
+          "x": 129.05699157714844,
+          "y": 368.875
+        },
+        "selector": ".earn-capacity-info__flame",
+        "transform": "matrix(1, 0, 0, 0.6, 0, 0)"
+      },
+      "reduce": false,
+      "rocket": {
+        "duration": "1.6s",
+        "iteration": "infinite",
+        "name": "earn-rocket-hop-23463e95",
+        "opacity": "1",
+        "rect": {
+          "height": 18.33333396911621,
+          "width": 12.833333969116213,
+          "x": 124.51042175292967,
+          "y": 353.75
+        },
+        "selector": ".earn-capacity-info__rocket",
+        "transform": "matrix(1, 0, 0, 1, 0, 1)"
+      },
+      "route": "#/pages/earn/earn",
+      "theme": "dark",
+      "width": 390
+    },
+    {
+      "label": "390ZH-dark-rocket-actual-loop-events",
+      "events": []
+    },
+    {
+      "label": "390ZH-dark-after-edge-close",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "显示资产、收益、算力和团队统计",
+          "pressed": "true",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/pages/earn/earn",
+      "theme": "dark",
+      "values": [
+        {
+          "aria": null,
+          "selector": ".earn-device-value",
+          "text": "••••"
+        },
+        {
+          "aria": null,
+          "selector": ".earn-device-value",
+          "text": "••••"
+        }
+      ],
+      "width": 390
+    },
+    {
+      "label": "390ZH-dark-close-transparent-left-edge",
+      "point": {
+        "x": 1274.5,
+        "y": 728.4270935058594
+      },
+      "event": {
+        "label": "关闭",
+        "target": "grid place-items-center active:opacity-70",
+        "trusted": true
+      },
+      "state": {
+        "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+        "eyes": [
+          {
+            "label": "显示资产、收益、算力和团队统计",
+            "pressed": "true",
+            "rect": {
+              "height": 44,
+              "width": 44
+            }
+          }
+        ],
+        "reduce": false,
+        "route": "#/pages/earn/earn",
+        "theme": "dark",
+        "values": [
+          {
+            "aria": null,
+            "selector": ".earn-device-value",
+            "text": "••••"
+          },
+          {
+            "aria": null,
+            "selector": ".earn-device-value",
+            "text": "••••"
+          }
+        ],
+        "width": 390
+      },
+      "focus": "earn-capacity-info"
+    },
+    {
+      "label": "390ZH-dark-rocket-settled-loop",
+      "after": [
+        {
+          "name": "earn-rocket-hop-23463e95",
+          "time": 43467.92300000383
+        },
+        {
+          "name": "earn-rocket-flame-23463e95",
+          "time": 43467.92300000383
+        },
+        {
+          "name": "earn-rocket-exhaust-23463e95",
+          "time": 43467.92300000383
+        }
+      ],
+      "before": [
+        {
+          "name": "earn-rocket-hop-23463e95",
+          "time": 41371.39300000383
+        },
+        {
+          "name": "earn-rocket-flame-23463e95",
+          "time": 41371.39300000383
+        },
+        {
+          "name": "earn-rocket-exhaust-23463e95",
+          "time": 41371.39300000383
+        }
+      ],
+      "events": [
+        {
+          "elapsed": 41.6,
+          "name": "earn-rocket-hop-23463e95"
+        },
+        {
+          "elapsed": 41.76,
+          "name": "earn-rocket-flame-23463e95"
+        },
+        {
+          "elapsed": 41.4,
+          "name": "earn-rocket-exhaust-23463e95"
+        },
+        {
+          "elapsed": 42.48,
+          "name": "earn-rocket-flame-23463e95"
+        },
+        {
+          "elapsed": 42.3,
+          "name": "earn-rocket-exhaust-23463e95"
+        }
+      ]
+    },
+    {
+      "label": "390ZH-dark-rocket-reduce",
+      "animations": [],
+      "control": {
+        "duration": "1e-05s",
+        "iteration": "1",
+        "name": "none",
+        "opacity": "1",
+        "rect": {
+          "height": 44,
+          "width": 44,
+          "x": 108.92708587646484,
+          "y": 328
+        },
+        "selector": ".earn-capacity-info",
+        "transform": "none"
+      },
+      "exhaust": {
+        "duration": "1e-05s",
+        "iteration": "1",
+        "name": "none",
+        "opacity": "0",
+        "rect": {
+          "height": 0.9166666865348816,
+          "width": 7.333333492279053,
+          "x": 127.26042175292967,
+          "y": 358.25
+        },
+        "selector": ".earn-capacity-info__exhaust",
+        "transform": "none"
+      },
+      "flame": {
+        "duration": "1e-05s",
+        "iteration": "1",
+        "name": "none",
+        "opacity": "1",
+        "rect": {
+          "height": 3.6666667461395264,
+          "width": 3.7401938438415527,
+          "x": 129.05699157714844,
+          "y": 355.9583435058594
+        },
+        "selector": ".earn-capacity-info__flame",
+        "transform": "none"
+      },
+      "reduce": true,
+      "rocket": {
+        "duration": "1e-05s",
+        "iteration": "1",
+        "name": "none",
+        "opacity": "1",
+        "rect": {
+          "height": 18.791667938232425,
+          "width": 12.833333969116213,
+          "x": 124.51042175292967,
+          "y": 340.8333435058594
+        },
+        "selector": ".earn-capacity-info__rocket",
+        "transform": "none"
+      },
+      "route": "#/pages/earn/earn",
+      "theme": "dark",
+      "width": 390
+    },
+    {
+      "label": "390ZH-dark-reduce-close",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "显示资产、收益、算力和团队统计",
+          "pressed": "true",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": true,
+      "route": "#/pages/earn/earn",
+      "theme": "dark",
+      "values": [
+        {
+          "aria": null,
+          "selector": ".earn-device-value",
+          "text": "••••"
+        },
+        {
+          "aria": null,
+          "selector": ".earn-device-value",
+          "text": "••••"
+        }
+      ],
+      "width": 390
+    },
+    {
+      "label": "390ZH-dark-reduce-enter-original-dialog-close",
+      "route": "#/pages/earn/earn"
+    },
+    {
+      "label": "320VI-light-after-close",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "Hiện tài sản, thu nhập, sức mạnh tính toán và thống kê nhóm",
+          "pressed": "true",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/pages/earn/earn",
+      "theme": "light",
+      "values": [
+        {
+          "aria": null,
+          "selector": ".earn-device-value",
+          "text": "••••"
+        },
+        {
+          "aria": null,
+          "selector": ".earn-device-value",
+          "text": "••••"
+        }
+      ],
+      "width": 320
+    },
+    {
+      "label": "320VI-light-space-original-dialog-44-close",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "Hiện tài sản, thu nhập, sức mạnh tính toán và thống kê nhóm",
+          "pressed": "true",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/pages/earn/earn",
+      "theme": "light",
+      "values": [
+        {
+          "aria": null,
+          "selector": ".earn-device-value",
+          "text": "••••"
+        },
+        {
+          "aria": null,
+          "selector": ".earn-device-value",
+          "text": "••••"
+        }
+      ],
+      "width": 320
+    },
+    {
+      "label": null,
+      "background": "color(srgb 0.980392 0.968627 0.941176 / 0.48)",
+      "blur": "blur(12px)",
+      "rect": {
+        "height": 60,
+        "width": 260
+      },
+      "role": "button",
+      "route": "#/pages/earn/earn",
+      "theme": "light",
+      "width": 320
+    },
+    {
+      "label": "320VI-light-add-device-route",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [],
+      "reduce": false,
+      "route": "#/pages/store/store",
+      "theme": "light",
+      "values": [],
+      "width": 320
+    },
+    {
+      "label": "320VI-light-store-sheen-running",
+      "cards": [
+        {
+          "animation": {
+            "state": "paused",
+            "time": 0
+          },
+          "bottom": 1153.000030517578,
+          "delay": "0.6s",
+          "display": "block",
+          "duration": "6.8s",
+          "inView": false,
+          "name": "product-auto-sheen-d5693492",
+          "state": "paused",
+          "title": "UVELBox S1Cơ bản · Suy luận mô hình 70B$1,299Ước tính · $6.2",
+          "top": 836.6666870117188
+        },
+        {
+          "animation": {
+            "state": "paused",
+            "time": 0
+          },
+          "bottom": 1153.000030517578,
+          "delay": "1.7s",
+          "display": "block",
+          "duration": "6.8s",
+          "inView": false,
+          "name": "product-auto-sheen-d5693492",
+          "state": "paused",
+          "title": "UVELBox ProCao cấp · Huấn luyện và suy luận 405B$4,999Ước tí",
+          "top": 836.6666870117188
+        },
+        {
+          "animation": {
+            "state": "paused",
+            "time": 0
+          },
+          "bottom": 1484.3333435058594,
+          "delay": "2.8s",
+          "display": "block",
+          "duration": "6.8s",
+          "inView": false,
+          "name": "product-auto-sheen-d5693492",
+          "state": "paused",
+          "title": "UVELBox Pro v2Nâng cao · Suy luận hiệu năng cao$5,999Ước tín",
+          "top": 1165
+        },
+        {
+          "animation": {
+            "state": "paused",
+            "time": 0
+          },
+          "bottom": 1484.3333435058594,
+          "delay": "3.9s",
+          "display": "block",
+          "duration": "6.8s",
+          "inView": false,
+          "name": "product-auto-sheen-d5693492",
+          "state": "paused",
+          "title": "UVELRack P1Máy chủ · Tác vụ song song$12,999Ước tính · $45/n",
+          "top": 1165
+        },
+        {
+          "animation": {
+            "state": "paused",
+            "time": 0
+          },
+          "bottom": 1828.6667175292969,
+          "delay": "0.6s",
+          "display": "block",
+          "duration": "6.8s",
+          "inView": false,
+          "name": "product-auto-sheen-d5693492",
+          "state": "paused",
+          "title": "UVELRack P2Máy chủ cao cấp · Tác vụ tính toán lớn$19,999Ước ",
+          "top": 1496.3333740234375
+        },
+        {
+          "animation": {
+            "state": "paused",
+            "time": 0
+          },
+          "bottom": 1828.6667175292969,
+          "delay": "1.7s",
+          "display": "block",
+          "duration": "6.8s",
+          "inView": false,
+          "name": "product-auto-sheen-d5693492",
+          "state": "paused",
+          "title": "Cloud ShareĐiện toán đám mây · Tham gia linh hoạt$19.90Khoản",
+          "top": 1496.3333740234375
+        }
+      ],
+      "reduce": false,
+      "route": "#/pages/store/store",
+      "theme": "light",
+      "width": 320
+    },
+    {
+      "label": "320VI-light-store-sheen-settled-before",
+      "cards": [
+        {
+          "animation": {
+            "state": "running",
+            "time": 16532.99400000297
+          },
+          "bottom": 545.0000152587891,
+          "delay": "0.6s",
+          "display": "block",
+          "duration": "6.8s",
+          "inView": true,
+          "name": "product-auto-sheen-d5693492",
+          "state": "running",
+          "title": "UVELBox S1Cơ bản · Suy luận mô hình 70B$1,299Ước tính · $6.2",
+          "top": 228.6666717529297
+        },
+        {
+          "animation": {
+            "state": "running",
+            "time": 16532.99400000297
+          },
+          "bottom": 545.0000152587891,
+          "delay": "1.7s",
+          "display": "block",
+          "duration": "6.8s",
+          "inView": true,
+          "name": "product-auto-sheen-d5693492",
+          "state": "running",
+          "title": "UVELBox ProCao cấp · Huấn luyện và suy luận 405B$4,999Ước tí",
+          "top": 228.6666717529297
+        },
+        {
+          "animation": {
+            "state": "running",
+            "time": 16532.99400000297
+          },
+          "bottom": 876.3333435058594,
+          "delay": "2.8s",
+          "display": "block",
+          "duration": "6.8s",
+          "inView": true,
+          "name": "product-auto-sheen-d5693492",
+          "state": "running",
+          "title": "UVELBox Pro v2Nâng cao · Suy luận hiệu năng cao$5,999Ước tín",
+          "top": 557
+        },
+        {
+          "animation": {
+            "state": "running",
+            "time": 16532.99400000297
+          },
+          "bottom": 876.3333435058594,
+          "delay": "3.9s",
+          "display": "block",
+          "duration": "6.8s",
+          "inView": true,
+          "name": "product-auto-sheen-d5693492",
+          "state": "running",
+          "title": "UVELRack P1Máy chủ · Tác vụ song song$12,999Ước tính · $45/n",
+          "top": 557
+        },
+        {
+          "animation": {
+            "state": "paused",
+            "time": 0
+          },
+          "bottom": 1220.6667175292969,
+          "delay": "0.6s",
+          "display": "block",
+          "duration": "6.8s",
+          "inView": false,
+          "name": "product-auto-sheen-d5693492",
+          "state": "paused",
+          "title": "UVELRack P2Máy chủ cao cấp · Tác vụ tính toán lớn$19,999Ước ",
+          "top": 888.3333740234375
+        },
+        {
+          "animation": {
+            "state": "paused",
+            "time": 0
+          },
+          "bottom": 1220.6667175292969,
+          "delay": "1.7s",
+          "display": "block",
+          "duration": "6.8s",
+          "inView": false,
+          "name": "product-auto-sheen-d5693492",
+          "state": "paused",
+          "title": "Cloud ShareĐiện toán đám mây · Tham gia linh hoạt$19.90Khoản",
+          "top": 888.3333740234375
+        }
+      ],
+      "reduce": false,
+      "route": "#/pages/store/store",
+      "theme": "light",
+      "width": 320
+    },
+    {
+      "label": "320VI-light-store-sheen-after1100",
+      "cards": [
+        {
+          "inView": true,
+          "state": "running",
+          "time": 17639.41000000297
+        },
+        {
+          "inView": true,
+          "state": "running",
+          "time": 17639.41000000297
+        },
+        {
+          "inView": true,
+          "state": "running",
+          "time": 17639.41000000297
+        },
+        {
+          "inView": true,
+          "state": "running",
+          "time": 17639.41000000297
+        },
+        {
+          "inView": false,
+          "state": "paused",
+          "time": 0
+        },
+        {
+          "inView": false,
+          "state": "paused",
+          "time": 0
+        }
+      ]
+    },
+    {
+      "label": "320VI-light-store-reduced",
+      "cards": [
+        {
+          "animation": null,
+          "bottom": 545.0000152587891,
+          "delay": "-0.001s",
+          "display": "none",
+          "duration": "1e-05s",
+          "inView": true,
+          "name": "none",
+          "state": "running",
+          "title": "UVELBox S1Cơ bản · Suy luận mô hình 70B$1,299Ước tính · $6.2",
+          "top": 228.6666717529297
+        },
+        {
+          "animation": null,
+          "bottom": 545.0000152587891,
+          "delay": "-0.001s",
+          "display": "none",
+          "duration": "1e-05s",
+          "inView": true,
+          "name": "none",
+          "state": "running",
+          "title": "UVELBox ProCao cấp · Huấn luyện và suy luận 405B$4,999Ước tí",
+          "top": 228.6666717529297
+        },
+        {
+          "animation": null,
+          "bottom": 876.3333435058594,
+          "delay": "-0.001s",
+          "display": "none",
+          "duration": "1e-05s",
+          "inView": true,
+          "name": "none",
+          "state": "running",
+          "title": "UVELBox Pro v2Nâng cao · Suy luận hiệu năng cao$5,999Ước tín",
+          "top": 557
+        },
+        {
+          "animation": null,
+          "bottom": 876.3333435058594,
+          "delay": "-0.001s",
+          "display": "none",
+          "duration": "1e-05s",
+          "inView": true,
+          "name": "none",
+          "state": "running",
+          "title": "UVELRack P1Máy chủ · Tác vụ song song$12,999Ước tính · $45/n",
+          "top": 557
+        },
+        {
+          "animation": null,
+          "bottom": 1220.6667175292969,
+          "delay": "-0.001s",
+          "display": "none",
+          "duration": "1e-05s",
+          "inView": false,
+          "name": "none",
+          "state": "running",
+          "title": "UVELRack P2Máy chủ cao cấp · Tác vụ tính toán lớn$19,999Ước ",
+          "top": 888.3333740234375
+        },
+        {
+          "animation": null,
+          "bottom": 1220.6667175292969,
+          "delay": "-0.001s",
+          "display": "none",
+          "duration": "1e-05s",
+          "inView": false,
+          "name": "none",
+          "state": "running",
+          "title": "Cloud ShareĐiện toán đám mây · Tham gia linh hoạt$19.90Khoản",
+          "top": 888.3333740234375
+        }
+      ],
+      "reduce": true,
+      "route": "#/pages/store/store",
+      "theme": "light",
+      "width": 320
+    },
+    {
+      "label": "320VI-light-warm-return-from-store-hidden",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "Hiện tài sản, thu nhập, sức mạnh tính toán và thống kê nhóm",
+          "pressed": "true",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/pages/earn/earn",
+      "theme": "light",
+      "values": [
+        {
+          "aria": null,
+          "selector": ".earn-device-value",
+          "text": "••••"
+        },
+        {
+          "aria": null,
+          "selector": ".earn-device-value",
+          "text": "••••"
+        }
+      ],
+      "width": 320
+    },
+    {
+      "label": "cleanup-show-via-original-eye",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "Ẩn tài sản, thu nhập, sức mạnh tính toán và thống kê nhóm",
+          "pressed": "false",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/pages/earn/earn",
+      "theme": "light",
+      "values": [
+        {
+          "aria": null,
+          "selector": ".earn-device-value",
+          "text": "$2.34"
+        },
+        {
+          "aria": null,
+          "selector": ".earn-device-value",
+          "text": "$13.90"
+        }
+      ],
+      "width": 320
+    },
+    {
+      "label": "cleanup-final-original-preferences",
+      "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+      "eyes": [
+        {
+          "label": "Ẩn tài sản, thu nhập, sức mạnh tính toán và thống kê nhóm",
+          "pressed": "false",
+          "rect": {
+            "height": 44,
+            "width": 44
+          }
+        }
+      ],
+      "reduce": false,
+      "route": "#/pages/index/index",
+      "theme": "light",
+      "values": [
+        {
+          "aria": null,
+          "selector": ".home-earnings-cluster",
+          "text": "Chào buổi sáng, AlexThu nhập hôm nayUSDT$16.24→ 0.0% so với hôm qua · đã hoàn tất 10 tác vụ"
+        },
+        {
+          "aria": null,
+          "selector": ".network-compact__cell:nth-child(3) .network-compact__value",
+          "text": "#184"
+        }
+      ],
+      "width": 390
+    },
+    {
+      "label": "close-geometry-transcribed-from-this-session-readback",
+      "dark390": {
+        "root": {
+          "x": 328,
+          "y": 501.4270935058594,
+          "width": 44,
+          "height": 44
+        },
+        "face": {
+          "x": 335,
+          "y": 508.4270935058594,
+          "width": 30,
+          "height": 30
+        }
+      },
+      "light320": {
+        "root": {
+          "width": 44,
+          "height": 44
+        },
+        "face": {
+          "width": 30,
+          "height": 30
+        }
+      },
+      "note": "Read directly via CDP before actual closure; earlier tool responses contain full geometry."
+    }
+  ],
+  "cleanup": {
+    "entry": "http://127.0.0.1:5294/assets/index-CFxCm3fm.js",
+    "eyes": [
+      {
+        "label": "Ẩn tài sản, thu nhập, sức mạnh tính toán và thống kê nhóm",
+        "pressed": "false",
+        "rect": {
+          "height": 44,
+          "width": 44
+        }
+      }
+    ],
+    "reduce": false,
+    "route": "#/pages/index/index",
+    "theme": "light",
+    "values": [
+      {
+        "aria": null,
+        "selector": ".home-earnings-cluster",
+        "text": "Chào buổi sáng, AlexThu nhập hôm nayUSDT$16.24→ 0.0% so với hôm qua · đã hoàn tất 10 tác vụ"
+      },
+      {
+        "aria": null,
+        "selector": ".network-compact__cell:nth-child(3) .network-compact__value",
+        "text": "#184"
+      }
+    ],
+    "width": 390,
+    "proxy": {
+      "port": 5294,
+      "mode": "off",
+      "verified": true
+    },
+    "ownTabClosed": true
+  },
+  "notes": [
+    "Preview reload reset the phone-size control to390; the 320VI reload observation is explicitly recorded with actual width390, not claimed as320 reload.",
+    "Initial short RAF watches yielded0/1frames; they are not continuous anti-flash proof. Separate scoped MutationObservers recorded2/9/8 snapshots with zero numeric leaks during Team/Me/Earn warm navigation.",
+    "Initial rocket event window returned no events before settled followup; accepted settled observation contains five actual iteration events and >2s animation-time advance.",
+    "Initial store read immediately following native scroll precedes final scroll settling. Accepted settled read has first4 in-view/running and last2 offscreen/paused."
+  ],
+  "browser": {
+    "name": "Chrome via official CUA",
+    "browserId": "4",
+    "ownTabId": "1733373187",
+    "url": "http://127.0.0.1:5294/preview"
+  }
+}

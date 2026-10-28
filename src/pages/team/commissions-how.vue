@@ -4,14 +4,14 @@
     <view class="pb-8" style="color: var(--v5-ink)">
       <SubPageHeader :title="t.headerTitles.teamCommissions + t.headerTitles.howItWorksSuffix" back="/pages/team/commissions" />
 
-      <HowHero kind="ledger" v-if="!state.loading && !state.error && !content.incomplete" :label="w.heroLabel" :title="s(sectionId.hero).title" :sub="s(sectionId.hero).body" accent="lemon" />
+      <HowHero kind="ledger" v-if="!state.error && !content.incomplete" :label="w.heroLabel" :title="s(sectionId.hero).title" :sub="s(sectionId.hero).body" accent="lemon" />
 
-      <view v-if="state.loading || state.error || content.incomplete" class="mx-4" style="padding: 18px 0; border-block: 1px solid var(--v5-border)" aria-live="polite">
+      <view v-if="(state.loading && !state.snapshot) || state.error || content.incomplete" class="mx-4" style="padding: 18px 0; border-block: 1px solid var(--v5-border)" aria-live="polite">
         <text class="block" :style="paraStyle">{{ state.loading ? content.copy.loading : content.copy.unavailable }}</text>
-        <view v-if="!state.loading" role="button" tabindex="0" class="reward-cta" style="margin-top: 12px" @click="reload" @keydown.enter.prevent="reload" @keydown.space.prevent="reload"><text>{{ content.copy.retry }}</text></view>
+        <view v-if="!state.loading" role="button" tabindex="0" class="nx-card-recovery-action nx-card-recovery-action--glass" @click="reload" @keydown.enter.prevent="reload" @keydown.space.prevent="reload"><text>{{ content.copy.retry }}</text></view>
       </view>
 
-      <template v-if="!state.loading && !state.error && !content.incomplete">
+      <template v-if="!state.error && !content.incomplete">
       <HowSection :title="s(sectionId.overview).title" accent="lemon">
         <template #icon>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
@@ -113,7 +113,7 @@
 
       <view class="mx-4 mt-6">
         <view class="flex items-center justify-center active:scale-[0.98] reward-cta reward-cta--wide" role="button" tabindex="0" @click="goBack" @keydown.enter.prevent="goBack" @keydown.space.prevent="goBack">
-          <text >{{ state.loading || state.error || content.incomplete ? auditCopy.backCommissions : s(sectionId.footer, w.ctaBack).title }}</text>
+          <text >{{ auditCopy.backCommissions }}</text>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
         </view>
       </view>
@@ -124,7 +124,7 @@
 
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import RewardPageSurface from "@/components/team/reward-page-surface.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -134,9 +134,12 @@ import HowIconRow from "@/components/team/reward-rule-block.vue";
 import HowCalloutBox from "@/components/team/reward-rule-block.vue";
 import HowFaqRow from "@/components/team/reward-rule-block.vue";
 import { useT } from "@/i18n/use-t";
+import { useApp } from '@/store/app';
+import { useAuth } from '@/store/auth';
+import { captureAccountScope, isCurrentAccountScope } from '@/lib/account-scope';
 import { useLocaleStore } from "@/store/locale";
 import { networkReauditCopy } from "@/i18n/network-reaudit";
-import { apiClient, expectedApiEnvironment, howContentApi, vRankApi } from "@/api/runtime";
+import { apiClient, apiRuntimeConfig, expectedApiEnvironment, howContentApi, vRankApi } from "@/api/runtime";
 import { createCommissionGuideApi } from "@/api/commission-guide-api";
 import { createDirectReferralApi } from "@/api/direct-referral-api";
 import { buildCommissionsHowContent, createCommissionsHowResource, type CommissionsHowState } from "@/lib/commissions-how-content";
@@ -145,11 +148,21 @@ import { navBack } from "@/lib/route";
 const t = useT();
 const w = computed(() => t.value.commissionsHowItWorks);
 const locale = useLocaleStore();
+const app = useApp();
+const auth = useAuth();
+const readEnvironment = [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const;
+let environmentInvalidated = false;
+watch(() => [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const, () => { environmentInvalidated = true; }, { flush: 'sync' });
+const environmentCurrent = () => !environmentInvalidated && readEnvironment[0] === apiRuntimeConfig.environment && readEnvironment[1] === apiRuntimeConfig.baseUrl;
 const auditCopy = computed(() => networkReauditCopy(locale.code));
 const state = ref<CommissionsHowState>({ loading: true, error: false, snapshot: null });
 const commissionGuideApi = createCommissionGuideApi(apiClient, expectedApiEnvironment);
 const directReferralApi = createDirectReferralApi(apiClient, expectedApiEnvironment);
-const resource = createCommissionsHowResource({
+let resourceOwner = captureAccountScope();
+function makeResource() {
+  const owner = captureAccountScope(), language = locale.code;
+  resourceOwner = owner;
+  return createCommissionsHowResource({
   async read(language) {
     const [document, directPolicy, guide, ladder] = await Promise.all([
       howContentApi.published("team-commissions-how", language),
@@ -157,8 +170,13 @@ const resource = createCommissionsHowResource({
     ]);
     return { document, directPolicy, guide, ranks: ladder.ranks };
   },
-  apply: next => { state.value = next; },
+  apply: next => {
+    if (!isCurrentAccountScope(owner) || language !== locale.code || !environmentCurrent()) return;
+    state.value = next.loading && state.value.snapshot ? { ...state.value, loading: true, error: false } : next;
+  },
 });
+}
+let resource = makeResource();
 const content = computed(() => buildCommissionsHowContent(state.value.snapshot, locale.code));
 const s = (id: string, fallback?: string) => content.value.section(id, fallback);
 const sectionId = {
@@ -173,10 +191,16 @@ const sectionId = {
 const channels = computed(() => ["network", "binary", "peer", "cultivation", "leadership", "genesis"].map(id => ({
   ...s(id),
 })));
-function reload() { void resource.load(locale.code); }
+function reload() {
+  if (!isCurrentAccountScope(resourceOwner)) { resource.dispose(); resource = makeResource(); }
+  if (environmentCurrent() && auth.isAuthenticated) void resource.load(locale.code);
+}
 onShow(reload);
-watch(() => locale.code, reload);
-onUnmounted(resource.dispose);
+onHide(() => { resource.dispose(); resource = makeResource(); });
+watch(() => [app.accountKey, app.accountBindingEpoch, auth.isAuthenticated, locale.code, apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const, () => {
+  resource.dispose(); state.value = { loading: true, error: false, snapshot: null }; resource = makeResource(); reload();
+}, { flush: 'sync' });
+onUnmounted(() => resource.dispose());
 
 function goBack() {
   navBack("/pages/team/commissions");

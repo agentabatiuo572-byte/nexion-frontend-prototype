@@ -147,7 +147,7 @@ export async function directPage(options: { locale?: keyof typeof dictionaries; 
     "@/store/app": { useApp: () => app }, "@/store/auth": { useAuth: () => auth },
     "@/api/direct-referral-api": { createDirectReferralApi: () => api },
     "@/api/team-insights-api": { createTeamInsightsApi: () => purchaseApi },
-    "@/api/runtime": { apiClient: {}, expectedApiEnvironment: "prod", remoteApiEnabled: true, sessionVault: { read: () => ({ user: { userId: Number(app.accountKey.split(":")[1] || 607) } }) } },
+    "@/api/runtime": { apiClient: {}, apiRuntimeConfig: { environment: 'prod', baseUrl: 'https://fixture.invalid' }, expectedApiEnvironment: "prod", remoteApiEnabled: true, sessionVault: { read: () => ({ user: { userId: Number(app.accountKey.split(":")[1] || 607) } }) } },
     "@/lib/binary-session-ready": { binarySessionReady }, "@/lib/binary-read-coalescer": { createScopedReadCoalescer },
     "@/lib/account-scope": { captureAccountScope: () => app.accountBindingEpoch, isCurrentAccountScope: (epoch: number) => epoch === app.accountBindingEpoch },
     "@/api/order-api": { captureRuntimeRevision: () => ({ epoch: runtimeEpoch, runId: null }), isCurrentRuntimeRevision: (scope: { epoch: number }) => scope.epoch === runtimeEpoch,

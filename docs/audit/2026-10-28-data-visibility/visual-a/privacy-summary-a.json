@@ -1,0 +1,769 @@
+[
+  {
+    "label": "privacy-home-320-vi-light-shown",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "false",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-home-320-vi-light-hidden",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "true",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-home-320-vi-light-hidden-lower",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "true",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-earn-320-vi-light-hidden",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "true",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-earn-320-vi-light-shown",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "false",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-earn-320-vi-light-slot",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "false",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-team-320-vi-light-shown",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "false",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": [
+      {
+        "text": "Xem chi tiết",
+        "left": 220.6875,
+        "right": 304,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "label": "privacy-team-320-vi-light-hidden",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "true",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": [
+      {
+        "text": "Xem chi tiết",
+        "left": 220.6875,
+        "right": 304,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "label": "privacy-team-320-vi-light-graph-hidden",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "true",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": [
+      {
+        "text": "Xem chi tiết",
+        "left": 220.6875,
+        "right": 304,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "label": "privacy-team-320-vi-light-graph-shown",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "false",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": [
+      {
+        "text": "Xem chi tiết",
+        "left": 220.6875,
+        "right": 304,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "label": "privacy-wallet-320-vi-light-hidden",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "true",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-wallet-320-vi-light-shown",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "false",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-persist-reload-home-320-vi-light",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "true",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-home-320-vi-dark-hidden",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#F5F7FA",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "true",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-home-320-vi-dark-shown",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#F5F7FA",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "false",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-earn-320-vi-dark-hidden",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#F5F7FA",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "true",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-earn-320-vi-dark-shown",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#F5F7FA",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "false",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-earn-320-vi-dark-slot",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#F5F7FA",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "false",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-team-320-vi-dark-shown",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#F5F7FA",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "false",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": [
+      {
+        "text": "Xem chi tiết",
+        "left": 220.6875,
+        "right": 304,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "label": "privacy-team-320-vi-dark-hidden",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#F5F7FA",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "true",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": [
+      {
+        "text": "Xem chi tiết",
+        "left": 220.6875,
+        "right": 304,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "label": "privacy-wallet-320-vi-dark-hidden",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#F5F7FA",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "true",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-wallet-320-vi-dark-shown",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#F5F7FA",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "false",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-home-320-vi-dark-rank-leak",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#F5F7FA",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "true",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-home-390-zh-dark-hidden",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 390,
+    "theme": "#F5F7FA",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "true",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-home-390-zh-dark-shown",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 390,
+    "theme": "#F5F7FA",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "false",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-earn-390-zh-dark-hidden",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 390,
+    "theme": "#F5F7FA",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "true",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-earn-390-zh-dark-shown",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 390,
+    "theme": "#F5F7FA",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "false",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-earn-390-zh-dark-expanded-shown",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 390,
+    "theme": "#F5F7FA",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "false",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-earn-390-zh-dark-expanded-hidden",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 390,
+    "theme": "#F5F7FA",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "true",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-team-390-zh-dark-hidden",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 390,
+    "theme": "#F5F7FA",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "true",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": [
+      {
+        "text": "查看明细",
+        "left": 307,
+        "right": 374,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "label": "privacy-team-390-zh-dark-shown",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 390,
+    "theme": "#F5F7FA",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "false",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": [
+      {
+        "text": "查看明细",
+        "left": 307,
+        "right": 374,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "label": "privacy-team-390-zh-dark-lower-hidden",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 390,
+    "theme": "#F5F7FA",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "true",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": [
+      {
+        "text": "查看明细",
+        "left": 307,
+        "right": 374,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "label": "privacy-wallet-390-zh-dark-hidden",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 390,
+    "theme": "#F5F7FA",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "true",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-wallet-390-zh-dark-shown",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 390,
+    "theme": "#F5F7FA",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "false",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-home-390-zh-light-hidden",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 390,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "true",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-home-390-zh-light-shown",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 390,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "false",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-earn-390-zh-light-hidden",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 390,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "true",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-earn-390-zh-light-shown",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 390,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "false",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-team-390-zh-light-shown",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 390,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "false",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": [
+      {
+        "text": "查看明细",
+        "left": 307,
+        "right": 374,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "label": "privacy-team-390-zh-light-hidden",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 390,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "true",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": [
+      {
+        "text": "查看明细",
+        "left": 307,
+        "right": 374,
+        "height": 44
+      }
+    ]
+  },
+  {
+    "label": "privacy-wallet-390-zh-light-hidden",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 390,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "true",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-wallet-390-zh-light-shown",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 390,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "false",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  },
+  {
+    "label": "privacy-store-390-zh-light-sheen",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 390,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [],
+    "details": []
+  },
+  {
+    "label": "privacy-store-390-zh-light-sheen-active",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 390,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [],
+    "details": []
+  },
+  {
+    "label": "privacy-store-390-zh-dark-sheen",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 390,
+    "theme": "#F5F7FA",
+    "overflow": false,
+    "toggles": [],
+    "details": []
+  },
+  {
+    "label": "privacy-store-320-vi-dark-sheen",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#F5F7FA",
+    "overflow": false,
+    "toggles": [],
+    "details": []
+  },
+  {
+    "label": "privacy-store-320-vi-light-sheen",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [],
+    "details": []
+  },
+  {
+    "label": "privacy-earn-320-vi-light-explainer",
+    "entry": "/assets/index-BfQ3iod9.js",
+    "width": 320,
+    "theme": "#13141A",
+    "overflow": false,
+    "toggles": [
+      {
+        "pressed": "true",
+        "width": 44,
+        "height": 44
+      }
+    ],
+    "details": []
+  }
+]

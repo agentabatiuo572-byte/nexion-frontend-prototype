@@ -21,7 +21,7 @@ function harness(top = 0, maximum = 800, tabKey?: string) {
   const root = {
     dataset: {} as Record<string, string>,
     querySelector: vi.fn(() => scroll),
-    querySelectorAll: vi.fn(() => targets),
+    querySelectorAll: vi.fn((selector: string) => selector === ".nx-tab-content" ? [] : targets),
   };
   const disconnect = vi.fn(), observe = vi.fn();
   let mutation: (() => void) | undefined;

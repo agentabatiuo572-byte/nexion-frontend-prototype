@@ -6,7 +6,7 @@
         <TeamLedgerCard
           :available="ledgerVisible"
           :loading="ledgerLoading"
-          :failed="ledgerFailed"
+          :failed="ledgerFailureFeedback"
           :total-u-s-d-t-lifetime="totalUSDTLifetime"
           :contributors="commissionAggregate.contributorCount"
           :direct-u-s-d-t="directUSDT"
@@ -24,7 +24,8 @@
         <view class="team-overview-grid">
         <TeamSummaryCard
           :status="teamSummaryStatus"
-          :has-snapshot="network.hasRemoteSnapshot"
+          :has-snapshot="network.hasRemoteSnapshot && displayCatalogValid"
+          :transient-failure="network.remoteTransientFailure"
           :total="network.totalMembers"
           :direct="byLayerBuckets[1].length"
           @invite="inviteCard?.openShare()"
@@ -37,9 +38,10 @@
           <view class="team-rank__header"><text class="team-rank__title">{{ designCopy.myRank }}</text><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></view>
           <view class="team-rank__emblem">
             <view class="team-rank__outline"><svg width="68" height="78" viewBox="0 0 68 78" fill="none" aria-hidden="true"><path d="M34 2 65 20v38L34 76 3 58V20Z" fill="var(--v5-surface)" stroke="var(--v5-ink-2)" stroke-width="2"/><path d="M34 6 61 22v34L34 72 7 56V22Z" stroke="var(--v5-brand)" stroke-opacity=".25"/></svg></view>
-            <text class="team-rank__level">{{ remoteApiEnabled && !vrank.remoteReady ? 'V—' : `V${myRank}` }}</text>
+            <text class="team-rank__level">{{ visibility.mask(myRankDisplay) }}</text>
           </view>
           <text class="team-rank__hint">{{ designCopy.benefitsAndRewards }}</text>
+          <view v-if="vrank.remoteError" class="team-rank__status" role="status"><text>{{ t.rank.loadError }}</text><view class="team-rank__retry" role="button" tabindex="0" @click.stop="vrank.refreshCanonicalVRank()" @keydown.enter.stop.prevent="vrank.refreshCanonicalVRank()" @keydown.space.stop.prevent="vrank.refreshCanonicalVRank()">{{ t.rank.retry }}</view></view>
         </view>
 
         </view>
@@ -79,7 +81,7 @@
               </view>
             </view>
             <view :style="quickRowValueWrapStyle">
-              <text class="font-display tabular-nums" :style="quickRowValueStyle">{{ totalMembersCountText }}</text>
+              <text class="font-display tabular-nums" :style="quickRowValueStyle">{{ visibility.mask(totalMembersCountText) }}</text>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
             </view>
           </view>
@@ -94,11 +96,11 @@
               </view>
               <view class="flex-1 min-w-0">
                 <text class="block" :style="quickRowTitleStyle">{{ t.teamV3.todayMatch }}</text>
-                <text class="block" :style="quickRowMetaStyle">A · {{ leftVolText }}  /  B · {{ rightVolText }}</text>
+                <text class="block" :style="quickRowMetaStyle">A · {{ visibility.mask(leftVolText) }}  /  B · {{ visibility.mask(rightVolText) }}</text>
               </view>
             </view>
             <view :style="quickRowValueWrapStyle">
-              <view class="team-estimate"><text class="team-estimate__label">{{ designCopy.estimated }}</text><text class="font-display tabular-nums" :style="quickRowValueStyle">{{ binaryMatchText }}</text></view>
+              <view class="team-estimate"><text class="team-estimate__label">{{ designCopy.estimated }}</text><text class="font-display tabular-nums" :style="quickRowValueStyle">{{ visibility.mask(binaryMatchText) }}</text></view>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
             </view>
           </view>
@@ -117,7 +119,7 @@
               </view>
             </view>
             <view :style="quickRowValueWrapStyle">
-              <view class="team-estimate"><text v-if="leadershipPoolUnlocked && remotePoolReadable" class="team-estimate__label">{{ designCopy.estimated }}</text><text class="font-display tabular-nums" :style="quickRowValueStyle">{{ leadershipPoolPrimary }}</text></view>
+              <view class="team-estimate"><text v-if="leadershipPoolUnlocked && remotePoolReadable" class="team-estimate__label">{{ designCopy.estimated }}</text><text class="font-display tabular-nums" :style="quickRowValueStyle">{{ visibility.mask(leadershipPoolPrimary) }}</text></view>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
             </view>
           </view>
@@ -139,6 +141,7 @@
 </template>
 
 <script setup lang="ts">
+import { runPassiveTabRead, invalidatePassiveTabRead, passiveTabReadScope } from "@/lib/passive-tab-read";
 import { formatUsd } from "@/lib/usd-display";
 import { formatComputePoints, sumComputePoints } from "@/i18n/compute-points";
 import ReferralProgress from '@/components/promotion/referral-progress.vue';
@@ -161,27 +164,42 @@ import { useLocaleStore } from "@/store/locale";
 import { useNetwork } from "@/store/network";
 import { useCommission } from "@/store/commission";
 import { useLeadershipPool } from "@/store/leadership-pool";
-import { remoteApiEnabled, teamInsightsApi } from "@/api/runtime";
-import type { TeamLeadershipPoolSnapshot } from "@/api/team-insights-api";
+import { apiRuntimeConfig, remoteApiEnabled, teamInsightsApi } from "@/api/runtime";
+import { productCatalogState, productCatalogDisplayProof, isProductCatalogDisplayCurrent } from "@/store/product-catalog";
+import type { TeamCommissionSnapshot, TeamLeadershipPoolSnapshot } from "@/api/team-insights-api";
 import { leadershipPoolFailureState } from "@/lib/leadership-pool-state";
 import { useReferralReward } from "@/store/referral-reward";
 import { useApp } from "@/store/app";
+import { useDataVisibility } from '@/store/data-visibility';
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
 import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 
 const t = useT();
+const visibility = useDataVisibility();
 const app = useApp();
 const vrank = useVRank();
 const locale = useLocaleStore();
 const network = useNetwork();
 const commission = useCommission();
+type LedgerPresentation = Pick<TeamCommissionSnapshot["aggregate"], "totalUSDT" | "contributorCount" | "directUSDT" | "extendedUSDT" | "monthUSDT" | "monthNEX" | "unlockedUSDT" | "coolingUSDT">;
+const ledgerPresentation = ref<LedgerPresentation | null>(null);
+const rankPresentation = ref<number | null>(null);
+const displayEnvironmentInvalidated = ref(false);
+watch(() => [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl], () => { displayEnvironmentInvalidated.value = true; }, { flush: "sync" });
+const displayCatalogValid = computed(() => !displayEnvironmentInvalidated.value && productCatalogDisplayProof.value !== null
+  && isProductCatalogDisplayCurrent() && (productCatalogState.status === "error" || productCatalogState.status === "loading"
+    || (productCatalogState.serverCanonical && productCatalogState.sourceEnvironment === "PRODUCTION" && productCatalogState.runId === "")));
+const ledgerFailureFeedback = ref(false);
 const ledgerFailed = computed(() => remoteApiEnabled && (network.remoteStatus === "error" || commission.eventsStatus === "error"));
 const ledgerLoading = computed(() => remoteApiEnabled && !ledgerFailed.value
   && (network.remoteStatus !== "ready" || commission.eventsStatus !== "ready"));
-const ledgerVisible = computed(() => !remoteApiEnabled || (!ledgerFailed.value
-  && network.hasRemoteSnapshot && commission.eventsEvidence !== null));
+const ledgerStrictFailure = computed(() => (network.remoteStatus === "error" && !network.remoteTransientFailure)
+  || (commission.eventsStatus === "error" && !commission.eventsTransientFailure));
+const ledgerVisible = computed(() => !remoteApiEnabled || (!ledgerStrictFailure.value
+  && network.hasRemoteSnapshot && ledgerPresentation.value !== null));
 const networkReadable = computed(() => !remoteApiEnabled || network.remoteStatus === "ready"
-  || (network.remoteStatus === "loading" && network.hasRemoteSnapshot));
+  || (displayCatalogValid.value && network.hasRemoteSnapshot && (network.remoteStatus === "loading"
+    || (network.remoteStatus === "error" && network.remoteTransientFailure))));
 const pool = useLeadershipPool();
 const referralRewards = useReferralReward();
 const remotePool = ref<TeamLeadershipPoolSnapshot | null>(null);
@@ -190,15 +208,41 @@ const remotePoolReadable = computed(() => !remoteApiEnabled || remotePoolState.v
   || (remotePoolState.value === "loading" && remotePool.value !== null));
 let remotePoolRequest = 0;
 let remotePoolMounted = true;
+function clearTeamPresentation() {
+  ledgerFailureFeedback.value = false;
+  ledgerPresentation.value = null; rankPresentation.value = null;
+  remotePoolRequest += 1; remotePool.value = null; remotePoolState.value = "idle";
+}
+watch([ledgerFailed, () => network.remoteStatus === "ready" && commission.eventsStatus === "ready"], ([failed, ready]) => {
+  if (failed) ledgerFailureFeedback.value = true;
+  else if (ready) ledgerFailureFeedback.value = false;
+}, { immediate: true, flush: "sync" });
+watch(() => [app.accountKey, app.accountBindingEpoch, apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl, locale.code], clearTeamPresentation, { flush: "sync" });
+watch(() => locale.code, () => { commission.invalidateReadOwner(); network.invalidateReadOwner(); vrank.invalidateReadOwner(); }, { flush: "sync" });
+watch(displayCatalogValid, valid => { if (!valid) clearTeamPresentation(); }, { flush: "sync" });
+watch([() => commission.eventsStatus, () => commission.eventsEvidence, () => network.remoteStatus, () => network.remoteTransientFailure, () => commission.eventsTransientFailure], () => {
+  if (ledgerStrictFailure.value) { ledgerPresentation.value = null; return; }
+  const evidence = commission.eventsEvidence;
+  if (!displayCatalogValid.value || commission.eventsStatus !== "ready" || !evidence?.serverCanonical
+    || evidence.sourceEnvironment !== "PRODUCTION" || evidence.runId !== "") return;
+  const { totalUSDT, contributorCount, directUSDT, extendedUSDT, monthUSDT, monthNEX, unlockedUSDT, coolingUSDT } = evidence.aggregate;
+  const values = { totalUSDT, contributorCount, directUSDT, extendedUSDT, monthUSDT, monthNEX, unlockedUSDT, coolingUSDT };
+  if (Object.values(values).every(value => typeof value === "number" && Number.isFinite(value) && value >= 0)) ledgerPresentation.value = values;
+  else ledgerPresentation.value = null;
+}, { immediate: true, flush: "sync" });
+watch([() => vrank.remoteReady, () => vrank.remoteError, () => vrank.myRank, () => vrank.remoteTransientFailure], () => {
+  if (vrank.remoteError && !vrank.remoteTransientFailure) { rankPresentation.value = null; return; }
+  if (displayCatalogValid.value && vrank.remoteReady) rankPresentation.value = vrank.myRank;
+}, { immediate: true, flush: "sync" });
 
 const designCopy = computed(() => teamRedesignCopy(locale.code));
 const myRank = computed(() => vrank.myRank);
 // 头衔显示名按语言取(中文界面出中文头衔),拼法收在 lib/v-rank-copy;远端档位未到仍显示 V—
-const myRankDisplay = computed(() => (remoteApiEnabled && !vrank.remoteReady ? "V—" : rankLabel(vrank.myRank, locale.code, vrank.ladder)));
+const myRankDisplay = computed(() => remoteApiEnabled ? rankPresentation.value === null ? "V—" : `V${rankPresentation.value}` : `V${myRank.value}`);
 const members = computed(() => network.members);
 const localTotalMembersCount = computed(() => network.totalMembers);
 const events = computed(() => commission.events);
-const commissionAggregate = computed(() => commission.eventsEvidence?.aggregate ?? {
+const commissionAggregate = computed(() => ledgerPresentation.value ?? {
   totalUSDT: 0, totalNEX: 0, directUSDT: 0, extendedUSDT: 0, contributorCount: 0,
 });
 
@@ -245,7 +289,7 @@ const ledger = computed(() => {
     else eU += e.amountUSDT;
   }
   if (remoteApiEnabled) {
-    return { monthUSDT: commission.monthUSDT(), monthNEX: commission.monthNEX(), unlockedUSDT: commission.unlockedUSDT(), coolingUSDT: commission.coolingUSDT(),
+    return { monthUSDT: ledgerPresentation.value?.monthUSDT ?? 0, monthNEX: ledgerPresentation.value?.monthNEX ?? 0, unlockedUSDT: ledgerPresentation.value?.unlockedUSDT ?? 0, coolingUSDT: ledgerPresentation.value?.coolingUSDT ?? 0,
       totalUSDTLifetime: commissionAggregate.value.totalUSDT,
       directUSDT: commissionAggregate.value.directUSDT,
       extendedUSDT: commissionAggregate.value.extendedUSDT };
@@ -293,7 +337,7 @@ const leadershipPoolPrimary = computed(() =>
   !remotePoolReadable.value ? "—" : formatUsd(leadershipPoolUnlocked.value ? projectedPayout.value : leadershipPoolTotal.value),
 );
 const leadershipPoolLineA = computed(() =>
-  !remotePoolReadable.value ? (remotePoolState.value === "hold" ? t.value.pool.settlementHoldShort : remotePoolState.value === "loading" ? t.value.pool.loading : t.value.network.projectionErrorDesc) : leadershipPoolUnlocked.value ? `${myVotes.value} ${t.value.teamV3.votes}` : `V${leadershipUnlockRank.value}`,
+  !remotePoolReadable.value ? (remotePoolState.value === "hold" ? t.value.pool.settlementHoldShort : remotePoolState.value === "loading" ? t.value.pool.loading : t.value.network.projectionErrorDesc) : leadershipPoolUnlocked.value ? `${visibility.mask(myVotes.value)} ${t.value.teamV3.votes}` : `V${leadershipUnlockRank.value}`,
 );
 const poolThisWeekText = computed(() => {
   const rate = remoteApiEnabled ? remotePool.value?.injectRate : 0.05;
@@ -305,7 +349,7 @@ const poolThisWeekText = computed(() => {
 // lineA,操作入口是整行点击进详情页;此前这里塞过 t.network.retry(「重新加载」),把一个
 // 动作标签放进了状态位,还留下一个悬空的「/」(zentao #206)。
 const leadershipPoolLineB = computed(() =>
-  !remotePoolReadable.value ? "" : leadershipPoolUnlocked.value ? `${(myShare.value * 100).toFixed(2)}%` : poolThisWeekText.value,
+  !remotePoolReadable.value ? "" : leadershipPoolUnlocked.value ? visibility.mask(`${(myShare.value * 100).toFixed(2)}%`) : poolThisWeekText.value,
 );
 
 function go(url: string) {
@@ -326,25 +370,26 @@ onMounted(() => {
 onShow(() => {
   remotePoolVisible = true;
   if (!remoteApiEnabled) return;
-  void vrank.refreshCanonicalVRank();
-  void commission.refreshCanonicalBinary();
-  void commission.refreshCanonicalEvents();
-  void network.refreshCanonicalNetwork();
-  void refreshRemotePool();
+  void vrank.ensureCanonicalVRank();
+  void commission.ensureCanonicalBinary();
+  void commission.ensureCanonicalEvents();
+  void network.ensureCanonicalNetwork();
+  void refreshRemotePool(true);
 });
 onHide(() => { remotePoolVisible = false; remotePoolRequest += 1; });
-async function refreshRemotePool() {
-  if (!remoteApiEnabled || !remotePoolVisible) return;
+async function refreshRemotePool(passive = false) {
+  if (!remoteApiEnabled || !remotePoolVisible || displayEnvironmentInvalidated.value) return;
   const request = ++remotePoolRequest;
   const accountKey = app.accountKey;
   const accountScope = captureAccountScope();
+  const readScope = passiveTabReadScope();
   const runScope = captureRuntimeRevision();
-  remotePoolState.value = "loading";
+  if (!passive || !["error", "hold"].includes(remotePoolState.value)) remotePoolState.value = "loading";
   const current = () => remotePoolMounted && remotePoolVisible && request === remotePoolRequest
     && accountKey === app.accountKey && isCurrentAccountScope(accountScope)
-    && isCurrentRuntimeRevision(runScope);
+    && isCurrentRuntimeRevision(runScope) && readScope === passiveTabReadScope();
   try {
-    const snapshot = await teamInsightsApi.leadershipPool();
+    const snapshot = await (passive ? runPassiveTabRead('leadership-pool', () => teamInsightsApi.leadershipPool()) : (invalidatePassiveTabRead('leadership-pool'), teamInsightsApi.leadershipPool()));
     if (!current()) return;
     remotePool.value = snapshot;
     remotePoolState.value = "ready";
@@ -357,13 +402,15 @@ async function refreshRemotePool() {
 async function refreshRemoteLedger() {
   await Promise.allSettled([network.refreshCanonicalNetwork(), commission.refreshCanonicalEvents()]);
 }
-watch(() => app.accountKey, () => { if (remoteApiEnabled) { remotePool.value = null; void refreshRemotePool(); } });
-const unsubscribeRemotePoolRun = subscribeRuntimeRevision(() => {
+watch(() => app.accountKey, () => { if (remoteApiEnabled) { remotePool.value = null; void refreshRemotePool(true); } });
+const unsubscribeRemotePoolRun = subscribeRuntimeRevision(scope => {
+  invalidatePassiveTabRead("leadership-pool");
+  if (!isProductCatalogDisplayCurrent(scope)) clearTeamPresentation();
   if (!remoteApiEnabled || !remotePoolMounted || !remotePoolVisible) return;
   remotePoolRequest += 1;
-  remotePool.value = null;
+  if (!displayCatalogValid.value) remotePool.value = null;
   remotePoolState.value = "loading";
-  void refreshRemotePool();
+  void refreshRemotePool(true);
 });
 onUnmounted(() => {
   if (unlockTimer) clearInterval(unlockTimer);
@@ -556,6 +603,8 @@ const teamSummaryStatus = computed(() => remoteApiEnabled ? network.remoteStatus
 .team-rank__outline { position: absolute; inset: 0; }
 .team-rank__title { display: block; font: 600 15px/1.4 var(--font-v5); }
 .team-rank__level { position: relative; display: block; font: 600 24px/1.3 var(--font-v5); color: var(--v5-brand); }
+.team-rank__status { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px; font: 400 12px/1.4 var(--font-v5); color: var(--v5-ink-3); }
+.team-rank__retry { display: flex; align-items: center; min-height: 44px; padding: 0 6px; color: var(--v5-brand); }
 .team-rank__hint { display: block; margin-top: 4px; text-align: center; font: 400 12px/1.4 var(--font-v5); color: var(--v5-ink-3); }
 @media(max-width:359px) {
   .team-overview-grid :deep(.team-summary__header),.team-rank__header { min-height: 42px; }

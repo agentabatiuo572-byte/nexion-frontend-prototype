@@ -20,7 +20,7 @@
     <!-- Header brand row — TAB routes only (sub-pages carry their own back row) -->
     <view v-if="isTabRoute" class="nx-header" :style="{ top: statusBarHeight + 'px' }">
       <view class="nx-header__l">
-        <BrandLockup :height="50" />
+        <BrandLockup :height="50" style="width:100%;height:100%" />
       </view>
       <view class="nx-header__center" />
       <view class="nx-header__r">
@@ -112,7 +112,7 @@
              clipped everything above the header so there was nothing behind the
              chrome to frost → it read as solid black. (P-041) `backwards` fill on
              the entrance so no transform lingers. -->
-        <view class="nx-page-enter" :class="{ 'nx-page-enter--tab': isTabRoute }" :style="{ paddingTop: (contentTop + pendingBarInset) + 'px', paddingBottom: contentBottom + 'px' }">
+        <view class="nx-page-enter" :class="{ 'nx-page-enter--tab': isTabRoute }" :style="{ paddingTop: (contentTop + pendingBarInset) + 'px', paddingBottom: contentBottom }">
           <slot name="pageTop" />
           <!-- Voucher fallback banner — chassis-injected at content top so the
                5 protected tab pages stay untouched (ALIGNMENT red-line). Self-
@@ -130,13 +130,14 @@
       <NovaBubble v-if="showFloatingSupport" :dimmed="scrolling" />
       <GlassSegments v-if="isTabRoute" :key="navigationReset" class="nx-tabbar-pill" variant="navigation" :options="navigationOptions" :model-value="activeTab" :from-value="navigationReset ? undefined : navigationFrom" :navigation-on-arrival="tabHost ? false : undefined" @select="selectNavigation">
         <template #option="{ option: tab, selected }">
-          <svg class="nx-tab__icon" width="22" height="22" viewBox="0 0 24 24" fill="none"
-            :stroke="selected ? 'var(--v5-brand)' : 'var(--v5-ink-2)'"
-            :stroke-width="selected ? 2.3 : 1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path :d="tab.icon" />
-            <template v-if="tab.icon2"><path :d="tab.icon2" /></template>
-          </svg>
-          <text class="nx-tab__label" :style="{ color: selected ? 'var(--v5-brand)' : 'var(--v5-ink-2)' }">{{ tab.label }}</text>
+          <view class="nx-tab__icon" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+              :stroke="selected ? 'var(--v5-brand)' : 'var(--v5-ink-2)'"
+              :stroke-width="selected ? 2.3 : 1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path :d="tab.icon" />
+              <template v-if="tab.icon2"><path :d="tab.icon2" /></template>
+            </svg>
+          </view>
         </template>
       </GlassSegments>
       <DeviceHomeIndicator />
@@ -577,14 +578,15 @@ const statusBarHeight = computed(() => {
   }
 });
 const HEADER_H = 56;
-// Floor breathing (owner 2026-07-09: 加大底部呼吸). Both give ~18px clear space
-// below the last element so it isn't jammed against the tabbar / screen edge.
-const TABBAR_INSET = 104; // floating pill (64) + home indicator (22) + 18 breathing (was 92)
+// Preserve the existing floor clearance while the navigation rail changes height.
+const TABBAR_CLEARANCE = 36; // HomeIndicator (22) + existing 14px gap; 68px pill totals 104px.
 const SUB_BOTTOM = 40; //  home indicator (~22) + 18 breathing (was 26)
 const contentTop = computed(() => statusBarHeight.value + (isTabRoute.value ? HEADER_H : navHeaderH.value));
 const showFloatingSupport = computed(() => isTabRoute.value && ['home', 'earn', 'team'].includes(activeTab.value));
 // Let the last page action scroll fully above the floating support shortcut.
-const contentBottom = computed(() => (isTabRoute.value ? TABBAR_INSET + (showFloatingSupport.value ? 60 : 0) : SUB_BOTTOM));
+const contentBottom = computed(() => isTabRoute.value
+  ? `calc(var(--nx-tabbar-height, 56px) + ${TABBAR_CLEARANCE + (showFloatingSupport.value ? 60 : 0)}px)`
+  : `${SUB_BOTTOM}px`);
 // ── 待支付浮动条的落位 ──
 // 浮动条永远占 chrome 之下自己的一条带(top = contentTop + 8),页面内容整体下让 PENDING_BAR_INSET,
 // 任何页都不被盖住:tab 页 / useSetPageHeader 子页的 chassis 头在带之上;用 sub-page-header(内容内
@@ -714,6 +716,7 @@ export default chassisView;
 
 <style scoped>
 .nx-chassis {
+  --nx-tabbar-height: 56px;
   position: fixed;
   inset: 0;
   overflow: hidden;
@@ -998,6 +1001,12 @@ export default chassisView;
 .nx-icon-btn { isolation:isolate;border-radius:50%; }
 .nx-icon-btn > svg { position:relative;z-index:1; }
 .nx-header-scan-icon { position:relative;z-index:1;display:flex;align-items:center;justify-content:center; }
+@media (max-width:374px) {
+  .nx-header__l { width:124px; height:43px; }
+}
+@media (max-width:350px) {
+  .nx-header__l { width:112px; height:39px; }
+}
 </style>
 
 <style scoped>

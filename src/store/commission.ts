@@ -1,6 +1,8 @@
+import { runPassiveTabRead, invalidatePassiveTabRead, invalidateBeforePassiveTabRead, rememberPassiveTabRead } from "@/lib/passive-tab-read";
+import { isHttpReadRateLimit, isTransientReadFailure } from "@/lib/remote-read-failure";
 import { defineStore } from "pinia";
-import { onScopeDispose, ref } from "vue";
-import { commissionConfigApi, remoteApiEnabled, teamInsightsApi } from "@/api/runtime";
+import { onScopeDispose, ref, watch } from "vue";
+import { apiRuntimeConfig, commissionConfigApi, remoteApiEnabled, teamInsightsApi } from "@/api/runtime";
 import type { CanonicalBinaryState, CanonicalCommissionConfig } from "@/api/commission-config-api";
 import { normalizeAccountKey } from "./account-cloud";
 import { readAccountRow, writeAccountRow } from "./account-scoped-storage";
@@ -183,6 +185,11 @@ export const useCommission = defineStore("commission", () => {
   const config = ref<CanonicalCommissionConfig | null>(null);
   const binarySnapshot = ref<CanonicalBinaryState | null>(null);
   const eventsStatus = ref<"idle" | "loading" | "ready" | "error">(remoteApiEnabled ? "idle" : "ready");
+  const eventsRateLimited = ref(false);
+  const eventsTransientFailure = ref(false);
+
+  let eventsRetryAt = 0;
+  let environmentInvalidated = false;
   const eventsLoadMoreStatus = ref<"idle" | "loading" | "error">("idle");
   const eventsPage = ref(0);
   const eventsTotalRows = ref(remoteApiEnabled ? 0 : events.value.length);
@@ -199,6 +206,7 @@ export const useCommission = defineStore("commission", () => {
       && left.commerceRun.runId === right.commerceRun.runId
       && left.commerceRun.epoch === right.commerceRun.epoch;
   let binaryInFlight: { scope: RequestScope; promise: Promise<void> } | null = null;
+  let eventsInFlight: { scope: RequestScope; promise: Promise<void> } | null = null;
   let configInFlight: { scope: RequestScope; promise: Promise<void> } | null = null;
 
   const unsubscribeCommerceRun = subscribeRuntimeRevision(() => {
@@ -212,7 +220,8 @@ export const useCommission = defineStore("commission", () => {
     events.value = [];
     eventsEvidence.value = null;
     configStatus.value = "idle";
-    eventsStatus.value = "idle";
+
+    eventsStatus.value = Date.now() < eventsRetryAt ? "error" : "idle";
     eventsLoadMoreStatus.value = "idle";
     eventsPage.value = 0;
     eventsTotalRows.value = 0;
@@ -237,10 +246,31 @@ export const useCommission = defineStore("commission", () => {
     writeAccountRow<{ events: CommissionEvent[] }>(ACCOUNTS_KEY, boundKey, { events: events.value });
   }
 
+  watch(() => [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl], () => {
+    environmentInvalidated = true; bindingEpoch += 1; eventsRetryAt = 0;
+    eventsRateLimited.value = false; eventsTransientFailure.value = false; eventsInFlight = null;
+    events.value = []; eventsEvidence.value = null; eventsStatus.value = "idle";
+    config.value = null; binarySnapshot.value = null; configStatus.value = "idle"; binaryStatus.value = "idle";
+  }, { flush: "sync" });
+
+  function invalidateReadOwner(): void {
+    invalidatePassiveTabRead("commission-config");
+    invalidatePassiveTabRead("commission-events");
+    invalidatePassiveTabRead("commission-binary");
+
+    eventsTransientFailure.value = false;
+    bindingEpoch += 1; eventsInFlight = null;
+    events.value = []; eventsEvidence.value = null;
+    eventsStatus.value = Date.now() < eventsRetryAt ? "error" : "idle";
+    eventsLoadMoreStatus.value = "idle"; eventsPage.value = 0; eventsTotalRows.value = 0;
+    config.value = null; binarySnapshot.value = null; configStatus.value = "idle"; binaryStatus.value = "idle";
+  }
+
   /** 账号切换重绑:装载该账号的佣金事件行(变更处处即时 persist,旧账号无需先落盘)。 */
   function bindAccount(rawAccountKey: string) {
     boundKey = normalizeAccountKey(rawAccountKey);
     bindingEpoch += 1;
+    eventsRetryAt = 0; eventsRateLimited.value = false; eventsTransientFailure.value = false;
     if (remoteApiEnabled) {
       configRefreshGeneration += 1;
       binaryInFlight = null;
@@ -263,12 +293,19 @@ export const useCommission = defineStore("commission", () => {
 
   function ensureCanonicalConfig(): Promise<void> {
     const scope = requestScope();
-    return configInFlight && sameScope(configInFlight.scope, scope)
-      ? configInFlight.promise : refreshCanonicalConfig(scope);
+    return runPassiveTabRead("commission-config", () => configInFlight && sameScope(configInFlight.scope, scope)
+      ? configInFlight.promise : refreshCanonicalConfig(scope), scope, () => configStatus.value === "ready");
+  }
+
+  function ensureCanonicalBinary(): Promise<void> {
+    const scope = requestScope();
+    return runPassiveTabRead("commission-binary", () => refreshCanonicalBinary(scope), scope, () => binaryStatus.value === "ready");
   }
 
   function refreshCanonicalConfig(scope = requestScope()): Promise<void> {
+    invalidateBeforePassiveTabRead("commission-config");
     const promise = readCanonicalConfig(scope);
+    rememberPassiveTabRead("commission-config", promise, scope, undefined, () => configStatus.value === "ready");
     configInFlight = { scope, promise };
     const clear = () => { if (configInFlight?.promise === promise) configInFlight = null; };
     void promise.then(clear, clear);
@@ -276,7 +313,7 @@ export const useCommission = defineStore("commission", () => {
   }
 
   async function readCanonicalConfig(scope: RequestScope) {
-    if (!remoteApiEnabled) return;
+    if (!remoteApiEnabled || environmentInvalidated) return;
     const generation = ++configRefreshGeneration;
     config.value = null;
     configStatus.value = "loading";
@@ -294,7 +331,8 @@ export const useCommission = defineStore("commission", () => {
   }
 
   function refreshCanonicalBinary(scope = requestScope()): Promise<void> {
-    if (!remoteApiEnabled) return Promise.resolve();
+    invalidateBeforePassiveTabRead("commission-binary");
+    if (!remoteApiEnabled || environmentInvalidated) return Promise.resolve();
     if (binaryInFlight && sameScope(binaryInFlight.scope, scope)) return binaryInFlight.promise;
     const generation = ++binaryRefreshGeneration;
     binaryStatus.value = "loading";
@@ -315,13 +353,32 @@ export const useCommission = defineStore("commission", () => {
         }
       }
     })();
+    rememberPassiveTabRead("commission-binary", operation, scope, undefined, () => binaryStatus.value === "ready");
     binaryInFlight = { scope, promise: operation };
     const clear = () => { if (binaryInFlight?.promise === operation) binaryInFlight = null; };
     void operation.then(clear, clear);
     return operation;
   }
 
-  async function refreshCanonicalEvents(scope = requestScope()) {
+  function ensureCanonicalEvents(): Promise<void> {
+    if (Date.now() < eventsRetryAt) return Promise.resolve();
+    const scope = requestScope();
+    return runPassiveTabRead("commission-events", () => eventsInFlight && sameScope(eventsInFlight.scope, scope)
+      ? eventsInFlight.promise : refreshCanonicalEvents(scope), scope, () => eventsStatus.value === "ready");
+  }
+
+  function refreshCanonicalEvents(scope = requestScope()): Promise<void> {
+    invalidateBeforePassiveTabRead("commission-events");
+    if (environmentInvalidated || Date.now() < eventsRetryAt) return Promise.resolve();
+    const promise = readCanonicalEvents(scope);
+    rememberPassiveTabRead("commission-events", promise, scope, undefined, () => eventsStatus.value === "ready");
+    eventsInFlight = { scope, promise };
+    const clear = () => { if (eventsInFlight?.promise === promise) eventsInFlight = null; };
+    void promise.then(clear, clear);
+    return promise;
+  }
+
+  async function readCanonicalEvents(scope: RequestScope) {
     if (!remoteApiEnabled) return;
     const generation = ++eventsRefreshGeneration;
     events.value = [];
@@ -338,9 +395,16 @@ export const useCommission = defineStore("commission", () => {
       events.value = snapshot.events;
       eventsPage.value = snapshot.page;
       eventsTotalRows.value = snapshot.totalRows;
+      eventsRetryAt = 0;
       eventsStatus.value = "ready";
-    } catch {
+      eventsRateLimited.value = false;
+      eventsTransientFailure.value = false;
+    } catch (cause) {
       if (generation === eventsRefreshGeneration && isCurrentScope(scope)) {
+
+        eventsRateLimited.value = isHttpReadRateLimit(cause);
+        eventsTransientFailure.value = isTransientReadFailure(cause);
+        if (isHttpReadRateLimit(cause)) eventsRetryAt = Date.now() + (cause.retryAfterMs ?? 30_000);
         eventsEvidence.value = null;
         eventsStatus.value = "error";
       }
@@ -460,8 +524,8 @@ export const useCommission = defineStore("commission", () => {
 
   return {
     events, eventsEvidence, config, configStatus, binarySnapshot, eventsStatus, eventsLoadMoreStatus,
-    eventsPage, eventsTotalRows, binaryStatus, bindAccount,
-    refreshCanonicalConfig, ensureCanonicalConfig, refreshCanonicalBinary, refreshCanonicalEvents, loadMoreCanonicalEvents, unilevelRate,
+    eventsPage, eventsTotalRows, binaryStatus, eventsRateLimited, eventsTransientFailure, invalidateReadOwner, bindAccount,
+    refreshCanonicalConfig, ensureCanonicalConfig, refreshCanonicalBinary, ensureCanonicalBinary, refreshCanonicalEvents, ensureCanonicalEvents, loadMoreCanonicalEvents, unilevelRate,
     addEvent, unlockMatured, withdraw,
     totalUSDTLifetime, totalNEXLifetime, unlockedUSDT, unlockedNEX, coolingUSDT,
     todayUSDT, monthUSDT, monthNEX, byKind,

@@ -5,7 +5,7 @@ const MAX_BYTES = 32 * 1024 * 1024;
 const MAX_FILES = 64;
 type Entry = { key: string; path: string; size: number; used: number };
 let entries: Entry[] | undefined;
-const pending = new Map<string, Promise<string>>();
+const pending = new Map<string, Promise<string | null>>();
 
 export function productImageCacheKey(url: string): string | null {
   try {
@@ -105,8 +105,9 @@ export function cachedProductImage(url: string): Promise<string> {
   const key = productImageCacheKey(url);
   if (!key) return Promise.resolve(url);
   const existing = pending.get(key);
-  if (existing) return existing;
-  const request = load(url, key).catch(() => url).finally(() => pending.delete(key));
+  if (existing) return existing.then(path => path ?? url);
+  // Local results belong to the immutable object; remote fallbacks keep each caller's signature.
+  const request = load(url, key).then(path => path === url ? null : path).catch(() => null).finally(() => pending.delete(key));
   pending.set(key, request);
-  return request;
+  return request.then(path => path ?? url);
 }

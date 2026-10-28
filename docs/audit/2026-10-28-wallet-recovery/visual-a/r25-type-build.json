@@ -1,0 +1,42 @@
+{
+  "capturedAt": "2026-10-27T18:41:32.4081415Z",
+  "origin": "http://127.0.0.1:5291",
+  "frozenRoot": "D:/WORKS/PLAN/.wt/uvel-design-preview/wallet-r25/web-type",
+  "publishedRoot": "D:/WORKS/PLAN/.wt/uvel-design-preview/wallet-r25/web-final",
+  "entry": "index-DDUUBFKu.js",
+  "assets": [
+    {
+      "path": "index.html",
+      "publishedSHA256": "75aa5297652c720b61927ae02f94c48c3a82a6a808aedb7975206263a614da0f",
+      "frozenSHA256": "75aa5297652c720b61927ae02f94c48c3a82a6a808aedb7975206263a614da0f"
+    },
+    {
+      "path": "assets/index-DDUUBFKu.js",
+      "publishedSHA256": "e159ff20c2be1f6c4759f1a879aa318ea00db319faba4baff54025c44de3d69c",
+      "frozenSHA256": "e159ff20c2be1f6c4759f1a879aa318ea00db319faba4baff54025c44de3d69c"
+    },
+    {
+      "path": "assets/index-gu3lZQtt.css",
+      "publishedSHA256": "e92b92b3645fbd381bcce9ad8a33279c547517f49ef257d8d9987adddaf73f71",
+      "frozenSHA256": "e92b92b3645fbd381bcce9ad8a33279c547517f49ef257d8d9987adddaf73f71"
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/styles/tokens.css",
+      "sha256": "86f8859b0193a40fb38989fefa486351f8e664975bb31a0e82b9bdca5771da00"
+    },
+    {
+      "path": "src/components/ui/nx-list-row.vue",
+      "sha256": "de56dca4e49b27162720347c570dc5fc1992d22204ca0e9d35490210cff739fb"
+    },
+    {
+      "path": "src/components/ui/nx-section.vue",
+      "sha256": "53b023ef6462dcee31a49ab6f688b298658681b08093b31916df0157bc4e57c5"
+    },
+    {
+      "path": "src/components/me/profile-row.vue",
+      "sha256": "46866e2b86868037a8a9395b3b608417fa543226005737dd2e4f56c63f59dc1c"
+    }
+  ]
+}

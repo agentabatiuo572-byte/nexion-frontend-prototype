@@ -4,8 +4,9 @@ vi.mock("@/store/quest", () => ({useQuest: () => state}));
 import { reportDayOnePageObservation } from "./day-one-page-observation";
 import { dayOneObservationRecovery } from "./day-one-observation-recovery";
 import { ApiError } from "@/api/errors";
+import { invalidatePassiveTabRead } from "./passive-tab-read";
 let epoch=10;
-beforeEach(()=>{ epoch++; state.remoteStatus="ready";state.remoteQuests=[];state.refreshRemote.mockReset(); });
+beforeEach(()=>{ invalidatePassiveTabRead("quest");epoch++; state.remoteStatus="ready";state.remoteQuests=[];state.refreshRemote.mockReset(); });
 const row=()=>({layer:"DAY_ONE",questCode:"visit_earn",instanceKey:"DAY_ONE:adapter"});
 function request() {return {scope:{accountKey:"user:7",epoch},session:{accessToken:"access",user:{userId:7}},visible:()=>true,isCurrent:()=>true,
  submit:vi.fn().mockRejectedValue(new ApiError({kind:"http",status:428,code:428,message:"USER_ONBOARDING_REQUIRED"}))};}

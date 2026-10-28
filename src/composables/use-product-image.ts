@@ -1,7 +1,7 @@
 import { onScopeDispose, ref, watch } from "vue";
 import { cachedProductImage, invalidateProductImage, productImageCacheKey } from "@/lib/product-image-cache";
 
-export function useProductImage(source: () => string | undefined) {
+export function useProductImage(source: () => string | undefined, retrySource = source) {
   const imageSrc = ref<string | null>(null);
   let native = false;
   // #ifdef APP-PLUS
@@ -21,7 +21,7 @@ export function useProductImage(source: () => string | undefined) {
     void resolve(url, token);
   }, { immediate: true });
   function imageError() {
-    const url = source();
+    const url = retrySource();
     const path = imageSrc.value;
     imageSrc.value = null;
     if (native && url && path && path !== url && !retried) {

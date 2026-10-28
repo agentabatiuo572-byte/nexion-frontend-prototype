@@ -67,11 +67,11 @@
           <view class="checkout-wallet">
             <view class="checkout-wallet-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4M3 5v14a2 2 0 0 0 2 2h16v-5M16 12h6v4h-6z" /></svg></view>
             <view class="promotion-grow"><text class="checkout-item-name">{{ p.wallet }}</text>
-              <text class="promotion-copy">{{ t.wallet.usdtBalance }} · {{ walletState==='ready' ? formatAmount(app.user.usdtBalance)+' USDT' : walletState==='loading' ? reviewCopy.walletLoading : reviewCopy.walletError }}</text>
+              <text class="promotion-copy">{{ t.wallet.usdtBalance }} · {{ (walletState==='ready' || (walletState==='loading' && app.remoteFleetHasSnapshot)) ? formatAmount(app.user.usdtBalance)+' USDT' : walletState==='loading' ? reviewCopy.walletLoading : reviewCopy.walletError }}</text>
             </view>
           </view>
           <view class="checkout-wallet-actions">
-            <PromotionAction class="promotion-link" role="button" :tabindex="walletState==='loading'?-1:0" :aria-disabled="walletState==='loading'" @click="walletState!=='loading'&&refreshWallet()" @keydown.enter.prevent="walletState!=='loading'&&refreshWallet()" @keydown.space.prevent="walletState!=='loading'&&refreshWallet()"><text>{{ reviewCopy.walletRefresh }}</text></PromotionAction>
+            <PromotionAction class="promotion-link" role="button" :tabindex="walletState==='loading'?-1:0" :aria-disabled="walletState==='loading'" :style="{ opacity: walletState==='loading' && app.remoteFleetHasSnapshot && !busy ? 1 : undefined }" @click="walletState!=='loading'&&refreshWallet()" @keydown.enter.prevent="walletState!=='loading'&&refreshWallet()" @keydown.space.prevent="walletState!=='loading'&&refreshWallet()"><text>{{ reviewCopy.walletRefresh }}</text></PromotionAction>
             <view class="promotion-link" role="link" tabindex="0" @click="navTo('/pages/me/wallet-topup')" @keydown.enter.prevent="navTo('/pages/me/wallet-topup')"><text>{{ p.topup }}</text></view>
           </view>
         </view>

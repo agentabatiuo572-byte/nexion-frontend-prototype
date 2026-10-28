@@ -6,7 +6,7 @@
         <text class="block" :style="subtitleStyle">{{ t.home.productTrustSubtitle }}</text>
       </view>
       <text v-if="selected" :style="linkStyle">{{ t.home.productTrustOpen }} ›</text>
-      <text v-else-if="remoteApiEnabled && productCatalogState.status === 'error'" class="active:opacity-70" :style="linkStyle" role="button" tabindex="0" @click.stop="retry"  @keydown.enter.stop.prevent="retry" @keydown.space.stop.prevent="retry">
+      <text v-else-if="remoteApiEnabled && productCatalogState.status === 'error'" class="active:opacity-70" :style="[linkStyle, { font: '600 13px/20px var(--font-v5)' }]" role="button" tabindex="0" @click.stop="retry"  @keydown.enter.stop.prevent="retry" @keydown.space.stop.prevent="retry">
         {{ t.ui.retry }}
       </text>
       <text v-else-if="remoteApiEnabled && productCatalogState.status === 'loading'" :style="mutedStyle">

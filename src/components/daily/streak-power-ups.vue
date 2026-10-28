@@ -50,7 +50,7 @@
                不能继续给「激活」入口 —— 用户投入 30/60 天后会撞上一个不可用的页面。
                改为明确说明暂停,并保留档位可见(不隐藏已获得的权益说明)。 -->
           <text v-else-if="!isBusinessReady(p)" :style="lockedLabelStyle">{{ isBusinessSuspended(p) ? w.suspended : w.pending }}</text>
-          <view v-else-if="isUnlocked(p)" class="inline-flex items-center active:opacity-85" role="button" tabindex="0" :aria-disabled="claimBusy" :aria-busy="claimBusy" :style="activateBtnStyle(p)" @click="handleClaim(p)">
+          <view v-else-if="isUnlocked(p)" class="inline-flex items-center active:opacity-85" role="button" tabindex="0" :aria-disabled="claimBusy || (remoteApiEnabled && faucet.remoteReadState !== 'ready')" :aria-busy="claimBusy" :style="activateBtnStyle(p)" @click="handleClaim(p)">
             <text>{{ w.activate }}</text>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 3px"><path d="m9 18 6-6-6-6" /></svg>
           </view>
@@ -107,6 +107,7 @@ interface PowerUp {
   serverBusinessAvailable?: boolean | null;
 }
 
+const props = defineProps<{ factsVisible?: boolean }>();
 const t = useT();
 import { useLocaleStore } from '@/store/locale';
 import { powerUpEffectText, powerUpNameText } from '@/lib/power-up-copy';
@@ -117,6 +118,8 @@ const faucet = useNexFaucet();
 const config = useConfig();
 const powerUp = useDailyPowerUp();
 const claimBusy = ref(false);
+// The page supplies scoped display availability; it never authorizes a claim.
+const factsVisible = computed(() => props.factsVisible ?? (!remoteApiEnabled || faucet.remoteReadState === 'ready'));
 
 const POWERUPS: PowerUp[] = [
   { id: "royalty_boost", threshold: 7, tint: "var(--v5-success)", key: "royalty_boost", href: "/pages/team/team" },
@@ -126,7 +129,7 @@ const POWERUPS: PowerUp[] = [
 ];
 
 const powerUps = computed<PowerUp[]>(() => (remoteApiEnabled
-  ? faucet.remotePowerUps.map((item) => ({
+  ? (factsVisible.value ? faucet.remotePowerUps : []).map((item) => ({
       id: item.powerUpCode.toLowerCase() as StreakPowerUpId,
       threshold: item.unlockStreakDays,
       tint: "var(--v5-success)", key: item.powerUpCode.toLowerCase() as PowerUp["key"], href: item.targetPath,
@@ -187,7 +190,7 @@ function isBusinessReady(p: PowerUp): boolean {
 }
 const activatedCount = computed(() => powerUps.value.filter((p) => isClaimed(p.id)).length);
 
-const streakStatText = computed(() => fmt(w.value.streakStat, { n: streak.value }));
+const streakStatText = computed(() => factsVisible.value ? fmt(w.value.streakStat, { n: streak.value }) : '—');
 function thresholdText(n: number): string {
   return fmt(w.value.threshold, { n });
 }
@@ -208,6 +211,7 @@ const footerNextText = computed(() =>
 const footerAllText = computed(() => fmt(w.value.footerAll, { n: activatedCount.value }));
 
 async function handleClaim(p: PowerUp) {
+  if (remoteApiEnabled && faucet.remoteReadState !== 'ready') return;
   if (!isBusinessReady(p) || claimBusy.value || isClaimed(p.id)) return;
   if (remoteApiEnabled) {
     claimBusy.value = true;

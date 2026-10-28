@@ -32,14 +32,14 @@
 
       <view v-if="!claimState.empty" style="margin-top: 10px">
         <view ref="elRef" style="height: 6px; border-radius: 999px; overflow: hidden; background: var(--v5-surface-2); position: relative">
-          <view :style="barStyle" />
+          <view v-if="!visibility.hidden" :style="barStyle" />
         </view>
         <view style="margin-top: 5px; display: flex; justify-content: space-between; font-family: var(--font-jet-mono), ui-monospace, monospace; font-size: 12px">
           <text v-if="questUnavailable" style="color: var(--v5-ink-4)">{{ unavailableLabel }}</text>
           <template v-else>
-            <text style="color: var(--v5-ink-4)"><text style="color: var(--v5-ink); font-weight: 500">{{ completedCount }}</text>/{{ total }} {{ t.home.dayOneDoneSuffix }}</text>
+            <text style="color: var(--v5-ink-4)"><text style="color: var(--v5-ink); font-weight: 500">{{ visibility.mask(completedCount) }}</text>/{{ visibility.mask(total) }} {{ t.home.dayOneDoneSuffix }}</text>
             <text v-if="remoteApiEnabled" style="color: var(--v5-nex)">{{ claimState.empty ? t.home.dayOneNoActiveTasks : claimState.claimed ? t.home.dayOneRewardClaimed : claimState.unverified ? t.home.dayOneSnapshotUnverified : t.home.dayOneRewardUnclaimed }}</text>
-            <text v-else style="color: var(--v5-nex); font-variant-numeric: tabular-nums">{{ nexEarnedText === "—" ? "—" : `+${nexEarnedText}` }} {{ t.home.dayOneEarnedSuffix }}</text>
+            <text v-else style="color: var(--v5-nex); font-variant-numeric: tabular-nums">{{ visibility.mask(nexEarnedText === "—" ? "—" : `+${nexEarnedText}`) }} {{ t.home.dayOneEarnedSuffix }}</text>
           </template>
         </view>
       </view>
@@ -135,6 +135,7 @@
 </template>
 
 <script setup lang="ts">
+import { useDataVisibility } from "@/store/data-visibility";
 import { formatAmount } from "@/lib/amount-display";
 import { isStakingVisibilityRoute, navTo } from "@/lib/route";
 import { computed, watch, type CSSProperties } from "vue";
@@ -169,6 +170,7 @@ interface QuestTask {
   eligible: boolean;
 }
 
+const visibility = useDataVisibility();
 const props = withDefaults(defineProps<{ active?: boolean; expanded?: boolean }>(), {
   active: true,
   expanded: false,
@@ -283,10 +285,10 @@ const nexEarned = computed(() => {
   return completed.reduce((sum, task) => sum + (task.nex ?? 0), 0);
 });
 const nexEarnedText = computed(() => nexEarned.value === null ? "—" : formatAmount(nexEarned.value));
-const viewTasksText = computed(() => fmt(t.value.home.dayOneViewTasks, { n: total.value }));
+const viewTasksText = computed(() => fmt(t.value.home.dayOneViewTasks, { n: visibility.mask(total.value) }));
 const taskCountText = computed(() => questUnavailable.value
   ? "-"
-  : fmt(t.value.home.dayOneTaskCount, { n: total.value }));
+  : fmt(t.value.home.dayOneTaskCount, { n: visibility.mask(total.value) }));
 const toggleLabel = computed(() => questLoadError.value
   ? t.value.home.dayOneRetryLoad
   : questUnavailable.value ? t.value.home.dayOneLoading

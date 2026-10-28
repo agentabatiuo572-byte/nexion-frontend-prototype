@@ -9,10 +9,11 @@ import { createRemoteAccountEpoch } from "@/lib/remote-account-epoch";
 import { zh } from "@/i18n/messages/zh";
 import source from "./preferences.vue?raw";
 
-type Node = { children: Node[]; parent: Node | null; props: Record<string, any> };
-const node = (): Node => ({ children: [], parent: null, props: {} });
+type Node = { children: Node[]; parent: Node | null; props: Record<string, any>; text: string };
+const node = (): Node => ({ children: [], parent: null, props: {}, text: "" });
 const renderer = Vue.createRenderer<Node, Node>({
-  createElement: node, createText: node, createComment: node, setText() {}, setElementText() {},
+  createElement: node, createText: text => ({ ...node(), text }), createComment: node,
+  setText(target, text) { target.text = text; }, setElementText(target, text) { target.text = text; target.children = []; },
   patchProp: (target, key, _old, value) => { target.props[key] = value; },
   parentNode: item => item.parent, nextSibling: () => null,
   insert(item, parent) { item.parent = parent; parent.children.push(item); },
@@ -52,6 +53,8 @@ function mount(platform: "app" | "h5" = "app") {
   const dispose = () => { if (mounted) { app.unmount(); mounted = false; } };
   disposals.push(dispose);
   return { ui, resolve, account, epoch, notifications, hooks, dispose,
+    text: () => all(root).map(item => item.text).join(""),
+    clearProps: () => all(root).find(item => String(item.props.class).includes("notification-clear-read"))!.props,
     open: () => all(root).find(item => String(item.props.class).includes("notification-clear-read"))!.props.onClick() as Promise<void>,
     back: (from = "backbutton") => {
       const consumed = hooks.back.map(handler => handler({ from })).some(result => result === true);
@@ -62,6 +65,33 @@ function mount(platform: "app" | "h5" = "app") {
     hide: () => hooks.hide.forEach(hide => hide()),
   };
 }
+
+it("keeps successful empty notification reads silent and rejects hidden or rebound read completion", async () => {
+  const page = mount(); await settle();
+  let finish!: () => void;
+  page.notifications.refreshRemote.mockImplementationOnce(() => {
+    page.notifications.loading = true;
+    return new Promise<void>(resolve => { finish = () => { page.notifications.loading = false; resolve(); }; });
+  });
+  page.hooks.show.forEach(show => show()); await settle();
+  expect(page.text()).not.toContain(zh.help.loadingMore);
+  page.epoch.bind("account-b"); page.account.accountBindingEpoch++; page.account.accountKey = "account-b";
+  await settle(); expect(page.text()).toContain(zh.help.loadingMore);
+  page.hide(); finish(); await settle();
+  page.notifications.refreshRemote.mockImplementationOnce(() => { page.notifications.loading = true; return new Promise<void>(() => {}); });
+  page.hooks.show.forEach(show => show()); await settle();
+  expect(page.text()).toContain(zh.help.loadingMore);
+  expect(page.notifications.clearRead).not.toHaveBeenCalled();
+});
+
+it("keeps the static notification clear name at full read-pending contrast but preserves a real confirmation's disabled style", async () => {
+  const page = mount(); await settle(); page.notifications.loading = true; await settle();
+  expect(page.clearProps().style).toMatchObject({ opacity: 1 }); expect(page.clearProps()["aria-disabled"]).toBe(true);
+  expect(page.text()).toContain(zh.notifs.clearReadAria);
+  page.notifications.loading = false; const pending = page.open(); await settle();
+  expect(page.clearProps().style?.opacity).not.toBe(1); expect(page.clearProps()["aria-disabled"]).toBe(true);
+  page.back(); await pending;
+});
 
 it("cancels only the actual preferences confirmation on native Back and stays on the page without deleting read messages", async () => {
   const page = mount(); expect(page.hooks.back).toHaveLength(1);

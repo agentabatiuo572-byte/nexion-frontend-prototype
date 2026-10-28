@@ -4,6 +4,7 @@ import type { CanonicalNotificationPage } from "@/api/notification-api";
 
 const remote = vi.hoisted(() => ({
   remoteApiEnabled: true,
+  apiRuntimeConfig: { environment: "dev", baseUrl: "https://test.invalid" },
   notificationApi: {
     page: vi.fn(async (): Promise<CanonicalNotificationPage> => ({ items: [], unread: 0, nextCursor: null })),
     markRead: vi.fn(),

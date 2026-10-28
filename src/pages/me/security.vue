@@ -17,9 +17,9 @@
       <view v-if="modeLabel" class="mx-4" :style="mockModeBannerStyle" data-testid="mock-security-label">
         <text :style="mockModeBannerTextStyle">{{ modeLabel }}</text>
       </view>
-      <view v-if="remoteApiEnabled && !remoteSecurity" class="mx-4 flex items-center justify-between" :style="remoteSecurityUnavailableStyle" data-testid="remote-security-unavailable" aria-live="polite">
+      <view v-if="remoteApiEnabled && !securityPresentation" class="mx-4 flex items-center justify-between" :style="remoteSecurityUnavailableStyle" data-testid="remote-security-unavailable" aria-live="polite">
         <text :style="remoteSecurityUnavailableTextStyle">{{ remoteSecurityLoading ? "…" : t.security.opFailed }}</text>
-        <view v-if="!remoteSecurityLoading" class="flex items-center justify-center active:opacity-70" :style="remoteSecurityRetryStyle" role="button" tabindex="0" :aria-label="t.ui.retry" @click="loadRemoteSecurity"  @keydown.enter.prevent="loadRemoteSecurity" @keydown.space.prevent="loadRemoteSecurity">
+        <view v-if="!remoteSecurityLoading" class="flex items-center justify-center active:opacity-70 nx-card-recovery-action nx-card-recovery-action--quiet nx-card-recovery-action--inline" role="button" tabindex="0" :aria-label="t.ui.retry" @click="loadRemoteSecurity"  @keydown.enter.prevent="loadRemoteSecurity" @keydown.space.prevent="loadRemoteSecurity">
           <text :style="remoteSecurityRetryTextStyle">{{ t.ui.retry }}</text>
         </view>
       </view>
@@ -69,14 +69,14 @@
           </view>
         </view>
         <view class="flex items-center" :style="rowBorderedStyle">
-          <view class="grid place-items-center shrink-0" :style="iconBox(twoFactorEnabled === true ? 'var(--v5-success-soft)' : 'var(--v5-surface-3)')">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" :stroke="twoFactorEnabled === true ? 'var(--v5-success)' : 'var(--v5-ink-3)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></svg>
+          <view class="grid place-items-center shrink-0" :style="iconBox(displayTwoFactorEnabled === true ? 'var(--v5-success-soft)' : 'var(--v5-surface-3)')">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" :stroke="displayTwoFactorEnabled === true ? 'var(--v5-success)' : 'var(--v5-ink-3)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></svg>
           </view>
           <view class="flex-1 min-w-0">
             <text class="block" :style="rowLabelStyle">{{ t.security.twoFactorTitle }}</text>
           </view>
-          <text v-if="twoFactorEnabled === null" :style="unavailableValueStyle">—</text>
-          <view v-else class="shrink-0 flex items-center justify-center active:opacity-70 transition-opacity" style="width: 44px; height: 44px" role="switch" tabindex="0" :aria-label="t.security.twoFactorSwitchLabel" :aria-checked="twoFactorEnabled" @click="toggleTwoFactor(!twoFactorEnabled)"  @keydown.enter.prevent="toggleTwoFactor(!twoFactorEnabled)" @keydown.space.prevent="toggleTwoFactor(!twoFactorEnabled)">
+          <text v-if="displayTwoFactorEnabled === null" :style="unavailableValueStyle">—</text>
+          <view v-else class="shrink-0 flex items-center justify-center active:opacity-70 transition-opacity" style="width: 44px; height: 44px" role="switch" tabindex="0" :aria-label="t.security.twoFactorSwitchLabel" :aria-checked="displayTwoFactorEnabled" :aria-disabled="remoteApiEnabled && (!remoteSecurity || remoteSecurityLoading)" @click="toggleTwoFactor(!twoFactorEnabled)"  @keydown.enter.prevent="toggleTwoFactor(!twoFactorEnabled)" @keydown.space.prevent="toggleTwoFactor(!twoFactorEnabled)">
             <view :style="toggleTrackStyle">
               <view :style="toggleThumbStyle" />
             </view>
@@ -147,7 +147,7 @@
             </view>
           </template>
           <text v-if="phoneError" class="block" :style="errStyle" role="alert">{{ phoneError }}</text>
-          <view v-if="!phonePolicy" role="button" tabindex="0" :style="[rowSubStyle, { minHeight: '44px', display: 'flex', alignItems: 'center' }]" @click="loadPhonePolicy" @keydown.enter.prevent="loadPhonePolicy" @keydown.space.prevent="loadPhonePolicy">
+          <view v-if="!phonePolicy" role="button" tabindex="0" :style="[rowSubStyle, { minHeight: '44px', display: 'flex', alignItems: 'center', font: '600 13px/20px var(--font-v5)' }]" @click="loadPhonePolicy" @keydown.enter.prevent="loadPhonePolicy" @keydown.space.prevent="loadPhonePolicy">
             {{ t.ui.retry }}
           </view>
         </view>
@@ -156,10 +156,10 @@
       <!-- ───── Active sessions ───── -->
       <text class="block mx-4" :style="sectionHeadStyle">{{ t.security.sessionsTitle }}</text>
       <view class="nx-glass-card mx-4" :style="[cardStyle, groupGap]">
-        <view v-if="remoteApiEnabled && !remoteSecurity" class="flex items-center" :style="rowStyle">
+        <view v-if="remoteApiEnabled && !securityPresentation" class="flex items-center" :style="rowStyle">
           <text :style="unavailableValueStyle">—</text>
         </view>
-        <view v-for="(s, i) in sessions" :key="s.id" class="flex items-center" :style="i === 0 ? rowStyle : rowBorderedStyle">
+        <view v-for="(s, i) in displaySessions" :key="s.id" class="flex items-center" :style="i === 0 ? rowStyle : rowBorderedStyle">
           <view class="grid place-items-center shrink-0" :style="iconBox(s.current ? 'var(--v5-success-soft)' : 'var(--v5-surface-3)')">
             <!-- Smartphone -->
             <svg v-if="deviceIconKind(s.deviceName) === 'phone'" width="17" height="17" viewBox="0 0 24 24" fill="none" :stroke="s.current ? 'var(--v5-success)' : 'var(--v5-ink-3)'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2" /><path d="M12 18h.01" /></svg>
@@ -177,14 +177,14 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
           </view>
         </view>
-        <view v-if="hasOtherSessions" class="flex items-center justify-center active:scale-[0.98] transition-transform" :style="revokeAllRowStyle" role="button" tabindex="0" :aria-label="t.security.revokeAll" @click="handleRevokeAll"  @keydown.enter.prevent="handleRevokeAll" @keydown.space.prevent="handleRevokeAll">
+        <view v-if="displaySessions.some(s => !s.current)" class="flex items-center justify-center active:scale-[0.98] transition-transform" :style="revokeAllRowStyle" role="button" tabindex="0" :aria-disabled="!remoteSecurity || remoteSecurityLoading" :aria-label="t.security.revokeAll" @click="handleRevokeAll"  @keydown.enter.prevent="handleRevokeAll" @keydown.space.prevent="handleRevokeAll">
           <text :style="revokeAllLabelStyle">{{ t.security.revokeAll }}</text>
         </view>
       </view>
-      <view v-if="remoteSecurity?.nextCursor" class="mx-4 flex justify-center" :style="revokeAllRowStyle"
-        role="button" :tabindex="sessionPageLoading ? -1 : 0" :aria-disabled="sessionPageLoading"
+      <view v-if="securityPresentation?.nextCursor" class="mx-4 flex justify-center" :style="revokeAllRowStyle"
+        role="button" :tabindex="sessionPageLoading ? -1 : 0" :aria-disabled="sessionPageLoading || !remoteSecurity || remoteSecurityLoading"
         @click="loadMoreSessions"  @keydown.enter.prevent="loadMoreSessions" @keydown.space.prevent="loadMoreSessions">
-        <text>{{ sessionPageLoading ? t.help.loadingMore : t.notifs.loadMore }}</text>
+        <text>{{ t.notifs.loadMore }}</text>
       </view>
       <text class="block mx-4" :style="footerStyle">{{ t.security.sessionsHint }}</text>
 
@@ -215,7 +215,7 @@
 
 <script setup lang="ts">
 import { dateLocale } from "@/i18n/format";
-import { formatDisplayDate, formatDisplayDateTime } from "@/lib/display-date";
+import { displayTimestamp, formatDisplayDate, formatDisplayDateTime } from "@/lib/display-date";
 import ThirdPartyAuth from "@/components/third-party-auth.vue";
 import { formatAmount } from "@/lib/amount-display";
 import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
@@ -279,6 +279,11 @@ const securityConfirmOwner = `p3-18-security:${globalThis.crypto?.randomUUID?.()
 let securityPageVisible = true;
 
 const remoteSecurity = ref<SecurityState | null>(null);
+const securityPresentation = ref<SecurityState | null>(null);
+const securityLocale = useLocaleStore();
+let securityEnvironmentInvalidated = false;
+watch(() => apiRuntimeConfig?.environment, () => { securityEnvironmentInvalidated = true; clearSecurityAccountState(); }, { flush: 'sync' });
+watch(() => securityLocale.code, () => { clearSecurityAccountState(); refreshSecurityForCurrentAccount(); }, { flush: 'sync' });
 const phoneMissing = ref(remoteApiEnabled && !!sessionVault.read() && !sessionVault.read()!.user.phone);
 const phonePolicy = ref<PhoneNumberChangePolicy | null>(null);
 const phoneEditing = ref(false);
@@ -313,6 +318,7 @@ const sessionPageLoading = ref(false);
 const twoFactorEnabled = computed<boolean | null>(() => remoteApiEnabled
   ? remoteSecurity.value?.twoFactorEnabled ?? null
   : security.twoFactorEnabled);
+const displayTwoFactorEnabled = computed(() => remoteApiEnabled ? securityPresentation.value?.twoFactorEnabled ?? null : security.twoFactorEnabled);
 const modeLabel = computed(() => apiEnvironmentBadgeLabel(apiRuntimeConfig, t.value.security.developmentModeLabel));
 const sessions = computed<SessionListItem[]>(() => remoteApiEnabled
   ? (remoteSecurity.value?.sessions ?? []).map((item) => ({
@@ -325,7 +331,23 @@ const sessions = computed<SessionListItem[]>(() => remoteApiEnabled
       //   后端按业务时区 Asia/Shanghai 写入。直接 `Date.parse` 会把它当成**本机时区**
       //   (此处 +09:00),于是刚注册账号的当前设备显示成「59 分钟前」—— 差的就是那 1 小时。
       //   统一走 `parseServerTimestamp`(无时区默认 +08:00),与提现/兑换等面同源。
-      lastActiveMs: parseServerTimestamp(item.lastActiveAt) ?? Date.now(),
+      lastActiveMs: parseServerTimestamp(item.lastActiveAt),
+      current: item.current,
+      entrySurface: "h5",
+    }))
+  : session.activeSessions);
+const displaySessions = computed<SessionListItem[]>(() => remoteApiEnabled
+  ? (securityPresentation.value?.sessions ?? []).map((item) => ({
+      id: item.id,
+      deviceName: nexGridBrandText(item.deviceName),
+      device: nexGridBrandText(item.deviceName),
+      location: item.ipMasked,
+      ip: item.ipMasked,
+      // 🔴 zentao #228:`lastActiveAt` 是 Java `LocalDateTime` 序列化出来的**无时区**串,
+      //   后端按业务时区 Asia/Shanghai 写入。直接 `Date.parse` 会把它当成**本机时区**
+      //   (此处 +09:00),于是刚注册账号的当前设备显示成「59 分钟前」—— 差的就是那 1 小时。
+      //   统一走 `parseServerTimestamp`(无时区默认 +08:00),与提现/兑换等面同源。
+      lastActiveMs: parseServerTimestamp(item.lastActiveAt),
       current: item.current,
       entrySurface: "h5",
     }))
@@ -373,13 +395,14 @@ function isCurrentSecurityRequest(
   accountScope = captureAccountScope(),
   accountKey = auth.accountId,
 ): boolean {
-  return securityPageVisible
+  return !securityEnvironmentInvalidated && securityPageVisible
     && securityPageFence.isCurrent(pageScope)
     && isCurrentAccountScope(accountScope)
     && auth.accountId === accountKey;
 }
 
-function clearSecurityAccountState() {
+function clearSecurityAccountState(keepPresentation = false) {
+  if (!keepPresentation) securityPresentation.value = null;
   securityPageFence.invalidate();
   ui.clearConfirmsBy(securityConfirmOwner);
   securityBusy.value = false;
@@ -425,8 +448,11 @@ async function loadPhonePolicy() {
   try {
     const policy = await accountApi.phoneNumberPolicy();
     if (isCurrentSecurityRequest(pageScope, accountScope, accountKey)) phonePolicy.value = policy;
-  } catch {
-    if (isCurrentSecurityRequest(pageScope, accountScope, accountKey)) phonePolicy.value = null;
+  } catch (cause) {
+    if (isCurrentSecurityRequest(pageScope, accountScope, accountKey)) {
+      phonePolicy.value = null;
+      if (cause instanceof ApiError && (cause.status === 401 || cause.status === 403)) clearSecurityAccountState();
+    }
   }
 }
 
@@ -468,7 +494,10 @@ async function startPhoneChange() {
     phoneChallenge.value = challenge;
     phonePassword.value = "";
   } catch (cause) {
-    if (isCurrentSecurityRequest(pageScope, accountScope, accountKey)) phoneError.value = phoneChangeMessage(cause);
+    if (isCurrentSecurityRequest(pageScope, accountScope, accountKey)) {
+      if (cause instanceof ApiError && (cause.status === 401 || cause.status === 403)) clearSecurityAccountState();
+      phoneError.value = phoneChangeMessage(cause);
+    }
   } finally {
     if (isCurrentSecurityRequest(pageScope, accountScope, accountKey)) securityBusy.value = false;
   }
@@ -498,7 +527,10 @@ async function confirmPhoneChange() {
     rebindAccountScopedStores("default");
     navReset({ url: "/pages/login/login", fail: () => {} });
   } catch (cause) {
-    if (isCurrentSecurityRequest(pageScope, accountScope, accountKey)) phoneError.value = phoneChangeMessage(cause);
+    if (isCurrentSecurityRequest(pageScope, accountScope, accountKey)) {
+      if (cause instanceof ApiError && (cause.status === 401 || cause.status === 403)) clearSecurityAccountState();
+      phoneError.value = phoneChangeMessage(cause);
+    }
   } finally {
     if (isCurrentSecurityRequest(pageScope, accountScope, accountKey)) securityBusy.value = false;
   }
@@ -511,21 +543,21 @@ onShow(() => {
 });
 onHide(() => {
   securityPageVisible = false;
-  clearSecurityAccountState();
+  clearSecurityAccountState(true);
 });
 onUnmounted(() => {
   securityPageVisible = false;
   clearSecurityAccountState();
 });
-watch([() => String(app.accountKey), () => app.accountBindingEpoch], () => {
+watch([() => String(app.accountKey), () => app.accountBindingEpoch, () => auth.accountId], () => {
   clearSecurityAccountState();
   refreshSecurityForCurrentAccount();
-});
+}, { flush: "sync" });
 
 const passwordHintLine = computed(() => {
-  if (remoteApiEnabled && !remoteSecurity.value) return "—";
+  if (remoteApiEnabled && !securityPresentation.value) return "—";
   return t.value.security.passwordHint.replace("{when}", formatDisplayDateTime(
-    remoteApiEnabled ? remoteSecurity.value?.passwordChangedAt : security.passwordChangedAt, dateLocale(),
+    remoteApiEnabled ? securityPresentation.value?.passwordChangedAt : security.passwordChangedAt, dateLocale(),
   ));
 });
 
@@ -544,10 +576,13 @@ async function loadRemoteSecurity(): Promise<boolean> {
     ]);
     if (!isCurrentSecurityRequest(pageScope, scope, accountKey)) return false;
     remoteSecurity.value = securityState;
+    securityPresentation.value = { ...securityState, sessions: [...securityState.sessions] };
     deletionStatus.value = accountDeletion;
     return true;
   } catch (cause) {
     if (!isCurrentSecurityRequest(pageScope, scope, accountKey)) return false;
+    securityPresentation.value = null;
+    if (cause instanceof ApiError && (cause.status === 401 || cause.status === 403)) clearSecurityAccountState();
     console.warn("[security] overview load failed:", cause);
     err.value = t.value.security.opFailed;
     return false;
@@ -570,9 +605,13 @@ async function loadMoreSessions(): Promise<void> {
     const existing = new Set(snapshot.sessions.map((row) => row.id));
     remoteSecurity.value = { ...snapshot, nextCursor: nextPage.nextCursor,
       sessions: [...snapshot.sessions, ...nextPage.sessions.filter((row) => !existing.has(row.id))] };
+    securityPresentation.value = { ...remoteSecurity.value, sessions: [...remoteSecurity.value.sessions] };
   } catch (cause) {
-    if (isCurrentSecurityRequest(pageScope, scope, accountKey) && remoteSecurity.value === snapshot)
+    if (isCurrentSecurityRequest(pageScope, scope, accountKey) && remoteSecurity.value === snapshot) {
+      securityPresentation.value = null;
+      if (cause instanceof ApiError && (cause.status === 401 || cause.status === 403)) clearSecurityAccountState();
       toast.error(securityErrorMessage(cause));
+    }
   } finally {
     if (isCurrentSecurityRequest(pageScope, scope, accountKey)) sessionPageLoading.value = false;
   }
@@ -629,7 +668,8 @@ function sessionSecondaryLabel(s: SessionListItem): string {
   return `${location} · ${lastActiveLabel(s.lastActiveMs)}`;
 }
 
-function lastActiveLabel(ms: number): string {
+function lastActiveLabel(ms: number | null): string {
+  if (ms === null || displayTimestamp(ms) === null) return "—";
   const diff = Date.now() - ms;
   if (diff < 5 * 60 * 1000) return t.value.security.timeJustNow;
   if (diff < 3600 * 1000) return fmt(t.value.security.timeMinutesAgo, { n: Math.floor(diff / 60000) });
@@ -696,6 +736,7 @@ async function submitPasswordChange() {
     }
   } catch (cause) {
     if (!isCurrentSecurityRequest(pageScope, accountScope, accountKey)) return;
+    if (cause instanceof ApiError && (cause.status === 401 || cause.status === 403)) clearSecurityAccountState();
     // Keep the operation number until a committed receipt is confirmed; never store passwords.
     err.value = securityErrorMessage(cause);
     return;
@@ -755,6 +796,7 @@ async function toggleTwoFactor(value: boolean) {
     toast.success(t.value.addrRebind.otpSendCta);
   } catch (cause) {
     if (!isCurrentSecurityRequest(pageScope, accountScope, accountKey)) return;
+    if (cause instanceof ApiError && (cause.status === 401 || cause.status === 403)) clearSecurityAccountState();
     console.warn("[security] 2FA challenge failed:", cause);
     err.value = securityErrorMessage(cause);
   } finally {
@@ -786,6 +828,7 @@ async function confirmTwoFactorChallenge() {
     target ? toast.success(t.value.security.twoFactorEnabledToast) : toast.warn(t.value.security.twoFactorDisabledToast);
   } catch (cause) {
     if (!isCurrentSecurityRequest(pageScope, accountScope, accountKey)) return;
+    if (cause instanceof ApiError && (cause.status === 401 || cause.status === 403)) clearSecurityAccountState();
     console.warn("[security] 2FA update failed:", cause);
     err.value = securityErrorMessage(cause);
   } finally {
@@ -794,6 +837,7 @@ async function confirmTwoFactorChallenge() {
 }
 
 async function handleRevoke(s: SessionListItem) {
+  if (remoteApiEnabled && (!remoteSecurity.value || remoteSecurityLoading.value)) return;
   if (securityBusy.value) return;
   const pageScope = securityPageFence.capture("session-revoke");
   const accountScope = captureAccountScope();
@@ -811,6 +855,7 @@ async function handleRevoke(s: SessionListItem) {
     try {
       if (remoteApiEnabled) {
         if (!isCurrentSecurityRequest(pageScope, accountScope, accountKey)) return;
+        if (!remoteSecurity.value || remoteSecurityLoading.value) return;
         await accountApi.revokeSession(s.id);
         if (!isCurrentSecurityRequest(pageScope, accountScope, accountKey)) return;
         if (!(await loadRemoteSecurity())) throw new Error("SECURITY_READBACK_FAILED");
@@ -819,6 +864,7 @@ async function handleRevoke(s: SessionListItem) {
       toast.success(t.value.security.sessionRevoked);
     } catch (cause) {
       if (!isCurrentSecurityRequest(pageScope, accountScope, accountKey)) return;
+    if (cause instanceof ApiError && (cause.status === 401 || cause.status === 403)) clearSecurityAccountState();
       toast.error(securityErrorMessage(cause));
     } finally {
       if (isCurrentSecurityRequest(pageScope, accountScope, accountKey)) securityBusy.value = false;
@@ -827,6 +873,7 @@ async function handleRevoke(s: SessionListItem) {
 }
 
 async function handleRevokeAll() {
+  if (remoteApiEnabled && (!remoteSecurity.value || remoteSecurityLoading.value)) return;
   if (!hasOtherSessions.value || securityBusy.value) return;
   const pageScope = securityPageFence.capture("session-revoke-all");
   const accountScope = captureAccountScope();
@@ -844,6 +891,7 @@ async function handleRevokeAll() {
     try {
       if (remoteApiEnabled) {
         if (!isCurrentSecurityRequest(pageScope, accountScope, accountKey)) return;
+        if (!remoteSecurity.value || remoteSecurityLoading.value) return;
         await accountApi.revokeOtherSessions();
         if (!isCurrentSecurityRequest(pageScope, accountScope, accountKey)) return;
         if (!(await loadRemoteSecurity())) throw new Error("SECURITY_READBACK_FAILED");
@@ -852,6 +900,7 @@ async function handleRevokeAll() {
       toast.success(t.value.security.revokeAllDone);
     } catch (cause) {
       if (!isCurrentSecurityRequest(pageScope, accountScope, accountKey)) return;
+    if (cause instanceof ApiError && (cause.status === 401 || cause.status === 403)) clearSecurityAccountState();
       toast.error(securityErrorMessage(cause));
     } finally {
       if (isCurrentSecurityRequest(pageScope, accountScope, accountKey)) securityBusy.value = false;
@@ -976,6 +1025,7 @@ async function handleDeleteAccount() {
           if (sessionVault.read()) return; // A newer login won the logout CAS.
         } catch (cause) {
           if (!isCurrentSecurityRequest(pageScope, accountScope, accountKey)) return;
+    if (cause instanceof ApiError && (cause.status === 401 || cause.status === 403)) clearSecurityAccountState();
           toast.error(securityErrorMessage(cause));
           return;
         }
@@ -1037,6 +1087,7 @@ async function handleCancelAccountDeletion() {
     toast.success(t.value.security.cancelDeletionSuccess);
   } catch (cause) {
     if (!isCurrentSecurityRequest(pageScope, accountScope, accountKey)) return;
+    if (cause instanceof ApiError && (cause.status === 401 || cause.status === 403)) clearSecurityAccountState();
     toast.error(securityErrorMessage(cause));
     await loadRemoteSecurity();
   } finally {
@@ -1116,16 +1167,8 @@ const remoteSecurityUnavailableTextStyle: CSSProperties = {
   fontSize: "12px",
   color: "var(--v5-ink-3)",
 };
-const remoteSecurityRetryStyle: CSSProperties = {
-  minHeight: "44px",
-  padding: "0 10px",
-  borderRadius: "7px",
-  background: "var(--v5-surface-3)",
-};
 const remoteSecurityRetryTextStyle: CSSProperties = {
-  fontFamily: "var(--font-v5)",
-  fontSize: "12px",
-  fontWeight: 600,
+  font: "600 13px/20px var(--font-v5)",
   color: "var(--v5-brand)",
 };
 const unavailableValueStyle: CSSProperties = {
@@ -1191,8 +1234,8 @@ const toggleTrackStyle = computed<CSSProperties>(() => ({
   width: "40px",
   height: "24px",
   borderRadius: "999px",
-  background: twoFactorEnabled.value ? "var(--v5-brand)" : "var(--v5-surface-3)",
-  boxShadow: twoFactorEnabled.value ? "none" : "inset 0 0 0 1px var(--v5-border)",
+  background: displayTwoFactorEnabled.value ? "var(--v5-brand)" : "var(--v5-surface-3)",
+  boxShadow: displayTwoFactorEnabled.value ? "none" : "inset 0 0 0 1px var(--v5-border)",
   transition: "background 200ms ease",
 }));
 const toggleThumbStyle = computed<CSSProperties>(() => ({
@@ -1204,7 +1247,7 @@ const toggleThumbStyle = computed<CSSProperties>(() => ({
   borderRadius: "999px",
   background: "#FFFFFF",
   boxShadow: "0 1px 3px rgba(0,0,0,0.18)",
-  transform: `translateX(${twoFactorEnabled.value ? 16 : 0}px)`,
+  transform: `translateX(${displayTwoFactorEnabled.value ? 16 : 0}px)`,
   transition: "transform 200ms ease",
 }));
 const currentBadgeStyle: CSSProperties = {

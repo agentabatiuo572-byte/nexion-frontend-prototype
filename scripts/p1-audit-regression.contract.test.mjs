@@ -39,11 +39,6 @@ test("Ticket Create reads its own PC-published knowledge surface", async () => {
   assert.match(api, /surface/);
 });
 
-test("compute share enrollment is ready only with an HTTPS installer URL", async () => {
-  const page = await source("src/pages/compute-share/download.vue");
-  assert.match(page, /isComputeShareReady/);
-  assert.ok(page.includes("https://"));
-});
 
 test("binary UI renders a server block reason instead of a positive estimate", async () => {
   const page = await source("src/pages/team/binary.vue");

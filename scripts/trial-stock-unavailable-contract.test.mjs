@@ -17,13 +17,16 @@ test("zero-stock S1 stays visible but every trial and purchase CTA is disabled",
   assert.match(card, /@keydown\.enter\.prevent\.stop="onBuy"/);
   assert.doesNotMatch(card, /<text role="button" tabindex="0" @click\.stop="onBuy">/);
   assert.doesNotMatch(card, /:style="cardStyle" role="button"/);
-  assert.match(card, /:style="renderWrapStyle" role="button" tabindex="0" :aria-label="nexGridBrandText\(product\.name\)"/);
+  assert.match(card, /:role="compact \? 'link' : undefined" :tabindex="compact \? 0 : -1" :aria-label="compact \? nexGridBrandText\(product\.name\) : undefined" @click="goDetail"/);
+  assert.match(card, /:style="renderWrapStyle" :role="compact \? undefined : 'button'" :tabindex="compact \? -1 : 0" :aria-label="compact \? undefined : nexGridBrandText\(product\.name\)" @click\.stop="goDetail"/);
   assert.match(detail, /const stockUnavailable = computed/);
   assert.match(detail, /disabled:\s*true/);
   assert.match(detail, /buttonLabel:\s*t\.value\.store\.temporarilyOutOfStock/);
+  const eligibilityGuard = detail.search(/if \(remoteApiEnabled && \(?eligibility\.value\.status !== "ready"/);
+  assert.ok(eligibilityGuard >= 0, "purchase eligibility must have a pending/failed guard");
   assert.ok(
     detail.indexOf("if (stockUnavailable.value)")
-      < detail.indexOf('if (remoteApiEnabled && eligibility.value.status !== "ready")'),
+      < eligibilityGuard,
     "zero-stock CTA must win over a pending/failed purchase-eligibility request",
   );
   assert.match(stickyCta, /:aria-disabled="cta\.disabled \? 'true' : 'false'"/);

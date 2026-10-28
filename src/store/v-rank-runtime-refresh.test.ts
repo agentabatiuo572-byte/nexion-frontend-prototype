@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, disposePinia, setActivePinia } from "pinia";
+import { ApiError } from "@/api/errors";
 import { createVRankApi } from "@/api/v-rank-api";
-import { advanceRuntimeRevision } from "@/api/order-api";
+import { advanceRuntimeRevision, captureRuntimeRevision } from "@/api/order-api";
 
 const remote = vi.hoisted(() => ({
-  remoteApiEnabled: true,
+  remoteApiEnabled: true, apiRuntimeConfig: { environment: "dev", baseUrl: "https://test.invalid" },
   vRankApi: { ladder: vi.fn(), current: vi.fn() },
 }));
 vi.mock("@/api/runtime", () => remote);
@@ -41,7 +42,7 @@ beforeEach(() => {
   remote.vRankApi.ladder.mockReset().mockImplementation(api.ladder);
   remote.vRankApi.current.mockReset().mockImplementation(api.current);
 });
-afterEach(() => { disposePinia(pinia); });
+afterEach(() => { disposePinia(pinia); vi.useRealTimers(); });
 
 describe("V-rank runtime refresh recovery", () => {
   it.each(["/api/config/v-ranks", "/api/team/rank"])(
@@ -131,4 +132,38 @@ describe("V-rank runtime refresh recovery", () => {
     expect(remote.vRankApi.ladder).toHaveBeenCalledTimes(1);
     expect(remote.vRankApi.current).toHaveBeenCalledTimes(1);
   });
+});
+
+it('keeps one 500ms local-session retry and honors its subsequent 429 deadline',async()=>{
+ vi.useFakeTimers();const store=useVRank();remote.vRankApi.current.mockRejectedValueOnce(new ApiError({kind:'auth',message:'AUTH_SESSION_REQUIRED'})).mockRejectedValueOnce(new ApiError({kind:'http',status:429,message:'limited after restore',retryAfterMs:2_000}));
+ const reading=store.refreshCanonicalVRank();await vi.advanceTimersByTimeAsync(499);expect(remote.vRankApi.current).toHaveBeenCalledTimes(1);await vi.advanceTimersByTimeAsync(1);await reading;expect(remote.vRankApi.current).toHaveBeenCalledTimes(2);expect(store.remoteReady).toBe(false);expect(store.remoteRateLimited).toBe(true);
+ await store.ensureCanonicalVRank();await store.refreshCanonicalVRank();advanceRuntimeRevision();expect(remote.vRankApi.current).toHaveBeenCalledTimes(2);await vi.advanceTimersByTimeAsync(1_999);await store.refreshCanonicalVRank();expect(remote.vRankApi.current).toHaveBeenCalledTimes(2);
+ await vi.advanceTimersByTimeAsync(1);await store.refreshCanonicalVRank();expect(remote.vRankApi.current).toHaveBeenCalledTimes(3);expect(store.remoteReady).toBe(true);
+});
+
+it('does not retry a role denial and does not let an old actor session timer issue new reads',async()=>{
+ vi.useFakeTimers();const store=useVRank();remote.vRankApi.current.mockRejectedValueOnce(new ApiError({kind:'auth',status:403,message:'role denied'}));await store.refreshCanonicalVRank();expect(remote.vRankApi.current).toHaveBeenCalledTimes(1);expect(vi.getTimerCount()).toBe(0);expect(store.remoteReady).toBe(false);
+ remote.vRankApi.current.mockRejectedValueOnce(new ApiError({kind:'auth',message:'AUTH_SESSION_REQUIRED'}));const old=store.refreshCanonicalVRank();await vi.advanceTimersByTimeAsync(1);store.bindAccount('user:new');await Promise.resolve();await vi.advanceTimersByTimeAsync(499);await old;expect(remote.vRankApi.current).toHaveBeenCalledTimes(3);expect(store.remoteReady).toBe(true);expect(store.myRank).toBe(2);
+});
+
+it('does not let the local-session 500ms retry overtake429 from the other current GET',async()=>{
+ vi.useFakeTimers();const store=useVRank();let deny!:(reason:unknown)=>void;remote.vRankApi.ladder.mockReturnValueOnce(new Promise((_,reject)=>{deny=reject}));remote.vRankApi.current.mockRejectedValueOnce(new ApiError({kind:'auth',message:'AUTH_SESSION_REQUIRED'}));
+ const pending=store.refreshCanonicalVRank();await vi.advanceTimersByTimeAsync(1);deny(new ApiError({kind:'http',status:429,message:'limited sibling',retryAfterMs:2_000}));await vi.advanceTimersByTimeAsync(499);await pending;
+ expect(remote.vRankApi.current).toHaveBeenCalledTimes(1);expect(store.remoteReady).toBe(false);expect(store.remoteRateLimited).toBe(true);
+});
+
+it('ignores a denied old first-attempt GET after the bounded second pair succeeds',async()=>{
+ vi.useFakeTimers();const store=useVRank();let deny!:(reason:unknown)=>void;remote.vRankApi.ladder.mockReturnValueOnce(new Promise((_,reject)=>{deny=reject}));remote.vRankApi.current.mockRejectedValueOnce(new ApiError({kind:'auth',message:'AUTH_SESSION_REQUIRED'}));
+ const pending=store.refreshCanonicalVRank();await vi.advanceTimersByTimeAsync(500);await pending;expect(store.remoteReady).toBe(true);deny(new ApiError({kind:'auth',status:403,message:'old first attempt denied'}));await Promise.resolve();await Promise.resolve();expect(store.remoteReady).toBe(true);expect(store.remoteError).toBeNull();expect(store.myRank).toBe(2);
+});
+
+it('never treats a server403 carrying the local-precondition message as session restore',async()=>{
+ vi.useFakeTimers();const store=useVRank();remote.vRankApi.current.mockRejectedValue(new ApiError({kind:'auth',status:403,message:'AUTH_SESSION_REQUIRED'}));await store.refreshCanonicalVRank();expect(vi.getTimerCount()).toBe(0);expect(remote.vRankApi.current).toHaveBeenCalledTimes(1);expect(store.remoteReady).toBe(false);expect(store.ladder).toEqual([]);
+});
+
+it('does not let an old actor initiate a pair or supersede a pending new-owner read',async()=>{
+ const store=useVRank(),held=deferred<unknown>();store.bindAccount('user:A');await Promise.resolve();await Promise.resolve();const oldRuntime=captureRuntimeRevision();
+ remote.vRankApi.current.mockReturnValueOnce(held.promise);store.bindAccount('user:B');const count=remote.vRankApi.current.mock.calls.length;
+ await store.refreshCanonicalVRank({accountKey:'user:A',epoch:1},oldRuntime);expect(remote.vRankApi.current).toHaveBeenCalledTimes(count);
+ held.resolve(current);await vi.waitFor(()=>expect(store.remoteReady).toBe(true));expect(store.myRank).toBe(2);
 });

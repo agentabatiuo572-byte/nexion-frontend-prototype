@@ -1,0 +1,410 @@
+{
+  "scope": "Read-only current5237 Home only, no control switching or business clicks",
+  "result": {
+    "time": "2026-10-27T17:04:45.750Z",
+    "url": "http://127.0.0.1:5237/?nx_device=off#/pages/index/index",
+    "entry": [
+      "http://127.0.0.1:5237/assets/index-Ddn2nKUH.js"
+    ],
+    "css": [
+      "http://127.0.0.1:5237/assets/uni.c39fe708.css",
+      "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+      "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+      "http://127.0.0.1:5237/assets/index-DPMvPy7r.css",
+      "http://127.0.0.1:5237/assets/nova-avatar-D5GOd_PR.css",
+      "http://127.0.0.1:5237/assets/liquid-glass-CtBmG5K8.css",
+      "http://127.0.0.1:5237/assets/brand-lockup-BuVYk5AL.css",
+      "http://127.0.0.1:5237/assets/global-ui-rtRD1Jcw.css",
+      "http://127.0.0.1:5237/assets/device-status-bar-Q_PY6aEV.css",
+      "http://127.0.0.1:5237/assets/app-chassis-DSCGxZok.css",
+      "http://127.0.0.1:5237/assets/daily-check-in-row-BoXMjQFA.css",
+      "http://127.0.0.1:5237/assets/nx-section-rLmXDH8J.css",
+      "http://127.0.0.1:5237/assets/nx-list-group-BmH7i_UJ.css",
+      "http://127.0.0.1:5237/assets/device-slot-CLCoDqc9.css",
+      "http://127.0.0.1:5237/assets/trial-device-row-DU82OTma.css",
+      "http://127.0.0.1:5237/assets/team-art-DR37f503.css",
+      "http://127.0.0.1:5237/assets/nx-sheet-DbVsiSWQ.css",
+      "http://127.0.0.1:5237/assets/disclosure-details-BnM275Gf.css",
+      "http://127.0.0.1:5237/assets/promotion-terms-BV3PvWse.css",
+      "http://127.0.0.1:5237/assets/catalog-machine-image-Sr0pZ4Bd.css",
+      "http://127.0.0.1:5237/assets/promotion-entry-zHMQocHU.css",
+      "http://127.0.0.1:5237/assets/index-XhPNOL6J.css"
+    ],
+    "theme": "dark",
+    "viewport": [
+      390,
+      844
+    ],
+    "document": [
+      390,
+      390
+    ],
+    "frame": {
+      "x": 811,
+      "y": 219.33334350585938,
+      "width": 390,
+      "height": 844,
+      "top": 219.33334350585938,
+      "right": 1201,
+      "bottom": 1063.3333435058594,
+      "left": 811
+    },
+    "badge": {
+      "text": "USDT",
+      "box": {
+        "x": 327.2708435058594,
+        "y": 107,
+        "width": 44.72916793823242,
+        "height": 19.33333396911621,
+        "top": 107,
+        "right": 372.0000114440918,
+        "bottom": 126.33333396911621,
+        "left": 327.2708435058594
+      },
+      "ink": {
+        "x": 334.2708435058594,
+        "y": 109,
+        "width": 30.729156494140625,
+        "height": 15.333335876464844,
+        "top": 109,
+        "right": 365,
+        "bottom": 124.33333587646484,
+        "left": 334.2708435058594
+      },
+      "font": [
+        "12px",
+        "500",
+        "normal"
+      ],
+      "whiteSpace": "nowrap",
+      "letterSpacing": "0.48px",
+      "color": "rgb(142, 114, 255)",
+      "background": "rgba(142, 114, 255, 0.2) none repeat scroll 0% 0% / auto padding-box border-box",
+      "padding": "2px 7px",
+      "client": [
+        45,
+        19
+      ],
+      "scroll": [
+        45,
+        19
+      ]
+    },
+    "title": {
+      "text": "今日收益",
+      "box": {
+        "x": 18,
+        "y": 108,
+        "width": 49.927085876464844,
+        "height": 17.33333396911621,
+        "top": 108,
+        "right": 67.92708587646484,
+        "bottom": 125.33333396911621,
+        "left": 18
+      },
+      "ink": {
+        "x": 18,
+        "y": 110,
+        "width": 49.927085876464844,
+        "height": 15.333335876464844,
+        "top": 110,
+        "right": 67.92708587646484,
+        "bottom": 125.33333587646484,
+        "left": 18
+      },
+      "font": [
+        "12px",
+        "400",
+        "normal"
+      ],
+      "whiteSpace": "pre-line",
+      "letterSpacing": "0.48px",
+      "color": "rgb(107, 115, 133)",
+      "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+      "padding": "0px",
+      "client": [
+        50,
+        17
+      ],
+      "scroll": [
+        50,
+        17
+      ]
+    },
+    "header": {
+      "text": "今日收益\nUSDT",
+      "box": {
+        "x": 18,
+        "y": 107,
+        "width": 354,
+        "height": 19.33333396911621,
+        "top": 107,
+        "right": 372,
+        "bottom": 126.33333396911621,
+        "left": 18
+      },
+      "ink": {
+        "x": 18,
+        "y": 107,
+        "width": 354,
+        "height": 19.333335876464844,
+        "top": 107,
+        "right": 372,
+        "bottom": 126.33333587646484,
+        "left": 18
+      },
+      "font": [
+        "16px",
+        "400",
+        "normal"
+      ],
+      "whiteSpace": "normal",
+      "letterSpacing": "normal",
+      "color": "rgb(245, 247, 250)",
+      "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+      "padding": "0px",
+      "client": [
+        354,
+        19
+      ],
+      "scroll": [
+        354,
+        19
+      ]
+    },
+    "amount": {
+      "text": "$\n16.24",
+      "box": {
+        "x": 18,
+        "y": 136.33334350585938,
+        "width": 354,
+        "height": 56,
+        "top": 136.33334350585938,
+        "right": 372,
+        "bottom": 192.33334350585938,
+        "left": 18
+      },
+      "ink": {
+        "x": 18,
+        "y": 129,
+        "width": 116.82292175292969,
+        "height": 70,
+        "top": 129,
+        "right": 134.8229217529297,
+        "bottom": 199,
+        "left": 18
+      },
+      "font": [
+        "16px",
+        "600",
+        "16px"
+      ],
+      "whiteSpace": "normal",
+      "letterSpacing": "-0.384px",
+      "color": "rgb(245, 247, 250)",
+      "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+      "padding": "0px",
+      "client": [
+        354,
+        56
+      ],
+      "scroll": [
+        354,
+        63
+      ]
+    },
+    "number": {
+      "text": "16.24",
+      "box": {
+        "x": 33.625,
+        "y": 136.33334350585938,
+        "width": 101.19792175292969,
+        "height": 56,
+        "top": 136.33334350585938,
+        "right": 134.8229217529297,
+        "bottom": 192.33334350585938,
+        "left": 33.625
+      },
+      "ink": {
+        "x": 33.625,
+        "y": 129,
+        "width": 101.19792175292969,
+        "height": 70,
+        "top": 129,
+        "right": 134.8229217529297,
+        "bottom": 199,
+        "left": 33.625
+      },
+      "font": [
+        "56px",
+        "600",
+        "56px"
+      ],
+      "whiteSpace": "pre-line",
+      "letterSpacing": "-0.384px",
+      "color": "rgb(245, 247, 250)",
+      "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+      "padding": "0px",
+      "client": [
+        101,
+        56
+      ],
+      "scroll": [
+        101,
+        63
+      ]
+    },
+    "cents": {
+      "text": ".24",
+      "box": {
+        "x": 85.28125,
+        "y": 149,
+        "width": 49.54166793823242,
+        "height": 45.333335876464844,
+        "top": 149,
+        "right": 134.82291793823242,
+        "bottom": 194.33333587646484,
+        "left": 85.28125
+      },
+      "ink": {
+        "x": 85.28125,
+        "y": 149,
+        "width": 49.54167175292969,
+        "height": 45.333343505859375,
+        "top": 149,
+        "right": 134.8229217529297,
+        "bottom": 194.33334350585938,
+        "left": 85.28125
+      },
+      "font": [
+        "36px",
+        "600",
+        "36px"
+      ],
+      "whiteSpace": "pre-line",
+      "letterSpacing": "-0.384px",
+      "color": "rgb(155, 163, 181)",
+      "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+      "padding": "0px",
+      "client": [
+        0,
+        0
+      ],
+      "scroll": [
+        0,
+        0
+      ]
+    },
+    "todayCell": {
+      "text": "+5\n今天",
+      "box": {
+        "x": 127.70833587646484,
+        "y": 353,
+        "width": 41.520835876464844,
+        "height": 50,
+        "top": 353,
+        "right": 169.2291717529297,
+        "bottom": 403,
+        "left": 127.70833587646484
+      },
+      "ink": {
+        "x": 137.96875,
+        "y": 362.3333435058594,
+        "width": 21,
+        "height": 30.666656494140625,
+        "top": 362.3333435058594,
+        "right": 158.96875,
+        "bottom": 393,
+        "left": 137.96875
+      },
+      "font": [
+        "11.5px",
+        "400",
+        "14px"
+      ],
+      "whiteSpace": "normal",
+      "letterSpacing": "normal",
+      "color": "rgb(230, 255, 158)",
+      "background": "rgba(0, 0, 0, 0) linear-gradient(color(srgb 0.619608 0.862745 0.113725 / 0.22), color(srgb 0.619608 0.862745 0.113725 / 0.06)) repeat scroll 0% 0% / auto padding-box border-box",
+      "padding": "0px",
+      "client": [
+        40,
+        49
+      ],
+      "scroll": [
+        40,
+        49
+      ]
+    },
+    "todayLabel": {
+      "text": "今天",
+      "box": {
+        "x": 137.96875,
+        "y": 379,
+        "width": 21,
+        "height": 14,
+        "top": 379,
+        "right": 158.96875,
+        "bottom": 393,
+        "left": 137.96875
+      },
+      "ink": {
+        "x": 137.96875,
+        "y": 379,
+        "width": 21,
+        "height": 13.333343505859375,
+        "top": 379,
+        "right": 158.96875,
+        "bottom": 392.3333435058594,
+        "left": 137.96875
+      },
+      "font": [
+        "10.5px",
+        "400",
+        "14px"
+      ],
+      "whiteSpace": "nowrap",
+      "letterSpacing": "normal",
+      "color": "rgb(230, 255, 158)",
+      "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+      "padding": "0px",
+      "client": [
+        21,
+        14
+      ],
+      "scroll": [
+        21,
+        14
+      ]
+    },
+    "beforeBuild": {
+      "time": "2026-10-27T17:04:45.642Z",
+      "entry": "/assets/index-Ddn2nKUH.js",
+      "css": "/assets/index-DPMvPy7r.css"
+    },
+    "afterEntry": [
+      "http://127.0.0.1:5237/assets/index-Ddn2nKUH.js"
+    ],
+    "afterBuild": {
+      "time": "2026-10-27T17:04:49.419Z",
+      "entry": "/assets/index-Ddn2nKUH.js",
+      "css": "/assets/index-DPMvPy7r.css"
+    }
+  },
+  "fingerprint": {
+    "root": "D:/WORKS/PLAN/.wt/uvel-design-preview/r20-unified-review/r24-frozen-web",
+    "entry": "index-Ddn2nKUH.js",
+    "css": "index-DPMvPy7r.css",
+    "sha256JS": "4EAA6431B783308649C2116FE711C9B1527927CC912BDEE5D11116CFB20A96E8",
+    "servedJSHTTP": 200,
+    "servedJSSHA256": "4EAA6431B783308649C2116FE711C9B1527927CC912BDEE5D11116CFB20A96E8",
+    "sha256CSS": "361F8178B8E346B1B8C3A0E2E168938DE62036EEF456B13962803AD0E07FA80D"
+  },
+  "notSigned": [
+    "iPhone calibration",
+    "trial early purchase",
+    "wallet",
+    "other language/theme/size combinations",
+    "full business or push verification"
+  ]
+}

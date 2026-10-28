@@ -35,10 +35,10 @@
             v-if="!completed"
             variant="secondary"
             size="medium"
-            style="min-height:44px"
+            :style="{ minHeight: '44px', opacity: wq.loading && wq.snapshot && !questTargetClosed && !periodExpired ? 1 : undefined }"
             :label="questTargetClosed ? w.targetClosed : ctaText"
-            :disabled="questTargetClosed || periodExpired"
-            :busy="wq.loading"
+            :disabled="questTargetClosed || periodExpired || wq.loading"
+            :busy="wq.loading && !wq.snapshot"
             @click="onCta"
           >
             <text>{{ questTargetClosed ? w.targetClosed : ctaText }}</text>
@@ -142,7 +142,7 @@ const categoryText = computed(() => quest.value ? ({
   social: t.value.home.dayOneCatSocial,
 })[quest.value.category] : "");
 const bodyText = computed(() => quest.value?.status === "PENDING" ? w.value.progressVerified : w.value.rewardReady);
-const ctaText = computed(() => wq.loading ? w.value.refreshing : w.value.goComplete);
+const ctaText = computed(() => w.value.goComplete);
 const promoChipText = computed(() => fmt(w.value.promoChip, { mult: mult.value.toFixed(1) }));
 const claimText = computed(() => fmt(w.value.claim, { n: rewardDisplay.value }));
 const claimErrorText = computed(() => wq.error === "WEEKLY_QUEST_CLAIM_OUTCOME_UNKNOWN"

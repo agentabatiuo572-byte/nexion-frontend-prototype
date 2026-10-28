@@ -3,6 +3,7 @@ import type { EarningsReleaseStatus } from "@/api/earnings-release-api";
 import { captureRuntimeRevision, isCurrentRuntimeRevision } from "@/api/order-api";
 import type { RiskClusterSummary } from "@/store/risk-cluster";
 import { shallowRef } from "vue";
+import { invalidateBeforePassiveTabRead } from "@/lib/passive-tab-read";
 
 export type LedgerRoute = "pending_review" | "bonus_locked";
 export type ReleaseSource = "attest" | "manual";
@@ -30,6 +31,7 @@ export function bindEarningsReleaseAccount(accountKey: string): void {
 export async function refreshEarningsReleaseStatus(
   requestedAccountKey = activeEarningsReleaseAccountKey,
 ): Promise<EarningsReleaseStatus> {
+  invalidateBeforePassiveTabRead("earning-release");
   // A caller that already belongs to an older account generation must not
   // advance the current request sequence or put the current account into a
   // loading state. Its request has no financial authority here.
@@ -69,7 +71,7 @@ const zero = (): ReleaseOutcome => ({ releasedPendingUsdt: 0, releasedPendingNex
 export function hasReleaseEffect(_outcome?: ReleaseOutcome): boolean { return false; }
 /** Client reward producers are disabled: only the backend credit facade may create entries. */
 export function appendLedgerEntry(..._ignored: unknown[]): boolean { return false; }
-/** Read-only client: Janus reports are evaluated by the backend, never here. */
+/** Historical call compatibility only; this client cannot release funds. */
 export function evaluateAttestRelease(_accountKey: string, _cluster: RiskClusterSummary): ReleaseOutcome { return zero(); }
 export function _devGrantManualRelease(..._ignored: unknown[]): ReleaseOutcome { return zero(); }
 export function listLedgerEntries(..._ignored: unknown[]): EarningLedgerEntry[] { return []; }

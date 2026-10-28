@@ -1,0 +1,134 @@
+[
+  {
+    "class": "",
+    "display": "none",
+    "rect": {
+      "height": 0,
+      "width": 0,
+      "x": 0,
+      "y": 0
+    },
+    "src": "/assets/index-Bl4ZaVBC.js"
+  },
+  {
+    "class": "nx-glass-segments nx-glass-segments--equal nx-glass-segments--navigation nx-tabbar-pill",
+    "display": "flex",
+    "rect": {
+      "height": 55.99431610107422,
+      "width": 296.0037536621094,
+      "x": 11.9981050491333,
+      "y": 614.7348022460938
+    },
+    "src": null
+  },
+  {
+    "class": "nx-tab__icon",
+    "display": "flex",
+    "rect": {
+      "height": 23.977863311767575,
+      "width": 23.977937698364254,
+      "x": 32.807430267333984,
+      "y": 630.7430419921875
+    },
+    "src": null
+  },
+  {
+    "class": "nx-tab__label",
+    "display": "none",
+    "rect": {
+      "height": 0,
+      "width": 0,
+      "x": 0,
+      "y": 0
+    },
+    "src": null
+  },
+  {
+    "class": "nx-tab__icon",
+    "display": "flex",
+    "rect": {
+      "height": 23.977863311767575,
+      "width": 23.977937698364254,
+      "x": 90.4021224975586,
+      "y": 630.7430419921875
+    },
+    "src": null
+  },
+  {
+    "class": "nx-tab__label",
+    "display": "none",
+    "rect": {
+      "height": 0,
+      "width": 0,
+      "x": 0,
+      "y": 0
+    },
+    "src": null
+  },
+  {
+    "class": "nx-tab__icon",
+    "display": "flex",
+    "rect": {
+      "height": 23.977863311767575,
+      "width": 23.977937698364254,
+      "x": 148.00628662109375,
+      "y": 630.7430419921875
+    },
+    "src": null
+  },
+  {
+    "class": "nx-tab__label",
+    "display": "none",
+    "rect": {
+      "height": 0,
+      "width": 0,
+      "x": 0,
+      "y": 0
+    },
+    "src": null
+  },
+  {
+    "class": "nx-tab__icon",
+    "display": "flex",
+    "rect": {
+      "height": 23.977863311767575,
+      "width": 23.977937698364254,
+      "x": 205.6009826660156,
+      "y": 630.7430419921875
+    },
+    "src": null
+  },
+  {
+    "class": "nx-tab__label",
+    "display": "none",
+    "rect": {
+      "height": 0,
+      "width": 0,
+      "x": 0,
+      "y": 0
+    },
+    "src": null
+  },
+  {
+    "class": "nx-tab__icon",
+    "display": "flex",
+    "rect": {
+      "height": 23.977863311767575,
+      "width": 23.977937698364254,
+      "x": 263.20513916015625,
+      "y": 630.7430419921875
+    },
+    "src": null
+  },
+  {
+    "class": "nx-tab__label",
+    "display": "none",
+    "rect": {
+      "height": 0,
+      "width": 0,
+      "x": 0,
+      "y": 0
+    },
+    "src": null
+  }
+]

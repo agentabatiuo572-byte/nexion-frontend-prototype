@@ -1,0 +1,236 @@
+{
+  "tab": "1733373121",
+  "entry": "index-DDUUBFKu.js",
+  "reads": [
+    {
+      "actions": [
+        {
+          "font": "13px",
+          "key": "quest",
+          "line": "20px",
+          "role": "link",
+          "root": {
+            "bottom": 820.6666870117188,
+            "height": 78,
+            "left": 16.666667938232422,
+            "right": 303.3333549499512,
+            "top": 742.6666870117188,
+            "width": 286.66668701171875,
+            "x": 16.666667938232422,
+            "y": 742.6666870117188
+          },
+          "title": "Nhiệm vụ mới",
+          "titleOverflow": 0,
+          "titleRect": {
+            "bottom": 772.6666870117188,
+            "height": 20,
+            "left": 80.66667175292969,
+            "right": 259.3333435058594,
+            "top": 752.6666870117188,
+            "width": 178.6666717529297,
+            "x": 80.66667175292969,
+            "y": 752.6666870117188
+          },
+          "weight": "500"
+        }
+      ],
+      "at": "2026-10-27T18:51:43.609Z",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DDUUBFKu.js"
+      ],
+      "overflow": 0,
+      "theme": "dark",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/index/index",
+      "width": 320
+    },
+    {
+      "actions": [
+        {
+          "font": "13px",
+          "key": "quest",
+          "line": "20px",
+          "role": "link",
+          "root": {
+            "bottom": 820.6666870117188,
+            "height": 78,
+            "left": 16.666667938232422,
+            "right": 303.3333549499512,
+            "top": 742.6666870117188,
+            "width": 286.66668701171875,
+            "x": 16.666667938232422,
+            "y": 742.6666870117188
+          },
+          "title": "Nhiệm vụ mới",
+          "titleOverflow": 0,
+          "titleRect": {
+            "bottom": 772.6666870117188,
+            "height": 20,
+            "left": 80.66667175292969,
+            "right": 259.3333435058594,
+            "top": 752.6666870117188,
+            "width": 178.6666717529297,
+            "x": 80.66667175292969,
+            "y": 752.6666870117188
+          },
+          "weight": "500"
+        }
+      ],
+      "at": "2026-10-27T18:52:04.470Z",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DDUUBFKu.js"
+      ],
+      "overflow": 0,
+      "theme": "dark",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/index/index",
+      "width": 320
+    },
+    {
+      "actions": [
+        {
+          "font": "14px",
+          "key": "quest",
+          "line": "20px",
+          "role": "link",
+          "root": {
+            "bottom": 827.6666870117188,
+            "height": 78,
+            "left": 16.666667938232422,
+            "right": 343.3333549499512,
+            "top": 749.6666870117188,
+            "width": 326.66668701171875,
+            "x": 16.666667938232422,
+            "y": 749.6666870117188
+          },
+          "title": "Nhiệm vụ mới",
+          "titleOverflow": 0,
+          "titleRect": {
+            "bottom": 779.6666870117188,
+            "height": 20,
+            "left": 80.66667175292969,
+            "right": 299.3333435058594,
+            "top": 759.6666870117188,
+            "width": 218.6666717529297,
+            "x": 80.66667175292969,
+            "y": 759.6666870117188
+          },
+          "weight": "500"
+        }
+      ],
+      "at": "2026-10-27T18:52:11.469Z",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DDUUBFKu.js"
+      ],
+      "overflow": 0,
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/index/index",
+      "width": 360
+    },
+    {
+      "actions": [
+        {
+          "font": "14px",
+          "key": "quest",
+          "line": "20px",
+          "role": "link",
+          "root": {
+            "bottom": 827.6666870117188,
+            "height": 78,
+            "left": 16.666667938232422,
+            "right": 343.3333549499512,
+            "top": 749.6666870117188,
+            "width": 326.66668701171875,
+            "x": 16.666667938232422,
+            "y": 749.6666870117188
+          },
+          "title": "Nhiệm vụ mới",
+          "titleOverflow": 0,
+          "titleRect": {
+            "bottom": 779.6666870117188,
+            "height": 20,
+            "left": 80.66667175292969,
+            "right": 299.3333435058594,
+            "top": 759.6666870117188,
+            "width": 218.6666717529297,
+            "x": 80.66667175292969,
+            "y": 759.6666870117188
+          },
+          "weight": "500"
+        }
+      ],
+      "at": "2026-10-27T18:52:14.633Z",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DDUUBFKu.js"
+      ],
+      "overflow": 0,
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/index/index",
+      "width": 360
+    },
+    {
+      "actions": [
+        {
+          "font": "14px",
+          "key": "quest",
+          "line": "20px",
+          "role": "link",
+          "root": {
+            "bottom": 523.6666870117188,
+            "height": 78,
+            "left": 16.666667938232422,
+            "right": 343.3333549499512,
+            "top": 445.6666870117187,
+            "width": 326.66668701171875,
+            "x": 16.666667938232422,
+            "y": 445.6666870117187
+          },
+          "title": "Nhiệm vụ mới",
+          "titleOverflow": 0,
+          "titleRect": {
+            "bottom": 475.6666870117187,
+            "height": 20,
+            "left": 80.66667175292969,
+            "right": 299.3333435058594,
+            "top": 455.6666870117187,
+            "width": 218.6666717529297,
+            "x": 80.66667175292969,
+            "y": 455.6666870117187
+          },
+          "weight": "500"
+        }
+      ],
+      "at": "2026-10-27T18:52:35.413Z",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DDUUBFKu.js"
+      ],
+      "overflow": 0,
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/index/index",
+      "width": 360
+    }
+  ],
+  "route": {
+    "entry": [
+      "http://127.0.0.1:5294/assets/index-DDUUBFKu.js"
+    ],
+    "text": "Nhiệm vụ\nHôm nay\nTuần này\nSự kiện\nThành tựu\nChuỗi 2 ngày\nĐiểm danh nhận 5 UVT· Ngày 3 UVT 20.00\nĐiểm danh\n1\n2\n+5\nHôm nay\n·\n4\n·\n5\n·\n6\n+40\nNhiệm vụ người mới\n6 nhiệm vụ\n+500.00\nUVT\nkết thúc sau\n16:45:20\n3/6 đã xong\nChưa nhận thưởng\nHoàn thành tất cả nhiệm vụ để nhận thưởng\nKết nối điện thoại\ndanh tính\nXem thiết bị\nkhám phá\nTìm hiểu thu nhập\nkhám phá\n4\nĐọc bài học\nkhám phá\n5\nHoàn tất tài khoản\ndanh tính\n6\nTìm hiểu lời mời\nkết nối\nẨn nhiệm vụ\nKhóa học đề xuất\nThiết bị và thu nhập\n3 phút · Thưởng 5.00 UVT\nĐã học 25%\nTiếp tục học ›",
+    "url": "http://127.0.0.1:5294/?nx_device=off#/pages/missions/missions"
+  },
+  "images": [
+    {
+      "name": "home-action-320-vi-dark",
+      "sha256": "6bde55d57053ac8e61b526606c1006b65d106d2fbcdb3a9774bbae63dafadb4b"
+    },
+    {
+      "name": "home-action-360-vi-light",
+      "sha256": "bcf6502f2b32bf8c62b47a145d9eb3e69f22cde918c42285aca6de64d0796cc7"
+    },
+    {
+      "name": "home-action-360-vi-Enter-missions",
+      "sha256": "caccbf4fcadddd9396bab9a5bc2627f02c164766d436f80e0cf6825098ae0693"
+    }
+  ],
+  "notes": [
+    "Native scrolling snapshots may precede scroll animation settlement; only stable font/height and actual screenshots used",
+    "developer-loading not observed; no artificial DOM/store or transient pass claim"
+  ]
+}

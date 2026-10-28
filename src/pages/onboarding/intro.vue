@@ -399,6 +399,7 @@ function goPrivacy() {
 .intro-content {
   position: relative;
   min-height: 100%;
+  box-sizing: border-box;
   padding: 0 24px;
   display: flex;
   flex-direction: column;
@@ -412,8 +413,8 @@ function goPrivacy() {
 }
 .intro-orb {
   position: relative;
-  width: 240px;
-  height: 240px;
+  width: clamp(104px, calc(100vh - 510px), 240px);
+  height: clamp(104px, calc(100vh - 510px), 240px);
 }
 .orb-glow {
   position: absolute;
@@ -547,17 +548,61 @@ function goPrivacy() {
   color: var(--v5-ink);
 }
 .intro-terms {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  column-gap: 6px;
   text-align: center;
-  padding-top: 8px;
   font-size: 12px;
+  line-height: 1.4;
   color: var(--v5-ink-4);
 }
+.terms-left {
+  width: 100%;
+}
 .terms-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
   color: var(--v5-ink-3);
   text-decoration: underline;
   text-underline-offset: 2px;
-  /* inline 目标吃 WCAG 2.5.8 豁免,纵向 padding 只扩热区不撑行高(原 34×17) */
-  padding: 14px 0;
+}
+
+/* Reserve the shell's status/home areas; compact the illustration and spacing,
+   not the content. Larger text settings can still scroll naturally. */
+@media (max-width: 374px), (max-height: 740px) {
+  .intro-content { padding-inline: 20px; }
+  .intro-orb-area { padding-top: 44px; }
+  .intro-orb {
+    width: clamp(104px, calc(100vh - 530px), 196px);
+    height: clamp(104px, calc(100vh - 530px), 196px);
+  }
+  .intro-hero { padding-bottom: 0; }
+  .intro-title { font-size: 26px; line-height: 1.2; }
+  .intro-sub { margin-top: 8px; padding-inline: 0; font-size: 13px; line-height: 1.5; }
+  .intro-hero :deep(.home-display-stats) {
+    max-width: 100%;
+    box-sizing: border-box;
+    margin-top: 12px;
+    padding: 7px 10px;
+    gap: 6px;
+    font-size: 11px;
+  }
+  .intro-hero :deep(.home-display-item) { gap: 4px; }
+  .intro-cta { padding-top: 20px; gap: 8px; }
+  .cta-primary, .cta-secondary { height: 44px; flex-shrink: 0; }
+  .intro-terms { font-size: 11px; }
+}
+@media (max-height: 620px) {
+  .intro-orb-area { padding-top: 44px; }
+  .intro-title { font-size: 24px; }
+  .intro-sub { margin-top: 6px; }
+  .intro-hero :deep(.home-display-stats) { margin-top: 8px; }
+  .intro-cta { padding-top: 12px; gap: 6px; }
 }
 
 /* framer-motion → CSS entrance animations */

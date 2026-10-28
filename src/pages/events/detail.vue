@@ -1,10 +1,10 @@
 <template>
-  <AppChassis active="home"><view class="event-detail">
+  <AppChassis active="home"><view class="event-detail" :aria-busy="loading">
     <SubPageHeader back="/pages/events/events?source=legacy" :title="copy.title" />
-    <text v-if="loading" class="event-copy" role="status">{{ copy.loading }}</text>
-    <view v-else-if="error || !detail" class="event-section event-section--plain" role="alert">
+    <text v-if="loading && !detail" class="event-copy" role="status">{{ copy.loading }}</text>
+    <view v-else-if="!detail" class="event-section event-section--plain" role="alert">
       <text class="event-copy">{{ copy.unavailable }}</text>
-      <view class="event-action" role="button" tabindex="0" @click="load" @keydown.enter.prevent="activate($event, load)" @keydown.space.prevent="activate($event, load)"><text>{{ copy.retry }}</text></view>
+      <view class="event-action" role="button" tabindex="0" @click="load" @keydown.enter.prevent="activate($event, load)" @keydown.space.prevent="activate($event, load)"><text class="event-read-retry-label">{{ copy.retry }}</text></view>
     </view>
     <template v-else>
       <view class="nx-glass-card event-section">
@@ -23,7 +23,7 @@
       <view class="event-section event-section--plain">
         <text class="event-heading">{{ copy.rules }}</text>
         <view v-for="row in ruleRows" :key="row.label" class="event-row" :class="{'event-rule-paragraph':[copy.labels.description,copy.labels.terms].includes(row.label)}"><text>{{ row.label }}</text><text>{{ row.value }}</text></view>
-        <template v-if="!ruleRows.length"><text class="event-copy">{{ copy.rulesUnavailable }}</text><view class="event-action" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load"><text>{{ copy.retry }}</text></view></template>
+        <template v-if="!ruleRows.length"><text class="event-copy">{{ copy.rulesUnavailable }}</text><view class="event-action" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load"><text class="event-read-retry-label">{{ copy.retry }}</text></view></template>
       </view>
       <view v-if="detail.event.kind !== 'regional' && detail.targetValue > 0" class="event-section event-section--plain">
         <view class="event-row"><text class="event-heading">{{ copy.progress }}</text><text>{{ formatAmount(detail.progressValue) }} / {{ formatAmount(detail.targetValue) }}</text></view>
@@ -43,10 +43,14 @@
         </view>
       </view>
       <text v-if="commandError" class="event-copy" role="alert">{{ copy.pending }}</text>
-      <NxButton v-if="action==='open'" class="event-navigate" variant="secondary" :label="copy.open" :busy="busy" @click="run"><text>{{ copy.open }}</text><text aria-hidden="true">→</text></NxButton>
-      <view v-else-if="action" class="event-primary" role="button" :tabindex="busy ? -1 : 0" :aria-disabled="busy" @click="run" @keydown.enter.prevent="activate($event, run)" @keydown.space.prevent="activate($event, run)"><text>{{ busy ? copy.busy : action === 'remind' ? reminderCopy.remind : copy[action] }}</text></view>
+      <NxButton v-if="action==='open'" class="event-navigate" variant="secondary" :label="copy.open" :busy="busy" :disabled="loading || error" @click="run"><text>{{ copy.open }}</text><text aria-hidden="true">→</text></NxButton>
+      <view v-else-if="action" class="event-primary" role="button" :tabindex="busy || loading || error ? -1 : 0" :aria-disabled="busy || loading || error" @click="run" @keydown.enter.prevent="activate($event, run)" @keydown.space.prevent="activate($event, run)"><text>{{ busy ? copy.busy : action === 'remind' ? reminderCopy.remind : copy[action] }}</text></view>
       <text v-else-if="detail.event.state === 'ongoing' && detail.enabled" class="event-copy">{{ copy.automatic }}</text>
-      <view class="event-action" role="button" :tabindex="busy ? -1 : 0" :aria-disabled="busy" @click="!busy && load()" @keydown.enter.prevent="!busy && activate($event, load)" @keydown.space.prevent="!busy && activate($event, load)"><text>{{ copy.refresh }}</text></view>
+      <view class="event-action" role="button" :tabindex="busy || loading ? -1 : 0" :aria-disabled="busy || loading" @click="!busy && !loading && load()" @keydown.enter.prevent="!busy && !loading && activate($event, load)" @keydown.space.prevent="!busy && !loading && activate($event, load)"><text>{{ copy.refresh }}</text></view>
+      <view v-if="error" class="event-section event-section--plain" role="alert">
+        <text class="event-copy">{{ copy.unavailable }}</text>
+        <view class="event-action" role="button" :tabindex="loading ? -1 : 0" :aria-disabled="loading" @click="!loading && load()" @keydown.enter.prevent="!loading && activate($event, load)" @keydown.space.prevent="!loading && activate($event, load)"><text>{{ copy.retry }}</text></view>
+      </view>
     </template>
   </view></AppChassis>
 </template>
@@ -56,6 +60,7 @@ import { onLoad, onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import NxButton from '@/components/ui/nx-button.vue';
+import { ApiError } from "@/api/errors";
 import { apiClient, eventsApi, remoteApiEnabled } from "@/api/runtime";
 import { captureRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 import { createEventDetailApi, type EventDetail } from "@/api/event-detail-api";
@@ -83,7 +88,7 @@ function reset() { generation += 1; detail.value = null; error.value = false; co
 async function load() {
   if (!visible) return;
   const request = ++generation, scope = identity();
-  loading.value = true; error.value = false; detail.value = null;
+  loading.value = true; error.value = false;
   const current = () => visible && generation === request && scope === identity();
   try {
     if (!remoteApiEnabled || !code) throw new Error("EVENT_UNAVAILABLE");
@@ -94,11 +99,11 @@ async function load() {
         commandError.value = false; unconfirmedAction = null;
       }
     }
-  } catch { if (current()) error.value = true; }
+  } catch (cause) { if (current()) { error.value = true; if (!(cause instanceof ApiError && cause.kind === "network")) detail.value = null; } }
   finally { if (current()) loading.value = false; }
 }
 async function run() {
-  if (busy.value || !detail.value || !action.value) return;
+  if (busy.value || loading.value || error.value || !detail.value || !action.value) return;
   const selectedAction = action.value;
   if (selectedAction === "open") { navTo(eventDetailHref(detail.value)); return; }
   const scope = identity(), request = generation;
@@ -116,7 +121,7 @@ function activate(event: KeyboardEvent, action: () => unknown) { if (!event.repe
 onLoad(options => { const query = new URLSearchParams(takeNavigationQuery("/pages/events/detail")); code = String(options?.id ?? query.get("id") ?? "").trim(); reset(); if (visible) void load(); });
 onShow(() => { visible = true; void load(); });
 onHide(() => { visible = false; reset(); });
-watch(() => [app.accountKey, app.accountBindingEpoch, language.value], () => { reset(); void load(); });
+watch(() => [app.accountKey, app.accountBindingEpoch, language.value], () => { reset(); void load(); }, { flush: "sync" });
 const unsubscribe = subscribeRuntimeRevision(() => { reset(); void load(); });
 onUnmounted(() => { visible = false; reset(); unsubscribe(); });
 </script>
@@ -134,6 +139,7 @@ onUnmounted(() => { visible = false; reset(); unsubscribe(); });
 .event-progress > view { height:100%; background:var(--v5-brand); }
 .event-result + .event-result { margin-top:14px; border-top:1px solid var(--v5-border); }
 .event-action, .event-primary { display:flex; justify-content:center; margin-top:16px; padding:13px 16px; border-radius:24px; font-size:13px; font-weight:600; color:var(--v5-brand); }
+.event-read-retry-label { font: 600 13px/20px var(--font-v5); }
 .event-primary { background:var(--v5-brand); color:var(--v5-on-brand); }
 .event-navigate { margin-top:16px; width:100%; }
 .event-rule-paragraph { display:block; }

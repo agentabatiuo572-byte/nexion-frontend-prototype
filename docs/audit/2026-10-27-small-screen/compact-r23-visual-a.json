@@ -1,0 +1,275 @@
+{
+  "frozenAt": "2026-10-27T16:56:13.027Z",
+  "status": "READY-limited-one-frame",
+  "browser": "Official CUA Chrome4, own5265 tab1733373052",
+  "buildRoot": "D:/WORKS/PLAN/.wt/uvel-design-preview/r20-unified-review/r23-frozen-web",
+  "entry": "index-D78ONfqM.js",
+  "jsSha256": "d176e742e93d728543b0fe2880030f9b5cfd0c5e92c47db3c424fd420037e20a",
+  "cssComparisons": [
+    {
+      "file": "daily-check-in-row-BoXMjQFA.css",
+      "equalBytes": true,
+      "r23Sha256": "f2f298720942752297bee9c78098d5f117ff8ee0a33a76750de662c676522e64",
+      "r22Sha256": "f2f298720942752297bee9c78098d5f117ff8ee0a33a76750de662c676522e64",
+      "bytes": 4915
+    },
+    {
+      "file": "intro-CIkBy_3L.css",
+      "equalBytes": true,
+      "r23Sha256": "be9bdc4988bccdb36cb57bc39336203d0bad41f40a7f11234dc7f0d976de1680",
+      "r22Sha256": "be9bdc4988bccdb36cb57bc39336203d0bad41f40a7f11234dc7f0d976de1680",
+      "bytes": 8626
+    }
+  ],
+  "records": [
+    {
+      "label": "before-single-frame",
+      "time": "2026-10-27T16:55:15.951Z",
+      "entry": [
+        "http://127.0.0.1:5265/assets/index-D78ONfqM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5265/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5265/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5265/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5265/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5265/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5265/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5265/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5265/assets/app-chassis-DSCGxZok.css",
+        "http://127.0.0.1:5265/assets/daily-check-in-row-BoXMjQFA.css",
+        "http://127.0.0.1:5265/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5265/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5265/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5265/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5265/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5265/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5265/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5265/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5265/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5265/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5265/assets/index-D6_GdV75.css"
+      ],
+      "url": "http://127.0.0.1:5265/?nx_device=off#/pages/index/index",
+      "size": [
+        390,
+        844
+      ],
+      "locale": "zh",
+      "theme": "dark",
+      "fonts": "loaded",
+      "badge": {
+        "text": "USDT",
+        "rect": {
+          "x": 327.2708435058594,
+          "y": 107,
+          "width": 44.72916793823242,
+          "height": 19.33333396911621,
+          "top": 107,
+          "right": 372.0000114440918,
+          "bottom": 126.33333396911621,
+          "left": 327.2708435058594
+        },
+        "font": [
+          "12px",
+          "500",
+          "normal"
+        ],
+        "color": "rgb(142, 114, 255)",
+        "background": "rgba(142, 114, 255, 0.2)",
+        "whiteSpace": "nowrap",
+        "display": "flex",
+        "visibility": "visible"
+      },
+      "heading": {
+        "text": "今日收益",
+        "rect": {
+          "x": 18,
+          "y": 108,
+          "width": 49.927085876464844,
+          "height": 17.33333396911621,
+          "top": 108,
+          "right": 67.92708587646484,
+          "bottom": 125.33333396911621,
+          "left": 18
+        },
+        "font": [
+          "12px",
+          "400",
+          "normal"
+        ],
+        "color": "rgb(107, 115, 133)",
+        "background": "rgba(0, 0, 0, 0)",
+        "whiteSpace": "pre-line",
+        "display": "block",
+        "visibility": "visible"
+      },
+      "amount": "$16.24",
+      "todayLabel": {
+        "text": "今天",
+        "rect": {
+          "x": 137.96875,
+          "y": 379,
+          "width": 21,
+          "height": 14,
+          "top": 379,
+          "right": 158.96875,
+          "bottom": 393,
+          "left": 137.96875
+        },
+        "font": [
+          "10.5px",
+          "400",
+          "14px"
+        ],
+        "color": "rgb(230, 255, 158)",
+        "background": "rgba(0, 0, 0, 0)",
+        "whiteSpace": "nowrap",
+        "display": "block",
+        "visibility": "visible"
+      },
+      "todayStyle": {
+        "border": "color(srgb 0.901961 1 0.619608 / 0.6)",
+        "shadow": "color(srgb 0.619608 0.862745 0.113725 / 0.1) 0px 0px 0px 3px, color(srgb 0.619608 0.862745 0.113725 / 0.18) 0px 6px 16px 0px"
+      },
+      "overflow": 0
+    },
+    {
+      "label": "after-single-frame",
+      "time": "2026-10-27T16:55:19.461Z",
+      "entry": [
+        "http://127.0.0.1:5265/assets/index-D78ONfqM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5265/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5265/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5265/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5265/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5265/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5265/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5265/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5265/assets/app-chassis-DSCGxZok.css",
+        "http://127.0.0.1:5265/assets/daily-check-in-row-BoXMjQFA.css",
+        "http://127.0.0.1:5265/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5265/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5265/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5265/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5265/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5265/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5265/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5265/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5265/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5265/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5265/assets/index-D6_GdV75.css"
+      ],
+      "url": "http://127.0.0.1:5265/?nx_device=off#/pages/index/index",
+      "size": [
+        390,
+        844
+      ],
+      "locale": "zh",
+      "theme": "dark",
+      "fonts": "loaded",
+      "badge": {
+        "text": "USDT",
+        "rect": {
+          "x": 327.2708435058594,
+          "y": 107,
+          "width": 44.72916793823242,
+          "height": 19.33333396911621,
+          "top": 107,
+          "right": 372.0000114440918,
+          "bottom": 126.33333396911621,
+          "left": 327.2708435058594
+        },
+        "font": [
+          "12px",
+          "500",
+          "normal"
+        ],
+        "color": "rgb(142, 114, 255)",
+        "background": "rgba(142, 114, 255, 0.2)",
+        "whiteSpace": "nowrap",
+        "display": "flex",
+        "visibility": "visible"
+      },
+      "heading": {
+        "text": "今日收益",
+        "rect": {
+          "x": 18,
+          "y": 108,
+          "width": 49.927085876464844,
+          "height": 17.33333396911621,
+          "top": 108,
+          "right": 67.92708587646484,
+          "bottom": 125.33333396911621,
+          "left": 18
+        },
+        "font": [
+          "12px",
+          "400",
+          "normal"
+        ],
+        "color": "rgb(107, 115, 133)",
+        "background": "rgba(0, 0, 0, 0)",
+        "whiteSpace": "pre-line",
+        "display": "block",
+        "visibility": "visible"
+      },
+      "amount": "$16.24",
+      "todayLabel": {
+        "text": "今天",
+        "rect": {
+          "x": 137.96875,
+          "y": 379,
+          "width": 21,
+          "height": 14,
+          "top": 379,
+          "right": 158.96875,
+          "bottom": 393,
+          "left": 137.96875
+        },
+        "font": [
+          "10.5px",
+          "400",
+          "14px"
+        ],
+        "color": "rgb(230, 255, 158)",
+        "background": "rgba(0, 0, 0, 0)",
+        "whiteSpace": "nowrap",
+        "display": "block",
+        "visibility": "visible"
+      },
+      "todayStyle": {
+        "border": "color(srgb 0.901961 1 0.619608 / 0.6)",
+        "shadow": "color(srgb 0.619608 0.862745 0.113725 / 0.1) 0px 0px 0px 3px, color(srgb 0.619608 0.862745 0.113725 / 0.18) 0px 6px 16px 0px"
+      },
+      "overflow": 0
+    }
+  ],
+  "screenshot": {
+    "file": "compact-r23-visual-a.png",
+    "clip": {
+      "height": 844,
+      "scale": 1,
+      "width": 390,
+      "x": 811,
+      "y": 219.33334350585935
+    },
+    "sha256": "9ed17c3361dd992b840afab322a4d948261b9ea62e89a00f3f287b28ea3863ec"
+  },
+  "scores": {
+    "usdtVisible": 9.2,
+    "today10_5Visible": 9.2
+  },
+  "remoteTrialEarlyPurchase": "not reviewed / not signed",
+  "wallet": "not visited / old8.8 OPEN",
+  "intro": "not visited; only unchanged CSS bytes compared",
+  "sourceEdits": [],
+  "buildsRun": [],
+  "businessActions": []
+}

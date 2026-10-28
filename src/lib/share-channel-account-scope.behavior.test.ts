@@ -9,7 +9,7 @@ import { createSessionVault } from "@/api/session-vault";
 import { remoteAccountScope } from "./remote-account-epoch";
 
 const runtime = vi.hoisted(() => ({
-  remoteApiEnabled: true, fundsServerEnabled: true, expectedApiEnvironment: "dev",
+  remoteApiEnabled: true, apiRuntimeConfig: { environment: "dev", baseUrl: "https://test.invalid" }, fundsServerEnabled: true, expectedApiEnvironment: "dev",
   sessionVault: { read: vi.fn() }, withdrawalApi: { list: vi.fn() },
   referralRewardApi: { snapshot: vi.fn() }, shareEventApi: { record: vi.fn() },
   purchaseEligibilityApi: { snapshot: vi.fn() },

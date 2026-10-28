@@ -5,6 +5,7 @@ import { renderToString } from '@vue/server-renderer';
 import ts from 'typescript';
 import { afterEach, expect, it, vi } from 'vitest';
 import source from './streak-power-ups.vue?raw';
+import dailySource from '@/pages/daily/daily.vue?raw';
 import { zh } from '@/i18n/messages/zh';
 import { en } from '@/i18n/messages/en';
 import { vi as vietnamese } from '@/i18n/messages/vi';
@@ -38,7 +39,7 @@ const rows = (): CanonicalDailyPowerUp[] => [
 const cleanups: Array<() => void> = [];
 afterEach(() => cleanups.splice(0).forEach(stop => stop()));
 function mount(language: keyof typeof dictionaries = 'vi', remote = true) {
-  const locale = Vue.reactive({ code: language }), faucet = Vue.reactive({ remotePowerUps: rows(), signInStreak: 2, refreshRemote: vi.fn(async () => {}) });
+  const locale = Vue.reactive({ code: language }), faucet = Vue.reactive({ remotePowerUps: rows(), signInStreak: 2, remoteReadState: 'ready', refreshRemote: vi.fn(async () => {}) });
   const navTo = vi.fn(), success = vi.fn(), error = vi.fn();
   const powerUp = { hasClaimed: () => false, claim: vi.fn(() => ({ ok: false })), claimRemote: vi.fn(async (id: string) => {
     const row = faucet.remotePowerUps.find(item => item.powerUpCode.toLowerCase() === id)!; row.status = 'ACTIVATED'; return true;
@@ -54,8 +55,9 @@ function mount(language: keyof typeof dictionaries = 'vi', remote = true) {
   };
   const exports: Record<string, any> = {};
   new Function('require', 'exports', code)((id: string) => { if (!(id in modules)) throw new Error(id); return modules[id]; }, exports);
-  const scope = Vue.effectScope(), view = scope.run(() => exports.default.setup({}, { expose() {} }))!; cleanups.push(() => scope.stop());
-  return { view, faucet, locale, powerUp, navTo, success, error,
+  const props=Vue.reactive({factsVisible:undefined as boolean|undefined});
+  const scope = Vue.effectScope(), view = scope.run(() => exports.default.setup(props, { expose() {} }))!; cleanups.push(() => scope.stop());
+  return { view, faucet, locale, powerUp, navTo, success, error, props,
     html: () => renderToString(Vue.createSSRApp({ render: () => render(Vue.proxyRefs(view), []) })) };
 }
 
@@ -121,4 +123,18 @@ it.each(['claim', 'refresh'] as const)('pending %s locale switch resolves the to
 it('mock display retains its existing separate boost labels', () => {
   const screen = mount('vi', false); expect(screen.view.powerUps.value[0].labelText).toBeUndefined();
   expect(screen.view.w.value.royalty_boost_label).toBe(vietnamese.daily.powerUps.royalty_boost_label);
+});
+
+it.each(['zh','en','vi'] as const)('daily cold/new-scope Power-Ups retains static %s heading and footer with unknown values',async language=>{
+ const s=mount(language);s.props.factsVisible=false;s.faucet.remoteReadState='idle';s.faucet.remotePowerUps=[];s.faucet.signInStreak=0;
+ const html=await s.html();expect(html).toContain(dictionaries[language].daily.powerUps.label);expect(html).toContain(dictionaries[language].daily.powerUps.footer);expect(html).toContain('—');expect(s.view.powerUps.value).toEqual([]);expect(s.powerUp.claimRemote).not.toHaveBeenCalled();
+ const tag=dailySource.match(/<StreakPowerUps\b[^>]*\/>/)![0];
+ const parentRender=new Function('Vue',compile(tag,{mode:'function',prefixIdentifiers:true}).code)(Vue);
+ const child=Vue.defineComponent({setup:()=>()=>render(Vue.proxyRefs(s.view),[])});
+ const actualParent=Vue.createSSRApp({components:{StreakPowerUps:child},setup:()=>({dailyFactsVisible:false}),render:parentRender});
+ const fromParent=await renderToString(actualParent);expect(fromParent).toContain(dictionaries[language].daily.powerUps.label);expect(fromParent).toContain(dictionaries[language].daily.powerUps.footer);
+});
+it.each(['loading','error','idle'])('retained Power-Ups rows never authorize a claim while faucet is %s',async state=>{
+ const s=mount('en');s.faucet.remotePowerUps[0].status='AVAILABLE';s.props.factsVisible=true;const row=s.view.powerUps.value[0];s.faucet.remoteReadState=state;
+ await s.view.handleClaim(row);expect(s.powerUp.claimRemote).not.toHaveBeenCalled();expect(s.navTo).not.toHaveBeenCalled();
 });

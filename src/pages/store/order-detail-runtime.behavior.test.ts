@@ -73,7 +73,7 @@ function harness(mode: "dev" | "prod" = "prod") {
     adoptCommerceWallet: vi.fn().mockReturnValue(true), refreshRemoteFleet: vi.fn().mockResolvedValue(true) };
   const toast = { warn: vi.fn() };
   const clipboard: Array<{ data: string; success: () => void; fail?: () => void }> = [];
-  const deps = { ref, computed, watch, orders, auth, remoteApiEnabled: true, app, toast,
+  const deps = { ref, computed, watch, orders, auth, remoteApiEnabled: true, app, toast, apiRuntimeConfig: reactive({ environment: mode }), locale: reactive({ code: "en" }),
     uni: { setClipboardData: (args: typeof clipboard[number]) => clipboard.push(args) },
     t: ref(en), asApiError, orderApi: remote.orderApi, uiConfirm: vi.fn().mockResolvedValue(true),
     navTo: vi.fn(), takeNavigationQuery: () => "", detailNow: ref(Date.now()),
@@ -143,11 +143,16 @@ describe("real order detail after catalogue runtime invalidation", () => {
     const h = harness();
     h.requests[0].resolve(list()); await settle();
     expect(h.orders.orders[0]?.id).toBe(original.orderNo);
+    const prior = h.page.order.value;
     remote.productCatalogApi.catalog.mockResolvedValueOnce(catalog);
     await refreshProductCatalog(true); await settle();
     expect(h.requests).toHaveLength(2);
+    expect(h.orders.orders).toEqual([]);
+    expect(h.page.order.value).toBe(prior);
+    expect(h.page.cancellable.value).toBe(false);
+    expect(h.page.canPayFromWallet.value).toBe(false);
     expect(h.page.showOrderNotFound.value).toBe(false);
-    expect(h.page.showRemoteOrderLoading.value).toBe(true);
+    expect(h.page.showRemoteOrderLoading.value).toBe(false);
     h.requests[1].resolve(list()); await settle();
     expect(h.orders.orders[0]?.id).toBe(original.orderNo);
   });
@@ -235,7 +240,8 @@ describe("real order detail after catalogue runtime invalidation", () => {
     await refreshProductCatalog(true); await settle();
     h.payments[0].resolve(receipt); await payment; await settle();
     expect(h.page.payingFromWallet.value).toBe(false);
-    expect(h.page.showRemoteOrderLoading.value).toBe(true);
+    expect(h.page.showRemoteOrderLoading.value).toBe(false);
+    expect(h.page.canPayFromWallet.value).toBe(false);
     expect(h.page.remoteOrderError.value).toBe(false);
     expect(h.app.adoptCommerceWallet).not.toHaveBeenCalled();
     expect(h.app.refreshRemoteFleet).toHaveBeenCalledOnce();

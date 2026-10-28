@@ -81,7 +81,7 @@ describe("repurchase disabled-action feedback", () => {
 
   it("renders the configured minimum and live reason next to the disabled action", () => {
     expect(statements).toHaveLength(3);
-    expect(source).toContain('fmt(w.minimumAmount, { amount: formatCommandAmount(repurchase.config.minAmountUsdt) })');
+    expect(source).toContain("fmt(w.minimumAmount, { amount: repurchaseDisplayable && repurchase.config ? formatCommandAmount(repurchase.config.minAmountUsdt) : '—' })");
     expect(source).toContain('v-if="submitHint"');
     expect(source).toContain('aria-live="polite">{{ submitHint }}');
     expect(source).toContain(':aria-disabled="canSubmit ? \'false\' : \'true\'"');

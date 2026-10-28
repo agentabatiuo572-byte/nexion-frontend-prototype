@@ -4,7 +4,7 @@ import { advanceRuntimeRevision } from "@/api/order-api";
 import type { VRankData, VRankDef } from "./v-rank";
 
 const remote = vi.hoisted(() => ({
-  remoteApiEnabled: true,
+  remoteApiEnabled: true, apiRuntimeConfig: { environment: "dev", baseUrl: "https://test.invalid" },
   vRankApi: { ladder: vi.fn(), current: vi.fn() },
 }));
 

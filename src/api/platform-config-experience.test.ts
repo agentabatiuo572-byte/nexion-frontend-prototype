@@ -82,6 +82,18 @@ const validPlatform = {
 };
 
 describe("platform experience config contract", () => {
+  it("keeps ordinary platform configuration readable after retirement and ignores stale enabled flags", () => {
+    const legacy=parsePlatformComputeConfig(validPlatform);
+    expect(legacy.featureFlags.computeShareEnabled).toBe(false);
+    const retired={...validPlatform,featureFlags:{...validPlatform.featureFlags,computeShareEnabled:false},
+      computerCompute:{...validPlatform.computerCompute,flags:[],gpuTiers:[]}};
+    const current=parsePlatformComputeConfig(retired);
+    expect(current.share).toEqual(legacy.share);
+    expect(current.onlineBonus).toEqual(legacy.onlineBonus);
+    expect(current.publicStats).toEqual(legacy.publicStats);
+    expect(current.computeShare.gpuTiers).toEqual([]);
+    expect(()=>parsePlatformComputeConfig({...retired,onlineBonus:{...retired.onlineBonus,continuityFullHours:0}})).toThrow();
+  });
   it("accepts the retired zero H5 factor while keeping other coefficients strict", () => {
     const retired = {
       ...validPlatform,

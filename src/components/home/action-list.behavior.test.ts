@@ -1,3 +1,4 @@
+import { createPassiveTabReadFixture } from '@/lib/passive-tab-read.test-support';
 import ts from 'typescript';
 import * as vue from 'vue';
 import { describe, expect, it, vi } from 'vitest';
@@ -16,10 +17,12 @@ describe('home action priority', () => {
     const quest = { remoteStatus: 'ready', dayOneRequiredTaskCount: 1, dayOneSnapshotStatus: 'SNAPSHOT', dayOneRewardNex: 500,
       remoteQuests: [{ questCode: 'one', layer: 'DAY_ONE', status: 'PENDING', eligible: true, eligibleFrom: new Date(now - 10000).toISOString(), eligibleUntil: new Date(now + 60000).toISOString() }], refreshRemote: vi.fn() };
     const modules: Record<string, unknown> = {
+      '@/lib/passive-tab-read': createPassiveTabReadFixture(() => JSON.stringify([app.accountKey, app.accountBindingEpoch])),
+      '@/store/data-visibility': { useDataVisibility: () => ({ hidden: false, mask: String }) },
       vue: { ...vue, onMounted: vi.fn(), onUnmounted: vi.fn(), watch: vi.fn() },
       '@/composables/use-tab-page-lifecycle': { onShow: vi.fn(), onHide: vi.fn() }, '@/store/app': { useApp: () => app },
       '@/store/session': { useSession: () => ({ isCurrentDeviceCalibrated: () => true }) }, '@/store/quest': { useQuest: () => quest },
-      '@/store/orders': { useOrders: () => orders }, '@/store/voucher': { useVoucher: () => ({ claimedUnused: [{}], refreshRemote: vi.fn() }) },
+      '@/store/orders': { useOrders: () => orders }, '@/store/voucher': { useVoucher: () => ({ claimedUnused: [{}], revalidateRemote: vi.fn(), refreshRemote: vi.fn() }) },
       '@/store/free-trial': { useFreeTrial: () => ({ status: 'active', refreshRemote: vi.fn() }) }, '@/store/config': { useConfig: () => ({ isEnabled: () => true }) },
       '@/api/runtime': { remoteApiEnabled: true, accountApi: { securityOverview: async () => ({ twoFactorEnabled: false }) } },
       '@/lib/native-phone-runtime': { hasNativeAndroidPhoneRuntime: () => true, hasNativePhoneRuntime: () => true, nativePhonePlatform: () => null }, '@/lib/route': { navTo: vi.fn() },

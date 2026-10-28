@@ -8,7 +8,7 @@ import NetworkPulseCard from './network-pulse-card.vue';
 const cfg = useConfig(), now = ref(Date.now());
 let timer: ReturnType<typeof setTimeout> | undefined, visible = true;
 const estimate = computed(() => derivedRegisteredUsers(cfg.config.publicStats, now.value));
-const estimateAvailable = computed(() => !cfg.loading && !cfg.syncFailed && publicStatsHealth(cfg.config.publicStats).membersOk && Number.isSafeInteger(estimate.value) && estimate.value >= 0);
+const estimateAvailable = computed(() => !cfg.syncFailed && publicStatsHealth(cfg.config.publicStats).membersOk && Number.isSafeInteger(estimate.value) && estimate.value >= 0);
 const memberCount = computed(() => estimateAvailable.value ? estimate.value : null);
 const available = computed(() => estimateAvailable.value && Number.isSafeInteger(cfg.config.networkPulse?.onlineDevices) && cfg.config.networkPulse!.onlineDevices! >= 0);
 function stop() { if (timer) clearTimeout(timer); timer = undefined; }

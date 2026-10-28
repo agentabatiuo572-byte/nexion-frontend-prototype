@@ -12,7 +12,8 @@ describe("App Home authority refresh isolation", () => {
   it("refreshes Home independently with account fencing and single-flight reuse", () => {
     expect(appSource).toContain("function refreshHomeTruth(request: RemoteAccountRequest");
     expect(appSource).toContain("if (homeTruthRefreshInFlight?.key === key) return homeTruthRefreshInFlight.request;");
-    expect(appSource).toContain("if (!remoteAccountEpoch.isCurrent(request)) throw new Error(\"REMOTE_ACCOUNT_CHANGED\")");
+    expect(appSource).toContain("if (!current()) return false;");
+    expect(appSource).toContain("ownerEpoch === homeTruthOwnerEpoch");
   });
 
   it("keeps Home independent from fleet and task-assignment failures", () => {

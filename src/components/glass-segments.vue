@@ -11,7 +11,7 @@
     />
     <view
       v-for="option in options" :key="option.value" class="nx-glass-option"
-      :class="[option.className, { 'nx-glass-option--selected': option.value === modelValue, 'nx-glass-option--disabled': option.disabled || option.dimmed, 'nx-tab': variant === 'navigation' }]"
+      :class="[option.className, { 'nx-glass-option--selected': option.value === modelValue, 'nx-glass-option--disabled': option.disabled || option.dimmed, 'nx-tab': variant === 'navigation', 'nx-tab--bounce': variant === 'navigation' && option.value === modelValue && option.value === animatedNavigation }]"
       :data-glass-value="String(option.value)" :data-selected="option.value === modelValue"
       :id="option.id" :role="variant === 'navigation' ? 'link' : semantics === 'radio' ? 'radio' : 'tab'"
       :tabindex="option.disabled ? -1 : variant === 'navigation' || option.value === modelValue ? 0 : -1"
@@ -32,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, getCurrentInstance, nextTick } from "vue";
+import { computed, getCurrentInstance, nextTick, ref, watch } from "vue";
 import type { SegmentsConfiguration } from "@/lib/liquid-glass-view";
 import LiquidGlass from "@/components/liquid-glass.vue";
 export interface GlassOption { value: string | number; label: string; count?: string | number; disabled?: boolean; dimmed?: boolean; className?: string; icon?: string; icon2?: string; id?: string; ariaControls?: string; [key: string]: unknown; }
@@ -49,6 +49,12 @@ const props = withDefaults(defineProps<{
 // Values originate from the caller's typed options, including narrow string unions.
 const emit = defineEmits<{ (e: "update:modelValue", value: any): void; (e: "select", value: any, reason: string): void }>();
 const hostId = `nx-segments-host-${getCurrentInstance()!.uid}`;
+// Cold opens and same-tab activations stay still; page arrivals reuse the existing navigation intent.
+const animatedNavigation = ref<string | number | undefined>(props.variant === "navigation" && props.fromValue
+  && props.fromValue !== String(props.modelValue) ? props.modelValue : undefined);
+watch(() => props.modelValue, value => {
+  if (props.variant === "navigation") animatedNavigation.value = value;
+});
 let navigationOnArrival = false;
 // #ifdef APP-PLUS
 navigationOnArrival = true;
@@ -126,11 +132,18 @@ export default viewImplementation;
 .nx-glass-segments--wrap .nx-glass-option { flex: 0 1 auto; padding-inline: 16px; }
 .nx-glass-segments--vertical { flex-direction: column; }
 .nx-glass-segments--vertical .nx-glass-option { flex: 0 0 auto; }
-.nx-glass-segments--navigation { height: 68px; padding: 5px; gap: 2px; box-sizing: border-box; background: transparent; border-radius: 32px; }
-.nx-glass-segments--navigation .nx-glass-option { flex-direction: column; gap: 3px; padding: 4px 2px; border-radius: 28px; }
-.nx-glass-segments--navigation :deep(.nx-tab__label) { font-family: var(--font-v5); font-size: 12px; line-height: 14px; font-weight: 600; white-space: nowrap; text-shadow: 0 1px 2px var(--v5-tabbar-ink-halo), 0 0 4px var(--v5-tabbar-ink-halo); }
-.nx-glass-segments--navigation :deep(.nx-tab__icon) { filter: drop-shadow(0 1px 1px var(--v5-tabbar-ink-halo)); transition: transform 160ms cubic-bezier(.2,.8,.2,1); }
+.nx-glass-segments--navigation { --nx-tab-icon-scale: 1.09; height: var(--nx-tabbar-height, 56px); padding: 5px; gap: 2px; box-sizing: border-box; background: transparent; border-radius: 32px; }
+.nx-glass-segments--navigation .nx-glass-option { gap: 0; padding: 4px 2px; border-radius: 28px; }
+.nx-glass-segments--navigation :deep(.nx-tab__icon) { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; flex-shrink: 0; line-height: 0; filter: drop-shadow(0 1px 1px var(--v5-tabbar-ink-halo)); transition: transform 160ms cubic-bezier(.2,.8,.2,1); transform-origin: center; }
 .nx-glass-segments--navigation .nx-glass-option--selected :deep(.nx-tab__icon) { transform: translateY(-1px); }
-@media (prefers-reduced-motion: reduce) { .nx-glass-option, .nx-glass-indicator { transition: none; } .nx-glass-option:active, .nx-glass-option--selected :deep(.nx-tab__icon) { transform: none; } }
+@keyframes nx-tab-select {
+  0%, 100% { transform: scale(var(--nx-tab-icon-scale, 1)); }
+  40% { transform: scale(calc(var(--nx-tab-icon-scale, 1) * 1.16)); }
+  72% { transform: scale(calc(var(--nx-tab-icon-scale, 1) * .96)); }
+}
+.nx-glass-segments--navigation :deep(.nx-tab__icon),
+.nx-glass-segments--navigation .nx-glass-option--selected :deep(.nx-tab__icon) { transform: scale(var(--nx-tab-icon-scale)); transition: none; }
+.nx-glass-segments--navigation .nx-tab--bounce :deep(.nx-tab__icon) { animation: nx-tab-select 260ms cubic-bezier(.2,.8,.2,1) 1; }
+@media (prefers-reduced-motion: reduce) { .nx-glass-option, .nx-glass-indicator { transition: none; } .nx-glass-option:active { transform: none; } .nx-glass-segments--navigation .nx-tab--bounce :deep(.nx-tab__icon) { animation: none; } .nx-glass-segments--navigation :deep(.nx-tab__icon), .nx-glass-segments--navigation .nx-glass-option--selected :deep(.nx-tab__icon) { transform: scale(var(--nx-tab-icon-scale, 1)); transition: none; } }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) { .nx-glass-segments--navigation { background: var(--v5-surface); } .nx-glass-option--selected { background: var(--v5-brand-soft); } }
 </style>

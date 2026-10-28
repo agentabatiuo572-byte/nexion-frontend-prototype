@@ -3,10 +3,10 @@
     <view class="rank-how-page">
       <SubPageHeader back="/pages/team/rank" :title="w.heroLabel" plain design />
       <view class="rank-how-content">
-        <view v-if="state.loading" class="how-state" role="status" aria-live="polite" aria-busy="true"><text>{{ statusText }}</text></view>
+        <view v-if="state.loading && !state.policy" class="how-state" role="status" aria-live="polite" aria-busy="true"><text>{{ statusText }}</text></view>
         <view v-else-if="state.error || incomplete" class="how-state" :role="state.error ? 'alert' : 'status'">
           <text>{{ statusText }}</text>
-          <NxButton :label="content.copy.retry" variant="text" @click="reload" />
+          <NxButton class="nx-retry-action" :label="content.copy.retry" variant="text" @click="reload" />
         </view>
         <template v-else>
           <view class="how-hero" data-rank-how="published">
@@ -71,7 +71,7 @@
           <view class="how-rank-link" role="link" tabindex="0" @click="navTo('/pages/team/rank')" @keydown.enter.prevent="navTo('/pages/team/rank')" @keydown.space.prevent="navTo('/pages/team/rank')"><text>{{ rankLinkText }}</text><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg></view>
         </template>
         <view class="how-footer">
-          <NxButton :label="state.loading || incomplete ? t.conversations.back : w.ctaBack" variant="secondary" @click="goBack"><text>{{ state.loading || incomplete ? t.conversations.back : w.ctaBack }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
+          <NxButton :label="w.ctaBack" variant="secondary" @click="goBack"><text>{{ w.ctaBack }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
         </view>
       </view>
     </view>
@@ -80,16 +80,19 @@
 
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import TeamArt from '@/components/team/team-art.vue';
 import NxButton from '@/components/ui/nx-button.vue';
 import VBadgeIcon from "@/components/team/v-badge-icon.vue";
 import { useT } from "@/i18n/use-t";
+import { useApp } from '@/store/app';
+import { useAuth } from '@/store/auth';
+import { captureAccountScope, isCurrentAccountScope } from '@/lib/account-scope';
 import { useLocaleStore } from "@/store/locale";
 import { navBack, navTo } from "@/lib/route";
-import { apiClient, expectedApiEnvironment, vRankApi } from "@/api/runtime";
+import { apiClient, apiRuntimeConfig, expectedApiEnvironment, vRankApi } from "@/api/runtime";
 import { createRankHowPolicyApi } from "@/api/rank-how-policy-api";
 import { buildRankHowContent, createRankHowResource, type RankHowResourceState } from "@/lib/rank-how-content";
 import { rankName } from "@/lib/v-rank-copy";
@@ -98,9 +101,24 @@ const t = useT();
 const rankLinkText = computed(() => locale.code === "zh" ? "查看等级条件" : locale.code === "vi" ? "Xem điều kiện hạng" : "View rank requirements");
 const w = computed(() => t.value.rankHowItWorks);
 const locale = useLocaleStore();
+const app = useApp();
+const auth = useAuth();
+const readEnvironment = [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const;
+let environmentInvalidated = false;
+watch(() => [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const, () => { environmentInvalidated = true; }, { flush: 'sync' });
+const environmentCurrent = () => !environmentInvalidated && readEnvironment[0] === apiRuntimeConfig.environment && readEnvironment[1] === apiRuntimeConfig.baseUrl;
 const state = ref<RankHowResourceState>({ loading: true, error: false, policy: null, ranks: [], capabilities: { peer: false, genesis: false } });
 const policyApi = createRankHowPolicyApi(apiClient, expectedApiEnvironment);
-const resource = createRankHowResource({ published: policyApi.published, ladder: vRankApi.ladder, apply: value => { state.value = value; } });
+let resourceOwner = captureAccountScope();
+function makeResource() {
+  const owner = captureAccountScope(), language = locale.code;
+  resourceOwner = owner;
+  return createRankHowResource({ published: policyApi.published, ladder: vRankApi.ladder, apply: value => {
+    if (!isCurrentAccountScope(owner) || language !== locale.code || !environmentCurrent()) return;
+    state.value = value.loading && state.value.policy ? { ...state.value, loading: true, error: false } : value;
+  } });
+}
+let resource = makeResource();
 const content = computed(() => buildRankHowContent(state.value.policy, state.value.ranks, state.value.capabilities, locale.code, t.value.rank.cond));
 const s = (id: string, fallbackTitle?: string) => content.value.section(id, fallbackTitle);
 const sectionId = {
@@ -119,11 +137,17 @@ const incomplete = computed(() => state.value.error || [
   ...(content.value.example ? [...phases.value, ...results.value, ...["example", "example-start", "example-trigger", "example-results"].map(id => s(id))] : []),
 ].some(section => !section.available));
 const statusText = computed(() => state.value.loading ? content.value.copy.loading : content.value.copy.unavailable);
-function reload() { void resource.load(locale.code); }
+function reload() {
+  if (!isCurrentAccountScope(resourceOwner)) { resource.dispose(); resource = makeResource(); }
+  if (environmentCurrent() && auth.isAuthenticated) void resource.load(locale.code);
+}
 function goBack() { navBack("/pages/team/rank"); }
 onShow(reload);
-watch(() => locale.code, reload);
-onUnmounted(resource.dispose);
+onHide(() => { resource.dispose(); resource = makeResource(); });
+watch(() => [app.accountKey, app.accountBindingEpoch, auth.isAuthenticated, locale.code, apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const, () => {
+  resource.dispose(); state.value = { loading: true, error: false, policy: null, ranks: [], capabilities: { peer: false, genesis: false } }; resource = makeResource(); reload();
+}, { flush: 'sync' });
+onUnmounted(() => resource.dispose());
 
 const openRule = ref<string | null>('promotion');
 const ruleGroups = computed(() => [

@@ -465,11 +465,6 @@ export interface AppState {
   // activatedAt + zeroes runtime telemetry so the device exits earnings/quest
   // contribution while remaining in inventory.
   activateDevice: (id: string, reservedSlots?: number) => boolean;  // returns false on cap hit / not found / already active
-  connectComputeShareDevice: (gpuModel?: string, reservedSlots?: number) => {
-    ok: boolean;
-    deviceId?: string;
-    reason?: "disabled" | "slots-full" | "activation-failed";
-  };
   deactivateDevice: (id: string) => void;
   /** Marks device for deactivation after current task completes; tick() picks it up. */
   scheduleDeactivation: (id: string) => void;

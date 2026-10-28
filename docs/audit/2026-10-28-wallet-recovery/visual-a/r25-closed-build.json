@@ -1,0 +1,24 @@
+{
+  "capturedAt": "2026-10-27T18:19:20.3705388Z",
+  "origin": "http://127.0.0.1:5291",
+  "servedEntry": "/assets/index-CZ5ylXPm.js",
+  "publishedRoot": "D:/WORKS/PLAN/.wt/uvel-design-preview/wallet-r25/web-final",
+  "frozenRoot": "D:/WORKS/PLAN/.wt/uvel-design-preview/wallet-r25/web-closed",
+  "files": [
+    {
+      "path": "index.html",
+      "publishedSHA256": "26e6ade38b54181b75322526b1ace1b336da211fda68c77cc046b4aa5fb9438a",
+      "frozenSHA256": "26e6ade38b54181b75322526b1ace1b336da211fda68c77cc046b4aa5fb9438a"
+    },
+    {
+      "path": "assets/index-CZ5ylXPm.js",
+      "publishedSHA256": "24aeb6a2ec24699bddf93e29c4b0e140ada1e037554d9abd8d7f3543e64fd22b",
+      "frozenSHA256": "24aeb6a2ec24699bddf93e29c4b0e140ada1e037554d9abd8d7f3543e64fd22b"
+    },
+    {
+      "path": "assets/index-DPMvPy7r.css",
+      "publishedSHA256": "361f8178b8e346b1b8c3a0e2e168938de62036eef456b13962803ad0e07fa80d",
+      "frozenSHA256": "361f8178b8e346b1b8c3a0e2e168938de62036eef456b13962803ad0e07fa80d"
+    }
+  ]
+}

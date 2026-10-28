@@ -18,7 +18,7 @@ function page() {
   const bindings = {
     ref, genesis, secondaryBlock: ref(null), gatesSecondary: ref(true), eligible: ref(true),
     gate: ref({ capRemaining: 4 }), eligSheetOpen: ref(false), secondaryBlockText: ref("closed"),
-    secondaryBlockSub: ref("closed"), remoteApiEnabled: true, ownedCount: ref(2),
+    secondaryBlockSub: ref("closed"), marketplaceCommandsReady: ref(true), remoteApiEnabled: true, ownedCount: ref(2),
     t: ref(en), toast, fmt, formatGenesisPrice, ApiError, geoPolicyUserMessage: () => null,
     captureAccountScope: () => accountEpoch, isCurrentAccountScope: (epoch: number) => epoch === accountEpoch,
   };
@@ -28,7 +28,7 @@ function page() {
   const actions = new Function(...Object.keys(bindings), `${js}\nreturn {handleBuy, hide(){marketplacePageVisible=false;marketplaceObservationEpoch++}, show(){marketplacePageVisible=true}}`)(...Object.values(bindings)) as {
     handleBuy: (listing: { tokenId: string; priceUSDT: number }) => Promise<void>; hide: () => void; show: () => void;
   };
-  return { ...actions, genesis, changeAccount: () => ++accountEpoch };
+  return { ...actions, genesis, readReady:bindings.marketplaceCommandsReady, changeAccount: () => ++accountEpoch };
 }
 beforeEach(() => { vi.useFakeTimers(); setActivePinia(createPinia()); });
 afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
@@ -69,4 +69,9 @@ describe("Genesis secondary purchase price and lifecycle", () => {
     await p.handleBuy({ tokenId: "GEN-ONE", priceUSDT: 10 });
     expect(useUI().toasts[0].title).toBe(expected);
   });
+});
+
+it("does not purchase from retained display entities while read authority is pending",async()=>{
+ const p=page();p.readReady.value=false;await p.handleBuy({tokenId:"GEN-ONE",priceUSDT:10});
+ expect(p.genesis.acquireSecondary).not.toHaveBeenCalled();
 });

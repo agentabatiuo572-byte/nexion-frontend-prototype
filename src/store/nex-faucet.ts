@@ -1,10 +1,11 @@
+import { runPassiveTabRead, invalidateBeforePassiveTabRead, rememberPassiveTabRead } from "@/lib/passive-tab-read";
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import { pointsApi, remoteApiEnabled, sessionVault } from "@/api/runtime";
 import type { CanonicalTopStreaker, CanonicalDailyMilestone, CanonicalDailyPowerUp } from "@/api/points-api";
 import { createAccountRowCommit } from "./account-scoped-storage";
 import { createRemoteAccountEpoch, type RemoteAccountRequest } from "@/lib/remote-account-epoch";
-import { captureRuntimeRevision } from "@/api/order-api";
+import { captureRuntimeRevision, isCurrentRuntimeRevision } from "@/api/order-api";
 import { ApiError } from "@/api/errors";
 
 /**
@@ -107,9 +108,15 @@ export const useNexFaucet = defineStore("nexFaucet", () => {
   const remoteNextResetAt = ref(0);
   const remoteAccountEpoch = createRemoteAccountEpoch();
   const remoteReadState = ref<"idle" | "loading" | "ready" | "error">(remoteApiEnabled ? "idle" : "ready");
+  const remoteHasSnapshot = ref(false);
   let remoteRefreshGeneration = 0;
 
+  let retryAt = 0;
+
   function clearRemoteFacts() {
+    remoteHasSnapshot.value = false;
+
+    retryAt = 0;
     remoteReadState.value = "idle";
     history.value = [];
     lastSignedInAt.value = 0;
@@ -132,13 +139,36 @@ export const useNexFaucet = defineStore("nexFaucet", () => {
     const runtime = captureRuntimeRevision();
     return JSON.stringify([request.accountKey, request.epoch, runtime.runId, runtime.epoch]);
   }
-  function ensureRemote(): Promise<boolean> {
-    const request = remoteAccountEpoch.snapshot();
-    return readInFlight?.key === readScopeKey(request) ? readInFlight.promise : refreshRemote(request);
+  function recoverRuntimeRead(request: RemoteAccountRequest, generation: number): Promise<boolean> {
+    if (!remoteAccountEpoch.isCurrent(request)) return Promise.resolve(false);
+    if (generation !== remoteRefreshGeneration) {
+      return readInFlight?.key === readScopeKey(request) ? readInFlight.promise : Promise.resolve(false);
+    }
+    if (Date.now() < retryAt) { remoteReadState.value = "error"; return Promise.resolve(false); }
+    // Only an external runtime change reaches here; join/start its current read once.
+    return ensureRemote();
   }
+  function ensureRemote(maxAgeMs = 0): Promise<boolean> {
+    const request = remoteAccountEpoch.snapshot();
+    const session = sessionVault.read();
+    if (remoteApiEnabled && (!session || request.accountKey !== `user:${session.user.userId}`)) {
+      clearRemoteFacts(); remoteReadState.value = "error"; return Promise.resolve(false);
+    }
+    if (Date.now() < retryAt) return Promise.resolve(false);
+    const read = () => {
+      const key = readScopeKey(request);
+      return readInFlight?.key === key ? readInFlight.promise : refreshRemote(request);
+    };
+    return maxAgeMs > 0 ? runPassiveTabRead("points", read, [request, captureRuntimeRevision()]) : read();
+  }
+
   function refreshRemote(request: RemoteAccountRequest = remoteAccountEpoch.snapshot()): Promise<boolean> {
+    invalidateBeforePassiveTabRead("points");
+    if (Date.now() < retryAt) return Promise.resolve(false);
+    const key = readScopeKey(request);
     const promise = readRemote(request);
-    readInFlight = { key: readScopeKey(request), promise };
+    rememberPassiveTabRead("points", promise, [request, captureRuntimeRevision()]);
+    readInFlight = { key, promise };
     const clear = () => { if (readInFlight?.promise === promise) readInFlight = null; };
     void promise.then(clear, clear);
     return promise;
@@ -149,9 +179,11 @@ export const useNexFaucet = defineStore("nexFaucet", () => {
     if (!session || request.accountKey !== `user:${session.user.userId}`
         || !remoteAccountEpoch.isCurrent(request)) return false;
     const refreshGeneration = ++remoteRefreshGeneration;
+    const runtime = captureRuntimeRevision();
     remoteReadState.value = "loading";
     try {
       const snapshot = await pointsApi.state();
+      if (!isCurrentRuntimeRevision(runtime)) return recoverRuntimeRead(request, refreshGeneration);
       if (!remoteAccountEpoch.isCurrent(request) || refreshGeneration !== remoteRefreshGeneration) return false;
       remoteServerDate.value = snapshot.serverDate;
       remoteCheckedInToday.value = snapshot.streak.checkedInToday;
@@ -171,9 +203,22 @@ export const useNexFaucet = defineStore("nexFaucet", () => {
       remoteMilestoneIds.value = Object.fromEntries(snapshot.dailyMilestones
         .map((milestone) => [milestone.milestoneDay, milestone.milestoneId]));
       remoteReadState.value = "ready";
+      remoteHasSnapshot.value = true;
+
+      retryAt = 0;
       return true;
-    } catch {
-      if (remoteAccountEpoch.isCurrent(request) && refreshGeneration === remoteRefreshGeneration) {
+    } catch (cause) {
+      if (remoteAccountEpoch.isCurrent(request) && refreshGeneration === remoteRefreshGeneration && cause instanceof ApiError && (cause.status === 401 || cause.status === 403)) {
+        clearRemoteFacts();
+        remoteReadState.value = "error";
+        return false;
+      }
+      if (!isCurrentRuntimeRevision(runtime)) {
+        if (remoteAccountEpoch.isCurrent(request) && refreshGeneration === remoteRefreshGeneration && cause instanceof ApiError && cause.status === 429) retryAt = Date.now() + (cause.retryAfterMs ?? 30_000);
+        return recoverRuntimeRead(request, refreshGeneration);
+      }
+      if (remoteAccountEpoch.isCurrent(request) && refreshGeneration === remoteRefreshGeneration && isCurrentRuntimeRevision(runtime)) {
+        if (cause instanceof ApiError && cause.status === 429) retryAt = Date.now() + (cause.retryAfterMs ?? 30_000);
         remoteReadState.value = "error";
       }
       return false;
@@ -215,7 +260,7 @@ export const useNexFaucet = defineStore("nexFaucet", () => {
   }
 
   async function claimMilestoneRemote(day: number): Promise<boolean> {
-    if (!remoteApiEnabled) return false;
+    if (!remoteApiEnabled || Date.now() < retryAt) return false;
     const request = remoteAccountEpoch.snapshot();
     const milestoneId = remoteMilestoneIds.value[day];
     if (!milestoneId) return false;
@@ -399,7 +444,7 @@ export const useNexFaucet = defineStore("nexFaucet", () => {
 
   return {
     history, lastSignedInAt, signInStreak, longestStreak, streakSavers, claimedMilestones,
-    remoteCheckedInToday, remoteNextResetAt, remoteReadState,
+    remoteCheckedInToday, remoteNextResetAt, remoteReadState, remoteHasSnapshot,
     topStreakers, remoteMilestones, remotePowerUps, remoteRules,
     signIn, useSaver, claimMilestone, bindAccount, refreshRemote, ensureRemote,
     checkInRemote, claimMilestoneRemote, useSaverRemote,

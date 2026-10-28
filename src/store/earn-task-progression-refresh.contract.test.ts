@@ -30,6 +30,6 @@ describe("Earn server task progression refresh", () => {
     const onShow = earnSource.slice(showStart, showEnd);
 
     expect(onShow).toContain("app.refreshRemoteFleet(undefined, { coalesce: true })");
-    expect(onShow).toContain("app.refreshHomeTruth()");
+    expect(onShow).toContain("app.ensureHomeTruth()");
   });
 });

@@ -3,6 +3,8 @@ import { createPinia, setActivePinia } from "pinia";
 
 const remote = vi.hoisted(() => ({
   remoteApiEnabled: true,
+  apiRuntimeConfig:{environment:"dev",baseUrl:"https://test.invalid"},
+  apiRuntimeClientOrigin:{environment:"dev",baseUrl:"https://test.invalid"},
   networkRankApi: { snapshot: vi.fn() },
 }));
 vi.mock("@/api/runtime", () => remote);
@@ -35,7 +37,7 @@ describe("network rank refresh single-flight", () => {
     release({ currentRank: 4, state: "ranked" });
     await expect(Promise.all([first, duplicate])).resolves.toEqual([true, true]);
 
-    await expect(store.refresh()).resolves.toBe(true);
+    await expect(store.ensure()).resolves.toBe(true);
     expect(remote.networkRankApi.snapshot).toHaveBeenCalledTimes(1);
   });
 
@@ -76,7 +78,7 @@ describe("network rank refresh single-flight", () => {
   });
 });
 
-it("discards an old account response and expires the healthy cache after ten seconds", async () => {
+it("discards an old account response, shares the active visit and reads a normal reentry fresh", async () => {
   const clock = vi.spyOn(Date, "now").mockReturnValue(100_000);
   let release!: (value: unknown) => void;
   remote.networkRankApi.snapshot
@@ -89,9 +91,10 @@ it("discards an old account response and expires the healthy cache after ten sec
   release({ currentRank: 1, state: "ranked" });
   await expect(old).resolves.toBe(false);
   expect(store.snapshot?.currentRank).toBe(8);
-  clock.mockReturnValue(109_999); await store.refresh();
+  clock.mockReturnValue(109_999); await store.ensure();
   expect(remote.networkRankApi.snapshot).toHaveBeenCalledTimes(2);
-  clock.mockReturnValue(110_000); await store.refresh();
+  const { notifyPageActivation } = await import("@/lib/passive-tab-read");
+  notifyPageActivation("rank-reentry"); await store.ensure();
   expect(remote.networkRankApi.snapshot).toHaveBeenCalledTimes(3);
   expect(store.snapshot).toEqual({ currentRank: null, state: "disabled" });
   clock.mockRestore();

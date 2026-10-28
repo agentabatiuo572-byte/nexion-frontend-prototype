@@ -22,7 +22,7 @@ import { useNetwork, type NetworkMember } from "@/store/network";
 import { createPinia, setActivePinia } from "pinia";
 
 const runtime = vi.hoisted(() => ({ snapshot: vi.fn(() => new Promise<any>(() => {})) }));
-vi.mock("@/api/runtime", () => ({ remoteApiEnabled: true, teamNetworkApi: { snapshot: runtime.snapshot } }));
+vi.mock("@/api/runtime", () => ({ remoteApiEnabled: true, apiRuntimeConfig: { environment: "dev", baseUrl: "https://test.invalid" }, teamNetworkApi: { snapshot: runtime.snapshot } }));
 vi.mock("@/api/order-api", () => ({
   captureRuntimeRevision: () => 0, isCurrentRuntimeRevision: () => true,
   subscribeRuntimeRevision: () => () => {},

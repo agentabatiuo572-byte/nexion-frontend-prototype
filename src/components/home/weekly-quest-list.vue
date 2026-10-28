@@ -80,6 +80,7 @@
 </template>
 
 <script setup lang="ts">
+import { useDataVisibility } from "@/store/data-visibility";
 import { formatAmount } from "@/lib/amount-display";
 import { computed, onMounted, ref, type CSSProperties } from "vue";
 import { onHide, onShow } from "@/composables/use-tab-page-lifecycle";
@@ -99,6 +100,7 @@ import { questTargetBusiness, unclaimableBusinessQuests, type QuestTargetAvailab
 import { useQuestTargetAvailability } from "@/composables/use-quest-target-availability";
 import { weeklyQuestDisplayName } from "@/lib/quest-presentation";
 
+const visibility = useDataVisibility();
 const t = useT();
 const stakingDisplay = useConfig();
 const locale = useLocaleStore();
@@ -123,8 +125,8 @@ const mult = computed(() => wq.multiplier);
 const completedCount = computed(() => tier2Quests.value.filter((q) =>
   ["COMPLETED", "CLAIMABLE", "CLAIMED"].includes(q.status)).length);
 const progressText = computed(() => fmt(t.value.quest.progress, {
-  done: completedCount.value,
-  total: tier2Quests.value.length,
+  done: visibility.mask(completedCount.value),
+  total: visibility.mask(tier2Quests.value.length),
 }));
 const periodText = computed(() => {
   const remainingMs = Date.parse(tier2Quests.value[0]?.eligibleUntil ?? "") - nowTick.value * 1000;

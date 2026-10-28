@@ -6,7 +6,7 @@
 
       <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
         <EmptyState
-          v-if="remoteApiEnabled && commission.eventsStatus !== 'ready'"
+          v-if="remoteApiEnabled && !ledger"
           :kind="commission.eventsStatus === 'error' ? 'recoverable-error' : 'empty-list'"
           :title="commission.eventsStatus === 'error' ? t.network.projectionErrorTitle : t.network.projectionLoadingTitle"
           :desc="commission.eventsStatus === 'error' ? t.network.projectionErrorDesc : undefined"
@@ -14,7 +14,7 @@
           compact
           @cta="commission.refreshCanonicalEvents()"
         />
-        <template v-if="!remoteApiEnabled || commission.eventsStatus === 'ready'">
+        <template v-if="!remoteApiEnabled || ledger !== null">
 
         <RewardHero kind="ledger" panel :label="t.commissions.thisMonth">
           <text class="reward-amount">{{ assetTotal(monthTotals.usdt, 'usdt') }}</text>
@@ -24,12 +24,12 @@
         <view class="reward-income-summary">
           <view>
             <text class="block reward-caption">{{ t.directReferral.creditedTotal }}</text>
-            <text class="block reward-income-summary__amount">${{ formatAmount(commission.unlockedUSDT()) }}</text>
-            <text class="block reward-caption">{{ formatAmount(commission.unlockedNEX()) }} UVT</text>
+            <text class="block reward-income-summary__amount">${{ assetNumber('unlockedUSDT', commission.unlockedUSDT()) }}</text>
+            <text class="block reward-caption">{{ assetNumber('unlockedNEX', commission.unlockedNEX()) }} UVT</text>
           </view>
           <view>
             <text class="block reward-caption">{{ t.commissions.cooling }}</text>
-            <text class="block reward-income-summary__amount">${{ formatAmount(commission.coolingUSDT()) }}</text>
+            <text class="block reward-income-summary__amount">${{ assetNumber('coolingUSDT', commission.coolingUSDT()) }}</text>
             <text class="block reward-caption">{{ coolingOverviewText }}</text>
           </view>
         </view>
@@ -77,13 +77,13 @@
               v-if="hasMoreEvents"
               class="reward-cta reward-cta--wide"
               role="button"
-              :tabindex="commission.eventsLoadMoreStatus === 'loading' ? -1 : 0"
-              :aria-disabled="commission.eventsLoadMoreStatus === 'loading'"
+              :tabindex="commission.eventsStatus !== 'ready' || commission.eventsLoadMoreStatus === 'loading' ? -1 : 0"
+              :aria-disabled="commission.eventsStatus !== 'ready' || commission.eventsLoadMoreStatus === 'loading'"
               :aria-busy="commission.eventsLoadMoreStatus === 'loading'"
               @click="loadMoreEvents"
               @keydown="activateLoadMore"
             >
-              <text>{{ commission.eventsLoadMoreStatus === "loading" ? "…" : commission.eventsLoadMoreStatus === "error" ? t.network.retry : t.unilevel.loadMore }}</text>
+              <text>{{ commission.eventsLoadMoreStatus === "error" ? t.network.retry : t.unilevel.loadMore }}</text>
             </view>
         </template>
       </view>
@@ -95,21 +95,42 @@
 <script setup lang="ts">
 import { formatAmount, formatGroupedAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
-import { ref, computed, nextTick, onMounted, type CSSProperties } from "vue";
+import { ref, computed, watch, nextTick, onMounted, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import RewardHero from "@/components/team/reward-compact-hero.vue";
 import RewardPageSurface from "@/components/team/reward-page-surface.vue";
 import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
+import { useApp } from '@/store/app';
+import { useAuth } from '@/store/auth';
+import { useLocaleStore } from '@/store/locale';
 import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
 import { formatTrialDate } from "@/lib/trial-date";
 import { useCommission, type CommissionEvent, type CommissionKind } from "@/store/commission";
-import { remoteApiEnabled } from "@/api/runtime";
+import { apiRuntimeConfig, remoteApiEnabled } from "@/api/runtime";
 
 const t = useT();
 const commission = useCommission();
+const app = useApp();
+const auth = useAuth();
+const locale = useLocaleStore();
+const displayEnvironment = [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const;
+let environmentInvalidated = false;
+watch(() => [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const, () => { environmentInvalidated = true; }, { flush: 'sync' });
+const displayEnvironmentCurrent = () => !environmentInvalidated && displayEnvironment[0] === apiRuntimeConfig.environment && displayEnvironment[1] === apiRuntimeConfig.baseUrl;
+const ledgerPresentation = ref<NonNullable<typeof commission.eventsEvidence> | null>(null);
+let rejectedledgerSource: NonNullable<typeof commission.eventsEvidence> | null = null;
+watch(() => [commission.eventsStatus, commission.eventsEvidence] as const, ([status, value]) => {
+  if (status === 'error') { ledgerPresentation.value = null; rejectedledgerSource = value; }
+  else if (status === 'ready' && auth.isAuthenticated && displayEnvironmentCurrent() && value && value !== rejectedledgerSource) ledgerPresentation.value = value;
+}, { immediate: true, flush: 'sync' });
+watch(() => [app.accountKey, app.accountBindingEpoch, auth.isAuthenticated, locale.code, apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const, () => {
+  rejectedledgerSource = commission.eventsEvidence; ledgerPresentation.value = null;
+  if (auth.isAuthenticated && displayEnvironmentCurrent()) void commission.refreshCanonicalEvents();
+}, { flush: 'sync' });
+const ledger = computed(() => commission.eventsStatus === 'error' ? null : ledgerPresentation.value);
 
 type Filter = "all" | CommissionKind;
 const filter = ref<Filter>("all");
@@ -138,32 +159,36 @@ onMounted(() => {
 });
 onShow(() => { if (remoteApiEnabled) void commission.refreshCanonicalEvents(); });
 
-const events = computed(() => commission.events);
-const byKind = computed(() => commission.byKind());
+const events = computed(() => remoteApiEnabled ? ledger.value?.events ?? [] : commission.events);
+const byKind = computed(() => remoteApiEnabled ? ledger.value?.aggregate.byKind ?? commission.byKind() : commission.byKind());
 const filtered = computed(() =>
   filter.value === "all" ? events.value : events.value.filter((e) => e.kind === filter.value),
 );
-const hasMoreEvents = computed(() => remoteApiEnabled && commission.events.length < commission.eventsTotalRows);
+const hasMoreEvents = computed(() => remoteApiEnabled && ledger.value !== null && ledger.value.events.length < ledger.value.totalRows);
 // Read canonical totals directly so a missing asset remains unknown instead of
 // inheriting a store helper's zero fallback. Never total the current page.
 const monthTotals = computed(() => remoteApiEnabled
-  ? { usdt: commission.eventsEvidence?.aggregate.monthUSDT, nex: commission.eventsEvidence?.aggregate.monthNEX }
+  ? { usdt: ledger.value?.aggregate.monthUSDT, nex: ledger.value?.aggregate.monthNEX }
   : { usdt: commission.monthUSDT(), nex: commission.monthNEX() });
 const lifetimeTotals = computed(() => remoteApiEnabled
-  ? { usdt: commission.eventsEvidence?.aggregate.totalUSDT, nex: commission.eventsEvidence?.aggregate.totalNEX }
+  ? { usdt: ledger.value?.aggregate.totalUSDT, nex: ledger.value?.aggregate.totalNEX }
   : { usdt: commission.totalUSDTLifetime(), nex: commission.totalNEXLifetime() });
+function assetNumber(key: 'unlockedUSDT' | 'unlockedNEX' | 'coolingUSDT', mock: number): string {
+  const value = remoteApiEnabled ? ledger.value?.aggregate[key] : mock;
+  return typeof value === 'number' && Number.isFinite(value) ? formatAmount(value) : '—';
+}
 function assetTotal(value: number | null | undefined, asset: 'usdt' | 'nex'): string {
   if (typeof value !== 'number' || !Number.isFinite(value)) return asset === 'nex' ? '— UVT' : '— USD';
   return asset === 'usdt' ? `$${formatAmount(value)}` : `${formatAmount(value)} UVT`;
 }
 function loadMoreEvents() {
-  if (!hasMoreEvents.value || commission.eventsLoadMoreStatus === 'loading') return;
+  if (commission.eventsStatus !== 'ready' || !hasMoreEvents.value || commission.eventsLoadMoreStatus === 'loading') return;
   void commission.loadMoreCanonicalEvents();
 }
 
 const coolingOverviewText = computed(() => {
   if (remoteApiEnabled) {
-    const next = commission.eventsEvidence?.aggregate.nextUnlockAt;
+    const next = ledger.value?.aggregate.nextUnlockAt;
     return next == null ? "—" : fmt(t.value.commissions.coolingTag, { n: Math.max(0, Math.ceil((next - Date.now()) / 86400000)) });
   }
   const next = events.value
@@ -291,7 +316,7 @@ const eventMetaStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3
 
 import GlassSegments from "@/components/glass-segments.vue";
 const filterOptions = computed(() => [
-  { value: "all", label: t.value.commissions.all, count: remoteApiEnabled ? commission.eventsTotalRows : commission.events.length },
+  { value: "all", label: t.value.commissions.all, count: remoteApiEnabled ? ledger.value?.totalRows : commission.events.length },
   ...KIND_ORDER.map(value => ({ value, label: t.value.commissions.kind[value], count: byKind.value[value].count })),
 ]);
 </script>

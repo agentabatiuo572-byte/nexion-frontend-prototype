@@ -2,25 +2,26 @@
   <view class="team-ledger" :aria-busy="loading && !failed">
     <view class="team-ledger__header">
       <text class="team-ledger__title">{{ copy.monthIncome }}</text>
+      <DataVisibilityToggle />
     </view>
-    <view class="team-ledger__amount tabular-nums"><text v-if="monthUSDTParts" class="team-ledger__currency">{{ monthUSDTParts.prefix }}</text><text>{{ intPart }}</text><text v-if="monthUSDTParts" class="team-ledger__fraction">.{{ fracPart }}</text></view>
-    <text class="team-ledger__nex tabular-nums">{{ hasAmounts ? '+ ' + formatAmount(monthNEX) : '—' }} UVT</text>
+    <view class="team-ledger__amount tabular-nums"><text v-if="!visibility.hidden && monthUSDTParts" class="team-ledger__currency">{{ monthUSDTParts.prefix }}</text><text>{{ visibility.mask(intPart) }}</text><text v-if="!visibility.hidden && monthUSDTParts" class="team-ledger__fraction">.{{ fracPart }}</text></view>
+    <view class="team-ledger__secondary">
+    <text class="team-ledger__nex tabular-nums">{{ visibility.mask(hasAmounts ? '+ ' + formatAmount(monthNEX) : '—') }} UVT</text>
     <view class="nx-team-commissions-link team-ledger__details" role="link" tabindex="0" @click="goCommissions" @keydown.enter.prevent="goCommissions" @keydown.space.prevent="goCommissions">
       <text>{{ t.teamV3.viewDetails }}</text>
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
     </view>
+    </view>
     <text class="team-ledger__scope">{{ copy.settlementScope }}</text>
     <view class="team-ledger__settlement">
-      <view><view class="team-ledger__settlement-icon" aria-hidden="true"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M19 7V4H6a3 3 0 0 0 0 6h15v11H6a3 3 0 0 1-3-3V7M21 12h-5v5h5"/><path d="M17 14.5h1"/></svg></view><view class="team-ledger__settlement-copy"><text>{{ t.teamV3.settled }}</text><text class="tabular-nums">{{ hasAmounts ? formatUsd(unlockedUSDT) : '—' }}</text></view></view>
-      <view><view class="team-ledger__settlement-icon" aria-hidden="true"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></svg></view><view class="team-ledger__settlement-copy"><text>{{ t.teamV3.coolingDown }}</text><text class="tabular-nums">{{ hasAmounts ? formatUsd(coolingUSDT) : '—' }}</text></view></view>
+      <view><view class="team-ledger__settlement-icon" aria-hidden="true"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M19 7V4H6a3 3 0 0 0 0 6h15v11H6a3 3 0 0 1-3-3V7M21 12h-5v5h5"/><path d="M17 14.5h1"/></svg></view><view class="team-ledger__settlement-copy"><text>{{ t.teamV3.settled }}</text><text class="tabular-nums">{{ visibility.mask(hasAmounts ? formatUsd(unlockedUSDT) : '—') }}</text></view></view>
+      <view><view class="team-ledger__settlement-icon" aria-hidden="true"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></svg></view><view class="team-ledger__settlement-copy"><text>{{ t.teamV3.coolingDown }}</text><text class="tabular-nums">{{ visibility.mask(hasAmounts ? formatUsd(coolingUSDT) : '—') }}</text></view></view>
     </view>
     <view class="team-ledger__control">
-      <view class="team-ledger__breakdown" :class="{ 'is-hidden': loading || failed }" role="button" :tabindex="hasAmounts && !loading ? 0 : -1" :aria-disabled="!hasAmounts || loading" :aria-hidden="loading || failed" :aria-expanded="breakdownOpen" @click="toggleBreakdown" @keydown.enter.prevent="toggleBreakdown" @keydown.space.prevent="toggleBreakdown"><text>{{ copy.lifetimeBreakdown }}</text><text aria-hidden="true">{{ breakdownOpen ? '−' : '+' }}</text></view>
+      <view class="team-ledger__breakdown" :class="{ 'is-hidden': (loading && !hasAmounts) || failed, 'is-unknown': !hasAmounts }" role="button" :tabindex="hasAmounts && !loading && !failed ? 0 : -1" :aria-disabled="!hasAmounts || loading || failed" :aria-hidden="(loading && !hasAmounts) || failed" :aria-expanded="breakdownOpen" @click="toggleBreakdown" @keydown.enter.prevent="toggleBreakdown" @keydown.space.prevent="toggleBreakdown"><text>{{ copy.lifetimeBreakdown }}</text><text aria-hidden="true">{{ breakdownOpen ? '−' : '+' }}</text></view>
       <!-- Feedback shares the existing control row; the ready state does not
            reserve a second empty row. Localized errors can grow naturally. -->
       <view class="team-ledger__feedback" role="status" aria-live="polite" aria-atomic="true">
-        <view class="team-ledger__feedback-item" :class="{ 'is-active': loading && !failed && !hasAmounts }" :aria-hidden="!(loading && !failed && !hasAmounts)"><text>{{ t.network.projectionLoadingTitle }}</text></view>
-        <view class="team-ledger__feedback-item" :class="{ 'is-active': loading && !failed && hasAmounts }" :aria-hidden="!(loading && !failed && hasAmounts)"><text>{{ t.network.projectionRefreshing }}</text></view>
         <view class="team-ledger__feedback-item" :class="{ 'is-active': failed }" :aria-hidden="!failed">
           <text>{{ t.network.projectionErrorDesc }}</text>
           <view class="team-ledger__retry" role="button" :tabindex="failed ? 0 : -1" :aria-disabled="!failed" @click="retry" @keydown.enter.prevent="retry" @keydown.space.prevent="retry">{{ t.network.retry }}</view>
@@ -28,19 +29,21 @@
       </view>
     </view>
     <view v-if="breakdownOpen">
-    <text class="team-ledger__lifetime">{{ t.teamV3.lifetime }} {{ hasAmounts ? formatUsd(totalUSDTLifetime) : '—' }} · {{ hasAmounts ? contributors : '—' }} {{ t.teamV3.contributors }}</text>
+    <text class="team-ledger__lifetime">{{ t.teamV3.lifetime }} {{ visibility.mask(hasAmounts ? formatUsd(totalUSDTLifetime) : '—') }} · {{ visibility.mask(hasAmounts ? contributors : '—') }} {{ t.teamV3.contributors }}</text>
     <view class="team-ledger__bar" aria-hidden="true">
+      <template v-if="!visibility.hidden">
       <view :style="{ width: directPct + '%', background: 'var(--v5-brand)' }" />
       <view :style="{ width: extendedPct + '%', background: 'var(--v5-ink-3)' }" />
+      </template>
     </view>
     <view class="team-ledger__split">
       <view>
-        <view class="team-ledger__label"><view class="team-ledger__dot" /><text>{{ t.teamV3.directLabel }} · {{ hasAmounts ? directPct + '%' : '—' }}</text></view>
-        <text class="team-ledger__value tabular-nums">{{ hasAmounts ? formatUsd(directUSDT) : '—' }}</text>
+        <view class="team-ledger__label"><view class="team-ledger__dot" /><text>{{ t.teamV3.directLabel }} · {{ visibility.mask(hasAmounts ? directPct + '%' : '—') }}</text></view>
+        <text class="team-ledger__value tabular-nums">{{ visibility.mask(hasAmounts ? formatUsd(directUSDT) : '—') }}</text>
       </view>
       <view>
-        <view class="team-ledger__label"><view class="team-ledger__dot team-ledger__dot--extended" /><text>{{ t.teamV3.extendedLabel }} · {{ hasAmounts ? extendedPct + '%' : '—' }}</text></view>
-        <text class="team-ledger__value tabular-nums">{{ hasAmounts ? formatUsd(extendedUSDT) : '—' }}</text>
+        <view class="team-ledger__label"><view class="team-ledger__dot team-ledger__dot--extended" /><text>{{ t.teamV3.extendedLabel }} · {{ visibility.mask(hasAmounts ? extendedPct + '%' : '—') }}</text></view>
+        <text class="team-ledger__value tabular-nums">{{ visibility.mask(hasAmounts ? formatUsd(extendedUSDT) : '—') }}</text>
       </view>
     </view>
     </view>
@@ -55,6 +58,8 @@ import { computed, ref } from "vue";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from '@/store/locale';
 import { teamRedesignCopy } from '@/i18n/team-redesign';
+import { useDataVisibility } from '@/store/data-visibility';
+import DataVisibilityToggle from '@/components/ui/data-visibility-toggle.vue';
 
 const props = withDefaults(defineProps<{
   available?: boolean;
@@ -72,13 +77,14 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{ (event: 'retry'): void }>();
 
 const t = useT();
+const visibility = useDataVisibility();
 const locale = useLocaleStore();
 const copy = computed(() => teamRedesignCopy(locale.code));
 const breakdownOpen = ref(false);
-const hasAmounts = computed(() => props.available && !props.failed);
+const hasAmounts = computed(() => props.available);
 
 function toggleBreakdown() {
-  if (hasAmounts.value && !props.loading) breakdownOpen.value = !breakdownOpen.value;
+  if (hasAmounts.value && !props.loading && !props.failed) breakdownOpen.value = !breakdownOpen.value;
 }
 function retry() {
   if (props.failed) emit('retry');
@@ -99,19 +105,22 @@ function goCommissions() {
 
 <style scoped>
 .team-ledger { background: transparent; box-shadow: none; border-radius: 0; padding: 0; }
-.team-ledger__header { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); }
+.team-ledger__header { display: flex; align-items: center; gap: 4px; }
 .team-ledger__title { font-size: 15px; font-weight: 600; }
-.team-ledger__details { display: flex; align-items: center; justify-content: flex-start; width: fit-content; gap: 5px; min-height: 44px; color: var(--v5-ink-3); font-size: 12px; flex-shrink: 0; }
+.team-ledger__secondary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
+.team-ledger__details { display: flex; align-items: center; justify-content: flex-end; width: fit-content; max-width: 48%; margin-left: auto; gap: 5px; min-width: 44px; min-height: 44px; color: var(--v5-ink-3); font-size: 12px; flex-shrink: 0; }
+.team-ledger__details > text { min-width: 0; text-align: right; overflow-wrap: anywhere; }
+.team-ledger__details > svg { flex: none; }
 .team-ledger__details:active { opacity: .7; }
 .team-ledger__details:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 .team-ledger__amount { display: flex; align-items: baseline; gap: 3px; flex-wrap: nowrap; min-height: 1.25em; font-family: var(--font-v5); font-size: 52px; line-height: 1.25; font-weight: 600; letter-spacing: -.03em; white-space: nowrap; overflow-x: auto; }
 .team-ledger__amount > text { flex: none; }
 .team-ledger__currency { font-size: 24px; color: var(--v5-ink-3); }
 .team-ledger__fraction { font-size: 36px; color: var(--v5-ink-2); }
-.team-ledger__nex { display: block; margin-top: 6px; font: 600 18px/1.4 var(--font-v5); color: var(--v5-brand); white-space: nowrap; overflow-x: auto; }
+.team-ledger__nex { display: block; flex: 1; min-width: 0; font: 600 18px/1.4 var(--font-v5); color: var(--v5-brand); white-space: nowrap; overflow-x: auto; }
 .team-ledger__breakdown { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); min-height: 44px; font: 400 12px/1.5 var(--font-v5); color: var(--v5-ink-3); }
 .team-ledger__breakdown:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
-.team-ledger__breakdown[aria-disabled='true'] { opacity: .6; }
+.team-ledger__breakdown.is-unknown { opacity: .6; }
 .team-ledger__control { display: grid; }
 .team-ledger__breakdown,.team-ledger__feedback { grid-area: 1 / 1; }
 .team-ledger__breakdown.is-hidden { visibility: hidden; pointer-events: none; }
@@ -119,7 +128,7 @@ function goCommissions() {
 .team-ledger__feedback-item { grid-area: 1 / 1; min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 12px; visibility: hidden; pointer-events: none; color: var(--v5-ink-3); font: 400 12px/1.5 var(--font-v5); }
 .team-ledger__feedback-item > text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .team-ledger__feedback-item.is-active { visibility: visible; pointer-events: auto; }
-.team-ledger__retry { flex: none; min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; color: var(--v5-brand); cursor: pointer; }
+.team-ledger__retry { flex: none; min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; color: var(--v5-brand); font: 600 13px/20px var(--font-v5); white-space: nowrap; cursor: pointer; }
 .team-ledger__retry:active { opacity: .7; }
 .team-ledger__retry:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
 .team-ledger__lifetime { display: block; margin-top: 4px; font-size: 12px; line-height: 1.5; color: var(--v5-ink-3); }

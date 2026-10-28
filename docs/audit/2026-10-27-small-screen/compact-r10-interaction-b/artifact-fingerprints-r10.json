@@ -1,0 +1,154 @@
+{
+  "head": "e58039e57c9cc5192cc3fe5642b9ecac5564dce9",
+  "sourceFiles": [
+    "src/components/app-chassis.vue",
+    "src/components/trial-device-row.vue",
+    "src/i18n/trial-fleet.ts",
+    "src/components/home/device-row.vue",
+    "src/components/earn/device-card-pc.vue",
+    "src/components/me/device-inventory-row.vue",
+    "src/components/earn/empty-slots-hint.vue"
+  ],
+  "fingerprints": [
+    {
+      "path": "dist/build/h5/assets/app-chassis-BYVbGD9Q.css",
+      "sha256": "4D211D2294614F816AE5609902771F4CE67F42787FD2FD273A9508F5FB4C91B3"
+    },
+    {
+      "path": "dist/build/h5/assets/brand-lockup-BuVYk5AL.css",
+      "sha256": "C20CF02497A02FB9E954B11EBACBEF9B0FD1038B2CFA926AD87AE0A711B75510"
+    },
+    {
+      "path": "dist/build/h5/assets/capacity-explainer-sheet-_v3T4xox.css",
+      "sha256": "447FDAFF5304D9A93B470F4B7E00E8914328A67584AD2BB14E47384EAD29072F"
+    },
+    {
+      "path": "dist/build/h5/assets/card-stagger-BAUXl1m9.css",
+      "sha256": "18C147BFEDD25D6B6AF066B8D766CDD331ABD8296888AE397BC25D1063E43F9D"
+    },
+    {
+      "path": "dist/build/h5/assets/catalog-machine-image-Sr0pZ4Bd.css",
+      "sha256": "5A450EDB56049A3C771605CDA2217DD1FABB502242A3C8E2F938514D934F392C"
+    },
+    {
+      "path": "dist/build/h5/assets/compute-share-entry-DabWMmmY.css",
+      "sha256": "341C974AF49740C3A6780523804F3C6CCA31223A3BBDF2A792B689135FFD7033"
+    },
+    {
+      "path": "dist/build/h5/assets/daily-check-in-row-DyplWpYv.css",
+      "sha256": "F0FB3F10B3FA3969C4667D94B0B554CDD11ECCD3FFA75EA3CE867607508A4C28"
+    },
+    {
+      "path": "dist/build/h5/assets/device-slot-CLCoDqc9.css",
+      "sha256": "E66504CBF3BB0B5635ABE331DF757A3106933B0889D3651E2D3C23B73506FB09"
+    },
+    {
+      "path": "dist/build/h5/assets/device-status-bar-Q_PY6aEV.css",
+      "sha256": "C81304CBD4B46C107254946F12144D575C4B32F7C19F0306C07AA509AD76376D"
+    },
+    {
+      "path": "dist/build/h5/assets/devices-DgEM7_Yk.css",
+      "sha256": "B38598AB13A1316E3A85FC89898BC71564A0A7CF91F4FC8ED05E891DA1294920"
+    },
+    {
+      "path": "dist/build/h5/assets/disclosure-details-BnM275Gf.css",
+      "sha256": "2C9FE8FFD14102C7B53A04474B6DCA35E1A50C78A27497BAF481CB1A4E5B83EC"
+    },
+    {
+      "path": "dist/build/h5/assets/earn-CIyLOhln.css",
+      "sha256": "7B49CA057B19936839D20C94B46D6D11C1A04D3D6FB6F9D5B208CE3E7BD72833"
+    },
+    {
+      "path": "dist/build/h5/assets/global-ui-rtRD1Jcw.css",
+      "sha256": "BD1B18B6B36C09EEEB0335E63F50726D6F8576EE7C6B87A502F72022F1C0927D"
+    },
+    {
+      "path": "dist/build/h5/assets/index-8t-HDpGw.css",
+      "sha256": "EF9523A26C7D0E928999D9D89308A117969D2542595DCF9A019CB944651D9FAC"
+    },
+    {
+      "path": "dist/build/h5/assets/index-CQ7Qd8Rs.css",
+      "sha256": "A108141E0051FFA7EC9FEDB3773593623ABF25F2478E99AF6A3E92CE52DFE6F4"
+    },
+    {
+      "path": "dist/build/h5/assets/index-vv3sJnOr.js",
+      "sha256": "3CFC0186DC93D3BBDFEFDCB7655F8AD225C13A20DEF7BA722E78FDD2E3199345"
+    },
+    {
+      "path": "dist/build/h5/assets/liquid-glass-CtBmG5K8.css",
+      "sha256": "A6441C289D4F5E820A02F08837F61A32992FFDC805D276EA9BD8719061F9D083"
+    },
+    {
+      "path": "dist/build/h5/assets/nova-avatar-D5GOd_PR.css",
+      "sha256": "75243EB9548350E5B7FB17531E2489098B15CF4A642DBFAEF559D34E85050238"
+    },
+    {
+      "path": "dist/build/h5/assets/nx-list-group-BmH7i_UJ.css",
+      "sha256": "0BD7119EAF718CFB2B3669B598A1569F43ABF6AD5E6B2C4A5918FF92AE25B975"
+    },
+    {
+      "path": "dist/build/h5/assets/nx-section-rLmXDH8J.css",
+      "sha256": "0A893BFE51166A40C53975BD1CC1703E5612640A21E6F1B7BED4B8B59660B5B3"
+    },
+    {
+      "path": "dist/build/h5/assets/nx-sheet-DbVsiSWQ.css",
+      "sha256": "9EE87A16F3A58B3513BECD3991E62F0CA28C5AB8B53E9D93F64C1B8605DB03ED"
+    },
+    {
+      "path": "dist/build/h5/assets/promotion-entry-zHMQocHU.css",
+      "sha256": "78F1C03D24DB3BB09E0C7FE3B44D37384778BC8767A60ED90EDFA04344A3D460"
+    },
+    {
+      "path": "dist/build/h5/assets/promotion-terms-BV3PvWse.css",
+      "sha256": "F6A58BF5C67EC115B12E8F1180219781C1B8FA9B349AF78707BFC29A1CC3AA95"
+    },
+    {
+      "path": "dist/build/h5/assets/sub-page-header-ClEhqBiM.css",
+      "sha256": "F6202950262187F1E2E9E0444AD1A6AB2A2D7FDC62E0CC787B5E1527BC3EDDAF"
+    },
+    {
+      "path": "dist/build/h5/assets/team-art-DR37f503.css",
+      "sha256": "B7AE085F96DC69007F8FD1FA0DF9AF64611A4CAE14A40ED85511B860BCB13AF7"
+    },
+    {
+      "path": "dist/build/h5/assets/trial-Cr6VJnLf.css",
+      "sha256": "362562EEBEC438BDF7A1E4A0554116588E74538EA0CBF7D993A4FBFD8B446758"
+    },
+    {
+      "path": "dist/build/h5/assets/trial-device-row-CrNa4nU3.css",
+      "sha256": "31E1E71F25773A91506076D90DC80664CB8A3BFEAE15A0C6B7C1388CE3B0E508"
+    },
+    {
+      "path": "dist/build/h5/assets/uni.c39fe708.css",
+      "sha256": "C39FE70876E7692E47CDF98AB8FDBC6F0EA3370528D451751E8D18A52B600388"
+    },
+    {
+      "path": "src/components/app-chassis.vue",
+      "sha256": "B4572F9DA5717ACE893CD18132BB08D5EF227B5A50867DE72B8A8B28696BEF73"
+    },
+    {
+      "path": "src/components/earn/device-card-pc.vue",
+      "sha256": "FCC8AE9041AF2DD05871FA75C9D20F81519C900469B8DCBD25BF3EFBDC3BB5EB"
+    },
+    {
+      "path": "src/components/earn/empty-slots-hint.vue",
+      "sha256": "148EE3518CE5D7C10040525F4EDFDFB057A32290F4D9B507AAD2F5C30C9E645F"
+    },
+    {
+      "path": "src/components/home/device-row.vue",
+      "sha256": "21521F5D5662999FBBD9363E77FC087C363E51A4BC90BF59283EB6942EF81F57"
+    },
+    {
+      "path": "src/components/me/device-inventory-row.vue",
+      "sha256": "3BE1CE2227398D4F669AF584A0445ED3DDB30B267D813C613DB0617B72ACACA9"
+    },
+    {
+      "path": "src/components/trial-device-row.vue",
+      "sha256": "4E1CB9676A496A6AF4E6FDD8F1FF129D55798F061AAF8C4A5EE8292F528C56AA"
+    },
+    {
+      "path": "src/i18n/trial-fleet.ts",
+      "sha256": "028D3E6EDA7B047D1086E00192EB7A420EFF4445CC2372FCAB64D637A277B0D3"
+    }
+  ]
+}

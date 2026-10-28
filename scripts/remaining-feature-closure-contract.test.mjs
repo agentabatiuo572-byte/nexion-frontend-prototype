@@ -28,13 +28,6 @@ test("bundle editor uses the real remote order lifecycle with stable command rec
   assert.match(api, /idSource !== "server"/);
 });
 
-test("compute enrollment preserves the account-scoped command and rejects late account replies", async () => {
-  const page = await read("src/pages/compute-share/download.vue");
-  assert.match(page, /enrollmentJournal\.read\(expectedAccount\)/);
-  assert.match(page, /function isCurrent\([\s\S]*expectedGeneration === accountGeneration/);
-  assert.match(page, /runComputeShareEnrollmentFlow\([\s\S]*journal: enrollmentJournal/);
-  assert.match(page, /if \(!isCurrent\(expectedAccount, expectedGeneration, expectedLifecycle\)\) return/);
-});
 
 test("remote team projection never turns errors into zero or local royalty money", async () => {
   const [store, page] = await Promise.all([read("src/store/network.ts"), read("src/pages/team/unilevel.vue")]);

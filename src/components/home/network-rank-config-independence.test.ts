@@ -18,7 +18,7 @@ const implementation = ts.transpileModule(source.slice(start, end), {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
 }).outputText;
 const compile = new Function('computed', 'cfg', 'rank', 't', 'compact', 'showSkeleton',
-  'remoteApiEnabled', 'remoteRank', 'explainRank', 'props', `${implementation}; return metrics;`);
+  'remoteApiEnabled', 'remoteRank', 'explainRank', 'props', 'visibility', `${implementation}; return metrics;`);
 
 function scenario(kind = 'ranked', status = 'ready') {
   const configRefresh = vi.fn();
@@ -28,7 +28,7 @@ function scenario(kind = 'ranked', status = 'ready') {
   const metrics = compile((run: () => unknown) => run(),
     { syncFailed: true, config: {}, load: configRefresh }, { value: { kind, rank: 7 } },
     { value: { home: messages } }, String, { value: false }, true,
-    { status, snapshot: null, refresh: rankRefresh }, explain, {});
+    { status, snapshot: null, refresh: rankRefresh }, explain, {}, { mask: String });
   return { metrics, configRefresh, rankRefresh, explain };
 }
 
@@ -68,6 +68,7 @@ it.each([en, zh, vietnamese])('renders actual network metric slots through missi
   const remoteRank = Vue.reactive({ status: 'error', snapshot: null as null | { currentRank: number | null; state: string }, refresh: vi.fn(), bindAccount: vi.fn() });
   const blank = { render: () => null };
   const dependencies: Record<string, unknown> = {
+    '@/store/data-visibility': { useDataVisibility: () => ({ mask: String }) },
     '@/components/ui/nx-section.vue': {default:{setup:(_p:any,{slots}:any)=>()=>Vue.h('view',slots.default?.())}},
     '@/i18n/audit-ui': {useAuditUiCopy:()=>Vue.ref({network:'Network',details:'Details'})},
     vue: Vue, '@/i18n/use-t': { useT: () => Vue.ref(copy) },

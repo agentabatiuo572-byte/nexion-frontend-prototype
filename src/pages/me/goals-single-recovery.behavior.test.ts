@@ -9,10 +9,10 @@ import source from "./goals.vue?raw";
 
 it("offers one recovery action, then saves and reads back 500/90 days and deletes the goal", async () => {
   let failing = true;
-  const goalsStore = Vue.reactive({ status: "loading", accountEpoch: 1, goals: [] as Goal[], lifetimeEarningsUsdt: 375,
+  const goalsStore = Vue.reactive({ status: "loading", accountEpoch: 1, readSuccessRevision:0, readSuccessScope:{accountKey:"test",epoch:1}, captureReadBinding:()=>({accountKey:"test",epoch:1}), goals: [] as Goal[], lifetimeEarningsUsdt: 375,
     recommendationStatus: "idle", recommendationError: null, recommendation: null as { purchaseRequired: boolean } | null,
-    ensure: vi.fn(async () => { goalsStore.status = failing ? "error" : "ready"; }),
-    refresh: vi.fn(async () => { goalsStore.status = "loading"; await Promise.resolve(); goalsStore.status = failing ? "error" : "ready"; }),
+    ensure: vi.fn(async () => { goalsStore.status = failing ? "error" : "ready"; if(!failing)goalsStore.readSuccessRevision++; }),
+    refresh: vi.fn(async () => { goalsStore.status = "loading"; await Promise.resolve(); goalsStore.status = failing ? "error" : "ready"; if(!failing)goalsStore.readSuccessRevision++; }),
     refreshRecommendation: vi.fn(async () => { goalsStore.recommendationStatus = "ready"; goalsStore.recommendation = { purchaseRequired: false }; }),
     setGoal: vi.fn(async (intent: { targetUSDT: number; days: number; deadlineMs: number }) => {
       goalsStore.goals = [{ id: "goal-test", targetUSDT: intent.targetUSDT, deadlineMs: intent.deadlineMs, createdAt: intent.deadlineMs - intent.days * 86400000, achieved: false }];
@@ -36,7 +36,7 @@ it("offers one recovery action, then saves and reads back 500/90 days and delete
   const singleFailure = () => {
     expect(text(page.root).split(zh.goals.serverUnavailable)).toHaveLength(2);
     expect(all(page.root).filter(n => n.props.role === "button" && n.props["aria-label"] === zh.ui.retry)).toHaveLength(1);
-    expect(page.control(zh.goals.saveCta)).toBeUndefined();
+    expect(page.control(zh.goals.saveCta)?.props["aria-disabled"]).toBe(true);
   };
   singleFailure(); await actions.onSave(); expect(goalsStore.setGoal).not.toHaveBeenCalled();
   failing = false; page.control(zh.ui.retry)!.props.onClick(); await flush();
@@ -49,10 +49,10 @@ it("offers one recovery action, then saves and reads back 500/90 days and delete
   expect(text(page.root)).toContain("75%");
   const saved = page.control(zh.goals.saveCta)!;
   expect(saved.props["aria-disabled"]).toBe(true);
-  expect(saved.props.style).toMatchObject({ background: "var(--v5-surface-2)", color: "var(--v5-ink-3)" });
+  expect(saved.props.style).toMatchObject({ background: "var(--v5-brand)" });
   await saved.props.onClick(); expect(goalsStore.setGoal).toHaveBeenCalledOnce();
   failing = true; await actions.refreshRemoteGoals(true); await flush();
-  singleFailure(); expect(text(page.root)).toContain("75%");
+  singleFailure(); expect(text(page.root)).not.toContain("75%");
   failing = false; page.control(zh.ui.retry)!.props.onClick(); await flush();
   const removeLabel = fmt(zh.goals.removeGoalLabel, { amount: formatAmount(500) });
   await all(page.root).find(n => n.props["aria-label"] === removeLabel)!.props.onClick(); await flush();

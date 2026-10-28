@@ -1,19 +1,20 @@
 <!-- One large, accessible card per active device; manage opens the inventory. -->
 <template>
   <view class="hf-section" data-home-section="fleet">
-    <NxSection :title="t.home.myFleet" :meta="fleetCountText" :action="t.home.fleetManage" @action="goManage">
+    <NxSection :title="t.home.myFleet" :meta="visibility.mask(fleetCountText)" :action="t.home.fleetManage" @action="goManage">
     <view v-if="fleetVisible || trialPresentation.active.value" class="hf-grid">
       <TrialDeviceRow v-if="trialPresentation.active.value" key="trial:current" variant="home" />
       <DeviceRow v-for="d in devices" :key="d.id" :device="d" :runtime-confirmed="fleetReady" />
       <AddDeviceRow v-if="countReady && slotsUsed < app.slotCap" />
     </view>
     <view v-if="!fleetVisible && app.remoteFleetStatus !== 'error'" class="hf-grid hf-loading" role="status" aria-live="polite" aria-busy="true"><text class="sr-only">{{ copy.fleetLoading }}</text><view v-for="n in 2" :key="n" class="hf-skeleton-row" aria-hidden="true"><view class="hf-skeleton-art"/><view class="hf-skeleton-copy"><view/><view/></view></view></view>
-    <view v-if="app.remoteFleetStatus === 'error' || trial.authorityStatus === 'error'" class="hf-unavailable"><text>{{ copy.fleetUnavailable }}</text><NxButton size="small" variant="text" :label="t.home.fleetManage" @click="goManage" /></view>
+    <view v-if="app.remoteFleetStatus === 'error' || trial.authorityStatus === 'error'" class="hf-unavailable nx-inline-recovery"><text class="nx-inline-recovery__copy">{{ copy.fleetUnavailable }}</text><NxButton class="nx-inline-recovery__action" size="small" variant="text" :label="t.home.fleetManage" @click="goManage" /></view>
     </NxSection>
   </view>
 </template>
 
 <script setup lang="ts">
+import { useDataVisibility } from "@/store/data-visibility";
 import { navTo } from "@/lib/route";
 import { computed } from "vue";
 import { useT } from "@/i18n/use-t";
@@ -30,6 +31,7 @@ import { useTrialPresentation } from "@/composables/use-trial-presentation";
 import { useFreeTrial } from "@/store/free-trial";
 import { deviceOnlineState } from '@/lib/hashpower';
 
+const visibility = useDataVisibility();
 const t = useT();
 const copy = useAuditUiCopy();
 const app = useApp();
@@ -68,7 +70,7 @@ function goManage() {
 .hf-manage { display: flex; align-items: center; justify-content: center; flex-shrink: 0; gap: 8px; min-height: 44px; padding: 10px 16px; border-radius: var(--v5-radius-full); font: 500 13px/20px var(--font-v5); color: var(--v5-ink); }
 .hf-manage > text, .hf-manage > svg { position: relative; }
 .hf-grid { display: flex; flex-direction: column; overflow: hidden; border-radius: var(--ui-radius-surface); background: var(--v5-surface); border:1px solid var(--v5-border); }
-.hf-unavailable { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-radius: var(--ui-radius-surface); background: var(--v5-surface); color: var(--v5-ink-3); font-size: 12px; }
+.hf-unavailable { padding: 12px 16px; border-radius: var(--ui-radius-surface); background: var(--v5-surface); color: var(--v5-ink-3); font-size: 12px; }
 .hf-grid > :deep(.nx-device-row + .nx-device-row) { border-top: 1px solid var(--v5-border); }
 .hf-grid > :deep(.trial-device-row + .nx-device-row) { border-top: 1px solid var(--v5-border); }
 </style>

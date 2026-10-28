@@ -53,6 +53,7 @@ const receipt = (review = 0, locked = 0): EarningsReleaseStatus => ({
   clusterRestricted: false, serverCanonical: true,
 });
 async function mount(remoteApiEnabled = true) {
+  const visibility = Vue.reactive({ hidden: false, mask: (value: string | number) => visibility.hidden ? "••••" : String(value) });
   const app = Vue.reactive({
     remoteFleetHasSnapshot: true, remoteFleetStatus: "ready", remoteWalletReceiptHasSnapshot: false,
     user: { usdtBalance: 42.25, nexBalance: 3, pendingEarnings: 0,
@@ -72,6 +73,8 @@ async function mount(remoteApiEnabled = true) {
   const shown: Array<() => void> = [];
   const chassis = { setup: (_props: unknown, { slots }: { slots: Vue.Slots }) => () => Vue.h("view", slots.default?.()) };
   const modules: Record<string, unknown> = {
+    "@/lib/passive-tab-read": { invalidatePassiveTabRead: vi.fn() },
+    "@/store/data-visibility": { useDataVisibility: () => visibility },
     "@/lib/amount-display": { formatAmount },
     "@/lib/finance-amount-display": { formatFinanceAmount },
     "@/api/order-api": { subscribeRuntimeRevision: () => () => {} },
@@ -115,10 +118,10 @@ async function mount(remoteApiEnabled = true) {
     earningsReleaseHasSnapshot.value = true; earningsReleaseStatus.value = "ready";
   };
   const clickRetry = () => {
-    const click = labelNode(en.wallet.retryFunds).parent!.props.onClick as () => void;
+    const click = labelNode(en.ui.retry).parent!.props.onClick as () => void;
     click();
   };
-  return { app, commission, earningsReleaseSnapshot, earningsReleaseHasSnapshot, earningsReleaseStatus,
+  return { app, visibility, commission, earningsReleaseSnapshot, earningsReleaseHasSnapshot, earningsReleaseStatus,
     refreshEarningsReleaseStatus, shown, held, confirmRelease, clickRetry, value,
     allTimeSublabel: () => textContent(labelNode(en.wallet.allTimeEarnings).parent!),
     retryEarnings: () => { (labelNode(en.ui.retry).parent!.props.onClick as () => void)(); },
@@ -304,4 +307,23 @@ describe("actual wallet held authority", () => {
     local.app.user.earningBuckets.bonusLockedUsdt = 7; await Vue.nextTick();
     expect(local.held()).toEqual(["$4.50", "$7.00"]);
   });
+});
+
+
+it("masks wallet earnings and breakdowns reactively without mutating financial values", async () => {
+  const s = await mount();
+  s.confirmRelease(4.5, 7);
+  expect(s.value(en.wallet.allTimeEarnings)).toBe("$15.00");
+  s.visibility.hidden = true;
+  await Vue.nextTick();
+  for (const label of [en.wallet.todayLabel, en.wallet.allTimeEarnings, en.wallet.reviewingEarnings, en.wallet.lockedRewards]) {
+    expect(s.value(label)).toBe("••••");
+  }
+  expect(s.allTimeSublabel()).toContain("Compute •••• · Team ••••");
+  expect(s.text()).not.toContain("$4.50");
+  expect(s.app.user.usdtBalance).toBe(42.25);
+  s.visibility.hidden = false;
+  await Vue.nextTick();
+  expect(s.held()).toEqual(["$4.50", "$7.00"]);
+  expect(s.value(en.wallet.allTimeEarnings)).toBe("$15.00");
 });

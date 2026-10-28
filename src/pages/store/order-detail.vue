@@ -21,7 +21,7 @@
       <view v-if="remoteOrderError" class="mx-4 rounded-2xl" :style="remoteErrorStyle">
         <view class="flex items-center justify-between" style="gap: 12px">
           <text :style="{ color: 'var(--v5-warning)', fontSize: '12px', lineHeight: '1.5' }">{{ t.orders.refreshFailed }}</text>
-          <view class="shrink-0 active:opacity-70" :style="retryBtnStyle" :aria-disabled="remoteOrderRefreshing ? 'true' : 'false'" role="button" tabindex="0" @click="refreshOrder">
+          <view class="shrink-0 active:opacity-70 nx-card-recovery-action nx-card-recovery-action--quiet nx-card-recovery-action--inline" :aria-disabled="remoteOrderRefreshing ? 'true' : 'false'" role="button" tabindex="0" @click="refreshOrder">
             <text>{{ t.store.catalogRetry }}</text>
           </view>
         </view>
@@ -29,6 +29,8 @@
 
       <view v-if="showRemoteOrderLoading" class="text-center" role="status" aria-live="polite" style="padding: 20px">
         <text class="block" style="font-size: 13px; color: var(--v5-ink-3)">{{ t.orders.refreshing }}</text>
+        <text class="block" :style="sectionLabelStyle" style="margin-top: 24px">{{ t.orders.orderSummary }}</text>
+        <text class="block" :style="sectionLabelStyle" style="margin-top: 24px">{{ t.orders.timelineTitle }}</text>
       </view>
 
       <!-- Order not found only after the scoped remote read settles. -->
@@ -65,7 +67,7 @@
         <view v-if="needsRecovery" class="nx-glass-card mx-4 rounded-2xl" :style="summaryCardStyle" style="margin-top: 12px" data-testid="order-recovery">
           <text class="block" style="font-size: 13px; line-height: 1.6; color: var(--v5-ink-2)">{{ recoveryHint }}</text>
           <view class="order-recovery-actions">
-            <view role="button" tabindex="0" :aria-disabled="remoteOrderRefreshing" :style="notFoundBtnStyle" @click="refreshOrder" @keydown.enter.prevent="refreshOrder" @keydown.space.prevent="refreshOrder"><text>{{ t.store.catalogRetry }}</text></view>
+            <view role="button" tabindex="0" :aria-disabled="remoteOrderRefreshing" :style="notFoundBtnStyle" @click="refreshOrder" @keydown.enter.prevent="refreshOrder" @keydown.space.prevent="refreshOrder"><text style="font: 600 13px/20px var(--font-v5)">{{ t.store.catalogRetry }}</text></view>
             <view role="button" tabindex="0" :style="notFoundBtnStyle" @click="contactOrderSupport" @keydown.enter.prevent="contactOrderSupport" @keydown.space.prevent="contactOrderSupport"><text>{{ t.orders.copyAndSupport }}</text></view>
           </view>
         </view>
@@ -162,14 +164,14 @@
         </view>
 
         <!-- Pending remote orders can retry only the idempotent UVEL wallet debit. -->
-        <view v-if="cancellable" class="mx-4" style="margin-top: 12px; margin-bottom: 24px">
+        <view v-if="pendingOrderActionsVisible" class="mx-4" style="margin-top: 12px; margin-bottom: 24px">
           <view
-            v-if="canPayFromWallet"
+            v-if="remoteApiEnabled && !paymentExpired"
             class="w-full grid place-items-center active:opacity-80"
             :style="walletPaymentBtnStyle"
             role="button"
             tabindex="0"
-            :aria-disabled="payingFromWallet ? 'true' : 'false'"
+            :aria-disabled="!canPayFromWallet || payingFromWallet ? 'true' : 'false'"
             :aria-label="t.store.coPayNow"
             @click.stop="handleWalletPayment"
 
@@ -183,6 +185,7 @@
             role="button"
             tabindex="0"
             :aria-label="t.orders.cancelOrder"
+            :aria-disabled="!cancellable"
             @click.stop="handleCancel"
 
             @keydown.enter.prevent.stop="handleCancel" @keydown.space.prevent.stop="handleCancel"
@@ -209,14 +212,14 @@ import DetailRow from "@/components/store/order-detail-row.vue";
 import { useT } from "@/i18n/use-t";
 import { formatTrialDateTime } from "@/lib/trial-date";
 import { nexGridBrandText } from "@/lib/brand-copy";
-import { useOrders, type OrderStatus, timelineFor } from "@/store/orders";
+import { useOrders, type OrderStatus, type Order, timelineFor } from "@/store/orders";
 import { useApp } from "@/store/app";
 import { useAuth } from "@/store/auth";
 import { trialReservesSlotNow } from "@/store/free-trial";
 import { confirm as uiConfirm, toast } from "@/store/ui";
 import { useSetPageHeader } from "@/composables/use-page-header";
 import { navTo, takeNavigationQuery } from "@/lib/route";
-import { orderApi, remoteApiEnabled } from "@/api/runtime";
+import { orderApi, remoteApiEnabled, apiRuntimeConfig } from "@/api/runtime";
 import { asApiError } from "@/api/errors";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
 import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
@@ -314,10 +317,12 @@ async function refreshOrder() {
   remoteOrderRefreshing.value = true;
   remoteOrderError.value = false;
   try {
-    await orders.ensureRemoteOrder(id.value);
+    const result = await orders.ensureRemoteOrder(id.value);
+    if (sequence === remoteOrderRefreshSequence && isCurrentDetailScope(scope)) orderPresentation.value = result ?? null;
   } catch {
     if (sequence !== remoteOrderRefreshSequence || !isCurrentDetailScope(scope)) return;
     remoteOrderError.value = true;
+    orderPresentation.value = null;
   } finally {
     if (sequence === remoteOrderRefreshSequence && isCurrentDetailScope(scope)) {
       remoteOrderRefreshing.value = false;
@@ -338,7 +343,16 @@ onHide(() => {
   detailEpoch += 1;
 });
 
-const order = computed(() => orders.orders.find((o) => o.id === id.value));
+const liveOrder = computed(() => orders.orders.find((o) => o.id === id.value));
+const orderPresentation = ref<Order | null>(null);
+const orderEnvironmentInvalidated = ref(false);
+watch(() => apiRuntimeConfig?.environment, () => { orderEnvironmentInvalidated.value = true; orderPresentation.value = null; }, { flush: 'sync' });
+watch(() => [app.accountKey, app.accountBindingEpoch, auth.accountId, id.value, locale.code], () => { orderPresentation.value = null; }, { flush: 'sync' });
+watch(liveOrder, value => {
+  if (value && !orderEnvironmentInvalidated.value) orderPresentation.value = value;
+}, { immediate: true, flush: 'sync' });
+// Runtime invalidation still clears the shared store and every command uses liveOrder.
+const order = computed(() => orderEnvironmentInvalidated.value || remoteOrderError.value ? undefined : liveOrder.value ?? orderPresentation.value ?? undefined);
 const refundChannelLabel = computed(() => order.value?.refundChannel === "WALLET"
   ? t.value.promotion.wallet : t.value.orders.refundDetailsUnavailable);
 const hasOrderId = computed(() => Boolean(id.value.trim()));
@@ -416,11 +430,13 @@ const payingFromWallet = ref(false);
 const cancellingOrder = ref(false);
 let cancelAttemptSequence = 0;
 function canCancelCurrentOrder(): boolean {
-  return order.value?.status === "placed"
-    && !order.value.promotionQuoteId
+  return !orderEnvironmentInvalidated.value && liveOrder.value?.status === "placed"
+    && !liveOrder.value.promotionQuoteId
+    && !remoteOrderRefreshing.value && !remoteOrderError.value
     && !walletPaymentConfirmed.value
     && !payingFromWallet.value;
 }
+const pendingOrderActionsVisible = computed(() => order.value?.status === "placed" && !order.value.promotionQuoteId && !walletPaymentConfirmed.value);
 const cancellable = computed(() => canCancelCurrentOrder()
   && !cancellingOrder.value);
 const paymentExpired = computed(() => order.value?.expiresAt != null
@@ -538,8 +554,8 @@ async function handleCancel() {
       danger: true,
       icon: "warn",
     });
-    if (!ok || !canCancelCurrentOrder() || !isCurrentDetailScope(scope) || !order.value) return;
-    const orderNo = order.value.id;
+    if (!ok || !canCancelCurrentOrder() || !isCurrentDetailScope(scope) || !liveOrder.value) return;
+    const orderNo = liveOrder.value.id;
     const cancelled = remoteApiEnabled
       ? await orders.cancelOrderRemote(orderNo)
       : orders.cancelOrder(orderNo);
@@ -567,11 +583,11 @@ async function offerWalletTopup(requiredUsdt: number): Promise<void> {
 }
 
 async function handleWalletPayment() {
-  if (!canPayFromWallet.value || payingFromWallet.value || !order.value) return;
-  if (typeof order.value.total !== 'number') return; // Promoted orders resume through their original-command checkout above.
+  if (!canPayFromWallet.value || payingFromWallet.value || !liveOrder.value) return;
+  if (typeof liveOrder.value.total !== 'number') return; // Promoted orders resume through their original-command checkout above.
   const scope = captureDetailScope();
-  const requestOrderNo = order.value.id;
-  const requestAmountUsdt = order.value.total;
+  const requestOrderNo = liveOrder.value.id;
+  const requestAmountUsdt = liveOrder.value.total;
   const receiptScope = app.captureRemoteAccountRequest();
   if (app.user.usdtBalance + 0.000001 < requestAmountUsdt) {
     await offerWalletTopup(requestAmountUsdt);
@@ -594,7 +610,7 @@ async function handleWalletPayment() {
     walletPaymentConfirmed.value = true;
     await orders.ensureRemoteOrder(requestOrderNo);
     if (!isCurrentDetailScope(scope)) return;
-    if (order.value?.status !== "activated") {
+    if (liveOrder.value?.status !== "activated") {
       throw new Error("WALLET_PAYMENT_ORDER_READBACK_MISMATCH");
     }
     void app.refreshRemoteFleet(receiptScope);
@@ -746,7 +762,6 @@ const remoteErrorStyle: CSSProperties = {
   padding: "10px 12px",
   background: "color-mix(in srgb, var(--v5-warning) 8%, transparent)",
 };
-const retryBtnStyle: CSSProperties = { minHeight: "32px", padding: "0 10px", borderRadius: "999px", background: "var(--v5-surface-2)", color: "var(--v5-ink)", fontSize: "12px" };
 
 
 </script>

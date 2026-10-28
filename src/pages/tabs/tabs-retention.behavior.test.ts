@@ -58,6 +58,7 @@ it("retains at most one instance per tab/query, delivers visibility, and discard
     "@/components/app-chassis.vue": frame, "@/components/native-tab-content.vue": content,
     ...Object.fromEntries(Object.entries(navigation.TAB_PATHS).map(([name, path]) => [`@${path.slice(0)}.vue`, pages[name]])),
     "@/composables/use-tab-page-lifecycle": lifecycle, "@/lib/native-tab-navigation": navigation,
+    "@/lib/passive-read-window": { notifyPageActivation: () => {} },
     "@/store/app": { useApp: () => appState }, "@/store/locale": { useLocaleStore: () => locale }, "@/api/runtime": { apiRuntimeConfig: runtime },
   });
   const app = renderer.createApp(tabs);

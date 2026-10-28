@@ -18,7 +18,7 @@
         <template v-if="cardBindingAvailable">
           <view v-if="remoteCardsError" data-testid="wallet-cards-refresh-error" class="mb-3 rounded-2xl" :style="refreshErrorStyle">
             <text class="block" :style="refreshErrorTextStyle">{{ t.security.opFailed }}</text>
-            <view class="inline-flex items-center justify-center active:opacity-80" :style="refreshRetryStyle" role="button" tabindex="0" :aria-disabled="remoteCardsRefreshing" data-testid="wallet-cards-retry" @click="refreshCards">
+            <view class="nx-card-recovery-action active:opacity-80" role="button" tabindex="0" :aria-disabled="remoteCardsRefreshing" data-testid="wallet-cards-retry" @click="refreshCards">
               <text>{{ remoteCardsRefreshing ? t.store.catalogLoadingTitle : t.store.catalogRetry }}</text>
             </view>
           </view>
@@ -224,15 +224,6 @@ const refreshErrorStyle: CSSProperties = {
   borderRadius: "16px",
 };
 const refreshErrorTextStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)" };
-const refreshRetryStyle: CSSProperties = {
-  minHeight: "44px",
-  marginTop: "8px",
-  padding: "0 12px",
-  borderRadius: "999px",
-  background: "var(--v5-brand)",
-  color: "var(--v5-on-brand)",
-  fontSize: "12px",
-};
 
 
 </script>

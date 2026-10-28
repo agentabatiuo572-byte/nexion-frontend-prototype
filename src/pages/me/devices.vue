@@ -35,11 +35,16 @@
         emphasis
         @cta="retryInventory"
       />
-      <view v-if="inventoryStale" class="mx-4" role="status" style="padding: 12px; border-radius: 12px; background: var(--v5-danger-soft); color: var(--v5-danger)">
-        <text class="block" style="font-size: 13px">{{ t.myDevices.inventoryStaleWarning }}</text>
-        <view class="inline-flex items-center" style="min-height: 44px; color: var(--v5-brand)" role="button" tabindex="0" @click="retryInventory"  @keydown.enter.prevent="retryInventory" @keydown.space.prevent="retryInventory">
+      <view v-if="inventoryStale" class="mx-4 nx-inline-recovery" role="status" style="padding: 12px; border-radius: 12px; background: var(--v5-danger-soft); color: var(--v5-danger)">
+        <text class="block nx-inline-recovery__copy" style="font-size: 13px">{{ t.myDevices.inventoryStaleWarning }}</text>
+        <view class="nx-inline-recovery__action" style="color: var(--v5-brand)" role="button" tabindex="0" @click="retryInventory"  @keydown.enter.prevent="retryInventory" @keydown.space.prevent="retryInventory">
           <text>{{ t.empty.errorCta }}</text>
         </view>
+      </view>
+      <view v-if="!inventoryReady" class="mx-4" :style="meterBlockStyle">
+        <text :style="meterLabelStyle">{{ t.myDevices.inventorySlotsLabel }}</text>
+        <text class="block" :style="meterCountStyle">—</text>
+        <view class="flex items-center justify-center" :style="ctaStyle" style="margin-top: 12px" role="button" tabindex="0" @click="goStore" @keydown.enter.prevent="goStore" @keydown.space.prevent="goStore"><text :style="ctaLabelStyle">{{ t.myDevices.inventoryCtaGoStore }}</text></view>
       </view>
       <view v-if="inventoryReady" class="mx-4">
         <!-- Slot meter — de-carded: sits on the page floor. -->
@@ -158,7 +163,6 @@
         </view>
 
         <view class="device-inventory-section device-inventory-connections" data-inventory-section="connections">
-          <ComputeShareEntry context="devices" compact />
           <view v-if="phoneNeedsActivation" :style="phoneActivationCardStyle">
             <view class="flex items-start" style="gap: 10px">
               <view class="grid place-items-center shrink-0" :style="phoneActivationIconStyle">
@@ -197,7 +201,6 @@ import DeviceInventoryRow from "@/components/me/device-inventory-row.vue";
 import EmptyState from "@/components/empty-state.vue";
 import DeviceDeactivateSheet from "@/components/me/device-deactivate-sheet.vue";
 import TradeinLadderSheet from "@/components/me/tradein-ladder-sheet.vue";
-import ComputeShareEntry from "@/components/earn/compute-share-entry.vue";
 import TrialDeviceRow from "@/components/trial-device-row.vue";
 import { useTrialPresentation } from "@/composables/use-trial-presentation";
 import { useTrialFleetCopy } from "@/i18n/trial-fleet";

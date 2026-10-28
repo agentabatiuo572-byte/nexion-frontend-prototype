@@ -121,7 +121,7 @@
             <text>{{ t.walletV3.submitReasonServiceUnavailable }}</text>
             <view role="button" tabindex="0" class="inline-flex items-center active:opacity-70" :style="viewAllStyle" @click="refreshNexSummary"><text>{{ t.store.catalogRetry }}</text></view>
           </view>
-          <view v-else-if="remoteApiEnabled && bills.summaryStatus !== 'ready'" :style="activityEmptyStyle" role="status" aria-live="polite" aria-busy="true"><text>{{ t.wallet.loadingTransactions }}</text></view>
+          <view v-else-if="remoteApiEnabled && summaryForDisplay == null" :style="activityEmptyStyle" role="status" aria-live="polite" aria-busy="true"><text>{{ t.wallet.loadingTransactions }}</text></view>
           <EmptyState v-else-if="activity.length === 0" kind="empty-list" :title="t.empty.listTitle" :desc="t.empty.listDesc" compact />
           <view v-else :style="activityListStyle">
             <view v-for="(a, i) in activity" :key="a.id" class="flex items-center" :style="activityRowStyle(i)">
@@ -150,8 +150,8 @@
 <script setup lang="ts">
 import { dateLocale } from "@/i18n/format";
 import { formatFinanceAmount } from "@/lib/finance-amount-display";
-import { navReset, navTo } from "@/lib/route";
-import { computed, onMounted, onUnmounted, type CSSProperties } from "vue";
+import { navTo } from "@/lib/route";
+import { computed, ref, watch, onMounted, onUnmounted, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
@@ -163,8 +163,9 @@ import { resolveWalletBillMemo } from "@/lib/wallet-bill-display";
 import { useApp } from "@/store/app";
 import { useMarket } from "@/store/market";
 import { useCommission } from "@/store/commission";
+import { useLocaleStore } from "@/store/locale";
 import { useBills } from "@/store/bills";
-import { remoteApiEnabled } from "@/api/runtime";
+import { remoteApiEnabled, apiRuntimeConfig } from "@/api/runtime";
 import { remoteAuthorityStatus } from "@/lib/remote-authority-display";
 
 const t = useT();
@@ -172,6 +173,15 @@ const app = useApp();
 const market = useMarket();
 const commission = useCommission();
 const bills = useBills();
+const locale = useLocaleStore();
+const summaryScope = computed(() => JSON.stringify([app.accountKey, app.accountBindingEpoch, locale.code]));
+const summaryReadScope = ref('');
+const summaryEnvironmentInvalidated = ref(false);
+watch(() => apiRuntimeConfig?.environment, () => { summaryEnvironmentInvalidated.value = true; }, { flush: 'sync' });
+watch([() => bills.summary, () => bills.summaryStatus], () => {
+  if (bills.summaryStatus === 'ready' && bills.summary) summaryReadScope.value = summaryScope.value;
+}, { immediate: true, flush: 'sync' });
+const summaryForDisplay = computed(() => !summaryEnvironmentInvalidated.value && bills.summaryStatus !== 'error' && summaryReadScope.value === summaryScope.value ? bills.summary : null);
 
 let priceTimer: ReturnType<typeof setInterval> | null = null;
 onMounted(() => {
@@ -189,6 +199,7 @@ function refreshNexSummary() {
   void bills.refreshSummary().catch(() => undefined);
 }
 onShow(refreshNexSummary);
+watch(() => locale.code, refreshNexSummary);
 
 const nexBalance = computed(() => app.user.nexBalance);
 const balanceKnown = computed(() => !remoteApiEnabled || app.remoteFleetHasSnapshot);
@@ -208,9 +219,9 @@ const isUp = computed(() => change24h.value >= 0);
 // Remote mode uses the server's signed daily earn-ledger net, including pending entries.
 const todayNEX = computed<number | null>(() =>
   remoteApiEnabled
-    ? bills.summaryStatus !== "ready"
+    ? summaryForDisplay.value == null
       ? null
-      : bills.summary?.todayNexEarn ?? null
+      : summaryForDisplay.value?.todayNexEarn ?? null
     : app.visibleDevices.filter((d) => d.activatedAt !== null).reduce((s, d) => s + (d.todayEarningsNEX ?? 0), 0),
 );
 
@@ -219,8 +230,8 @@ const pnl = computed(() => usdValue.value - totalSpent.value);
 const pnlPct = computed(() => (totalSpent.value > 0 ? (pnl.value / totalSpent.value) * 100 : 0));
 
 const nexLedger = computed(() => {
-  if (!remoteApiEnabled || bills.summaryStatus !== "ready") return [];
-  return (bills.summary?.recentNexBills ?? [])
+  if (!remoteApiEnabled || summaryForDisplay.value == null) return [];
+  return (summaryForDisplay.value?.recentNexBills ?? [])
     .filter((bill) => bill.symbol === "NEX" && bill.status !== "failed")
     .map((bill) => ({
       id: bill.id,
@@ -232,8 +243,8 @@ const nexLedger = computed(() => {
 });
 const pendingNex = computed<number | null>(() => {
   if (!remoteApiEnabled) return 0;
-  if (bills.summaryStatus !== "ready") return null;
-  return bills.summary?.pendingNex ?? null;
+  if (summaryForDisplay.value == null) return null;
+  return summaryForDisplay.value?.pendingNex ?? null;
 });
 
 // NEX activity — mock uses the prototype fixture; remote uses the production
@@ -274,7 +285,7 @@ function fmtActivityTime(timestamp: number): string {
 }
 
 function goMarket() {
-  navReset({ url: "/pages/market/market", fail: () => {} });
+  navTo("/pages/market/market");
 }
 function goBills() {
   navTo("/pages/me/wallet-bills");

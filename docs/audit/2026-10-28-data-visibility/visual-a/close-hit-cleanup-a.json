@@ -1,0 +1,30 @@
+{
+  "recordedAt": "2026-10-27T20:16:51.922Z",
+  "baseline": {
+    "ink": "#F5F7FA",
+    "privacy": "false",
+    "reduced": false
+  },
+  "finalState": {
+    "ink": "#F5F7FA",
+    "privacy": "false",
+    "reduced": false,
+    "url": "http://127.0.0.1:5291/?nx_device=off#/pages/index/index"
+  },
+  "tabId": "1733373176",
+  "closed": true,
+  "proxyMode": "off",
+  "servicesRetained": true,
+  "untouchedPorts": [
+    5237,
+    5294
+  ],
+  "productWrites": false,
+  "buildsOrTestsRun": false,
+  "proxyReadback": {
+    "port": 5291,
+    "mode": "off",
+    "target": null,
+    "updatedAt": "2026-10-27T20:17:25.067Z"
+  }
+}

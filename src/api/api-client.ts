@@ -4,6 +4,8 @@ import type { RefreshCredentialMode, SessionSnapshot, SessionVault } from "./ses
 import { withSessionCookieLock } from "./session-cookie-lock";
 import { acquireRotationNonce, clearRotationNonce, discardRotationNonce } from "./session-rotation-nonce";
 import { reportNativeSessionStage } from "./native-session-storage";
+import { invalidatePassiveTabReads } from "@/lib/passive-read-window";
+import { remoteAccountScope } from "@/lib/remote-account-epoch";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -169,11 +171,27 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
   const baseUrl = normalizeBaseUrl(options.baseUrl, options.allowInsecureHttp ?? true);
   const refreshCredentialMode = options.refreshCredentialMode ?? "token";
   let refreshInFlight: Promise<SessionSnapshot> | null = null;
+  const readCooldowns = new Map<string, { until: number; error: ApiError }>();
+  const cooldownKey = (request: HttpRequest) => JSON.stringify([request.url,
+    remoteAccountScope.snapshot(), options.vault.read()?.user.userId ?? null]);
+
+  function businessWrite(request: HttpRequest): boolean {
+    if (request.method === "GET") return false;
+    const path = request.url.slice(baseUrl.length).split("?")[0];
+    // Browsing observations and phone runtime reporting keep their own cadence.
+    return !/^\/api\/(?:app\/analytics\/events|tasks\/phone\/runtime|growth\/day-one\/page-observations|store\/products\/[^/]+\/detail-observation|genesis\/secondary-market\/observation|share\/event)(?:$|\/)/.test(path)
+      && !path.startsWith("/auth/");
+  }
 
   async function execute<T>(
     request: HttpRequest,
     acceptedResponses: ApiRequest["acceptedResponses"] = [],
   ): Promise<T> {
+    const key = request.method === "GET" ? cooldownKey(request) : null;
+    const cooldown = key ? readCooldowns.get(key) : undefined;
+    if (cooldown && Date.now() < cooldown.until) throw new ApiError({ ...cooldown.error,
+      message: cooldown.error.message, retryAfterMs: Math.max(0, cooldown.until - Date.now()) });
+    if (key) readCooldowns.delete(key);
     let response: HttpResponse;
     try {
       const send = () => options.transport.request(request);
@@ -216,7 +234,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         && response.status === 422 && envelope?.code === 422 && envelope.message === "HDPAY_ORDER_CREATE_REJECTED"
         && envelope.data && typeof envelope.data === "object" && !Array.isArray(envelope.data)
         ? envelope.data as { providerReason?: unknown } : null;
-      throw new ApiError({
+      const failure = new ApiError({
         kind: "http",
         message: envelope?.message || `HTTP_${response.status}`,
         status: response.status,
@@ -225,6 +243,8 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         retryAfterMs,
         providerReason: typeof providerDenial?.providerReason === "string" ? providerDenial.providerReason : undefined,
       });
+      if (key && response.status === 429) readCooldowns.set(key, { until: Date.now() + (retryAfterMs ?? 30_000), error: failure });
+      throw failure;
     }
     if (!envelope) {
       throw new ApiError({ kind: "protocol", message: "API_ENVELOPE_INVALID", status: response.status, retryAfterMs });
@@ -238,6 +258,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
         retryAfterMs,
       });
     }
+    if (businessWrite(request)) invalidatePassiveTabReads();
     return envelope.data as T;
   }
 

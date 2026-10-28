@@ -1,4 +1,5 @@
 import { dayOnePageObservationFixture } from "@/lib/day-one-page-observation.test-support";
+import { createPassiveTabReadFixture } from "@/lib/passive-tab-read.test-support";
 // Execute the production SFC script against confirmed snapshots and changing
 // remote read states; fixture expectations do not reimplement its computeds.
 // @ts-expect-error Vitest executes this structural contract in Node; the App tsconfig intentionally omits Node globals.
@@ -36,13 +37,17 @@ function hero(range: Range, homeTruth: unknown, realized: { usdt: number; nex: n
     remoteFleetStatus: "ready", remoteFleetHasSnapshot: true, visibleDevices: [], slotCap: 1,
     earnings: { today: 9, todayNEX: 3, thisWeek: 18, thisMonth: 27, total: 36 },
     refreshHomeTruth: async () => true, refreshRemoteFleet: async () => true });
+  const passiveReads = createPassiveTabReadFixture(() => app.accountKey);
   const load = (id: string) => {
+    if (id === "@/lib/passive-tab-read") return passiveReads;
+    if (id === "@/store/data-visibility") return { useDataVisibility: () => ({ hidden: false, mask: String }) };
     if (id === "@/lib/amount-display") return { formatAmount };
     if (id === "@/lib/usd-display") return { formatUsdOverviewParts };
     if (id === "@/i18n/remainder-ui") return { useRemainderUiCopy: () => Vue.ref(remainderUiCopy[copy === zh ? "zh" : copy === vietnamese ? "vi" : "en"]) };
     if (id === "@/store/config") return { useConfig: () => ({ configStatus: "ready", isEnabled: () => false }) };
     if (id === "@/lib/native-phone-runtime") return { hasNativeAndroidPhoneRuntime: () => true, hasNativePhoneRuntime: () => true, nativePhonePlatform: () => null };
     if (id === "@/lib/route") return { navTo: () => {} };
+    if (id === "@/composables/use-trial-presentation") return { useTrialPresentation: () => ({ reservedSlots: Vue.ref(0), active: Vue.ref(false) }) };
     if (id === "@/lib/day-one-page-observation") return dayOnePageObservationFixture();
     if (id === "vue") return { ...Vue, onUnmounted: () => {} };
     if (id === "@dcloudio/uni-app" || id === "@/composables/use-tab-page-lifecycle") return { onShow: () => {}, onHide: () => {} };
@@ -277,7 +282,7 @@ describe("BUG 372 Earn read state with retained snapshots", () => {
     const html = await rendered(view);
     const encodedBody = copy.earn.summaryUnavailableBody.replace(/'/g, "&#39;");
     expect(html).toContain(encodedBody);
-    expect(html).toContain(copy.tradein.errPleaseRetry);
+    expect(html).toContain(copy.ui.retry);
     expect(html).not.toContain(".00</text>");
     view.app.homeTruthStatus = "ready";
     expect((await rendered(view))).not.toContain(encodedBody);

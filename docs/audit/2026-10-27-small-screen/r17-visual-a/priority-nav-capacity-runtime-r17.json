@@ -1,0 +1,5265 @@
+{
+  "entry": "index-BQJ7beyl.js",
+  "globalCss": "index-DPMvPy7r.css",
+  "records": [
+    {
+      "label": "initial-nav-structure",
+      "time": "2026-10-27T14:34:37.521Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "dark",
+      "locale": "zh",
+      "viewport": [
+        390,
+        844
+      ],
+      "overflow": 0,
+      "data": [
+        {
+          "cls": "home-action-row",
+          "rect": {
+            "x": 16.666667938232422,
+            "y": 754.3333740234375,
+            "width": 356.66668701171875,
+            "height": 64,
+            "top": 754.3333740234375,
+            "right": 373.3333549499512,
+            "bottom": 818.3333740234375,
+            "left": 16.666667938232422
+          },
+          "text": "3/6新手任务全部完成领500 UVT·剩 14 小时",
+          "aria": null,
+          "current": null,
+          "parents": [
+            "nx-list-group",
+            "nx-section",
+            "home-overview"
+          ],
+          "children": [
+            {
+              "cls": "home-action-ring",
+              "tag": "UNI-VIEW",
+              "rect": {
+                "x": 32.66666793823242,
+                "y": 768.3333740234375,
+                "width": 36,
+                "height": 36,
+                "top": 768.3333740234375,
+                "right": 68.66666793823242,
+                "bottom": 804.3333740234375,
+                "left": 32.66666793823242
+              }
+            },
+            {
+              "cls": "home-action-copy",
+              "tag": "UNI-VIEW",
+              "rect": {
+                "x": 80.66667175292969,
+                "y": 766.3333740234375,
+                "width": 248.6666717529297,
+                "height": 40,
+                "top": 766.3333740234375,
+                "right": 329.3333435058594,
+                "bottom": 806.3333740234375,
+                "left": 80.66667175292969
+              }
+            },
+            {
+              "cls": "home-action-chevron",
+              "tag": "svg",
+              "rect": {
+                "x": 341.3333435058594,
+                "y": 778.3333740234375,
+                "width": 16,
+                "height": 16,
+                "top": 778.3333740234375,
+                "right": 357.3333435058594,
+                "bottom": 794.3333740234375,
+                "left": 341.3333435058594
+              }
+            }
+          ]
+        },
+        {
+          "cls": "home-action-row",
+          "rect": {
+            "x": 16.666667938232422,
+            "y": 818.3333740234375,
+            "width": 356.66668701171875,
+            "height": 64,
+            "top": 818.3333740234375,
+            "right": 373.3333549499512,
+            "bottom": 882.3333740234375,
+            "left": 16.666667938232422
+          },
+          "text": "查看试用进度",
+          "aria": null,
+          "current": null,
+          "parents": [
+            "nx-list-group",
+            "nx-section",
+            "home-overview"
+          ],
+          "children": [
+            {
+              "cls": "home-action-icon",
+              "tag": "UNI-VIEW",
+              "rect": {
+                "x": 32.66666793823242,
+                "y": 832.6666870117188,
+                "width": 36,
+                "height": 36,
+                "top": 832.6666870117188,
+                "right": 68.66666793823242,
+                "bottom": 868.6666870117188,
+                "left": 32.66666793823242
+              }
+            },
+            {
+              "cls": "home-action-copy",
+              "tag": "UNI-VIEW",
+              "rect": {
+                "x": 80.66667175292969,
+                "y": 839.6666870117188,
+                "width": 248.6666717529297,
+                "height": 22,
+                "top": 839.6666870117188,
+                "right": 329.3333435058594,
+                "bottom": 861.6666870117188,
+                "left": 80.66667175292969
+              }
+            },
+            {
+              "cls": "home-action-chevron",
+              "tag": "svg",
+              "rect": {
+                "x": 341.3333435058594,
+                "y": 842.6666870117188,
+                "width": 16,
+                "height": 16,
+                "top": 842.6666870117188,
+                "right": 357.3333435058594,
+                "bottom": 858.6666870117188,
+                "left": 341.3333435058594
+              }
+            }
+          ]
+        },
+        {
+          "cls": "nx-glass-option nx-glass-option--selected nx-tab",
+          "rect": {
+            "x": 17,
+            "y": 759,
+            "width": 69.59375,
+            "height": 58,
+            "top": 759,
+            "right": 86.59375,
+            "bottom": 817,
+            "left": 17
+          },
+          "text": "首页",
+          "aria": "首页",
+          "current": "page",
+          "parents": [
+            "nx-glass-segments nx-glass-segments--equal nx-glass-segments--navigation nx-tabbar-pill",
+            "nx-tabbar-wrap",
+            "nx-chassis"
+          ],
+          "children": [
+            {
+              "cls": "nx-tab__icon",
+              "tag": "UNI-VIEW",
+              "rect": {
+                "x": 40.79166793823242,
+                "y": 767.5,
+                "width": 22,
+                "height": 22,
+                "top": 767.5,
+                "right": 62.79166793823242,
+                "bottom": 789.5,
+                "left": 40.79166793823242
+              }
+            },
+            {
+              "cls": "nx-tab__label",
+              "tag": "UNI-TEXT",
+              "rect": {
+                "x": 39.79166793823242,
+                "y": 793.5,
+                "width": 24,
+                "height": 14,
+                "top": 793.5,
+                "right": 63.79166793823242,
+                "bottom": 807.5,
+                "left": 39.79166793823242
+              }
+            }
+          ]
+        },
+        {
+          "cls": "nx-glass-option nx-tab",
+          "rect": {
+            "x": 88.59375,
+            "y": 759,
+            "width": 69.60417175292969,
+            "height": 58,
+            "top": 759,
+            "right": 158.1979217529297,
+            "bottom": 817,
+            "left": 88.59375
+          },
+          "text": "赚取",
+          "aria": "赚取",
+          "current": null,
+          "parents": [
+            "nx-glass-segments nx-glass-segments--equal nx-glass-segments--navigation nx-tabbar-pill",
+            "nx-tabbar-wrap",
+            "nx-chassis"
+          ],
+          "children": [
+            {
+              "cls": "nx-tab__icon",
+              "tag": "UNI-VIEW",
+              "rect": {
+                "x": 112.39583587646484,
+                "y": 768.5,
+                "width": 22,
+                "height": 22,
+                "top": 768.5,
+                "right": 134.39583587646484,
+                "bottom": 790.5,
+                "left": 112.39583587646484
+              }
+            },
+            {
+              "cls": "nx-tab__label",
+              "tag": "UNI-TEXT",
+              "rect": {
+                "x": 111.39583587646484,
+                "y": 793.5,
+                "width": 24,
+                "height": 14,
+                "top": 793.5,
+                "right": 135.39583587646484,
+                "bottom": 807.5,
+                "left": 111.39583587646484
+              }
+            }
+          ]
+        },
+        {
+          "cls": "nx-glass-option nx-tab",
+          "rect": {
+            "x": 160.1979217529297,
+            "y": 759,
+            "width": 69.59375,
+            "height": 58,
+            "top": 759,
+            "right": 229.7916717529297,
+            "bottom": 817,
+            "left": 160.1979217529297
+          },
+          "text": "商城",
+          "aria": "商城",
+          "current": null,
+          "parents": [
+            "nx-glass-segments nx-glass-segments--equal nx-glass-segments--navigation nx-tabbar-pill",
+            "nx-tabbar-wrap",
+            "nx-chassis"
+          ],
+          "children": [
+            {
+              "cls": "nx-tab__icon",
+              "tag": "UNI-VIEW",
+              "rect": {
+                "x": 183.98959350585938,
+                "y": 768.5,
+                "width": 22,
+                "height": 22,
+                "top": 768.5,
+                "right": 205.98959350585938,
+                "bottom": 790.5,
+                "left": 183.98959350585938
+              }
+            },
+            {
+              "cls": "nx-tab__label",
+              "tag": "UNI-TEXT",
+              "rect": {
+                "x": 182.98959350585938,
+                "y": 793.5,
+                "width": 24,
+                "height": 14,
+                "top": 793.5,
+                "right": 206.98959350585938,
+                "bottom": 807.5,
+                "left": 182.98959350585938
+              }
+            }
+          ]
+        },
+        {
+          "cls": "nx-glass-option nx-tab",
+          "rect": {
+            "x": 231.7916717529297,
+            "y": 759,
+            "width": 69.60417175292969,
+            "height": 58,
+            "top": 759,
+            "right": 301.3958435058594,
+            "bottom": 817,
+            "left": 231.7916717529297
+          },
+          "text": "团队",
+          "aria": "团队",
+          "current": null,
+          "parents": [
+            "nx-glass-segments nx-glass-segments--equal nx-glass-segments--navigation nx-tabbar-pill",
+            "nx-tabbar-wrap",
+            "nx-chassis"
+          ],
+          "children": [
+            {
+              "cls": "nx-tab__icon",
+              "tag": "UNI-VIEW",
+              "rect": {
+                "x": 255.59375,
+                "y": 768.5,
+                "width": 22,
+                "height": 22,
+                "top": 768.5,
+                "right": 277.59375,
+                "bottom": 790.5,
+                "left": 255.59375
+              }
+            },
+            {
+              "cls": "nx-tab__label",
+              "tag": "UNI-TEXT",
+              "rect": {
+                "x": 254.59375,
+                "y": 793.5,
+                "width": 24,
+                "height": 14,
+                "top": 793.5,
+                "right": 278.59375,
+                "bottom": 807.5,
+                "left": 254.59375
+              }
+            }
+          ]
+        },
+        {
+          "cls": "nx-glass-option nx-tab",
+          "rect": {
+            "x": 303.3958435058594,
+            "y": 759,
+            "width": 69.60417175292969,
+            "height": 58,
+            "top": 759,
+            "right": 373.00001525878906,
+            "bottom": 817,
+            "left": 303.3958435058594
+          },
+          "text": "我的",
+          "aria": "我的",
+          "current": null,
+          "parents": [
+            "nx-glass-segments nx-glass-segments--equal nx-glass-segments--navigation nx-tabbar-pill",
+            "nx-tabbar-wrap",
+            "nx-chassis"
+          ],
+          "children": [
+            {
+              "cls": "nx-tab__icon",
+              "tag": "UNI-VIEW",
+              "rect": {
+                "x": 327.19793701171875,
+                "y": 768.5,
+                "width": 22,
+                "height": 22,
+                "top": 768.5,
+                "right": 349.19793701171875,
+                "bottom": 790.5,
+                "left": 327.19793701171875
+              }
+            },
+            {
+              "cls": "nx-tab__label",
+              "tag": "UNI-TEXT",
+              "rect": {
+                "x": 326.19793701171875,
+                "y": 793.5,
+                "width": 24,
+                "height": 14,
+                "top": 793.5,
+                "right": 350.19793701171875,
+                "bottom": 807.5,
+                "left": 326.19793701171875
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "nav-home-zh390-dark",
+      "time": "2026-10-27T14:35:57.188Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "dark",
+      "locale": "zh",
+      "viewport": [
+        390,
+        844
+      ],
+      "overflow": 0,
+      "data": {
+        "bar": {
+          "x": 12,
+          "y": 754,
+          "width": 366,
+          "height": 68,
+          "top": 754,
+          "right": 378,
+          "bottom": 822,
+          "left": 12
+        },
+        "wrap": {
+          "x": 0,
+          "y": 754,
+          "width": 390,
+          "height": 90,
+          "top": 754,
+          "right": 390,
+          "bottom": 844,
+          "left": 0
+        },
+        "tabs": [
+          {
+            "aria": "首页",
+            "current": "page",
+            "rect": {
+              "x": 17,
+              "y": 759,
+              "width": 69.59375,
+              "height": 58,
+              "top": 759,
+              "right": 86.59375,
+              "bottom": 817,
+              "left": 17
+            },
+            "icon": {
+              "x": 40.79166793823242,
+              "y": 767.5,
+              "width": 22,
+              "height": 22,
+              "top": 767.5,
+              "right": 62.79166793823242,
+              "bottom": 789.5,
+              "left": 40.79166793823242
+            },
+            "svg": {
+              "x": 40.79166793823242,
+              "y": 767.5,
+              "width": 22,
+              "height": 22,
+              "top": 767.5,
+              "right": 62.79166793823242,
+              "bottom": 789.5,
+              "left": 40.79166793823242
+            },
+            "label": {
+              "text": "首页",
+              "display": "block",
+              "rect": {
+                "x": 39.79166793823242,
+                "y": 793.5,
+                "width": 24,
+                "height": 14,
+                "top": 793.5,
+                "right": 63.79166793823242,
+                "bottom": 807.5,
+                "left": 39.79166793823242
+              }
+            },
+            "animation": "none"
+          },
+          {
+            "aria": "赚取",
+            "current": null,
+            "rect": {
+              "x": 88.59375,
+              "y": 759,
+              "width": 69.60417175292969,
+              "height": 58,
+              "top": 759,
+              "right": 158.1979217529297,
+              "bottom": 817,
+              "left": 88.59375
+            },
+            "icon": {
+              "x": 112.39583587646484,
+              "y": 768.5,
+              "width": 22,
+              "height": 22,
+              "top": 768.5,
+              "right": 134.39583587646484,
+              "bottom": 790.5,
+              "left": 112.39583587646484
+            },
+            "svg": {
+              "x": 112.39583587646484,
+              "y": 768.5,
+              "width": 22,
+              "height": 22,
+              "top": 768.5,
+              "right": 134.39583587646484,
+              "bottom": 790.5,
+              "left": 112.39583587646484
+            },
+            "label": {
+              "text": "赚取",
+              "display": "block",
+              "rect": {
+                "x": 111.39583587646484,
+                "y": 793.5,
+                "width": 24,
+                "height": 14,
+                "top": 793.5,
+                "right": 135.39583587646484,
+                "bottom": 807.5,
+                "left": 111.39583587646484
+              }
+            },
+            "animation": "none"
+          },
+          {
+            "aria": "商城",
+            "current": null,
+            "rect": {
+              "x": 160.1979217529297,
+              "y": 759,
+              "width": 69.59375,
+              "height": 58,
+              "top": 759,
+              "right": 229.7916717529297,
+              "bottom": 817,
+              "left": 160.1979217529297
+            },
+            "icon": {
+              "x": 183.98959350585938,
+              "y": 768.5,
+              "width": 22,
+              "height": 22,
+              "top": 768.5,
+              "right": 205.98959350585938,
+              "bottom": 790.5,
+              "left": 183.98959350585938
+            },
+            "svg": {
+              "x": 183.98959350585938,
+              "y": 768.5,
+              "width": 22,
+              "height": 22,
+              "top": 768.5,
+              "right": 205.98959350585938,
+              "bottom": 790.5,
+              "left": 183.98959350585938
+            },
+            "label": {
+              "text": "商城",
+              "display": "block",
+              "rect": {
+                "x": 182.98959350585938,
+                "y": 793.5,
+                "width": 24,
+                "height": 14,
+                "top": 793.5,
+                "right": 206.98959350585938,
+                "bottom": 807.5,
+                "left": 182.98959350585938
+              }
+            },
+            "animation": "none"
+          },
+          {
+            "aria": "团队",
+            "current": null,
+            "rect": {
+              "x": 231.7916717529297,
+              "y": 759,
+              "width": 69.60417175292969,
+              "height": 58,
+              "top": 759,
+              "right": 301.3958435058594,
+              "bottom": 817,
+              "left": 231.7916717529297
+            },
+            "icon": {
+              "x": 255.59375,
+              "y": 768.5,
+              "width": 22,
+              "height": 22,
+              "top": 768.5,
+              "right": 277.59375,
+              "bottom": 790.5,
+              "left": 255.59375
+            },
+            "svg": {
+              "x": 255.59375,
+              "y": 768.5,
+              "width": 22,
+              "height": 22,
+              "top": 768.5,
+              "right": 277.59375,
+              "bottom": 790.5,
+              "left": 255.59375
+            },
+            "label": {
+              "text": "团队",
+              "display": "block",
+              "rect": {
+                "x": 254.59375,
+                "y": 793.5,
+                "width": 24,
+                "height": 14,
+                "top": 793.5,
+                "right": 278.59375,
+                "bottom": 807.5,
+                "left": 254.59375
+              }
+            },
+            "animation": "none"
+          },
+          {
+            "aria": "我的",
+            "current": null,
+            "rect": {
+              "x": 303.3958435058594,
+              "y": 759,
+              "width": 69.60417175292969,
+              "height": 58,
+              "top": 759,
+              "right": 373.00001525878906,
+              "bottom": 817,
+              "left": 303.3958435058594
+            },
+            "icon": {
+              "x": 327.19793701171875,
+              "y": 768.5,
+              "width": 22,
+              "height": 22,
+              "top": 768.5,
+              "right": 349.19793701171875,
+              "bottom": 790.5,
+              "left": 327.19793701171875
+            },
+            "svg": {
+              "x": 327.19793701171875,
+              "y": 768.5,
+              "width": 22,
+              "height": 22,
+              "top": 768.5,
+              "right": 349.19793701171875,
+              "bottom": 790.5,
+              "left": 327.19793701171875
+            },
+            "label": {
+              "text": "我的",
+              "display": "block",
+              "rect": {
+                "x": 326.19793701171875,
+                "y": 793.5,
+                "width": 24,
+                "height": 14,
+                "top": 793.5,
+                "right": 350.19793701171875,
+                "bottom": 807.5,
+                "left": 326.19793701171875
+              }
+            },
+            "animation": "none"
+          }
+        ],
+        "indicator": [
+          {
+            "cls": "nx-home-indicator",
+            "rect": {
+              "x": 0,
+              "y": 822,
+              "width": 390,
+              "height": 22,
+              "top": 822,
+              "right": 390,
+              "bottom": 844,
+              "left": 0
+            }
+          }
+        ],
+        "glass": [
+          {
+            "cls": "nx-liquid-glass nx-liquid-glass--navigation nx-glass-track nx-glass-backdrop",
+            "rect": {
+              "x": 12,
+              "y": 754,
+              "width": 366,
+              "height": 68,
+              "top": 754,
+              "right": 378,
+              "bottom": 822,
+              "left": 12
+            },
+            "attrs": [
+              [
+                "data-v-91005a05",
+                ""
+              ],
+              [
+                "data-v-a98304b9",
+                ""
+              ],
+              [
+                "data-glass-strategy",
+                "svg"
+              ],
+              [
+                "data-glass-reason",
+                ""
+              ]
+            ]
+          },
+          {
+            "cls": "nx-liquid-glass nx-liquid-glass--selection nx-glass-indicator",
+            "rect": {
+              "x": 17,
+              "y": 759,
+              "width": 70,
+              "height": 58,
+              "top": 759,
+              "right": 87,
+              "bottom": 817,
+              "left": 17
+            },
+            "attrs": [
+              [
+                "data-v-91005a05",
+                ""
+              ],
+              [
+                "data-v-a98304b9",
+                ""
+              ],
+              [
+                "data-glass-strategy",
+                "svg"
+              ],
+              [
+                "data-glass-reason",
+                ""
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "label": "nav-home-zh320-dark",
+      "time": "2026-10-27T14:36:50.274Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "dark",
+      "locale": "zh",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "data": {
+        "bar": {
+          "x": 12,
+          "y": 615.3333740234375,
+          "width": 296,
+          "height": 56,
+          "top": 615.3333740234375,
+          "right": 308,
+          "bottom": 671.3333740234375,
+          "left": 12
+        },
+        "wrap": {
+          "x": 0,
+          "y": 615.3333740234375,
+          "width": 320,
+          "height": 78,
+          "top": 615.3333740234375,
+          "right": 320,
+          "bottom": 693.3333740234375,
+          "left": 0
+        },
+        "tabs": [
+          {
+            "aria": "首页",
+            "current": "page",
+            "rect": {
+              "x": 17,
+              "y": 620.3333740234375,
+              "width": 55.59375,
+              "height": 46,
+              "top": 620.3333740234375,
+              "right": 72.59375,
+              "bottom": 666.3333740234375,
+              "left": 17
+            },
+            "icon": {
+              "x": 31.81166648864746,
+              "y": 630.3533935546875,
+              "width": 25.960002899169922,
+              "height": 25.9599609375,
+              "top": 630.3533935546875,
+              "right": 57.77166938781738,
+              "bottom": 656.3133544921875,
+              "left": 31.81166648864746
+            },
+            "svg": {
+              "x": 31.81166648864746,
+              "y": 630.3533935546875,
+              "width": 25.960002899169922,
+              "height": 25.9599609375,
+              "top": 630.3533935546875,
+              "right": 57.77166938781738,
+              "bottom": 656.3133544921875,
+              "left": 31.81166648864746
+            },
+            "label": {
+              "text": "首页",
+              "display": "none",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              }
+            },
+            "animation": "none"
+          },
+          {
+            "aria": "赚取",
+            "current": null,
+            "rect": {
+              "x": 74.59375,
+              "y": 620.3333740234375,
+              "width": 55.60416793823242,
+              "height": 46,
+              "top": 620.3333740234375,
+              "right": 130.19791793823242,
+              "bottom": 666.3333740234375,
+              "left": 74.59375
+            },
+            "icon": {
+              "x": 89.41583251953125,
+              "y": 630.3533935546875,
+              "width": 25.960002899169922,
+              "height": 25.9599609375,
+              "top": 630.3533935546875,
+              "right": 115.37583541870117,
+              "bottom": 656.3133544921875,
+              "left": 89.41583251953125
+            },
+            "svg": {
+              "x": 89.41583251953125,
+              "y": 630.3533935546875,
+              "width": 25.960002899169922,
+              "height": 25.9599609375,
+              "top": 630.3533935546875,
+              "right": 115.37583541870117,
+              "bottom": 656.3133544921875,
+              "left": 89.41583251953125
+            },
+            "label": {
+              "text": "赚取",
+              "display": "none",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              }
+            },
+            "animation": "none"
+          },
+          {
+            "aria": "商城",
+            "current": null,
+            "rect": {
+              "x": 132.1979217529297,
+              "y": 620.3333740234375,
+              "width": 55.59375,
+              "height": 46,
+              "top": 620.3333740234375,
+              "right": 187.7916717529297,
+              "bottom": 666.3333740234375,
+              "left": 132.1979217529297
+            },
+            "icon": {
+              "x": 147.00958251953125,
+              "y": 630.3533935546875,
+              "width": 25.960002899169922,
+              "height": 25.9599609375,
+              "top": 630.3533935546875,
+              "right": 172.96958541870117,
+              "bottom": 656.3133544921875,
+              "left": 147.00958251953125
+            },
+            "svg": {
+              "x": 147.00958251953125,
+              "y": 630.3533935546875,
+              "width": 25.960002899169922,
+              "height": 25.9599609375,
+              "top": 630.3533935546875,
+              "right": 172.96958541870117,
+              "bottom": 656.3133544921875,
+              "left": 147.00958251953125
+            },
+            "label": {
+              "text": "商城",
+              "display": "none",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              }
+            },
+            "animation": "none"
+          },
+          {
+            "aria": "团队",
+            "current": null,
+            "rect": {
+              "x": 189.7916717529297,
+              "y": 620.3333740234375,
+              "width": 55.60416793823242,
+              "height": 46,
+              "top": 620.3333740234375,
+              "right": 245.3958396911621,
+              "bottom": 666.3333740234375,
+              "left": 189.7916717529297
+            },
+            "icon": {
+              "x": 204.61375427246094,
+              "y": 630.3533935546875,
+              "width": 25.960002899169922,
+              "height": 25.9599609375,
+              "top": 630.3533935546875,
+              "right": 230.57375717163086,
+              "bottom": 656.3133544921875,
+              "left": 204.61375427246094
+            },
+            "svg": {
+              "x": 204.61375427246094,
+              "y": 630.3533935546875,
+              "width": 25.960002899169922,
+              "height": 25.9599609375,
+              "top": 630.3533935546875,
+              "right": 230.57375717163086,
+              "bottom": 656.3133544921875,
+              "left": 204.61375427246094
+            },
+            "label": {
+              "text": "团队",
+              "display": "none",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              }
+            },
+            "animation": "none"
+          },
+          {
+            "aria": "我的",
+            "current": null,
+            "rect": {
+              "x": 247.39584350585938,
+              "y": 620.3333740234375,
+              "width": 55.60416793823242,
+              "height": 46,
+              "top": 620.3333740234375,
+              "right": 303.0000114440918,
+              "bottom": 666.3333740234375,
+              "left": 247.39584350585938
+            },
+            "icon": {
+              "x": 262.2179260253906,
+              "y": 630.3533935546875,
+              "width": 25.960002899169922,
+              "height": 25.9599609375,
+              "top": 630.3533935546875,
+              "right": 288.17792892456055,
+              "bottom": 656.3133544921875,
+              "left": 262.2179260253906
+            },
+            "svg": {
+              "x": 262.2179260253906,
+              "y": 630.3533935546875,
+              "width": 25.960002899169922,
+              "height": 25.9599609375,
+              "top": 630.3533935546875,
+              "right": 288.17792892456055,
+              "bottom": 656.3133544921875,
+              "left": 262.2179260253906
+            },
+            "label": {
+              "text": "我的",
+              "display": "none",
+              "rect": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              }
+            },
+            "animation": "none"
+          }
+        ],
+        "indicator": [
+          {
+            "cls": "nx-home-indicator",
+            "rect": {
+              "x": 0,
+              "y": 671.3333740234375,
+              "width": 320,
+              "height": 22,
+              "top": 671.3333740234375,
+              "right": 320,
+              "bottom": 693.3333740234375,
+              "left": 0
+            }
+          }
+        ],
+        "glass": [
+          {
+            "cls": "nx-liquid-glass nx-liquid-glass--navigation nx-glass-track nx-glass-backdrop",
+            "rect": {
+              "x": 12,
+              "y": 615.3333740234375,
+              "width": 296,
+              "height": 56,
+              "top": 615.3333740234375,
+              "right": 308,
+              "bottom": 671.3333740234375,
+              "left": 12
+            },
+            "attrs": [
+              [
+                "data-v-91005a05",
+                ""
+              ],
+              [
+                "data-v-a98304b9",
+                ""
+              ],
+              [
+                "data-glass-strategy",
+                "svg"
+              ],
+              [
+                "data-glass-reason",
+                ""
+              ]
+            ]
+          },
+          {
+            "cls": "nx-liquid-glass nx-liquid-glass--selection nx-glass-indicator",
+            "rect": {
+              "x": 17,
+              "y": 620.3333740234375,
+              "width": 56,
+              "height": 46,
+              "top": 620.3333740234375,
+              "right": 73,
+              "bottom": 666.3333740234375,
+              "left": 17
+            },
+            "attrs": [
+              [
+                "data-v-91005a05",
+                ""
+              ],
+              [
+                "data-v-a98304b9",
+                ""
+              ],
+              [
+                "data-glass-strategy",
+                "svg"
+              ],
+              [
+                "data-glass-reason",
+                ""
+              ]
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "label": "nav-indicator-optics-details",
+      "time": "2026-10-27T14:36:50.411Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "dark",
+      "locale": "zh",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "data": {
+        "indicatorHTML": "",
+        "indicatorBefore": {
+          "height": "auto",
+          "bottom": "auto",
+          "top": "auto"
+        },
+        "glass": [
+          {
+            "attrs": [
+              [
+                "data-v-91005a05",
+                ""
+              ],
+              [
+                "data-v-a98304b9",
+                ""
+              ],
+              [
+                "data-glass-strategy",
+                "svg"
+              ],
+              [
+                "data-glass-reason",
+                ""
+              ]
+            ],
+            "specular": 1,
+            "rim": 1
+          },
+          {
+            "attrs": [
+              [
+                "data-v-91005a05",
+                ""
+              ],
+              [
+                "data-v-a98304b9",
+                ""
+              ],
+              [
+                "data-glass-strategy",
+                "svg"
+              ],
+              [
+                "data-glass-reason",
+                ""
+              ]
+            ],
+            "specular": 1,
+            "rim": 1
+          }
+        ]
+      }
+    },
+    {
+      "label": "nav-earn-real-animationstart",
+      "events": [
+        {
+          "name": "nx-tab-select-a98304b9",
+          "elapsed": 0,
+          "duration": "0.26s",
+          "easing": "cubic-bezier(0.2, 0.8, 0.2, 1)",
+          "target": "nx-tab__icon",
+          "time": 376882.2000000179
+        }
+      ]
+    },
+    {
+      "label": "nav-earn-zh320-dark",
+      "time": "2026-10-27T14:39:26.843Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css",
+        "http://127.0.0.1:5254/assets/card-stagger-BAUXl1m9.css",
+        "http://127.0.0.1:5254/assets/nx-list-row-TJWSpHkz.css",
+        "http://127.0.0.1:5254/assets/me-iBaf0cBn.css",
+        "http://127.0.0.1:5254/assets/sub-page-header-ClEhqBiM.css",
+        "http://127.0.0.1:5254/assets/wallet-topup-Bnym7S__.css",
+        "http://127.0.0.1:5254/assets/wallet-withdraw-method-B34iTaei.css",
+        "http://127.0.0.1:5254/assets/reward-page-surface-D1u1yEhW.css",
+        "http://127.0.0.1:5254/assets/commissions-CiSEexEi.css",
+        "http://127.0.0.1:5254/assets/compute-share-entry-DabWMmmY.css",
+        "http://127.0.0.1:5254/assets/capacity-explainer-sheet-CjyrGoKq.css",
+        "http://127.0.0.1:5254/assets/earn-CIyLOhln.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/earn/earn",
+      "theme": "dark",
+      "locale": "zh",
+      "viewport": [
+        320,
+        693
+      ],
+      "bar": {
+        "x": 12,
+        "y": 615.3333740234375,
+        "width": 296,
+        "height": 56,
+        "top": 615.3333740234375,
+        "right": 308,
+        "bottom": 671.3333740234375,
+        "left": 12
+      },
+      "tabs": [
+        {
+          "label": "首页",
+          "current": null,
+          "hit": {
+            "x": 17,
+            "y": 620.3333740234375,
+            "width": 55.59375,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 72.59375,
+            "bottom": 666.3333740234375,
+            "left": 17
+          },
+          "svg": {
+            "x": 31.81166648864746,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 57.77166938781738,
+            "bottom": 656.3133544921875,
+            "left": 31.81166648864746
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "赚取",
+          "current": "page",
+          "hit": {
+            "x": 74.59375,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 130.19791793823242,
+            "bottom": 666.3333740234375,
+            "left": 74.59375
+          },
+          "svg": {
+            "x": 89.41583251953125,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 115.37583541870117,
+            "bottom": 656.3133544921875,
+            "left": 89.41583251953125
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "商城",
+          "current": null,
+          "hit": {
+            "x": 132.1979217529297,
+            "y": 620.3333740234375,
+            "width": 55.59375,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 187.7916717529297,
+            "bottom": 666.3333740234375,
+            "left": 132.1979217529297
+          },
+          "svg": {
+            "x": 147.00958251953125,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 172.96958541870117,
+            "bottom": 656.3133544921875,
+            "left": 147.00958251953125
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "团队",
+          "current": null,
+          "hit": {
+            "x": 189.7916717529297,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 245.3958396911621,
+            "bottom": 666.3333740234375,
+            "left": 189.7916717529297
+          },
+          "svg": {
+            "x": 204.61375427246094,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 230.57375717163086,
+            "bottom": 656.3133544921875,
+            "left": 204.61375427246094
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "我的",
+          "current": null,
+          "hit": {
+            "x": 247.39584350585938,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 303.0000114440918,
+            "bottom": 666.3333740234375,
+            "left": 247.39584350585938
+          },
+          "svg": {
+            "x": 262.2179260253906,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 288.17792892456055,
+            "bottom": 656.3133544921875,
+            "left": 262.2179260253906
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        }
+      ],
+      "indicator": {
+        "rect": {
+          "x": 0,
+          "y": 671.3333740234375,
+          "width": 320,
+          "height": 22,
+          "top": 671.3333740234375,
+          "right": 320,
+          "bottom": 693.3333740234375,
+          "left": 0
+        },
+        "after": {
+          "height": "5px",
+          "width": "134px",
+          "top": "auto",
+          "bottom": "auto"
+        }
+      },
+      "glass": [
+        {
+          "attrs": [
+            [
+              "data-v-91005a05",
+              ""
+            ],
+            [
+              "data-v-a98304b9",
+              ""
+            ],
+            [
+              "data-glass-strategy",
+              "svg"
+            ],
+            [
+              "data-glass-reason",
+              ""
+            ]
+          ],
+          "rim": 1,
+          "specular": 1
+        },
+        {
+          "attrs": [
+            [
+              "data-v-91005a05",
+              ""
+            ],
+            [
+              "data-v-a98304b9",
+              ""
+            ],
+            [
+              "data-glass-strategy",
+              "svg"
+            ],
+            [
+              "data-glass-reason",
+              ""
+            ]
+          ],
+          "rim": 1,
+          "specular": 1
+        }
+      ]
+    },
+    {
+      "label": "nav-store-zh320-dark",
+      "time": "2026-10-27T14:40:17.823Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css",
+        "http://127.0.0.1:5254/assets/card-stagger-BAUXl1m9.css",
+        "http://127.0.0.1:5254/assets/nx-list-row-TJWSpHkz.css",
+        "http://127.0.0.1:5254/assets/me-iBaf0cBn.css",
+        "http://127.0.0.1:5254/assets/sub-page-header-ClEhqBiM.css",
+        "http://127.0.0.1:5254/assets/wallet-topup-Bnym7S__.css",
+        "http://127.0.0.1:5254/assets/wallet-withdraw-method-B34iTaei.css",
+        "http://127.0.0.1:5254/assets/reward-page-surface-D1u1yEhW.css",
+        "http://127.0.0.1:5254/assets/commissions-CiSEexEi.css",
+        "http://127.0.0.1:5254/assets/compute-share-entry-DabWMmmY.css",
+        "http://127.0.0.1:5254/assets/capacity-explainer-sheet-CjyrGoKq.css",
+        "http://127.0.0.1:5254/assets/earn-CIyLOhln.css",
+        "http://127.0.0.1:5254/assets/reward-rows-BiWv8z9R.css",
+        "http://127.0.0.1:5254/assets/promotion-CdusBIV4.css",
+        "http://127.0.0.1:5254/assets/store-BS2c7-mC.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/store/store",
+      "theme": "dark",
+      "locale": "zh",
+      "viewport": [
+        320,
+        693
+      ],
+      "bar": {
+        "x": 12,
+        "y": 615.3333740234375,
+        "width": 296,
+        "height": 56,
+        "top": 615.3333740234375,
+        "right": 308,
+        "bottom": 671.3333740234375,
+        "left": 12
+      },
+      "tabs": [
+        {
+          "label": "首页",
+          "current": null,
+          "hit": {
+            "x": 17,
+            "y": 620.3333740234375,
+            "width": 55.59375,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 72.59375,
+            "bottom": 666.3333740234375,
+            "left": 17
+          },
+          "svg": {
+            "x": 31.81166648864746,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 57.77166938781738,
+            "bottom": 656.3133544921875,
+            "left": 31.81166648864746
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "赚取",
+          "current": null,
+          "hit": {
+            "x": 74.59375,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 130.19791793823242,
+            "bottom": 666.3333740234375,
+            "left": 74.59375
+          },
+          "svg": {
+            "x": 89.41583251953125,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 115.37583541870117,
+            "bottom": 656.3133544921875,
+            "left": 89.41583251953125
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "商城",
+          "current": "page",
+          "hit": {
+            "x": 132.1979217529297,
+            "y": 620.3333740234375,
+            "width": 55.59375,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 187.7916717529297,
+            "bottom": 666.3333740234375,
+            "left": 132.1979217529297
+          },
+          "svg": {
+            "x": 147.00958251953125,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 172.96958541870117,
+            "bottom": 656.3133544921875,
+            "left": 147.00958251953125
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "团队",
+          "current": null,
+          "hit": {
+            "x": 189.7916717529297,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 245.3958396911621,
+            "bottom": 666.3333740234375,
+            "left": 189.7916717529297
+          },
+          "svg": {
+            "x": 204.61375427246094,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 230.57375717163086,
+            "bottom": 656.3133544921875,
+            "left": 204.61375427246094
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "我的",
+          "current": null,
+          "hit": {
+            "x": 247.39584350585938,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 303.0000114440918,
+            "bottom": 666.3333740234375,
+            "left": 247.39584350585938
+          },
+          "svg": {
+            "x": 262.2179260253906,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 288.17792892456055,
+            "bottom": 656.3133544921875,
+            "left": 262.2179260253906
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        }
+      ],
+      "indicator": {
+        "rect": {
+          "x": 0,
+          "y": 671.3333740234375,
+          "width": 320,
+          "height": 22,
+          "top": 671.3333740234375,
+          "right": 320,
+          "bottom": 693.3333740234375,
+          "left": 0
+        },
+        "after": {
+          "height": "5px",
+          "width": "134px",
+          "top": "auto",
+          "bottom": "auto"
+        }
+      },
+      "glass": [
+        {
+          "attrs": [
+            [
+              "data-v-91005a05",
+              ""
+            ],
+            [
+              "data-v-a98304b9",
+              ""
+            ],
+            [
+              "data-glass-strategy",
+              "svg"
+            ],
+            [
+              "data-glass-reason",
+              ""
+            ]
+          ],
+          "rim": 1,
+          "specular": 1
+        },
+        {
+          "attrs": [
+            [
+              "data-v-91005a05",
+              ""
+            ],
+            [
+              "data-v-a98304b9",
+              ""
+            ],
+            [
+              "data-glass-strategy",
+              "svg"
+            ],
+            [
+              "data-glass-reason",
+              ""
+            ]
+          ],
+          "rim": 1,
+          "specular": 1
+        }
+      ]
+    },
+    {
+      "label": "nav-team-zh320-dark",
+      "time": "2026-10-27T14:40:21.161Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css",
+        "http://127.0.0.1:5254/assets/card-stagger-BAUXl1m9.css",
+        "http://127.0.0.1:5254/assets/nx-list-row-TJWSpHkz.css",
+        "http://127.0.0.1:5254/assets/me-iBaf0cBn.css",
+        "http://127.0.0.1:5254/assets/sub-page-header-ClEhqBiM.css",
+        "http://127.0.0.1:5254/assets/wallet-topup-Bnym7S__.css",
+        "http://127.0.0.1:5254/assets/wallet-withdraw-method-B34iTaei.css",
+        "http://127.0.0.1:5254/assets/reward-page-surface-D1u1yEhW.css",
+        "http://127.0.0.1:5254/assets/commissions-CiSEexEi.css",
+        "http://127.0.0.1:5254/assets/compute-share-entry-DabWMmmY.css",
+        "http://127.0.0.1:5254/assets/capacity-explainer-sheet-CjyrGoKq.css",
+        "http://127.0.0.1:5254/assets/earn-CIyLOhln.css",
+        "http://127.0.0.1:5254/assets/reward-rows-BiWv8z9R.css",
+        "http://127.0.0.1:5254/assets/promotion-CdusBIV4.css",
+        "http://127.0.0.1:5254/assets/store-BS2c7-mC.css",
+        "http://127.0.0.1:5254/assets/team-BK3gos4J.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/team/team",
+      "theme": "dark",
+      "locale": "zh",
+      "viewport": [
+        320,
+        693
+      ],
+      "bar": {
+        "x": 12,
+        "y": 615.3333740234375,
+        "width": 296,
+        "height": 56,
+        "top": 615.3333740234375,
+        "right": 308,
+        "bottom": 671.3333740234375,
+        "left": 12
+      },
+      "tabs": [
+        {
+          "label": "首页",
+          "current": null,
+          "hit": {
+            "x": 17,
+            "y": 620.3333740234375,
+            "width": 55.59375,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 72.59375,
+            "bottom": 666.3333740234375,
+            "left": 17
+          },
+          "svg": {
+            "x": 31.81166648864746,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 57.77166938781738,
+            "bottom": 656.3133544921875,
+            "left": 31.81166648864746
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "赚取",
+          "current": null,
+          "hit": {
+            "x": 74.59375,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 130.19791793823242,
+            "bottom": 666.3333740234375,
+            "left": 74.59375
+          },
+          "svg": {
+            "x": 89.41583251953125,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 115.37583541870117,
+            "bottom": 656.3133544921875,
+            "left": 89.41583251953125
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "商城",
+          "current": null,
+          "hit": {
+            "x": 132.1979217529297,
+            "y": 620.3333740234375,
+            "width": 55.59375,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 187.7916717529297,
+            "bottom": 666.3333740234375,
+            "left": 132.1979217529297
+          },
+          "svg": {
+            "x": 147.00958251953125,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 172.96958541870117,
+            "bottom": 656.3133544921875,
+            "left": 147.00958251953125
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "团队",
+          "current": "page",
+          "hit": {
+            "x": 189.7916717529297,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 245.3958396911621,
+            "bottom": 666.3333740234375,
+            "left": 189.7916717529297
+          },
+          "svg": {
+            "x": 204.61375427246094,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 230.57375717163086,
+            "bottom": 656.3133544921875,
+            "left": 204.61375427246094
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "我的",
+          "current": null,
+          "hit": {
+            "x": 247.39584350585938,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 303.0000114440918,
+            "bottom": 666.3333740234375,
+            "left": 247.39584350585938
+          },
+          "svg": {
+            "x": 262.2179260253906,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 288.17792892456055,
+            "bottom": 656.3133544921875,
+            "left": 262.2179260253906
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        }
+      ],
+      "indicator": {
+        "rect": {
+          "x": 0,
+          "y": 671.3333740234375,
+          "width": 320,
+          "height": 22,
+          "top": 671.3333740234375,
+          "right": 320,
+          "bottom": 693.3333740234375,
+          "left": 0
+        },
+        "after": {
+          "height": "5px",
+          "width": "134px",
+          "top": "auto",
+          "bottom": "auto"
+        }
+      },
+      "glass": [
+        {
+          "attrs": [
+            [
+              "data-v-91005a05",
+              ""
+            ],
+            [
+              "data-v-a98304b9",
+              ""
+            ],
+            [
+              "data-glass-strategy",
+              "svg"
+            ],
+            [
+              "data-glass-reason",
+              ""
+            ]
+          ],
+          "rim": 1,
+          "specular": 1
+        },
+        {
+          "attrs": [
+            [
+              "data-v-91005a05",
+              ""
+            ],
+            [
+              "data-v-a98304b9",
+              ""
+            ],
+            [
+              "data-glass-strategy",
+              "svg"
+            ],
+            [
+              "data-glass-reason",
+              ""
+            ]
+          ],
+          "rim": 1,
+          "specular": 1
+        }
+      ]
+    },
+    {
+      "label": "nav-me-zh320-dark",
+      "time": "2026-10-27T14:40:40.082Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css",
+        "http://127.0.0.1:5254/assets/card-stagger-BAUXl1m9.css",
+        "http://127.0.0.1:5254/assets/nx-list-row-TJWSpHkz.css",
+        "http://127.0.0.1:5254/assets/me-iBaf0cBn.css",
+        "http://127.0.0.1:5254/assets/sub-page-header-ClEhqBiM.css",
+        "http://127.0.0.1:5254/assets/wallet-topup-Bnym7S__.css",
+        "http://127.0.0.1:5254/assets/wallet-withdraw-method-B34iTaei.css",
+        "http://127.0.0.1:5254/assets/reward-page-surface-D1u1yEhW.css",
+        "http://127.0.0.1:5254/assets/commissions-CiSEexEi.css",
+        "http://127.0.0.1:5254/assets/compute-share-entry-DabWMmmY.css",
+        "http://127.0.0.1:5254/assets/capacity-explainer-sheet-CjyrGoKq.css",
+        "http://127.0.0.1:5254/assets/earn-CIyLOhln.css",
+        "http://127.0.0.1:5254/assets/reward-rows-BiWv8z9R.css",
+        "http://127.0.0.1:5254/assets/promotion-CdusBIV4.css",
+        "http://127.0.0.1:5254/assets/store-BS2c7-mC.css",
+        "http://127.0.0.1:5254/assets/team-BK3gos4J.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/me/me",
+      "theme": "dark",
+      "locale": "zh",
+      "viewport": [
+        320,
+        693
+      ],
+      "bar": {
+        "x": 12,
+        "y": 615.3333740234375,
+        "width": 296,
+        "height": 56,
+        "top": 615.3333740234375,
+        "right": 308,
+        "bottom": 671.3333740234375,
+        "left": 12
+      },
+      "tabs": [
+        {
+          "label": "首页",
+          "current": null,
+          "hit": {
+            "x": 17,
+            "y": 620.3333740234375,
+            "width": 55.59375,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 72.59375,
+            "bottom": 666.3333740234375,
+            "left": 17
+          },
+          "svg": {
+            "x": 31.81166648864746,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 57.77166938781738,
+            "bottom": 656.3133544921875,
+            "left": 31.81166648864746
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "赚取",
+          "current": null,
+          "hit": {
+            "x": 74.59375,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 130.19791793823242,
+            "bottom": 666.3333740234375,
+            "left": 74.59375
+          },
+          "svg": {
+            "x": 89.41583251953125,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 115.37583541870117,
+            "bottom": 656.3133544921875,
+            "left": 89.41583251953125
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "商城",
+          "current": null,
+          "hit": {
+            "x": 132.1979217529297,
+            "y": 620.3333740234375,
+            "width": 55.59375,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 187.7916717529297,
+            "bottom": 666.3333740234375,
+            "left": 132.1979217529297
+          },
+          "svg": {
+            "x": 147.00958251953125,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 172.96958541870117,
+            "bottom": 656.3133544921875,
+            "left": 147.00958251953125
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "团队",
+          "current": null,
+          "hit": {
+            "x": 189.7916717529297,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 245.3958396911621,
+            "bottom": 666.3333740234375,
+            "left": 189.7916717529297
+          },
+          "svg": {
+            "x": 204.61375427246094,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 230.57375717163086,
+            "bottom": 656.3133544921875,
+            "left": 204.61375427246094
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "我的",
+          "current": "page",
+          "hit": {
+            "x": 247.39584350585938,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 303.0000114440918,
+            "bottom": 666.3333740234375,
+            "left": 247.39584350585938
+          },
+          "svg": {
+            "x": 261.867919921875,
+            "y": 630.0033569335938,
+            "width": 26.65999412536621,
+            "height": 26.65999412536621,
+            "top": 630.0033569335938,
+            "right": 288.5279140472412,
+            "bottom": 656.66335105896,
+            "left": 261.867919921875
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        }
+      ],
+      "indicator": {
+        "rect": {
+          "x": 0,
+          "y": 671.3333740234375,
+          "width": 320,
+          "height": 22,
+          "top": 671.3333740234375,
+          "right": 320,
+          "bottom": 693.3333740234375,
+          "left": 0
+        },
+        "after": {
+          "height": "5px",
+          "width": "134px",
+          "top": "auto",
+          "bottom": "auto"
+        }
+      },
+      "glass": [
+        {
+          "attrs": [
+            [
+              "data-v-91005a05",
+              ""
+            ],
+            [
+              "data-v-a98304b9",
+              ""
+            ],
+            [
+              "data-glass-strategy",
+              "svg"
+            ],
+            [
+              "data-glass-reason",
+              ""
+            ]
+          ],
+          "rim": 1,
+          "specular": 1
+        },
+        {
+          "attrs": [
+            [
+              "data-v-91005a05",
+              ""
+            ],
+            [
+              "data-v-a98304b9",
+              ""
+            ],
+            [
+              "data-glass-strategy",
+              "svg"
+            ],
+            [
+              "data-glass-reason",
+              ""
+            ]
+          ],
+          "rim": 1,
+          "specular": 1
+        }
+      ]
+    },
+    {
+      "label": "nav-home-after-click-zh320-dark",
+      "time": "2026-10-27T14:40:40.744Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css",
+        "http://127.0.0.1:5254/assets/card-stagger-BAUXl1m9.css",
+        "http://127.0.0.1:5254/assets/nx-list-row-TJWSpHkz.css",
+        "http://127.0.0.1:5254/assets/me-iBaf0cBn.css",
+        "http://127.0.0.1:5254/assets/sub-page-header-ClEhqBiM.css",
+        "http://127.0.0.1:5254/assets/wallet-topup-Bnym7S__.css",
+        "http://127.0.0.1:5254/assets/wallet-withdraw-method-B34iTaei.css",
+        "http://127.0.0.1:5254/assets/reward-page-surface-D1u1yEhW.css",
+        "http://127.0.0.1:5254/assets/commissions-CiSEexEi.css",
+        "http://127.0.0.1:5254/assets/compute-share-entry-DabWMmmY.css",
+        "http://127.0.0.1:5254/assets/capacity-explainer-sheet-CjyrGoKq.css",
+        "http://127.0.0.1:5254/assets/earn-CIyLOhln.css",
+        "http://127.0.0.1:5254/assets/reward-rows-BiWv8z9R.css",
+        "http://127.0.0.1:5254/assets/promotion-CdusBIV4.css",
+        "http://127.0.0.1:5254/assets/store-BS2c7-mC.css",
+        "http://127.0.0.1:5254/assets/team-BK3gos4J.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/",
+      "theme": "dark",
+      "locale": "zh",
+      "viewport": [
+        320,
+        693
+      ],
+      "bar": {
+        "x": 12,
+        "y": 615.3333740234375,
+        "width": 296,
+        "height": 56,
+        "top": 615.3333740234375,
+        "right": 308,
+        "bottom": 671.3333740234375,
+        "left": 12
+      },
+      "tabs": [
+        {
+          "label": "首页",
+          "current": "page",
+          "hit": {
+            "x": 17,
+            "y": 620.3333740234375,
+            "width": 55.59375,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 72.59375,
+            "bottom": 666.3333740234375,
+            "left": 17
+          },
+          "svg": {
+            "x": 32.00033950805664,
+            "y": 630.5419921875,
+            "width": 25.582660675048828,
+            "height": 25.582683563232422,
+            "top": 630.5419921875,
+            "right": 57.58300018310547,
+            "bottom": 656.1246757507324,
+            "left": 32.00033950805664
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "赚取",
+          "current": null,
+          "hit": {
+            "x": 74.59375,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 130.19791793823242,
+            "bottom": 666.3333740234375,
+            "left": 74.59375
+          },
+          "svg": {
+            "x": 89.41583251953125,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 115.37583541870117,
+            "bottom": 656.3133544921875,
+            "left": 89.41583251953125
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "商城",
+          "current": null,
+          "hit": {
+            "x": 132.1979217529297,
+            "y": 620.3333740234375,
+            "width": 55.59375,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 187.7916717529297,
+            "bottom": 666.3333740234375,
+            "left": 132.1979217529297
+          },
+          "svg": {
+            "x": 147.00958251953125,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 172.96958541870117,
+            "bottom": 656.3133544921875,
+            "left": 147.00958251953125
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "团队",
+          "current": null,
+          "hit": {
+            "x": 189.7916717529297,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 245.3958396911621,
+            "bottom": 666.3333740234375,
+            "left": 189.7916717529297
+          },
+          "svg": {
+            "x": 204.61375427246094,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 230.57375717163086,
+            "bottom": 656.3133544921875,
+            "left": 204.61375427246094
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "我的",
+          "current": null,
+          "hit": {
+            "x": 247.39584350585938,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 303.0000114440918,
+            "bottom": 666.3333740234375,
+            "left": 247.39584350585938
+          },
+          "svg": {
+            "x": 262.2179260253906,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 288.17792892456055,
+            "bottom": 656.3133544921875,
+            "left": 262.2179260253906
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        }
+      ],
+      "indicator": {
+        "rect": {
+          "x": 0,
+          "y": 671.3333740234375,
+          "width": 320,
+          "height": 22,
+          "top": 671.3333740234375,
+          "right": 320,
+          "bottom": 693.3333740234375,
+          "left": 0
+        },
+        "after": {
+          "height": "5px",
+          "width": "134px",
+          "top": "auto",
+          "bottom": "auto"
+        }
+      },
+      "glass": [
+        {
+          "attrs": [
+            [
+              "data-v-91005a05",
+              ""
+            ],
+            [
+              "data-v-a98304b9",
+              ""
+            ],
+            [
+              "data-glass-strategy",
+              "svg"
+            ],
+            [
+              "data-glass-reason",
+              ""
+            ]
+          ],
+          "rim": 1,
+          "specular": 1
+        },
+        {
+          "attrs": [
+            [
+              "data-v-91005a05",
+              ""
+            ],
+            [
+              "data-v-a98304b9",
+              ""
+            ],
+            [
+              "data-glass-strategy",
+              "svg"
+            ],
+            [
+              "data-glass-reason",
+              ""
+            ]
+          ],
+          "rim": 1,
+          "specular": 1
+        }
+      ]
+    },
+    {
+      "label": "nav-five-route-animation-observation",
+      "events": [
+        {
+          "name": "nx-tab-select-a98304b9",
+          "elapsed": 0,
+          "duration": "0.26s",
+          "easing": "cubic-bezier(0.2, 0.8, 0.2, 1)",
+          "target": "nx-tab__icon",
+          "time": 376882.2000000179
+        },
+        {
+          "name": "nx-tab-select-a98304b9",
+          "elapsed": 0,
+          "duration": "0.26s",
+          "easing": "cubic-bezier(0.2, 0.8, 0.2, 1)",
+          "target": "nx-tab__icon",
+          "time": 427834.2000000179
+        },
+        {
+          "name": "nx-tab-select-a98304b9",
+          "elapsed": 0,
+          "duration": "0.26s",
+          "easing": "cubic-bezier(0.2, 0.8, 0.2, 1)",
+          "target": "nx-tab__icon",
+          "time": 431153.40000000596
+        },
+        {
+          "name": "nx-tab-select-a98304b9",
+          "elapsed": 0,
+          "duration": "0.26s",
+          "easing": "cubic-bezier(0.2, 0.8, 0.2, 1)",
+          "target": "nx-tab__icon",
+          "time": 436294.3000000119
+        },
+        {
+          "name": "nx-tab-select-a98304b9",
+          "elapsed": 0,
+          "duration": "0.26s",
+          "easing": "cubic-bezier(0.2, 0.8, 0.2, 1)",
+          "target": "nx-tab__icon",
+          "time": 451987.2000000179
+        },
+        {
+          "name": "nx-tab-select-a98304b9",
+          "elapsed": 0,
+          "duration": "0.26s",
+          "easing": "cubic-bezier(0.2, 0.8, 0.2, 1)",
+          "target": "nx-tab__icon",
+          "time": 452641.3000000119
+        }
+      ],
+      "observerRemoved": true
+    },
+    {
+      "label": "nav-home-vi320-dark",
+      "time": "2026-10-27T14:42:47.973Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/",
+      "theme": "dark",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "bar": {
+        "x": 12,
+        "y": 615.3333740234375,
+        "width": 296,
+        "height": 56,
+        "top": 615.3333740234375,
+        "right": 308,
+        "bottom": 671.3333740234375,
+        "left": 12
+      },
+      "tabs": [
+        {
+          "label": "Trang chủ",
+          "current": "page",
+          "hit": {
+            "x": 17,
+            "y": 620.3333740234375,
+            "width": 55.59375,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 72.59375,
+            "bottom": 666.3333740234375,
+            "left": 17
+          },
+          "svg": {
+            "x": 31.81166648864746,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 57.77166938781738,
+            "bottom": 656.3133544921875,
+            "left": 31.81166648864746
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "Sinh lời",
+          "current": null,
+          "hit": {
+            "x": 74.59375,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 130.19791793823242,
+            "bottom": 666.3333740234375,
+            "left": 74.59375
+          },
+          "svg": {
+            "x": 89.41583251953125,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 115.37583541870117,
+            "bottom": 656.3133544921875,
+            "left": 89.41583251953125
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "Cửa hàng",
+          "current": null,
+          "hit": {
+            "x": 132.1979217529297,
+            "y": 620.3333740234375,
+            "width": 55.59375,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 187.7916717529297,
+            "bottom": 666.3333740234375,
+            "left": 132.1979217529297
+          },
+          "svg": {
+            "x": 147.00958251953125,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 172.96958541870117,
+            "bottom": 656.3133544921875,
+            "left": 147.00958251953125
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "Đội nhóm",
+          "current": null,
+          "hit": {
+            "x": 189.7916717529297,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 245.3958396911621,
+            "bottom": 666.3333740234375,
+            "left": 189.7916717529297
+          },
+          "svg": {
+            "x": 204.61375427246094,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 230.57375717163086,
+            "bottom": 656.3133544921875,
+            "left": 204.61375427246094
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "Của tôi",
+          "current": null,
+          "hit": {
+            "x": 247.39584350585938,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 303.0000114440918,
+            "bottom": 666.3333740234375,
+            "left": 247.39584350585938
+          },
+          "svg": {
+            "x": 262.2179260253906,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 288.17792892456055,
+            "bottom": 656.3133544921875,
+            "left": 262.2179260253906
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        }
+      ],
+      "indicator": {
+        "rect": {
+          "x": 0,
+          "y": 671.3333740234375,
+          "width": 320,
+          "height": 22,
+          "top": 671.3333740234375,
+          "right": 320,
+          "bottom": 693.3333740234375,
+          "left": 0
+        },
+        "after": {
+          "height": "5px",
+          "width": "134px",
+          "top": "auto",
+          "bottom": "auto"
+        }
+      },
+      "glass": [
+        {
+          "attrs": [
+            [
+              "data-v-91005a05",
+              ""
+            ],
+            [
+              "data-v-a98304b9",
+              ""
+            ],
+            [
+              "data-glass-strategy",
+              "svg"
+            ],
+            [
+              "data-glass-reason",
+              ""
+            ]
+          ],
+          "rim": 1,
+          "specular": 1
+        },
+        {
+          "attrs": [
+            [
+              "data-v-91005a05",
+              ""
+            ],
+            [
+              "data-v-a98304b9",
+              ""
+            ],
+            [
+              "data-glass-strategy",
+              "svg"
+            ],
+            [
+              "data-glass-reason",
+              ""
+            ]
+          ],
+          "rim": 1,
+          "specular": 1
+        }
+      ]
+    },
+    {
+      "label": "capacity-full-vi320-dark",
+      "time": "2026-10-27T14:43:09.837Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/",
+      "theme": "dark",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "data": {
+        "cards": [
+          {
+            "class": "vb-wrap vb-wrap--embedded",
+            "rect": {
+              "x": 16,
+              "y": 109.66667175292969,
+              "width": 138,
+              "height": 226.33334350585938,
+              "top": 109.66667175292969,
+              "right": 154,
+              "bottom": 336.00001525878906,
+              "left": 16
+            }
+          },
+          {
+            "class": "nx-trial-hero nx-trial-hero--embedded nx-trial-hero--long-copy nx-trial-hero--lifecycle",
+            "rect": {
+              "x": 166,
+              "y": 109.66667175292969,
+              "width": 138,
+              "height": 226.33334350585938,
+              "top": 109.66667175292969,
+              "right": 304,
+              "bottom": 336.00001525878906,
+              "left": 166
+            }
+          }
+        ],
+        "heroClass": "nx-trial-hero nx-trial-hero--embedded nx-trial-hero--long-copy nx-trial-hero--lifecycle",
+        "role": null,
+        "aria": null,
+        "text": "Dùng thử 3 ngàyUVELBox S1Hết chỗ. Giải phóng 1 vị trí.Quản lý",
+        "cta": [
+          {
+            "text": "Quản lý",
+            "aria": "Quản lý thiết bị",
+            "rect": {
+              "x": 226.5416717529297,
+              "y": 287.3333435058594,
+              "width": 66.79167175292969,
+              "height": 44,
+              "top": 287.3333435058594,
+              "right": 293.3333435058594,
+              "bottom": 331.3333435058594,
+              "left": 226.5416717529297
+            },
+            "surface": {
+              "x": 226.5416717529297,
+              "y": 293.3333435058594,
+              "width": 66.79167175292969,
+              "height": 32,
+              "top": 293.3333435058594,
+              "right": 293.3333435058594,
+              "bottom": 325.3333435058594,
+              "left": 226.5416717529297
+            }
+          }
+        ],
+        "art": {
+          "x": 168.6666717529297,
+          "y": 203.33334350585938,
+          "width": 118,
+          "height": 118,
+          "top": 203.33334350585938,
+          "right": 286.6666717529297,
+          "bottom": 321.3333435058594,
+          "left": 168.6666717529297
+        },
+        "image": {
+          "x": 168.6666717529297,
+          "y": 202.32489013671875,
+          "width": 118,
+          "height": 117.99998474121094,
+          "top": 202.32489013671875,
+          "right": 286.6666717529297,
+          "bottom": 320.3248748779297,
+          "left": 168.6666717529297
+        },
+        "floorParent": "trial-art",
+        "floorDX": -0.0104217529296875,
+        "copyNodes": [
+          {
+            "class": "trial-badge",
+            "text": "Dùng thử 3 ngày",
+            "rect": {
+              "x": 176.6666717529297,
+              "y": 120.33333587646484,
+              "width": 116.66667175292969,
+              "height": 16,
+              "top": 120.33333587646484,
+              "right": 293.3333435058594,
+              "bottom": 136.33333587646484,
+              "left": 176.6666717529297
+            }
+          },
+          {
+            "class": "trial-title",
+            "text": "UVELBox S1",
+            "rect": {
+              "x": 176.6666717529297,
+              "y": 141.33334350585938,
+              "width": 116.66667175292969,
+              "height": 18,
+              "top": 141.33334350585938,
+              "right": 293.3333435058594,
+              "bottom": 159.33334350585938,
+              "left": 176.6666717529297
+            }
+          },
+          {
+            "class": "trial-lifecycle-body",
+            "text": "Hết chỗ. Giải phóng 1 vị trí.",
+            "rect": {
+              "x": 176.6666717529297,
+              "y": 165.33334350585938,
+              "width": 116.66667175292969,
+              "height": 36,
+              "top": 165.33334350585938,
+              "right": 293.3333435058594,
+              "bottom": 201.33334350585938,
+              "left": 176.6666717529297
+            }
+          },
+          {
+            "class": "",
+            "text": "Quản lý",
+            "rect": {
+              "x": 238.5416717529297,
+              "y": 301.3333435058594,
+              "width": 42.79166793823242,
+              "height": 16,
+              "top": 301.3333435058594,
+              "right": 281.3333396911621,
+              "bottom": 317.3333435058594,
+              "left": 238.5416717529297
+            }
+          }
+        ]
+      }
+    },
+    {
+      "label": "nav-home-vi320-light",
+      "time": "2026-10-27T14:43:44.766Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "bar": {
+        "x": 12,
+        "y": 615.3333740234375,
+        "width": 296,
+        "height": 56,
+        "top": 615.3333740234375,
+        "right": 308,
+        "bottom": 671.3333740234375,
+        "left": 12
+      },
+      "tabs": [
+        {
+          "label": "Trang chủ",
+          "current": "page",
+          "hit": {
+            "x": 17,
+            "y": 620.3333740234375,
+            "width": 55.59375,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 72.59375,
+            "bottom": 666.3333740234375,
+            "left": 17
+          },
+          "svg": {
+            "x": 31.81166648864746,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 57.77166938781738,
+            "bottom": 656.3133544921875,
+            "left": 31.81166648864746
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "Sinh lời",
+          "current": null,
+          "hit": {
+            "x": 74.59375,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 130.19791793823242,
+            "bottom": 666.3333740234375,
+            "left": 74.59375
+          },
+          "svg": {
+            "x": 89.41583251953125,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 115.37583541870117,
+            "bottom": 656.3133544921875,
+            "left": 89.41583251953125
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "Cửa hàng",
+          "current": null,
+          "hit": {
+            "x": 132.1979217529297,
+            "y": 620.3333740234375,
+            "width": 55.59375,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 187.7916717529297,
+            "bottom": 666.3333740234375,
+            "left": 132.1979217529297
+          },
+          "svg": {
+            "x": 147.00958251953125,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 172.96958541870117,
+            "bottom": 656.3133544921875,
+            "left": 147.00958251953125
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "Đội nhóm",
+          "current": null,
+          "hit": {
+            "x": 189.7916717529297,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 245.3958396911621,
+            "bottom": 666.3333740234375,
+            "left": 189.7916717529297
+          },
+          "svg": {
+            "x": 204.61375427246094,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 230.57375717163086,
+            "bottom": 656.3133544921875,
+            "left": 204.61375427246094
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "Của tôi",
+          "current": null,
+          "hit": {
+            "x": 247.39584350585938,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 303.0000114440918,
+            "bottom": 666.3333740234375,
+            "left": 247.39584350585938
+          },
+          "svg": {
+            "x": 262.2179260253906,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 288.17792892456055,
+            "bottom": 656.3133544921875,
+            "left": 262.2179260253906
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        }
+      ],
+      "indicator": {
+        "rect": {
+          "x": 0,
+          "y": 671.3333740234375,
+          "width": 320,
+          "height": 22,
+          "top": 671.3333740234375,
+          "right": 320,
+          "bottom": 693.3333740234375,
+          "left": 0
+        },
+        "after": {
+          "height": "5px",
+          "width": "134px",
+          "top": "auto",
+          "bottom": "auto"
+        }
+      },
+      "glass": [
+        {
+          "attrs": [
+            [
+              "data-v-91005a05",
+              ""
+            ],
+            [
+              "data-v-a98304b9",
+              ""
+            ],
+            [
+              "data-glass-strategy",
+              "svg"
+            ],
+            [
+              "data-glass-reason",
+              ""
+            ]
+          ],
+          "rim": 1,
+          "specular": 1
+        },
+        {
+          "attrs": [
+            [
+              "data-v-91005a05",
+              ""
+            ],
+            [
+              "data-v-a98304b9",
+              ""
+            ],
+            [
+              "data-glass-strategy",
+              "svg"
+            ],
+            [
+              "data-glass-reason",
+              ""
+            ]
+          ],
+          "rim": 1,
+          "specular": 1
+        }
+      ]
+    },
+    {
+      "label": "capacity-full-vi320-light",
+      "time": "2026-10-27T14:43:44.775Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "data": {
+        "cards": [
+          {
+            "class": "vb-wrap vb-wrap--embedded",
+            "rect": {
+              "x": 16,
+              "y": 109.66667175292969,
+              "width": 138,
+              "height": 226.33334350585938,
+              "top": 109.66667175292969,
+              "right": 154,
+              "bottom": 336.00001525878906,
+              "left": 16
+            }
+          },
+          {
+            "class": "nx-trial-hero nx-trial-hero--embedded nx-trial-hero--long-copy nx-trial-hero--lifecycle",
+            "rect": {
+              "x": 166,
+              "y": 109.66667175292969,
+              "width": 138,
+              "height": 226.33334350585938,
+              "top": 109.66667175292969,
+              "right": 304,
+              "bottom": 336.00001525878906,
+              "left": 166
+            }
+          }
+        ],
+        "heroClass": "nx-trial-hero nx-trial-hero--embedded nx-trial-hero--long-copy nx-trial-hero--lifecycle",
+        "role": null,
+        "aria": null,
+        "text": "Dùng thử 3 ngàyUVELBox S1Hết chỗ. Giải phóng 1 vị trí.Quản lý",
+        "cta": [
+          {
+            "text": "Quản lý",
+            "aria": "Quản lý thiết bị",
+            "rect": {
+              "x": 226.5416717529297,
+              "y": 287.3333435058594,
+              "width": 66.79167175292969,
+              "height": 44,
+              "top": 287.3333435058594,
+              "right": 293.3333435058594,
+              "bottom": 331.3333435058594,
+              "left": 226.5416717529297
+            },
+            "surface": {
+              "x": 226.5416717529297,
+              "y": 293.3333435058594,
+              "width": 66.79167175292969,
+              "height": 32,
+              "top": 293.3333435058594,
+              "right": 293.3333435058594,
+              "bottom": 325.3333435058594,
+              "left": 226.5416717529297
+            }
+          }
+        ],
+        "art": {
+          "x": 168.6666717529297,
+          "y": 203.33334350585938,
+          "width": 118,
+          "height": 118,
+          "top": 203.33334350585938,
+          "right": 286.6666717529297,
+          "bottom": 321.3333435058594,
+          "left": 168.6666717529297
+        },
+        "image": {
+          "x": 168.6666717529297,
+          "y": 200.8472900390625,
+          "width": 118,
+          "height": 118,
+          "top": 200.8472900390625,
+          "right": 286.6666717529297,
+          "bottom": 318.8472900390625,
+          "left": 168.6666717529297
+        },
+        "floorParent": "trial-art",
+        "floorDX": -0.010410308837890625,
+        "copyNodes": [
+          {
+            "class": "trial-badge",
+            "text": "Dùng thử 3 ngày",
+            "rect": {
+              "x": 176.6666717529297,
+              "y": 120.33333587646484,
+              "width": 116.66667175292969,
+              "height": 16,
+              "top": 120.33333587646484,
+              "right": 293.3333435058594,
+              "bottom": 136.33333587646484,
+              "left": 176.6666717529297
+            }
+          },
+          {
+            "class": "trial-title",
+            "text": "UVELBox S1",
+            "rect": {
+              "x": 176.6666717529297,
+              "y": 141.33334350585938,
+              "width": 116.66667175292969,
+              "height": 18,
+              "top": 141.33334350585938,
+              "right": 293.3333435058594,
+              "bottom": 159.33334350585938,
+              "left": 176.6666717529297
+            }
+          },
+          {
+            "class": "trial-lifecycle-body",
+            "text": "Hết chỗ. Giải phóng 1 vị trí.",
+            "rect": {
+              "x": 176.6666717529297,
+              "y": 165.33334350585938,
+              "width": 116.66667175292969,
+              "height": 36,
+              "top": 165.33334350585938,
+              "right": 293.3333435058594,
+              "bottom": 201.33334350585938,
+              "left": 176.6666717529297
+            }
+          },
+          {
+            "class": "",
+            "text": "Quản lý",
+            "rect": {
+              "x": 238.5416717529297,
+              "y": 301.3333435058594,
+              "width": 42.79166793823242,
+              "height": 16,
+              "top": 301.3333435058594,
+              "right": 281.3333396911621,
+              "bottom": 317.3333435058594,
+              "left": 238.5416717529297
+            }
+          }
+        ]
+      }
+    },
+    {
+      "label": "capacity-manage-real-destination",
+      "time": "2026-10-27T14:43:45.510Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css",
+        "http://127.0.0.1:5254/assets/sub-page-header-ClEhqBiM.css",
+        "http://127.0.0.1:5254/assets/compute-share-entry-DabWMmmY.css",
+        "http://127.0.0.1:5254/assets/devices-BhKoRIiH.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/me/devices",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "data": {
+        "url": "http://127.0.0.1:5254/?nx_device=off#/pages/me/devices",
+        "text": "Kho thiết bị\nKhe tính toán\n2\n/ 6\nThiết bị của bạn\n2\nUVEL Box S1\nOnline\nUVELBox Pro\nOnline\nĐến cửa hàng\nKết nối sức mạnh "
+      }
+    },
+    {
+      "label": "nav-home-vi390-light",
+      "time": "2026-10-27T14:44:47.275Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css",
+        "http://127.0.0.1:5254/assets/sub-page-header-ClEhqBiM.css",
+        "http://127.0.0.1:5254/assets/compute-share-entry-DabWMmmY.css",
+        "http://127.0.0.1:5254/assets/devices-BhKoRIiH.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        390,
+        844
+      ],
+      "bar": {
+        "x": 12,
+        "y": 754,
+        "width": 366,
+        "height": 68,
+        "top": 754,
+        "right": 378,
+        "bottom": 822,
+        "left": 12
+      },
+      "tabs": [
+        {
+          "label": "Trang chủ",
+          "current": "page",
+          "hit": {
+            "x": 17,
+            "y": 759,
+            "width": 69.59375,
+            "height": 58,
+            "top": 759,
+            "right": 86.59375,
+            "bottom": 817,
+            "left": 17
+          },
+          "svg": {
+            "x": 40.79166793823242,
+            "y": 767.5,
+            "width": 22,
+            "height": 22,
+            "top": 767.5,
+            "right": 62.79166793823242,
+            "bottom": 789.5,
+            "left": 40.79166793823242
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "block"
+        },
+        {
+          "label": "Sinh lời",
+          "current": null,
+          "hit": {
+            "x": 88.59375,
+            "y": 759,
+            "width": 69.60417175292969,
+            "height": 58,
+            "top": 759,
+            "right": 158.1979217529297,
+            "bottom": 817,
+            "left": 88.59375
+          },
+          "svg": {
+            "x": 112.39583587646484,
+            "y": 768.5,
+            "width": 22,
+            "height": 22,
+            "top": 768.5,
+            "right": 134.39583587646484,
+            "bottom": 790.5,
+            "left": 112.39583587646484
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "block"
+        },
+        {
+          "label": "Cửa hàng",
+          "current": null,
+          "hit": {
+            "x": 160.1979217529297,
+            "y": 759,
+            "width": 69.59375,
+            "height": 58,
+            "top": 759,
+            "right": 229.7916717529297,
+            "bottom": 817,
+            "left": 160.1979217529297
+          },
+          "svg": {
+            "x": 183.98959350585938,
+            "y": 768.5,
+            "width": 22,
+            "height": 22,
+            "top": 768.5,
+            "right": 205.98959350585938,
+            "bottom": 790.5,
+            "left": 183.98959350585938
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "block"
+        },
+        {
+          "label": "Đội nhóm",
+          "current": null,
+          "hit": {
+            "x": 231.7916717529297,
+            "y": 759,
+            "width": 69.60417175292969,
+            "height": 58,
+            "top": 759,
+            "right": 301.3958435058594,
+            "bottom": 817,
+            "left": 231.7916717529297
+          },
+          "svg": {
+            "x": 255.59375,
+            "y": 768.5,
+            "width": 22,
+            "height": 22,
+            "top": 768.5,
+            "right": 277.59375,
+            "bottom": 790.5,
+            "left": 255.59375
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "block"
+        },
+        {
+          "label": "Của tôi",
+          "current": null,
+          "hit": {
+            "x": 303.3958435058594,
+            "y": 759,
+            "width": 69.60417175292969,
+            "height": 58,
+            "top": 759,
+            "right": 373.00001525878906,
+            "bottom": 817,
+            "left": 303.3958435058594
+          },
+          "svg": {
+            "x": 327.19793701171875,
+            "y": 768.5,
+            "width": 22,
+            "height": 22,
+            "top": 768.5,
+            "right": 349.19793701171875,
+            "bottom": 790.5,
+            "left": 327.19793701171875
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "block"
+        }
+      ],
+      "indicator": {
+        "rect": {
+          "x": 0,
+          "y": 822,
+          "width": 390,
+          "height": 22,
+          "top": 822,
+          "right": 390,
+          "bottom": 844,
+          "left": 0
+        },
+        "after": {
+          "height": "5px",
+          "width": "134px",
+          "top": "auto",
+          "bottom": "auto"
+        }
+      },
+      "glass": [
+        {
+          "attrs": [
+            [
+              "data-v-91005a05",
+              ""
+            ],
+            [
+              "data-v-a98304b9",
+              ""
+            ],
+            [
+              "data-glass-strategy",
+              "svg"
+            ],
+            [
+              "data-glass-reason",
+              ""
+            ]
+          ],
+          "rim": 1,
+          "specular": 1
+        },
+        {
+          "attrs": [
+            [
+              "data-v-91005a05",
+              ""
+            ],
+            [
+              "data-v-a98304b9",
+              ""
+            ],
+            [
+              "data-glass-strategy",
+              "svg"
+            ],
+            [
+              "data-glass-reason",
+              ""
+            ]
+          ],
+          "rim": 1,
+          "specular": 1
+        }
+      ]
+    },
+    {
+      "label": "capacity-full-vi390-light",
+      "time": "2026-10-27T14:44:47.282Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css",
+        "http://127.0.0.1:5254/assets/sub-page-header-ClEhqBiM.css",
+        "http://127.0.0.1:5254/assets/compute-share-entry-DabWMmmY.css",
+        "http://127.0.0.1:5254/assets/devices-BhKoRIiH.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        390,
+        844
+      ],
+      "overflow": 0,
+      "data": {
+        "cards": [
+          {
+            "class": "vb-wrap vb-wrap--embedded",
+            "rect": {
+              "x": 16,
+              "y": 109.66667175292969,
+              "width": 173,
+              "height": 215.33334350585938,
+              "top": 109.66667175292969,
+              "right": 189,
+              "bottom": 325.00001525878906,
+              "left": 16
+            }
+          },
+          {
+            "class": "nx-trial-hero nx-trial-hero--embedded nx-trial-hero--long-copy nx-trial-hero--lifecycle",
+            "rect": {
+              "x": 201,
+              "y": 109.66667175292969,
+              "width": 173,
+              "height": 215.33334350585938,
+              "top": 109.66667175292969,
+              "right": 374,
+              "bottom": 325.00001525878906,
+              "left": 201
+            }
+          }
+        ],
+        "heroClass": "nx-trial-hero nx-trial-hero--embedded nx-trial-hero--long-copy nx-trial-hero--lifecycle",
+        "role": null,
+        "aria": null,
+        "text": "Dùng thử 3 ngàyUVELBox S1Hết chỗ. Giải phóng 1 vị trí.Quản lý",
+        "cta": [
+          {
+            "text": "Quản lý",
+            "aria": "Quản lý thiết bị",
+            "rect": {
+              "x": 296.54168701171875,
+              "y": 276.3333435058594,
+              "width": 66.79167175292969,
+              "height": 44,
+              "top": 276.3333435058594,
+              "right": 363.33335876464844,
+              "bottom": 320.3333435058594,
+              "left": 296.54168701171875
+            },
+            "surface": {
+              "x": 296.54168701171875,
+              "y": 282.3333435058594,
+              "width": 66.79167175292969,
+              "height": 32,
+              "top": 282.3333435058594,
+              "right": 363.33335876464844,
+              "bottom": 314.3333435058594,
+              "left": 296.54168701171875
+            }
+          }
+        ],
+        "art": {
+          "x": 203.6666717529297,
+          "y": 192.33334350585938,
+          "width": 118,
+          "height": 118,
+          "top": 192.33334350585938,
+          "right": 321.6666717529297,
+          "bottom": 310.3333435058594,
+          "left": 203.6666717529297
+        },
+        "image": {
+          "x": 203.6666717529297,
+          "y": 191.8970184326172,
+          "width": 118,
+          "height": 118,
+          "top": 191.8970184326172,
+          "right": 321.6666717529297,
+          "bottom": 309.8970184326172,
+          "left": 203.6666717529297
+        },
+        "floorParent": "trial-art",
+        "floorDX": -0.01041412353515625,
+        "copyNodes": [
+          {
+            "class": "trial-badge",
+            "text": "Dùng thử 3 ngày",
+            "rect": {
+              "x": 213.6666717529297,
+              "y": 122.33333587646484,
+              "width": 147.6666717529297,
+              "height": 18,
+              "top": 122.33333587646484,
+              "right": 361.3333435058594,
+              "bottom": 140.33333587646484,
+              "left": 213.6666717529297
+            }
+          },
+          {
+            "class": "trial-title",
+            "text": "UVELBox S1",
+            "rect": {
+              "x": 213.6666717529297,
+              "y": 146.33334350585938,
+              "width": 147.6666717529297,
+              "height": 20,
+              "top": 146.33334350585938,
+              "right": 361.3333435058594,
+              "bottom": 166.33334350585938,
+              "left": 213.6666717529297
+            }
+          },
+          {
+            "class": "trial-lifecycle-body",
+            "text": "Hết chỗ. Giải phóng 1 vị trí.",
+            "rect": {
+              "x": 213.6666717529297,
+              "y": 172.33334350585938,
+              "width": 147.6666717529297,
+              "height": 18,
+              "top": 172.33334350585938,
+              "right": 361.3333435058594,
+              "bottom": 190.33334350585938,
+              "left": 213.6666717529297
+            }
+          },
+          {
+            "class": "",
+            "text": "Quản lý",
+            "rect": {
+              "x": 308.54168701171875,
+              "y": 290.3333435058594,
+              "width": 42.79166793823242,
+              "height": 16,
+              "top": 290.3333435058594,
+              "right": 351.3333549499512,
+              "bottom": 306.3333435058594,
+              "left": 308.54168701171875
+            }
+          }
+        ]
+      }
+    },
+    {
+      "label": "nav-home-vi390-dark",
+      "time": "2026-10-27T14:45:51.411Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "dark",
+      "locale": "vi",
+      "viewport": [
+        390,
+        844
+      ],
+      "bar": {
+        "x": 12,
+        "y": 754,
+        "width": 366,
+        "height": 68,
+        "top": 754,
+        "right": 378,
+        "bottom": 822,
+        "left": 12
+      },
+      "tabs": [
+        {
+          "label": "Trang chủ",
+          "current": "page",
+          "hit": {
+            "x": 17,
+            "y": 759,
+            "width": 69.59375,
+            "height": 58,
+            "top": 759,
+            "right": 86.59375,
+            "bottom": 817,
+            "left": 17
+          },
+          "svg": {
+            "x": 40.79166793823242,
+            "y": 767.5,
+            "width": 22,
+            "height": 22,
+            "top": 767.5,
+            "right": 62.79166793823242,
+            "bottom": 789.5,
+            "left": 40.79166793823242
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "block"
+        },
+        {
+          "label": "Sinh lời",
+          "current": null,
+          "hit": {
+            "x": 88.59375,
+            "y": 759,
+            "width": 69.60417175292969,
+            "height": 58,
+            "top": 759,
+            "right": 158.1979217529297,
+            "bottom": 817,
+            "left": 88.59375
+          },
+          "svg": {
+            "x": 112.39583587646484,
+            "y": 768.5,
+            "width": 22,
+            "height": 22,
+            "top": 768.5,
+            "right": 134.39583587646484,
+            "bottom": 790.5,
+            "left": 112.39583587646484
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "block"
+        },
+        {
+          "label": "Cửa hàng",
+          "current": null,
+          "hit": {
+            "x": 160.1979217529297,
+            "y": 759,
+            "width": 69.59375,
+            "height": 58,
+            "top": 759,
+            "right": 229.7916717529297,
+            "bottom": 817,
+            "left": 160.1979217529297
+          },
+          "svg": {
+            "x": 183.98959350585938,
+            "y": 768.5,
+            "width": 22,
+            "height": 22,
+            "top": 768.5,
+            "right": 205.98959350585938,
+            "bottom": 790.5,
+            "left": 183.98959350585938
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "block"
+        },
+        {
+          "label": "Đội nhóm",
+          "current": null,
+          "hit": {
+            "x": 231.7916717529297,
+            "y": 759,
+            "width": 69.60417175292969,
+            "height": 58,
+            "top": 759,
+            "right": 301.3958435058594,
+            "bottom": 817,
+            "left": 231.7916717529297
+          },
+          "svg": {
+            "x": 255.59375,
+            "y": 768.5,
+            "width": 22,
+            "height": 22,
+            "top": 768.5,
+            "right": 277.59375,
+            "bottom": 790.5,
+            "left": 255.59375
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "block"
+        },
+        {
+          "label": "Của tôi",
+          "current": null,
+          "hit": {
+            "x": 303.3958435058594,
+            "y": 759,
+            "width": 69.60417175292969,
+            "height": 58,
+            "top": 759,
+            "right": 373.00001525878906,
+            "bottom": 817,
+            "left": 303.3958435058594
+          },
+          "svg": {
+            "x": 327.19793701171875,
+            "y": 768.5,
+            "width": 22,
+            "height": 22,
+            "top": 768.5,
+            "right": 349.19793701171875,
+            "bottom": 790.5,
+            "left": 327.19793701171875
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "block"
+        }
+      ],
+      "indicator": {
+        "rect": {
+          "x": 0,
+          "y": 822,
+          "width": 390,
+          "height": 22,
+          "top": 822,
+          "right": 390,
+          "bottom": 844,
+          "left": 0
+        },
+        "after": {
+          "height": "5px",
+          "width": "134px",
+          "top": "auto",
+          "bottom": "auto"
+        }
+      },
+      "glass": [
+        {
+          "attrs": [
+            [
+              "data-v-91005a05",
+              ""
+            ],
+            [
+              "data-v-a98304b9",
+              ""
+            ],
+            [
+              "data-glass-strategy",
+              "svg"
+            ],
+            [
+              "data-glass-reason",
+              ""
+            ]
+          ],
+          "rim": 1,
+          "specular": 1
+        },
+        {
+          "attrs": [
+            [
+              "data-v-91005a05",
+              ""
+            ],
+            [
+              "data-v-a98304b9",
+              ""
+            ],
+            [
+              "data-glass-strategy",
+              "svg"
+            ],
+            [
+              "data-glass-reason",
+              ""
+            ]
+          ],
+          "rim": 1,
+          "specular": 1
+        }
+      ]
+    },
+    {
+      "label": "capacity-full-zh390-dark",
+      "time": "2026-10-27T14:46:09.092Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "dark",
+      "locale": "zh",
+      "viewport": [
+        390,
+        844
+      ],
+      "overflow": 0,
+      "data": {
+        "cards": [
+          {
+            "class": "vb-wrap vb-wrap--embedded",
+            "rect": {
+              "x": 16,
+              "y": 109.66667175292969,
+              "width": 173,
+              "height": 233.33334350585938,
+              "top": 109.66667175292969,
+              "right": 189,
+              "bottom": 343.00001525878906,
+              "left": 16
+            }
+          },
+          {
+            "class": "nx-trial-hero nx-trial-hero--embedded nx-trial-hero--lifecycle",
+            "rect": {
+              "x": 201,
+              "y": 109.66667175292969,
+              "width": 173,
+              "height": 233.33334350585938,
+              "top": 109.66667175292969,
+              "right": 374,
+              "bottom": 343.00001525878906,
+              "left": 201
+            }
+          }
+        ],
+        "heroClass": "nx-trial-hero nx-trial-hero--embedded nx-trial-hero--lifecycle",
+        "role": null,
+        "aria": null,
+        "text": "免费试用 3 天UVELBox S1队列已满，先腾出 1 个空位。管理",
+        "cta": [
+          {
+            "text": "管理",
+            "aria": "管理设备",
+            "rect": {
+              "x": 315.3333435058594,
+              "y": 294.3333435058594,
+              "width": 48,
+              "height": 44,
+              "top": 294.3333435058594,
+              "right": 363.3333435058594,
+              "bottom": 338.3333435058594,
+              "left": 315.3333435058594
+            },
+            "surface": {
+              "x": 315.3333435058594,
+              "y": 300.3333435058594,
+              "width": 48,
+              "height": 32,
+              "top": 300.3333435058594,
+              "right": 363.3333435058594,
+              "bottom": 332.3333435058594,
+              "left": 315.3333435058594
+            }
+          }
+        ],
+        "art": {
+          "x": 203.6666717529297,
+          "y": 210.33334350585938,
+          "width": 118,
+          "height": 118,
+          "top": 210.33334350585938,
+          "right": 321.6666717529297,
+          "bottom": 328.3333435058594,
+          "left": 203.6666717529297
+        },
+        "image": {
+          "x": 203.6666717529297,
+          "y": 210.06747436523438,
+          "width": 118,
+          "height": 118,
+          "top": 210.06747436523438,
+          "right": 321.6666717529297,
+          "bottom": 328.0674743652344,
+          "left": 203.6666717529297
+        },
+        "floorParent": "trial-art",
+        "floorDX": -0.010410308837890625,
+        "copyNodes": [
+          {
+            "class": "trial-badge",
+            "text": "免费试用 3 天",
+            "rect": {
+              "x": 213.6666717529297,
+              "y": 122.33333587646484,
+              "width": 147.6666717529297,
+              "height": 18,
+              "top": 122.33333587646484,
+              "right": 361.3333435058594,
+              "bottom": 140.33333587646484,
+              "left": 213.6666717529297
+            }
+          },
+          {
+            "class": "trial-title",
+            "text": "UVELBox S1",
+            "rect": {
+              "x": 213.6666717529297,
+              "y": 146.33334350585938,
+              "width": 147.6666717529297,
+              "height": 20,
+              "top": 146.33334350585938,
+              "right": 361.3333435058594,
+              "bottom": 166.33334350585938,
+              "left": 213.6666717529297
+            }
+          },
+          {
+            "class": "trial-lifecycle-body",
+            "text": "队列已满，先腾出 1 个空位。",
+            "rect": {
+              "x": 213.6666717529297,
+              "y": 172.33334350585938,
+              "width": 147.6666717529297,
+              "height": 36,
+              "top": 172.33334350585938,
+              "right": 361.3333435058594,
+              "bottom": 208.33334350585938,
+              "left": 213.6666717529297
+            }
+          },
+          {
+            "class": "",
+            "text": "管理",
+            "rect": {
+              "x": 327.3333435058594,
+              "y": 308.3333435058594,
+              "width": 24,
+              "height": 16,
+              "top": 308.3333435058594,
+              "right": 351.3333435058594,
+              "bottom": 324.3333435058594,
+              "left": 327.3333435058594
+            }
+          }
+        ]
+      }
+    },
+    {
+      "label": "nav-home-zh390-light",
+      "time": "2026-10-27T14:47:49.116Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "light",
+      "locale": "zh",
+      "viewport": [
+        390,
+        844
+      ],
+      "bar": {
+        "x": 12,
+        "y": 754,
+        "width": 366,
+        "height": 68,
+        "top": 754,
+        "right": 378,
+        "bottom": 822,
+        "left": 12
+      },
+      "tabs": [
+        {
+          "label": "首页",
+          "current": "page",
+          "hit": {
+            "x": 17,
+            "y": 759,
+            "width": 69.59375,
+            "height": 58,
+            "top": 759,
+            "right": 86.59375,
+            "bottom": 817,
+            "left": 17
+          },
+          "svg": {
+            "x": 40.79166793823242,
+            "y": 767.5,
+            "width": 22,
+            "height": 22,
+            "top": 767.5,
+            "right": 62.79166793823242,
+            "bottom": 789.5,
+            "left": 40.79166793823242
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "block"
+        },
+        {
+          "label": "赚取",
+          "current": null,
+          "hit": {
+            "x": 88.59375,
+            "y": 759,
+            "width": 69.60417175292969,
+            "height": 58,
+            "top": 759,
+            "right": 158.1979217529297,
+            "bottom": 817,
+            "left": 88.59375
+          },
+          "svg": {
+            "x": 112.39583587646484,
+            "y": 768.5,
+            "width": 22,
+            "height": 22,
+            "top": 768.5,
+            "right": 134.39583587646484,
+            "bottom": 790.5,
+            "left": 112.39583587646484
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "block"
+        },
+        {
+          "label": "商城",
+          "current": null,
+          "hit": {
+            "x": 160.1979217529297,
+            "y": 759,
+            "width": 69.59375,
+            "height": 58,
+            "top": 759,
+            "right": 229.7916717529297,
+            "bottom": 817,
+            "left": 160.1979217529297
+          },
+          "svg": {
+            "x": 183.98959350585938,
+            "y": 768.5,
+            "width": 22,
+            "height": 22,
+            "top": 768.5,
+            "right": 205.98959350585938,
+            "bottom": 790.5,
+            "left": 183.98959350585938
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "block"
+        },
+        {
+          "label": "团队",
+          "current": null,
+          "hit": {
+            "x": 231.7916717529297,
+            "y": 759,
+            "width": 69.60417175292969,
+            "height": 58,
+            "top": 759,
+            "right": 301.3958435058594,
+            "bottom": 817,
+            "left": 231.7916717529297
+          },
+          "svg": {
+            "x": 255.59375,
+            "y": 768.5,
+            "width": 22,
+            "height": 22,
+            "top": 768.5,
+            "right": 277.59375,
+            "bottom": 790.5,
+            "left": 255.59375
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "block"
+        },
+        {
+          "label": "我的",
+          "current": null,
+          "hit": {
+            "x": 303.3958435058594,
+            "y": 759,
+            "width": 69.60417175292969,
+            "height": 58,
+            "top": 759,
+            "right": 373.00001525878906,
+            "bottom": 817,
+            "left": 303.3958435058594
+          },
+          "svg": {
+            "x": 327.19793701171875,
+            "y": 768.5,
+            "width": 22,
+            "height": 22,
+            "top": 768.5,
+            "right": 349.19793701171875,
+            "bottom": 790.5,
+            "left": 327.19793701171875
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "block"
+        }
+      ],
+      "indicator": {
+        "rect": {
+          "x": 0,
+          "y": 822,
+          "width": 390,
+          "height": 22,
+          "top": 822,
+          "right": 390,
+          "bottom": 844,
+          "left": 0
+        },
+        "after": {
+          "height": "5px",
+          "width": "134px",
+          "top": "auto",
+          "bottom": "auto"
+        }
+      },
+      "glass": [
+        {
+          "attrs": [
+            [
+              "data-v-91005a05",
+              ""
+            ],
+            [
+              "data-v-a98304b9",
+              ""
+            ],
+            [
+              "data-glass-strategy",
+              "svg"
+            ],
+            [
+              "data-glass-reason",
+              ""
+            ]
+          ],
+          "rim": 1,
+          "specular": 1
+        },
+        {
+          "attrs": [
+            [
+              "data-v-91005a05",
+              ""
+            ],
+            [
+              "data-v-a98304b9",
+              ""
+            ],
+            [
+              "data-glass-strategy",
+              "svg"
+            ],
+            [
+              "data-glass-reason",
+              ""
+            ]
+          ],
+          "rim": 1,
+          "specular": 1
+        }
+      ]
+    },
+    {
+      "label": "nav-home-zh320-light",
+      "time": "2026-10-27T14:48:16.298Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "light",
+      "locale": "zh",
+      "viewport": [
+        320,
+        693
+      ],
+      "bar": {
+        "x": 12,
+        "y": 615.3333740234375,
+        "width": 296,
+        "height": 56,
+        "top": 615.3333740234375,
+        "right": 308,
+        "bottom": 671.3333740234375,
+        "left": 12
+      },
+      "tabs": [
+        {
+          "label": "首页",
+          "current": "page",
+          "hit": {
+            "x": 17,
+            "y": 620.3333740234375,
+            "width": 55.59375,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 72.59375,
+            "bottom": 666.3333740234375,
+            "left": 17
+          },
+          "svg": {
+            "x": 31.81166648864746,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 57.77166938781738,
+            "bottom": 656.3133544921875,
+            "left": 31.81166648864746
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "赚取",
+          "current": null,
+          "hit": {
+            "x": 74.59375,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 130.19791793823242,
+            "bottom": 666.3333740234375,
+            "left": 74.59375
+          },
+          "svg": {
+            "x": 89.41583251953125,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 115.37583541870117,
+            "bottom": 656.3133544921875,
+            "left": 89.41583251953125
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "商城",
+          "current": null,
+          "hit": {
+            "x": 132.1979217529297,
+            "y": 620.3333740234375,
+            "width": 55.59375,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 187.7916717529297,
+            "bottom": 666.3333740234375,
+            "left": 132.1979217529297
+          },
+          "svg": {
+            "x": 147.00958251953125,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 172.96958541870117,
+            "bottom": 656.3133544921875,
+            "left": 147.00958251953125
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "团队",
+          "current": null,
+          "hit": {
+            "x": 189.7916717529297,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 245.3958396911621,
+            "bottom": 666.3333740234375,
+            "left": 189.7916717529297
+          },
+          "svg": {
+            "x": 204.61375427246094,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 230.57375717163086,
+            "bottom": 656.3133544921875,
+            "left": 204.61375427246094
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        },
+        {
+          "label": "我的",
+          "current": null,
+          "hit": {
+            "x": 247.39584350585938,
+            "y": 620.3333740234375,
+            "width": 55.60416793823242,
+            "height": 46,
+            "top": 620.3333740234375,
+            "right": 303.0000114440918,
+            "bottom": 666.3333740234375,
+            "left": 247.39584350585938
+          },
+          "svg": {
+            "x": 262.2179260253906,
+            "y": 630.3533935546875,
+            "width": 25.960002899169922,
+            "height": 25.9599609375,
+            "top": 630.3533935546875,
+            "right": 288.17792892456055,
+            "bottom": 656.3133544921875,
+            "left": 262.2179260253906
+          },
+          "iconCss": [
+            "22px",
+            "22px"
+          ],
+          "visibleText": "none"
+        }
+      ],
+      "indicator": {
+        "rect": {
+          "x": 0,
+          "y": 671.3333740234375,
+          "width": 320,
+          "height": 22,
+          "top": 671.3333740234375,
+          "right": 320,
+          "bottom": 693.3333740234375,
+          "left": 0
+        },
+        "after": {
+          "height": "5px",
+          "width": "134px",
+          "top": "auto",
+          "bottom": "auto"
+        }
+      },
+      "glass": [
+        {
+          "attrs": [
+            [
+              "data-v-91005a05",
+              ""
+            ],
+            [
+              "data-v-a98304b9",
+              ""
+            ],
+            [
+              "data-glass-strategy",
+              "svg"
+            ],
+            [
+              "data-glass-reason",
+              ""
+            ]
+          ],
+          "rim": 1,
+          "specular": 1
+        },
+        {
+          "attrs": [
+            [
+              "data-v-91005a05",
+              ""
+            ],
+            [
+              "data-v-a98304b9",
+              ""
+            ],
+            [
+              "data-glass-strategy",
+              "svg"
+            ],
+            [
+              "data-glass-reason",
+              ""
+            ]
+          ],
+          "rim": 1,
+          "specular": 1
+        }
+      ]
+    },
+    {
+      "label": "nav-single-click-observation",
+      "time": "2026-10-27T14:48:17.095Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css",
+        "http://127.0.0.1:5254/assets/card-stagger-BAUXl1m9.css",
+        "http://127.0.0.1:5254/assets/compute-share-entry-DabWMmmY.css",
+        "http://127.0.0.1:5254/assets/capacity-explainer-sheet-CjyrGoKq.css",
+        "http://127.0.0.1:5254/assets/earn-CIyLOhln.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/earn/earn",
+      "theme": "light",
+      "locale": "zh",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "data": {
+        "events": [
+          {
+            "name": "nx-tab-select-a98304b9",
+            "duration": "0.26s",
+            "target": "nx-tab__icon",
+            "time": 127722.30000001192
+          }
+        ],
+        "url": "http://127.0.0.1:5254/?nx_device=off#/pages/earn/earn",
+        "selected": "赚取"
+      }
+    },
+    {
+      "label": "nav-single-click-settled-events",
+      "events": [
+        {
+          "name": "nx-tab-select-a98304b9",
+          "duration": "0.26s",
+          "target": "nx-tab__icon",
+          "time": 127722.30000001192
+        }
+      ],
+      "observerRemoved": true
+    }
+  ],
+  "photos": [
+    {
+      "file": "r17-nav-home-zh-dark-390.png",
+      "clip": {
+        "height": 844,
+        "scale": 1,
+        "width": 390,
+        "x": 811,
+        "y": 191.33334350585935
+      },
+      "time": "2026-10-27T14:35:57.420Z"
+    },
+    {
+      "file": "r17-nav-home-zh-dark-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "time": "2026-10-27T14:36:50.400Z"
+    },
+    {
+      "file": "r17-nav-earn-zh-dark-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "time": "2026-10-27T14:39:26.947Z"
+    },
+    {
+      "file": "r17-nav-store-zh-dark-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "time": "2026-10-27T14:40:17.965Z"
+    },
+    {
+      "file": "r17-nav-team-zh-dark-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "time": "2026-10-27T14:40:21.351Z"
+    },
+    {
+      "file": "r17-nav-me-zh-dark-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "time": "2026-10-27T14:40:40.220Z"
+    },
+    {
+      "file": "r17-capacity-full-nav-vi-dark-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "time": "2026-10-27T14:43:09.958Z"
+    },
+    {
+      "file": "r17-capacity-full-nav-vi-light-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "time": "2026-10-27T14:43:44.906Z"
+    },
+    {
+      "file": "r17-capacity-full-nav-vi-light-390.png",
+      "clip": {
+        "height": 844,
+        "scale": 1,
+        "width": 390,
+        "x": 811,
+        "y": 191.33334350585935
+      },
+      "time": "2026-10-27T14:44:47.415Z"
+    },
+    {
+      "file": "r17-nav-home-vi-dark-390.png",
+      "clip": {
+        "height": 844,
+        "scale": 1,
+        "width": 390,
+        "x": 811,
+        "y": 191.33334350585935
+      },
+      "time": "2026-10-27T14:45:51.567Z"
+    },
+    {
+      "file": "r17-capacity-full-zh-dark-390.png",
+      "clip": {
+        "height": 844,
+        "scale": 1,
+        "width": 390,
+        "x": 811,
+        "y": 191.33334350585935
+      },
+      "time": "2026-10-27T14:46:09.225Z"
+    },
+    {
+      "file": "r17-nav-home-zh-light-390.png",
+      "clip": {
+        "height": 844,
+        "scale": 1,
+        "width": 390,
+        "x": 811,
+        "y": 191.33334350585935
+      },
+      "time": "2026-10-27T14:47:49.270Z"
+    },
+    {
+      "file": "r17-nav-home-zh-light-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "time": "2026-10-27T14:48:16.429Z"
+    }
+  ]
+}

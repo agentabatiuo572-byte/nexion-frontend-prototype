@@ -1,0 +1,468 @@
+{
+  "entry": "index-BQJ7beyl.js",
+  "records": [
+    {
+      "label": "lifecycle-grace-vi320-light",
+      "time": "2026-10-27T14:50:59.028Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "data": {
+        "scene": "grace",
+        "cards": [
+          {
+            "rect": {
+              "x": 16,
+              "y": 99.66667175292969,
+              "width": 138,
+              "height": 219,
+              "top": 99.66667175292969,
+              "right": 154,
+              "bottom": 318.6666717529297,
+              "left": 16
+            }
+          },
+          {
+            "rect": {
+              "x": 166,
+              "y": 99.66667175292969,
+              "width": 138,
+              "height": 219,
+              "top": 99.66667175292969,
+              "right": 304,
+              "bottom": 318.6666717529297,
+              "left": 166
+            }
+          }
+        ],
+        "role": "button",
+        "aria": "Đã hết dùng thử · Còn khấu trừ · UVELBox S1 · Xem dùng thử",
+        "tabindex": "0",
+        "ctaCount": 0,
+        "text": "Khấu trừ6d 0h:00UVELBox S1Khấu trừ khi mua máy$50.00",
+        "art": {
+          "x": 176,
+          "y": 194,
+          "width": 118,
+          "height": 118,
+          "top": 194,
+          "right": 294,
+          "bottom": 312,
+          "left": 176
+        },
+        "image": {
+          "x": 176,
+          "y": 193.922119140625,
+          "width": 118,
+          "height": 118,
+          "top": 193.922119140625,
+          "right": 294,
+          "bottom": 311.922119140625,
+          "left": 176
+        },
+        "copy": [
+          {
+            "text": "Khấu trừ",
+            "rect": {
+              "x": 176.6666717529297,
+              "y": 110.33333587646484,
+              "width": 43.208335876464844,
+              "height": 16,
+              "top": 110.33333587646484,
+              "right": 219.87500762939453,
+              "bottom": 126.33333587646484,
+              "left": 176.6666717529297
+            }
+          },
+          {
+            "text": "6d 0h:00",
+            "rect": {
+              "x": 254.11459350585938,
+              "y": 111,
+              "width": 39.21875,
+              "height": 16,
+              "top": 111,
+              "right": 293.3333435058594,
+              "bottom": 127,
+              "left": 254.11459350585938
+            }
+          },
+          {
+            "text": "UVELBox S1",
+            "rect": {
+              "x": 176.6666717529297,
+              "y": 132,
+              "width": 116.66667175292969,
+              "height": 18,
+              "top": 132,
+              "right": 293.3333435058594,
+              "bottom": 150,
+              "left": 176.6666717529297
+            }
+          },
+          {
+            "text": "Khấu trừ khi mua máy",
+            "rect": {
+              "x": 176.6666717529297,
+              "y": 156,
+              "width": 106.02083587646484,
+              "height": 16,
+              "top": 156,
+              "right": 282.68750762939453,
+              "bottom": 172,
+              "left": 176.6666717529297
+            }
+          },
+          {
+            "text": "$50.00",
+            "rect": {
+              "x": 176.6666717529297,
+              "y": 176,
+              "width": 50.40625,
+              "height": 16,
+              "top": 176,
+              "right": 227.0729217529297,
+              "bottom": 192,
+              "left": 176.6666717529297
+            }
+          }
+        ]
+      }
+    },
+    {
+      "label": "lifecycle-ended-vi320-light",
+      "time": "2026-10-27T14:51:21.187Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "data": {
+        "scene": "ended",
+        "cards": [
+          {
+            "rect": {
+              "x": 16,
+              "y": 99.66667175292969,
+              "width": 138,
+              "height": 236.33334350585938,
+              "top": 99.66667175292969,
+              "right": 154,
+              "bottom": 336.00001525878906,
+              "left": 16
+            }
+          },
+          {
+            "rect": {
+              "x": 166,
+              "y": 99.66667175292969,
+              "width": 138,
+              "height": 236.33334350585938,
+              "top": 99.66667175292969,
+              "right": 304,
+              "bottom": 336.00001525878906,
+              "left": 166
+            }
+          }
+        ],
+        "role": "button",
+        "aria": "Đã kết thúc dùng thử · UVELBox S1 · Chọn mua thiết bị",
+        "tabindex": "0",
+        "ctaCount": 0,
+        "text": "Đã kết thúc dùng thửUVELBox S1Lượt dùng thử đã kết thúc. Chọn mua thiết bị để tiếp tục.",
+        "art": {
+          "x": 176,
+          "y": 211.33334350585938,
+          "width": 118,
+          "height": 118,
+          "top": 211.33334350585938,
+          "right": 294,
+          "bottom": 329.3333435058594,
+          "left": 176
+        },
+        "image": {
+          "x": 176,
+          "y": 210.40049743652344,
+          "width": 118,
+          "height": 117.99998474121094,
+          "top": 210.40049743652344,
+          "right": 294,
+          "bottom": 328.4004821777344,
+          "left": 176
+        },
+        "copy": [
+          {
+            "text": "Đã kết thúc dùng thử",
+            "rect": {
+              "x": 176.6666717529297,
+              "y": 110.33333587646484,
+              "width": 116.66667175292969,
+              "height": 16,
+              "top": 110.33333587646484,
+              "right": 293.3333435058594,
+              "bottom": 126.33333587646484,
+              "left": 176.6666717529297
+            }
+          },
+          {
+            "text": "UVELBox S1",
+            "rect": {
+              "x": 176.6666717529297,
+              "y": 131.33334350585938,
+              "width": 116.66667175292969,
+              "height": 18,
+              "top": 131.33334350585938,
+              "right": 293.3333435058594,
+              "bottom": 149.33334350585938,
+              "left": 176.6666717529297
+            }
+          },
+          {
+            "text": "Lượt dùng thử đã kết thúc. Chọn mua thiết bị để tiếp tục.",
+            "rect": {
+              "x": 176.6666717529297,
+              "y": 155.33334350585938,
+              "width": 116.66667175292969,
+              "height": 54,
+              "top": 155.33334350585938,
+              "right": 293.3333435058594,
+              "bottom": 209.33334350585938,
+              "left": 176.6666717529297
+            }
+          }
+        ]
+      }
+    },
+    {
+      "label": "lifecycle-converted-vi320-light",
+      "time": "2026-10-27T14:51:49.447Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BQJ7beyl.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-B8bnWobi.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "data": {
+        "scene": "converted",
+        "cards": [
+          {
+            "rect": {
+              "x": 16,
+              "y": 99.66667175292969,
+              "width": 138,
+              "height": 218.33334350585938,
+              "top": 99.66667175292969,
+              "right": 154,
+              "bottom": 318.00001525878906,
+              "left": 16
+            }
+          },
+          {
+            "rect": {
+              "x": 166,
+              "y": 99.66667175292969,
+              "width": 138,
+              "height": 218.33334350585938,
+              "top": 99.66667175292969,
+              "right": 304,
+              "bottom": 318.00001525878906,
+              "left": 166
+            }
+          }
+        ],
+        "role": "button",
+        "aria": "Đã mua thiết bị · UVELBox S1 · Xem thiết bị",
+        "tabindex": "0",
+        "ctaCount": 0,
+        "text": "Đã mua thiết bịUVELBox S1Xem thiết bị và trạng thái hiện tại.",
+        "art": {
+          "x": 176,
+          "y": 193.33334350585938,
+          "width": 118,
+          "height": 118,
+          "top": 193.33334350585938,
+          "right": 294,
+          "bottom": 311.3333435058594,
+          "left": 176
+        },
+        "image": {
+          "x": 176,
+          "y": 189.9488983154297,
+          "width": 118,
+          "height": 118,
+          "top": 189.9488983154297,
+          "right": 294,
+          "bottom": 307.9488983154297,
+          "left": 176
+        },
+        "copy": [
+          {
+            "text": "Đã mua thiết bị",
+            "rect": {
+              "x": 176.6666717529297,
+              "y": 110.33333587646484,
+              "width": 116.66667175292969,
+              "height": 16,
+              "top": 110.33333587646484,
+              "right": 293.3333435058594,
+              "bottom": 126.33333587646484,
+              "left": 176.6666717529297
+            }
+          },
+          {
+            "text": "UVELBox S1",
+            "rect": {
+              "x": 176.6666717529297,
+              "y": 131.33334350585938,
+              "width": 116.66667175292969,
+              "height": 18,
+              "top": 131.33334350585938,
+              "right": 293.3333435058594,
+              "bottom": 149.33334350585938,
+              "left": 176.6666717529297
+            }
+          },
+          {
+            "text": "Xem thiết bị và trạng thái hiện tại.",
+            "rect": {
+              "x": 176.6666717529297,
+              "y": 155.33334350585938,
+              "width": 116.66667175292969,
+              "height": 36,
+              "top": 155.33334350585938,
+              "right": 293.3333435058594,
+              "bottom": 191.33334350585938,
+              "left": 176.6666717529297
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "photos": [
+    {
+      "file": "r17-lifecycle-grace-vi-light-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "time": "2026-10-27T14:50:59.179Z"
+    },
+    {
+      "file": "r17-lifecycle-ended-vi-light-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "time": "2026-10-27T14:51:21.312Z"
+    },
+    {
+      "file": "r17-lifecycle-converted-vi-light-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "time": "2026-10-27T14:51:49.592Z"
+    }
+  ]
+}

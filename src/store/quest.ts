@@ -1,3 +1,4 @@
+import { invalidateBeforePassiveTabRead } from "@/lib/passive-tab-read";
 import { defineStore } from "pinia";
 import { reactive, ref, watch } from "vue";
 import { questApi, remoteApiEnabled } from "@/api/runtime";
@@ -121,6 +122,7 @@ export const useQuest = defineStore("quest", () => {
   }
 
   async function refreshRemote(): Promise<boolean> {
+    invalidateBeforePassiveTabRead("quest");
     if (!remoteApiEnabled) return true;
     const epoch = accountEpoch;
     const requestSequence = ++refreshSequence;

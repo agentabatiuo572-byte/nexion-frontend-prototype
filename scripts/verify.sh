@@ -1497,20 +1497,12 @@ spec2_pc_gpu_kind_coverage() {
   else bad "SPEC-2 pc-gpu kind coverage missing: $miss"; fi
 }
 spec2_pc_gpu_kind_coverage
-sentinel_present "SPEC-2 compute entry gated by feature flag" src/components/earn/compute-share-entry.vue 'isEnabled\("computeShareEnabled"\)'
 # 🗑 2026-08-13 退役:原哨兵钉 `if (IS_PRODUCTION) return` 这个**字面写法**,
 #   而实现已加严成 `if (remoteApiEnabled || IS_PRODUCTION) return`(多拦一层远端档)—— 判据过期。
 #   它守的不变量(开发后门在生产构建里必须失效)**已被 SPEC-2 guard semantics 里的派生判据完全覆盖**:
 #   那条枚举 config.ts 里所有 `_dev*` 后门,逐个要求函数体里有 IS_PRODUCTION 早退,
 #   写法随便但一个都不许漏 —— 比这条字面哨兵严格更强(它对**新增的后门**是瞎的)。
 #   红测证据:拆掉任一后门的守卫 / 新增一个没守的后门,派生判据都判红。
-sentinel_present "SPEC-2 compute entry render guarded" src/components/earn/compute-share-entry.vue 'v-if="enabled"'
-sentinel_present "SPEC-2 download page guard uses feature flag" src/pages/compute-share/download.vue 'isEnabled\("computeShareEnabled"\)'
-sentinel_present "SPEC-2 download body does not render while disabled" src/pages/compute-share/download.vue 'v-else-if="enabled" class="pb-8"'
-sentinel_present "SPEC-2 copy handler re-checks disabled flag" src/pages/compute-share/download.vue 'function copyDownloadUrl\(\)'
-sentinel_present "SPEC-2 connect handler re-checks disabled flag" src/pages/compute-share/download.vue 'function connectDemoComputer\(\)'
-sentinel_present "SPEC-2 download title reads config content" src/pages/compute-share/download.vue 'cfg\.config\.computeShare\.content'
-sentinel_present "SPEC-2 download guide falls back to i18n" src/pages/compute-share/download.vue 'configured \|\| t\.value\.computeShare\.downloadBody'
 sentinel_present "SPEC-2 computeShare content typed" src/store/config-types.ts 'interface ComputeShareContent'
 sentinel_present "SPEC-2 computeShare zhTitle seeded" src/mock/platform-config.ts 'zhTitle:'
 sentinel_present "SPEC-2 computeShare zhGuide seeded" src/mock/platform-config.ts 'zhGuide:'
@@ -1518,7 +1510,6 @@ sentinel_present "SPEC-2 computeShare enTitle seeded" src/mock/platform-config.t
 sentinel_present "SPEC-2 computeShare enGuide seeded" src/mock/platform-config.ts 'enGuide:'
 sentinel_present "SPEC-2 gpu tiers single source exists" src/lib/gpu-tiers.ts 'export const GPU_TIERS'
 sentinel_present "SPEC-2 device factory accepts matched tier" src/store/device-types.ts 'options\.gpuTier \?\? matchGpuTier'
-sentinel_present "SPEC-2 connect uses configured GPU tiers" src/store/app.ts 'cfg\.config\.computeShare\.gpuTiers'
 sentinel_present "SPEC-2 pc-gpu freezes when flag disabled" src/store/app.ts 'freezeComputeShareDevice'
 sentinel_present "SPEC-2 slot cap counts hidden active pc-gpu" src/store/app.ts 'activeSlotCount = computed\(\(\) => devices\.value\.filter'
 sentinel_present "SPEC-2 device page slot meter uses authoritative active count" src/pages/me/devices.vue 'app\.activeSlotCount \+ trialReserved\.value'
@@ -1554,13 +1545,9 @@ spec2_gpu_tier_monotonic
 spec2_guard_semantics() {
   if "$NODE_BIN" -e '
     const fs=require("fs");
-    const download=fs.readFileSync("src/pages/compute-share/download.vue","utf8");
     const app=fs.readFileSync("src/store/app.ts","utf8");
     const deviceTypes=fs.readFileSync("src/store/device-types.ts","utf8");
     const gpu=fs.readFileSync("src/lib/gpu-tiers.ts","utf8");
-    if(!/function copyDownloadUrl\(\)[\s\S]*?if \(!enabled\.value\)/.test(download)) throw new Error("copy handler lacks enabled gate");
-    if(!/function connectDemoComputer\(\)[\s\S]*?if \(!enabled\.value\)/.test(download)) throw new Error("connect handler lacks enabled gate");
-    if(!/addDevice\("pc-gpu", \{ gpuModel: normalizedModel, gpuTier \}\)/.test(app)) throw new Error("pc-gpu creation does not pass matched tier");
     if(!/device\.kind === "pc-gpu" && !computeShareEnabled\.value/.test(app)) throw new Error("pc-gpu activation is not feature-gated");
     if(!/const IS_PRODUCTION = import\.meta\.env\.PROD/.test(fs.readFileSync("src/store/config.ts","utf8"))) throw new Error("dev config mutation lacks production guard constant");
     // 🔴 2026-08-13 重锚:原判据钉的是字面写法 `if (IS_PRODUCTION) return`,而实现已加严成
@@ -2085,7 +2072,7 @@ spec4_account_session_semantics() {
     if(!/app\.bindAccount\(key\);\s*[\r\n]+\s*rebindAccountScopedStores\(key\)/.test(appVue)) throw new Error("P2-8: app startup must rebind account-scoped stores (genesis/v-rank) right after bindAccount");
     if(!/app\.bindAccount\(options\.identity\);\s*[\r\n]+\s*rebindAccountScopedStores\(options\.identity\)/.test(signIn)) throw new Error("P2-8: canonical sign-in must rebind account-scoped stores right after bindAccount");
     if(!/app\.bindAccount\(createdIdentity\);\s*[\r\n]+\s*rebindAccountScopedStores\(createdIdentity\)/.test(register)) throw new Error("P2-8: register must rebind account-scoped stores right after bindAccount");
-    if(!/entry === "white-app" \|\| entry === "white" \|\| entry === "cloak" \|\| entry === "janus"/.test(entry)) throw new Error("white-app entry aliases missing");
+    if(/readEntryParam|entry ===/.test(entry)) throw new Error("retired carrier aliases restored");
     const messages=fs.readFileSync("src/i18n/messages/zh.ts","utf8")+fs.readFileSync("src/i18n/messages/en.ts","utf8");
     if(/同一时间只能有一台设备运行挖矿|only one device runs mining at a time/.test(messages)) throw new Error("old strong single-device copy leaked");
     const walletUi=wallet+withdrawalTracking;
@@ -3872,18 +3859,18 @@ business_loop_liveness_gate() {
 }
 business_loop_liveness_gate
 
-# ── Janus C2 停机取消门 ────────────────────────────────────────────────────────
+# ── Janus 功能退役门 ────────────────────────────────────────────────────────
 # 进入评审页、会话失效或 App 后台时，不只清下一轮 timer；已在飞的 report/apply
 # 也必须经 AbortSignal + 代次栅栏停止，禁止停机后继续写 runtime 或发送 ACK。
-janus_stop_cancellation_gate() {
-  if "$NODE_BIN" scripts/janus-stop-cancellation.test.mjs > "${VERIFY_LOG_PREFIX}-uniapp-janus-stop-cancellation.log" 2>&1; then
-    ok "Janus C2 停机取消门 — $(tail -1 "${VERIFY_LOG_PREFIX}-uniapp-janus-stop-cancellation.log")"
+janus_retirement_gate() {
+  if "$NODE_BIN" scripts/janus-retirement.test.mjs > "${VERIFY_LOG_PREFIX}-uniapp-janus-retirement.log" 2>&1; then
+    ok "Janus 功能退役门 — $(tail -1 "${VERIFY_LOG_PREFIX}-uniapp-janus-retirement.log")"
   else
-    bad "Janus C2 停机取消门失败 — node scripts/janus-stop-cancellation.test.mjs 看明细"
-    tail -12 "${VERIFY_LOG_PREFIX}-uniapp-janus-stop-cancellation.log" | sed 's/^/        /'
+    bad "Janus 功能退役门失败 — node scripts/janus-retirement.test.mjs 看明细"
+    tail -12 "${VERIFY_LOG_PREFIX}-uniapp-janus-retirement.log" | sed 's/^/        /'
   fi
 }
-janus_stop_cancellation_gate
+janus_retirement_gate
 
 # ── 守卫存活性 · 行为门 ────────────────────────────────────────────────────────
 # 上面那道是结构门(看代码形状)。这一族三轮出了三种形状,独立审计 2026-08-07 实测

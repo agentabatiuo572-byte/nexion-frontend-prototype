@@ -1,0 +1,3088 @@
+{
+  "elapsedMs": 5108.699999988079,
+  "events": [
+    {
+      "atMs": 120.5,
+      "elapsedTime": 25.92,
+      "name": "earn-rocket-flame-4b6766d5",
+      "target": "earn-capacity-info__flame",
+      "type": "animationiteration"
+    },
+    {
+      "atMs": 280.2999999821186,
+      "elapsedTime": 26.1,
+      "name": "earn-rocket-exhaust-4b6766d5",
+      "target": "earn-capacity-info__exhaust",
+      "type": "animationiteration"
+    },
+    {
+      "atMs": 840.0999999940395,
+      "elapsedTime": 26.64,
+      "name": "earn-rocket-flame-4b6766d5",
+      "target": "earn-capacity-info__flame",
+      "type": "animationiteration"
+    },
+    {
+      "atMs": 1200.199999988079,
+      "elapsedTime": 27,
+      "name": "earn-rocket-exhaust-4b6766d5",
+      "target": "earn-capacity-info__exhaust",
+      "type": "animationiteration"
+    },
+    {
+      "atMs": 1400.5,
+      "elapsedTime": 27.200000000000003,
+      "name": "earn-rocket-hop-4b6766d5",
+      "target": "earn-capacity-info__rocket",
+      "type": "animationiteration"
+    },
+    {
+      "atMs": 1560.2999999821186,
+      "elapsedTime": 27.36,
+      "name": "earn-rocket-flame-4b6766d5",
+      "target": "earn-capacity-info__flame",
+      "type": "animationiteration"
+    },
+    {
+      "atMs": 2080.199999988079,
+      "elapsedTime": 27.9,
+      "name": "earn-rocket-exhaust-4b6766d5",
+      "target": "earn-capacity-info__exhaust",
+      "type": "animationiteration"
+    },
+    {
+      "atMs": 2280.199999988079,
+      "elapsedTime": 28.08,
+      "name": "earn-rocket-flame-4b6766d5",
+      "target": "earn-capacity-info__flame",
+      "type": "animationiteration"
+    },
+    {
+      "atMs": 2986.9000000059605,
+      "elapsedTime": 28.8,
+      "name": "earn-rocket-hop-4b6766d5",
+      "target": "earn-capacity-info__rocket",
+      "type": "animationiteration"
+    },
+    {
+      "atMs": 2986.9000000059605,
+      "elapsedTime": 28.799999999999997,
+      "name": "earn-rocket-flame-4b6766d5",
+      "target": "earn-capacity-info__flame",
+      "type": "animationiteration"
+    },
+    {
+      "atMs": 2986.9000000059605,
+      "elapsedTime": 28.8,
+      "name": "earn-rocket-exhaust-4b6766d5",
+      "target": "earn-capacity-info__exhaust",
+      "type": "animationiteration"
+    },
+    {
+      "atMs": 3706.900000005961,
+      "elapsedTime": 29.52,
+      "name": "earn-rocket-flame-4b6766d5",
+      "target": "earn-capacity-info__flame",
+      "type": "animationiteration"
+    },
+    {
+      "atMs": 3906.599999994039,
+      "elapsedTime": 29.7,
+      "name": "earn-rocket-exhaust-4b6766d5",
+      "target": "earn-capacity-info__exhaust",
+      "type": "animationiteration"
+    },
+    {
+      "atMs": 4426.799999982119,
+      "elapsedTime": 30.24,
+      "name": "earn-rocket-flame-4b6766d5",
+      "target": "earn-capacity-info__flame",
+      "type": "animationiteration"
+    },
+    {
+      "atMs": 4586.699999988079,
+      "elapsedTime": 30.4,
+      "name": "earn-rocket-hop-4b6766d5",
+      "target": "earn-capacity-info__rocket",
+      "type": "animationiteration"
+    },
+    {
+      "atMs": 4786.9000000059605,
+      "elapsedTime": 30.6,
+      "name": "earn-rocket-exhaust-4b6766d5",
+      "target": "earn-capacity-info__exhaust",
+      "type": "animationiteration"
+    }
+  ],
+  "media": false,
+  "samples": [
+    {
+      "atMs": 39.60000000000582,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 363.6181640625,
+            "height": 20.3939208984375,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 343.2242431640625,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 343.2242431640625
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.426458)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.570882",
+          "rect": {
+            "bottom": 360.642822265625,
+            "height": 2.2935791015625,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 358.3492431640625,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 358.3492431640625
+          },
+          "transform": "matrix(1, 0, 0, 0.625522, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.109329",
+          "rect": {
+            "bottom": 363.61817425489426,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 362.7015075683594,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 362.7015075683594
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 2.2479)"
+        }
+      ]
+    },
+    {
+      "atMs": 159.60000000000582,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 363.2399291992187,
+            "height": 20.563232421875,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 342.67669677734375,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 342.67669677734375
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -0.170919)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.580069",
+          "rect": {
+            "bottom": 360.13641357421875,
+            "height": 2.334716796875,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 357.80169677734375,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 357.80169677734375
+          },
+          "transform": "matrix(1, 0, 0, 0.636751, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.0299762",
+          "rect": {
+            "bottom": 363.2399088740349,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 362.3232421875,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 362.3232421875
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 2.43264)"
+        }
+      ]
+    },
+    {
+      "atMs": 279.6000000000058,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 360.4907341003418,
+            "height": 18.38456344604492,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 342.1061706542969,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 342.1061706542969
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -0.793296)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.786438",
+          "rect": {
+            "bottom": 360.4907329082489,
+            "height": 3.2595622539520264,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 357.2311706542969,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 357.2311706542969
+          },
+          "transform": "matrix(1, 0, 0, 0.888979, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.0256443",
+          "rect": {
+            "bottom": 360.4624430537224,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 359.5457763671875,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 359.5457763671875
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.0250597)"
+        }
+      ]
+    },
+    {
+      "atMs": 399.5,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 360.9306449890137,
+            "height": 19.24808883666992,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 341.68255615234375,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 341.68255615234375
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -1.25543)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.979118",
+          "rect": {
+            "bottom": 360.93064403533936,
+            "height": 4.1230878829956055,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 356.80755615234375,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 356.80755615234375
+          },
+          "transform": "matrix(1, 0, 0, 1.12448, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.483336",
+          "rect": {
+            "bottom": 360.51978558301926,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 359.6031188964844,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 359.6031188964844
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.549742)"
+        }
+      ]
+    },
+    {
+      "atMs": 519.6000000000058,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 360.7494716644287,
+            "height": 19.27034568786621,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 341.4791259765625,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 341.4791259765625
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -1.47734)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.969836",
+          "rect": {
+            "bottom": 360.6855878829956,
+            "height": 4.0814619064331055,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 356.6041259765625,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 356.6041259765625
+          },
+          "transform": "matrix(1, 0, 0, 1.11313, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.617293",
+          "rect": {
+            "bottom": 360.74949139356613,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 359.83282470703125,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 359.83282470703125
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 1.02222)"
+        }
+      ]
+    },
+    {
+      "atMs": 639.6000000000058,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 361.14642333984375,
+            "height": 19.6580810546875,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 341.48834228515625,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 341.48834228515625
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -1.46728)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.763347",
+          "rect": {
+            "bottom": 359.76947021484375,
+            "height": 3.1561279296875,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 356.61334228515625,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 356.61334228515625
+          },
+          "transform": "matrix(1, 0, 0, 0.860758, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.442174",
+          "rect": {
+            "bottom": 361.1464030146599,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 360.229736328125,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 360.229736328125
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 1.44517)"
+        }
+      ]
+    },
+    {
+      "atMs": 759.6999999999971,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 361.7090358734131,
+            "height": 19.99703025817871,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 341.7120056152344,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 341.7120056152344
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -1.22328)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.570725",
+          "rect": {
+            "bottom": 359.1298930644989,
+            "height": 2.2928874492645264,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 356.8370056152344,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 356.8370056152344
+          },
+          "transform": "matrix(1, 0, 0, 0.625331, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.289962",
+          "rect": {
+            "bottom": 361.7090250849724,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 360.7923583984375,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 360.7923583984375
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 1.81493)"
+        }
+      ]
+    },
+    {
+      "atMs": 879.6000000000058,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 362.43157958984375,
+            "height": 20.2784423828125,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 342.15313720703125,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 342.15313720703125
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -0.742044)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.580164",
+          "rect": {
+            "bottom": 359.61334228515625,
+            "height": 2.335205078125,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 357.27813720703125,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 357.27813720703125
+          },
+          "transform": "matrix(1, 0, 0, 0.636867, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.162388",
+          "rect": {
+            "bottom": 362.4315592646599,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 361.514892578125,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 361.514892578125
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 2.12193)"
+        }
+      ]
+    },
+    {
+      "atMs": 999.6000000000058,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 363.2187614440918,
+            "height": 20.489910125732425,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 342.7288513183594,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 342.7288513183594
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -0.113979)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.786438",
+          "rect": {
+            "bottom": 361.1134543418884,
+            "height": 3.2596030235290527,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 357.8538513183594,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 357.8538513183594
+          },
+          "transform": "matrix(1, 0, 0, 0.888979, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.06466",
+          "rect": {
+            "bottom": 363.21876019239426,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 362.3020935058594,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 362.3020935058594
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 2.35262)"
+        }
+      ]
+    },
+    {
+      "atMs": 1119.6000000000058,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 363.8761806488037,
+            "height": 20.61006736755371,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 343.26611328125,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 343.26611328125
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.47211)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.979197",
+          "rect": {
+            "bottom": 362.5145263671875,
+            "height": 4.1234130859375,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 358.39111328125,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 358.39111328125
+          },
+          "transform": "matrix(1, 0, 0, 1.12457, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.00737487",
+          "rect": {
+            "bottom": 363.87620037794113,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 362.95953369140625,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 362.95953369140625
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 2.48372)"
+        }
+      ]
+    },
+    {
+      "atMs": 1239.5,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 362.8255615234375,
+            "height": 19.2069091796875,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 343.61865234375,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 343.61865234375
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.856723)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.969931",
+          "rect": {
+            "bottom": 362.8255615234375,
+            "height": 4.0819091796875,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 358.74365234375,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 358.74365234375
+          },
+          "transform": "matrix(1, 0, 0, 1.11325, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.281027",
+          "rect": {
+            "bottom": 362.22242230176926,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 361.3057556152344,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 361.3057556152344
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.294994)"
+        }
+      ]
+    },
+    {
+      "atMs": 1359.6000000000058,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 362.8077392578125,
+            "height": 19.0592041015625,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 343.74853515625,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 343.74853515625
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.998394)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.763562",
+          "rect": {
+            "bottom": 362.03059911727905,
+            "height": 3.1570639610290527,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 358.87353515625,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 358.87353515625
+          },
+          "transform": "matrix(1, 0, 0, 0.861021, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.617871",
+          "rect": {
+            "bottom": 362.8077494502067,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 361.8910827636719,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 361.8910827636719
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.791851)"
+        }
+      ]
+    },
+    {
+      "atMs": 1479.6000000000058,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 363.1402187347412,
+            "height": 19.46932029724121,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 343.6708984375,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 343.6708984375
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.913691)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.57096",
+          "rect": {
+            "bottom": 361.0898032188415,
+            "height": 2.2939047813415527,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 358.7958984375,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 358.7958984375
+          },
+          "transform": "matrix(1, 0, 0, 0.625618, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.526977",
+          "rect": {
+            "bottom": 363.14023846387863,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 362.22357177734375,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 362.22357177734375
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 1.23929)"
+        }
+      ]
+    },
+    {
+      "atMs": 1599.5,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 363.2060546875,
+            "height": 19.8333740234375,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 343.3726806640625,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 343.3726806640625
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.588362)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.579974",
+          "rect": {
+            "bottom": 360.8319907188415,
+            "height": 2.3343100547790527,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 358.4976806640625,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 358.4976806640625
+          },
+          "transform": "matrix(1, 0, 0, 0.636635, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.36353",
+          "rect": {
+            "bottom": 363.20606487989426,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 362.2893981933594,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 362.2893981933594
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 1.63641)"
+        }
+      ]
+    },
+    {
+      "atMs": 1719.5,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 363.0164794921875,
+            "height": 20.1448974609375,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 342.87158203125,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 342.87158203125
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.0417108)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.786222",
+          "rect": {
+            "bottom": 361.25520849227905,
+            "height": 3.2586264610290527,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 357.99658203125,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 357.99658203125
+          },
+          "transform": "matrix(1, 0, 0, 0.888716, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.223142",
+          "rect": {
+            "bottom": 363.01648968458176,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 362.0998229980469,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 362.0998229980469
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 1.97628)"
+        }
+      ]
+    },
+    {
+      "atMs": 1839.5,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 362.680908203125,
+            "height": 20.3939208984375,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 342.2869873046875,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 342.2869873046875
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -0.595995)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.979118",
+          "rect": {
+            "bottom": 361.5350751876831,
+            "height": 4.1230878829956055,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 357.4119873046875,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 357.4119873046875
+          },
+          "transform": "matrix(1, 0, 0, 1.12448, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.109329",
+          "rect": {
+            "bottom": 362.68091839551926,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 361.7642517089844,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 361.7642517089844
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 2.2479)"
+        }
+      ]
+    },
+    {
+      "atMs": 1959.5,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 362.364013671875,
+            "height": 20.5631103515625,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 341.8009033203125,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 341.8009033203125
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -1.12631)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.970026",
+          "rect": {
+            "bottom": 361.0082197189331,
+            "height": 4.0823163986206055,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 356.9259033203125,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 356.9259033203125
+          },
+          "transform": "matrix(1, 0, 0, 1.11336, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.0300246",
+          "rect": {
+            "bottom": 362.36402386426926,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 361.4473571777344,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 361.4473571777344
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 2.43253)"
+        }
+      ]
+    },
+    {
+      "atMs": 2079.399999999994,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 359.8781547546387,
+            "height": 18.355876922607425,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 341.52227783203125,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 341.52227783203125
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -1.43028)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.763778",
+          "rect": {
+            "bottom": 359.8053183555603,
+            "height": 3.1580405235290527,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 356.64727783203125,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 356.64727783203125
+          },
+          "transform": "matrix(1, 0, 0, 0.861284, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.0251694",
+          "rect": {
+            "bottom": 359.87815350294113,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 358.96148681640625,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 358.96148681640625
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.0245913)"
+        }
+      ]
+    },
+    {
+      "atMs": 2199.5,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 360.2995815277099,
+            "height": 18.83687400817871,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 341.46270751953125,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 341.46270751953125
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -1.49524)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.57096",
+          "rect": {
+            "bottom": 358.88165283203125,
+            "height": 2.2939453125,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 356.58770751953125,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 356.58770751953125
+          },
+          "transform": "matrix(1, 0, 0, 0.625618, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.483048",
+          "rect": {
+            "bottom": 360.29957073926926,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 359.3829040527344,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 359.3829040527344
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.549328)"
+        }
+      ]
+    },
+    {
+      "atMs": 2319.5,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 360.8813285827637,
+            "height": 19.269695281982425,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 341.61163330078125,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 341.61163330078125
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -1.33277)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.579974",
+          "rect": {
+            "bottom": 359.07098388671875,
+            "height": 2.3343505859375,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 356.73663330078125,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 356.73663330078125
+          },
+          "transform": "matrix(1, 0, 0, 0.636635, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.617607",
+          "rect": {
+            "bottom": 360.88132733106613,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 359.96466064453125,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 359.96466064453125
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 1.02147)"
+        }
+      ]
+    },
+    {
+      "atMs": 2439.5,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 361.64117431640625,
+            "height": 19.657470703125,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 341.98370361328125,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 341.98370361328125
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -0.926891)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.786222",
+          "rect": {
+            "bottom": 360.3673300743103,
+            "height": 3.2586264610290527,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 357.10870361328125,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 357.10870361328125
+          },
+          "transform": "matrix(1, 0, 0, 0.888716, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.442446",
+          "rect": {
+            "bottom": 361.6411539912224,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 360.7244873046875,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 360.7244873046875
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 1.4445)"
+        }
+      ]
+    },
+    {
+      "atMs": 2559.5,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 362.5274467468262,
+            "height": 19.996257781982425,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 342.53118896484375,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 342.53118896484375
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -0.329618)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.97904",
+          "rect": {
+            "bottom": 361.7789511680603,
+            "height": 4.122762203216553,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 357.65618896484375,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 357.65618896484375
+          },
+          "transform": "matrix(1, 0, 0, 1.12438, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.290313",
+          "rect": {
+            "bottom": 362.52744549512863,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 361.61077880859375,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 361.61077880859375
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 1.81408)"
+        }
+      ]
+    },
+    {
+      "atMs": 2679.399999999994,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 363.3797721862793,
+            "height": 20.277996063232425,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 343.1017761230469,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 343.1017761230469
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.292824)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.970026",
+          "rect": {
+            "bottom": 362.3090925216675,
+            "height": 4.0823163986206055,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 358.2267761230469,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 358.2267761230469
+          },
+          "transform": "matrix(1, 0, 0, 1.11336, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.162578",
+          "rect": {
+            "bottom": 363.37977093458176,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 362.4631042480469,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 362.4631042480469
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 2.12148)"
+        }
+      ]
+    },
+    {
+      "atMs": 2786.199999999997,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 363.95937156677246,
+            "height": 20.47029685974121,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 343.48907470703125,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 343.48907470703125
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.71532)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.792413",
+          "rect": {
+            "bottom": 361.9004111289978,
+            "height": 3.2863364219665527,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 358.61407470703125,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 358.61407470703125
+          },
+          "transform": "matrix(1, 0, 0, 0.896282, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.073831",
+          "rect": {
+            "bottom": 363.95936077833176,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 363.0426940917969,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 363.0426940917969
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 2.33125)"
+        }
+      ]
+    },
+    {
+      "atMs": 2906,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 364.31960105896,
+            "height": 20.60213279724121,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 343.71746826171875,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 343.71746826171875
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.964495)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.58276",
+          "rect": {
+            "bottom": 361.1892700195313,
+            "height": 2.3468017578125,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 358.84246826171875,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 358.84246826171875
+          },
+          "transform": "matrix(1, 0, 0, 0.64004, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.0112522",
+          "rect": {
+            "bottom": 364.31959027051926,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 363.4029235839844,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 363.4029235839844
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 2.47505)"
+        }
+      ]
+    },
+    {
+      "atMs": 3026.199999999997,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 362.2814636230469,
+            "height": 18.55029296875,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 343.7311706542969,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 343.7311706542969
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.979456)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.568836",
+          "rect": {
+            "bottom": 361.1405944824219,
+            "height": 2.284423828125,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 358.8561706542969,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 358.8561706542969
+          },
+          "transform": "matrix(1, 0, 0, 0.623022, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.228904",
+          "rect": {
+            "bottom": 362.28147381544113,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 361.36480712890625,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 361.36480712890625
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.236656)"
+        }
+      ]
+    },
+    {
+      "atMs": 3146.100000000006,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 362.543701171875,
+            "height": 19.0106201171875,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 343.5330810546875,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 343.5330810546875
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.763367)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.757587",
+          "rect": {
+            "bottom": 361.788370847702,
+            "height": 3.1302897930145264,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 358.6580810546875,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 358.6580810546875
+          },
+          "transform": "matrix(1, 0, 0, 0.853718, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.595279",
+          "rect": {
+            "bottom": 362.54371136426926,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 361.6270446777344,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 361.6270446777344
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.738837)"
+        }
+      ]
+    },
+    {
+      "atMs": 3266.100000000006,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 362.5402641296387,
+            "height": 19.42606735229492,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 343.11419677734375,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 343.11419677734375
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.306368)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.96724",
+          "rect": {
+            "bottom": 362.30906200408936,
+            "height": 4.0698652267456055,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 358.23919677734375,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 358.23919677734375
+          },
+          "transform": "matrix(1, 0, 0, 1.10996, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.546501",
+          "rect": {
+            "bottom": 362.54026287794113,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 361.62359619140625,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 361.62359619140625
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 1.19208)"
+        }
+      ]
+    },
+    {
+      "atMs": 3386.199999999997,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 362.3408718109131,
+            "height": 19.79549217224121,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 342.5453796386719,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 342.5453796386719
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -0.314134)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.981238",
+          "rect": {
+            "bottom": 361.8029890060425,
+            "height": 4.1326093673706055,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 357.6703796386719,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 357.6703796386719
+          },
+          "transform": "matrix(1, 0, 0, 1.12707, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.380539",
+          "rect": {
+            "bottom": 362.3408610224724,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 361.4241943359375,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 361.4241943359375
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 1.59506)"
+        }
+      ]
+    },
+    {
+      "atMs": 3506,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 362.1086120605469,
+            "height": 20.113037109375,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 341.9955749511719,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 341.9955749511719
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -0.913914)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.792628",
+          "rect": {
+            "bottom": 360.4079284667969,
+            "height": 3.287353515625,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 357.1205749511719,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 357.1205749511719
+          },
+          "transform": "matrix(1, 0, 0, 0.896545, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.237594",
+          "rect": {
+            "bottom": 362.10862225294113,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 361.19195556640625,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 361.19195556640625
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 1.94147)"
+        }
+      ]
+    },
+    {
+      "atMs": 3626,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 361.9876708984375,
+            "height": 20.3695068359375,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 341.6181640625,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 341.6181640625
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -1.32564)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.582859",
+          "rect": {
+            "bottom": 359.09041357040405,
+            "height": 2.3472495079040527,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 356.7431640625,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 356.7431640625
+          },
+          "transform": "matrix(1, 0, 0, 0.640161, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.120593",
+          "rect": {
+            "bottom": 361.98768109083176,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 361.0710144042969,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 361.0710144042969
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 2.22128)"
+        }
+      ]
+    },
+    {
+      "atMs": 3746.199999999997,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 362.0127773284912,
+            "height": 20.54903221130371,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 341.4637451171875,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 341.4637451171875
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -1.49408)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.568762",
+          "rect": {
+            "bottom": 358.872843503952,
+            "height": 2.2840983867645264,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 356.5887451171875,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 356.5887451171875
+          },
+          "transform": "matrix(1, 0, 0, 0.622931, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.0367596",
+          "rect": {
+            "bottom": 362.01279705762863,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 361.09613037109375,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 361.09613037109375
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 2.41711)"
+        }
+      ]
+    },
+    {
+      "atMs": 3866.100000000006,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 362.1427001953125,
+            "height": 20.6246337890625,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 341.51806640625,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 341.51806640625
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -1.43483)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.757158",
+          "rect": {
+            "bottom": 359.77144384384155,
+            "height": 3.1283774375915527,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 356.64306640625,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 356.64306640625
+          },
+          "transform": "matrix(1, 0, 0, 0.853193, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.000182733",
+          "rect": {
+            "bottom": 362.1427103877067,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 361.2260437011719,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 361.2260437011719
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 2.4996)"
+        }
+      ]
+    },
+    {
+      "atMs": 3986,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 360.9856472015381,
+            "height": 19.19441795349121,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 341.7912292480469,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 341.7912292480469
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -1.13683)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.967141",
+          "rect": {
+            "bottom": 360.9856467247009,
+            "height": 4.069417476654053,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 356.9162292480469,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 356.9162292480469
+          },
+          "transform": "matrix(1, 0, 0, 1.10984, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.442873",
+          "rect": {
+            "bottom": 360.5770060420036,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 359.66033935546875,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 359.66033935546875
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.493563)"
+        }
+      ]
+    },
+    {
+      "atMs": 4106.100000000006,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 361.5314636230469,
+            "height": 19.2579345703125,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 342.2735290527344,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 342.2735290527344
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -0.610707)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.981312",
+          "rect": {
+            "bottom": 361.5314636230469,
+            "height": 4.1329345703125,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 357.3985290527344,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 357.3985290527344
+          },
+          "transform": "matrix(1, 0, 0, 1.12716, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.638912",
+          "rect": {
+            "bottom": 361.49708050489426,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 360.5804138183594,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 360.5804138183594
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.971151)"
+        }
+      ]
+    },
+    {
+      "atMs": 4226,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 362.47304344177246,
+            "height": 19.61617088317871,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 342.85687255859375,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 342.85687255859375
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.0256692)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.792842",
+          "rect": {
+            "bottom": 361.2701621055603,
+            "height": 3.2882895469665527,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 357.98187255859375,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 357.98187255859375
+          },
+          "transform": "matrix(1, 0, 0, 0.896807, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.460972",
+          "rect": {
+            "bottom": 362.47303265333176,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 361.5563659667969,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 361.5563659667969
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 1.39946)"
+        }
+      ]
+    },
+    {
+      "atMs": 4346,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 363.323486328125,
+            "height": 19.9610595703125,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 343.3624267578125,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 343.3624267578125
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.577186)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.582859",
+          "rect": {
+            "bottom": 360.83467626571655,
+            "height": 2.3472495079040527,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 358.4874267578125,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 358.4874267578125
+          },
+          "transform": "matrix(1, 0, 0, 0.640161, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.306156",
+          "rect": {
+            "bottom": 363.32349652051926,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 362.4068298339844,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 362.4068298339844
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 1.77569)"
+        }
+      ]
+    },
+    {
+      "atMs": 4466.199999999997,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 363.9163417816162,
+            "height": 20.24995994567871,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 343.6663818359375,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 343.6663818359375
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.908781)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.568762",
+          "rect": {
+            "bottom": 361.075480222702,
+            "height": 2.2840983867645264,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 358.7913818359375,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 358.7913818359375
+          },
+          "transform": "matrix(1, 0, 0, 0.622931, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.175396",
+          "rect": {
+            "bottom": 363.9163615107536,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 362.9996948242187,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 362.9996948242187
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 2.09085)"
+        }
+      ]
+    },
+    {
+      "atMs": 4586,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 364.2190971374512,
+            "height": 20.47001266479492,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 343.74908447265625,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 343.74908447265625
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.998981)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.757158",
+          "rect": {
+            "bottom": 362.0024619102478,
+            "height": 3.1283774375915527,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 358.87408447265625,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 358.87408447265625
+          },
+          "transform": "matrix(1, 0, 0, 0.853193, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.0739715",
+          "rect": {
+            "bottom": 364.2190958857536,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 363.3024291992187,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 363.3024291992187
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 2.33092)"
+        }
+      ]
+    },
+    {
+      "atMs": 4706,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 364.22658348083496,
+            "height": 20.60201072692871,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 343.62457275390625,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 343.62457275390625
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.863161)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.967042",
+          "rect": {
+            "bottom": 362.8185424804687,
+            "height": 4.0689697265625,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 358.74957275390625,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 358.74957275390625
+          },
+          "transform": "matrix(1, 0, 0, 1.10972, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.0113152",
+          "rect": {
+            "bottom": 364.22657269239426,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 363.3099060058594,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 363.3099060058594
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 2.47491)"
+        }
+      ]
+    },
+    {
+      "atMs": 4826.100000000006,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 362.5353202819824,
+            "height": 19.258220672607425,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 343.277099609375,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 343.277099609375
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.484089)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.981386",
+          "rect": {
+            "bottom": 362.5353193283081,
+            "height": 4.1332197189331055,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 358.402099609375,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 358.402099609375
+          },
+          "transform": "matrix(1, 0, 0, 1.12725, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.2277",
+          "rect": {
+            "bottom": 361.82615154981613,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 360.9094848632813,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 360.9094848632813
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.235331)"
+        }
+      ]
+    },
+    {
+      "atMs": 4946,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 361.75331687927246,
+            "height": 19.00984764099121,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 342.74346923828125,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 342.74346923828125
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -0.0980603)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.792842",
+          "rect": {
+            "bottom": 361.1567587852478,
+            "height": 3.2882895469665527,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 357.86846923828125,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 357.86846923828125
+          },
+          "transform": "matrix(1, 0, 0, 0.896807, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.594905",
+          "rect": {
+            "bottom": 361.75330609083176,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 360.8366394042969,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 360.8366394042969
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 0.738041)"
+        }
+      ]
+    },
+    {
+      "atMs": 5066.100000000006,
+      "hit": {
+        "bottom": 374,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 330,
+        "width": 44,
+        "x": 146.90625,
+        "y": 330
+      },
+      "parts": [
+        {
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "kind": "rocket",
+          "name": "earn-rocket-hop-4b6766d5",
+          "opacity": "1",
+          "rect": {
+            "bottom": 361.5912780761719,
+            "height": 19.42578125,
+            "left": 162.48959350585938,
+            "right": 175.3229274749756,
+            "top": 342.1654968261719,
+            "width": 12.833333969116213,
+            "x": 162.48959350585938,
+            "y": 342.1654968261719
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, -0.728543)"
+        },
+        {
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "kind": "flame",
+          "name": "earn-rocket-flame-4b6766d5",
+          "opacity": "0.582859",
+          "rect": {
+            "bottom": 359.6377868652344,
+            "height": 2.3472900390625,
+            "left": 167.03616333007812,
+            "right": 170.77635717391968,
+            "top": 357.2904968261719,
+            "width": 3.7401938438415527,
+            "x": 167.03616333007812,
+            "y": 357.2904968261719
+          },
+          "transform": "matrix(1, 0, 0, 0.640161, 0, 0)"
+        },
+        {
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "kind": "exhaust",
+          "name": "earn-rocket-exhaust-4b6766d5",
+          "opacity": "0.546649",
+          "rect": {
+            "bottom": 361.59128826856613,
+            "height": 0.9166666865348816,
+            "left": 165.23959350585938,
+            "right": 172.57292699813843,
+            "top": 360.6746215820313,
+            "width": 7.333333492279053,
+            "x": 165.23959350585938,
+            "y": 360.6746215820313
+          },
+          "transform": "matrix(1, 0, 0, 1, 0, 1.19172)"
+        }
+      ]
+    }
+  ],
+  "url": "http://127.0.0.1:5291/?nx_device=off#/pages/earn/earn"
+}

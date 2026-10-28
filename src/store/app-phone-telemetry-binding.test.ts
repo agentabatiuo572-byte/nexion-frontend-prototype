@@ -21,6 +21,8 @@ const remote = vi.hoisted(() => ({
   deviceE3Api: { fleet: vi.fn() },
   taskAssignmentApi: { state: vi.fn(), reportPhoneRuntime: vi.fn() },
   appHomeApi: { fetch: vi.fn() },
+  apiRuntimeConfig: { environment: "dev", baseUrl: "https://test.example" },
+  apiRuntimeClientOrigin: { environment: "dev", baseUrl: "https://test.example" },
   withdrawalApi: { submit: vi.fn(), list: vi.fn(), get: vi.fn() },
 }));
 

@@ -83,8 +83,7 @@
           <text v-if="withdrawalFactsDisplayable">{{ minAmountLine }}</text>
           <text v-else>—</text>
         </view>
-        <text v-if="withdrawalFactsRefreshing" class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-4)">{{ withdrawalFactsStatusText }}</text>
-        <text v-else-if="!withdrawalActionsFresh" class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-2)" role="status">{{ withdrawalActionStatusText }}</text>
+        <text v-if="withdrawalFactsNeedsRetry || (!withdrawalQuoteRefreshing && !withdrawalActionsFresh)" class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-2)" role="status">{{ withdrawalReadStatusText }}</text>
         <view v-if="withdrawalFactsNeedsRetry" class="inline-flex items-center active:opacity-70" style="min-height: 44px; margin-top: 2px" role="button" tabindex="0" :aria-label="t.wallet.retryFunds" @click="retryWithdrawalFacts"  @keydown.enter.prevent="retryWithdrawalFacts" @keydown.space.prevent="retryWithdrawalFacts">
           <text style="font-size: 12px; color: var(--v5-brand); text-decoration: underline">{{ t.wallet.retryFunds }}</text>
         </view>
@@ -594,6 +593,10 @@ function factsStatusText(state: "ready" | "loading" | "refreshing" | "stale" | "
 const withdrawalFactsStatusText = computed(() => factsStatusText(withdrawalFactsState.value));
 const dailyFactsStatusText = computed(() => factsStatusText(dailyFactsState.value));
 const withdrawalActionStatusText = computed(() => withdrawalFactsFresh.value ? dailyFactsStatusText.value : withdrawalFactsStatusText.value);
+const withdrawalReadStatusText = computed(() => {
+  const failed = [withdrawalFactsState.value, dailyFactsState.value].find(state => state === "unavailable" || state === "stale");
+  return failed ? factsStatusText(failed) : withdrawalActionStatusText.value;
+});
 
 // Same cold-session fence the F3 pages use (binary / daily / unilevel): the
 // H5 vault binds only after its HttpOnly-cookie restore, and a protected read

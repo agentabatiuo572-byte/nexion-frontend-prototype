@@ -70,7 +70,7 @@
             <view
               class="w-full flex items-center justify-center"
               :class="trialProductUnavailable ? '' : 'active:scale-[0.98] active:opacity-85'"
-              :style="trialProductUnavailable ? buyBtnDisabledStyle : buyBtnStyle"
+              :style="trialProductUnavailable && !trialCatalogLoading ? buyBtnDisabledStyle : buyBtnStyle"
               role="button"
               :tabindex="trialProductUnavailable ? -1 : 0"
               :aria-label="trialBuyCtaText"
@@ -129,7 +129,7 @@
           </view>
           <text class="block" :style="idleTitleStyle">{{ t.trial.endedTitle }}</text>
           <text class="block" :style="idleBodyStyle">{{ t.trial.endedDesc }}</text>
-          <view class="inline-flex items-center justify-center" :class="trialProductUnavailable ? '' : 'active:scale-[0.98]'" :style="trialProductUnavailable ? idleCtaDisabledStyle : idleCtaStyle" role="button" :tabindex="trialProductUnavailable ? -1 : 0" :aria-label="trialBuyCtaText" :aria-disabled="trialProductUnavailable ? 'true' : 'false'" :aria-busy="trialCatalogLoading ? 'true' : 'false'" @click="goCheckout"  @keydown.enter.prevent="goCheckout" @keydown.space.prevent="goCheckout">
+          <view class="inline-flex items-center justify-center" :class="trialProductUnavailable ? '' : 'active:scale-[0.98]'" :style="trialProductUnavailable && !trialCatalogLoading ? idleCtaDisabledStyle : idleCtaStyle" role="button" :tabindex="trialProductUnavailable ? -1 : 0" :aria-label="trialBuyCtaText" :aria-disabled="trialProductUnavailable ? 'true' : 'false'" :aria-busy="trialCatalogLoading ? 'true' : 'false'" @click="goCheckout"  @keydown.enter.prevent="goCheckout" @keydown.space.prevent="goCheckout">
             <text>{{ trialBuyCtaText }}</text>
           </view>
           <text v-if="trialProductUnavailable && productCatalogState.status === 'ready'" class="block" :style="reasonNoteStyle">{{ t.store.trialProductUnavailable }}</text>
@@ -270,18 +270,12 @@ const offsetUsableUntilText = computed(() =>
     time: freeTrial.graceEndsAt !== null ? formatTrialDateTime(freeTrial.graceEndsAt, dateLocale()) : w.value.countdownDateEmpty,
   }),
 );
-const buyCtaText = computed(() =>
-  status.value === "grace"
-    ? fmt(w.value.graceBuyCta, { amount: formatAmount(trialOffset.value.offsetUSD) })
-    : fmt(w.value.buyCtaOffset, { amount: formatAmount(trialOffset.value.offsetUSD) }),
-);
 const trialBuyCtaText = computed(() => {
-  if (productCatalogState.status !== "ready") {
-    return productCatalogState.status === "error" ? t.value.store.catalogErrorTitle : t.value.store.catalogLoadingTitle;
-  }
+  if (productCatalogState.status === "error") return t.value.store.catalogErrorTitle;
+  if (trialCatalogLoading.value) return w.value.buyCtaPlain;
   if (trialProductUnavailable.value) return t.value.store.temporarilyOutOfStock;
   if (earlyQuote.value) return fmt(lifecycle.value.earlyBuyCta, { amount: formatAmount(earlyQuote.value.amountUSD) });
-  return status.value === "ended" ? w.value.buyCtaPlain : buyCtaText.value;
+  return w.value.buyCtaPlain;
 });
 // none-state eligibility (异常2 — concrete reason, never a generic error).
 const canStartNow = computed(() => {
@@ -383,7 +377,7 @@ useDialogA11y(computed(() => rulesOpen.value), ".trs-root", () => { rulesOpen.va
 .trial-read-skeleton { display:flex;flex-direction:column;gap:14px; }
 .trial-read-skeleton > view { height:24px;width:70%;border-radius:8px;background:var(--v5-surface-2); }
 .trial-read-skeleton > view:first-child { height:100px;width:100%;border-radius:20px; }
-.trial-read-retry { min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:999px;background:var(--v5-surface-2);color:var(--v5-ink); }
+.trial-read-retry { min-height:44px;display:flex;align-items:center;justify-content:center;border-radius:999px;background:var(--v5-surface-2);color:var(--v5-ink);font:600 13px/20px var(--font-v5); }
 .trial-estimate-row { display:flex;justify-content:space-between;gap:12px;margin-top:10px;color:var(--v5-ink-3);font-size:12px;line-height:1.5; }
 .trial-estimate-row > text:last-child { flex-shrink:0;font-variant-numeric:tabular-nums; }
 .trial-early-note { display:block;margin-top:12px;font-size:12px;line-height:1.6;color:var(--v5-ink-2); }

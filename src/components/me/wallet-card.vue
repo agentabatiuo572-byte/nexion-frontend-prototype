@@ -6,17 +6,20 @@
       <view class="nx-wallet-particles" aria-hidden="true">
         <view v-for="(dot, i) in DATA_DOTS" :key="i" class="nx-wallet-particle" data-wallet-particle :style="dotStyle(dot)" />
       </view>
-      <view class="nx-wallet-heading" data-me-action="wallet-bills" role="link" tabindex="0" @click="goBills"  @keydown.enter.prevent="goBills" >
-        <view class="nx-wallet-symbol" aria-hidden="true"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M20 7H5a2 2 0 0 1 0-4h13v4M3 5v14a2 2 0 0 0 2 2h15V7M20 12h-5v5h5" /></svg></view>
+      <view class="nx-wallet-heading">
+        <view class="nx-wallet-symbol" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M20 7H5a2 2 0 0 1 0-4h13v4M3 5v14a2 2 0 0 0 2 2h15V7M20 12h-5v5h5" /></svg></view>
         <text class="nx-wallet-title">{{ t.me.myWallet }}</text>
+        <DataVisibilityToggle />
+        <view class="nx-wallet-heading-link" data-me-action="wallet-bills" role="link" tabindex="0" :aria-label="t.me.walletBillsShort" @click="goBills" @keydown.enter.prevent="goBills" @keydown.space.prevent="goBills">
         <text v-if="compact" class="nx-wallet-heading-bills">{{ t.me.walletBillsShort }}</text>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
+        </view>
       </view>
-      <view class="nx-wallet-total" :aria-label="t.me.usdtBalance + ': $' + usdtLabel">
-        <text class="nx-wallet-currency">$</text><text class="tabular-nums nx-wallet-amount">{{ usdtLabel }}</text>
+      <view class="nx-wallet-total" :style="usdtFitStyle" :aria-label="t.me.usdtBalance + ': ' + visibility.mask('$' + usdtLabel)">
+        <text v-if="!visibility.hidden" class="nx-wallet-currency">$</text><text v-if="visibility.hidden" class="tabular-nums nx-wallet-amount">••••</text><text v-else-if="usdtBalanceReadable" class="tabular-nums nx-wallet-amount">{{ intPart }}<text class="nx-wallet-fraction">.{{ fracPart }}</text></text><text v-else class="tabular-nums nx-wallet-amount">—</text>
       </view>
       <view class="nx-wallet-nex" role="link" tabindex="0" @click="goNex" @keydown.enter.prevent="goNex" :aria-label="t.uiChrome.nexBalance + ': ' + nexLabel + ' UVT'">
-        <view class="nx-wallet-coin" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9zM8 15V9l8 6V9" /></svg></view>
+        <view class="nx-wallet-coin" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9zM8 15V9l8 6V9" /></svg></view>
         <text class="tabular-nums">{{ nexLabel }} UVT</text>
         <svg class="nx-wallet-nex-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
       </view>
@@ -24,7 +27,7 @@
       <text v-if="!compact && pendingLine" class="block nx-wallet-pending tabular-nums" :aria-hidden="pendingLine ? undefined : true">{{ pendingLine }}</text>
       <view class="nx-wallet-valuation">
         <text>{{ nexMarketLabel }}</text>
-        <view v-if="!compact" class="nx-wallet-bills" role="link" tabindex="0" @click="goBills"  @keydown.enter.prevent="goBills" ><text>{{ fmt(t.me.billsThisMonth, {n:billsThisMonth}) }}</text><text aria-hidden="true"> ›</text></view>
+        <view v-if="!compact" class="nx-wallet-bills" role="link" tabindex="0" @click="goBills"  @keydown.enter.prevent="goBills" ><text>{{ fmt(t.me.billsThisMonth, {n:visibility.mask(billsThisMonth)}) }}</text><text aria-hidden="true"> ›</text></view>
       </view>
     </view>
     </view>
@@ -63,6 +66,8 @@
 
 <script setup lang="ts">
 import { formatFinanceAmount as formatAmount } from "@/lib/finance-amount-display";
+import { useDataVisibility } from "@/store/data-visibility";
+import DataVisibilityToggle from "@/components/ui/data-visibility-toggle.vue";
 import { navReset, navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
@@ -79,6 +84,7 @@ import SectionHeader from "@/components/me/section-header.vue";
 import WalletActionBtn from "@/components/me/wallet-action-btn.vue";
 
 const t = useT();
+const visibility = useDataVisibility();
 defineProps<{compact?: boolean}>();
 const app = useApp();
 const bills = useBills();
@@ -107,12 +113,13 @@ const intPart = computed(() => usdtText.value.split(".")[0]);
 const fracPart = computed(() => usdtText.value.split(".")[1]);
 const auditCopy = useAuditUiCopy();
 const pendingLine = computed(() => {
+  if (visibility.hidden) return `${auditCopy.value.confirming} •••• · ${auditCopy.value.locked} ••••`;
   if (!bucketsReadable.value) return `${auditCopy.value.confirming} -- · ${auditCopy.value.locked} --`;
   return [buckets.value.pendingReviewUsdt > 0 ? `${auditCopy.value.confirming} ${fmtMoney(buckets.value.pendingReviewUsdt)}` : '', buckets.value.bonusLockedUsdt > 0 ? `${auditCopy.value.locked} ${fmtMoney(buckets.value.bonusLockedUsdt)}` : ''].filter(Boolean).join(' · ');
 });
 
 const nex = computed(() => app.user.nexBalance);
-const nexLabel = computed(() => fundsReadable.value ? formatAmount(nex.value) : "—");
+const nexLabel = computed(() => visibility.mask(fundsReadable.value ? formatAmount(nex.value) : "—"));
 const marketReady = computed(() => market.isMockMode || market.remoteReady);
 const nexChangeLabel = computed(() => {
   if (!marketReady.value || !market.change24hAvailable) return "—";
@@ -122,7 +129,7 @@ const nexChangeLabel = computed(() => {
 const nexMarketLabel = computed(() => {
   if (!marketReady.value) return "≈ — USDT · 1 UVT = — USDT";
   const price = market.nexPriceUSDT;
-  return `≈ ${fundsReadable.value ? formatAmount(nex.value * price) : "—"} USDT · 1 UVT = ${price.toFixed(3)} USDT`;
+  return `≈ ${visibility.mask(fundsReadable.value ? formatAmount(nex.value * price) : "—")} USDT · 1 UVT = ${price.toFixed(3)} USDT`;
 });
 
 const trialReady = computed(() => !remoteApiEnabled || trial.authorityStatus === "ready"
@@ -131,7 +138,7 @@ const slotsReadable = computed(() => !remoteApiEnabled || (app.remoteFleetHasSna
 const activeCount = computed(() => app.visibleDevices.filter((d) => d.activatedAt !== null).length);
 const trialSlot = computed(() => (trialReservesSlotNow() ? 1 : 0));
 const emptySlots = computed(() => Math.max(0, app.slotCap - app.activeSlotCount - trialSlot.value));
-const slotsLine = computed(() => fmt(openSlotsTemplate(t.value.me.walletSlotsLine, emptySlots.value), { active: activeCount.value, open: emptySlots.value }));
+const slotsLine = computed(() => fmt(openSlotsTemplate(t.value.me.walletSlotsLine, emptySlots.value), { active: visibility.mask(activeCount.value), open: visibility.mask(emptySlots.value) }));
 
 const billsThisMonth = computed(() => {
   if (fundsServerEnabled && bills.summaryStatus !== "ready") return "--";
@@ -274,16 +281,22 @@ const addDeviceBtnStyle: CSSProperties = {
 
 import { useSlotActionSheet } from "@/store/slot-action-sheet";
 const usdtLabel = computed(() => usdtBalanceReadable.value ? usdtText.value : "—");
+// Fit the complete formatted amount and currency; ordinary balances keep their existing size.
+const usdtFitStyle = computed<CSSProperties>(() => ({
+  "--nx-wallet-fit-size": `calc((100vw - 80px) / ${(visibility.mask(usdtLabel.value).length + 1) * 0.6})`,
+}));
 </script>
 
 <style scoped>
 .nx-wallet-summary { position: relative; overflow: hidden; padding: 20px; isolation: isolate; }
-.nx-wallet-heading { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; min-height: 44px; color: var(--v5-ink); }
-.nx-wallet-symbol { display: grid; place-items: center; width: 30px; height: 30px; color: var(--v5-nex); flex-shrink: 0; }
-.nx-wallet-title { flex: 1; min-width: 0; font: 600 20px/1.3 var(--font-v5); }
-.nx-wallet-total { position: relative; z-index: 1; display: flex; align-items: baseline; margin: 28px 0 26px; gap: 3px; color: var(--v5-ink); font-family: var(--font-v5); font-weight: 650; letter-spacing: -.035em; line-height: 1.1; }
-.nx-wallet-currency { font-size: clamp(28px, 8vw, 38px); }
-.nx-wallet-amount { min-width: 0; overflow-wrap: anywhere; font-size: clamp(32px, 10.5vw, 52px); }
+.nx-wallet-heading { position: relative; z-index: 1; display: flex; align-items: center; gap: 8px; min-height: 44px; color: var(--v5-ink); }
+.nx-wallet-heading-link { margin-left: auto; display: flex; align-items: center; gap: 6px; min-height: 44px; min-width: 44px; justify-content: flex-end; }
+.nx-wallet-symbol { display: grid; place-items: center; width: 24px; height: 24px; color: var(--v5-nex); flex-shrink: 0; }
+.nx-wallet-title { min-width: 0; font: 600 20px/1.3 var(--font-v5); }
+.nx-wallet-total { position: relative; z-index: 1; display: flex; align-items: baseline; margin: 28px 0 26px; gap: 3px; color: var(--v5-ink); font-family: var(--font-v5); font-weight: 500; letter-spacing: -.035em; line-height: 1.1; }
+.nx-wallet-currency { font-size: min(clamp(28px, 8vw, 38px), var(--nx-wallet-fit-size)); }
+.nx-wallet-amount { min-width: 0; white-space: nowrap; overflow-wrap: normal; font-size: min(clamp(32px, 10.5vw, 52px), var(--nx-wallet-fit-size)); }
+.nx-wallet-fraction { color: var(--v5-ink-3); }
 .nx-wallet-nex { position: relative; z-index: 1; display: flex; align-items: center; gap: 10px; padding-bottom: 8px; font: 500 20px/1.4 var(--font-v5); color: var(--v5-ink-2); overflow-wrap: anywhere; }
 .nx-wallet-coin { display: grid; place-items: center; flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; color: var(--v5-bg); background: var(--v5-nex); }
 .nx-wallet-arc { position: absolute; width: 360px; height: 300px; border-radius: 50%;  bottom: -220px; right: -190px; transform: rotate(-30deg); background: radial-gradient(ellipse at center, var(--v5-nex-soft), transparent 68%); box-shadow: 0 0 40px var(--v5-nex-soft); pointer-events: none; animation: wallet-arc-breathe 7s ease-in-out infinite alternate; }
@@ -294,7 +307,7 @@ const usdtLabel = computed(() => usdtBalanceReadable.value ? usdtText.value : "�
 .nx-wallet-bills { display: flex; align-items: center; min-height: 44px; }
 .nx-wallet-slot-block { grid-template-columns: minmax(0, 1fr) auto; }
 .nx-wallet-nex-chevron { margin-left: auto; color: var(--v5-ink-3); }
-.nx-wallet-nex:focus-visible, .nx-wallet-heading:focus-visible, .nx-wallet-bills:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; border-radius: 12px; }
+.nx-wallet-nex:focus-visible, .nx-wallet-heading-link:focus-visible, .nx-wallet-bills:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; border-radius: 12px; }
 @keyframes wallet-arc-breathe { from { opacity: .55; } to { opacity: 1; } }
 @media (max-width: 350px) { .nx-wallet-slot-block { grid-template-columns: minmax(0, 1fr); } .nx-wallet-summary { padding: 18px; } }
 @media (prefers-reduced-motion: reduce) { .nx-wallet-arc { animation: none; } }
@@ -302,17 +315,18 @@ const usdtLabel = computed(() => usdtBalanceReadable.value ? usdtText.value : "�
   .nx-wallet-particle { animation: none !important; transform: none; }
   .nx-wallet-particle { opacity: .5 !important; }
 }
-.nx-wallet-heading:active, .nx-wallet-bills:active { opacity: .7; }
+.nx-wallet-heading-link:active, .nx-wallet-bills:active { opacity: .7; }
 .nx-wallet--compact .nx-wallet-summary { padding: var(--v5-space-4); }
 .nx-wallet--compact .nx-wallet-title { font-size: var(--v5-type-body-m); }
 .nx-wallet-heading-bills { font-size: var(--v5-type-caption); color: var(--v5-ink-3); white-space: nowrap; }
-.nx-wallet--compact .nx-wallet-total { margin: var(--v5-space-3) 0; }
-.nx-wallet--compact .nx-wallet-amount { font-size: var(--v5-type-display-l); }
-.nx-wallet--compact .nx-wallet-nex { font-size: var(--v5-type-body-m); padding-bottom: 0; }
-.nx-wallet--compact .nx-wallet-coin { width: var(--v5-space-6); height: var(--v5-space-6); }
-.nx-wallet--compact .nx-wallet-details { padding: var(--v5-space-2) 0 0; }
+.nx-wallet--compact .nx-wallet-total { margin: 20px 0; }
+.nx-wallet--compact .nx-wallet-amount { font-size: min(var(--v5-type-display-l), var(--nx-wallet-fit-size)); }
+.nx-wallet--compact .nx-wallet-nex { min-height: 44px; font-size: var(--v5-type-body-m); padding-bottom: 0; }
+.nx-wallet--compact .nx-wallet-coin { width: 20px; height: 20px; }
+.nx-wallet--compact .nx-wallet-details { padding: 12px 0 0; }
 /* Keep compact feedback slots present; longer financial text can still wrap. */
 .nx-wallet--compact .nx-wallet-pending { min-height: 1.65em; overflow-wrap: anywhere; }
 .nx-wallet--compact .nx-wallet-valuation { min-height: 1.5em; align-items: flex-start; }
 .nx-wallet--compact .nx-wallet-valuation > text { min-width: 0; overflow-wrap: anywhere; }
+@media (min-width: 375px) { .nx-wallet-total { font-weight: 550; } }
 </style>

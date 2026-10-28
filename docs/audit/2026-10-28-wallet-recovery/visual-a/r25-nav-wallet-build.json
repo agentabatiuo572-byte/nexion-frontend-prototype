@@ -1,0 +1,39 @@
+{
+  "checkedAt": "2026-10-27T19:09:42.7201587Z",
+  "qaOrigin": "http://127.0.0.1:5291",
+  "fixedRoot": "wallet-r25/web-nav-final",
+  "publishedRoot": "wallet-r25/web-final",
+  "expectedHtmlSha256": "08a91a4f2b09a222d7c3c17b99555a2061e3fcf1f1fc401a1753a896d35ca175",
+  "httpEntryAssets": [
+    "/assets/uni.c39fe708.css",
+    "/assets/index-B_6NMEBX.js",
+    "/assets/index-H57LADHv.css"
+  ],
+  "files": [
+    {
+      "path": "web-nav-final/index.html",
+      "sha256": "08a91a4f2b09a222d7c3c17b99555a2061e3fcf1f1fc401a1753a896d35ca175"
+    },
+    {
+      "path": "web-final/index.html",
+      "sha256": "08a91a4f2b09a222d7c3c17b99555a2061e3fcf1f1fc401a1753a896d35ca175"
+    },
+    {
+      "path": "web-nav-final/assets/index-B_6NMEBX.js",
+      "sha256": "c991310b8b0f85ed2efbf9dafb129688d8a23b0ad9d427207ee98c154e1dd986"
+    },
+    {
+      "path": "web-nav-final/assets/index-H57LADHv.css",
+      "sha256": "202098a25c0dd1a2d6fa7644105aeeb86dc5833339b9059c794daea119f96c5b"
+    },
+    {
+      "path": "web-final/assets/index-B_6NMEBX.js",
+      "sha256": "c991310b8b0f85ed2efbf9dafb129688d8a23b0ad9d427207ee98c154e1dd986"
+    },
+    {
+      "path": "web-final/assets/index-H57LADHv.css",
+      "sha256": "202098a25c0dd1a2d6fa7644105aeeb86dc5833339b9059c794daea119f96c5b"
+    }
+  ],
+  "scope": "Independent Chrome visual QA. Source standard-screen 550 WIP received after these captures; not included in this package."
+}

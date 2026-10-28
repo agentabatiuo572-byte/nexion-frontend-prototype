@@ -1,7 +1,10 @@
 import * as Vue from 'vue';
 import { compileScript, parse } from '@vue/compiler-sfc';
 import ts from 'typescript';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { createPinia, setActivePinia } from 'pinia';
+import { useDataVisibility } from '@/store/data-visibility';
+import { createPassiveTabReadFixture } from '@/lib/passive-tab-read.test-support';
 import source from './referral-progress.vue?raw';
 import { teamRedesignCopy } from '@/i18n/team-redesign';
 import { promotionMachineSlots } from '@/components/catalog-machine-image';
@@ -15,10 +18,16 @@ const code = ts.transpileModule(script.content, {
 type Progress = { activityId: string; qualifyingOrders: number; ownRewards: never[] };
 type View = { loading: Vue.Ref<boolean>; error: Vue.Ref<boolean>; progressErrors:Vue.Ref<Record<string,boolean>>; progressBusy:Vue.Ref<Record<string,boolean>>; termsActivity:Vue.Ref<unknown>; hasMore: Vue.Ref<boolean>; activities: Vue.Ref<Array<{activityId:string}>>; expandedActivity: Vue.Ref<string|null>; progress: Vue.Ref<Record<string, Progress>>; loadProgress: (id: string) => Promise<void>; loadActivities: (reset?:boolean) => Promise<void>; showProgress: (id:string) => void; qualifyingCount: (id:string) => number|string; referralImageProps:(activity:PublicPromotion)=>{sku?:string;imageUrl?:string;refreshKey:string} };
 const cleanups: Array<() => void> = [];
+beforeEach(() => {
+  vi.stubGlobal('uni', { getStorageSync: () => undefined, setStorageSync: vi.fn() });
+  setActivePinia(createPinia());
+});
 const flush = async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); await Vue.nextTick(); };
 function mount() {
   const app = Vue.reactive({ accountKey: 'user:7', accountBindingEpoch: 1 });
   const auth = Vue.reactive({ isAuthenticated: true });
+  const passive = createPassiveTabReadFixture(() => JSON.stringify([app.accountKey, app.accountBindingEpoch, auth.isAuthenticated]));
+  passive.notifyPageActivation('/pages/team/team');
   const products=Vue.reactive<Record<string,{imageUrl?:string}>>({});
   const catalog=Vue.reactive({status:'ready',revision:'1',serverCanonical:true});
   const list = vi.fn().mockResolvedValue({ items: [{ activityId: 'A', template: 'DIRECT_REFERRAL', state:'ACTIVE' }], nextCursor: null, hasMore: false });
@@ -27,12 +36,14 @@ function mount() {
   const unmounted: Array<() => void> = [];
   const shown:Array<()=>void>=[],hidden:Array<()=>void>=[];
   const modules: Record<string, unknown> = {
+    '@/lib/passive-tab-read': passive,
     vue: { ...Vue, onBeforeUnmount: (fn: () => void) => unmounted.push(fn) },
     '@/composables/use-tab-page-lifecycle': {onShow:(fn:()=>void)=>shown.push(fn),onHide:(fn:()=>void)=>hidden.push(fn)},
     '@/api/runtime': { remoteApiEnabled: true, sessionVault:{read:()=>auth.isAuthenticated?{user:{userId:7}}:null}, promotionApi: {
       list, referral,
     } },
     '@/store/app': { useApp: () => app }, '@/store/auth': { useAuth: () => auth },
+    '@/store/data-visibility': { useDataVisibility },
     '@/i18n/use-t': { useT: () => Vue.ref({ promotion: {} }) },
     '@/store/locale': { useLocaleStore: () => ({ code: 'en' }) },
     '@/lib/promotion-display': { localized: () => '' }, './reward-rows.vue': { default: {} },
@@ -43,7 +54,7 @@ function mount() {
     '@/components/catalog-machine-image.vue': { default: {} },
     '@/components/catalog-machine-image': { promotionMachineSlots },
     '@/mock/products': { getProduct:(id:string)=>products[id] },
-    '@/store/product-catalog': { productCatalogState:catalog,refreshProductCatalog },
+    '@/store/product-catalog': { productCatalogState:catalog,refreshProductCatalog,revalidateProductCatalog:refreshProductCatalog },
   };
   const exports = { default: {} as { setup: (props: object, context: { emit: () => void; expose: () => void }) => View } };
   new Function('require', 'exports', code)((id: string) => {
@@ -54,9 +65,11 @@ function mount() {
   const view = scope.run(() => exports.default.setup({}, { emit() {}, expose() {} }))!;
   const unmount = () => { unmounted.forEach(fn => fn()); scope.stop(); };
   cleanups.push(unmount);
-  return { app, auth, view, list, referral, unmount, products, catalog, refreshProductCatalog, show:()=>shown.forEach(fn=>fn()), hide:()=>hidden.forEach(fn=>fn()) };
+  return { app, auth, view, list, referral, unmount, products, catalog, refreshProductCatalog,
+    show:()=>{passive.notifyPageActivation('/pages/team/team');shown.forEach(fn=>fn());},
+    hide:()=>{passive.notifyPageActivation('/pages/me/preferences');hidden.forEach(fn=>fn());} };
 }
-afterEach(() => cleanups.splice(0).forEach(fn => fn()));
+afterEach(() => { cleanups.splice(0).forEach(fn => fn()); vi.unstubAllGlobals(); });
 
 it('clears the failed read when refreshing the same invitation progress successfully', async () => {
   const screen = mount(); await flush();

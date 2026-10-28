@@ -128,9 +128,11 @@ export interface RuntimeRevisionScope {
 }
 
 /** Invalidate responses captured before a catalogue or account refresh. */
-export function advanceRuntimeRevision(_reason?: unknown): void {
+export function advanceRuntimeRevision(_reason?: unknown, beforeNotify?: (scope: RuntimeRevisionScope) => void): void {
   currentRuntimeRevision += 1;
   const scope = captureRuntimeRevision();
+  // Stamp derived display context after the epoch moves, before observers run.
+  beforeNotify?.(scope);
   runtimeRevisionListeners.forEach((listener) => listener(scope));
 }
 

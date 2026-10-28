@@ -5,7 +5,13 @@
   replica white pill (intentional, both themes).
 -->
 <template>
+  <view v-if="value === null" class="flex items-start" :style="[rowStyle, { opacity: 1 }]" role="group" tabindex="-1" aria-disabled="true" :aria-label="label + ' · ' + unknownLabel">
+    <view class="grid place-items-center shrink-0" :style="iconBoxStyle"><slot name="icon" /></view>
+    <view class="min-w-0" style="flex: 1"><text class="block" :style="labelStyle">{{ label }}</text><text v-if="hint" class="block" :style="hintStyle">{{ hint }}</text></view>
+    <view class="shrink-0 grid place-items-center" :style="{ width: '36px', height: '20px', color: 'var(--v5-ink-3)' }" aria-hidden="true"><text>—</text></view>
+  </view>
   <view
+    v-else
     class="flex items-start transition"
     :class="locked ? '' : 'active:bg-[var(--v5-surface-2)]'"
     :style="rowStyle"
@@ -35,8 +41,8 @@
 import { computed, type CSSProperties } from "vue";
 
 const props = withDefaults(
-  defineProps<{ label: string; hint?: string; value: boolean; last?: boolean; locked?: boolean }>(),
-  { last: false, locked: false },
+  defineProps<{ label: string; hint?: string; value: boolean | null; last?: boolean; locked?: boolean; unknownLabel?: string }>(),
+  { last: false, locked: false, unknownLabel: "—" },
 );
 const emit = defineEmits<{ toggle: [] }>();
 

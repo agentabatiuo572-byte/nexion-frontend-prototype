@@ -4,7 +4,7 @@ import { advanceRuntimeRevision } from "@/api/order-api";
 import type { ReferralRewardSnapshot } from "@/api/referral-reward-api";
 
 const remote = vi.hoisted(() => ({
-  remoteApiEnabled: true,
+  remoteApiEnabled: true, apiRuntimeConfig: { environment: "dev", baseUrl: "https://test.invalid" },
   referralRewardApi: { snapshot: vi.fn() },
 }));
 

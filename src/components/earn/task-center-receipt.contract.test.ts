@@ -110,6 +110,7 @@ async function setup() {
   const modal={props:['receipt'],emits:['close'],setup:(p:any,c:any)=>()=>Vue.h('probe-modal',{receipt:p.receipt,onClose:()=>c.emit('close')})};
   const noChild={render:()=>null}; const navigation={navTo:vi.fn()};
   const imports=(id:string):any=>{
+    if(id==='@/store/data-visibility') return { useDataVisibility: () => ({ hidden:false, mask:String }) };
     if(id==='@/lib/amount-display')return{formatAmount};
     if(id==='@/lib/usd-display')return{formatUsdOverviewParts};
     if(id==='@/i18n/remainder-ui')return{useRemainderUiCopy:()=>Vue.ref(remainderUiCopy.zh)};
@@ -131,6 +132,7 @@ async function setup() {
     if(id==='@/store/receipts')return{useReceipts:()=>{throw new Error('MOCK_RECEIPTS_FORBIDDEN');}};
     if(id==='@/store/earn-config')return{prepareEarnConfig:()=>{},useEarnConfig:()=>({lockedTeasers:()=>[],refreshRoute:()=>Promise.resolve()})};
     if(id==='@/store/free-trial')return{useFreeTrial:()=>({refreshRemote:()=>Promise.resolve()})};
+    if(id==='@/composables/use-trial-presentation')return{useTrialPresentation:()=>({active:Vue.ref(false),reservedSlots:Vue.ref(0)})};
     if(id==='@/composables/use-capacity-explainer')return{useCapacityExplainer:()=>({open:vi.fn()})};
     if(id==='@/lib/account-scope')return{captureAccountScope:()=>({accountKey:app.accountKey,bindingEpoch:app.accountBindingEpoch}),isCurrentAccountScope:()=>true};
     if(id==='@/lib/day-one-page-observation')return dayOnePageObservationFixture();

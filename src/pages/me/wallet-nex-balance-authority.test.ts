@@ -1,22 +1,29 @@
-import { expect, test } from "vitest";
-import { computed, reactive } from "vue";
+import { afterEach, expect, test } from "vitest";
+import { computed, effectScope, reactive, ref, watch, type EffectScope } from "vue";
 import ts from "typescript";
 import source from "./wallet-nex.vue?raw";
 import { remoteAuthorityStatus } from "@/lib/remote-authority-display";
 import { formatFinanceAmount } from "@/lib/finance-amount-display";
 
+const scopes: EffectScope[] = [];
+afterEach(() => scopes.splice(0).forEach(scope => scope.stop()));
+
 function mount(remote: boolean, hasSnapshot: boolean, balance: number, marketReady = true) {
-  const block = source.slice(source.indexOf("const nexBalance ="), source.indexOf("// NEX activity"))
+  const block = source.slice(source.indexOf("const locale = useLocaleStore();"), source.indexOf("let priceTimer:"))
+    + source.slice(source.indexOf("const nexBalance ="), source.indexOf("// NEX activity"))
     + source.slice(source.indexOf("function fmtNum("), source.indexOf("function goMarket("))
     + source.slice(source.indexOf("const breakdownRows ="), source.indexOf("const useTiles ="));
   const code = ts.transpileModule(block, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-  const app = reactive({ remoteFleetHasSnapshot: hasSnapshot, user: { nexBalance: balance }, visibleDevices: [] });
+  const app = reactive({ accountKey: "user:wallet-fixture", accountBindingEpoch: 1, remoteFleetHasSnapshot: hasSnapshot, user: { nexBalance: balance }, visibleDevices: [] });
+  const locale = reactive({ code: "en" });
+  const apiRuntimeConfig = reactive({ environment: "dev", baseUrl: "https://test.example" });
   const market = reactive({ remoteReady: marketReady, remoteError: marketReady ? null : "failed", nexPriceUSDT: 2, costBasis: 1, change24hPct: 0 });
   const bills = reactive({ summaryStatus: "error", summary: { todayNexEarn: 0, pendingNex: 0 } });
   const section = { liquid: "liquid", mining: "mining", pending: "pending", costBasis: "basis", totalSpent: "spent", currentValue: "value" };
-  const state = new Function("formatFinanceAmount", "computed", "app", "market", "remoteApiEnabled", "remoteAuthorityStatus", "bills", "t", "tintIcon", "ICON", code + ";return {breakdownRows,pnlSummary,pnlCells,balanceKnown,valuationKnown,nexBalance,usdValue,fmtNum,fmtUSD};")(
+  const scope = effectScope(); scopes.push(scope);
+  const state = scope.run(() => new Function("formatFinanceAmount", "computed", "app", "market", "remoteApiEnabled", "remoteAuthorityStatus", "bills", "t", "tintIcon", "ICON", "ref", "watch", "useLocaleStore", "apiRuntimeConfig", code + ";return {breakdownRows,pnlSummary,pnlCells,balanceKnown,valuationKnown,nexBalance,usdValue,fmtNum,fmtUSD};")(
     formatFinanceAmount, computed, app, market, remote, remoteAuthorityStatus, bills,
-    { value: { nexWallet: { breakdown: section, pnl: section } } }, () => "", {});
+    { value: { nexWallet: { breakdown: section, pnl: section } } }, () => "", {}, ref, watch, () => locale, apiRuntimeConfig));
   const balanceExpression = source.match(/:style="heroNumStyle">\{\{(.*?)\}\}/)?.[1];
   const valueExpression = source.match(/:style="heroUsdStyle">≈ \{\{(.*?)\}\}/)?.[1];
   if (!balanceExpression || !valueExpression) throw new Error("NEX hero bindings missing");

@@ -1,0 +1,25 @@
+/* Compact notices reserve a trailing touch target before wrapping their copy. */
+.nx-inline-recovery {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+.nx-inline-recovery__copy {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.nx-inline-recovery__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: end;
+  min-width: 44px;
+  min-height: 44px;
+  white-space: nowrap;
+}
+.nx-inline-recovery > .nx-inline-recovery__action[role="button"],
+.nx-button.nx-retry-action[role="button"] {
+  font: 600 13px/20px var(--font-v5);
+}

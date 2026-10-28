@@ -1,0 +1,745 @@
+{
+  "entry": "index-BJuG9oWu.js",
+  "css": "index-H57LADHv.css",
+  "htmlSha256": "9F3BEA70A5F8AD0BFC7ADB1BA862432CDC9045C47EC375930598B5CC2932A7C6",
+  "jsSha256": "C3366E94A9985B11C1FC7E859DE51633DEF0A5534CF55EB2E2D42ECC73BB48B0",
+  "reads": [
+    {
+      "label": "rank-fixed-hidden-final",
+      "aria": null,
+      "at": "2026-10-27T20:02:22.908Z",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-BJuG9oWu.js"
+      ],
+      "eye": "true",
+      "public": [
+        "12,768",
+        "3,206"
+      ],
+      "rank": "设备预估排名\n••••",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/index/index"
+    },
+    {
+      "aria": [
+        {
+          "cls": "nx-brand-lockup",
+          "label": "UVEL",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-icon-btn nx-design-glass",
+          "label": "搜索",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-icon-btn nx-bell nx-design-glass",
+          "label": "消息 · 3",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "data-visibility-toggle",
+          "label": "隐藏资产、收益、算力和团队统计",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-button nx-button--primary nx-button--medium daily-check-in-row__action",
+          "label": "签到",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "filled",
+          "label": "第 1 天 · 已签到",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "filled",
+          "label": "第 2 天 · 已签到",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "today",
+          "label": "第 3 天 · 今天 · UVT 20.00",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "",
+          "label": "第 4 天",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "",
+          "label": "第 5 天",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "",
+          "label": "第 6 天",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "gift",
+          "label": "第 7 天 · UVT 40.00",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "vb-card",
+          "label": "设备代金券",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "trial-cta",
+          "label": "立即领取",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "home-action-ring",
+          "label": "3/6 项已完成",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-button nx-button--text nx-button--medium",
+          "label": "管理",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "entry-advert-target",
+          "label": "买 UVELBox S1 · 查看活动商品",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "entry-home-deadline",
+          "label": "活动规则",
+          "tag": "UNI-TEXT",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "entry-pagination",
+          "label": "切换活动 · 1 / 3",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-button nx-button--text nx-button--medium",
+          "label": "查看详情",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-nova-bubble",
+          "label": "Nova · 帮助与客服",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-glass-segments nx-glass-segments--equal nx-glass-segments--navigation nx-tabbar-pill",
+          "label": "",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-glass-option nx-glass-option--selected nx-tab",
+          "label": "首页",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-glass-option nx-tab",
+          "label": "赚取",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-glass-option nx-tab",
+          "label": "商城",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-glass-option nx-tab",
+          "label": "团队",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-glass-option nx-tab",
+          "label": "我的",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        }
+      ],
+      "at": "2026-10-27T20:02:24.089Z",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-BJuG9oWu.js"
+      ],
+      "eyes": [
+        {
+          "html": "<svg data-v-944469b2=\"\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><path data-v-944469b2=\"\" d=\"M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z\"></path><circle data-v-944469b2=\"\" cx=\"12\" cy=\"12\" r=\"3\"></circle><!----></svg>",
+          "label": "隐藏资产、收益、算力和团队统计",
+          "pressed": "false",
+          "rect": {
+            "bottom": 151,
+            "height": 44,
+            "left": 71.92708587646484,
+            "right": 115.92708587646484,
+            "top": 107,
+            "width": 44,
+            "x": 71.92708587646484,
+            "y": 107
+          }
+        }
+      ],
+      "graphs": [],
+      "height": 844,
+      "overflow": 0,
+      "reduced": false,
+      "text": "3\n早上好, Alex\n今日收益\nUSDT\n$\n16.24\n→ 较昨日 0.0% · 已结算 10 单\n已连续签到 2 天\n今天签到领 5 UVT· 第 3 天 UVT 20.00\n签到\n1\n2\n+5\n今天\n·\n4\n·\n5\n·\n6\n+40\n我的福利\n代金券\n1 张\n$\n50\n最高可减\n领取后结算使用\n免费试用 3 天\nUVELBox S1\n无需付款\n领取\n待办\n1\n3/6\n新手任务\n全部完成领\n500 UVT\n·剩 16 小时\n我的算力列队\n— / —\n管理\n正在读取设备\n购机赠礼\n买 UVELBox S1\n送 Cloud Share 1 份\n剩 29 天 · 活动规则 ›\n网络实况\n查看详情\n注册用户（估算）\n12,768\n在线设备\n3,206\n设备预估排名\n#184",
+      "theme": "dark",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/index/index",
+      "width": 390,
+      "label": "rank-final-show-restores"
+    },
+    {
+      "aria": [
+        {
+          "cls": "nx-brand-lockup",
+          "label": "UVEL",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-icon-btn nx-design-glass",
+          "label": "搜索",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-icon-btn nx-bell nx-design-glass",
+          "label": "消息 · 3",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "data-visibility-toggle",
+          "label": "显示资产、收益、算力和团队统计",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-button nx-button--primary nx-button--medium daily-check-in-row__action",
+          "label": "签到",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "filled",
+          "label": "第 1 天 · 已签到",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "filled",
+          "label": "第 2 天 · 已签到",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "today",
+          "label": "第 3 天 · 今天 · UVT 20.00",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "",
+          "label": "第 4 天",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "",
+          "label": "第 5 天",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "",
+          "label": "第 6 天",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "gift",
+          "label": "第 7 天 · UVT 40.00",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "vb-card",
+          "label": "设备代金券",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "trial-cta",
+          "label": "立即领取",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "home-action-ring",
+          "label": "新手任务 · ••••",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-button nx-button--text nx-button--medium",
+          "label": "管理",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "entry-advert-target",
+          "label": "买 UVELBox S1 · 查看活动商品",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "entry-home-deadline",
+          "label": "活动规则",
+          "tag": "UNI-TEXT",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "entry-pagination",
+          "label": "切换活动 · 1 / 3",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-button nx-button--text nx-button--medium",
+          "label": "查看详情",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-nova-bubble",
+          "label": "Nova · 帮助与客服",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-glass-segments nx-glass-segments--equal nx-glass-segments--navigation nx-tabbar-pill",
+          "label": "",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-glass-option nx-glass-option--selected nx-tab",
+          "label": "首页",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-glass-option nx-tab",
+          "label": "赚取",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-glass-option nx-tab",
+          "label": "商城",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-glass-option nx-tab",
+          "label": "团队",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        },
+        {
+          "cls": "nx-glass-option nx-tab",
+          "label": "我的",
+          "tag": "UNI-VIEW",
+          "title": null,
+          "value": null,
+          "valueText": null
+        }
+      ],
+      "at": "2026-10-27T20:02:24.478Z",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-BJuG9oWu.js"
+      ],
+      "eyes": [
+        {
+          "html": "<svg data-v-944469b2=\"\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><path data-v-944469b2=\"\" d=\"M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z\"></path><circle data-v-944469b2=\"\" cx=\"12\" cy=\"12\" r=\"3\"></circle><path data-v-944469b2=\"\" d=\"m3 3 18 18\"></path></svg>",
+          "label": "显示资产、收益、算力和团队统计",
+          "pressed": "true",
+          "rect": {
+            "bottom": 151,
+            "height": 44,
+            "left": 71.92708587646484,
+            "right": 115.92708587646484,
+            "top": 107,
+            "width": 44,
+            "x": 71.92708587646484,
+            "y": 107
+          }
+        }
+      ],
+      "graphs": [],
+      "height": 844,
+      "overflow": 0,
+      "reduced": false,
+      "text": "3\n早上好, Alex\n今日收益\nUSDT\n••••\n较昨日 •••• · 已结算 •••• 单\n已连续签到 2 天\n今天签到领 5 UVT· 第 3 天 UVT 20.00\n签到\n1\n2\n+5\n今天\n·\n4\n·\n5\n·\n6\n+40\n我的福利\n代金券\n1 张\n$\n50\n最高可减\n领取后结算使用\n免费试用 3 天\nUVELBox S1\n无需付款\n领取\n待办\n1\n••••\n新手任务\n全部完成领\n500 UVT\n·剩 16 小时\n我的算力列队\n••••\n管理\n正在读取设备\n购机赠礼\n买 UVELBox S1\n送 Cloud Share 1 份\n剩 29 天 · 活动规则 ›\n网络实况\n查看详情\n注册用户（估算）\n12,768\n在线设备\n3,206\n设备预估排名\n••••",
+      "theme": "dark",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/index/index",
+      "width": 390,
+      "label": "rank-final-hide-again"
+    },
+    {
+      "label": "Đóng",
+      "after": "none",
+      "before": "none",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-BJuG9oWu.js"
+      ],
+      "hitLeft6": false,
+      "hitTop6": false,
+      "rect": {
+        "bottom": 255.0729217529297,
+        "height": 30,
+        "left": 272.65625,
+        "right": 302,
+        "top": 225.0729217529297,
+        "width": 29.34375,
+        "x": 272.65625,
+        "y": 225.0729217529297
+      },
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn"
+    }
+  ],
+  "actions": [
+    {
+      "label": "rank-final-show-restores",
+      "key": "click",
+      "before": "http://127.0.0.1:5294/?nx_device=off#/pages/index/index",
+      "after": "http://127.0.0.1:5294/?nx_device=off#/pages/index/index",
+      "sameRoute": true,
+      "pressed": "false"
+    },
+    {
+      "label": "rank-final-hide-again",
+      "key": "click",
+      "before": "http://127.0.0.1:5294/?nx_device=off#/pages/index/index",
+      "after": "http://127.0.0.1:5294/?nx_device=off#/pages/index/index",
+      "sameRoute": true,
+      "pressed": "true"
+    },
+    {
+      "label": "BJu-rocket-reduced-Space",
+      "dialog": "Công suất tác vụ & trợ cấp máy mới",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn"
+    }
+  ],
+  "animations": [
+    {
+      "kind": "final-rocket-normal",
+      "aria": "Kho tác vụ AI đang nâng cấp",
+      "at": "2026-10-27T20:03:04.918Z",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-BJuG9oWu.js"
+      ],
+      "parts": [
+        {
+          "cls": "earn-capacity-info__rocket",
+          "duration": "1.6s",
+          "iterations": "infinite",
+          "name": "earn-rocket-hop-3004bc4b",
+          "opacity": "1",
+          "transform": "matrix(1, 0, 0, 1, 0, 0.887048)"
+        },
+        {
+          "cls": "earn-capacity-info__flame",
+          "duration": "0.72s",
+          "iterations": "infinite",
+          "name": "earn-rocket-flame-3004bc4b",
+          "opacity": "0.654233",
+          "transform": "matrix(1, 0, 0, 0.727395, 0, 0)"
+        },
+        {
+          "cls": "earn-capacity-info__exhaust",
+          "duration": "0.9s",
+          "iterations": "infinite",
+          "name": "earn-rocket-exhaust-3004bc4b",
+          "opacity": "0.467691",
+          "transform": "matrix(1, 0, 0, 1, 0, 0.527563)"
+        }
+      ],
+      "reduced": false,
+      "root": {
+        "bottom": 375.16644287109375,
+        "height": 44,
+        "left": 146.90625,
+        "right": 190.90625,
+        "top": 331.16644287109375,
+        "width": 44,
+        "x": 146.90625,
+        "y": 331.16644287109375
+      },
+      "svg": {
+        "bottom": 364.16644287109375,
+        "height": 22,
+        "left": 157.90625,
+        "right": 179.90625,
+        "top": 342.16644287109375,
+        "width": 22,
+        "x": 157.90625,
+        "y": 342.16644287109375
+      },
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn"
+    },
+    {
+      "kind": "final-rocket-iterations",
+      "events": [
+        {
+          "at": 1644.300000011921,
+          "duration": "0.72s",
+          "elapsed": 0.72,
+          "name": "earn-rocket-flame-3004bc4b"
+        },
+        {
+          "at": 1817.0999999940395,
+          "duration": "0.9s",
+          "elapsed": 0.9,
+          "name": "earn-rocket-exhaust-3004bc4b"
+        },
+        {
+          "at": 2364,
+          "duration": "0.72s",
+          "elapsed": 1.44,
+          "name": "earn-rocket-flame-3004bc4b"
+        },
+        {
+          "at": 2523.800000011921,
+          "duration": "1.6s",
+          "elapsed": 1.6,
+          "name": "earn-rocket-hop-3004bc4b"
+        },
+        {
+          "at": 2723.699999988079,
+          "duration": "0.9s",
+          "elapsed": 1.8,
+          "name": "earn-rocket-exhaust-3004bc4b"
+        },
+        {
+          "at": 3083.800000011921,
+          "duration": "0.72s",
+          "elapsed": 2.16,
+          "name": "earn-rocket-flame-3004bc4b"
+        },
+        {
+          "at": 3617.099999994039,
+          "duration": "0.9s",
+          "elapsed": 2.7,
+          "name": "earn-rocket-exhaust-3004bc4b"
+        },
+        {
+          "at": 3803.699999988079,
+          "duration": "0.72s",
+          "elapsed": 2.88,
+          "name": "earn-rocket-flame-3004bc4b"
+        },
+        {
+          "at": 4123.5999999940395,
+          "duration": "1.6s",
+          "elapsed": 3.2,
+          "name": "earn-rocket-hop-3004bc4b"
+        },
+        {
+          "at": 4523.699999988079,
+          "duration": "0.72s",
+          "elapsed": 3.5999999999999996,
+          "name": "earn-rocket-flame-3004bc4b"
+        },
+        {
+          "at": 4523.800000011921,
+          "duration": "0.9s",
+          "elapsed": 3.6,
+          "name": "earn-rocket-exhaust-3004bc4b"
+        }
+      ]
+    },
+    {
+      "kind": "BJu-rocket-reduced",
+      "at": "2026-10-27T20:03:57.760Z",
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-BJuG9oWu.js"
+      ],
+      "parts": [
+        {
+          "animation": "none",
+          "cls": "earn-capacity-info__rocket",
+          "opacity": "1",
+          "transform": "none"
+        },
+        {
+          "animation": "none",
+          "cls": "earn-capacity-info__flame",
+          "opacity": "1",
+          "transform": "none"
+        },
+        {
+          "animation": "none",
+          "cls": "earn-capacity-info__exhaust",
+          "opacity": "0",
+          "transform": "none"
+        }
+      ],
+      "reduced": true,
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/earn/earn"
+    }
+  ],
+  "images": [
+    {
+      "name": "final-rank-hidden-390-zh-dark",
+      "sha256": "469a3ffa537861634a294879f128bf0cb6e14390c2b9b36644a1a4f6b6f9d89d"
+    },
+    {
+      "name": "final-rocket-320-vi-dark",
+      "sha256": "33d86e16876d4689f323a06e275c5530f7d5173a4f8d52656b3308a4f520cc3b"
+    },
+    {
+      "name": "final-P2-capacity-close-320-vi-dark",
+      "sha256": "bb20f8ad18adca5de5665a018382000412726bbbcdb2052f8b82cbbb1ee16341"
+    }
+  ],
+  "notes": [
+    "Rank fixed verified hidden/show/hidden and public counts preserved",
+    "Capacity close still<44 in this package, not signed",
+    "Deep-selector App compatibility candidate not yet tested; BJu browser is not native installation proof",
+    "All unrelated prior tests inherited from Bf by explicit limited delta"
+  ]
+}

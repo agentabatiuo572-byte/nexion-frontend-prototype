@@ -11,12 +11,16 @@ import { useTrialConfig } from "@/store/trial-config";
 import { useTrialPresentation } from '@/composables/use-trial-presentation';
 import NxSection from '@/components/ui/nx-section.vue';
 import { useAuditUiCopy } from '@/i18n/audit-ui';
+import { remoteApiEnabled } from '@/api/runtime';
+import { voucherSupportsSurface } from '@/lib/voucher-sheet-authority';
 const copy = useAuditUiCopy();
 const voucher = useVoucher();
 const trial = useFreeTrial();
 const trialCfg = useTrialConfig();
 const trialView = useTrialPresentation();
-const hasVoucher = computed(() => voucher.hasClaimableForSurface("home") || voucher.claimedUnused.length > 0);
+const hasVoucher = computed(() => remoteApiEnabled
+  ? voucher.presentationOffers.some(offer => !voucher.presentationClaimable.some(row => row.id === offer.id) || voucherSupportsSurface(offer, 'home'))
+  : voucher.hasClaimableForSurface('home') || voucher.claimedUnused.length > 0);
 const hasTrial = computed(() => (trialView.status.value !== null && trialView.status.value !== 'none')
   || (trial.status === "none" && trialCfg.config.seatsLeftToday > 0
     && (trial.showHeroPromo() || trial.eligibility().reason === 'capacity-full')));

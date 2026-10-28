@@ -4,25 +4,27 @@
       <SubPageHeader back="/pages/team/team" :title="t.tree.pageTitle" />
 
       <view class="team-tree-content">
-        <view v-if="remoteApiEnabled && network.remoteStatus === 'error'" :style="errorStateStyle">
-          <text class="block" style="font-weight: 600">{{ t.network.projectionErrorTitle }}</text>
-          <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ t.network.projectionErrorDesc }}</text>
-          <view role="button" tabindex="0" :style="retryStyle" @click="network.refreshCanonicalNetwork()" @keydown.enter.prevent="network.refreshCanonicalNetwork()" @keydown.space.prevent="network.refreshCanonicalNetwork()"><text>{{ t.network.retry }}</text><text aria-hidden="true">→</text></view>
+        <view v-if="remoteApiEnabled && network.remoteStatus === 'error'" class="nx-inline-recovery" :style="errorStateStyle">
+          <view class="nx-inline-recovery__copy">
+            <text class="block" style="font-weight: 600">{{ t.network.projectionErrorTitle }}</text>
+            <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ t.network.projectionErrorDesc }}</text>
+          </view>
+          <view class="nx-inline-recovery__action nx-card-recovery-action nx-card-recovery-action--quiet nx-card-recovery-action--inline" role="button" tabindex="0" @click="network.refreshCanonicalNetwork()" @keydown.enter.prevent="network.refreshCanonicalNetwork()" @keydown.space.prevent="network.refreshCanonicalNetwork()"><text>{{ t.network.retry }}</text><text aria-hidden="true">→</text></view>
         </view>
         <view class="tree-hero">
           <view class="tree-hero-copy">
             <text class="block" :style="metricLabelStyle">{{ t.tree.totalNetwork }}</text>
             <view class="tree-total">
-              <text class="font-display tabular-nums">{{ remoteApiEnabled && network.remoteStatus !== 'ready' ? '—' : members.length }}</text>
+              <text class="font-display tabular-nums">{{ !networkReadable ? '—' : members.length }}</text>
               <text class="tree-total-unit">{{ members.length === 1 ? t.tree.member : t.tree.membersPlural }}</text>
             </view>
             <text class="block" :style="metricLabelStyle">{{ t.tree.monthlyVolume }}</text>
-            <text class="block tree-points tabular-nums">{{ remoteApiEnabled && network.remoteStatus !== 'ready' ? '—' : formatComputePoints(network.totalMonthComputePoints, locale.code) }}</text>
+            <text class="block tree-points tabular-nums">{{ !networkReadable ? '—' : formatComputePoints(network.totalMonthComputePoints, locale.code) }}</text>
           </view>
           <TeamArt kind="members" :size="112" />
         </view>
 
-        <view v-if="rosterMounted" v-show="!remoteApiEnabled || network.remoteStatus === 'ready'">
+        <view v-if="rosterMounted" v-show="networkReadable">
           <!-- Direct section -->
           <TeamRosterSection
             color="var(--v5-brand)"
@@ -55,7 +57,7 @@
             @toggle="expanded.extended = !expanded.extended"
           />
         </view>
-        <view v-if="remoteApiEnabled && (network.remoteStatus === 'idle' || network.remoteStatus === 'loading')" :style="readStateStyle" role="status" aria-busy="true">
+        <view v-if="remoteApiEnabled && !networkReadable && (network.remoteStatus === 'idle' || network.remoteStatus === 'loading')" :style="readStateStyle" role="status" aria-busy="true">
           <text>{{ t.network.projectionLoadingTitle }}</text>
         </view>
         <view class="tree-network-link" role="button" tabindex="0" @click="navTo('/pages/team/network')" @keydown.enter.prevent="navTo('/pages/team/network')" @keydown.space.prevent="navTo('/pages/team/network')">
@@ -77,18 +79,24 @@ import { onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import TeamRosterSection from "@/components/team/team-roster-section.vue";
+import { useAuth } from '@/store/auth';
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useNetwork, type NetworkMember } from "@/store/network";
 import { UNILEVEL_USDT } from "@/store/commission";
-import { remoteApiEnabled } from "@/api/runtime";
+import { apiRuntimeConfig, remoteApiEnabled } from "@/api/runtime";
 
 const t = useT();
+const auth = useAuth();
+const environmentInvalidated = ref(false);
+watch(() => [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const, () => { environmentInvalidated.value = true; }, { flush: 'sync' });
 const locale = useLocaleStore();
 const network = useNetwork();
 onMounted(() => { if (remoteApiEnabled) void network.ensureCanonicalNetwork(); });
 onShow(() => { if (remoteApiEnabled) void network.ensureCanonicalNetwork(); });
 
+const networkReadable = computed(() => !remoteApiEnabled || (auth.isAuthenticated && !environmentInvalidated.value && (network.remoteStatus === 'ready'
+  || (network.remoteStatus === 'loading' && network.hasRemoteSnapshot))));
 const members = computed(() => network.members);
 // Keep an already opened member mounted during the same account's read refresh.
 // Fresh loading/error states must not mount empty rosters before the first result.
@@ -118,7 +126,6 @@ const extendedSubtitle = computed(() =>
 const expanded = reactive<Record<"direct" | "extended", boolean>>({ direct: true, extended: true });
 
 const errorStateStyle: CSSProperties = { padding: "12px 0", borderBottom: "1px solid var(--v5-border)", color: "var(--v5-ink)" };
-const retryStyle: CSSProperties = { marginTop: "10px", minHeight: "44px", display: "flex", justifyContent: "center", alignItems: "center", gap: "12px", padding: "8px 16px", borderRadius: "999px", border: "1px solid var(--v5-border)", background: "color-mix(in srgb, var(--v5-ink) 6%, transparent)", color: "var(--v5-ink)" };
 const readStateStyle: CSSProperties = { minHeight: "88px", display: "grid", placeItems: "center", color: "var(--v5-ink-3)", fontSize: "13px" };
 const metricLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.5 };
 </script>

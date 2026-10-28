@@ -29,7 +29,7 @@ import source from "./share-poster-sheet.vue?raw";
 import segmentSource from "../glass-segments.vue?raw";
 
 const remote = vi.hoisted(() => ({
-  remoteApiEnabled: true, fundsServerEnabled: true, expectedApiEnvironment: "dev",
+  remoteApiEnabled: true, apiRuntimeConfig: { environment: "dev", baseUrl: "https://test.invalid" }, fundsServerEnabled: true, expectedApiEnvironment: "dev",
   sessionVault: { read: vi.fn() }, deviceE3Api: { fleet: vi.fn() }, appHomeApi: { fetch: vi.fn() },
   taskAssignmentApi: { state: vi.fn() }, withdrawalApi: { list: vi.fn(), submit: vi.fn(), get: vi.fn() },
   purchaseEligibilityApi: { snapshot: vi.fn() },

@@ -54,7 +54,7 @@ export interface SessionListItem {
   device: string;
   location: string;
   ip: string;
-  lastActiveMs: number;
+  lastActiveMs: number | null;
   current: boolean;
   entrySurface: EntrySurface;
 }

@@ -1,0 +1,22 @@
+{
+  "at": "2026-10-27T19:19:55.863Z",
+  "proxy5294": "off",
+  "offReadbackAt": "2026-10-27T19:18:08.489Z",
+  "ownTabsClosed": [
+    "1733373126",
+    "1733373136",
+    "1733373141"
+  ],
+  "viewportOverridesCleared": [
+    "1733373136",
+    "1733373141"
+  ],
+  "finalEntry": "index-DQPnbcrO.js",
+  "finalNormalAmount": "52,800.64",
+  "servicesStopped": [],
+  "sourceEdits": [],
+  "storageCleared": false,
+  "scope": "nav icon-only + wallet hierarchy/500small550standard only",
+  "mediaOverrideCleared": true,
+  "reducedMotionMatches": false
+}

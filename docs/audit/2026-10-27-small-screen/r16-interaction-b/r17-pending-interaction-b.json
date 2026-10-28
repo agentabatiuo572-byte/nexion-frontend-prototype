@@ -1,0 +1,19 @@
+{
+  "fromBuild": "index-CCvSPlak.js",
+  "doNotRepeat": "Already covered ordinary r16 benefit interactions unless r17 relevant diff; no historical full matrix",
+  "open": [
+    "B-R16-P2-01 capacity-full VI card height 282.33px / 8.7 OPEN; r17 source fix not runtime verified",
+    "B-R15-P2-01 ref native root scrollbar 8.7 OPEN; r16 fix not independently verified by B"
+  ],
+  "queue": [
+    "one-time unclaimed sign-in / busy duplicate-tap live check",
+    "wallet regular/long/zero/no-snapshot and failure-recovery responsive matrix",
+    "ref compact copy / small CTA / logged-in route / unlogged-in lawful fixture / error retry / actual top-bottom scrolling / legal link retention",
+    "staking FAQ recovery: exact /api/config/exchange/caps fixture gap",
+    "legacy wallet-cards recovery gate redirects to wallet-cards-new",
+    "wallet-repurchase historyError read-only entry unavailable",
+    "no-nextPage append-error branches",
+    "slot dark material and new-build edge/backdrop closure",
+    "r17 <=374 icon-only nav / larger icons / short selected bounce"
+  ]
+}

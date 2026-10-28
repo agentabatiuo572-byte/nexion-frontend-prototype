@@ -21,13 +21,13 @@
         <view class="me-network-grid">
           <view v-for="item in networkItems" :key="item.key" class="me-network-item" :data-quick-key="item.key" role="button" tabindex="0" @click="handleQuickItem(item)" @keydown.enter.prevent="handleQuickItem(item)" @keydown.space.prevent="handleQuickItem(item)">
             <view class="me-row-icon" :class="'me-tone--' + (item.tone || 'muted')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path v-for="path in iconPaths[item.icon]" :key="path" :d="path" /></svg></view>
-            <view class="me-network-item__copy"><text class="me-network-item__label">{{ item.label }}</text><text class="me-network-item__meta">{{ item.meta }}</text></view>
+            <view class="me-network-item__copy"><text class="me-network-item__label">{{ item.label }}</text><text class="me-network-item__meta">{{ item.key === 'rank' ? visibility.mask(item.meta ?? '—') : item.meta }}</text></view>
           </view>
         </view>
       </NxSection>
-      <NxSection v-for="section in settingSections" :key="section.key" :title="section.title" :meta="section.count == null ? undefined : String(section.count)">
+      <NxSection v-for="section in settingSections" :key="section.key" :title="section.title" :meta="section.count == null ? undefined : visibility.mask(section.count)">
         <NxListGroup>
-          <NxListRow v-for="item in section.items" :key="item.key" :data-quick-key="item.key" :title="item.label" :value="item.meta" @click="handleQuickItem(item)">
+          <NxListRow v-for="item in section.items" :key="item.key" :data-quick-key="item.key" :title="item.label" :value="['inventory', 'slots', 'orders', 'genesis'].includes(item.key) && item.meta ? visibility.mask(item.meta) : item.meta" @click="handleQuickItem(item)">
             <template #leading><view class="me-row-icon" :class="'me-tone--' + (item.tone || 'muted')">
               <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path v-for="path in iconPaths[item.icon]" :key="path" :d="path" /></svg>
               <view v-if="item.dot || item.badge" class="me-row-dot" />
@@ -36,13 +36,13 @@
         </NxListGroup>
       </NxSection>
 
-      <view v-if="remoteApiEnabled && remoteOrdersLoading" class="mx-0 flex items-center" style="gap: 8px; min-height: 32px" data-me-orders-state="loading">
+      <view v-if="remoteApiEnabled && remoteOrdersLoading && !remoteOrdersHasRead" class="mx-0 flex items-center" style="gap: 8px; min-height: 32px" data-me-orders-state="loading">
         <text style="font-size: 12px; color: var(--v5-ink-3)">{{ t.orders.refreshing }}</text>
       </view>
       <view v-else-if="remoteApiEnabled && remoteOrdersFailed" class="mx-0 flex items-center justify-between" style="gap: 12px; min-height: 44px" data-me-orders-state="failed">
         <text class="flex-1" style="font-size: 12px; color: var(--v5-danger)">{{ t.orders.refreshFailed }}</text>
-        <view class="shrink-0 inline-flex items-center justify-center active:scale-[0.98] transition-transform" style="min-height: 44px; padding: 0 12px; border-radius: 999px; background: var(--v5-danger-soft); color: var(--v5-danger);" data-me-action="retry-orders" role="button" tabindex="0" :aria-label="t.orders.retry" @click="refreshRemoteOrders"  @keydown.enter.prevent="refreshRemoteOrders" @keydown.space.prevent="refreshRemoteOrders">
-          <text>{{ t.orders.retry }}</text>
+        <view class="shrink-0 nx-card-recovery-action nx-card-recovery-action--quiet nx-card-recovery-action--inline active:opacity-70" data-me-action="retry-orders" role="button" tabindex="0" :aria-label="t.ui.retry" @click="refreshRemoteOrders"  @keydown.enter.prevent="refreshRemoteOrders" @keydown.space.prevent="refreshRemoteOrders">
+          <text>{{ t.ui.retry }}</text>
         </view>
       </view>
 
@@ -61,6 +61,8 @@
 </template>
 
 <script setup lang="ts">
+import { runPassiveTabRead, invalidatePassiveTabRead, passiveTabReadScope } from "@/lib/passive-tab-read";
+import { useDataVisibility } from "@/store/data-visibility";
 import { formatAmount } from "@/lib/amount-display";
 import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onHide, onShow, onUnload } from "@/composables/use-tab-page-lifecycle";
@@ -108,7 +110,7 @@ import { runRemoteOrdersRefresh } from "@/lib/remote-orders-refresh";
 import { subscribeRuntimeRevision } from "@/api/order-api";
 import { binarySessionReady } from "@/lib/binary-session-ready";
 import { settleRemoteMeLoaders } from "@/lib/remote-me-refresh";
-import { refreshRemoteFleetAfterCatalog } from "@/lib/e3-fleet-bootstrap";
+import { revalidateProductCatalog } from "@/store/product-catalog";
 import { refreshEarningsReleaseStatus } from "@/store/earning-release";
 import { compiledResourceVersion, formatResourceVersion, readNativeResourceVersion } from "@/lib/app-version";
 
@@ -130,6 +132,7 @@ onUnload(() => { ++resourceVersionRequest; });
 // #endif
 
 const t = useT();
+const visibility = useDataVisibility();
 const app = useApp();
 const auth = useAuth();
 const session = useSession();
@@ -155,6 +158,7 @@ const themePickerOpen = ref(false);
 const remoteSecurity = ref<SecurityState | null>(null);
 const remoteOrdersLoading = ref(false);
 const remoteOrdersFailed = ref(false);
+const remoteOrdersHasRead = ref(false);
 let remoteSecurityRequest = 0;
 let remoteOrdersRequest = 0;
 let remoteMeActive = false;
@@ -339,19 +343,21 @@ const networkItems = computed(() => quickSections.value.find(section => section.
 const settingSections = computed(() => quickSections.value.filter(section => !['network','devices'].includes(section.key)).map(section => ({ ...section, items: section.items.filter(item => !frequentKeys.some(key => key === item.key) && item.key !== 'profile') })));
 
 async function refreshRemoteFunds() {
-  await deposits.refreshRemoteVietQrDeposits();
+  await runPassiveTabRead('deposits-bank-history', () => deposits.refreshRemoteVietQrDeposits(), undefined, () => deposits.remoteReceiptInitialStatus === 'ready');
 }
 
-async function refreshRemoteOrders() {
+async function refreshRemoteOrders(passive: unknown = false) {
   if (!remoteApiEnabled) return;
   const request = ++remoteOrdersRequest;
   const accountKey = app.accountKey;
+  const readScope = passiveTabReadScope();
   await runRemoteOrdersRefresh(
-    () => orders.refreshRemote(),
+    () => passive === true ? runPassiveTabRead('orders', () => orders.refreshRemote().then(() => true)).then(() => undefined) : (invalidatePassiveTabRead('orders'), orders.refreshRemote()),
     (state) => {
-      if (request !== remoteOrdersRequest || accountKey !== app.accountKey) return;
-      remoteOrdersLoading.value = state.loading;
-      remoteOrdersFailed.value = state.failed;
+      if (request !== remoteOrdersRequest || accountKey !== app.accountKey || readScope !== passiveTabReadScope()) return;
+      remoteOrdersLoading.value = state.loading && passive === true && remoteOrdersFailed.value ? false : state.loading;
+      remoteOrdersFailed.value = state.loading && passive === true ? remoteOrdersFailed.value : state.failed;
+      if (remoteMeActive && !state.loading && !state.failed) remoteOrdersHasRead.value = true;
     },
   );
 }
@@ -366,10 +372,11 @@ async function refreshRemoteSecurity() {
   const accountKey = app.accountKey;
   const binding = app.accountBindingEpoch;
   const scope = captureAccountScope();
+  const readScope = passiveTabReadScope();
   const current = () => remoteMeActive && request === remoteSecurityRequest
-    && accountKey === app.accountKey && binding === app.accountBindingEpoch && isCurrentAccountScope(scope);
+    && accountKey === app.accountKey && binding === app.accountBindingEpoch && isCurrentAccountScope(scope) && readScope === passiveTabReadScope();
   try {
-    const snapshot = await accountApi.securityOverview();
+    const snapshot = await runPassiveTabRead('security-overview', () => accountApi.securityOverview());
     if (!current()) return;
     remoteSecurity.value = snapshot;
   } catch {
@@ -382,35 +389,37 @@ async function refreshRemoteTrial() {
   // 7.0s 第二次置 loading 又把它禁掉,用户看到两段抖动。
   // GET /api/trial/state 的权威答复里已经带 canStart/eligibilityReason,
   // 一次读取就能定态;eligibility 读取只留作 state 读失败后的修复路径。
-  if (await trial.refreshRemote(true)) return;
-  await trial.refreshEligibilityRemote();
+  if (await runPassiveTabRead('trial-state', () => trial.refreshRemote())) return;
+  await runPassiveTabRead('trial-eligibility', () => trial.refreshEligibilityRemote());
 }
 
 async function refreshRemoteMe() {
   if (!remoteApiEnabled) return;
   await settleRemoteMeLoaders([
-    ["home", () => app.refreshHomeTruth()],
-    ["commission", () => commission.refreshCanonicalEvents()],
-    ["withdrawals", () => app.refreshRemoteWithdrawalList()],
-    ["fleet", async () => { await refreshRemoteFleetAfterCatalog(app.accountKey); await refreshEarningsReleaseStatus(); }],
+    ["home", () => app.ensureHomeTruth()],
+    ["commission", () => commission.ensureCanonicalEvents()],
+    ["withdrawals", () => runPassiveTabRead('withdrawals', () => app.refreshRemoteWithdrawalList())],
+    ["fleet", async () => { await revalidateProductCatalog(); await runPassiveTabRead('remote-fleet', () => app.refreshRemoteFleet(undefined, { coalesce: true })); await runPassiveTabRead('earning-release', () => refreshEarningsReleaseStatus()); }],
     ["funds", refreshRemoteFunds],
-    ["orders", refreshRemoteOrders],
+    ["orders", () => refreshRemoteOrders(true)],
     ["security", refreshRemoteSecurity],
-    ["notifications", () => notifications.refreshRemote()],
-    ["conversations", () => conversations.refresh()],
+    ["notifications", () => runPassiveTabRead('notifications', () => notifications.refreshRemote(), undefined, () => notifications.hasRemoteSnapshot && !notifications.loading && !notifications.error)],
+    ["conversations", () => runPassiveTabRead('conversations', () => conversations.refresh(), { owner: conversations.scopeInvalidated }, () => !conversations.loading && !conversations.error)],
     ["trial", refreshRemoteTrial],
-    ["vouchers", () => voucher.refreshRemote()],
-    ["rank", () => vrank.refreshCanonicalVRank()],
-    ["genesis", () => genesis.syncRemote()],
-    ["bills", () => bills.refreshSummary()],
-    ["market", () => market.syncRemote()],
-    ["config", () => config.load()],
+    ["vouchers", () => voucher.revalidateRemote()],
+    ["rank", () => vrank.ensureCanonicalVRank()],
+    ["genesis", () => runPassiveTabRead('genesis-state', () => genesis.syncRemote())],
+    ["bills", () => runPassiveTabRead('bills-summary', () => bills.refreshSummary(), undefined, () => bills.summaryStatus === 'ready')],
+    ["market", () => runPassiveTabRead('market', () => market.syncRemote())],
+    ["config", () => config.revalidate()],
   ]);
 }
 
 watch([() => app.accountKey, () => app.accountBindingEpoch, () => auth.accountId, () => auth.isAuthenticated], () => {
   remoteSecurityRequest += 1;
   remoteSecurity.value = null;
+  remoteOrdersHasRead.value = false;
+  remoteOrdersRequest += 1;
 }, { flush: "sync" });
 watch(() => [app.accountKey, app.accountBindingEpoch] as const, () => {
   if (remoteApiEnabled) void refreshRemoteMe();
@@ -427,14 +436,16 @@ onHide(() => {
 // Catalog replacement clears the shared order list even without an account change.
 const unsubscribeOrdersRevision = subscribeRuntimeRevision(() => {
   if (!remoteApiEnabled) return;
+  invalidatePassiveTabRead("orders");
+  invalidatePassiveTabRead("earning-release");
   remoteOrdersRequest += 1;
   if (remoteMeActive && binarySessionReady({
     remote: remoteApiEnabled, authenticated: auth.isAuthenticated,
     accountId: auth.accountId, appAccountKey: app.accountKey,
     sessionUserId: sessionVault.read()?.user.userId ?? null,
   })) {
-    void refreshRemoteOrders();
-    void refreshEarningsReleaseStatus().catch(() => undefined);
+    void refreshRemoteOrders(true);
+    void runPassiveTabRead("earning-release", () => refreshEarningsReleaseStatus()).catch(() => undefined);
   }
 });
 onUnmounted(() => {
@@ -655,11 +666,14 @@ const signOutStyle: CSSProperties = {
 .me-tone--success { --me-icon: var(--v5-success-ink); --me-icon-bg: var(--v5-success-soft); }
 .me-tone--danger { --me-icon: var(--v5-danger); --me-icon-bg: var(--v5-danger-soft); }
 .me-row-dot { position: absolute; right: 0; top: 0; width: var(--v5-space-2); height: var(--v5-space-2); border-radius: var(--v5-radius-full); background: var(--v5-danger); box-shadow: 0 0 0 2px var(--v5-bg); }
-.me-network-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--v5-space-3); padding: var(--v5-space-3) 0; }
-.me-network-item { display: flex; align-items: center; gap: var(--v5-space-2); min-width: 0; min-height: 56px; cursor: pointer; }
-.me-network-item__copy { display: flex; flex-direction: column; gap: var(--v5-space-1); min-width: 0; }
-.me-network-item__label { font-size: var(--v5-type-body-m); line-height: var(--v5-type-body-m-lh); }
-.me-network-item__meta { font-size: var(--v5-type-body-s); line-height: var(--v5-type-body-s-lh); color: var(--v5-ink-3); overflow-wrap: anywhere; }
+.me-network-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--v5-space-2) var(--v5-space-3); padding: var(--v5-space-1) 0 var(--v5-space-2); }
+.me-network-item { display: flex; align-items: center; gap: var(--v5-space-2); min-width: 0; min-height: 52px; cursor: pointer; }
+.me-network-item__copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.me-network-item__label { font: 500 13px/18px var(--font-v5); overflow-wrap: anywhere; }
+.me-network-item__meta { font: 400 12px/16px var(--font-v5); color: var(--v5-ink-3); overflow-wrap: anywhere; }
+@media (max-width: 374px) {
+  .me-network-item__label { font-size: 12px; line-height: 16px; }
+}
 .me-shortcut:focus-visible, .me-network-item:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; border-radius: var(--v5-radius-s); }
 .me-shortcut:active, .me-network-item:active { opacity: .72; }
 </style>

@@ -30,7 +30,7 @@ async function renderTree(remoteStatus: "idle" | "loading" | "ready" | "error", 
     },
     setup: () => ({
       formatAmount, formatComputePoints, locale: {code:"en"},
-      remoteApiEnabled: remote, rosterMounted: !remote || remoteStatus === 'ready',
+      networkReadable: !remote || remoteStatus === 'ready', remoteApiEnabled: remote, rosterMounted: !remote || remoteStatus === 'ready',
       network: { remoteStatus, refreshCanonicalNetwork: vi.fn(), ensureCanonicalNetwork: vi.fn() },
       t: { network: en.network, tree: en.tree },
       members: [], direct: [], extended: [], totalVol: 0, directSubtitle: "", extendedSubtitle: "",
@@ -44,7 +44,7 @@ async function renderTree(remoteStatus: "idle" | "loading" | "ready" | "error", 
 describe("team network and tree remote read states", () => {
   it("refreshes a cached Tree on return using the same coalesced read as mount", () => {
     const mounted: Array<() => void> = [], shown: Array<() => void> = [];
-    const lifecycle = treePage.slice(treePage.indexOf("onMounted("), treePage.indexOf("const members ="));
+    const lifecycle = treePage.slice(treePage.indexOf("onMounted("), treePage.indexOf("const networkReadable ="));
     const compiled = ts.transpileModule(lifecycle, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
     const network = { ensureCanonicalNetwork: vi.fn() };
     new Function("remoteApiEnabled", "network", "onMounted", "onShow", compiled)(true, network,

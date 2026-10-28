@@ -5,7 +5,7 @@
       <SubPageHeader back="/pages/team/leadership-pool" />
       <HowHero kind="balance" :label="w.heroLabel" :title="w.heroTitle" :sub="w.heroSub" accent="purple" />
 
-      <view v-if="remoteState !== 'ready'" class="text-center" style="padding: 48px 20px">
+      <view v-if="remoteState !== 'ready' && !(remoteState === 'loading' && (remotePool || ruleFacts))" class="text-center" style="padding: 48px 20px">
         <text class="block" :style="{ color: 'var(--v5-ink-2)', fontSize: '13px' }">{{ remoteState === 'hold' ? t.pool.settlementHold : remoteState === 'error' || vState.remoteError ? t.pool.loadError : t.pool.loading }}</text>
         <view v-if="remoteState === 'hold' || remoteState === 'error' || vState.remoteError" class="reward-cta" style="margin-top: 14px" role="button" tabindex="0" @click="loadRemotePool" @keydown.enter.prevent="loadRemotePool" @keydown.space.prevent="loadRemotePool">
           <text :style="{ color: 'var(--v5-on-brand)', fontSize: '13px', fontWeight: 600 }">{{ t.pool.retry }}</text>
@@ -23,14 +23,14 @@
 
         <HowSection :title="w.s2Title">
           <text class="block" :style="bodyStyle">{{ w.s2Intro }}</text>
-          <template v-if="vState.remoteReady">
+          <template v-if="rankDisplayReady">
             <view v-if="configuredVoteRows.length" class="pool-how-weight-list">
               <view class="pool-how-weight-heading"><text>{{ w.colRank }}</text><text>{{ w.colVotes }}{{ t.pool.eaShort }}</text></view>
               <view v-for="row in configuredVoteRows" :key="row.rank" class="pool-how-weight-row">
                 <text>{{ row.label }}</text><text>{{ row.votes ?? '—' }}</text>
               </view>
             </view>
-            <text v-else class="block" :style="bodyStyle">{{ w.noVoteRows }}</text>
+            <text v-else class="block" :style="bodyStyle">{{ remotePool ? w.noVoteRows : '—' }}</text>
           </template>
           <view v-else role="status" class="pool-how-config-state">
             <text class="block">{{ vState.remoteError ? t.pool.loadError : t.pool.loading }}</text>
@@ -39,9 +39,9 @@
         </HowSection>
 
         <HowSection :title="auditCopy.poolFactsTitle">
-          <view v-if="remotePool" class="pool-how-facts">
-            <view><text>{{ auditCopy.votes }}</text><text>{{ remotePool.myVotes ?? '—' }}</text></view>
-            <view><text>{{ auditCopy.totalVotes }}</text><text>{{ remotePool.totalVotes ?? '—' }}</text></view>
+          <view class="pool-how-facts">
+            <view><text>{{ auditCopy.votes }}</text><text>{{ remotePool?.myVotes ?? '—' }}</text></view>
+            <view><text>{{ auditCopy.totalVotes }}</text><text>{{ remotePool?.totalVotes ?? '—' }}</text></view>
             <view><text>{{ auditCopy.share }}</text><text>{{ shareText }}</text></view>
           </view>
           <view v-if="distributionRows.length" class="pool-how-distribution">
@@ -51,7 +51,7 @@
               <text class="pool-how-distribution-total">{{ w.colVotes }}: {{ row.people * row.votes }}</text>
             </view>
           </view>
-          <text v-else class="block" :style="bodyStyle">{{ w.noVoteRows }}</text>
+          <text v-else class="block" :style="bodyStyle">{{ remotePool ? w.noVoteRows : '—' }}</text>
           <text class="block" :style="bodyStyle">{{ auditCopy.poolFactsHint }}</text>
           <text class="block" :style="{ ...bodyStyle, marginTop: '10px' }">{{ auditCopy.poolRulesPending }}</text>
         </HowSection>
@@ -70,7 +70,7 @@
 
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
-import { onShow } from "@dcloudio/uni-app";
+import { onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import RewardPageSurface from "@/components/team/reward-page-surface.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -82,8 +82,9 @@ import { networkReauditCopy } from "@/i18n/network-reaudit";
 import { fmt } from "@/i18n/format";
 import { formatDisplayDateTime } from "@/lib/display-date";
 import { navBack } from "@/lib/route";
-import { remoteApiEnabled, teamInsightsApi } from "@/api/runtime";
+import { apiRuntimeConfig, remoteApiEnabled, teamInsightsApi } from "@/api/runtime";
 import type { TeamLeadershipPoolSnapshot } from "@/api/team-insights-api";
+import { useAuth } from '@/store/auth';
 import { useApp } from "@/store/app";
 import { useVRank, type VRank } from "@/store/v-rank";
 import { rankLabel } from "@/lib/v-rank-copy";
@@ -97,21 +98,35 @@ const locale = useLocaleStore();
 const auditCopy = computed(() => networkReauditCopy(locale.code));
 const w = computed(() => t.value.poolHowItWorks);
 const app = useApp();
+const auth = useAuth();
+const readEnvironment = [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const;
+let environmentInvalidated = false;
+watch(() => [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const, () => { environmentInvalidated = true; }, { flush: 'sync' });
+const environmentCurrent = () => !environmentInvalidated && readEnvironment[0] === apiRuntimeConfig.environment && readEnvironment[1] === apiRuntimeConfig.baseUrl;
 const vState = useVRank();
+const rankPresentation = ref<typeof vState.ladder | null>(null);
+let rejectedRankSource: typeof vState.ladder | null = null;
+watch(() => [vState.remoteReady, vState.remoteError, vState.ladder] as const, ([ready, error, rows]) => {
+  if (error) { rankPresentation.value = null; rejectedRankSource = rows; }
+  else if (ready && rows !== rejectedRankSource && auth.isAuthenticated && environmentCurrent()) rankPresentation.value = rows;
+}, { immediate: true, flush: 'sync' });
+const rankDisplayReady = computed(() => rankPresentation.value !== null);
 const remotePool = ref<TeamLeadershipPoolSnapshot | null>(null);
 const remoteState = ref<"loading" | "ready" | "error" | "hold">(remoteApiEnabled ? "loading" : "ready");
 let remoteRequest = 0;
 let mounted = true;
-const facts = computed(() => remotePool.value ? leadershipHowFacts(remotePool.value) : null);
+let pageVisible = false;
+const ruleFacts = ref<Pick<ReturnType<typeof leadershipHowFacts>, 'unlockRank' | 'injectRatePct'> | null>(null);
+const facts = computed(() => remotePool.value ? leadershipHowFacts(remotePool.value) : ruleFacts.value);
 // Published weights and this period's participation are separate facts. An
 // absent distribution row is never synthesized from a configured rank.
-const configuredVoteRows = computed(() => !vState.remoteReady || !facts.value ? [] : vState.ladder
+const configuredVoteRows = computed(() => !rankDisplayReady.value || !facts.value ? [] : (rankPresentation.value ?? [])
   .filter(row => row.v >= facts.value!.unlockRank)
-  .map(row => ({ rank: row.v, label: rankLabel(row.v, locale.code, vState.ladder),
+  .map(row => ({ rank: row.v, label: rankLabel(row.v, locale.code, rankPresentation.value ?? []),
     votes: Number.isFinite(row.leadershipVotes) && row.leadershipVotes >= 0 ? row.leadershipVotes : null }))
   .sort((a, b) => a.rank - b.rank));
 const distributionRows = computed(() => (remotePool.value?.distribution ?? []).map(row => ({
-  ...row, label: vState.remoteReady ? rankLabel(row.vRank as VRank, locale.code, vState.ladder) : `V${row.vRank}`,
+  ...row, label: rankDisplayReady.value ? rankLabel(row.vRank as VRank, locale.code, rankPresentation.value ?? []) : `V${row.vRank}`,
 })).sort((a, b) => a.vRank - b.vRank));
 function refreshRankConfig() { void vState.refreshCanonicalVRank(); }
 const shareText = computed(() => remotePool.value && remotePool.value.totalVotes > 0 && Number.isFinite(remotePool.value.mySharePct)
@@ -120,35 +135,43 @@ const currentRulesText = computed(() => facts.value
   ? fmt(w.value.currentRules, { rank: facts.value.unlockRank })
   : w.value.localRules);
 const nextPayoutText = computed(() => {
-  if (!facts.value) return "";
-  return fmt(w.value.nextPayout, { time: formatDisplayDateTime(facts.value.nextPayoutAt, locale.code, true) });
+  if (!remotePool.value) return "";
+  return fmt(w.value.nextPayout, { time: formatDisplayDateTime(remotePool.value.nextPayoutAt, locale.code, true) });
 });
 async function loadRemotePool() {
-  if (!remoteApiEnabled) return;
+  if (!remoteApiEnabled || !pageVisible || !auth.isAuthenticated || !environmentCurrent()) return;
   const request = ++remoteRequest;
   const accountKey = app.accountKey;
   const accountScope = captureAccountScope();
   const runScope = captureRuntimeRevision();
+  const readLocale = locale.code;
   void vState.refreshCanonicalVRank();
   remoteState.value = "loading";
-  remotePool.value = null;
-  const current = () => mounted && request === remoteRequest && accountKey === app.accountKey
-    && isCurrentAccountScope(accountScope) && isCurrentRuntimeRevision(runScope);
+  const current = () => mounted && pageVisible && request === remoteRequest && accountKey === app.accountKey
+    && isCurrentAccountScope(accountScope) && isCurrentRuntimeRevision(runScope)
+    && auth.isAuthenticated && readLocale === locale.code && environmentCurrent();
   try {
     const snapshot = await teamInsightsApi.leadershipPool();
     if (!current()) return;
     remotePool.value = snapshot;
+    const accepted = leadershipHowFacts(snapshot);
+    ruleFacts.value = { unlockRank: accepted.unlockRank, injectRatePct: accepted.injectRatePct };
     remoteState.value = "ready";
   } catch (cause) {
     if (!current()) return;
-    remotePool.value = null;
+    remotePool.value = null; ruleFacts.value = null;
     remoteState.value = leadershipPoolFailureState(cause);
   }
 }
 
-watch(() => app.accountKey, () => { void loadRemotePool(); });
+watch(() => [app.accountKey, app.accountBindingEpoch, auth.isAuthenticated, locale.code, apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const, () => {
+  remoteRequest++; remotePool.value = null; ruleFacts.value = null; remoteState.value = 'loading';
+  rejectedRankSource = vState.ladder; rankPresentation.value = null;
+  if (auth.isAuthenticated && environmentCurrent()) void loadRemotePool();
+}, { flush: 'sync' });
 const unsubscribeRemotePoolRun = subscribeRuntimeRevision(() => { if (remoteApiEnabled) void loadRemotePool(); });
-onShow(() => { void loadRemotePool(); });
+onShow(() => { pageVisible = true; void loadRemotePool(); });
+onHide(() => { pageVisible = false; remoteRequest++; remotePool.value = null; remoteState.value = "loading"; });
 onUnmounted(() => { mounted = false; remoteRequest += 1; remotePool.value = null; unsubscribeRemotePoolRun(); });
 function goBack() { navBack("/pages/team/leadership-pool"); }
 

@@ -2,9 +2,17 @@ import * as Vue from 'vue';
 import { compile } from '@vue/compiler-dom';
 import { renderToString } from '@vue/server-renderer';
 import ts from 'typescript';
-import { expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { createPinia, setActivePinia } from 'pinia';
+import { useDataVisibility } from '@/store/data-visibility';
 import source from './team.vue?raw';
 import { formatUsd } from '@/lib/usd-display';
+
+beforeEach(() => {
+  vi.stubGlobal('uni', { getStorageSync: () => undefined, setStorageSync: vi.fn() });
+  setActivePinia(createPinia());
+});
+afterEach(() => { vi.unstubAllGlobals(); });
 
 // Execute the actual pool predicates and its actual label/amount template.
 const stateSource = source.slice(source.indexOf('const remotePool = ref'), source.indexOf('let remotePoolRequest'));
@@ -17,7 +25,7 @@ function page(votes = 2) {
   const state = new Function('ref', 'computed', 'remoteApiEnabled', 'pool', 'vrank', 'formatUsd', code)(Vue.ref, Vue.computed, true, {}, {}, formatUsd);
   const snapshot = { myVotes: votes, currentWeekPoolUSDT: 5000, projectedPayoutUSDT: 17.25 };
   state.remotePool.value = snapshot; state.remotePoolState.value = 'ready';
-  const html = () => renderToString(Vue.createSSRApp({ render, setup: () => ({ ...state, remoteApiEnabled: true, designCopy: { estimated: 'Estimated' }, quickRowValueStyle: {} }) }));
+  const html = () => renderToString(Vue.createSSRApp({ render, setup: () => ({ ...state, visibility: useDataVisibility(), remoteApiEnabled: true, designCopy: { estimated: 'Estimated' }, quickRowValueStyle: {} }) }));
   return { state, snapshot, html };
 }
 

@@ -5,7 +5,6 @@ import { compileScript, compileTemplate, parse } from "@vue/compiler-sfc";
 import { initPreContext, preHtml, preJs } from "@dcloudio/uni-cli-shared/dist/preprocess";
 import ts from "typescript";
 import earnSource from "./earn.vue?raw";
-import desktopSource from "@/components/earn/compute-share-entry.vue?raw";
 import cardSource from "@/components/earn/earn-way-card.vue?raw";
 import buttonSource from "@/components/ui/nx-button.vue?raw";
 import sectionSource from "@/components/ui/nx-section.vue?raw";
@@ -68,19 +67,6 @@ describe("earn more ways platform and availability gates", () => {
     }
   });
 
-  it("desktop sharing keeps its own flag and download target", () => {
-    const cfg = reactive({ configStatus: "ready", visible: true, isEnabled: (key: string) => key === "computeShareEnabled" && cfg.visible });
-    const navTo = vi.fn();
-    const section = desktopSource.slice(desktopSource.indexOf("const enabled ="), desktopSource.indexOf("const rootStyle:"));
-    const entry = compile(section + "return { enabled, goDownload };", { computed, cfg, navTo, trialReservesSlotNow: () => false, app: { activeSlotCount: 0, slotCap: 1 } });
-    entry.goDownload();
-    expect(navTo).toHaveBeenCalledWith("/pages/compute-share/download");
-    for (const [status, visible] of [["loading", true], ["failed", true], ["ready", false]] as const) {
-      navTo.mockClear(); cfg.configStatus = status; cfg.visible = visible;
-      expect(entry.enabled.value).toBe(false);
-      entry.goDownload(); expect(navTo).not.toHaveBeenCalled();
-    }
-  });
 });
 
 type Host = { type: string; text: string; props: Record<string, any>; children: Host[]; parent: Host | null };
@@ -116,7 +102,7 @@ function component(source: string, name: string, dependencies: Record<string, un
   return module.exports.default;
 }
 
-function renderWays(platform: 'h5' | 'app', language: 'zh' | 'en' | 'vi', context: 'earn' | 'devices' = 'earn') {
+function renderWays(platform: 'h5' | 'app', language: 'zh' | 'en' | 'vi') {
   const f = fixture(platform, true), copy = remainderUiCopy[language], messages = { zh, en, vi: vietnamese }[language];
   const account = reactive({ activeSlotCount: 0, slotCap: 1 }), trial = Vue.ref(false), preferences = reactive({ hapticsEnabled: true });
   const vibrate = vi.fn(); vi.stubGlobal('uni', { vibrateShort: vibrate });
@@ -124,19 +110,13 @@ function renderWays(platform: 'h5' | 'app', language: 'zh' | 'en' | 'vi', contex
   const card = component(cardSource, 'earn-way-card.vue', {
     '@/components/ui/nx-button.vue': { default: button }, '@/store/preferences': { usePreferences: () => preferences },
   });
-  const desktop = component(desktopSource, 'compute-share-entry.vue', {
-    '@/lib/route': { navTo: f.navTo }, '@/components/ui/nx-button.vue': { default: button }, './earn-way-card.vue': { default: card },
-    '@/store/app': { useApp: () => account }, '@/store/config': { useConfig: () => f.config },
-    '@/store/free-trial': { trialReservesSlotNow: () => trial.value }, '@/i18n/use-t': { useT: () => computed(() => messages) },
-    '@/i18n/remainder-ui': { useRemainderUiCopy: () => computed(() => copy) },
-  });
   const section = component(sectionSource, 'nx-section.vue', { './nx-button.vue': { default: button } });
   const source = f.template.slice(f.template.indexOf('<NxSection class="mx-4 earn-more-ways"'), f.template.indexOf('</NxSection>') + '</NxSection>'.length);
   const compiled = compileTemplate({ source, filename: 'earn-section.vue', id: 'earn-section', compilerOptions: { mode: 'function' } });
   if (compiled.errors.length) throw new Error(compiled.errors.join('\n'));
   const root = host('root');
-  const screen = renderer.createApp(context === 'devices' ? Vue.defineComponent({ render: () => Vue.h(desktop, { context }) }) : Vue.defineComponent({
-    components: { NxSection: section, EarnWayCard: card, ComputeShareEntry: desktop, TrialGhostSlot: { render: () => null } },
+  const screen = renderer.createApp(Vue.defineComponent({
+    components: { NxSection: section, EarnWayCard: card, TrialGhostSlot: { render: () => null } },
     setup: () => ({ ...f.actions, remainderCopy: copy, auditCopy: { moreWays: 'More ways' } }),
     render: new Function('Vue', compiled.code)(Vue),
   }));
@@ -149,17 +129,17 @@ function renderWays(platform: 'h5' | 'app', language: 'zh' | 'en' | 'vi', contex
 }
 
 describe('earn cards render the actual entry controls', () => {
-  it.each(['zh', 'en', 'vi'] as const)('renders three shared cards with complete %s copy and existing destinations', language => {
+  it.each(['zh', 'en', 'vi'] as const)('renders the remaining two cards with complete %s copy and existing destinations', language => {
     const f = renderWays('h5', language);
-    expect(withClass(f.root, 'earn-way-card')).toHaveLength(3);
-    for (const artwork of ['phone', 'staking', 'gpu']) {
+    expect(withClass(f.root, 'earn-way-card')).toHaveLength(2);
+    for (const artwork of ['phone', 'staking']) {
       expect(withClass(f.root, `earn-way-card--${artwork}`)).toHaveLength(1);
     }
-    for (const text of [f.copy.earnWays.phoneBody, f.copy.earnWays.stakingBody, f.copy.earnWays.gpuBody]) expect(textOf(f.root)).toContain(text);
-    for (const label of [f.copy.downloadApp, f.copy.stakingAction, f.copy.earnWays.gpuAction]) {
+    for (const text of [f.copy.earnWays.phoneBody, f.copy.earnWays.stakingBody]) expect(textOf(f.root)).toContain(text);
+    for (const label of [f.copy.downloadApp, f.copy.stakingAction]) {
       const button = f.buttonByLabel(label); expect(button.props.tabindex).toBe(0); button.props.onClick();
     }
-    expect(f.navTo.mock.calls).toEqual([['/pages/register/success?download=1'], ['/pages/staking/staking'], ['/pages/compute-share/download']]);
+    expect(f.navTo.mock.calls).toEqual([['/pages/register/success?download=1'], ['/pages/staking/staking']]);
     expect(f.vibrate).not.toHaveBeenCalled();
   });
 
@@ -178,34 +158,11 @@ describe('earn cards render the actual entry controls', () => {
     f.config.configStatus = 'loading'; await Vue.nextTick();
     expect(withClass(f.root, 'earn-way-card')).toHaveLength(1);
     f.config.configStatus = 'ready'; f.config.visible = false; await Vue.nextTick();
-    expect(withClass(f.root, 'earn-way-card')).toHaveLength(2);
-    expect(textOf(f.root)).toContain(f.copy.earnWays.gpuTitle);
+    expect(withClass(f.root, 'earn-way-card')).toHaveLength(1);
+    expect(textOf(f.root)).not.toContain(f.copy.earnWays.gpuTitle);
     f.config.computeVisible = false; await Vue.nextTick();
     expect(withClass(f.root, 'earn-way-card')).toHaveLength(1);
   });
 
-  it.each(['zh', 'en', 'vi'] as const)('retains the complete slots-full instruction, including a reserved trial slot (%s)', async language => {
-    const f = renderWays('h5', language);
-    expect(withClass(f.root, 'earn-way-card__notice')).toHaveLength(0);
-    f.trial.value = true; await Vue.nextTick();
-    expect(textOf(withClass(f.root, 'earn-way-card__notice')[0])).toBe(f.messages.computeShare.entryFull);
-    expect(textOf(f.root)).toContain(f.copy.earnWays.gpuBody);
-    f.buttonByLabel(f.copy.earnWays.gpuAction).props.onClick();
-    expect(f.navTo).toHaveBeenCalledExactlyOnceWith('/pages/compute-share/download');
-    f.trial.value = false; f.account.activeSlotCount = 1; await Vue.nextTick();
-    expect(withClass(f.root, 'earn-way-card__notice')).toHaveLength(1);
-  });
 
-  it('keeps the devices entry on its original copy, icon, button and full-slot presentation', async () => {
-    const f = renderWays('h5', 'vi', 'devices');
-    expect(withClass(f.root, 'earn-way-card')).toHaveLength(0);
-    expect(withClass(f.root, 'compute-share-entry')).toHaveLength(1);
-    expect(nodes(f.root).some(node => node.type === 'image')).toBe(false);
-    expect(textOf(f.root)).toContain(f.messages.computeShare.entryTitle);
-    expect(textOf(f.root)).toContain(f.messages.computeShare.entryBody);
-    f.account.activeSlotCount = 1; await Vue.nextTick();
-    expect(textOf(f.root)).toContain(f.messages.computeShare.entryFull);
-    f.buttonByLabel(f.messages.computeShare.entryCta).props.onClick();
-    expect(f.navTo).toHaveBeenCalledExactlyOnceWith('/pages/compute-share/download');
-  });
 });

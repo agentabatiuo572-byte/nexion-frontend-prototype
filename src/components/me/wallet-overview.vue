@@ -9,19 +9,19 @@
       <view v-if="fundsAuthorityUnavailable" class="wallet-recovery">
         <text class="block wallet-recovery-title">{{ t.wallet.fundsUnavailableTitle }}</text>
         <text class="block wallet-recovery-body">{{ app.remoteFleetHasSnapshot ? t.wallet.fundsStaleBody : app.remoteWalletReceiptHasSnapshot ? t.wallet.fundsReceiptOnlyBody : t.wallet.fundsUnavailableBody }}</text>
-        <view role="button" tabindex="0" :aria-label="t.wallet.retryFunds" class="wallet-retry" @click="retryFundsAuthority" @keydown.enter.prevent="retryFundsAuthority" @keydown.space.prevent="retryFundsAuthority">
-          <text>{{ t.wallet.retryFunds }}</text>
+        <view role="button" tabindex="0" :aria-label="t.ui.retry" class="nx-card-recovery-action active:opacity-70" @click="retryFundsAuthority" @keydown.enter.prevent="retryFundsAuthority" @keydown.space.prevent="retryFundsAuthority">
+          <text>{{ t.ui.retry }}</text>
         </view>
       </view>
       <view v-if="releaseAuthorityUnavailable" class="wallet-recovery">
         <text class="block wallet-recovery-body">{{ t.wallet.releaseDetailsUnavailable }}</text>
-        <view role="button" tabindex="0" :aria-label="t.wallet.retryFunds" class="wallet-retry" @click="retryReleaseAuthority" @keydown.enter.prevent="retryReleaseAuthority" @keydown.space.prevent="retryReleaseAuthority">
-          <text>{{ t.wallet.retryFunds }}</text>
+        <view role="button" tabindex="0" :aria-label="t.ui.retry" class="nx-card-recovery-action active:opacity-70" @click="retryReleaseAuthority" @keydown.enter.prevent="retryReleaseAuthority" @keydown.space.prevent="retryReleaseAuthority">
+          <text>{{ t.ui.retry }}</text>
         </view>
       </view>
       <view v-if="remoteApiEnabled && !earningsReadPending && allTimeEarned === null" class="wallet-recovery">
         <text class="block wallet-recovery-body">{{ t.wallet.earningsUnavailable }}</text>
-        <view role="button" tabindex="0" :aria-label="t.ui.retry" class="wallet-retry" @click="retryEarningsAuthority" @keydown.enter.prevent="retryEarningsAuthority" @keydown.space.prevent="retryEarningsAuthority">
+        <view role="button" tabindex="0" :aria-label="t.ui.retry" class="nx-card-recovery-action active:opacity-70" @click="retryEarningsAuthority" @keydown.enter.prevent="retryEarningsAuthority" @keydown.space.prevent="retryEarningsAuthority">
           <text>{{ t.ui.retry }}</text>
         </view>
       </view>
@@ -35,17 +35,17 @@
         </view>
         <view class="wallet-metric" data-wallet-metric="all-time">
           <text class="wallet-metric-label">{{ t.wallet.allTimeEarnings }}</text>
-          <text class="wallet-metric-amount tabular-nums" :style="amountStyle(allTimeEarned === null ? '-' : `$${formatAmount(allTimeEarned)}`, 22, true)">{{ allTimeEarned === null ? '-' : `$${formatAmount(allTimeEarned)}` }}</text>
+          <text class="wallet-metric-amount tabular-nums" :style="amountStyle(visibility.mask(allTimeEarned === null ? '-' : `$${formatAmount(allTimeEarned)}`), 22, true)">{{ visibility.mask(allTimeEarned === null ? '-' : `$${formatAmount(allTimeEarned)}`) }}</text>
           <text class="wallet-metric-sub">{{ allTimeSublabel }}</text>
         </view>
         <view class="wallet-metric" data-wallet-metric="reviewing" role="button" tabindex="0" @click="showPendingSheet" @keydown.enter.prevent="showPendingSheet" @keydown.space.prevent="showPendingSheet">
           <text class="wallet-metric-label">{{ t.wallet.reviewingEarnings }}</text>
-          <text class="wallet-metric-amount tabular-nums" :style="amountStyle(bucketsReadable ? `$${formatAmount(pendingReview)}` : '—', 22, true)">{{ bucketsReadable ? `$${formatAmount(pendingReview)}` : "—" }}</text>
+          <text class="wallet-metric-amount tabular-nums" :style="amountStyle(visibility.mask(bucketsReadable ? `$${formatAmount(pendingReview)}` : '—'), 22, true)">{{ visibility.mask(bucketsReadable ? `$${formatAmount(pendingReview)}` : "—") }}</text>
           <text class="wallet-metric-sub">{{ t.wallet.reviewingEarningsSub }}</text>
         </view>
         <view class="wallet-metric" data-wallet-metric="locked" role="button" tabindex="0" @click="showLockedSheet" @keydown.enter.prevent="showLockedSheet" @keydown.space.prevent="showLockedSheet">
           <text class="wallet-metric-label">{{ t.wallet.lockedRewards }}</text>
-          <text class="wallet-metric-amount tabular-nums" :style="amountStyle(bucketsReadable ? `$${formatAmount(lockedRewards)}` : '—', 22, true)">{{ bucketsReadable ? `$${formatAmount(lockedRewards)}` : "—" }}</text>
+          <text class="wallet-metric-amount tabular-nums" :style="amountStyle(visibility.mask(bucketsReadable ? `$${formatAmount(lockedRewards)}` : '—'), 22, true)">{{ visibility.mask(bucketsReadable ? `$${formatAmount(lockedRewards)}` : "—") }}</text>
           <text class="wallet-metric-sub">{{ t.wallet.lockedRewardsSub }}</text>
         </view>
       </view>
@@ -54,17 +54,19 @@
     <view v-if="remoteApiEnabled && app.remoteWithdrawalListStatus === 'error'" class="wallet-recovery">
       <text class="block wallet-recovery-title">{{ t.wallet.withdrawalStatusSubtitle }}</text>
       <text class="block wallet-recovery-body">{{ t.empty.errorDesc }}</text>
-      <view class="wallet-retry" role="button" tabindex="0" @click="app.refreshRemoteWithdrawalList()" @keydown.enter.prevent="app.refreshRemoteWithdrawalList()" @keydown.space.prevent="app.refreshRemoteWithdrawalList()"><text>{{ t.empty.errorCta }}</text></view>
+      <view class="nx-card-recovery-action active:opacity-70" role="button" tabindex="0" :aria-label="t.ui.retry" @click="app.refreshRemoteWithdrawalList()" @keydown.enter.prevent="app.refreshRemoteWithdrawalList()" @keydown.space.prevent="app.refreshRemoteWithdrawalList()"><text>{{ t.ui.retry }}</text></view>
     </view>
         <view v-if="showWithdrawal" class="wallet-activity-row wallet-withdrawal-activity" role="link" tabindex="0" @click="navTo('/pages/me/wallet-withdraw-tracking')" @keydown.enter.prevent="navTo('/pages/me/wallet-withdraw-tracking')">
           <view class="wallet-row-icon"><svg class="wallet-activity-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v14m-6-8 6-6 6 6M19 21H5" /></svg></view>
-          <view class="wallet-activity-copy"><text class="wallet-activity-label">{{ withdrawalRowLabel }}</text><text class="wallet-activity-sub">{{ withdrawalRowSub }}</text><text class="wallet-withdrawal-amount tabular-nums">-${{ formatAmount(latestWithdrawal!.amount) }}</text></view>
+          <view class="wallet-activity-copy"><text class="wallet-activity-label">{{ withdrawalRowLabel }}</text><text class="wallet-activity-sub">{{ withdrawalRowSub }}</text><text class="wallet-withdrawal-amount tabular-nums">{{ visibility.mask(`-$${formatAmount(latestWithdrawal!.amount)}`) }}</text></view>
           <svg class="wallet-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
         </view>
   </view>
 </template>
 <script setup lang="ts">
+import { invalidatePassiveTabRead } from "@/lib/passive-tab-read";
 import { formatFinanceAmount as formatAmount } from "@/lib/finance-amount-display";
+import { useDataVisibility } from "@/store/data-visibility";
 import { navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
@@ -80,6 +82,7 @@ import { remoteApiEnabled } from "@/api/runtime";
 import { resolveWalletTodayEarnings } from "@/lib/wallet-today-earnings";
 
 const t = useT();
+const visibility = useDataVisibility();
 const app = useApp();
 const commission = useCommission();
 const cfg = useConfig();
@@ -93,9 +96,11 @@ const bucketsReadable = computed(() => !remoteApiEnabled || (earningsReleaseHasS
   && (earningsReleaseStatus.value === "ready" || earningsReleaseStatus.value === "loading")));
 
 function retryFundsAuthority() {
+  invalidatePassiveTabRead("remote-fleet");
   void app.refreshRemoteFleet();
 }
 function retryReleaseAuthority() {
+  invalidatePassiveTabRead("earning-release");
   if (earningsReleaseStatus.value === "loading") return;
   void refreshEarningsReleaseStatus().catch(() => undefined);
 }
@@ -153,7 +158,7 @@ const todayEarnings = computed(() => resolveWalletTodayEarnings({
   homeTodayUsdt: app.homeTruth?.earnings.today.usdt ?? null,
   localTodayUsdt: app.earnings.today,
 }));
-const todayEarningsText = computed(() => todayEarnings.value === null ? "—" : `+$${formatAmount(todayEarnings.value)}`);
+const todayEarningsText = computed(() => visibility.mask(todayEarnings.value === null ? "—" : `+$${formatAmount(todayEarnings.value)}`));
 const pendingReview = computed(() => buckets.value.pendingReviewUsdt);
 const lockedRewards = computed(() => buckets.value.bonusLockedUsdt);
 const miningLifetimeUSD = computed(() => !remoteApiEnabled ? app.earnings.total
@@ -164,8 +169,8 @@ const allTimeEarned = computed(() => miningLifetimeUSD.value === null || teamLif
   ? null : miningLifetimeUSD.value + teamLifetimeUSD.value);
 const allTimeSublabel = computed(() =>
   fmt(t.value.wallet.allTimeSublabel, {
-    c: miningLifetimeUSD.value === null ? "-" : `$${formatAmount(miningLifetimeUSD.value)}`,
-    tm: teamLifetimeUSD.value === null ? "-" : `$${formatAmount(teamLifetimeUSD.value)}`,
+    c: visibility.mask(miningLifetimeUSD.value === null ? "-" : `$${formatAmount(miningLifetimeUSD.value)}`),
+    tm: visibility.mask(teamLifetimeUSD.value === null ? "-" : `$${formatAmount(teamLifetimeUSD.value)}`),
   }),
 );
 // 🔴 用**主单**(优先最早的在途单)而不是「最新一笔」:一张在途 + 一张更新的已到账时,
@@ -230,8 +235,7 @@ function amountStyle(value: string, size: number, half = false): CSSProperties {
 .wallet-chevron { flex-shrink: 0; color: var(--v5-ink-3); }
 .wallet-recovery { padding: var(--v5-space-3); margin-bottom: var(--v5-space-3); border-radius: var(--v5-radius-m); background: var(--v5-warning-soft); }
 .wallet-recovery-title { font-size: var(--v5-type-caption); color: var(--v5-warning); font-weight: 500; }
-.wallet-recovery-body { font-size: var(--v5-type-caption); color: var(--v5-ink-3); line-height: 1.5; }
-.wallet-retry { display: flex; align-items: center; justify-content: center; width: fit-content; min-height: 44px; margin-left: auto; padding: 0 var(--v5-space-3); font-size: var(--v5-type-caption); }
+.wallet-recovery-body { font-size: var(--v5-type-caption); color: var(--v5-ink-3); line-height: 1.5; overflow-wrap: anywhere; }
 [role="button"], [role="link"] { cursor: pointer; }
 [role="button"]:focus-visible, [role="link"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; border-radius: var(--v5-radius-s); }
 </style>

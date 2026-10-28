@@ -15,14 +15,14 @@
             @cta="retryCanonicalData"
           />
           <view
-            v-else-if="remoteApiEnabled && pageState.primary === 'loading'"
+            v-else-if="remoteApiEnabled && pageState.primary === 'loading' && !snapshot"
             class="rounded-2xl"
             style="height: 184px; background: color-mix(in srgb, var(--v5-surface-2) 65%, transparent)"
             role="status"
             aria-live="polite"
             aria-busy="true"
           />
-          <template v-if="pageState.primary === 'ready'">
+          <template v-if="pageState.primary === 'ready' || (pageState.primary === 'loading' && snapshot !== null)">
 
         <view class="reward-summary-panel">
         <RewardHero kind="balance" :label="estimateText">
@@ -109,7 +109,7 @@
 import { formatFinanceAmount } from "@/lib/finance-amount-display";
 import { formatComputePoints, sumComputePoints } from "@/i18n/compute-points";
 import { useLocaleStore } from "@/store/locale";
-import { computed, onMounted, watch, type CSSProperties } from "vue";
+import { computed, onMounted, ref, watch, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import RewardHero from "@/components/team/reward-compact-hero.vue";
 import RewardPageSurface from "@/components/team/reward-page-surface.vue";
@@ -123,7 +123,7 @@ import { useNetwork, type NetworkMember } from "@/store/network";
 import { useCommission } from "@/store/commission";
 import { useProductPhase } from "@/composables/use-product-phase";
 import { BINARY_SETTLE_PERIOD, SETTLE_PERIOD_DAYS } from "@/lib/binary-settlement";
-import { remoteApiEnabled, sessionVault } from "@/api/runtime";
+import { apiRuntimeConfig, remoteApiEnabled, sessionVault } from "@/api/runtime";
 import { onShow } from "@dcloudio/uni-app";
 import { navTo } from "@/lib/route";
 import { binaryPageState } from "@/lib/binary-page-state";
@@ -143,7 +143,21 @@ const app = useApp();
 const locale = useLocaleStore();
 const canonicalReadCoalescer = createScopedReadCoalescer();
 
-const snapshot = computed(() => commission.binarySnapshot);
+const displayEnvironment = [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const;
+let environmentInvalidated = false;
+watch(() => [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const, () => { environmentInvalidated = true; }, { flush: 'sync' });
+const displayEnvironmentCurrent = () => !environmentInvalidated && displayEnvironment[0] === apiRuntimeConfig.environment && displayEnvironment[1] === apiRuntimeConfig.baseUrl;
+const snapshotPresentation = ref<NonNullable<typeof commission.binarySnapshot> | null>(null);
+let rejectedsnapshotSource: NonNullable<typeof commission.binarySnapshot> | null = null;
+watch(() => [commission.binaryStatus, commission.binarySnapshot] as const, ([status, value]) => {
+  if (status === 'error') { snapshotPresentation.value = null; rejectedsnapshotSource = value; }
+  else if (status === 'ready' && auth.isAuthenticated && displayEnvironmentCurrent() && value && value !== rejectedsnapshotSource) snapshotPresentation.value = value;
+}, { immediate: true, flush: 'sync' });
+watch(() => [app.accountKey, app.accountBindingEpoch, auth.isAuthenticated, locale.code, apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const, () => {
+  rejectedsnapshotSource = commission.binarySnapshot; snapshotPresentation.value = null;
+  if (auth.isAuthenticated && displayEnvironmentCurrent()) void retryCanonicalData();
+}, { flush: 'sync' });
+const snapshot = computed(() => commission.binaryStatus === 'error' ? null : snapshotPresentation.value);
 const remoteSessionReady = computed(() => binarySessionReady({
   remote: remoteApiEnabled,
   authenticated: auth.isAuthenticated,
@@ -156,8 +170,10 @@ const pageState = computed(() => binaryPageState({
   binaryStatus: commission.binaryStatus,
   networkStatus: network.remoteStatus,
 }));
-const remoteTrackA = computed(() => commission.binarySnapshot?.trackA ?? 0);
-const remoteTrackB = computed(() => commission.binarySnapshot?.trackB ?? 0);
+const memberDetailsReadable = computed(() => pageState.value.memberDetails === 'ready'
+  || (pageState.value.memberDetails === 'loading' && network.hasRemoteSnapshot));
+const remoteTrackA = computed(() => snapshot.value?.trackA ?? 0);
+const remoteTrackB = computed(() => snapshot.value?.trackB ?? 0);
 const settlePeriod = computed(() => remoteApiEnabled ? snapshot.value?.settlePeriod ?? "monthly" : BINARY_SETTLE_PERIOD);
 const settleDays = computed(() => SETTLE_PERIOD_DAYS[settlePeriod.value]);
 const MIN_THRESHOLD = computed(() => remoteApiEnabled ? snapshot.value?.threshold ?? 0 : 1000);
@@ -213,24 +229,24 @@ const wings = computed<Wing[]>(() => [
   {
     key: "left",
     name: t.value.binary.leftWing,
-    count: remoteApiEnabled && pageState.value.memberDetails !== "ready"
+    count: remoteApiEnabled && !memberDetailsReadable.value
       ? snapshot.value?.trackAMembers ?? 0 : sides.value.left.length,
     monthVol: leftMonthVol.value,
     computePoints: leftPoints.value,
     isWeak: smallerPointSide.value === "left",
     color: "var(--v5-ink)",
-    top: pageState.value.memberDetails === "ready" ? topOf(sides.value.left) : undefined,
+    top: memberDetailsReadable.value ? topOf(sides.value.left) : undefined,
   },
   {
     key: "right",
     name: t.value.binary.rightWing,
-    count: remoteApiEnabled && pageState.value.memberDetails !== "ready"
+    count: remoteApiEnabled && !memberDetailsReadable.value
       ? snapshot.value?.trackBMembers ?? 0 : sides.value.right.length,
     monthVol: rightMonthVol.value,
     computePoints: rightPoints.value,
     isWeak: smallerPointSide.value === "right",
     color: "var(--v5-ink)",
-    top: pageState.value.memberDetails === "ready" ? topOf(sides.value.right) : undefined,
+    top: memberDetailsReadable.value ? topOf(sides.value.right) : undefined,
   },
 ]);
 

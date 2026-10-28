@@ -52,4 +52,5 @@ function retry() {
   place-items: center;
 }
 .page-load-error__cta[aria-disabled="true"] { opacity: 0.6; }
+.page-load-error__cta > text { font: 600 13px/20px var(--font-v5); }
 </style>

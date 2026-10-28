@@ -97,7 +97,7 @@ test("failed non-idempotent mutations reconcile only from authoritative lists an
   assert.match(loadBody, /const readVersion = \+\+resourceReadVersion/);
   assert.match(loadBody, /resourceFenceCurrent\(fence\) && readVersion === resourceReadVersion/);
   assert.match(loadBody, /Promise\.all\(\[developerResourcesApi\.listKeys\(\), developerResourcesApi\.listWebhooks\(\)\]\)/);
-  assert.match(loadBody, /if \(!current\(\)\) return;[\s\S]*?apiKeys\.value = keys;[\s\S]*?webhooks\.value = hooks;/);
+  assert.match(loadBody, /if \(!current\(\)\) return;[\s\S]*?apiKeys\.value = keys\.map\(\(\{ secret: _secret, \.\.\.key \}\) => key\);[\s\S]*?webhooks\.value = hooks\.map\(\(\{ secret: _secret, \.\.\.hook \}\) => hook\);/);
   assert.match(source, /resourceActionUnknown/);
 
   const rotateStart = source.indexOf("async function rotateWebhook");

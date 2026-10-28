@@ -20,17 +20,14 @@ describe("App Plus URL compatibility", () => {
     expect(result).toBe("hash=a%2Bb+%26%3F&net=TRC20&age=1");
   });
 
-  it("preserves hosted-payment restrictions and pairing handoff encoding", () => {
+  it("preserves hosted-payment restrictions without native URL constructors", () => {
     const nodeProcess = (globalThis as unknown as { process: { execPath: string } }).process;
     const result = execFileSync(nodeProcess.execPath, ["--experimental-strip-types", "-e", `
       globalThis.URL = undefined;
       globalThis.URLSearchParams = undefined;
       require("core-js/modules/web.url");
       require("core-js/modules/web.url-search-params");
-      Promise.all([
-        import("./src/lib/hosted-payment.ts"),
-        import("./src/pages/compute-share/pairing-handoff.ts"),
-      ]).then(([payment, pairing]) => {
+      import("./src/lib/hosted-payment.ts").then((payment) => {
         const safe = payment.validateHostedPaymentUrl("https://api.hdpayadmin.com/pay?id=1");
         const unsafe = [
           "http://api.hdpayadmin.com/pay",
@@ -40,15 +37,9 @@ describe("App Plus URL compatibility", () => {
         ];
         if (safe !== "https://api.hdpayadmin.com/pay?id=1"
             || unsafe.some((url) => payment.validateHostedPaymentUrl(url) !== null)) process.exit(1);
-        const handoff = pairing.createComputeSharePairingHandoff({
-          enrollmentNo: "CSE-ABC",
-          pairingCode: "123456",
-          requestedGpuModel: "NVIDIA RTX 4070",
-          expiresAt: "2026-09-01T12:30:00Z",
-        });
-        process.stdout.write(handoff);
+        process.stdout.write(safe);
       }).catch(() => process.exit(1));
     `], { encoding: "utf8" });
-    expect(result).toBe("nexgrid://compute-share/pair?v=1&enrollmentNo=CSE-ABC&pairingCode=123456&requestedGpuModel=NVIDIA+RTX+4070&expiresAt=2026-09-01T12%3A30%3A00.000Z");
+    expect(result).toBe("https://api.hdpayadmin.com/pay?id=1");
   });
 });

@@ -3,10 +3,10 @@
     <SubPageHeader back="/pages/events/events?source=legacy" :title="copy.title" />
     <text class="raffle-copy">{{ copy.intro }}</text>
     <view class="raffle-status" role="status" aria-live="polite">
-      <text v-if="loading">{{ copy.loading }}</text>
+      <text v-if="loading && !snapshot">{{ copy.loading }}</text>
       <text v-else-if="error && snapshot">{{ copy.refreshError }}</text>
     </view>
-    <view v-if="error && !snapshot" class="nx-glass-card raffle-card" role="alert"><text>{{ copy.error }}</text><view class="raffle-link" role="button" tabindex="0" @click="load" @keydown.enter.prevent="activate($event, load)" @keydown.space.prevent="activate($event, load)"><text>{{ copy.retry }}</text></view></view>
+    <view v-if="error && !snapshot" class="nx-glass-card raffle-card" role="alert"><text>{{ copy.error }}</text><view class="raffle-link" role="button" tabindex="0" @click="load" @keydown.enter.prevent="activate($event, load)" @keydown.space.prevent="activate($event, load)"><text class="raffle-read-retry-label">{{ copy.retry }}</text></view></view>
     <template v-if="snapshot">
       <view class="raffle-row"><text>{{ copy.available }}</text><text class="raffle-number">{{ snapshot.availableTickets }}</text></view>
       <text v-if="!snapshot.draws.length" class="raffle-copy">{{ copy.empty }}</text>
@@ -35,7 +35,7 @@
         </template>
         <text v-if="notice[draw.id]" class="raffle-copy" role="status">{{ copy[notice[draw.id]] }}</text>
       </view>
-      <view class="raffle-link" role="button" :tabindex="busy || loading ? -1 : 0" :aria-disabled="!!busy || loading" @click="!busy && !loading && load()" @keydown.enter.prevent="!busy && !loading && activate($event, load)" @keydown.space.prevent="!busy && !loading && activate($event, load)"><text>{{ error ? copy.retry : copy.refresh }}</text></view>
+      <view class="raffle-link" role="button" :tabindex="busy || loading ? -1 : 0" :aria-disabled="!!busy || loading" @click="!busy && !loading && load()" @keydown.enter.prevent="!busy && !loading && activate($event, load)" @keydown.space.prevent="!busy && !loading && activate($event, load)"><text :class="{ 'raffle-read-retry-label': error }">{{ error ? copy.retry : copy.refresh }}</text></view>
     </template>
   </view></AppChassis>
 </template>
@@ -163,6 +163,7 @@ onUnmounted(() => { visible = false; reset(); unsubscribe(); });
 .raffle-number { font-size:20px; font-weight:600; color:var(--v5-brand); }
 .raffle-input { width:92px; padding:7px 10px; border:1px solid var(--v5-border); border-radius:8px; color:var(--v5-ink); }
 .raffle-primary, .raffle-link { display:flex; justify-content:center; margin-top:16px; padding:13px; border-radius:24px; font-size:13px; font-weight:600; color:var(--v5-brand); }
+.raffle-read-retry-label { font: 600 13px/20px var(--font-v5); }
 .raffle-primary { background:var(--v5-brand); color:var(--v5-on-brand); }
 .raffle-primary[aria-disabled="true"] { opacity:0.5; }
 </style>

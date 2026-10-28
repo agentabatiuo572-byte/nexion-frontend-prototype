@@ -39,6 +39,7 @@ function mountPage() {
     "@/lib/unread-badge": { formatUnreadBadge },
     "@/store/notifications": { useNotifications: () => notifs },
     "@/store/message-drawer": { useMessageDrawer: () => vue.reactive({ section: "notifications", totalUnread: 1, serviceUnread: 0, refresh: () => notifs.refreshRemote() }) },
+    "@/store/conversations": { useConversations: () => ({ realtimeFallback: false, categoryLoading: false }) },
     "@/lib/route": { navTo: vi.fn() },
     "@/api/runtime": { remoteApiEnabled: true },
     "@/lib/notification-swipe": { isLeftConversionSwipe: vi.fn() },

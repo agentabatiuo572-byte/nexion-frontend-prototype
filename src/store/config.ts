@@ -1,10 +1,11 @@
+import { invalidatePassiveTabRead, invalidateBeforePassiveTabRead, rememberPassiveTabRead, runPassiveTabRead } from "@/lib/passive-tab-read";
 import { defineStore } from "pinia";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import type { ComputeShareContent, FeatureFlagKey, PlatformConfig } from "./config-types";
 import { DEFAULT_PLATFORM_CONFIG } from "@/mock/platform-config";
 import { isNetworkFeeConfigUsable } from "@/store/nex-faucet";
 import { completePlatformConfigSeed } from "@/lib/platform-config-compat";
-import { platformConfigApi, remoteApiEnabled } from "@/api/runtime";
+import { apiRuntimeConfig, apiRuntimeClientOrigin, platformConfigApi, remoteApiEnabled } from "@/api/runtime";
 import type { PlatformPublicStatsAuthority } from "@/api/platform-config-api";
 
 const IS_PRODUCTION = import.meta.env.PROD;
@@ -163,6 +164,10 @@ export const useConfig = defineStore("config", () => {
   const loading = ref(false);
   let reloadAfterCurrentFlight = false;
   let currentLoad: Promise<void> | null = null;
+  let currentLoadStartedAt = 0;
+  const originKey = () => JSON.stringify([apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl]);
+  const clientOrigin = JSON.stringify([apiRuntimeClientOrigin.environment, apiRuntimeClientOrigin.baseUrl]);
+  let environmentInvalidated = false;
 
   function clearRemotePlatformAuthority() {
     if (!remoteApiEnabled) return;
@@ -183,19 +188,40 @@ export const useConfig = defineStore("config", () => {
     syncFailed.value = true;
   }
 
+  function invalidateEnvironment(): void {
+    environmentInvalidated = true;
+    currentLoad = null;
+    reloadAfterCurrentFlight = false;
+    invalidatePassiveTabRead("config");
+    loading.value = false;
+    clearRemotePlatformAuthority();
+    configStatus.value = "failed";
+  }
+  function currentClient(): boolean {
+    if (originKey() !== clientOrigin && !environmentInvalidated) invalidateEnvironment();
+    return !environmentInvalidated;
+  }
+  watch(() => [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl], invalidateEnvironment, { flush: "sync" });
+
   function load(): Promise<void> {
+    if (!currentClient()) return Promise.resolve();
+    invalidateBeforePassiveTabRead("config");
     if (currentLoad) {
       reloadAfterCurrentFlight = true;
       return currentLoad;
     }
     loading.value = true;
     configStatus.value = "loading";
+    const startedAt = Date.now();
     let flight!: Promise<void>;
     // Start in a microtask so even a synchronous API mock/adapter throw cannot
     // run finally before currentLoad has received this flight.
     flight = Promise.resolve().then(async () => {
+      const current = () => currentClient() && currentLoad === flight;
       try {
+        if (!current()) return;
         const remote = await platformConfigApi.platformConfig();
+        if (!current()) return;
         if (remote.publicStatsAuthority.sourceEnvironment !== "PRODUCTION"
             || remote.publicStatsAuthority.runId !== "") {
           throw new Error("H9_PUBLIC_STATS_ENVIRONMENT_MISMATCH");
@@ -223,27 +249,44 @@ export const useConfig = defineStore("config", () => {
         computeShare: remote.computeShare,
         share: remote.share,
         };
+        if (!current()) return;
         publicStatsAuthority.value = remote.publicStatsAuthority;
+        if (!current()) return;
         syncFailed.value = false;
+        if (!current()) return;
         configStatus.value = "ready";
       } catch {
+        if (!current()) return;
         clearRemotePlatformAuthority();
+        if (!current()) return;
         configStatus.value = "failed";
       } finally {
-        loading.value = false;
-        if (currentLoad === flight) currentLoad = null;
-        if (reloadAfterCurrentFlight) {
-          reloadAfterCurrentFlight = false;
-          void load();
+        if (currentLoad === flight) {
+          currentLoad = null;
+          loading.value = false;
+          if (reloadAfterCurrentFlight) {
+            reloadAfterCurrentFlight = false;
+            void load();
+          }
         }
       }
     });
     currentLoad = flight;
+    currentLoadStartedAt = startedAt;
+    rememberPassiveTabRead("config", flight, undefined, startedAt, () => configStatus.value === "ready");
     return flight;
+  }
+
+  /** Passive visitors join startup work without requesting a queued manual reload. */
+  function revalidate(): Promise<void> {
+    if (!currentClient()) return Promise.resolve();
+    if (currentLoad) return rememberPassiveTabRead("config", currentLoad, undefined, currentLoadStartedAt, () => configStatus.value === "ready");
+    return runPassiveTabRead("config", () => load(), undefined, () => configStatus.value === "ready");
   }
 
   /** Join startup work without turning a page's wait into an extra reload. */
   function ensureLoaded(): Promise<void> {
+    if (!currentClient()) return Promise.resolve();
     if (currentLoad) return currentLoad;
     return configStatus.value === "ready" ? Promise.resolve() : load();
   }
@@ -277,7 +320,7 @@ export const useConfig = defineStore("config", () => {
     };
   }
 
-  return { config, publicStatsAuthority, configStatus, syncFailed, loading, load, ensureLoaded, feeConfigValid, isEnabled, _devSetFlag, _devSetComputeShareContent, _devSetConfigSyncFailed };
+  return { config, publicStatsAuthority, configStatus, syncFailed, loading, load, revalidate, ensureLoaded, feeConfigValid, isEnabled, _devSetFlag, _devSetComputeShareContent, _devSetConfigSyncFailed };
 });
 
 // currentNetworkConfirmFeeUsd(权威网络费跨 store 纯函数)已随 c37e642 的 D5 policy

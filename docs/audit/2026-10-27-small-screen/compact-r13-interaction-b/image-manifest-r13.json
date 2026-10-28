@@ -1,0 +1,112 @@
+[
+  {
+    "name": "01-benefits-active-vi-dark-320.jpg",
+    "bytes": 32395,
+    "sha256": "FED7C551885386EC299E4B9BEF14EBCC49AC1F85FFF2001BB33BA7EA006A1686"
+  },
+  {
+    "name": "02-benefits-active-vi-light-320.jpg",
+    "bytes": 30103,
+    "sha256": "7E938BECC96D0F765F0A43270E97CE27BC9A4F609BD73AC1F5B3BC3CEC087E8D"
+  },
+  {
+    "name": "03-benefits-active-zh-dark-390.jpg",
+    "bytes": 43454,
+    "sha256": "EC35961716D22322BD2B19E548404C5D0A1B18809E66963A9A392A81583E3152"
+  },
+  {
+    "name": "04-benefits-unclaimed-zh-dark-390.jpg",
+    "bytes": 45005,
+    "sha256": "5E6AF7DE364317CE9300A80BBDF2971C6A5A58EC8E180551385C48DC1AA07532"
+  },
+  {
+    "name": "05-inventory-images-online-vi-light-320.jpg",
+    "bytes": 29726,
+    "sha256": "342779813EEAAEBC2D279EE1181C0E726779D7BD1DCB26A7471C61D858514FD6"
+  },
+  {
+    "name": "06-inventory-action-right-vi-light-320.jpg",
+    "bytes": 28386,
+    "sha256": "11C28E6C0B175E6E7F8F0F4A2B5B6D9ED7C9EA9FC9398209245A3BD192CF4C2A"
+  },
+  {
+    "name": "07-inventory-stop-confirm-only-vi-light-320.jpg",
+    "bytes": 20096,
+    "sha256": "F04A2FDAC46EADCCE32C12A574B1791B680F5927E4D9C7F6F8DE3E43DC365081"
+  },
+  {
+    "name": "08-inventory-images-online-zh-dark-390.jpg",
+    "bytes": 39851,
+    "sha256": "3E68D5B6614B5381D5587B8C988E7E950CE50BC66338F9804BEBCCBA3549B36F"
+  },
+  {
+    "name": "09-benefits-grace-vi-light-320.jpg",
+    "bytes": 30112,
+    "sha256": "CFA163555822D484DFDFB27A377334F8A396A5A2439CFA950C2DFE5EFB29DF61"
+  },
+  {
+    "name": "10-benefits-ended-vi-light-320.jpg",
+    "bytes": 29363,
+    "sha256": "E887AE0A421EDF5779A0CB107B8657A12AB0CF763D7E12AD797A0449ECF88E8A"
+  },
+  {
+    "name": "11-benefits-converted-vi-light-320.jpg",
+    "bytes": 28928,
+    "sha256": "68CF1233123B613E87A8D2CA58B5DE907DA49545EBA3468FE455E5CD96C9EC97"
+  },
+  {
+    "name": "12-benefits-unclaimed-vi-light-320.jpg",
+    "bytes": 29454,
+    "sha256": "B755B624E4624CCCA4D04D93D721E037FAD9D92194647080F7F34703B6947947"
+  },
+  {
+    "name": "13-benefits-unclaimed-en-light-360.jpg",
+    "bytes": 31869,
+    "sha256": "9F6CCB10DE5968FB59013ACCF93F1C8122842AA6F6F4F444307B70808ED7AF62"
+  },
+  {
+    "name": "14-home-online-vi-light-320.jpg",
+    "bytes": 33261,
+    "sha256": "C85005939BBA8043BF3EEB76981060E64EC613A856695E68B1EF06AFC28E90C7"
+  },
+  {
+    "name": "15-earn-online-vi-light-320.jpg",
+    "bytes": 26971,
+    "sha256": "3AB13310F83C6D2EEA755471A548ABB2B0DAC75562DE9426F1E6EFE12646EC4D"
+  },
+  {
+    "name": "16-message-tail-before-scroll-vi-light-320.jpg",
+    "bytes": 17349,
+    "sha256": "DFD13FAAAFD0F627DEBBAB380C69A95EEF34BC9F48AD90FD3A34C73B71D19202"
+  },
+  {
+    "name": "17-message-tail-after-scroll-vi-light-320.jpg",
+    "bytes": 16546,
+    "sha256": "1CE187ADFCDC6E3D7BBF92A75E5AC40927184593C710C17B64DEB1681E54CF5F"
+  },
+  {
+    "name": "retry-01-developer-vi-light-320.jpg",
+    "bytes": 21448,
+    "sha256": "19D6A2E3AAE25E475B712EB77C5A8BF2A6C61C47B1C4A9ACEE452D070EA61254"
+  },
+  {
+    "name": "retry-02-raffle-vi-light-320.jpg",
+    "bytes": 14083,
+    "sha256": "0B195032D1F789A174C962646D769F3C0EFD46B6C80907734AD2692006498BD5"
+  },
+  {
+    "name": "retry-03-market-vi-light-320.jpg",
+    "bytes": 20245,
+    "sha256": "2E76CFE07FE8814BFF4F25C6B0AE68F2A41BA332DF384A8E8634102B19C83CA2"
+  },
+  {
+    "name": "retry-04-register-success-synthetic-vi-light-320.jpg",
+    "bytes": 35518,
+    "sha256": "1A19D29D6F5429DD057886325B1D09683F3DD97218BFB5D893B1D8FA5AB59DC3"
+  },
+  {
+    "name": "user-success-native-scrollbar.png",
+    "bytes": 121556,
+    "sha256": "AA99680CC753EC3867DE4EFDEE5920FA90B656688248D8602A089D446AD83B02"
+  }
+]

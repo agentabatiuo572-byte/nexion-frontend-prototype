@@ -47,6 +47,33 @@ it.each([promotionZH,promotionEN,promotionVI])('discount rows use localized dedu
   }
 });
 
+it.each([promotionZH,promotionEN,promotionVI])('personal rewards opt into masking while public rules and detail-page defaults stay readable', async copy => {
+  promotionCopy = copy;
+  const personal = { ...reward, reward: { ...reward.reward, amount: '123.450000' } };
+  const props = { rewards: [personal], valueMask: '••••' };
+  const hidden = await renderToString(Vue.createSSRApp(componentExports.default, props));
+  expect(hidden).toContain('••••');
+  expect(hidden).not.toContain('123.45');
+  expect(hidden).toContain(copy.rewardGranted);
+  expect(hidden).toContain(copy['reward-detail']);
+  expect(personal.reward.amount).toBe('123.450000');
+  const details = await renderToString(Vue.createSSRApp(componentExports.default, { rewards: [personal] }));
+  expect(details).toContain('123.45 USDT');
+  const rules = await renderToString(Vue.createSSRApp(componentExports.default, { specs: [{ ...reward.reward, type: 'NEX', amount: '10.000000' }] }));
+  expect(rules).toContain('10.00 UVT');
+  expect(rules).not.toContain('••••');
+});
+
+it('opted-in reward rows also replace actual purchased quantities while retaining their product and reward-detail entry', async () => {
+  const props = { valueMask: '••••', lines: [{ lineId: 'line-a', productNo: 'sku-a', quantity: 67 }],
+    rewards: [{ ...reward, orderLineId: 'line-a' }] };
+  const html = await renderToString(Vue.createSSRApp(componentExports.default, props));
+  expect(html.replace(/<!--.*?-->/g, '')).toContain('Device Alpha × ••••');
+  expect(html).not.toContain('× 67');
+  expect(html).not.toContain('3.00 USDT');
+  expect(html).toContain(promotionZH['reward-detail']);
+});
+
 it('home advert copy keeps AA contrast against captured light background samples',()=>{
   const styles=parse(entrySource).descriptor.styles.find(style=>style.scoped)!.content;
   const rule=styles.match(/\.entry-advert\s+\.promotion-copy\s*\{([^}]*)\}/)![1];

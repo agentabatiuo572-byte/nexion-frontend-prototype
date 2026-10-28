@@ -51,6 +51,7 @@ function mount(remote = true, realQueue = false, navigationQuery = "", initialAc
   const navTo = vi.fn();
   const confirm = vi.fn((options: Parameters<typeof ui.confirm>[0]) => realQueue ? ui.confirm(options) : confirmation.promise);
   const modules: Record<string, unknown> = {
+    "@/store/conversations": { useConversations: () => ({ realtimeFallback: false, categoryLoading: false }) },
     vue: { ...vue, inject: (_key: unknown, fallback: unknown) => fallback, onMounted: (fn: () => void) => hooks.mounted.push(fn), onUnmounted: (fn: () => void) => hooks.unmount.push(fn) },
     "@dcloudio/uni-app": { onBackPress: vi.fn(), onResize: vi.fn(), onLoad: (fn: (...args: any[]) => void) => hooks.load.push(fn), onShow: (fn: () => void) => hooks.show.push(fn), onHide: (fn: () => void) => hooks.hide.push(fn) },
     "@/lib/notification-category": { notificationCategory },

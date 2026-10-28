@@ -3,11 +3,11 @@
     <view class="pb-6" style="color: var(--v5-ink)">
       <SubPageHeader back="/pages/team/team" :title="t.headerTitles.teamAgent" />
 
-      <view v-if="remoteApiEnabled && pageReadState !== 'ready'" class="px-4 text-center" style="padding-top: 32px" role="status" aria-live="polite" :aria-busy="pageReadState === 'loading'">
+      <view v-if="remoteApiEnabled && pageReadState !== 'ready' && !(pageReadState === 'loading' && policy)" class="px-4 text-center" style="padding-top: 32px" role="status" aria-live="polite" :aria-busy="pageReadState === 'loading'">
         <text class="block" style="font-size: 13px; color: var(--v5-ink-2)">{{ pageReadState === 'loading' ? t.agent.loading : t.agent.loadError }}</text>
         <view v-if="pageReadState === 'error'" class="agent-cta agent-retry" role="button" tabindex="0" @click="retryAgentPage" @keydown.enter.prevent="retryAgentPage" @keydown.space.prevent="retryAgentPage"><text>{{ t.agent.retry }}</text><text aria-hidden="true">→</text></view>
       </view>
-      <view v-else class="agent-content">
+      <view class="agent-content">
         <view class="agent-hero">
           <view class="agent-hero-copy">
             <text class="agent-eyebrow">{{ t.agent.heroLabel }}</text>
@@ -40,10 +40,10 @@
             class="flex items-start agent-bucket" :class="{ 'agent-bucket--selected': selectedBucketId === b.id }"
             :style="bucketRowStyle(i === BUCKETS.length - 1)"
             role="button"
-            :tabindex="submitting ? -1 : 0"
+            :tabindex="submitting || (remoteApiEnabled && pageReadState !== 'ready') ? -1 : 0"
             :aria-label="b.title"
             :aria-pressed="selectedBucketId === b.id"
-            :aria-disabled="submitting"
+            :aria-disabled="submitting || (remoteApiEnabled && pageReadState !== 'ready')"
             @click.capture="selectBucket(b)"
             @keydown.enter.prevent="selectBucket(b)"
             @keydown.space.prevent="selectBucket(b)"
@@ -75,7 +75,7 @@
                 v-model="date"
                 :aria-label="t.agent.fieldEventDate"
                 type="text"
-                :disabled="!unlocked || submitting"
+                :disabled="!formReady || submitting"
                 placeholder="YYYY-MM-DD"
                 :style="inputStyle"
                 placeholder-style="color: var(--v5-ink-2)"
@@ -90,7 +90,7 @@
                 v-model="city"
                 :aria-label="t.agent.fieldCity"
                 type="text"
-                :disabled="!unlocked || submitting"
+                :disabled="!formReady || submitting"
                 :placeholder="t.agent.cityPlaceholder"
                 :style="inputStyle"
                 placeholder-style="color: var(--v5-ink-2)"
@@ -108,18 +108,18 @@
                   :aria-label="auditCopy.budgetLabel"
                   type="text"
                   inputmode="decimal"
-                  :disabled="!unlocked || submitting"
+                  :disabled="!formReady || submitting"
                   :style="budgetInputStyle"
                 />
               </view>
             </view>
           </view>
 
-          <view class="agent-cta agent-submit" :style="submitStyle" role="button" :tabindex="unlocked && !submitting ? 0 : -1" :aria-disabled="!unlocked || submitting ? 'true' : 'false'" :aria-busy="submitting" @click="submit" @keydown.enter.prevent="submit" @keydown.space.prevent="submit">
-            <text>{{ unlocked ? t.agent.submitForReview : t.agent.lockedV5 }}</text><text aria-hidden="true">{{ submitting ? '…' : '→' }}</text>
+          <view class="agent-cta agent-submit" :style="submitStyle" role="button" :tabindex="formReady && !submitting ? 0 : -1" :aria-disabled="!formReady || submitting ? 'true' : 'false'" :aria-busy="submitting" @click="submit" @keydown.enter.prevent="submit" @keydown.space.prevent="submit">
+            <text>{{ t.agent.submitForReview }}</text><text aria-hidden="true">{{ submitting ? '…' : '→' }}</text>
           </view>
 
-          <view v-if="draft.touched" class="agent-cta" role="button" :tabindex="submitting ? -1 : 0" :aria-disabled="submitting" @click="discardDraft"><text>{{ logicCopy.discardDraft }}</text></view>
+          <view v-if="draft.touched" class="agent-cta" role="button" :tabindex="submitting || (remoteApiEnabled && pageReadState !== 'ready') ? -1 : 0" :aria-disabled="submitting || (remoteApiEnabled && pageReadState !== 'ready')" @click="discardDraft"><text>{{ logicCopy.discardDraft }}</text></view>
           <text v-if="!unlocked" class="block text-center" :style="previewOnlyStyle">{{ fmt(t.agent.previewOnly, { rank: requiredRankLabel }) }}</text>
         </view>
 
@@ -181,8 +181,9 @@ import { formatFinanceAmount } from "@/lib/finance-amount-display";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { toast } from "@/store/ui";
+import { useAuth } from '@/store/auth';
 import { useApp } from "@/store/app";
-import { ambassadorApplicationApi, remoteApiEnabled } from "@/api/runtime";
+import { ambassadorApplicationApi, apiRuntimeConfig, remoteApiEnabled } from "@/api/runtime";
 import type { AmbassadorApplication, AmbassadorApplicationInput, AmbassadorPolicy,
   AmbassadorPolicyBucket } from "@/api/ambassador-application-api";
 import { isAmbassadorApplicationPending } from "@/api/ambassador-application-api";
@@ -203,11 +204,17 @@ const locale = useLocaleStore();
 const logicCopy = computed(() => teamLogicCopy(locale.code));
 const auditCopy = computed(() => networkReauditCopy(locale.code));
 const app = useApp();
+const auth = useAuth();
+const readEnvironment = [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const;
+let environmentInvalidated = false;
+watch(() => [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const, () => { environmentInvalidated = true; }, { flush: 'sync' });
+const environmentCurrent = () => !environmentInvalidated && readEnvironment[0] === apiRuntimeConfig.environment && readEnvironment[1] === apiRuntimeConfig.baseUrl;
 
 const myRank = computed(() => vrank.myRank);
 const rankReady = computed(() => vrank.remoteReady);
 const requiredRankLabel = computed(() => rankLabel(5, locale.code, vrank.ladder));
 const unlocked = computed(() => rankReady.value && vrank.myRank >= 5);
+const formReady = computed(() => (!remoteApiEnabled || pageReadState.value === 'ready') && unlocked.value);
 
 interface Bucket {
   id: AmbassadorPolicyBucket["id"];
@@ -254,7 +261,7 @@ const APPROVED_CASES: ApprovedCase[] = [
 const draft = shallowRef(ambassadorDraftCache.forAccount({ accountKey: app.accountKey, accountEpoch: app.accountBindingEpoch }));
 function draftField<K extends keyof AmbassadorDraftForm>(key: K) {
   return computed({ get: () => draft.value.form[key], set: (value: AmbassadorDraftForm[K]) => {
-    if (draft.value.pending) return;
+    if (draft.value.pending || !agentMounted || (remoteApiEnabled && pageReadState.value !== "ready")) return;
     draft.value.form[key] = value;
     draft.value.touched = true;
   } });
@@ -300,7 +307,7 @@ function captureAgentRequest(): TeamP31718Request {
   };
 }
 function requestIsCurrent(request: TeamP31718Request): boolean {
-  return isCurrentTeamP31718Request(request, {
+  return (!remoteApiEnabled || auth.isAuthenticated) && environmentCurrent() && isCurrentTeamP31718Request(request, {
     mounted: agentMounted,
     accountKey: app.accountKey,
     accountEpoch: app.accountBindingEpoch,
@@ -324,7 +331,7 @@ function resetAgentPageState(): void {
   policy.value = null;
 }
 function discardDraft(): void {
-  if (submitting.value) return;
+  if (submitting.value || !agentMounted || (remoteApiEnabled && pageReadState.value !== "ready")) return;
   clearAmbassadorDraft(draft.value, String(policy.value?.defaultBudgetUsdt ?? 3000));
 }
 
@@ -336,7 +343,7 @@ function hostedByText(c: ApprovedCase): string {
 }
 
 function selectBucket(b: Bucket) {
-  if (submitting.value) return;
+  if (submitting.value || !agentMounted || (remoteApiEnabled && pageReadState.value !== "ready")) return;
   selectedBucketTitle.value = b.title;
   selectedBucketId.value = b.id as AmbassadorApplicationInput["bucket"];
 }
@@ -446,7 +453,8 @@ async function submit() {
 }
 
 function refreshAgentPage(): void {
-  if (!remoteApiEnabled) return;
+  if (!remoteApiEnabled || !agentMounted || !auth.isAuthenticated || !environmentCurrent()) return;
+  invalidateAgentRequests();
   const requestScope = captureAgentRequest();
   pageReadState.value = "loading";
   // 🔴 本页的契约是三条大使读取(policy / latest / history),**不是**等级阶梯(zentao #204)。
@@ -474,7 +482,10 @@ function refreshAgentPage(): void {
   ]).then(() => {
     if (requestIsCurrent(requestScope)) pageReadState.value = policy.value ? "ready" : "error";
   }).catch(() => {
-    if (requestIsCurrent(requestScope)) pageReadState.value = "error";
+    if (requestIsCurrent(requestScope)) {
+      invalidateAgentRequests();
+      policy.value = null; applications.value = []; latestApplication.value = emptyApplication(); pageReadState.value = "error";
+    }
   });
 }
 
@@ -483,7 +494,7 @@ function retryAgentPage(): void {
   refreshAgentPage();
 }
 
-watch([() => app.accountKey, () => app.accountBindingEpoch], () => {
+watch([() => app.accountKey, () => app.accountBindingEpoch, () => auth.isAuthenticated, () => locale.code, () => apiRuntimeConfig.environment, () => apiRuntimeConfig.baseUrl], () => {
   draft.value = ambassadorDraftCache.forAccount({ accountKey: app.accountKey, accountEpoch: app.accountBindingEpoch });
   resetAgentPageState();
   if (agentMounted) refreshAgentPage();
@@ -492,13 +503,14 @@ watch([() => app.accountKey, () => app.accountBindingEpoch], () => {
 onShow(() => {
   draft.value = ambassadorDraftCache.forAccount({ accountKey: app.accountKey, accountEpoch: app.accountBindingEpoch });
   agentMounted = true;
-  resetAgentPageState();
+  invalidateAgentRequests();
   refreshAgentPage();
 });
 
 onHide(() => {
   agentMounted = false;
-  resetAgentPageState();
+  invalidateAgentRequests();
+  pageReadState.value = remoteApiEnabled ? "loading" : "ready";
 });
 
 onUnload(() => {
@@ -525,7 +537,7 @@ const fieldLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-
 const inputStyle: CSSProperties = { width: "100%", minHeight: "44px", padding: "0 12px", boxSizing: "border-box", border: "1px solid var(--v5-border)", borderRadius: "10px", background: "transparent", fontSize: "15px", color: "var(--v5-ink)" };
 const budgetInputStyle: CSSProperties = { flex: "1", minWidth: 0, minHeight: "44px", background: "transparent", fontSize: "15px", color: "var(--v5-ink)", fontFamily: "var(--font-v5)" };
 const submitStyle = computed<CSSProperties>(() => ({
-  marginTop: "24px", opacity: unlocked.value && !submitting.value ? 1 : 0.45,
+  marginTop: "24px", opacity: (pageReadState.value === 'loading' || (!rankReady.value && !vrank.remoteError)) && !submitting.value ? 1 : formReady.value && !submitting.value ? 1 : 0.45,
 }));
 const previewOnlyStyle: CSSProperties = { marginTop: "12px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.5 };
 const casesBlockStyle: CSSProperties = { paddingTop: "8px" };

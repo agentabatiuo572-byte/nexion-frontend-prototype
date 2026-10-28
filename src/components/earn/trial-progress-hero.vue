@@ -16,8 +16,8 @@
     <!-- Shadow earnings -->
     <view class="flex items-baseline" style="gap: 6px; margin-top: 12px">
       <text :style="dollarStyle">$</text>
-      <text :style="shadowUsdStyle">{{ formatAmount(shadowUSD) }}</text>
-      <text :style="shadowNexStyle">+ {{ formatAmount(shadowNEX) }} UVT</text>
+      <text :style="shadowUsdStyle">{{ visibility.mask(formatAmount(shadowUSD)) }}</text>
+      <text :style="shadowNexStyle">+ {{ visibility.mask(formatAmount(shadowNEX)) }} UVT</text>
     </view>
     <text class="block" :style="ctaLineStyle">{{ cta }}</text>
 
@@ -39,6 +39,7 @@
 </template>
 
 <script setup lang="ts">
+import { useDataVisibility } from "@/store/data-visibility";
 import { formatAmount } from "@/lib/amount-display";
 import { computed, type CSSProperties } from "vue";
 import { formatTrialRemaining } from "@/i18n/core-review";
@@ -50,6 +51,7 @@ import type { TrialStatus } from "@/store/free-trial";
 import { trialCycleDurationMs } from "@/lib/trial-cycle-duration";
 import { useTrialLifecycleCopy } from "@/i18n/trial-lifecycle";
 
+const visibility = useDataVisibility();
 const props = defineProps<{
   status: TrialStatus;
   extended?: boolean;

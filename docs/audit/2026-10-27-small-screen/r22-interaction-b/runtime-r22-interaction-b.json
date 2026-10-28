@@ -1,0 +1,1685 @@
+{
+  "cases": [
+    {
+      "time": "2026-10-27T16:31:59.799Z",
+      "url": "http://127.0.0.1:5266/?nx_device=off#/pages/index/index",
+      "entry": [
+        "http://127.0.0.1:5266/assets/index-C1VSW6rq.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5266/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5266/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5266/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5266/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5266/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5266/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5266/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5266/assets/app-chassis-DSCGxZok.css",
+        "http://127.0.0.1:5266/assets/daily-check-in-row-BoXMjQFA.css",
+        "http://127.0.0.1:5266/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5266/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5266/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5266/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5266/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5266/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5266/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5266/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5266/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5266/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5266/assets/index-D6_GdV75.css"
+      ],
+      "locale": "已连续签到 2 天\n今天签到领 5 UVT· 第 3 天 UVT 20.00\n签到\n1\n2\n+5\n今天\n·\n4\n·\n5\n·\n6\n+40",
+      "theme": "light",
+      "viewport": [
+        320,
+        693
+      ],
+      "document": [
+        320,
+        320
+      ],
+      "frame": {
+        "x": 846,
+        "y": 266.8333435058594,
+        "width": 320,
+        "height": 693,
+        "top": 266.8333435058594,
+        "right": 1166,
+        "bottom": 959.8333435058594,
+        "left": 846
+      },
+      "badge": {
+        "cls": "inline-flex items-center gap-1 font-mono-tabular",
+        "text": "USDT",
+        "label": null,
+        "box": {
+          "x": 257.2708435058594,
+          "y": 107,
+          "width": 44.72916793823242,
+          "height": 19.33333396911621,
+          "top": 107,
+          "right": 302.0000114440918,
+          "bottom": 126.33333396911621,
+          "left": 257.2708435058594
+        },
+        "ink": {
+          "x": 264.2708435058594,
+          "y": 109,
+          "width": 30.729156494140625,
+          "height": 15.333335876464844,
+          "top": 109,
+          "right": 295,
+          "bottom": 124.33333587646484,
+          "left": 264.2708435058594
+        },
+        "font": [
+          "12px",
+          "500",
+          "normal"
+        ],
+        "letterSpacing": "0.48px",
+        "whiteSpace": "nowrap",
+        "color": "rgb(7, 122, 133)",
+        "background": "rgb(224, 246, 249) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(7, 122, 133)",
+        "padding": "2px 7px",
+        "display": "flex",
+        "opacity": "1",
+        "client": [
+          45,
+          19
+        ],
+        "scroll": [
+          45,
+          19
+        ]
+      },
+      "title": {
+        "cls": "font-mono-tabular",
+        "text": "今日收益",
+        "label": null,
+        "box": {
+          "x": 18,
+          "y": 108,
+          "width": 49.927085876464844,
+          "height": 17.33333396911621,
+          "top": 108,
+          "right": 67.92708587646484,
+          "bottom": 125.33333396911621,
+          "left": 18
+        },
+        "ink": {
+          "x": 18,
+          "y": 110,
+          "width": 49.927085876464844,
+          "height": 15.333335876464844,
+          "top": 110,
+          "right": 67.92708587646484,
+          "bottom": 125.33333587646484,
+          "left": 18
+        },
+        "font": [
+          "12px",
+          "400",
+          "normal"
+        ],
+        "letterSpacing": "0.48px",
+        "whiteSpace": "pre-line",
+        "color": "rgb(164, 168, 176)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(164, 168, 176)",
+        "padding": "0px",
+        "display": "block",
+        "opacity": "1",
+        "client": [
+          50,
+          17
+        ],
+        "scroll": [
+          50,
+          17
+        ]
+      },
+      "header": {
+        "cls": "flex justify-between items-center gap-2",
+        "text": "今日收益\nUSDT",
+        "label": null,
+        "box": {
+          "x": 18,
+          "y": 107,
+          "width": 284,
+          "height": 19.33333396911621,
+          "top": 107,
+          "right": 302,
+          "bottom": 126.33333396911621,
+          "left": 18
+        },
+        "ink": {
+          "x": 18,
+          "y": 107,
+          "width": 284,
+          "height": 19.333335876464844,
+          "top": 107,
+          "right": 302,
+          "bottom": 126.33333587646484,
+          "left": 18
+        },
+        "font": [
+          "16px",
+          "400",
+          "normal"
+        ],
+        "letterSpacing": "normal",
+        "whiteSpace": "normal",
+        "color": "rgb(19, 20, 26)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(19, 20, 26)",
+        "padding": "0px",
+        "display": "flex",
+        "opacity": "1",
+        "client": [
+          284,
+          19
+        ],
+        "scroll": [
+          284,
+          19
+        ]
+      },
+      "amount": {
+        "cls": "mt-2.5 flex items-baseline gap-1",
+        "text": "$\n16.24",
+        "label": null,
+        "box": {
+          "x": 18,
+          "y": 136.33334350585938,
+          "width": 284,
+          "height": 56,
+          "top": 136.33334350585938,
+          "right": 302,
+          "bottom": 192.33334350585938,
+          "left": 18
+        },
+        "ink": {
+          "x": 18,
+          "y": 129,
+          "width": 116.82292175292969,
+          "height": 70,
+          "top": 129,
+          "right": 134.8229217529297,
+          "bottom": 199,
+          "left": 18
+        },
+        "font": [
+          "16px",
+          "600",
+          "16px"
+        ],
+        "letterSpacing": "-0.384px",
+        "whiteSpace": "normal",
+        "color": "rgb(19, 20, 26)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(19, 20, 26)",
+        "padding": "0px",
+        "display": "flex",
+        "opacity": "1",
+        "client": [
+          284,
+          56
+        ],
+        "scroll": [
+          284,
+          63
+        ]
+      },
+      "number": {
+        "cls": "tabular-nums",
+        "text": "16.24",
+        "label": null,
+        "box": {
+          "x": 33.625,
+          "y": 136.33334350585938,
+          "width": 101.19792175292969,
+          "height": 56,
+          "top": 136.33334350585938,
+          "right": 134.8229217529297,
+          "bottom": 192.33334350585938,
+          "left": 33.625
+        },
+        "ink": {
+          "x": 33.625,
+          "y": 129,
+          "width": 101.19792175292969,
+          "height": 70,
+          "top": 129,
+          "right": 134.8229217529297,
+          "bottom": 199,
+          "left": 33.625
+        },
+        "font": [
+          "56px",
+          "600",
+          "56px"
+        ],
+        "letterSpacing": "-0.384px",
+        "whiteSpace": "pre-line",
+        "color": "rgb(19, 20, 26)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(19, 20, 26)",
+        "padding": "0px",
+        "display": "block",
+        "opacity": "1",
+        "client": [
+          101,
+          56
+        ],
+        "scroll": [
+          101,
+          63
+        ]
+      },
+      "cents": {
+        "cls": "",
+        "text": ".24",
+        "label": null,
+        "box": {
+          "x": 85.28125,
+          "y": 149,
+          "width": 49.54166793823242,
+          "height": 45.333335876464844,
+          "top": 149,
+          "right": 134.82291793823242,
+          "bottom": 194.33333587646484,
+          "left": 85.28125
+        },
+        "ink": {
+          "x": 85.28125,
+          "y": 149,
+          "width": 49.54167175292969,
+          "height": 45.333343505859375,
+          "top": 149,
+          "right": 134.8229217529297,
+          "bottom": 194.33334350585938,
+          "left": 85.28125
+        },
+        "font": [
+          "36px",
+          "600",
+          "36px"
+        ],
+        "letterSpacing": "-0.384px",
+        "whiteSpace": "pre-line",
+        "color": "rgb(106, 110, 119)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(106, 110, 119)",
+        "padding": "0px",
+        "display": "inline",
+        "opacity": "1",
+        "client": [
+          0,
+          0
+        ],
+        "scroll": [
+          0,
+          0
+        ]
+      },
+      "checkin": {
+        "root": {
+          "cls": "daily-check-in-row",
+          "text": "已连续签到 2 天\n今天签到领 5 UVT· 第 3 天 UVT 20.00\n签到\n1\n2\n+5\n今天\n·\n4\n·\n5\n·\n6\n+40",
+          "label": null,
+          "box": {
+            "x": 16,
+            "y": 266.3333435058594,
+            "width": 288,
+            "height": 143.33334350585938,
+            "top": 266.3333435058594,
+            "right": 304,
+            "bottom": 409.66668701171875,
+            "left": 16
+          },
+          "ink": {
+            "x": 28.666667938232422,
+            "y": 281,
+            "width": 262.66668701171875,
+            "height": 114,
+            "top": 281,
+            "right": 291.3333549499512,
+            "bottom": 395,
+            "left": 28.666667938232422
+          },
+          "font": [
+            "16px",
+            "400",
+            "normal"
+          ],
+          "letterSpacing": "normal",
+          "whiteSpace": "normal",
+          "color": "rgb(19, 20, 26)",
+          "background": "radial-gradient(55% 90% at 100% 0px, color(srgb 0.054902 0.282353 0.901961 / 0.13), rgba(0, 0, 0, 0) 62%) repeat scroll 0% 0% / auto padding-box border-box, rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+          "shadow": "none",
+          "border": "0.666667px solid rgb(229, 223, 208)",
+          "padding": "14px 12px",
+          "display": "grid",
+          "opacity": "1",
+          "client": [
+            287,
+            142
+          ],
+          "scroll": [
+            287,
+            142
+          ]
+        },
+        "action": {
+          "cls": "nx-button nx-button--primary nx-button--medium daily-check-in-row__action",
+          "text": "签到",
+          "label": "签到",
+          "box": {
+            "x": 247.33334350585938,
+            "y": 281,
+            "width": 44,
+            "height": 44,
+            "top": 281,
+            "right": 291.3333435058594,
+            "bottom": 325,
+            "left": 247.33334350585938
+          },
+          "ink": {
+            "x": 247.33334350585938,
+            "y": 287,
+            "width": 44,
+            "height": 32,
+            "top": 287,
+            "right": 291.3333435058594,
+            "bottom": 319,
+            "left": 247.33334350585938
+          },
+          "font": [
+            "12px",
+            "600",
+            "16.8px"
+          ],
+          "letterSpacing": "normal",
+          "whiteSpace": "normal",
+          "color": "rgb(19, 20, 26)",
+          "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+          "shadow": "none",
+          "border": "0px none rgb(19, 20, 26)",
+          "padding": "6px 0px",
+          "display": "flex",
+          "opacity": "1",
+          "client": [
+            44,
+            44
+          ],
+          "scroll": [
+            44,
+            44
+          ]
+        },
+        "surface": {
+          "cls": "nx-button__surface",
+          "text": "签到",
+          "label": null,
+          "box": {
+            "x": 247.33334350585938,
+            "y": 287,
+            "width": 44,
+            "height": 32,
+            "top": 287,
+            "right": 291.3333435058594,
+            "bottom": 319,
+            "left": 247.33334350585938
+          },
+          "ink": {
+            "x": 257.3333435058594,
+            "y": 294.60418701171875,
+            "width": 24,
+            "height": 16.791656494140625,
+            "top": 294.60418701171875,
+            "right": 281.3333435058594,
+            "bottom": 311.3958435058594,
+            "left": 257.3333435058594
+          },
+          "font": [
+            "12px",
+            "600",
+            "16.8px"
+          ],
+          "letterSpacing": "normal",
+          "whiteSpace": "normal",
+          "color": "rgb(255, 255, 255)",
+          "background": "rgb(14, 72, 230) none repeat scroll 0% 0% / auto padding-box border-box",
+          "shadow": "color(srgb 0.054902 0.282353 0.901961 / 0.15) 0px 3px 10px 0px, rgba(255, 255, 255, 0.45) 0px 1px 0px 0px inset",
+          "border": "0px none rgb(255, 255, 255)",
+          "padding": "6px 10px",
+          "display": "flex",
+          "opacity": "1",
+          "client": [
+            44,
+            32
+          ],
+          "scroll": [
+            44,
+            32
+          ]
+        },
+        "today": {
+          "cls": "today",
+          "text": "+5\n今天",
+          "label": "第 3 天 · 今天 · UVT 20.00",
+          "box": {
+            "x": 105.42708587646484,
+            "y": 345,
+            "width": 32.375,
+            "height": 50,
+            "top": 345,
+            "right": 137.80208587646484,
+            "bottom": 395,
+            "left": 105.42708587646484
+          },
+          "ink": {
+            "x": 111.11458587646484,
+            "y": 354.3333435058594,
+            "width": 21.00000762939453,
+            "height": 30.666656494140625,
+            "top": 354.3333435058594,
+            "right": 132.11459350585938,
+            "bottom": 385,
+            "left": 111.11458587646484
+          },
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ],
+          "letterSpacing": "normal",
+          "whiteSpace": "normal",
+          "color": "rgb(14, 72, 230)",
+          "background": "rgba(0, 0, 0, 0) linear-gradient(color(srgb 0.054902 0.282353 0.901961 / 0.22), color(srgb 0.054902 0.282353 0.901961 / 0.06)) repeat scroll 0% 0% / auto padding-box border-box",
+          "shadow": "color(srgb 0.054902 0.282353 0.901961 / 0.1) 0px 0px 0px 3px, color(srgb 0.054902 0.282353 0.901961 / 0.18) 0px 6px 16px 0px",
+          "border": "0.666667px solid color(srgb 0.054902 0.282353 0.901961 / 0.6)",
+          "padding": "0px",
+          "display": "flex",
+          "opacity": "1",
+          "client": [
+            31,
+            49
+          ],
+          "scroll": [
+            31,
+            49
+          ]
+        },
+        "label": {
+          "cls": "",
+          "text": "今天",
+          "label": null,
+          "box": {
+            "x": 111.11458587646484,
+            "y": 371,
+            "width": 21,
+            "height": 14,
+            "top": 371,
+            "right": 132.11458587646484,
+            "bottom": 385,
+            "left": 111.11458587646484
+          },
+          "ink": {
+            "x": 111.11458587646484,
+            "y": 371,
+            "width": 21.00000762939453,
+            "height": 13.333343505859375,
+            "top": 371,
+            "right": 132.11459350585938,
+            "bottom": 384.3333435058594,
+            "left": 111.11458587646484
+          },
+          "font": [
+            "10.5px",
+            "400",
+            "14px"
+          ],
+          "letterSpacing": "normal",
+          "whiteSpace": "nowrap",
+          "color": "rgb(14, 72, 230)",
+          "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+          "shadow": "none",
+          "border": "0px none rgb(14, 72, 230)",
+          "padding": "0px",
+          "display": "block",
+          "opacity": "1",
+          "client": [
+            21,
+            14
+          ],
+          "scroll": [
+            21,
+            14
+          ]
+        }
+      },
+      "file": "01-USDT-320-zh-light-checkin.jpg",
+      "screenshotFormat": "native phone clip",
+      "beforeBuild": {
+        "time": "2026-10-27T16:31:59.689Z",
+        "entry": "/assets/index-C1VSW6rq.js",
+        "css": "/assets/index-DPMvPy7r.css"
+      },
+      "afterEntry": [
+        "http://127.0.0.1:5266/assets/index-C1VSW6rq.js"
+      ],
+      "afterBuild": {
+        "time": "2026-10-27T16:32:03.128Z",
+        "entry": "/assets/index-C1VSW6rq.js",
+        "css": "/assets/index-DPMvPy7r.css"
+      }
+    },
+    {
+      "time": "2026-10-27T16:32:20.090Z",
+      "url": "http://127.0.0.1:5266/?nx_device=off#/pages/index/index",
+      "entry": [
+        "http://127.0.0.1:5266/assets/index-C1VSW6rq.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5266/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5266/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5266/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5266/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5266/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5266/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5266/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5266/assets/app-chassis-DSCGxZok.css",
+        "http://127.0.0.1:5266/assets/daily-check-in-row-BoXMjQFA.css",
+        "http://127.0.0.1:5266/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5266/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5266/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5266/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5266/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5266/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5266/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5266/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5266/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5266/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5266/assets/index-D6_GdV75.css"
+      ],
+      "locale": "2-day streak\nCheck in for 5 UVT· Day 3 UVT 20.00\nCheck in\n1\n2\n+5\nToday\n·\n4\n·\n5\n·\n6\n+40",
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ],
+      "document": [
+        390,
+        390
+      ],
+      "frame": {
+        "x": 811,
+        "y": 191.33334350585938,
+        "width": 390,
+        "height": 844,
+        "top": 191.33334350585938,
+        "right": 1201,
+        "bottom": 1035.3333435058594,
+        "left": 811
+      },
+      "badge": {
+        "cls": "inline-flex items-center gap-1 font-mono-tabular",
+        "text": "USDT",
+        "label": null,
+        "box": {
+          "x": 327.2708435058594,
+          "y": 107,
+          "width": 44.72916793823242,
+          "height": 19.33333396911621,
+          "top": 107,
+          "right": 372.0000114440918,
+          "bottom": 126.33333396911621,
+          "left": 327.2708435058594
+        },
+        "ink": {
+          "x": 334.2708435058594,
+          "y": 109,
+          "width": 30.729156494140625,
+          "height": 15.333335876464844,
+          "top": 109,
+          "right": 365,
+          "bottom": 124.33333587646484,
+          "left": 334.2708435058594
+        },
+        "font": [
+          "12px",
+          "500",
+          "normal"
+        ],
+        "letterSpacing": "0.48px",
+        "whiteSpace": "nowrap",
+        "color": "rgb(7, 122, 133)",
+        "background": "rgb(224, 246, 249) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(7, 122, 133)",
+        "padding": "2px 7px",
+        "display": "flex",
+        "opacity": "1",
+        "client": [
+          45,
+          19
+        ],
+        "scroll": [
+          45,
+          19
+        ]
+      },
+      "title": {
+        "cls": "font-mono-tabular",
+        "text": "Today's earnings",
+        "label": null,
+        "box": {
+          "x": 18,
+          "y": 109,
+          "width": 122.88542175292969,
+          "height": 15.333333969116211,
+          "top": 109,
+          "right": 140.8854217529297,
+          "bottom": 124.33333396911621,
+          "left": 18
+        },
+        "ink": {
+          "x": 18,
+          "y": 109,
+          "width": 122.88542175292969,
+          "height": 15.333335876464844,
+          "top": 109,
+          "right": 140.8854217529297,
+          "bottom": 124.33333587646484,
+          "left": 18
+        },
+        "font": [
+          "12px",
+          "400",
+          "normal"
+        ],
+        "letterSpacing": "0.48px",
+        "whiteSpace": "pre-line",
+        "color": "rgb(164, 168, 176)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(164, 168, 176)",
+        "padding": "0px",
+        "display": "block",
+        "opacity": "1",
+        "client": [
+          123,
+          15
+        ],
+        "scroll": [
+          123,
+          15
+        ]
+      },
+      "header": {
+        "cls": "flex justify-between items-center gap-2",
+        "text": "Today's earnings\nUSDT",
+        "label": null,
+        "box": {
+          "x": 18,
+          "y": 107,
+          "width": 354,
+          "height": 19.33333396911621,
+          "top": 107,
+          "right": 372,
+          "bottom": 126.33333396911621,
+          "left": 18
+        },
+        "ink": {
+          "x": 18,
+          "y": 107,
+          "width": 354,
+          "height": 19.333335876464844,
+          "top": 107,
+          "right": 372,
+          "bottom": 126.33333587646484,
+          "left": 18
+        },
+        "font": [
+          "16px",
+          "400",
+          "normal"
+        ],
+        "letterSpacing": "normal",
+        "whiteSpace": "normal",
+        "color": "rgb(19, 20, 26)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(19, 20, 26)",
+        "padding": "0px",
+        "display": "flex",
+        "opacity": "1",
+        "client": [
+          354,
+          19
+        ],
+        "scroll": [
+          354,
+          19
+        ]
+      },
+      "amount": {
+        "cls": "mt-2.5 flex items-baseline gap-1",
+        "text": "$\n16.24",
+        "label": null,
+        "box": {
+          "x": 18,
+          "y": 136.33334350585938,
+          "width": 354,
+          "height": 56,
+          "top": 136.33334350585938,
+          "right": 372,
+          "bottom": 192.33334350585938,
+          "left": 18
+        },
+        "ink": {
+          "x": 18,
+          "y": 129,
+          "width": 116.82292175292969,
+          "height": 70,
+          "top": 129,
+          "right": 134.8229217529297,
+          "bottom": 199,
+          "left": 18
+        },
+        "font": [
+          "16px",
+          "600",
+          "16px"
+        ],
+        "letterSpacing": "-0.384px",
+        "whiteSpace": "normal",
+        "color": "rgb(19, 20, 26)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(19, 20, 26)",
+        "padding": "0px",
+        "display": "flex",
+        "opacity": "1",
+        "client": [
+          354,
+          56
+        ],
+        "scroll": [
+          354,
+          63
+        ]
+      },
+      "number": {
+        "cls": "tabular-nums",
+        "text": "16.24",
+        "label": null,
+        "box": {
+          "x": 33.625,
+          "y": 136.33334350585938,
+          "width": 101.19792175292969,
+          "height": 56,
+          "top": 136.33334350585938,
+          "right": 134.8229217529297,
+          "bottom": 192.33334350585938,
+          "left": 33.625
+        },
+        "ink": {
+          "x": 33.625,
+          "y": 129,
+          "width": 101.19792175292969,
+          "height": 70,
+          "top": 129,
+          "right": 134.8229217529297,
+          "bottom": 199,
+          "left": 33.625
+        },
+        "font": [
+          "56px",
+          "600",
+          "56px"
+        ],
+        "letterSpacing": "-0.384px",
+        "whiteSpace": "pre-line",
+        "color": "rgb(19, 20, 26)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(19, 20, 26)",
+        "padding": "0px",
+        "display": "block",
+        "opacity": "1",
+        "client": [
+          101,
+          56
+        ],
+        "scroll": [
+          101,
+          63
+        ]
+      },
+      "cents": {
+        "cls": "",
+        "text": ".24",
+        "label": null,
+        "box": {
+          "x": 85.28125,
+          "y": 149,
+          "width": 49.54166793823242,
+          "height": 45.333335876464844,
+          "top": 149,
+          "right": 134.82291793823242,
+          "bottom": 194.33333587646484,
+          "left": 85.28125
+        },
+        "ink": {
+          "x": 85.28125,
+          "y": 149,
+          "width": 49.54167175292969,
+          "height": 45.333343505859375,
+          "top": 149,
+          "right": 134.8229217529297,
+          "bottom": 194.33334350585938,
+          "left": 85.28125
+        },
+        "font": [
+          "36px",
+          "600",
+          "36px"
+        ],
+        "letterSpacing": "-0.384px",
+        "whiteSpace": "pre-line",
+        "color": "rgb(106, 110, 119)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(106, 110, 119)",
+        "padding": "0px",
+        "display": "inline",
+        "opacity": "1",
+        "client": [
+          0,
+          0
+        ],
+        "scroll": [
+          0,
+          0
+        ]
+      },
+      "checkin": null,
+      "file": "02-USDT-390-en-light.jpg",
+      "screenshotFormat": "native phone clip",
+      "beforeBuild": {
+        "time": "2026-10-27T16:32:19.987Z",
+        "entry": "/assets/index-C1VSW6rq.js",
+        "css": "/assets/index-DPMvPy7r.css"
+      },
+      "afterEntry": [
+        "http://127.0.0.1:5266/assets/index-C1VSW6rq.js"
+      ],
+      "afterBuild": {
+        "time": "2026-10-27T16:32:23.450Z",
+        "entry": "/assets/index-C1VSW6rq.js",
+        "css": "/assets/index-DPMvPy7r.css"
+      }
+    },
+    {
+      "time": "2026-10-27T16:32:37.872Z",
+      "url": "http://127.0.0.1:5266/?nx_device=off#/pages/index/index",
+      "entry": [
+        "http://127.0.0.1:5266/assets/index-C1VSW6rq.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5266/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5266/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5266/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5266/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5266/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5266/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5266/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5266/assets/app-chassis-DSCGxZok.css",
+        "http://127.0.0.1:5266/assets/daily-check-in-row-BoXMjQFA.css",
+        "http://127.0.0.1:5266/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5266/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5266/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5266/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5266/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5266/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5266/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5266/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5266/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5266/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5266/assets/index-D6_GdV75.css"
+      ],
+      "locale": "Chuỗi 2 ngày\nĐiểm danh nhận 5 UVT· Ngày 3 UVT 20.00\nĐiểm danh\n1\n2\n+5\nHôm nay\n·\n4\n·\n5\n·\n6\n+40",
+      "theme": "dark",
+      "viewport": [
+        320,
+        693
+      ],
+      "document": [
+        320,
+        320
+      ],
+      "frame": {
+        "x": 846,
+        "y": 266.8333435058594,
+        "width": 320,
+        "height": 693,
+        "top": 266.8333435058594,
+        "right": 1166,
+        "bottom": 959.8333435058594,
+        "left": 846
+      },
+      "badge": {
+        "cls": "inline-flex items-center gap-1 font-mono-tabular",
+        "text": "USDT",
+        "label": null,
+        "box": {
+          "x": 257.2708435058594,
+          "y": 107,
+          "width": 44.72916793823242,
+          "height": 19.33333396911621,
+          "top": 107,
+          "right": 302.0000114440918,
+          "bottom": 126.33333396911621,
+          "left": 257.2708435058594
+        },
+        "ink": {
+          "x": 264.2708435058594,
+          "y": 109,
+          "width": 30.729156494140625,
+          "height": 15.333335876464844,
+          "top": 109,
+          "right": 295,
+          "bottom": 124.33333587646484,
+          "left": 264.2708435058594
+        },
+        "font": [
+          "12px",
+          "500",
+          "normal"
+        ],
+        "letterSpacing": "0.48px",
+        "whiteSpace": "nowrap",
+        "color": "rgb(142, 114, 255)",
+        "background": "rgba(142, 114, 255, 0.2) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(142, 114, 255)",
+        "padding": "2px 7px",
+        "display": "flex",
+        "opacity": "1",
+        "client": [
+          45,
+          19
+        ],
+        "scroll": [
+          45,
+          19
+        ]
+      },
+      "title": {
+        "cls": "font-mono-tabular",
+        "text": "Thu nhập hôm nay",
+        "label": null,
+        "box": {
+          "x": 18,
+          "y": 109,
+          "width": 122.88542175292969,
+          "height": 15.333333969116211,
+          "top": 109,
+          "right": 140.8854217529297,
+          "bottom": 124.33333396911621,
+          "left": 18
+        },
+        "ink": {
+          "x": 18,
+          "y": 109,
+          "width": 122.88542175292969,
+          "height": 15.333335876464844,
+          "top": 109,
+          "right": 140.8854217529297,
+          "bottom": 124.33333587646484,
+          "left": 18
+        },
+        "font": [
+          "12px",
+          "400",
+          "normal"
+        ],
+        "letterSpacing": "0.48px",
+        "whiteSpace": "pre-line",
+        "color": "rgb(107, 115, 133)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(107, 115, 133)",
+        "padding": "0px",
+        "display": "block",
+        "opacity": "1",
+        "client": [
+          123,
+          15
+        ],
+        "scroll": [
+          123,
+          15
+        ]
+      },
+      "header": {
+        "cls": "flex justify-between items-center gap-2",
+        "text": "Thu nhập hôm nay\nUSDT",
+        "label": null,
+        "box": {
+          "x": 18,
+          "y": 107,
+          "width": 284,
+          "height": 19.33333396911621,
+          "top": 107,
+          "right": 302,
+          "bottom": 126.33333396911621,
+          "left": 18
+        },
+        "ink": {
+          "x": 18,
+          "y": 107,
+          "width": 284,
+          "height": 19.333335876464844,
+          "top": 107,
+          "right": 302,
+          "bottom": 126.33333587646484,
+          "left": 18
+        },
+        "font": [
+          "16px",
+          "400",
+          "normal"
+        ],
+        "letterSpacing": "normal",
+        "whiteSpace": "normal",
+        "color": "rgb(245, 247, 250)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(245, 247, 250)",
+        "padding": "0px",
+        "display": "flex",
+        "opacity": "1",
+        "client": [
+          284,
+          19
+        ],
+        "scroll": [
+          284,
+          19
+        ]
+      },
+      "amount": {
+        "cls": "mt-2.5 flex items-baseline gap-1",
+        "text": "$\n16.24",
+        "label": null,
+        "box": {
+          "x": 18,
+          "y": 136.33334350585938,
+          "width": 284,
+          "height": 56,
+          "top": 136.33334350585938,
+          "right": 302,
+          "bottom": 192.33334350585938,
+          "left": 18
+        },
+        "ink": {
+          "x": 18,
+          "y": 129,
+          "width": 116.82292175292969,
+          "height": 70,
+          "top": 129,
+          "right": 134.8229217529297,
+          "bottom": 199,
+          "left": 18
+        },
+        "font": [
+          "16px",
+          "600",
+          "16px"
+        ],
+        "letterSpacing": "-0.384px",
+        "whiteSpace": "normal",
+        "color": "rgb(245, 247, 250)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(245, 247, 250)",
+        "padding": "0px",
+        "display": "flex",
+        "opacity": "1",
+        "client": [
+          284,
+          56
+        ],
+        "scroll": [
+          284,
+          63
+        ]
+      },
+      "number": {
+        "cls": "tabular-nums",
+        "text": "16.24",
+        "label": null,
+        "box": {
+          "x": 33.625,
+          "y": 136.33334350585938,
+          "width": 101.19792175292969,
+          "height": 56,
+          "top": 136.33334350585938,
+          "right": 134.8229217529297,
+          "bottom": 192.33334350585938,
+          "left": 33.625
+        },
+        "ink": {
+          "x": 33.625,
+          "y": 129,
+          "width": 101.19792175292969,
+          "height": 70,
+          "top": 129,
+          "right": 134.8229217529297,
+          "bottom": 199,
+          "left": 33.625
+        },
+        "font": [
+          "56px",
+          "600",
+          "56px"
+        ],
+        "letterSpacing": "-0.384px",
+        "whiteSpace": "pre-line",
+        "color": "rgb(245, 247, 250)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(245, 247, 250)",
+        "padding": "0px",
+        "display": "block",
+        "opacity": "1",
+        "client": [
+          101,
+          56
+        ],
+        "scroll": [
+          101,
+          63
+        ]
+      },
+      "cents": {
+        "cls": "",
+        "text": ".24",
+        "label": null,
+        "box": {
+          "x": 85.28125,
+          "y": 149,
+          "width": 49.54166793823242,
+          "height": 45.333335876464844,
+          "top": 149,
+          "right": 134.82291793823242,
+          "bottom": 194.33333587646484,
+          "left": 85.28125
+        },
+        "ink": {
+          "x": 85.28125,
+          "y": 149,
+          "width": 49.54167175292969,
+          "height": 45.333343505859375,
+          "top": 149,
+          "right": 134.8229217529297,
+          "bottom": 194.33334350585938,
+          "left": 85.28125
+        },
+        "font": [
+          "36px",
+          "600",
+          "36px"
+        ],
+        "letterSpacing": "-0.384px",
+        "whiteSpace": "pre-line",
+        "color": "rgb(155, 163, 181)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(155, 163, 181)",
+        "padding": "0px",
+        "display": "inline",
+        "opacity": "1",
+        "client": [
+          0,
+          0
+        ],
+        "scroll": [
+          0,
+          0
+        ]
+      },
+      "checkin": null,
+      "file": "03-USDT-320-vi-dark.jpg",
+      "screenshotFormat": "native phone clip",
+      "beforeBuild": {
+        "time": "2026-10-27T16:32:37.761Z",
+        "entry": "/assets/index-C1VSW6rq.js",
+        "css": "/assets/index-DPMvPy7r.css"
+      },
+      "afterEntry": [
+        "http://127.0.0.1:5266/assets/index-C1VSW6rq.js"
+      ],
+      "afterBuild": {
+        "time": "2026-10-27T16:32:40.893Z",
+        "entry": "/assets/index-C1VSW6rq.js",
+        "css": "/assets/index-DPMvPy7r.css"
+      }
+    },
+    {
+      "time": "2026-10-27T16:33:27.044Z",
+      "url": "http://127.0.0.1:5266/?nx_device=off#/pages/index/index",
+      "entry": [
+        "http://127.0.0.1:5266/assets/index-C1VSW6rq.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5266/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5266/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5266/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5266/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5266/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5266/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5266/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5266/assets/app-chassis-DSCGxZok.css",
+        "http://127.0.0.1:5266/assets/daily-check-in-row-BoXMjQFA.css",
+        "http://127.0.0.1:5266/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5266/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5266/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5266/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5266/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5266/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5266/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5266/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5266/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5266/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5266/assets/index-D6_GdV75.css"
+      ],
+      "locale": "已连续签到 2 天\n今天签到领 5 UVT· 第 3 天 UVT 20.00\n签到\n1\n2\n+5\n今天\n·\n4\n·\n5\n·\n6\n+40",
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ],
+      "document": [
+        390,
+        390
+      ],
+      "frame": {
+        "x": 811,
+        "y": 191.33334350585938,
+        "width": 390,
+        "height": 844,
+        "top": 191.33334350585938,
+        "right": 1201,
+        "bottom": 1035.3333435058594,
+        "left": 811
+      },
+      "badge": {
+        "cls": "inline-flex items-center gap-1 font-mono-tabular",
+        "text": "USDT",
+        "label": null,
+        "box": {
+          "x": 327.2708435058594,
+          "y": 107,
+          "width": 44.72916793823242,
+          "height": 19.33333396911621,
+          "top": 107,
+          "right": 372.0000114440918,
+          "bottom": 126.33333396911621,
+          "left": 327.2708435058594
+        },
+        "ink": {
+          "x": 334.2708435058594,
+          "y": 109,
+          "width": 30.729156494140625,
+          "height": 15.333335876464844,
+          "top": 109,
+          "right": 365,
+          "bottom": 124.33333587646484,
+          "left": 334.2708435058594
+        },
+        "font": [
+          "12px",
+          "500",
+          "normal"
+        ],
+        "letterSpacing": "0.48px",
+        "whiteSpace": "nowrap",
+        "color": "rgb(142, 114, 255)",
+        "background": "rgba(142, 114, 255, 0.2) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(142, 114, 255)",
+        "padding": "2px 7px",
+        "display": "flex",
+        "opacity": "1",
+        "client": [
+          45,
+          19
+        ],
+        "scroll": [
+          45,
+          19
+        ]
+      },
+      "title": {
+        "cls": "font-mono-tabular",
+        "text": "今日收益",
+        "label": null,
+        "box": {
+          "x": 18,
+          "y": 108,
+          "width": 49.927085876464844,
+          "height": 17.33333396911621,
+          "top": 108,
+          "right": 67.92708587646484,
+          "bottom": 125.33333396911621,
+          "left": 18
+        },
+        "ink": {
+          "x": 18,
+          "y": 110,
+          "width": 49.927085876464844,
+          "height": 15.333335876464844,
+          "top": 110,
+          "right": 67.92708587646484,
+          "bottom": 125.33333587646484,
+          "left": 18
+        },
+        "font": [
+          "12px",
+          "400",
+          "normal"
+        ],
+        "letterSpacing": "0.48px",
+        "whiteSpace": "pre-line",
+        "color": "rgb(107, 115, 133)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(107, 115, 133)",
+        "padding": "0px",
+        "display": "block",
+        "opacity": "1",
+        "client": [
+          50,
+          17
+        ],
+        "scroll": [
+          50,
+          17
+        ]
+      },
+      "header": {
+        "cls": "flex justify-between items-center gap-2",
+        "text": "今日收益\nUSDT",
+        "label": null,
+        "box": {
+          "x": 18,
+          "y": 107,
+          "width": 354,
+          "height": 19.33333396911621,
+          "top": 107,
+          "right": 372,
+          "bottom": 126.33333396911621,
+          "left": 18
+        },
+        "ink": {
+          "x": 18,
+          "y": 107,
+          "width": 354,
+          "height": 19.333335876464844,
+          "top": 107,
+          "right": 372,
+          "bottom": 126.33333587646484,
+          "left": 18
+        },
+        "font": [
+          "16px",
+          "400",
+          "normal"
+        ],
+        "letterSpacing": "normal",
+        "whiteSpace": "normal",
+        "color": "rgb(245, 247, 250)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(245, 247, 250)",
+        "padding": "0px",
+        "display": "flex",
+        "opacity": "1",
+        "client": [
+          354,
+          19
+        ],
+        "scroll": [
+          354,
+          19
+        ]
+      },
+      "amount": {
+        "cls": "mt-2.5 flex items-baseline gap-1",
+        "text": "$\n16.24",
+        "label": null,
+        "box": {
+          "x": 18,
+          "y": 136.33334350585938,
+          "width": 354,
+          "height": 56,
+          "top": 136.33334350585938,
+          "right": 372,
+          "bottom": 192.33334350585938,
+          "left": 18
+        },
+        "ink": {
+          "x": 18,
+          "y": 129,
+          "width": 116.82292175292969,
+          "height": 70,
+          "top": 129,
+          "right": 134.8229217529297,
+          "bottom": 199,
+          "left": 18
+        },
+        "font": [
+          "16px",
+          "600",
+          "16px"
+        ],
+        "letterSpacing": "-0.384px",
+        "whiteSpace": "normal",
+        "color": "rgb(245, 247, 250)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(245, 247, 250)",
+        "padding": "0px",
+        "display": "flex",
+        "opacity": "1",
+        "client": [
+          354,
+          56
+        ],
+        "scroll": [
+          354,
+          63
+        ]
+      },
+      "number": {
+        "cls": "tabular-nums",
+        "text": "16.24",
+        "label": null,
+        "box": {
+          "x": 33.625,
+          "y": 136.33334350585938,
+          "width": 101.19792175292969,
+          "height": 56,
+          "top": 136.33334350585938,
+          "right": 134.8229217529297,
+          "bottom": 192.33334350585938,
+          "left": 33.625
+        },
+        "ink": {
+          "x": 33.625,
+          "y": 129,
+          "width": 101.19792175292969,
+          "height": 70,
+          "top": 129,
+          "right": 134.8229217529297,
+          "bottom": 199,
+          "left": 33.625
+        },
+        "font": [
+          "56px",
+          "600",
+          "56px"
+        ],
+        "letterSpacing": "-0.384px",
+        "whiteSpace": "pre-line",
+        "color": "rgb(245, 247, 250)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(245, 247, 250)",
+        "padding": "0px",
+        "display": "block",
+        "opacity": "1",
+        "client": [
+          101,
+          56
+        ],
+        "scroll": [
+          101,
+          63
+        ]
+      },
+      "cents": {
+        "cls": "",
+        "text": ".24",
+        "label": null,
+        "box": {
+          "x": 85.28125,
+          "y": 149,
+          "width": 49.54166793823242,
+          "height": 45.333335876464844,
+          "top": 149,
+          "right": 134.82291793823242,
+          "bottom": 194.33333587646484,
+          "left": 85.28125
+        },
+        "ink": {
+          "x": 85.28125,
+          "y": 149,
+          "width": 49.54167175292969,
+          "height": 45.333343505859375,
+          "top": 149,
+          "right": 134.8229217529297,
+          "bottom": 194.33334350585938,
+          "left": 85.28125
+        },
+        "font": [
+          "36px",
+          "600",
+          "36px"
+        ],
+        "letterSpacing": "-0.384px",
+        "whiteSpace": "pre-line",
+        "color": "rgb(155, 163, 181)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "shadow": "none",
+        "border": "0px none rgb(155, 163, 181)",
+        "padding": "0px",
+        "display": "inline",
+        "opacity": "1",
+        "client": [
+          0,
+          0
+        ],
+        "scroll": [
+          0,
+          0
+        ]
+      },
+      "checkin": null,
+      "file": "04-USDT-390-zh-dark.jpg",
+      "screenshotFormat": "native phone clip",
+      "beforeBuild": {
+        "time": "2026-10-27T16:33:26.944Z",
+        "entry": "/assets/index-C1VSW6rq.js",
+        "css": "/assets/index-DPMvPy7r.css"
+      },
+      "afterEntry": [
+        "http://127.0.0.1:5266/assets/index-C1VSW6rq.js"
+      ],
+      "afterBuild": {
+        "time": "2026-10-27T16:33:31.226Z",
+        "entry": "/assets/index-C1VSW6rq.js",
+        "css": "/assets/index-DPMvPy7r.css"
+      }
+    }
+  ],
+  "actions": [
+    {
+      "name": "Native preview locale switching ZH -> EN -> VI -> ZH",
+      "controls": "预览语言 / 手机尺寸 / 切换明暗",
+      "evidence": [
+        {
+          "file": "01-USDT-320-zh-light-checkin.jpg",
+          "viewport": [
+            320,
+            693
+          ],
+          "theme": "light",
+          "title": "今日收益",
+          "badge": "USDT"
+        },
+        {
+          "file": "02-USDT-390-en-light.jpg",
+          "viewport": [
+            390,
+            844
+          ],
+          "theme": "light",
+          "title": "Today's earnings",
+          "badge": "USDT"
+        },
+        {
+          "file": "03-USDT-320-vi-dark.jpg",
+          "viewport": [
+            320,
+            693
+          ],
+          "theme": "dark",
+          "title": "Thu nhập hôm nay",
+          "badge": "USDT"
+        },
+        {
+          "file": "04-USDT-390-zh-dark.jpg",
+          "viewport": [
+            390,
+            844
+          ],
+          "theme": "dark",
+          "title": "今日收益",
+          "badge": "USDT"
+        }
+      ]
+    }
+  ],
+  "issues": []
+}

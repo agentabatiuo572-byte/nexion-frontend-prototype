@@ -11,9 +11,12 @@ describe("trial credit in the actual checkout quote", () => {
   it.each([499, 1999])("quotes the claim price rather than changed catalogue price %s", catalogPrice => {
     const subtotal = ts.transpileModule(source.slice(source.indexOf("const purchaseSubtotal ="), source.indexOf("const promoDiscount =")), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
     const net = ts.transpileModule(source.slice(source.indexOf("const netPrice ="), source.indexOf("// 异常4: credit")), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-    const deps = { computed, remoteApiEnabled: true, trialConversionMode: ref(true), freeTrial: { authoritativePriceUSD: 1299 }, product: ref({ price: catalogPrice }), appliedTradeinView: ref(null), voucherDiscount: ref(0), tradeinCredit: ref(0), promoDiscount: ref(20), trialOffsetView: ref({ offsetUSD: 5 }) };
+    const deps = { computed, remoteApiEnabled: true, trialConversionMode: ref(true), freeTrial: { authoritativePriceUSD: 1299 }, product: ref({ price: catalogPrice }), appliedTradeinView: ref(null), voucherDiscount: ref(0), tradeinCredit: ref(0), promoDiscount: ref(20), trialOffsetView: ref({ offsetUSD: 5, earlyDiscountUSD: 0 }) };
     const result = new Function(...Object.keys(deps), subtotal + net + "return {subtotal:purchaseSubtotal.value,net:netPrice.value};")(...Object.values(deps));
     expect(result).toEqual({ subtotal: 1299, net: 1274 });
+    deps.trialOffsetView.value.earlyDiscountUSD = 4;
+    const early = new Function(...Object.keys(deps), subtotal + net + "return {subtotal:purchaseSubtotal.value,net:netPrice.value};")(...Object.values(deps));
+    expect(early).toEqual({ subtotal: 1299, net: 1270 });
   });
   it("does not quote a voucher that the trial conversion command cannot redeem", () => {
     const code = ts.transpileModule(source.slice(source.indexOf("const voucherMatch ="), source.indexOf("const voucherDiscount =")), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
@@ -33,7 +36,7 @@ describe("trial credit in the actual checkout quote", () => {
       authoritativeOffsetUSD: 12.84, authoritativeRemainderUSD: 0 };
     const deps = { remoteApiEnabled, freeTrial, trialCfg: ref(cfg), productId: ref("stellarbox-s1"), resolveTrialAt, accruedShadow,
       computeTrialOffset, computeDiscountedPrice, resolveTrialCheckoutProductId,
-      NO_TRIAL: { applied: false, promo: 0, offsetUSD: 0, remainderUSD: 0, shadowNEX: 0 } };
+      NO_TRIAL: { applied: false, promo: 0, offsetUSD: 0, remainderUSD: 0, shadowNEX: 0, earlyDiscountUSD: 0, quoteVersion: null } };
     const quote = new Function(...Object.keys(deps), quoteCode + "\nreturn trialQuoteAt;")(...Object.values(deps));
     return { quote, day, freeTrial, cfg, row };
   }
@@ -76,7 +79,7 @@ function harness() {
     ref, voucherSelecting:ref(false), remoteApiEnabled: true, checkoutWalletRefreshing: ref(false), step: ref("confirm"),
     captureCheckoutRoute: () => scope, isCurrentCheckoutRoute: () => current,
     resumeServerOrder: vi.fn().mockResolvedValue(false), product: ref({ id: scope.productNo }),
-    trialView: ref({ applied: true }), trialQuoteAt: vi.fn().mockReturnValue({ applied: true }), mockServerNow: () => 0,
+    trialView: ref({ applied: true, quoteVersion: null as string | null }), trialQuoteAt: vi.fn().mockReturnValue({ applied: true, quoteVersion: null }), mockServerNow: () => 0,
     netPrice: ref(1247.73), cardFee: ref(0), voucherMatch: ref(null), voucherDiscount: ref(0), appliedTradeinView: ref(null),
     freeTrial: { convert: vi.fn(), hasPendingConversion: vi.fn().mockReturnValue(false) },
     app: { user: { usdtBalance: 0.10 }, debitBalance: vi.fn(), creditBalance: vi.fn() },
@@ -91,6 +94,15 @@ function harness() {
 }
 
 describe("real trial checkout refusal and recovery feedback", () => {
+  it("echoes the current server quote version without changing its reviewed amount", async () => {
+    const h = harness(); h.trialView.value.quoteVersion = "SERVER-QUOTE-05";
+    h.trialQuoteAt.mockReturnValue({ applied: true, quoteVersion: "SERVER-QUOTE-05" });
+    h.freeTrial.convert.mockResolvedValue({ ok: false, reason: "insufficient-funds" });
+    await h.pay();
+    expect(h.freeTrial.convert).toHaveBeenCalledExactlyOnceWith("stellarbox-s1", 1247.73, "SERVER-QUOTE-05");
+    expect(h.app.debitBalance).not.toHaveBeenCalled(); expect(h.app.creditBalance).not.toHaveBeenCalled();
+    expect(h.submitRemoteOrder).not.toHaveBeenCalled();
+  });
   it("requires another quote review if the amount changes during order recovery", async () => {
     const h = harness(); let resolve!: (result: boolean) => void;
     h.resumeServerOrder.mockReturnValue(new Promise(r => { resolve = r; }));
@@ -103,7 +115,7 @@ describe("real trial checkout refusal and recovery feedback", () => {
     const h = harness(); h.freeTrial.convert.mockResolvedValue({ ok: false, reason: "insufficient-funds" });
     await h.pay();
     expect(h.freeTrial.convert).toHaveBeenCalledOnce();
-    expect(h.freeTrial.convert).toHaveBeenCalledWith("stellarbox-s1", 1247.73);
+    expect(h.freeTrial.convert).toHaveBeenCalledWith("stellarbox-s1", 1247.73, null);
     expect(h.confirm).toHaveBeenCalledWith(expect.objectContaining({ title: en.errors.insufficientBalanceTitle,
       message: en.errors.insufficientBalanceMsg, confirmLabel: en.me.topup }));
     expect(h.navTo).toHaveBeenCalledWith("/pages/me/wallet-topup");
@@ -123,7 +135,7 @@ describe("real trial checkout refusal and recovery feedback", () => {
     expect(h.toast.warn).not.toHaveBeenCalledWith(en.store.coTrialQuoteChanged); expect(h.step.value).toBe("confirm");
     // State readback may already be terminal. The pending intent still routes
     // through conversion replay rather than creating an ordinary second order.
-    h.trialView.value.applied = false; h.trialQuoteAt.mockReturnValue({ applied: false });
+    h.trialView.value.applied = false; h.trialQuoteAt.mockReturnValue({ applied: false, quoteVersion: null });
     h.freeTrial.hasPendingConversion.mockReturnValue(true);
     h.freeTrial.convert.mockResolvedValue({ ok: true, orderNo: "ORIGINAL-ORDER" });
     await h.pay(); expect(h.submitRemoteOrder).not.toHaveBeenCalled();
@@ -135,7 +147,7 @@ describe("real trial checkout refusal and recovery feedback", () => {
     expect(h.step.value).toBe("select-payment"); expect(h.confirm).not.toHaveBeenCalled();
   });
   it("keeps repeated terminal recovery refusals out of ordinary checkout while the original receipt is missing", async () => {
-    const h = harness(); h.trialView.value.applied = false; h.trialQuoteAt.mockReturnValue({ applied: false });
+    const h = harness(); h.trialView.value.applied = false; h.trialQuoteAt.mockReturnValue({ applied: false, quoteVersion: null });
     h.freeTrial.hasPendingConversion.mockReturnValue(true);
     // The store keeps NOT_CONVERTIBLE on a restored unknown intent as unknown,
     // even when the original receipt expired and cannot currently be recovered.

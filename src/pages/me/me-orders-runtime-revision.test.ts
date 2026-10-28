@@ -18,7 +18,7 @@ const implementation = ts.transpileModule([
   section("let remoteSecurityRequest", "const iconPaths"),
   section("async function refreshRemoteOrders", "async function refreshRemoteSecurity"),
   "function refreshRemoteMe() { return refreshRemoteOrders(); }",
-  section("watch(() => [app.accountKey", "function handleQuickItem"),
+  section("watch([() => app.accountKey", "function handleQuickItem"),
 ].join("\n"), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 const disposals: Array<() => void> = [];
 afterEach(() => { disposals.splice(0).forEach((dispose) => dispose()); });
@@ -32,11 +32,13 @@ function page() {
   const auth = reactive({ isAuthenticated: true, accountId: "user:607" });
   const failed = ref(false);
   const loading = ref(false);
+  const hasRead = ref(false);
   const deps = {
     watch, subscribeRuntimeRevision, runRemoteOrdersRefresh, binarySessionReady,
     remoteApiEnabled: true, app: reactive({ accountKey: "user:607", accountBindingEpoch: 1 }),
     auth, sessionVault: { read: () => ({ user: { userId: 607 } }) },
     orders: { refreshRemote }, remoteOrdersLoading: loading, remoteOrdersFailed: failed,
+    remoteSecurity: ref(null), remoteOrdersHasRead: hasRead,
     onShow: (callback: () => void) => hooks.show.push(callback),
     onHide: (callback: () => void) => hooks.hide.push(callback),
     onUnmounted: (callback: () => void) => hooks.dispose.push(callback),
@@ -52,10 +54,22 @@ function page() {
     clear();
   };
   disposals.push(dispose);
-  return { rows, refreshRemote, hooks, auth, failed, loading, dispose };
+  return { rows, refreshRemote, hooks, auth, app: deps.app, failed, loading, hasRead, dispose };
 }
 
 describe("Me orders survive catalog revision invalidation", () => {
+  it("remembers a successful empty read for warm display, while rebinding and late hidden reads stay isolated", async () => {
+    const p = page(); p.refreshRemote.mockImplementation(async () => { p.rows.value = []; });
+    p.hooks.show.forEach(callback => callback()); await settled();
+    expect(p.hasRead.value).toBe(true); expect(p.rows.value).toEqual([]);
+    let finish!: () => void;
+    p.refreshRemote.mockImplementationOnce(() => new Promise<void>(resolve => { finish = resolve; }));
+    p.hooks.show.forEach(callback => callback()); await settled();
+    expect(p.hasRead.value).toBe(true); expect(p.loading.value).toBe(true);
+    p.app.accountBindingEpoch++; expect(p.hasRead.value).toBe(false);
+    p.hooks.hide.forEach(callback => callback()); finish(); await settled();
+    expect(p.hasRead.value).toBe(false);
+  });
   it("restores the visible existing order after a later catalog response", async () => {
     const p = page();
     p.hooks.show.forEach((callback) => callback());

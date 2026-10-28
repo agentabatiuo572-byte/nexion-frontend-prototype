@@ -1,3 +1,4 @@
+import { runPassiveTabRead } from "@/lib/passive-tab-read";
 import { ref, computed, onMounted, onUnmounted, type ComputedRef } from "vue";
 import {
   useGenesisConfig,
@@ -124,7 +125,8 @@ export function useGenesisSaleGate(): UseGenesisSaleGateResult {
   onMounted(() => {
     // 🔴 消费者进场即重读配置源(hydrate-once 修复的 UI 面):config 是共享 Pinia store,
     //   任一消费者 refresh,所有已挂载消费者的 computed 一起更新。
-    cfg.refresh();
+    if (remoteApiEnabled) void runPassiveTabRead("genesis-config", () => cfg.refresh(), undefined, () => cfg.loaded);
+    else void cfg.refresh();
     clockHeld = true;
     retainClock();
   });

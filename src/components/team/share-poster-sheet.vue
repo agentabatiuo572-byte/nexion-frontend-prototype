@@ -561,7 +561,7 @@ const templateOptions = computed(() => availableTpls.value.map(item => ({ value:
 .ps-fail { aspect-ratio: 3 / 4; border-radius: 16px; background: var(--v5-surface-2); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--ui-space-row-y); }
 .ps-fail__t { font-size: 13px; color: var(--v5-ink-3); }
 .ps-fail__btn { position: relative; isolation: isolate; min-height: 44px; padding: 0 18px; border-radius: 9999px; display: flex; align-items: center; }
-.ps-fail__btn-t { position: relative; font-size: 13px; color: var(--v5-ink); }
+.ps-fail__btn-t { position: relative; font: 600 13px/20px var(--font-v5); color: var(--v5-ink); }
 .ps-thumbs { margin: var(--ui-space-inline) 16px 0; }
 .ps-reward { margin-top: var(--ui-space-row-y); text-align: center; padding: 0 16px; }
 .ps-reward__t { display: block; line-height: 1.6; overflow-wrap: anywhere; font-size: 12px; color: var(--v5-ink-3); text-wrap: pretty; }

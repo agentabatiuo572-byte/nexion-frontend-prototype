@@ -1,26 +1,26 @@
 <template>
   <AppChassis active="me">
     <view class="learning-course">
-      <view v-if="course && serverCompleted && !loading && !error" class="course-result-header">
+      <view v-if="displayCourse && displayCompleted && !error" class="course-result-header">
         <view class="course-result-header__close nx-design-glass" role="button" tabindex="0" :aria-label="auditCopy.close" @click="navBack(courseBack)" @keydown.enter.prevent="navBack(courseBack)" @keydown.space.prevent="navBack(courseBack)">
           <LiquidGlass :radius="22" tone="navigation" />
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
         </view>
-        <text class="course-result-header__title">{{ course.title }}</text>
+        <text class="course-result-header__title">{{ displayCourse.title }}</text>
       </view>
-      <SubPageHeader v-else design :back="courseBack" :title="course?.title" />
-      <view v-if="loading" class="course-state" role="status"><text>{{ t.learning.courseLoading }}</text></view>
+      <SubPageHeader v-else design :back="courseBack" :title="displayCourse?.title" />
+      <view v-if="loading && !displayCourse" class="course-state" role="status"><text>{{ t.learning.courseLoading }}</text></view>
       <view v-else-if="error" class="course-state" role="alert" aria-live="assertive">
         <text class="block" style="text-wrap: pretty">{{ errorText }}</text>
         <text v-if="error === 'courseIdMissing'" class="block active:opacity-70" style="margin-top: 12px; color: var(--v5-brand)" role="button" tabindex="0" :aria-label="t.learning.centerTitle" @click="backToCourses" @keydown.enter.prevent="onKeyboardActivate($event, backToCourses)" @keydown.space.prevent="onKeyboardActivate($event, backToCourses)">{{ t.learning.centerTitle }}</text>
-        <text v-else class="block active:opacity-70" style="margin-top: 12px; color: var(--v5-brand)" role="button" tabindex="0" :aria-label="t.ui.retry" @click="load" @keydown.enter.prevent="onKeyboardActivate($event, load)" @keydown.space.prevent="onKeyboardActivate($event, load)">{{ t.ui.retry }}</text>
+        <text v-else class="block active:opacity-70" style="margin-top: 12px; min-height: 44px; font: 600 13px/20px var(--font-v5); color: var(--v5-brand)" role="button" tabindex="0" :aria-label="t.ui.retry" @click="load" @keydown.enter.prevent="onKeyboardActivate($event, load)" @keydown.space.prevent="onKeyboardActivate($event, load)">{{ t.ui.retry }}</text>
       </view>
-      <view v-else-if="course && serverCompleted" class="course-completed">
+      <view v-else-if="displayCourse && displayCompleted" class="course-completed">
         <view class="course-result" role="status" aria-live="polite">
           <view class="course-result__badge" aria-hidden="true"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10" /></svg></view>
-          <text class="course-result__title">{{ course.questions.length ? completionCopy.quizPassed : t.learning.resultPassed }}</text>
+          <text class="course-result__title">{{ displayCourse.questions.length ? completionCopy.quizPassed : t.learning.resultPassed }}</text>
           <text data-testid="learning-result-details" class="course-result__summary" :aria-label="[completionSummary, attemptsLine, rewardStatusLine].filter(Boolean).join(' · ')">{{ completionSummary }}</text>
-          <text v-if="resultDetails" class="course-result__reward" :class="{ 'course-result__reward--pending': !resultDetails.rewardGranted }">{{ completionReward }}</text>
+          <text v-if="displayResultDetails" class="course-result__reward" :class="{ 'course-result__reward--pending': !displayResultDetails.rewardGranted }">{{ completionReward }}</text>
         </view>
         <view class="course-next-section">
           <view v-if="recommendedNext" class="course-next">
@@ -30,26 +30,26 @@
             <NxButton data-testid="learning-next-course" class="course-next__cta" variant="primary" :label="completionCopy.startNext" @click="openNextCourse" />
           </view>
           <view v-else-if="nextLoading" class="course-next-state" role="status"><text>{{ completionCopy.nextLoading }}</text></view>
-          <view v-else-if="nextError" class="course-next-state" role="alert">
-            <text>{{ completionCopy.nextUnavailable }}</text>
-            <NxButton class="course-next__retry" variant="text" :label="t.ui.retry" @click="loadNextCourses" />
+          <view v-else-if="nextError" class="course-next-state nx-inline-recovery" role="alert">
+            <text class="nx-inline-recovery__copy">{{ completionCopy.nextUnavailable }}</text>
+            <NxButton class="nx-inline-recovery__action" variant="text" :label="t.ui.retry" @click="loadNextCourses" />
           </view>
           <view v-else-if="nextOverview" class="course-next-state"><text>{{ auditCopy.allCoursesDone }}</text><text class="course-next__reward">{{ fmt(auditCopy.earned, { n: formatAmount(nextOverview.earnedNex) }) }}</text></view>
           <NxButton class="course-result__back" variant="text" :label="completionCopy.backToCenter" @click="backToCourses" />
         </view>
       </view>
-      <view v-else-if="course" class="course-lesson">
-        <text class="block" style="font-size: 20px; font-weight: 600">{{ course.title }}</text>
-        <view class="course-read-progress" role="progressbar" :aria-valuenow="serverCompleted ? 100 : course.progress" aria-valuemin="0" aria-valuemax="100"><view :style="{width:(serverCompleted ? 100 : course.progress)+'%'}" /></view>
-        <text class="block" style="margin-top: 10px; color: var(--v5-ink-2); text-wrap: pretty">{{ course.body }}</text>
+      <view v-else-if="displayCourse" class="course-lesson">
+        <text class="block" style="font-size: 20px; font-weight: 600">{{ displayCourse.title }}</text>
+        <view class="course-read-progress" role="progressbar" :aria-valuenow="displayCompleted ? 100 : displayCourse.progress" aria-valuemin="0" aria-valuemax="100"><view :style="{width:(displayCompleted ? 100 : displayCourse.progress)+'%'}" /></view>
+        <text class="block" style="margin-top: 10px; color: var(--v5-ink-2); text-wrap: pretty">{{ displayCourse.body }}</text>
         <text class="block" style="margin-top: 8px; color: var(--v5-ink-3)">{{ versionLine }}</text>
-        <text v-if="startState === 'pending'" class="block" style="margin-top: 8px; color: var(--v5-ink-3); text-wrap: pretty" role="status" aria-live="polite">{{ t.learning.courseStartConfirming }}</text>
+        <text v-if="startState === 'pending' && !warmCourseRead" class="block" style="margin-top: 8px; color: var(--v5-ink-3); text-wrap: pretty" role="status" aria-live="polite">{{ t.learning.courseStartConfirming }}</text>
         <view v-else-if="startState === 'unconfirmed'" style="margin-top: 8px">
           <text class="block" style="color: var(--v5-ink-3); text-wrap: pretty" role="alert" aria-live="assertive">{{ startFailureText }}</text>
           <NxButton data-testid="learning-start-recovery" style="margin-top: 8px" variant="secondary" :label="startRecoveryLabel" @click="recoverStart" />
         </view>
 
-        <view v-for="(question, index) in course.questions" :key="question.questionId" style="margin-top: 16px">
+        <view v-for="(question, index) in displayCourse.questions" :key="question.questionId" style="margin-top: 16px">
           <text>{{ question.question }}</text>
           <!-- 每题只能选一个答案(选第二个会把第一个取消),是单选不是多选。
                原先 role="button" + aria-pressed 被浏览器当成 toggle button,读屏按复选框朗读,
@@ -62,11 +62,11 @@
           </view>
         </view>
 
-        <NxButton v-if="!resultDetails || resultDetails.passed" style="margin-top:20px" variant="primary" :disabled="!canSubmit" :label="course.questions.length ? t.learning.submitQuiz : t.learning.completeCourse" @click="finish" />
-        <text v-if="course.questions.length && !pendingAttempt && !allAnswered && !serverCompleted" class="block" style="margin-top: 6px; font-size: 12px; color: var(--v5-ink-3)">{{ t.learning.answerAllFirst }}</text>
+        <NxButton class="course-submit" v-if="!displayResultDetails || displayResultDetails.passed" style="margin-top:20px" variant="primary" :disabled="!canSubmit" :label="displayCourse.questions.length ? t.learning.submitQuiz : t.learning.completeCourse" @click="finish" />
+        <text v-if="displayCourse.questions.length && !pendingAttempt && !allAnswered && !displayCompleted" class="block" style="margin-top: 6px; font-size: 12px; color: var(--v5-ink-3)">{{ t.learning.answerAllFirst }}</text>
         <text v-if="pendingAttempt" class="block active:opacity-70" style="margin-top: 6px; font-size: 12px; color: var(--v5-ink-3); text-wrap: pretty" role="button" tabindex="0" :aria-label="pendingStatusText" @click="load" @keydown.enter.prevent="onKeyboardActivate($event, load)" @keydown.space.prevent="onKeyboardActivate($event, load)">{{ pendingStatusText }}</text>
-        <view v-if="resultDetails" data-testid="learning-result-details" class="course-quiz-result" role="status"><text class="course-quiz-result__title">{{ resultDetails.passed ? t.learning.resultPassed : t.learning.resultFailed }}</text><text class="course-quiz-result__score">{{ scoreLine }}</text><text class="course-quiz-result__meta">{{ attemptsLine }} · {{ rewardStatusLine }}</text>
-          <NxButton v-if="!resultDetails.passed && !interactionLocked" class="course-quiz-result__retry" variant="primary" :label="retryQuizLabel" @click="restartQuiz" />
+        <view v-if="displayResultDetails" data-testid="learning-result-details" class="course-quiz-result" role="status"><text class="course-quiz-result__title">{{ displayResultDetails.passed ? t.learning.resultPassed : t.learning.resultFailed }}</text><text class="course-quiz-result__score">{{ scoreLine }}</text><text class="course-quiz-result__meta">{{ attemptsLine }} · {{ rewardStatusLine }}</text>
+          <NxButton v-if="!displayResultDetails.passed && !interactionLocked" class="course-quiz-result__retry" variant="primary" :label="retryQuizLabel" @click="restartQuiz" />
         </view>
       </view>
     </view>
@@ -92,7 +92,7 @@ import {
   type LearningPendingAttempt,
 } from "@/api/learning-attempt-key";
 import { learningApi } from "@/api/learning-runtime";
-import { remoteApiEnabled } from "@/api/runtime";
+import { remoteApiEnabled, apiRuntimeConfig } from "@/api/runtime";
 import { captureRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 import type { LearningCourse, LearningQuizReceiptStatus, LearningResult } from "@/api/learning-api";
 import { ApiError } from "@/api/errors";
@@ -120,6 +120,9 @@ const courseId = ref("");
 const courseBack = ref("/pages/learn/courses");
 const courseSource = ref<string | null>(null);
 const course = ref<LearningCourse | null>(null);
+const coursePresentation = ref<LearningCourse | null>(null);
+const warmCourseRead = ref(false);
+const displayCourse = computed(() => course.value ?? coursePresentation.value);
 const result = ref<LearningResult | null>(null);
 const answeringAgain = ref(false);
 // Keep the last acknowledged attempt count when a retake hides the old result.
@@ -142,6 +145,8 @@ const startRecoveryLabel = computed(() => startFailure.value?.reason === "onboar
 const allAnswered = computed(() => !!course.value
   && validAnswersForCourse(course.value, answers.value));
 const resultDetails = computed(() => answeringAgain.value && !result.value ? null : learningResultDetails(course.value, result.value));
+const displayResultDetails = computed(() => answeringAgain.value && !result.value ? null : resultDetails.value ?? learningResultDetails(displayCourse.value, null));
+const displayCompleted = computed(() => !!displayCourse.value?.completed || serverCompleted.value);
 const serverCompleted = computed(() => !!course.value?.completed || !!result.value?.completed);
 const pendingAnswersValid = computed(() => !!course.value
   && !!pendingAttempt.value
@@ -157,17 +162,17 @@ const canSubmit = computed(() => !!course.value
     ? pendingAnswersValid.value && ["ABSENT", "FAILED"].includes(String(pendingReceiptStatus.value))
     : allAnswered.value)));
 const language = computed(() => locale.code === "zh" || locale.code === "vi" ? locale.code : "en");
-const versionLine = computed(() => course.value
-  ? fmt(t.value.learning.courseVersionMeta, { version: course.value.version, nex: formatAmount(course.value.rewardNex) })
+const versionLine = computed(() => displayCourse.value
+  ? fmt(t.value.learning.courseVersionMeta, { version: displayCourse.value.version, nex: formatAmount(displayCourse.value.rewardNex) })
   : "");
-const scoreLine = computed(() => resultDetails.value
-  ? fmt(t.value.learning.resultScore, { score: resultDetails.value.score })
+const scoreLine = computed(() => displayResultDetails.value
+  ? fmt(t.value.learning.resultScore, { score: displayResultDetails.value.score })
   : "");
-const attemptsLine = computed(() => resultDetails.value
-  ? fmt(t.value.learning.resultAttempts, { attempts: resultDetails.value.attempts })
+const attemptsLine = computed(() => displayResultDetails.value
+  ? fmt(t.value.learning.resultAttempts, { attempts: displayResultDetails.value.attempts })
   : "");
 const rewardStatusLine = computed(() => {
-  const details = resultDetails.value;
+  const details = displayResultDetails.value;
   if (!details) return "";
   if (details.rewardGranted) return fmt(t.value.learning.rewardGranted, { nex: formatAmount(details.rewardNex) });
   return Number(details.rewardNex) > 0 ? t.value.learning.rewardNotGranted : t.value.learning.rewardNone;
@@ -283,13 +288,18 @@ async function recoverPendingReceipt(scope: LearningPageFence, expectedCourse: L
   }
 }
 
+let courseEnvironmentInvalidated = false;
+watch(() => apiRuntimeConfig?.environment, () => { courseEnvironmentInvalidated = true; generation += 1; coursePresentation.value = null; resetLoadCoalescer(); resetCourseState(); error.value = 'courseUnavailable'; }, { flush: 'sync' });
 async function performLoad() {
+  if (courseEnvironmentInvalidated) return;
   generation += 1;
   const scope = fence();
   const requestedCourseId = courseId.value;
+  warmCourseRead.value = coursePresentation.value !== null;
   loading.value = true;
   error.value = "";
   course.value = null;
+  answers.value = [];
   result.value = null;
   answeringAgain.value = false;
   confirmedAttempts.value = 0;
@@ -321,7 +331,12 @@ async function performLoad() {
       isCurrent: () => current(scope),
       publish: (published, start, failure) => {
         if (!current(scope)) return;
+        if (failure?.status === 401 || failure?.status === 403) {
+          course.value = null; coursePresentation.value = null; startState.value = 'unconfirmed';
+          startFailure.value = failure; loading.value = false; error.value = 'courseUnavailable'; return;
+        }
         course.value = published;
+        coursePresentation.value = published;
         confirmedAttempts.value = published.attempts;
         answers.value = initialQuizAnswers(published);
         startState.value = start;
@@ -331,13 +346,14 @@ async function performLoad() {
     });
     if (loaded.kind === "stale" || !current(scope)) return;
     if (loaded.kind === "invalid") {
+      coursePresentation.value = null;
       error.value = "courseUnavailable";
       return;
     }
     startState.value = loaded.start;
     if (startConfirmed.value) await recoverPendingReceipt(scope, loaded.course);
   } catch (cause) {
-    if (current(scope)) error.value = cause instanceof ApiError && cause.kind === "network" ? "courseOffline" : "courseUnavailable";
+    if (current(scope)) { coursePresentation.value = null; error.value = cause instanceof ApiError && cause.kind === "network" ? "courseOffline" : "courseUnavailable"; }
   } finally {
     if (current(scope)) loading.value = false;
   }
@@ -385,6 +401,9 @@ function acceptResult(
   const accepted = matchingCourseResult(expectedCourse, submitted);
   if (!accepted) return false;
   result.value = accepted;
+  coursePresentation.value = { ...expectedCourse, completed: accepted.completed,
+    progress: accepted.completed ? 100 : expectedCourse.progress, lastScore: accepted.score,
+    attempts: accepted.attempts, rewardGranted: accepted.rewardGranted };
   confirmedAttempts.value = Math.max(confirmedAttempts.value, accepted.attempts);
   retireAttempt(identity, attemptKey);
   return true;
@@ -482,6 +501,7 @@ function resetCourseState() {
   error.value = "";
 }
 function refreshForScopeChange() {
+  coursePresentation.value = null;
   accountEpoch += 1;
   generation += 1;
   resetLoadCoalescer();
@@ -493,6 +513,7 @@ onLoad((options) => {
   courseBack.value = back;
   courseSource.value = source;
   if (courseId.value === nextCourseId) return;
+  coursePresentation.value = null;
   courseId.value = nextCourseId;
   generation += 1;
   resetLoadCoalescer();
@@ -516,10 +537,13 @@ bindPageVisibilityRefresh(courseVisibility, {
   }),
 });
 onUnmounted(() => { mounted = false; generation += 1; resetLoadCoalescer(); });
-watch(() => String(app.accountKey), refreshForScopeChange);
-watch(() => app.accountBindingEpoch, refreshForScopeChange);
-watch(() => language.value, refreshForScopeChange);
-const stopRuntimeRefresh = subscribeRuntimeRevision(refreshForScopeChange);
+watch(() => String(app.accountKey), refreshForScopeChange, { flush: "sync" });
+watch(() => app.accountBindingEpoch, refreshForScopeChange, { flush: "sync" });
+watch(() => language.value, refreshForScopeChange, { flush: "sync" });
+const stopRuntimeRefresh = subscribeRuntimeRevision(() => {
+  accountEpoch += 1; generation += 1; resetLoadCoalescer(); resetCourseState();
+  if (mounted) void load();
+});
 onUnmounted(stopRuntimeRefresh);
 
 const auditCopy = useAuditUiCopy();
@@ -533,10 +557,10 @@ const completionCopy = computed(() => ({
 }[language.value]));
 const completionSummary = computed(() => {
   const progress = nextOverview.value ? fmt(completionCopy.value.progress, { done: nextOverview.value.completedCourses, total: nextOverview.value.totalCourses }) : "";
-  return [course.value?.questions.length ? scoreLine.value : "", progress].filter(Boolean).join(" · ") || t.value.learning.resultPassed;
+  return [displayCourse.value?.questions.length ? scoreLine.value : "", progress].filter(Boolean).join(" · ") || t.value.learning.resultPassed;
 });
-const completionReward = computed(() => resultDetails.value?.rewardGranted
-  ? fmt(completionCopy.value.credited, { n: formatAmount(resultDetails.value.rewardNex) })
+const completionReward = computed(() => displayResultDetails.value?.rewardGranted
+  ? fmt(completionCopy.value.credited, { n: formatAmount(displayResultDetails.value.rewardNex) })
   : rewardStatusLine.value);
 const recommendedNext = computed(() => selectRecommendedCourse((nextOverview.value?.courses ?? []).filter(item => item.id !== courseId.value)));
 const nextCourseMeta = computed(() => {
@@ -550,9 +574,9 @@ function openNextCourse() {
   if (next) navTo(`/pages/learn/course?id=${encodeURIComponent(next.id)}`);
 }
 let nextRequest = 0;
-function resetNextCourses() { nextRequest++; nextOverview.value = null; nextLoading.value = false; nextError.value = false; }
+function resetNextCourses(keepPresentation = false) { nextRequest++; if (!keepPresentation) nextOverview.value = null; nextLoading.value = false; nextError.value = false; }
 async function loadNextCourses() {
-  resetNextCourses();
+  resetNextCourses(true);
   if (!serverCompleted.value || !remoteApiEnabled || !mounted) return;
   const request = nextRequest;
   const scope = fence();
@@ -561,17 +585,20 @@ async function loadNextCourses() {
     const next = await learningApi.courses(language.value);
     if (request === nextRequest && current(scope) && serverCompleted.value) nextOverview.value = next;
   } catch {
-    if (request === nextRequest && current(scope)) nextError.value = true;
+    if (request === nextRequest && current(scope)) { nextOverview.value = null; nextError.value = true; }
   } finally {
     if (request === nextRequest && current(scope)) nextLoading.value = false;
   }
 }
 watch(() => [serverCompleted.value, courseId.value, app.accountKey, app.accountBindingEpoch, language.value] as const, () => { void loadNextCourses(); });
-onHide(resetNextCourses);
+watch(() => [courseId.value, app.accountKey, app.accountBindingEpoch, language.value] as const, () => resetNextCourses(), { flush: "sync" });
+watch(() => displayCourse.value, value => { if (!value) resetNextCourses(); }, { flush: "sync" });
+onHide(() => resetNextCourses(true));
 onUnmounted(resetNextCourses);
 </script>
 
 <style scoped>
+.course-submit.nx-button--disabled { opacity: 1; }
 .learning-course { --learning-reward: var(--v5-nex); padding-bottom: var(--v5-space-6); color: var(--v5-ink); font-family: var(--font-v5); }
 .learning-course :deep(.spv--design) { grid-template-columns: 56px minmax(0, 1fr) 56px; margin: 0; }
 .course-state, .course-lesson { padding: 20px 16px 0; }
@@ -601,7 +628,7 @@ onUnmounted(resetNextCourses);
 .course-quiz-result__retry { width:100%;margin-top:8px; }
 .course-next-state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px; text-align: center; font-size: 13.5px; line-height: 20px; color: var(--v5-ink-3); }
 .learning-course .course-result__back { display: flex; box-sizing: border-box; width: 100%; min-height: 44px; margin-top: var(--v5-space-2); padding: var(--v5-space-2) var(--v5-space-3); font-size: 14px; font-weight: 400; color: var(--v5-ink-2); }
-.course-next__retry { margin-top: var(--v5-space-1); }
+.course-next-state.nx-inline-recovery { display: grid; align-items: center; gap: 12px; text-align: start; }
 [role="radio"] { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 12px; border: 1px solid var(--v5-border); border-radius: 14px; font: 400 14px/1.5 var(--font-v5); }
 [role="radio"][aria-checked="true"] { border-color: var(--v5-brand); background: color-mix(in srgb,var(--v5-brand) 6%,transparent); }
 .course-radio { width: 18px; height: 18px; border: 1px solid var(--v5-ink-3); border-radius: 50%; flex: none; }

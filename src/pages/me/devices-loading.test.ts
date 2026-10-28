@@ -4,7 +4,7 @@ import source from "./devices.vue?raw";
 
 const script = source.split('<script setup lang="ts">')[1].split("</script>")[0];
 const ast = ts.createSourceFile("devices.ts", script, ts.ScriptTarget.Latest, true);
-const names = ["trialReady", "inventoryReady", "inventoryError", "inventoryLoading", "inventoryStale"];
+const names = ["inventoryReady", "inventoryError", "inventoryLoading", "inventoryStale"];
 const declarations = new Map<string, string>();
 function visit(node: ts.Node) {
   if (ts.isVariableDeclaration(node) && names.includes(node.name.getText(ast))) {
@@ -39,7 +39,7 @@ describe("device inventory first render", () => {
     const trial: Record<string, unknown> = { authorityStatus: "unknown", authorityServerState: null };
     expect(inventoryState(true, app, trial)).toEqual({ ready: false, loading: true, error: false, stale: false });
     app.remoteFleetHasSnapshot = true;
-    expect(inventoryState(true, app, trial).ready).toBe(false);
+    expect(inventoryState(true, app, trial).ready).toBe(true);
     trial.authorityStatus = "ready";
     trial.authorityServerState = "ACTIVE";
     expect(inventoryState(true, app, trial)).toEqual({ ready: true, loading: false, error: false, stale: false });

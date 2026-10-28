@@ -72,10 +72,14 @@ async function mount(source: string, dependencies: Record<string, unknown>) {
   const exports = { default: {} as Component };
   const shows: Array<() => void> = [];
   const defaults: Record<string, unknown> = {
+    '@/store/app': { useApp: () => Vue.reactive({ accountKey: 'user:A', accountBindingEpoch: 1 }) },
+    '@/store/auth': { useAuth: () => Vue.reactive({ isAuthenticated: true }) },
+    '@/store/locale': { useLocaleStore: () => Vue.reactive({ code: 'en' }) },
+    '@/lib/account-scope': { captureAccountScope: () => 1, isCurrentAccountScope: () => true },
     "@/lib/amount-display": { formatAmount, formatGroupedAmount },
     "@/i18n/network-reaudit": { networkReauditCopy },
     "@/lib/trial-date": { formatTrialDate },
-    vue: Vue, "@dcloudio/uni-app": { onShow: (callback: () => void) => shows.push(callback) },
+    vue: Vue, "@dcloudio/uni-app": { onHide: () => {}, onShow: (callback: () => void) => shows.push(callback) },
     "@/components/app-chassis.vue": { default: slot },
     "@/components/team/reward-page-surface.vue": { default: slot },
     "@/components/team/reward-compact-hero.vue": { default: copyComponent("hero") },
@@ -122,7 +126,7 @@ const event = (kind: CommissionKind): CommissionEvent => ({
 async function commissions(code: Locale = "en") {
   const locale = Vue.ref(code);
   const commission = Vue.reactive({
-    eventsStatus: "idle", events: [] as CommissionEvent[], eventsEvidence: null as { aggregate: Partial<TeamCommissionSnapshot['aggregate']> } | null, eventsTotalRows: 0,
+    eventsStatus: "idle", events: [] as CommissionEvent[], eventsEvidence: null as (Omit<Partial<TeamCommissionSnapshot>, 'aggregate'> & { aggregate: Partial<TeamCommissionSnapshot['aggregate']> }) | null, eventsTotalRows: 0,
     eventsLoadMoreStatus: "idle", unlockMatured: vi.fn(), loadMoreCanonicalEvents: vi.fn(),
     unlockedUSDT: () => 0, unlockedNEX: () => 0, coolingUSDT: () => 0, monthUSDT: () => 0, totalUSDTLifetime: () => 0,
     byKind: () => Object.fromEntries(kinds.map(kind => [kind, { usdt: 0, nex: 0, count: 0 }])),
@@ -132,12 +136,15 @@ async function commissions(code: Locale = "en") {
   commission.refreshCanonicalEvents.mockImplementation(async () => {
     commission.eventsStatus = "loading"; commission.events = [];
     const read = deferred<CommissionEvent[]>(); reads.push(read);
-    try { commission.events = await read.promise; commission.eventsStatus = "ready"; }
+    try { commission.events = await read.promise;
+      commission.eventsEvidence = { events: commission.events, totalRows: commission.events.length,
+        aggregate: { byKind: commission.byKind() as TeamCommissionSnapshot['aggregate']['byKind'] } };
+      commission.eventsStatus = "ready"; }
     catch { commission.eventsStatus = "error"; }
   });
   const navTo = vi.fn();
   const page = await mount(commissionsSource, {
-    "@/store/commission": { useCommission: () => commission }, "@/api/runtime": { remoteApiEnabled: true },
+    "@/store/commission": { useCommission: () => commission }, "@/api/runtime": { remoteApiEnabled: true, apiRuntimeConfig: { environment: 'prod', baseUrl: 'https://fixture.invalid' } },
     "@/i18n/use-t": { useT: () => Vue.computed(() => dictionaries[locale.value]) }, "@/lib/route": { navTo },
     "@/i18n/format": { fmt, dateLocale: () => ({ en: "en-US", zh: "zh-CN", vi: "vi-VN" })[locale.value] },
   });
@@ -171,7 +178,7 @@ async function guide(code: Locale = "en") {
   const page = await mount(guideSource, {
     "@/i18n/use-t": { useT: () => Vue.computed(() => dictionaries[locale.code]) },
     "@/store/locale": { useLocaleStore: () => locale }, "@/lib/route": { navBack },
-    "@/api/runtime": { apiClient: {}, expectedApiEnvironment: "PRODUCTION", howContentApi: { published },
+    "@/api/runtime": { apiClient: {}, apiRuntimeConfig: { environment: 'prod', baseUrl: 'https://fixture.invalid' }, expectedApiEnvironment: "PRODUCTION", howContentApi: { published },
       vRankApi: { ladder: () => current.promise.then(facts => ({ ranks: facts.ranks })) } },
     "@/api/commission-guide-api": { createCommissionGuideApi: () => ({
       read: () => current.promise.then(facts => facts.guide),
@@ -270,7 +277,7 @@ test("commissions true error keeps its retry; two Rules returns retain Peer, and
     all(page.root).find(item => item.props.role === "link")!.props.onClick();
     expect(page.navTo).toHaveBeenLastCalledWith("/pages/team/commissions-how");
     await page.show();
-    expect(text(page.root)).toContain(en.network.projectionLoadingTitle);
+    expect(text(page.root)).not.toContain(en.network.projectionLoadingTitle);
     expect(text(page.root)).not.toContain(en.network.projectionErrorDesc);
     page.reads[2 + returnNumber].resolve([event("peer"), event("binary")]); await flush();
     expect(text(page.root)).toContain("Event peer"); expect(text(page.root)).not.toContain("Event binary");
@@ -319,11 +326,11 @@ test("guide failed read shows one real error and keyboard Retry, then replaces i
   expect(text(page.root)).toContain("Published overview"); expect(text(page.root)).not.toContain(copy.retry);
 });
 
-test("guide refresh hides prior published rules while pending and preserves incomplete-read warnings", async () => {
+test("guide refresh retains prior published rules while pending and preserves incomplete-read warnings", async () => {
   const page = await guide(); await page.show(); page.reads[0].resolve(guideSnapshot()); await flush();
   expect(text(page.root)).toContain("Published overview");
   await page.show();
-  expect(text(page.root)).not.toContain("Published overview");
+  expect(text(page.root)).toContain("Published overview");
   expect(text(page.root)).not.toContain(buildCommissionsHowContent(null, "en").copy.unavailable);
   const incomplete = guideSnapshot(); incomplete.document.blocks = incomplete.document.blocks.filter(block => block.id !== "overview");
   page.reads[1].resolve(incomplete); await flush();
@@ -360,8 +367,9 @@ test.each(['en', 'zh', 'vi'] as const)('T1 %s filter keeps pagination reachable 
   const page = await commissions(language); await page.show();
   page.reads[0].resolve(Array.from({ length: 20 }, (_, i) => ({ ...event('direct_purchase'), id: `first-${i}` }))); await flush();
   const copy = dictionaries[language];
-  page.commission.eventsTotalRows = 21;
+  page.commission.eventsTotalRows = 21; page.commission.eventsEvidence!.totalRows = 21;
   page.commission.byKind = () => Object.fromEntries(kinds.map(kind => [kind, { usdt: kind === 'leadership' ? 1 : 0, nex: 0, count: kind === 'leadership' ? 1 : 20 }]));
+  page.commission.eventsEvidence!.aggregate.byKind = page.commission.byKind() as TeamCommissionSnapshot["aggregate"]["byKind"];
   await flush();
   const tab = (label: string) => all(page.root).find(n => n.props.role === 'tab' && text(n) === label)!;
   expect(tab(copy.commissions.all).props['data-count']).toBe(21);
@@ -394,15 +402,15 @@ test.each(['en', 'zh', 'vi'] as const)('T1 %s filter keeps pagination reachable 
 
 test.each(['en', 'zh', 'vi'] as const)('T6 %s monthly and lifetime summaries keep independent USD and UVT aggregates', async language => {
   const page = await commissions(language); await page.show(); page.reads[0].resolve([]); await flush();
-  page.commission.eventsEvidence = { aggregate: { monthUSDT: 250, monthNEX: 40, totalUSDT: 1250, totalNEX: 70 } };
+  page.commission.eventsEvidence = { ...page.commission.eventsEvidence, aggregate: { monthUSDT: 250, monthNEX: 40, totalUSDT: 1250, totalNEX: 70 } };
   await flush();
   const hero = all(page.root).find(n => n.props['data-component'] === 'hero')!;
   const lifetime = all(page.root).find(n => String(n.props.class).split(' ').includes('reward-income-lifetime'))!;
   expect(text(hero)).toContain('$250.0040.00 UVT');
   expect(text(lifetime)).toContain('$1250.0070.00 UVT');
-  page.commission.eventsEvidence = { aggregate: { monthUSDT: 0, monthNEX: 0, totalUSDT: 0, totalNEX: 0 } }; await flush();
+  page.commission.eventsEvidence = { ...page.commission.eventsEvidence, aggregate: { monthUSDT: 0, monthNEX: 0, totalUSDT: 0, totalNEX: 0 } }; await flush();
   expect(text(hero)).toContain('$0.000.00 UVT');
-  page.commission.eventsEvidence = { aggregate: { monthUSDT: 250, totalUSDT: 1250 } }; await flush();
+  page.commission.eventsEvidence = { ...page.commission.eventsEvidence, aggregate: { monthUSDT: 250, totalUSDT: 1250 } }; await flush();
   expect(text(hero)).toContain('$250.00— UVT');
   expect(text(lifetime)).toContain('$1250.00— UVT');
 });

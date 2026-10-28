@@ -1,0 +1,1734 @@
+{
+  "intro": [
+    {
+      "case": "intro-vi-light-320x693",
+      "size": [
+        320,
+        693
+      ],
+      "locale": "vi",
+      "theme": "light",
+      "doc": {
+        "w": 320,
+        "sw": 320,
+        "h": 693,
+        "sh": 693
+      },
+      "gap": 37.6666259765625,
+      "title": [
+        "26px",
+        "600",
+        "31.2px"
+      ],
+      "sub": [
+        "13px",
+        "400",
+        "19.5px"
+      ],
+      "stats": [
+        [
+          "11px",
+          "600",
+          "16.5px"
+        ],
+        [
+          "11px",
+          "600",
+          "16.5px"
+        ]
+      ],
+      "language": [
+        62.91666793823242,
+        44
+      ],
+      "cta": [
+        [
+          280,
+          44
+        ],
+        [
+          280,
+          44
+        ]
+      ],
+      "links": [
+        {
+          "text": "Điều khoản",
+          "size": [
+            55.427085876464844,
+            44
+          ]
+        },
+        {
+          "text": "Chính sách quyền riêng tư",
+          "size": [
+            129.17709350585938,
+            44
+          ]
+        }
+      ]
+    },
+    {
+      "case": "intro-vi-dark-320x693",
+      "size": [
+        320,
+        693
+      ],
+      "locale": "vi",
+      "theme": "dark",
+      "doc": {
+        "w": 320,
+        "sw": 320,
+        "h": 693,
+        "sh": 693
+      },
+      "gap": 37.6666259765625,
+      "title": [
+        "26px",
+        "600",
+        "31.2px"
+      ],
+      "sub": [
+        "13px",
+        "400",
+        "19.5px"
+      ],
+      "stats": [
+        [
+          "11px",
+          "600",
+          "16.5px"
+        ],
+        [
+          "11px",
+          "600",
+          "16.5px"
+        ]
+      ],
+      "language": [
+        62.91666793823242,
+        44
+      ],
+      "cta": [
+        [
+          280,
+          44
+        ],
+        [
+          280,
+          44
+        ]
+      ],
+      "links": [
+        {
+          "text": "Điều khoản",
+          "size": [
+            55.427085876464844,
+            44
+          ]
+        },
+        {
+          "text": "Chính sách quyền riêng tư",
+          "size": [
+            129.17709350585938,
+            44
+          ]
+        }
+      ]
+    },
+    {
+      "case": "intro-zh-dark-320x693",
+      "size": [
+        320,
+        693
+      ],
+      "locale": "zh",
+      "theme": "dark",
+      "doc": {
+        "w": 320,
+        "sw": 320,
+        "h": 693,
+        "sh": 693
+      },
+      "gap": 37.6666259765625,
+      "title": [
+        "26px",
+        "600",
+        "31.2px"
+      ],
+      "sub": [
+        "13px",
+        "400",
+        "19.5px"
+      ],
+      "stats": [
+        [
+          "11px",
+          "600",
+          "16.5px"
+        ],
+        [
+          "11px",
+          "600",
+          "16.5px"
+        ]
+      ],
+      "language": [
+        67.8125,
+        44
+      ],
+      "cta": [
+        [
+          280,
+          44
+        ],
+        [
+          280,
+          44
+        ]
+      ],
+      "links": [
+        {
+          "text": "服务条款",
+          "size": [
+            44,
+            44
+          ]
+        },
+        {
+          "text": "隐私政策",
+          "size": [
+            44,
+            44
+          ]
+        }
+      ]
+    },
+    {
+      "case": "intro-en-light-320x693",
+      "size": [
+        320,
+        693
+      ],
+      "locale": "en",
+      "theme": "light",
+      "doc": {
+        "w": 320,
+        "sw": 320,
+        "h": 693,
+        "sh": 693
+      },
+      "gap": 37.6666259765625,
+      "title": [
+        "26px",
+        "600",
+        "31.2px"
+      ],
+      "sub": [
+        "13px",
+        "400",
+        "19.5px"
+      ],
+      "stats": [
+        [
+          "11px",
+          "600",
+          "16.5px"
+        ],
+        [
+          "11px",
+          "600",
+          "16.5px"
+        ]
+      ],
+      "language": [
+        67.3125,
+        44
+      ],
+      "cta": [
+        [
+          280,
+          44
+        ],
+        [
+          280,
+          44
+        ]
+      ],
+      "links": [
+        {
+          "text": "Terms",
+          "size": [
+            44,
+            44
+          ]
+        },
+        {
+          "text": "Privacy Policy",
+          "size": [
+            66.83333587646484,
+            44
+          ]
+        }
+      ]
+    },
+    {
+      "case": "intro-vi-light-320x568",
+      "size": [
+        320,
+        568
+      ],
+      "locale": "vi",
+      "theme": "light",
+      "doc": {
+        "w": 320,
+        "sw": 320,
+        "h": 568,
+        "sh": 568
+      },
+      "gap": 38,
+      "title": [
+        "24px",
+        "600",
+        "28.8px"
+      ],
+      "sub": [
+        "13px",
+        "400",
+        "19.5px"
+      ],
+      "stats": [
+        [
+          "11px",
+          "600",
+          "16.5px"
+        ],
+        [
+          "11px",
+          "600",
+          "16.5px"
+        ]
+      ],
+      "language": [
+        62.91666793823242,
+        44
+      ],
+      "cta": [
+        [
+          280,
+          44
+        ],
+        [
+          280,
+          44
+        ]
+      ],
+      "links": [
+        {
+          "text": "Điều khoản",
+          "size": [
+            55.427085876464844,
+            44
+          ]
+        },
+        {
+          "text": "Chính sách quyền riêng tư",
+          "size": [
+            129.17709350585938,
+            44
+          ]
+        }
+      ]
+    },
+    {
+      "case": "intro-vi-dark-320x568",
+      "size": [
+        320,
+        568
+      ],
+      "locale": "vi",
+      "theme": "dark",
+      "doc": {
+        "w": 320,
+        "sw": 320,
+        "h": 568,
+        "sh": 568
+      },
+      "gap": 38,
+      "title": [
+        "24px",
+        "600",
+        "28.8px"
+      ],
+      "sub": [
+        "13px",
+        "400",
+        "19.5px"
+      ],
+      "stats": [
+        [
+          "11px",
+          "600",
+          "16.5px"
+        ],
+        [
+          "11px",
+          "600",
+          "16.5px"
+        ]
+      ],
+      "language": [
+        62.91666793823242,
+        44
+      ],
+      "cta": [
+        [
+          280,
+          44
+        ],
+        [
+          280,
+          44
+        ]
+      ],
+      "links": [
+        {
+          "text": "Điều khoản",
+          "size": [
+            55.427085876464844,
+            44
+          ]
+        },
+        {
+          "text": "Chính sách quyền riêng tư",
+          "size": [
+            129.17709350585938,
+            44
+          ]
+        }
+      ]
+    },
+    {
+      "case": "intro-zh-dark-320x568",
+      "size": [
+        320,
+        568
+      ],
+      "locale": "zh",
+      "theme": "dark",
+      "doc": {
+        "w": 320,
+        "sw": 320,
+        "h": 568,
+        "sh": 568
+      },
+      "gap": 38,
+      "title": [
+        "24px",
+        "600",
+        "28.8px"
+      ],
+      "sub": [
+        "13px",
+        "400",
+        "19.5px"
+      ],
+      "stats": [
+        [
+          "11px",
+          "600",
+          "16.5px"
+        ],
+        [
+          "11px",
+          "600",
+          "16.5px"
+        ]
+      ],
+      "language": [
+        67.8125,
+        44
+      ],
+      "cta": [
+        [
+          280,
+          44
+        ],
+        [
+          280,
+          44
+        ]
+      ],
+      "links": [
+        {
+          "text": "服务条款",
+          "size": [
+            44,
+            44
+          ]
+        },
+        {
+          "text": "隐私政策",
+          "size": [
+            44,
+            44
+          ]
+        }
+      ]
+    },
+    {
+      "case": "intro-en-light-320x568",
+      "size": [
+        320,
+        568
+      ],
+      "locale": "en",
+      "theme": "light",
+      "doc": {
+        "w": 320,
+        "sw": 320,
+        "h": 568,
+        "sh": 568
+      },
+      "gap": 38,
+      "title": [
+        "24px",
+        "600",
+        "28.8px"
+      ],
+      "sub": [
+        "13px",
+        "400",
+        "19.5px"
+      ],
+      "stats": [
+        [
+          "11px",
+          "600",
+          "16.5px"
+        ],
+        [
+          "11px",
+          "600",
+          "16.5px"
+        ]
+      ],
+      "language": [
+        67.3125,
+        44
+      ],
+      "cta": [
+        [
+          280,
+          44
+        ],
+        [
+          280,
+          44
+        ]
+      ],
+      "links": [
+        {
+          "text": "Terms",
+          "size": [
+            44,
+            44
+          ]
+        },
+        {
+          "text": "Privacy Policy",
+          "size": [
+            66.83333587646484,
+            44
+          ]
+        }
+      ]
+    },
+    {
+      "case": "intro-vi-light-390x844",
+      "size": [
+        390,
+        844
+      ],
+      "locale": "vi",
+      "theme": "light",
+      "doc": {
+        "w": 390,
+        "sw": 390,
+        "h": 844,
+        "sh": 844
+      },
+      "gap": 38,
+      "title": [
+        "34px",
+        "600",
+        "42.5px"
+      ],
+      "sub": [
+        "15px",
+        "400",
+        "24.375px"
+      ],
+      "stats": [
+        [
+          "12px",
+          "600",
+          "18px"
+        ],
+        [
+          "12px",
+          "600",
+          "18px"
+        ]
+      ],
+      "language": [
+        62.91666793823242,
+        44
+      ],
+      "cta": [
+        [
+          342,
+          54
+        ],
+        [
+          342,
+          54
+        ]
+      ],
+      "links": [
+        {
+          "text": "Điều khoản",
+          "size": [
+            60.46875,
+            44
+          ]
+        },
+        {
+          "text": "Chính sách quyền riêng tư",
+          "size": [
+            140.9166717529297,
+            44
+          ]
+        }
+      ]
+    },
+    {
+      "case": "intro-vi-dark-390x844",
+      "size": [
+        390,
+        844
+      ],
+      "locale": "vi",
+      "theme": "dark",
+      "doc": {
+        "w": 390,
+        "sw": 390,
+        "h": 844,
+        "sh": 844
+      },
+      "gap": 38,
+      "title": [
+        "34px",
+        "600",
+        "42.5px"
+      ],
+      "sub": [
+        "15px",
+        "400",
+        "24.375px"
+      ],
+      "stats": [
+        [
+          "12px",
+          "600",
+          "18px"
+        ],
+        [
+          "12px",
+          "600",
+          "18px"
+        ]
+      ],
+      "language": [
+        62.91666793823242,
+        44
+      ],
+      "cta": [
+        [
+          342,
+          54
+        ],
+        [
+          342,
+          54
+        ]
+      ],
+      "links": [
+        {
+          "text": "Điều khoản",
+          "size": [
+            60.46875,
+            44
+          ]
+        },
+        {
+          "text": "Chính sách quyền riêng tư",
+          "size": [
+            140.9166717529297,
+            44
+          ]
+        }
+      ]
+    },
+    {
+      "case": "intro-zh-dark-390x844",
+      "size": [
+        390,
+        844
+      ],
+      "locale": "zh",
+      "theme": "dark",
+      "doc": {
+        "w": 390,
+        "sw": 390,
+        "h": 844,
+        "sh": 844
+      },
+      "gap": 38,
+      "title": [
+        "34px",
+        "600",
+        "42.5px"
+      ],
+      "sub": [
+        "15px",
+        "400",
+        "24.375px"
+      ],
+      "stats": [
+        [
+          "12px",
+          "600",
+          "18px"
+        ],
+        [
+          "12px",
+          "600",
+          "18px"
+        ]
+      ],
+      "language": [
+        67.8125,
+        44
+      ],
+      "cta": [
+        [
+          342,
+          54
+        ],
+        [
+          342,
+          54
+        ]
+      ],
+      "links": [
+        {
+          "text": "服务条款",
+          "size": [
+            48,
+            44
+          ]
+        },
+        {
+          "text": "隐私政策",
+          "size": [
+            48,
+            44
+          ]
+        }
+      ]
+    },
+    {
+      "case": "intro-en-light-390x844",
+      "size": [
+        390,
+        844
+      ],
+      "locale": "en",
+      "theme": "light",
+      "doc": {
+        "w": 390,
+        "sw": 390,
+        "h": 844,
+        "sh": 844
+      },
+      "gap": 38,
+      "title": [
+        "34px",
+        "600",
+        "42.5px"
+      ],
+      "sub": [
+        "15px",
+        "400",
+        "24.375px"
+      ],
+      "stats": [
+        [
+          "12px",
+          "600",
+          "18px"
+        ],
+        [
+          "12px",
+          "600",
+          "18px"
+        ]
+      ],
+      "language": [
+        67.3125,
+        44
+      ],
+      "cta": [
+        [
+          342,
+          54
+        ],
+        [
+          342,
+          54
+        ]
+      ],
+      "links": [
+        {
+          "text": "Terms",
+          "size": [
+            44,
+            44
+          ]
+        },
+        {
+          "text": "Privacy Policy",
+          "size": [
+            72.90625,
+            44
+          ]
+        }
+      ]
+    }
+  ],
+  "checkin": [
+    {
+      "case": "checkin-unclaimed-vi-light-320x693",
+      "size": [
+        320,
+        693
+      ],
+      "locale": "vi",
+      "theme": "light",
+      "checked": false,
+      "action": [
+        81.25,
+        44
+      ],
+      "aria": "Điểm danh",
+      "buttonBackground": "rgb(14, 72, 230)",
+      "buttonShadow": "color(srgb 0.054902 0.282353 0.901961 / 0.15) 0px 3px 10px 0px, rgba(255, 255, 255, 0.45) 0px 1px 0px 0px inset",
+      "today": "Hôm nay",
+      "todayFont": [
+        "10.5px",
+        "400",
+        "14px"
+      ],
+      "todayBorder": "color(srgb 0.054902 0.282353 0.901961 / 0.6)",
+      "todayGlow": "color(srgb 0.054902 0.282353 0.901961 / 0.1) 0px 0px 0px 3px, color(srgb 0.054902 0.282353 0.901961 / 0.18) 0px 6px 16px 0px",
+      "digits": [
+        {
+          "text": "1",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "2",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "4",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "5",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "6",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "+40",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        }
+      ],
+      "overflow": 0
+    },
+    {
+      "case": "checkin-unclaimed-vi-dark-320x693",
+      "size": [
+        320,
+        693
+      ],
+      "locale": "vi",
+      "theme": "dark",
+      "checked": false,
+      "action": [
+        81.25,
+        44
+      ],
+      "aria": "Điểm danh",
+      "buttonBackground": "rgb(158, 220, 29)",
+      "buttonShadow": "color(srgb 0.619608 0.862745 0.113725 / 0.15) 0px 3px 10px 0px, rgba(255, 255, 255, 0.45) 0px 1px 0px 0px inset",
+      "today": "Hôm nay",
+      "todayFont": [
+        "10.5px",
+        "400",
+        "14px"
+      ],
+      "todayBorder": "color(srgb 0.901961 1 0.619608 / 0.6)",
+      "todayGlow": "color(srgb 0.619608 0.862745 0.113725 / 0.1) 0px 0px 0px 3px, color(srgb 0.619608 0.862745 0.113725 / 0.18) 0px 6px 16px 0px",
+      "digits": [
+        {
+          "text": "1",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "2",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "4",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "5",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "6",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "+40",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        }
+      ],
+      "overflow": 0
+    },
+    {
+      "case": "checkin-unclaimed-vi-light-390x844",
+      "size": [
+        390,
+        844
+      ],
+      "locale": "vi",
+      "theme": "light",
+      "checked": false,
+      "action": [
+        107.45833587646484,
+        44
+      ],
+      "aria": "Điểm danh",
+      "buttonBackground": "rgb(14, 72, 230)",
+      "buttonShadow": "color(srgb 0.054902 0.282353 0.901961 / 0.28) 0px 6px 18px 0px, rgba(255, 255, 255, 0.45) 0px 1px 0px 0px inset",
+      "today": "Hôm nay",
+      "todayFont": [
+        "10.5px",
+        "400",
+        "14px"
+      ],
+      "todayBorder": "color(srgb 0.054902 0.282353 0.901961 / 0.6)",
+      "todayGlow": "color(srgb 0.054902 0.282353 0.901961 / 0.1) 0px 0px 0px 3px, color(srgb 0.054902 0.282353 0.901961 / 0.18) 0px 6px 16px 0px",
+      "digits": [
+        {
+          "text": "1",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "2",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "4",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "5",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "6",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "+40",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        }
+      ],
+      "overflow": 0
+    },
+    {
+      "case": "checkin-unclaimed-vi-dark-390x844",
+      "size": [
+        390,
+        844
+      ],
+      "locale": "vi",
+      "theme": "dark",
+      "checked": false,
+      "action": [
+        107.45833587646484,
+        44
+      ],
+      "aria": "Điểm danh",
+      "buttonBackground": "rgb(158, 220, 29)",
+      "buttonShadow": "color(srgb 0.619608 0.862745 0.113725 / 0.28) 0px 6px 18px 0px, rgba(255, 255, 255, 0.45) 0px 1px 0px 0px inset",
+      "today": "Hôm nay",
+      "todayFont": [
+        "10.5px",
+        "400",
+        "14px"
+      ],
+      "todayBorder": "color(srgb 0.901961 1 0.619608 / 0.6)",
+      "todayGlow": "color(srgb 0.619608 0.862745 0.113725 / 0.1) 0px 0px 0px 3px, color(srgb 0.619608 0.862745 0.113725 / 0.18) 0px 6px 16px 0px",
+      "digits": [
+        {
+          "text": "1",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "2",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "4",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "5",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "6",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "+40",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        }
+      ],
+      "overflow": 0
+    },
+    {
+      "case": "checkin-unclaimed-zh-dark-390x844",
+      "size": [
+        390,
+        844
+      ],
+      "locale": "zh",
+      "theme": "dark",
+      "checked": false,
+      "action": [
+        64,
+        44
+      ],
+      "aria": "签到",
+      "buttonBackground": "rgb(158, 220, 29)",
+      "buttonShadow": "color(srgb 0.619608 0.862745 0.113725 / 0.28) 0px 6px 18px 0px, rgba(255, 255, 255, 0.45) 0px 1px 0px 0px inset",
+      "today": "今天",
+      "todayFont": [
+        "10.5px",
+        "400",
+        "14px"
+      ],
+      "todayBorder": "color(srgb 0.901961 1 0.619608 / 0.6)",
+      "todayGlow": "color(srgb 0.619608 0.862745 0.113725 / 0.1) 0px 0px 0px 3px, color(srgb 0.619608 0.862745 0.113725 / 0.18) 0px 6px 16px 0px",
+      "digits": [
+        {
+          "text": "1",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "2",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "4",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "5",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "6",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "+40",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        }
+      ],
+      "overflow": 0
+    },
+    {
+      "case": "checkin-unclaimed-en-light-320x693",
+      "size": [
+        320,
+        693
+      ],
+      "locale": "en",
+      "theme": "light",
+      "checked": false,
+      "action": [
+        70.04167175292969,
+        44
+      ],
+      "aria": "Check in",
+      "buttonBackground": "rgb(14, 72, 230)",
+      "buttonShadow": "color(srgb 0.054902 0.282353 0.901961 / 0.15) 0px 3px 10px 0px, rgba(255, 255, 255, 0.45) 0px 1px 0px 0px inset",
+      "today": "Today",
+      "todayFont": [
+        "10.5px",
+        "400",
+        "14px"
+      ],
+      "todayBorder": "color(srgb 0.054902 0.282353 0.901961 / 0.6)",
+      "todayGlow": "color(srgb 0.054902 0.282353 0.901961 / 0.1) 0px 0px 0px 3px, color(srgb 0.054902 0.282353 0.901961 / 0.18) 0px 6px 16px 0px",
+      "digits": [
+        {
+          "text": "1",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "2",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "4",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "5",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "6",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "+40",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        }
+      ],
+      "overflow": 0
+    },
+    {
+      "case": "checkin-checked-en-light-320x693",
+      "size": [
+        320,
+        693
+      ],
+      "locale": "en",
+      "theme": "light",
+      "checked": true,
+      "action": [
+        44,
+        44
+      ],
+      "aria": "Checked in",
+      "buttonBackground": "rgb(14, 72, 230)",
+      "buttonShadow": "color(srgb 0.054902 0.282353 0.901961 / 0.15) 0px 3px 10px 0px, rgba(255, 255, 255, 0.45) 0px 1px 0px 0px inset",
+      "today": "Today",
+      "todayFont": [
+        "10.5px",
+        "400",
+        "14px"
+      ],
+      "todayBorder": "color(srgb 0.054902 0.282353 0.901961 / 0.6)",
+      "todayGlow": "color(srgb 0.054902 0.282353 0.901961 / 0.1) 0px 0px 0px 3px, color(srgb 0.054902 0.282353 0.901961 / 0.18) 0px 6px 16px 0px",
+      "digits": [
+        {
+          "text": "1",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "2",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "4",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "5",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "6",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "+40",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        }
+      ],
+      "overflow": 0
+    },
+    {
+      "case": "checkin-checked-vi-light-320x693",
+      "size": [
+        320,
+        693
+      ],
+      "locale": "vi",
+      "theme": "light",
+      "checked": true,
+      "action": [
+        44,
+        44
+      ],
+      "aria": "Đã điểm danh",
+      "buttonBackground": "rgb(14, 72, 230)",
+      "buttonShadow": "color(srgb 0.054902 0.282353 0.901961 / 0.15) 0px 3px 10px 0px, rgba(255, 255, 255, 0.45) 0px 1px 0px 0px inset",
+      "today": "Hôm nay",
+      "todayFont": [
+        "10.5px",
+        "400",
+        "14px"
+      ],
+      "todayBorder": "color(srgb 0.054902 0.282353 0.901961 / 0.6)",
+      "todayGlow": "color(srgb 0.054902 0.282353 0.901961 / 0.1) 0px 0px 0px 3px, color(srgb 0.054902 0.282353 0.901961 / 0.18) 0px 6px 16px 0px",
+      "digits": [
+        {
+          "text": "1",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "2",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "4",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "5",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "6",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "+40",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        }
+      ],
+      "overflow": 0
+    },
+    {
+      "case": "checkin-checked-vi-dark-320x693",
+      "size": [
+        320,
+        693
+      ],
+      "locale": "vi",
+      "theme": "dark",
+      "checked": true,
+      "action": [
+        44,
+        44
+      ],
+      "aria": "Đã điểm danh",
+      "buttonBackground": "rgb(158, 220, 29)",
+      "buttonShadow": "color(srgb 0.619608 0.862745 0.113725 / 0.15) 0px 3px 10px 0px, rgba(255, 255, 255, 0.45) 0px 1px 0px 0px inset",
+      "today": "Hôm nay",
+      "todayFont": [
+        "10.5px",
+        "400",
+        "14px"
+      ],
+      "todayBorder": "color(srgb 0.901961 1 0.619608 / 0.6)",
+      "todayGlow": "color(srgb 0.619608 0.862745 0.113725 / 0.1) 0px 0px 0px 3px, color(srgb 0.619608 0.862745 0.113725 / 0.18) 0px 6px 16px 0px",
+      "digits": [
+        {
+          "text": "1",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "2",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "4",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "5",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "6",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "+40",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        }
+      ],
+      "overflow": 0
+    },
+    {
+      "case": "checkin-checked-vi-light-390x844",
+      "size": [
+        390,
+        844
+      ],
+      "locale": "vi",
+      "theme": "light",
+      "checked": true,
+      "action": [
+        44,
+        44
+      ],
+      "aria": "Đã điểm danh",
+      "buttonBackground": "rgb(14, 72, 230)",
+      "buttonShadow": "color(srgb 0.054902 0.282353 0.901961 / 0.28) 0px 6px 18px 0px, rgba(255, 255, 255, 0.45) 0px 1px 0px 0px inset",
+      "today": "Hôm nay",
+      "todayFont": [
+        "10.5px",
+        "400",
+        "14px"
+      ],
+      "todayBorder": "color(srgb 0.054902 0.282353 0.901961 / 0.6)",
+      "todayGlow": "color(srgb 0.054902 0.282353 0.901961 / 0.1) 0px 0px 0px 3px, color(srgb 0.054902 0.282353 0.901961 / 0.18) 0px 6px 16px 0px",
+      "digits": [
+        {
+          "text": "1",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "2",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "4",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "5",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "6",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "+40",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        }
+      ],
+      "overflow": 0
+    },
+    {
+      "case": "checkin-checked-vi-dark-390x844",
+      "size": [
+        390,
+        844
+      ],
+      "locale": "vi",
+      "theme": "dark",
+      "checked": true,
+      "action": [
+        44,
+        44
+      ],
+      "aria": "Đã điểm danh",
+      "buttonBackground": "rgb(158, 220, 29)",
+      "buttonShadow": "color(srgb 0.619608 0.862745 0.113725 / 0.28) 0px 6px 18px 0px, rgba(255, 255, 255, 0.45) 0px 1px 0px 0px inset",
+      "today": "Hôm nay",
+      "todayFont": [
+        "10.5px",
+        "400",
+        "14px"
+      ],
+      "todayBorder": "color(srgb 0.901961 1 0.619608 / 0.6)",
+      "todayGlow": "color(srgb 0.619608 0.862745 0.113725 / 0.1) 0px 0px 0px 3px, color(srgb 0.619608 0.862745 0.113725 / 0.18) 0px 6px 16px 0px",
+      "digits": [
+        {
+          "text": "1",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "2",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "4",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "5",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "6",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "+40",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        }
+      ],
+      "overflow": 0
+    },
+    {
+      "case": "checkin-checked-zh-dark-390x844",
+      "size": [
+        390,
+        844
+      ],
+      "locale": "zh",
+      "theme": "dark",
+      "checked": true,
+      "action": [
+        44,
+        44
+      ],
+      "aria": "已签到",
+      "buttonBackground": "rgb(158, 220, 29)",
+      "buttonShadow": "color(srgb 0.619608 0.862745 0.113725 / 0.28) 0px 6px 18px 0px, rgba(255, 255, 255, 0.45) 0px 1px 0px 0px inset",
+      "today": "今天",
+      "todayFont": [
+        "10.5px",
+        "400",
+        "14px"
+      ],
+      "todayBorder": "color(srgb 0.901961 1 0.619608 / 0.6)",
+      "todayGlow": "color(srgb 0.619608 0.862745 0.113725 / 0.1) 0px 0px 0px 3px, color(srgb 0.619608 0.862745 0.113725 / 0.18) 0px 6px 16px 0px",
+      "digits": [
+        {
+          "text": "1",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "2",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "4",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "5",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "6",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        },
+        {
+          "text": "+40",
+          "font": [
+            "11.5px",
+            "400",
+            "14px"
+          ]
+        }
+      ],
+      "overflow": 0
+    }
+  ]
+}

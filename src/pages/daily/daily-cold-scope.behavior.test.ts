@@ -53,7 +53,7 @@ const text = (root: Host): string => root.text + root.children.map(text).join(""
 const buttons = (root: Host) => all(root).filter(item => item.props.role === "button");
 type Messages = typeof en | typeof zh | typeof vietnamese;
 const checkInButton = (root: Host, messages: Messages = en) => buttons(root).find(item =>
-  [messages.daily.checkInUnconfirmed, fmt(messages.daily.checkInBase, { n: 2 }), messages.daily.checkedInToday].includes(text(item)));
+  [messages.daily.checkInAction, messages.daily.checkInUnconfirmed, fmt(messages.daily.checkInBase, { n: 2 }), messages.daily.checkedInToday].includes(text(item)));
 function deferred<T>() {
   let resolve!: (value: T) => void, reject!: (reason: Error) => void;
   const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no; });
@@ -291,12 +291,12 @@ test("cold catalog revision waits for faucet binding; a current decoded success 
 
 test("cold or pending state never exposes an enabled Check in", async () => {
   const p = await page(); p.show(); await flush();
-  expect(p.reads).toHaveLength(0); expect(checkInButton(p.root)).toBeUndefined();
+  expect(p.reads).toHaveLength(0); expect(checkInButton(p.root)?.props["aria-disabled"]).toBe("true");
   expect(text(p.root)).toContain(en.daily.loading);
   p.bind(); await flush();
-  expect(p.faucet.remoteReadState).toBe("loading"); expect(checkInButton(p.root)).toBeUndefined();
+  expect(p.faucet.remoteReadState).toBe("loading"); expect(checkInButton(p.root)?.props["aria-disabled"]).toBe("true");
   p.memberRead.resolve(true); await flush();
-  expect(checkInButton(p.root)).toBeUndefined(); expect(remote.pointsApi.checkIn).not.toHaveBeenCalled();
+  expect(checkInButton(p.root)?.props["aria-disabled"]).toBe("true"); expect(remote.pointsApi.checkIn).not.toHaveBeenCalled();
 });
 
 test("failed refresh retains the 154 latch even if a background store read later succeeds; explicit Retry recovers", async () => {
@@ -304,7 +304,7 @@ test("failed refresh retains the 154 latch even if a background store read later
   p.reads[0].resolve(snapshot()); p.memberRead.resolve(true); await flush();
   const previousButton = checkInButton(p.root)!;
   p.show(); await flush(); expect(p.reads).toHaveLength(2);
-  expect(p.faucet.remoteReadState).toBe("loading"); expect(checkInButton(p.root)).toBeUndefined();
+  expect(p.faucet.remoteReadState).toBe("loading"); expect(checkInButton(p.root)).toBe(previousButton); expect(previousButton.props["aria-disabled"]).toBe("true");
   await previousButton.props.onClick();
   expect(remote.pointsApi.checkIn).not.toHaveBeenCalled();
   p.reads[1].reject(new Error("current read failed")); await flush();
@@ -316,7 +316,7 @@ test("failed refresh retains the 154 latch even if a background store read later
   expect(remote.pointsApi.checkIn).not.toHaveBeenCalled();
   const retry = buttons(p.root).find(item => text(item) === en.store.catalogRetry)!;
   expect(retry.props["aria-disabled"]).toBe("false"); retry.props.onClick(); await flush();
-  expect(checkInButton(p.root)).toBeUndefined(); p.reads[3].resolve(snapshot()); await flush();
+  expect(checkInButton(p.root)?.props["aria-disabled"]).toBe("true"); p.reads[3].resolve(snapshot()); await flush();
   expect(checkInButton(p.root)?.props["aria-disabled"]).toBe("false");
   expect(text(p.root)).not.toContain(en.authOtp.errorServiceUnavailable); expect(p.app.user.nexBalance).toBe(124);
 });
@@ -325,7 +325,7 @@ test.each(["missing date", "wrong provenance"])("decoder rejects %s without enab
   const p = await page(); p.bind(); await flush();
   const malformed = { ...snapshot(), ...(kind === "missing date" ? { serverDate: "" } : { serverCanonical: false }) };
   p.reads[0].resolve(malformed); p.memberRead.resolve(true); await flush();
-  expect(p.faucet.remoteReadState).toBe("error"); expect(checkInButton(p.root)).toBeUndefined();
+  expect(p.faucet.remoteReadState).toBe("error"); expect(checkInButton(p.root)?.props["aria-disabled"]).toBe("true");
   expect(text(p.root)).toContain(en.authOtp.errorServiceUnavailable); expect(remote.pointsApi.checkIn).not.toHaveBeenCalled();
   const retry = buttons(p.root).find(item => text(item) === en.store.catalogRetry)!;
   retry.props.onClick(); await flush(); p.reads[1].resolve(snapshot()); await flush();
@@ -337,7 +337,7 @@ test.each(["success", "failure"] as const)("same-account rebind ignores an old e
   p.bind(); await flush(); expect(p.reads).toHaveLength(2);
   if (outcome === "success") p.reads[0].resolve(snapshot(99)); else p.reads[0].reject(new Error("old epoch failure"));
   await flush(); expect(p.faucet.remoteReadState).toBe("loading"); expect(p.faucet.signInStreak).toBe(0);
-  expect(checkInButton(p.root)).toBeUndefined(); expect(remote.pointsApi.checkIn).not.toHaveBeenCalled();
+  expect(checkInButton(p.root)?.props["aria-disabled"]).toBe("true"); expect(remote.pointsApi.checkIn).not.toHaveBeenCalled();
   p.reads[1].resolve(snapshot(2)); p.memberRead.resolve(true); await flush();
   expect(p.faucet.signInStreak).toBe(2); expect(checkInButton(p.root)?.props["aria-disabled"]).toBe("false");
   expect(text(p.root)).not.toContain(en.authOtp.errorServiceUnavailable);
@@ -346,7 +346,7 @@ test.each(["success", "failure"] as const)("same-account rebind ignores an old e
 test("account switch rejects the prior account response; mismatched session cannot write from a confirmed snapshot", async () => {
   const p = await page(); p.bind(); await flush(); p.bind(608); await flush();
   p.reads[0].resolve(snapshot(99)); await flush();
-  expect(p.faucet.remoteReadState).toBe("loading"); expect(checkInButton(p.root)).toBeUndefined();
+  expect(p.faucet.remoteReadState).toBe("loading"); expect(checkInButton(p.root)?.props["aria-disabled"]).toBe("true");
   p.reads[1].resolve(snapshot(2)); p.memberRead.resolve(true); await flush();
   expect(p.faucet.signInStreak).toBe(2); expect(checkInButton(p.root)?.props["aria-disabled"]).toBe("false");
   remote.userId = 607; p.auth.accountId = "user:607"; await flush();
@@ -370,4 +370,14 @@ test("a queued runtime notification cannot start a page read after unmount", asy
   const readsAtUnmount = p.reads.length; await flush();
   advanceRuntimeRevision("after unmount"); await flush();
   expect(p.reads).toHaveLength(readsAtUnmount); expect(remote.pointsApi.checkIn).not.toHaveBeenCalled();
+});
+
+test("keeps cold and warm static daily headings, decoration and action names while data remains unknown", async () => {
+  const p=await page();
+  for(const label of [en.daily.activeStreak,en.daily.milestones.label,en.daily.saver.label,en.daily.saver.use,en.daily.topStreakers.label])expect(text(p.root)).toContain(label);
+  const button=checkInButton(p.root)!;expect(button.props["aria-disabled"]).toBe("true");expect(text(button)).toBe(en.daily.checkInAction);
+  expect(button.props.style.background).toBe("var(--v5-brand)");expect(text(p.root)).toContain("—");
+  p.bind();await flush();expect(checkInButton(p.root)).toBe(button);await button.props.onClick();expect(remote.pointsApi.checkIn).not.toHaveBeenCalled();
+  p.reads[0].resolve(snapshot());p.memberRead.resolve(true);await flush();const background=button.props.style.background;
+  p.show();await flush();expect(checkInButton(p.root)).toBe(button);expect(button.props.style.background).toBe(background);expect(button.props["aria-disabled"]).toBe("true");
 });

@@ -1,3 +1,4 @@
+import { runPassiveTabRead } from "@/lib/passive-tab-read";
 import { computed, type ComputedRef } from "vue";
 import { useApp } from "@/store/app";
 import { getPhaseParams, PHASES, resolveActivePhase, type PhaseParams } from "@/store/product-phase";
@@ -18,7 +19,7 @@ import { refreshServerProductPhase, serverProductPhaseState } from "@/store/serv
 export function useProductPhase(): ComputedRef<PhaseParams> {
   const app = useApp();
   if (remoteApiEnabled && serverProductPhaseState.status !== "ready") {
-    void refreshServerProductPhase();
+    void runPassiveTabRead("product-phase", () => refreshServerProductPhase());
   }
   return computed(() => {
     if (!remoteApiEnabled) return resolveActivePhase(app.user.joinedAt);

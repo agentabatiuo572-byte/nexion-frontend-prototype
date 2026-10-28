@@ -48,9 +48,10 @@ async function mount(nextPayoutAt: unknown, remoteRead?: () => Promise<unknown>,
   const api = vi.fn(remoteRead ?? (async () => snapshot));
   const navBack = vi.fn();
   const rankState = Vue.reactive({ remoteReady: true, remoteError: false, ladder: [] as any[], refreshCanonicalVRank: vi.fn(), ...rankOverrides });
+  rankState.refreshCanonicalVRank.mockImplementation(async () => { if (!rankState.remoteError) { rankState.ladder = [...rankState.ladder]; rankState.remoteReady = true; } });
   const shows: Array<() => void> = [];
   const dependencies: Record<string, unknown> = {
-    vue: Vue, "@dcloudio/uni-app": { onShow: (callback: () => void) => shows.push(callback) },
+    vue: Vue, "@dcloudio/uni-app": { onHide: () => {}, onShow: (callback: () => void) => shows.push(callback) },
     "@/components/app-chassis.vue": { default: slot },
     "@/components/team/reward-page-surface.vue": { default: slot },
     "@/components/sub-page-header.vue": { default: slot },
@@ -62,7 +63,8 @@ async function mount(nextPayoutAt: unknown, remoteRead?: () => Promise<unknown>,
     "@/i18n/format": { fmt, dateLocale: () => ({ en: "en-US", zh: "zh-CN", vi: "vi-VN" })[locale.value] },
     "@/lib/display-date": { formatDisplayDateTime },
     "@/lib/route": { navBack },
-    "@/api/runtime": { remoteApiEnabled: true, teamInsightsApi: { leadershipPool: api } },
+    "@/api/runtime": { remoteApiEnabled: true, apiRuntimeConfig: { environment: 'prod', baseUrl: 'https://fixture.invalid' }, teamInsightsApi: { leadershipPool: api } },
+    "@/store/auth": { useAuth: () => Vue.reactive({ isAuthenticated: true }) },
     "@/store/app": { useApp: () => Vue.reactive({ accountKey: "user:3778" }) },
     "@/store/v-rank": { useVRank: () => rankState },
     "@/lib/v-rank-copy": { rankLabel },
@@ -97,12 +99,12 @@ for (const [zone, expected] of zones) {
     });
     const page = await mount("2026-10-11T23:59:00Z"); await page.show();
     for (const language of ["zh", "en", "vi"] as const) {
-      page.locale.value = language; await Vue.nextTick();
+      page.locale.value = language; await flush();
       expect(text(page.root)).toContain(fmt(dictionaries[language].poolHowItWorks.nextPayout, { time: `${{ zh: "2026/10/12", en: "Oct 12, 2026", vi: "12/10/2026" }[language]} ${expected.slice(11)}` }));
       expect(text(page.root)).toContain(fmt(dictionaries[language].poolHowItWorks.currentRules, { rank: 3 }));
       expect(text(page.root)).not.toMatch(/Mon Oct|GMT\+|Invalid Date|NaN/);
     }
-    expect(localeSpy).not.toHaveBeenCalled(); expect(page.api).toHaveBeenCalledOnce();
+    expect(localeSpy).not.toHaveBeenCalled(); expect(page.api).toHaveBeenCalledTimes(3);
     expect(page.snapshot.nextPayoutAt).toBe("2026-10-11T23:59:00Z");
     all(page.root).find(item => item.props.role === "button")!.props.onClick();
     expect(page.navBack).toHaveBeenCalledWith("/pages/team/leadership-pool");

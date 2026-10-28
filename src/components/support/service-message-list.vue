@@ -2,10 +2,6 @@
   <view class="service-messages" :aria-busy="loading">
     <GlassSegments v-if="!hideFilters" v-model="filter" :options="filters" layout="scroll" semantics="radio" :label="t.notifs.serviceFilterLabel" />
     <view v-if="loading && !rows.length" class="service-state" role="status" aria-live="polite"><text>{{ t.help.loadingMore }}</text></view>
-    <view v-if="!failed && conversations.realtimeFallback" class="service-state" role="status">
-      <text>{{ t.conversations.realtimeFallback }}</text>
-      <view class="service-button service-retry" role="button" :tabindex="loading ? -1 : 0" :aria-disabled="loading" @click="retry" @keydown.enter.prevent="retry" @keydown.space.prevent="retry"><text>{{ t.ui.retry }}</text></view>
-    </view>
     <view v-if="!loading && !failed && !rows.length" class="service-state service-empty">
       <text class="service-empty-title">{{ t.notifs.serviceEmpty }}</text>
       <text>{{ t.notifs.serviceEmptyHint }}</text>
@@ -30,9 +26,13 @@
         <view class="service-meta"><view v-if="unreadUnavailable(row) || row.unread > 0" class="service-unread"><text>{{ unreadUnavailable(row) ? '-' : formatUnreadBadge(row.unread) }}</text></view></view>
       </view>
     </ConversationSwipeRow>
-    <view v-if="failed" class="service-state" role="alert">
-      <text>{{ rows.length ? t.conversations.staleSnapshot : t.conversations.loadError }}</text>
-      <view class="service-button service-retry" role="button" :tabindex="loading ? -1 : 0" :aria-disabled="loading" @click="retry" @keydown.enter.prevent="retry" @keydown.space.prevent="retry">
+    <view v-if="!failed && conversations.realtimeFallback" class="service-state nx-inline-recovery" role="status">
+      <text class="nx-inline-recovery__copy">{{ t.conversations.realtimeFallback }}</text>
+      <view class="service-button service-retry nx-inline-recovery__action" role="button" :tabindex="loading ? -1 : 0" :aria-disabled="loading" @click="retry" @keydown.enter.prevent="retry" @keydown.space.prevent="retry"><text>{{ t.ui.retry }}</text></view>
+    </view>
+    <view v-if="failed" class="service-state nx-inline-recovery" role="alert">
+      <text class="nx-inline-recovery__copy">{{ rows.length ? t.conversations.staleSnapshot : t.conversations.loadError }}</text>
+      <view class="service-button service-retry nx-inline-recovery__action" role="button" :tabindex="loading ? -1 : 0" :aria-disabled="loading" @click="retry" @keydown.enter.prevent="retry" @keydown.space.prevent="retry">
         <text>{{ t.ui.retry }}</text>
       </view>
     </view>
@@ -118,13 +118,14 @@ function retry() {
 .service-preview { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; margin-top: 5px; color: var(--v5-ink-2); font-size: 13px; line-height: 1.5; }
 .service-meta { flex-shrink: 0; align-self: stretch; display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 8px; }
 .service-unread { flex-shrink: 0; min-width: 21px; height: 21px; padding: 0 6px; box-sizing: border-box; border-radius: var(--v5-radius-full); display: grid; place-items: center; background: var(--v5-brand); color: var(--v5-on-brand); font-size: 11px; font-weight: 600; line-height: 1; }
-.service-state { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px 0; color: var(--v5-ink-3); font-size: 13px; line-height: 1.6; }
+.service-state { gap: 12px; padding: 16px 0; color: var(--v5-ink-3); font-size: 13px; line-height: 1.6; }
+.service-state:not(.nx-inline-recovery) { display: flex; flex-direction: column; align-items: flex-start; }
 .service-empty { padding: 32px 0; }
 .service-empty-title { color: var(--v5-ink); font-size: 15px; font-weight: 600; }
 .service-button { position: relative; min-height: 44px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 22px; color: var(--v5-brand); font-size: 13px; cursor: pointer; }
 .service-button > text { position: relative; }
 .service-avatar, .service-button { --v5-liquid-shadow: inset 0 1px 0 var(--v5-border); }
-.service-retry { align-self: stretch; width: 100%; padding: 0; border: 0; background: none; box-shadow: none; }
+.service-retry { align-self: center; padding: 0; border: 0; background: none; box-shadow: none; }
 .service-button:active { opacity: .78; }
 .service-button[aria-disabled="true"] { opacity: .5; }
 </style>

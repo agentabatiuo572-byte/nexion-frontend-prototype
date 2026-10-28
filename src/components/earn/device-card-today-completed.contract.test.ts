@@ -187,6 +187,7 @@ async function setup(name: string) {
   const blank = { render: () => null };
   const chassis = Vue.defineComponent({ setup: (_p, ctx) => () => Vue.h('view', ctx.slots.default?.()) });
   const deps: Record<string, unknown> = {
+    '@/store/data-visibility': { useDataVisibility: () => ({ hidden: false, mask: String }) },
     '@/lib/amount-display': { formatAmount },
     '@/lib/usd-display': { formatUsd },
     '@/i18n/device-statistics-capability': { useDeviceStatisticsCapabilityCopy: () => Vue.ref(deviceStatisticsCapabilityCopy.zh) },

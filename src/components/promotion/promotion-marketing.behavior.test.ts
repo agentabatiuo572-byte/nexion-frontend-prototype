@@ -5,6 +5,8 @@ import { renderToString } from '@vue/server-renderer';
 import ts from 'typescript';
 import { afterEach,expect,it,vi } from 'vitest';
 import entrySource from './promotion-entry.vue?raw';
+import homeReadSource from '@/store/home-promotions.ts?raw';
+import { ApiError } from '@/api/errors';
 import buttonSource from '@/components/ui/nx-button.vue?raw';
 import productSource from './promotion-product.vue?raw';
 import bundleSource from './promotion-bundle.vue?raw';
@@ -62,12 +64,13 @@ function platform(){
   const scope=Vue.effectScope();cleanups.push(()=>{hidden.forEach(fn=>fn());scope.stop();});
   return{app,locale,theme,modules,scope,start:()=>mounted.forEach(fn=>fn()),show:()=>shown.forEach(fn=>fn()),hide:()=>hidden.forEach(fn=>fn())};
 }
-function context(){
+function context(retainPresentation=false){
   const screen=platform(),get=vi.fn<(...args:unknown[])=>Promise<PublicPromotion>>();
-  screen.modules['@/api/runtime']={promotionApi:{get},remoteApiEnabled:true,sessionVault:{read:()=>({user:{userId:7}})}};
+  const environment=Vue.reactive({environment:'dev'});
+  screen.modules['@/api/runtime']={promotionApi:{get},remoteApiEnabled:true,apiRuntimeConfig:environment,sessionVault:{read:()=>({user:{userId:7}})}};
   const id=Vue.ref('a1'),create=evaluate(code(contextSource),screen.modules).usePromotionContext;
-  const view=screen.scope.run(()=>create(id)) as{activity:Vue.Ref<PublicPromotion|null>;status:Vue.Ref<string>;available:Vue.ComputedRef<boolean>;refresh:()=>Promise<void>};
-  return{...screen,get,id,view};
+  const view=screen.scope.run(()=>create(id,retainPresentation)) as{activity:Vue.Ref<PublicPromotion|null>;status:Vue.Ref<string>;available:Vue.ComputedRef<boolean>;refresh:()=>Promise<void>};
+  return{...screen,get,id,view,environment};
 }
 function renderer(source:string,context:Record<string,unknown>){
   const template=source.includes('<template>')?parse(source).descriptor.template!.content:source;
@@ -87,8 +90,9 @@ function advert(activities?:PublicPromotion[],copy=promotionZH){
   Object.assign(screen.modules,{
     '@/api/runtime':{apiRuntimeConfig:{baseUrl:'https://api.example.test/'},promotionApi:{list},remoteApiEnabled:true,sessionVault:{read:()=>({user:{userId:7}})}},
     '@/i18n/use-t':{useT:()=>Vue.ref({promotion:copy})},'@/mock/products':{getProduct:(id:string)=>products[id]??({name:'Actual device'})},
-    '@/store/product-catalog':{productCatalogState:catalog,refreshProductCatalog},'@/lib/route':{navTo},
+    '@/store/product-catalog':{productCatalogState:catalog,refreshProductCatalog,revalidateProductCatalog:refreshProductCatalog},'@/lib/route':{navTo},
   });
+  screen.modules['@/store/home-promotions']=evaluate(code(homeReadSource),{'@/api/runtime':screen.modules['@/api/runtime'],'@/api/errors':{ApiError}});
   const props=Vue.reactive({mode:'home',active:true,activities}),component=evaluate(script(entrySource),screen.modules).default;
   const view=screen.scope.run(()=>component.setup(props,{expose(){}}))!;
   return{...screen,props,view,list,navTo,products,catalog,refreshProductCatalog,...renderer(entrySource,{...Vue.toRefs(props),...view})};
@@ -183,7 +187,7 @@ it('both supplied and independently fetched adverts require ACTIVE, independent 
   expect(own.view.items.value.map((row:PublicPromotion)=>row.activityId)).toEqual(['a1']);
   const late=deferred<PublicPromotionPage>();own.list.mockReturnValueOnce(late.promise);const read=own.view.load(true);
   expect(own.view.items.value.map((row:PublicPromotion)=>row.activityId)).toEqual(['a1']);own.hide();late.resolve(page([activity()]));await read;expect(own.view.items.value.map((row:PublicPromotion)=>row.activityId)).toEqual(['a1']);
-  own.list.mockRejectedValueOnce(new Error('unavailable'));own.show();await flush();expect(own.view.items.value).toEqual([]);expect(own.view.status.value).toBe('error');
+  own.show();await flush();own.list.mockRejectedValueOnce(new Error('unavailable'));await own.view.load(true);expect(own.view.items.value.map((row:PublicPromotion)=>row.activityId)).toEqual(['a1']);expect(own.view.status.value).toBe('error');
 });
 it.each(['account','locale'] as const)('an independent advert clears marketing and fences the old read across %s',async boundary=>{
   const screen=advert();screen.list.mockResolvedValueOnce(page([activity()]));await screen.view.load(true);
@@ -352,4 +356,28 @@ it.each([promotionZH,promotionEN,promotionVI])('old store, detail and bundle lin
     const html=await renderer(source,context).html();expect(html).toContain(copy.disabled);expect(html).toContain(copy.allProducts);
     for(const hidden of [copy.activityProducts,copy.gift,copy.bundle,copy.expected,copy.signIn])expect(html).not.toContain('>'+hidden+'<');
   }
+});
+
+it('keeps catalog/detail activity presentation through warm reads without carrying preview authority',async()=>{
+ const s=context(true);s.get.mockResolvedValueOnce(activity());await s.view.refresh();const previous=s.view.activity.value;
+ const pending=deferred<PublicPromotion>();s.get.mockReturnValueOnce(pending.promise);const warm=s.view.refresh();
+ expect(s.view.status.value).toBe('loading');expect(s.view.available.value).toBe(false);expect(s.view.activity.value).toBe(previous);
+ pending.resolve(activity({version:3}));await warm;expect(s.view.activity.value?.version).toBe(3);expect(s.view.available.value).toBe(true);
+ s.hide();expect(s.view.activity.value?.version).toBe(3);expect(s.view.available.value).toBe(false);
+ s.get.mockRejectedValueOnce(new Error('403'));s.show();await flush();expect(s.view.activity.value).toBeNull();expect(s.view.status.value).toBe('error');
+});
+it.each(['account','binding','locale','activity'] as const)('clears retained activity before a new %s read and rejects the old completion',async boundary=>{
+ const s=context(true);s.get.mockResolvedValueOnce(activity());await s.view.refresh();
+ const old=deferred<PublicPromotion>(),fresh=deferred<PublicPromotion>();s.get.mockReturnValueOnce(old.promise).mockReturnValueOnce(fresh.promise);const read=s.view.refresh();
+ if(boundary==='account')s.app.accountKey='user:8';else if(boundary==='binding')s.app.accountBindingEpoch++;else if(boundary==='locale')s.locale.code='en';else s.id.value='a2';
+ await flush();expect(s.view.activity.value).toBeNull();expect(s.view.available.value).toBe(false);
+ old.resolve(activity({version:99}));await read;expect(s.view.activity.value).toBeNull();
+ fresh.resolve(activity({activityId:s.id.value,version:4}));await flush();expect(s.view.activity.value?.version).toBe(4);
+});
+
+it('rejects an in-flight retained activity across an unsupported live environment A-B-A change',async()=>{
+ const s=context(true);s.get.mockResolvedValueOnce(activity());await s.view.refresh();
+ const pending=deferred<PublicPromotion>();s.get.mockReturnValueOnce(pending.promise);const warm=s.view.refresh();
+ s.environment.environment='prod';s.environment.environment='dev';expect(s.view.activity.value).toBeNull();expect(s.view.available.value).toBe(false);
+ pending.resolve(activity({version:99}));await warm;expect(s.view.activity.value).toBeNull();expect(s.view.available.value).toBe(false);
 });

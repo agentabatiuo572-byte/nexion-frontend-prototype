@@ -10,7 +10,7 @@
       <HomeActionList />
       <MyFleetSection />
       <PromotionEntry v-if="homePromotions.length" mode="home" :activities="homePromotions" />
-      <view v-else-if="homePromotionStatus === 'idle' || homePromotionStatus === 'loading'" class="home-promotion-skeleton" role="status" aria-busy="true" :aria-label="t.coreReview.loadingOffers"><view /><view /></view>
+      <view v-else-if="!homePromotionRead && (homePromotionStatus === 'idle' || homePromotionStatus === 'loading')" class="home-promotion-skeleton" role="status" aria-busy="true" :aria-label="t.coreReview.loadingOffers"><view /><view /></view>
       <HomeNetworkSnapshot />
     </view>
   </AppChassis>
@@ -31,34 +31,43 @@ import { useT } from '@/i18n/use-t';
 import { useLocaleStore } from '@/store/locale';
 import { useConfig } from '@/store/config';
 import { useApp } from '@/store/app';
-import { promotionApi, remoteApiEnabled, sessionVault } from '@/api/runtime';
+import { remoteApiEnabled, sessionVault } from '@/api/runtime';
 import type { PublicPromotion } from '@/api/promotion-contracts';
 import { createPromotionReadFence, isPromotionActive } from '@/lib/promotion-entry';
+import { readHomePromotions } from '@/store/home-promotions';
 const t = useT(), locale = useLocaleStore(), config = useConfig(), app = useApp();
 const homePromotions = ref<PublicPromotion[]>([]);
 const homePromotionStatus = ref<'idle'|'loading'|'ready'|'error'>('idle');
+const homePromotionRead=ref(false);
 const fence = createPromotionReadFence();
 let visible = true;
-async function refresh() {
+let pendingTicket:number|null=null;
+async function refresh(passive=false) {
   if (!visible) return;
+  if(pendingTicket!==null&&fence.current(pendingTicket))return;
   const ticket = fence.next(), scope = `${app.accountKey}:${app.accountBindingEpoch}:${locale.code}`;
+  pendingTicket=ticket;
   homePromotionStatus.value = 'loading';
-  void config.load();
+  void config.revalidate();
   if (!remoteApiEnabled) { homePromotions.value = []; homePromotionStatus.value = 'ready'; return; }
   try {
-    const response = await promotionApi.list({ limit:20, placement:'home.purchase-promotion' }, !!sessionVault.read());
-    if (!visible || !fence.current(ticket) || scope !== `${app.accountKey}:${app.accountBindingEpoch}:${locale.code}`) return;
+    const response = await readHomePromotions(scope, !!sessionVault.read(), !passive);
+    if (!fence.current(ticket) || scope !== `${app.accountKey}:${app.accountBindingEpoch}:${locale.code}`) return;
     homePromotions.value = response.items.filter(activity => isPromotionActive(activity) && activity.placement === 'home.purchase-promotion');
     homePromotionStatus.value = 'ready';
-  } catch {
-    if (visible && fence.current(ticket)) { homePromotions.value = []; homePromotionStatus.value = 'error'; }
-  }
+    homePromotionRead.value=true;
+  } catch (cause) {
+    if (fence.current(ticket) && scope === `${app.accountKey}:${app.accountBindingEpoch}:${locale.code}`) {
+      if(cause instanceof Error&&'status' in cause&&(cause.status===401||cause.status===403))homePromotions.value=[];
+      homePromotionStatus.value = 'error';
+    }
+  } finally {if(pendingTicket===ticket)pendingTicket=null;}
 }
-onShow(() => { visible = true; void refresh(); });
-onHide(() => { visible = false; fence.invalidate(); });
+onShow(() => { visible = true; void refresh(true); });
+onHide(() => { visible = false; });
 onUnmounted(() => { visible = false; fence.invalidate(); });
 onLoad(() => locale.ensureSystemDetected());
-watch(() => [app.accountKey, app.accountBindingEpoch, locale.code], () => { fence.invalidate(); homePromotions.value = []; void refresh(); });
+watch(() => [app.accountKey, app.accountBindingEpoch, locale.code], () => { fence.invalidate(); homePromotions.value = []; homePromotionRead.value=false;void refresh(true); },{flush:'sync'});
 </script>
 <style scoped>
 .home-overview { display: flex; flex-direction: column; gap: 20px; padding: 12px 16px 16px; color: var(--v5-ink); }

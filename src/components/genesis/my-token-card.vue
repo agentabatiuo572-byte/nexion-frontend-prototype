@@ -20,7 +20,7 @@
         <text class="block" :style="askLabelStyle">{{ askingChipText }}</text>
         <text class="block tabular-nums" :style="askPriceStyle">${{ formatGenesisPrice(existing.askPriceUSDT) }}</text>
         <text class="block" :style="listedAgoStyle">{{ listedAgoText }}</text>
-        <view class="w-full flex items-center justify-center active:scale-[0.97]" role="button" tabindex="0" :aria-disabled="pending" :style="cancelBtnStyle" @click="handleCancel">
+        <view class="w-full flex items-center justify-center active:scale-[0.97]" role="button" :tabindex="pending || readReady === false ? -1 : 0" :aria-disabled="pending || readReady === false" :style="cancelBtnStyle" @click="handleCancel">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
           <text>{{ t.marketplace.cancelBtn }}</text>
         </view>
@@ -31,10 +31,10 @@
         <text class="block" :style="listLabelStyle">{{ t.marketplace.listForSale }}</text>
         <view class="flex items-baseline" :style="inputWrapStyle">
           <text :style="dollarStyle">$</text>
-          <input class="flex-1 min-w-0 tabular-nums" :style="inputStyle" type="text" inputmode="decimal" :aria-label="t.marketplace.listForSale" :disabled="listBlocked || pending" :value="askPriceText" @input="onAskInput" />
+          <input class="flex-1 min-w-0 tabular-nums" :style="inputStyle" type="text" inputmode="decimal" :aria-label="t.marketplace.listForSale" :disabled="listBlocked || pending || readReady === false" :value="askPriceText" @input="onAskInput" />
         </view>
         <text class="block" :style="floorHintStyle">{{ floorHintText }}</text>
-        <view class="w-full flex items-center justify-center active:scale-[0.97]" role="button" :tabindex="listBlocked || pending ? -1 : 0" :aria-disabled="listBlocked || pending" :style="listBtnStyle" @click="handleList" @keydown.enter.prevent="handleList" @keydown.space.prevent="handleList">
+        <view class="w-full flex items-center justify-center active:scale-[0.97]" role="button" :tabindex="listBlocked || pending || readReady === false ? -1 : 0" :aria-disabled="listBlocked || pending || readReady === false" :style="listBtnStyle" @click="handleList" @keydown.enter.prevent="handleList" @keydown.space.prevent="handleList">
           <svg v-if="!listBlocked" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" /><circle cx="7.5" cy="7.5" r=".5" fill="currentColor" /></svg>
           <text>{{ listBlocked ? (blockText ?? t.genesis.marketClosed.default) : t.marketplace.listCta }}</text>
         </view>
@@ -64,6 +64,7 @@ import { toast, confirm, useUI } from "@/store/ui";
 
 const props = defineProps<{
   tokenId: string | number;
+  readReady?: boolean;
   pageScope: { readonly visible: boolean; readonly epoch: number };
 }>();
 
@@ -82,6 +83,7 @@ const royalty = computed(() => presentGenesisRoyalty(genesis.remoteRoyaltyPct));
 // 🔴 挂单是规格 ② 点名要锁的两个入口之一(另一个是购买)。判定走**共用闸**,
 //   不在本文件自判 —— store 侧 listNode 也已接同一个闸,双层守。
 //   撤单**刻意不拦**(离场手段,理由见 store/genesis.ts 的 cancelListing 注释)。
+function pageReadReady(): boolean { return props.readReady !== false; }
 const { secondaryBlock, blockText } = useGenesisSaleGate();
 const listBlocked = computed(() => secondaryBlock.value !== null);
 let mounted = true;
@@ -149,7 +151,7 @@ function onAskInput(e: Event) {
 }
 
 async function handleList() {
-  if (pending.value || !mounted || !props.pageScope.visible) return;
+  if (pending.value || !pageReadReady() || !mounted || !props.pageScope.visible) return;
   // 🔴 阻断态给说明,不静默(规格 ⑥「禁静默无反馈」)。放在 confirm **之前** ——
   //   没必要让用户先确认一件注定失败的事。
   if (listBlocked.value) {
@@ -183,7 +185,7 @@ async function handleList() {
       confirmLabel: t.value.marketplace.confirmListCta,
       icon: "info",
     });
-    if (!ok || !responseStillCurrent(accountScope, tokenId, pageEpoch)
+    if (!ok || !pageReadReady() || !responseStillCurrent(accountScope, tokenId, pageEpoch)
       || !confirmationStillCurrent(accountScope, tokenId, frozenListing)) return;
     const success = await genesis.listNode(tokenId, price);
     if (!responseStillCurrent(accountScope, tokenId, pageEpoch)) return;
@@ -204,7 +206,7 @@ async function handleList() {
 }
 
 async function handleCancel() {
-  if (pending.value || !mounted || !props.pageScope.visible || !existing.value) return;
+  if (pending.value || !pageReadReady() || !mounted || !props.pageScope.visible || !existing.value) return;
   const accountScope = captureAccountScope();
   const tokenId = props.tokenId;
   const frozenListing = listingSnapshot();
@@ -227,7 +229,7 @@ async function handleCancel() {
       danger: true,
       icon: "warn",
     });
-    if (!ok || !responseStillCurrent(accountScope, tokenId, pageEpoch)
+    if (!ok || !pageReadReady() || !responseStillCurrent(accountScope, tokenId, pageEpoch)
       || !confirmationStillCurrent(accountScope, tokenId, frozenListing)) return;
     const success = await genesis.cancelListing(tokenId);
     if (!responseStillCurrent(accountScope, tokenId, pageEpoch)) return;

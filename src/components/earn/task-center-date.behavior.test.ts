@@ -22,7 +22,7 @@ function history(completedAt: unknown) {
   const app = { accountKey: "fixture", accountBindingEpoch: 1, visibleDevices: [{ recentTasks: [task], kind: "cloud-share", vramTotal: 0 }],
     homeTruth: { onGrid: { activeJobs: 0 } }, remoteAssignmentStatus: "ready", remoteAssignmentHasSnapshot: true };
   const interval = vi.fn(), receipt = vi.fn();
-  const imports: Record<string, unknown> = { vue: Vue, "@/lib/display-date": dates, "@/lib/task-relative-time": { taskRelativeTime },
+  const imports: Record<string, unknown> = { '@/store/data-visibility': { useDataVisibility: () => ({ hidden: false, mask: String }) }, vue: Vue, "@/lib/display-date": dates, "@/lib/task-relative-time": { taskRelativeTime },
     "@/lib/usd-display": { formatUsd }, "@/lib/workload-label": { workloadLabel }, "@/lib/route": { navTo: vi.fn() },
     "@/composables/use-tab-page-lifecycle": { onShow: vi.fn(), onHide: vi.fn(), useVisibleInterval: interval },
     "@/i18n/use-t": { useT: () => Vue.computed(() => dictionaries[locale.code]) }, "@/i18n/format": { dateLocale: () => locale.code },

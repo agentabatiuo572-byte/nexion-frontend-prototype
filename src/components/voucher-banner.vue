@@ -23,6 +23,7 @@ import { fmt, fmtMoney } from '@/i18n/format';
 import { navTo } from '@/lib/route';
 import { voucherBenefitSummary } from '@/lib/voucher-benefit-summary';
 import { voucherSupportsSurface } from '@/lib/voucher-sheet-authority';
+import { remoteApiEnabled } from '@/api/runtime';
 
 const props = defineProps<{ surface: VoucherSurface; embedded?: boolean }>();
 
@@ -31,15 +32,17 @@ const sheet = useVoucherClaimSheet();
 const t = useT();
 
 const copy = useAuditUiCopy();
-const claimable = computed(() => voucher.claimableVouchers.filter(row => voucherSupportsSurface(row, props.surface)));
-const offers = computed(() => [...new Map([...claimable.value, ...voucher.claimedUnused].map(row => [row.id,row])).values()]);
+const claimable = computed(() => (remoteApiEnabled ? voucher.presentationClaimable : voucher.claimableVouchers).filter(row => voucherSupportsSurface(row, props.surface)));
+const offers = computed(() => remoteApiEnabled
+  ? voucher.presentationOffers.filter(row => !voucher.presentationClaimable.some(item => item.id === row.id) || voucherSupportsSurface(row, props.surface))
+  : [...new Map([...claimable.value, ...voucher.claimedUnused].map(row => [row.id,row])).values()]);
 const summary = computed(() => voucherBenefitSummary(offers.value));
 const maxDiscount = computed(() => summary.value.amount);
 const faceValue = computed(() => maxDiscount.value != null ? fmtMoney(maxDiscount.value).replace(/^\$/, '').replace(/\.00$/, '') : summary.value.percent != null ? summary.value.percent + '%' : '–');
 const visible = computed(() => offers.value.length > 0);
 
 function open() {
-  if (claimable.value.length) sheet.show(props.surface);
+  if ((!remoteApiEnabled || voucher.remoteStatus === 'ready') && voucher.claimableVouchers.some(row => voucherSupportsSurface(row, props.surface))) sheet.show(props.surface);
   else navTo('/pages/me/rewards-list?cat=voucher');
 }
 

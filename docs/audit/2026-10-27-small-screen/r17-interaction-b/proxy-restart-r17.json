@@ -1,0 +1,14 @@
+{
+  "port": 5272,
+  "upstream": 5252,
+  "previousPid": 26632,
+  "currentPid": 28216,
+  "node": "C:/Users/FL/.pi/agent/runtime/node/node.exe",
+  "arguments": [
+    "D:/WORKS/PLAN/.wt/uvel-design-preview/r20-unified-review/r15-errorcard-proxy/server.mjs",
+    "5272"
+  ],
+  "windowStyle": "Hidden",
+  "modeAfterReview": "off",
+  "reason": "Parent corrected exchange-config exact GET /api/config/exchange/caps; old running module cached path. Checked listener+Win32 commandline, off, stopped matching own PID only, restarted identical node and args; preserved 5252,5262,5274 and historical verification JSON."
+}

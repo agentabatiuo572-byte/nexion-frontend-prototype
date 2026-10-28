@@ -31,6 +31,7 @@ function page(source: string, language: keyof typeof dictionaries) {
   const render = new Function("Vue", compile(descriptor.template!.content, { mode: "function", prefixIdentifiers: true, isCustomElement: tag => ["view", "text"].includes(tag) }).code)(Vue);
   const segments = { render: () => null };
   const imports: Record<string, unknown> = {
+    '@/store/data-visibility': { useDataVisibility: () => ({ hidden: false, mask: String }) },
     vue: Vue, "./home-live-feed": feed, "@/lib/amount-display": { formatAmount }, "@/lib/usd-display": { formatUsd },
     "@/i18n/use-t": { useT: () => Vue.computed(() => dictionaries[locale.code]) }, "@/store/locale": { useLocaleStore: () => locale },
     "@/store/app": { useApp: () => app }, "@/api/runtime": { remoteApiEnabled: true },

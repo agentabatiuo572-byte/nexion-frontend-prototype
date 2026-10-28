@@ -1,0 +1,1724 @@
+{
+  "reviewer": "independent visual A",
+  "frozenAt": "2026-10-27T10:32:51.230Z",
+  "browser": {
+    "name": "ChatGPT in-app browser",
+    "id": "6",
+    "tabId": "1",
+    "url": "http://127.0.0.1:5254/preview",
+    "hidden": true
+  },
+  "versions": {
+    "r6": "Not captured in this resumed run; actual initial entry already r7",
+    "r7": "index-BYkotkfZ.js",
+    "r8": "index-BSpOlTnk.js",
+    "sharedCss": "index-8t-HDpGw.css",
+    "inheritance": "RV01/02/03 actually checked on r7; r8 inheritance is limited to owner-declared copy-only delta and unchanged CSS. Extras and final store checked on r8."
+  },
+  "evidence": [
+    {
+      "label": "r7-rv01-rv02-vi-light-320-top",
+      "time": "2026-10-27T10:24:55.490Z",
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/team/team",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BYkotkfZ.js"
+      ],
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "actions": [
+        {
+          "selector": ".team-ledger__retry",
+          "node": {
+            "tag": "UNI-VIEW",
+            "text": "Thử lại",
+            "rect": {
+              "x": 259.86236572265625,
+              "y": 334.51080322265625,
+              "width": 43.993988037109375,
+              "height": 43.993988037109375,
+              "top": 334.51080322265625,
+              "right": 303.8563537597656,
+              "bottom": 378.5047912597656,
+              "left": 259.86236572265625
+            },
+            "font": [
+              "13px",
+              "600",
+              "20px"
+            ],
+            "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "display": "flex",
+            "visibility": "visible",
+            "tabindex": "0",
+            "role": "button"
+          },
+          "leaves": []
+        },
+        {
+          "selector": ".team-summary__action",
+          "node": {
+            "tag": "UNI-VIEW",
+            "text": "Thử lại",
+            "rect": {
+              "x": 56.47536087036133,
+              "y": 932.3167114257812,
+              "width": 56.96754837036133,
+              "height": 43.993988037109375,
+              "top": 932.3167114257812,
+              "right": 113.44290924072266,
+              "bottom": 976.3106994628906,
+              "left": 56.47536087036133
+            },
+            "font": [
+              "13px",
+              "600",
+              "20px"
+            ],
+            "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "display": "flex",
+            "visibility": "visible",
+            "tabindex": "0",
+            "role": "button"
+          },
+          "leaves": [
+            {
+              "tag": "SPAN",
+              "text": "Thử lại",
+              "rect": {
+                "x": 64.46394348144531,
+                "y": 945.9212646484375,
+                "width": 40.99038314819336,
+                "height": 16.153846740722656,
+                "top": 945.9212646484375,
+                "right": 105.45432662963867,
+                "bottom": 962.0751113891602,
+                "left": 64.46394348144531
+              },
+              "font": [
+                "13px",
+                "600",
+                "20px"
+              ],
+              "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+              "display": "inline",
+              "visibility": "visible",
+              "tabindex": null,
+              "role": null
+            }
+          ]
+        }
+      ],
+      "nav": [
+        {
+          "strategy": "svg",
+          "rect": {
+            "x": 11.989182472229004,
+            "y": 603.00537109375,
+            "width": 295.8677673339844,
+            "height": 67.99759674072266,
+            "top": 603.00537109375,
+            "right": 307.8569498062134,
+            "bottom": 671.0029678344727,
+            "left": 11.989182472229004
+          },
+          "svg": 1
+        }
+      ]
+    },
+    {
+      "label": "r7-rv02-vi-light-320-visible",
+      "time": "2026-10-27T10:25:33.989Z",
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/team/team",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BYkotkfZ.js"
+      ],
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "actions": [
+        {
+          "selector": ".team-summary__action",
+          "node": {
+            "tag": "UNI-VIEW",
+            "text": "Thử lại",
+            "rect": {
+              "x": 56.47536087036133,
+              "y": 279.7013244628906,
+              "width": 56.96754837036133,
+              "height": 43.993988037109375,
+              "top": 279.7013244628906,
+              "right": 113.44290924072266,
+              "bottom": 323.6953125,
+              "left": 56.47536087036133
+            },
+            "font": [
+              "13px",
+              "600",
+              "20px"
+            ],
+            "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "display": "flex",
+            "visibility": "visible",
+            "tabindex": "0",
+            "role": "button"
+          },
+          "leaves": [
+            {
+              "tag": "SPAN",
+              "text": "Thử lại",
+              "rect": {
+                "x": 64.46394348144531,
+                "y": 293.3058776855469,
+                "width": 40.99038314819336,
+                "height": 16.153846740722656,
+                "top": 293.3058776855469,
+                "right": 105.45432662963867,
+                "bottom": 309.45972442626953,
+                "left": 64.46394348144531
+              },
+              "font": [
+                "13px",
+                "600",
+                "20px"
+              ],
+              "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+              "display": "inline",
+              "visibility": "visible",
+              "tabindex": null,
+              "role": null
+            }
+          ]
+        }
+      ],
+      "nav": [
+        {
+          "strategy": "svg",
+          "rect": {
+            "x": 11.989182472229004,
+            "y": 603.00537109375,
+            "width": 295.8677673339844,
+            "height": 67.99759674072266,
+            "top": 603.00537109375,
+            "right": 307.8569498062134,
+            "bottom": 671.0029678344727,
+            "left": 11.989182472229004
+          },
+          "svg": 1
+        }
+      ]
+    },
+    {
+      "label": "r7-rv03-vi-light-320",
+      "time": "2026-10-27T10:25:51.605Z",
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/me/notifications?section=notifications",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BYkotkfZ.js"
+      ],
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "actions": [
+        {
+          "selector": ".message-summary-recovery",
+          "node": {
+            "tag": "UNI-VIEW",
+            "text": "Làm mới thất bại · Thử lại",
+            "rect": {
+              "x": 63.984375,
+              "y": 5.994591236114502,
+              "width": 191.8773956298828,
+              "height": 43.993988037109375,
+              "top": 5.994591236114502,
+              "right": 255.8617706298828,
+              "bottom": 49.98857927322388,
+              "left": 63.984375
+            },
+            "font": [
+              "16px",
+              "400",
+              "normal"
+            ],
+            "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "display": "flex",
+            "visibility": "visible",
+            "tabindex": null,
+            "role": "alert"
+          },
+          "leaves": [
+            {
+              "tag": "SPAN",
+              "text": "Làm mới thất bại · Thử lại",
+              "rect": {
+                "x": 83.65925598144531,
+                "y": 19.599157333374023,
+                "width": 152.5276336669922,
+                "height": 16.153846740722656,
+                "top": 19.599157333374023,
+                "right": 236.1868896484375,
+                "bottom": 35.75300407409668,
+                "left": 83.65925598144531
+              },
+              "font": [
+                "13px",
+                "600",
+                "20px"
+              ],
+              "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+              "display": "inline",
+              "visibility": "visible",
+              "tabindex": null,
+              "role": null
+            }
+          ]
+        },
+        {
+          "selector": ".message-retry",
+          "node": {
+            "tag": "UNI-VIEW",
+            "text": "Thử lại",
+            "rect": {
+              "x": 15.98978328704834,
+              "y": 295.52703857421875,
+              "width": 287.8665771484375,
+              "height": 43.993988037109375,
+              "top": 295.52703857421875,
+              "right": 303.85636043548584,
+              "bottom": 339.5210266113281,
+              "left": 15.98978328704834
+            },
+            "font": [
+              "13px",
+              "600",
+              "20px"
+            ],
+            "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "display": "flex",
+            "visibility": "visible",
+            "tabindex": "0",
+            "role": "button"
+          },
+          "leaves": [
+            {
+              "tag": "SPAN",
+              "text": "Thử lại",
+              "rect": {
+                "x": 139.42788696289062,
+                "y": 309.131591796875,
+                "width": 40.99038314819336,
+                "height": 16.153846740722656,
+                "top": 309.131591796875,
+                "right": 180.41827011108398,
+                "bottom": 325.28543853759766,
+                "left": 139.42788696289062
+              },
+              "font": [
+                "13px",
+                "600",
+                "20px"
+              ],
+              "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+              "display": "inline",
+              "visibility": "visible",
+              "tabindex": null,
+              "role": null
+            }
+          ]
+        }
+      ],
+      "nav": [
+        {
+          "strategy": "svg",
+          "rect": {
+            "x": 12.001802444458008,
+            "y": 5.994591236114502,
+            "width": 43.993988037109375,
+            "height": 43.993988037109375,
+            "top": 5.994591236114502,
+            "right": 55.99579048156738,
+            "bottom": 49.98857927322388,
+            "left": 12.001802444458008
+          },
+          "svg": 1
+        },
+        {
+          "strategy": "svg",
+          "rect": {
+            "x": 263.850341796875,
+            "y": 5.994591236114502,
+            "width": 43.993988037109375,
+            "height": 43.993988037109375,
+            "top": 5.994591236114502,
+            "right": 307.8443298339844,
+            "bottom": 49.98857927322388,
+            "left": 263.850341796875
+          },
+          "svg": 1
+        }
+      ]
+    },
+    {
+      "label": "r7-rv03-zh-dark-390",
+      "time": "2026-10-27T10:25:54.783Z",
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/me/notifications?section=notifications",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BYkotkfZ.js"
+      ],
+      "theme": "dark",
+      "locale": "zh",
+      "viewport": [
+        390,
+        844
+      ],
+      "overflow": 0,
+      "actions": [
+        {
+          "selector": ".message-summary-recovery",
+          "node": {
+            "tag": "UNI-VIEW",
+            "text": "更新失败 · 重试",
+            "rect": {
+              "x": 63.970130920410156,
+              "y": 5.994318008422852,
+              "width": 261.5981750488281,
+              "height": 43.989070892333984,
+              "top": 5.994318008422852,
+              "right": 325.5683059692383,
+              "bottom": 49.983388900756836,
+              "left": 63.970130920410156
+            },
+            "font": [
+              "16px",
+              "400",
+              "normal"
+            ],
+            "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "display": "flex",
+            "visibility": "visible",
+            "tabindex": null,
+            "role": "alert"
+          },
+          "leaves": [
+            {
+              "tag": "SPAN",
+              "text": "更新失败 · 重试",
+              "rect": {
+                "x": 151.34884643554688,
+                "y": 19.950319290161133,
+                "width": 86.82538604736328,
+                "height": 15.738926887512207,
+                "top": 19.950319290161133,
+                "right": 238.17423248291016,
+                "bottom": 35.68924617767334,
+                "left": 151.34884643554688
+              },
+              "font": [
+                "13px",
+                "600",
+                "20px"
+              ],
+              "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+              "display": "inline",
+              "visibility": "visible",
+              "tabindex": null,
+              "role": null
+            }
+          ]
+        },
+        {
+          "selector": ".message-retry",
+          "node": {
+            "tag": "UNI-VIEW",
+            "text": "重试",
+            "rect": {
+              "x": 15.984848022460938,
+              "y": 274.73956298828125,
+              "width": 357.5687561035156,
+              "height": 43.989070892333984,
+              "top": 274.73956298828125,
+              "right": 373.55360412597656,
+              "bottom": 318.72863388061523,
+              "left": 15.984848022460938
+            },
+            "font": [
+              "13px",
+              "600",
+              "20px"
+            ],
+            "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "display": "flex",
+            "visibility": "visible",
+            "tabindex": "0",
+            "role": "button"
+          },
+          "leaves": [
+            {
+              "tag": "SPAN",
+              "text": "重试",
+              "rect": {
+                "x": 181.7661590576172,
+                "y": 288.695556640625,
+                "width": 25.990747451782227,
+                "height": 15.738926887512207,
+                "top": 288.695556640625,
+                "right": 207.7569065093994,
+                "bottom": 304.4344835281372,
+                "left": 181.7661590576172
+              },
+              "font": [
+                "13px",
+                "600",
+                "20px"
+              ],
+              "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+              "display": "inline",
+              "visibility": "visible",
+              "tabindex": null,
+              "role": null
+            }
+          ]
+        }
+      ],
+      "nav": [
+        {
+          "strategy": "svg",
+          "rect": {
+            "x": 11.988636016845703,
+            "y": 5.994318008422852,
+            "width": 43.989070892333984,
+            "height": 43.989070892333984,
+            "top": 5.994318008422852,
+            "right": 55.97770690917969,
+            "bottom": 49.983388900756836,
+            "left": 11.988636016845703
+          },
+          "svg": 1
+        },
+        {
+          "strategy": "svg",
+          "rect": {
+            "x": 333.56072998046875,
+            "y": 5.994318008422852,
+            "width": 43.989070892333984,
+            "height": 43.989070892333984,
+            "top": 5.994318008422852,
+            "right": 377.54980087280273,
+            "bottom": 49.983388900756836,
+            "left": 333.56072998046875
+          },
+          "svg": 1
+        }
+      ]
+    },
+    {
+      "label": "r7-rv03-zh-dark-390-button",
+      "time": "2026-10-27T10:26:05.970Z",
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/me/notifications?section=notifications",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BYkotkfZ.js"
+      ],
+      "theme": "dark",
+      "locale": "zh",
+      "viewport": [
+        390,
+        844
+      ],
+      "overflow": 0,
+      "actions": [
+        {
+          "selector": ".message-summary-recovery .message-button",
+          "node": {
+            "tag": "UNI-VIEW",
+            "text": "更新失败 · 重试",
+            "rect": {
+              "x": 63.970130920410156,
+              "y": 5.994318008422852,
+              "width": 261.5981750488281,
+              "height": 43.989070892333984,
+              "top": 5.994318008422852,
+              "right": 325.5683059692383,
+              "bottom": 49.983388900756836,
+              "left": 63.970130920410156
+            },
+            "font": [
+              "13px",
+              "600",
+              "20px"
+            ],
+            "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "display": "flex",
+            "visibility": "visible",
+            "tabindex": "0",
+            "role": "button"
+          },
+          "leaves": [
+            {
+              "tag": "SPAN",
+              "text": "更新失败 · 重试",
+              "rect": {
+                "x": 151.34884643554688,
+                "y": 19.950319290161133,
+                "width": 86.82538604736328,
+                "height": 15.738926887512207,
+                "top": 19.950319290161133,
+                "right": 238.17423248291016,
+                "bottom": 35.68924617767334,
+                "left": 151.34884643554688
+              },
+              "font": [
+                "13px",
+                "600",
+                "20px"
+              ],
+              "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+              "display": "inline",
+              "visibility": "visible",
+              "tabindex": null,
+              "role": null
+            }
+          ]
+        }
+      ],
+      "nav": [
+        {
+          "strategy": "svg",
+          "rect": {
+            "x": 11.988636016845703,
+            "y": 5.994318008422852,
+            "width": 43.989070892333984,
+            "height": 43.989070892333984,
+            "top": 5.994318008422852,
+            "right": 55.97770690917969,
+            "bottom": 49.983388900756836,
+            "left": 11.988636016845703
+          },
+          "svg": 1
+        },
+        {
+          "strategy": "svg",
+          "rect": {
+            "x": 333.56072998046875,
+            "y": 5.994318008422852,
+            "width": 43.989070892333984,
+            "height": 43.989070892333984,
+            "top": 5.994318008422852,
+            "right": 377.54980087280273,
+            "bottom": 49.983388900756836,
+            "left": 333.56072998046875
+          },
+          "svg": 1
+        }
+      ]
+    },
+    {
+      "label": "r7-rv01-zh-dark-390",
+      "time": "2026-10-27T10:26:06.192Z",
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/team/team",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BYkotkfZ.js"
+      ],
+      "theme": "dark",
+      "locale": "zh",
+      "viewport": [
+        390,
+        844
+      ],
+      "overflow": 0,
+      "actions": [
+        {
+          "selector": ".team-ledger__retry",
+          "node": {
+            "tag": "UNI-VIEW",
+            "text": "重试",
+            "rect": {
+              "x": 329.56451416015625,
+              "y": 337.58673095703125,
+              "width": 43.989070892333984,
+              "height": 43.989070892333984,
+              "top": 337.58673095703125,
+              "right": 373.55358505249023,
+              "bottom": 381.57580184936523,
+              "left": 329.56451416015625
+            },
+            "font": [
+              "13px",
+              "600",
+              "20px"
+            ],
+            "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "display": "flex",
+            "visibility": "visible",
+            "tabindex": "0",
+            "role": "button"
+          },
+          "leaves": []
+        }
+      ],
+      "nav": [
+        {
+          "strategy": "svg",
+          "rect": {
+            "x": 11.988636016845703,
+            "y": 754.0083618164062,
+            "width": 365.5611572265625,
+            "height": 67.99708557128906,
+            "top": 754.0083618164062,
+            "right": 377.5497932434082,
+            "bottom": 822.0054473876953,
+            "left": 11.988636016845703
+          },
+          "svg": 1
+        }
+      ]
+    },
+    {
+      "label": "r7-rv02-zh-dark-390",
+      "time": "2026-10-27T10:26:06.303Z",
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/team/team",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BYkotkfZ.js"
+      ],
+      "theme": "dark",
+      "locale": "zh",
+      "viewport": [
+        390,
+        844
+      ],
+      "overflow": 0,
+      "actions": [
+        {
+          "selector": ".team-summary__action",
+          "node": {
+            "tag": "UNI-VIEW",
+            "text": "重试",
+            "rect": {
+              "x": 80.38533782958984,
+              "y": 279.7941589355469,
+              "width": 43.989070892333984,
+              "height": 43.989070892333984,
+              "top": 279.7941589355469,
+              "right": 124.37440872192383,
+              "bottom": 323.78322982788086,
+              "left": 80.38533782958984
+            },
+            "font": [
+              "13px",
+              "600",
+              "20px"
+            ],
+            "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "display": "flex",
+            "visibility": "visible",
+            "tabindex": "0",
+            "role": "button"
+          },
+          "leaves": [
+            {
+              "tag": "SPAN",
+              "text": "重试",
+              "rect": {
+                "x": 89.37681579589844,
+                "y": 293.7501525878906,
+                "width": 25.990747451782227,
+                "height": 15.738926887512207,
+                "top": 293.7501525878906,
+                "right": 115.36756324768066,
+                "bottom": 309.48907947540283,
+                "left": 89.37681579589844
+              },
+              "font": [
+                "13px",
+                "600",
+                "20px"
+              ],
+              "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+              "display": "inline",
+              "visibility": "visible",
+              "tabindex": null,
+              "role": null
+            }
+          ]
+        }
+      ],
+      "nav": [
+        {
+          "strategy": "svg",
+          "rect": {
+            "x": 11.988636016845703,
+            "y": 754.0083618164062,
+            "width": 365.5611572265625,
+            "height": 67.99708557128906,
+            "top": 754.0083618164062,
+            "right": 377.5497932434082,
+            "bottom": 822.0054473876953,
+            "left": 11.988636016845703
+          },
+          "svg": 1
+        }
+      ]
+    },
+    {
+      "label": "r7-store-title-zh-light-320",
+      "time": "2026-10-27T10:26:31.401Z",
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/store/store",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BYkotkfZ.js"
+      ],
+      "theme": "light",
+      "locale": "zh",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "actions": [
+        {
+          "selector": ".entry-status.nx-inline-recovery .promotion-title",
+          "node": {
+            "tag": "UNI-TEXT",
+            "text": "信息暂不可用",
+            "rect": {
+              "x": 15.98978328704834,
+              "y": 183.95191955566406,
+              "width": 186.8166961669922,
+              "height": 26.603364944458008,
+              "top": 183.95191955566406,
+              "right": 202.80647945404053,
+              "bottom": 210.55528450012207,
+              "left": 15.98978328704834
+            },
+            "font": [
+              "19px",
+              "600",
+              "26.6px"
+            ],
+            "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+            "display": "block",
+            "visibility": "visible",
+            "tabindex": null,
+            "role": null
+          },
+          "leaves": [
+            {
+              "tag": "SPAN",
+              "text": "信息暂不可用",
+              "rect": {
+                "x": 15.98978328704834,
+                "y": 184.75961303710938,
+                "width": 113.9855728149414,
+                "height": 24.23076820373535,
+                "top": 184.75961303710938,
+                "right": 129.97535610198975,
+                "bottom": 208.99038124084473,
+                "left": 15.98978328704834
+              },
+              "font": [
+                "19px",
+                "600",
+                "26.6px"
+              ],
+              "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+              "display": "inline",
+              "visibility": "visible",
+              "tabindex": null,
+              "role": null
+            }
+          ]
+        },
+        {
+          "selector": ".entry-status .nx-inline-recovery__action",
+          "node": {
+            "tag": "UNI-VIEW",
+            "text": "重新加载→",
+            "rect": {
+              "x": 214.79566955566406,
+              "y": 197.3545684814453,
+              "width": 89.0606918334961,
+              "height": 43.993988037109375,
+              "top": 197.3545684814453,
+              "right": 303.85636138916016,
+              "bottom": 241.3485565185547,
+              "left": 214.79566955566406
+            },
+            "font": [
+              "13px",
+              "600",
+              "20px"
+            ],
+            "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "display": "flex",
+            "visibility": "visible",
+            "tabindex": "0",
+            "role": "button"
+          },
+          "leaves": [
+            {
+              "tag": "SPAN",
+              "text": "重新加载",
+              "rect": {
+                "x": 222.7842559814453,
+                "y": 210.95913696289062,
+                "width": 51.99518966674805,
+                "height": 16.153846740722656,
+                "top": 210.95913696289062,
+                "right": 274.77944564819336,
+                "bottom": 227.11298370361328,
+                "left": 222.7842559814453
+              },
+              "font": [
+                "13px",
+                "600",
+                "20px"
+              ],
+              "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+              "display": "inline",
+              "visibility": "visible",
+              "tabindex": null,
+              "role": null
+            },
+            {
+              "tag": "SPAN",
+              "text": "→",
+              "rect": {
+                "x": 282.7680358886719,
+                "y": 210.95913696289062,
+                "width": 13.099759101867676,
+                "height": 16.153846740722656,
+                "top": 210.95913696289062,
+                "right": 295.86779499053955,
+                "bottom": 227.11298370361328,
+                "left": 282.7680358886719
+              },
+              "font": [
+                "13px",
+                "600",
+                "20px"
+              ],
+              "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+              "display": "inline",
+              "visibility": "visible",
+              "tabindex": null,
+              "role": null
+            }
+          ]
+        }
+      ],
+      "nav": [
+        {
+          "strategy": "svg",
+          "rect": {
+            "x": 11.989182472229004,
+            "y": 603.00537109375,
+            "width": 295.8677673339844,
+            "height": 67.99759674072266,
+            "top": 603.00537109375,
+            "right": 307.8569498062134,
+            "bottom": 671.0029678344727,
+            "left": 11.989182472229004
+          },
+          "svg": 1
+        }
+      ]
+    },
+    {
+      "label": "r7-store-title-lines",
+      "text": "信息暂不可用",
+      "wrap": "balance",
+      "whiteSpace": "pre-line",
+      "lines": [
+        {
+          "x": 15.98978328704834,
+          "y": 184.75961303710938,
+          "width": 113.9855728149414,
+          "height": 24.23077392578125,
+          "top": 184.75961303710938,
+          "right": 129.97535610198975,
+          "bottom": 208.99038696289062,
+          "left": 15.98978328704834
+        },
+        {
+          "x": 15.98978328704834,
+          "y": 184.75961303710938,
+          "width": 113.9855728149414,
+          "height": 24.23077392578125,
+          "top": 184.75961303710938,
+          "right": 129.97535610198975,
+          "bottom": 208.99038696289062,
+          "left": 15.98978328704834
+        }
+      ],
+      "copy": "信息暂不可用已保留当前选择，请重试后再确认。重新加载→"
+    },
+    {
+      "label": "r7-rv03-vi-light-320-button",
+      "time": "2026-10-27T10:26:50.598Z",
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/me/notifications?section=notifications",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BYkotkfZ.js"
+      ],
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "actions": [
+        {
+          "selector": ".message-summary-recovery .message-button",
+          "node": {
+            "tag": "UNI-VIEW",
+            "text": "Làm mới thất bại · Thử lại",
+            "rect": {
+              "x": 63.984375,
+              "y": 5.994591236114502,
+              "width": 191.8773956298828,
+              "height": 43.993988037109375,
+              "top": 5.994591236114502,
+              "right": 255.8617706298828,
+              "bottom": 49.98857927322388,
+              "left": 63.984375
+            },
+            "font": [
+              "13px",
+              "600",
+              "20px"
+            ],
+            "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "display": "flex",
+            "visibility": "visible",
+            "tabindex": "0",
+            "role": "button"
+          },
+          "leaves": [
+            {
+              "tag": "SPAN",
+              "text": "Làm mới thất bại · Thử lại",
+              "rect": {
+                "x": 83.65925598144531,
+                "y": 19.599157333374023,
+                "width": 152.5276336669922,
+                "height": 16.153846740722656,
+                "top": 19.599157333374023,
+                "right": 236.1868896484375,
+                "bottom": 35.75300407409668,
+                "left": 83.65925598144531
+              },
+              "font": [
+                "13px",
+                "600",
+                "20px"
+              ],
+              "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+              "display": "inline",
+              "visibility": "visible",
+              "tabindex": null,
+              "role": null
+            }
+          ]
+        }
+      ],
+      "nav": [
+        {
+          "strategy": "svg",
+          "rect": {
+            "x": 12.001802444458008,
+            "y": 5.994591236114502,
+            "width": 43.993988037109375,
+            "height": 43.993988037109375,
+            "top": 5.994591236114502,
+            "right": 55.99579048156738,
+            "bottom": 49.98857927322388,
+            "left": 12.001802444458008
+          },
+          "svg": 1
+        },
+        {
+          "strategy": "svg",
+          "rect": {
+            "x": 263.850341796875,
+            "y": 5.994591236114502,
+            "width": 43.993988037109375,
+            "height": 43.993988037109375,
+            "top": 5.994591236114502,
+            "right": 307.8443298339844,
+            "bottom": 49.98857927322388,
+            "left": 263.850341796875
+          },
+          "svg": 1
+        }
+      ]
+    },
+    {
+      "label": "r8-extra-trial-vi-light-320",
+      "time": "2026-10-27T10:28:29.577Z",
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/me/trial",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BSpOlTnk.js"
+      ],
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "actions": [
+        {
+          "selector": ".trial-read-retry",
+          "node": {
+            "tag": "UNI-VIEW",
+            "text": "Thử lại",
+            "rect": {
+              "x": 15.98978328704834,
+              "y": 125.73497009277344,
+              "width": 287.8665771484375,
+              "height": 43.993988037109375,
+              "top": 125.73497009277344,
+              "right": 303.85636043548584,
+              "bottom": 169.7289581298828,
+              "left": 15.98978328704834
+            },
+            "font": [
+              "13px",
+              "400",
+              "normal"
+            ],
+            "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+            "display": "flex",
+            "visibility": "visible",
+            "tabindex": "0",
+            "role": "button"
+          },
+          "leaves": [
+            {
+              "tag": "SPAN",
+              "text": "Thử lại",
+              "rect": {
+                "x": 140.65203857421875,
+                "y": 139.65504455566406,
+                "width": 38.54206466674805,
+                "height": 16.153846740722656,
+                "top": 139.65504455566406,
+                "right": 179.1941032409668,
+                "bottom": 155.80889129638672,
+                "left": 140.65203857421875
+              },
+              "font": [
+                "13px",
+                "400",
+                "normal"
+              ],
+              "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+              "display": "inline",
+              "visibility": "visible",
+              "tabindex": null,
+              "role": null
+            }
+          ]
+        }
+      ],
+      "nav": [
+        {
+          "strategy": "svg",
+          "rect": {
+            "x": 11.989182472229004,
+            "y": 5.994591236114502,
+            "width": 43.993988037109375,
+            "height": 43.993988037109375,
+            "top": 5.994591236114502,
+            "right": 55.98317050933838,
+            "bottom": 49.98857927322388,
+            "left": 11.989182472229004
+          },
+          "svg": 1
+        },
+        {
+          "strategy": "svg",
+          "rect": {
+            "x": 263.86297607421875,
+            "y": 5.994591236114502,
+            "width": 43.993988037109375,
+            "height": 43.993988037109375,
+            "top": 5.994591236114502,
+            "right": 307.8569641113281,
+            "bottom": 49.98857927322388,
+            "left": 263.86297607421875
+          },
+          "svg": 1
+        }
+      ]
+    },
+    {
+      "label": "r8-extra-leaderboard-vi-light-320",
+      "time": "2026-10-27T10:28:52.213Z",
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/team/leaderboard",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BSpOlTnk.js"
+      ],
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "actions": [
+        {
+          "selector": ".leader-cta",
+          "node": {
+            "tag": "UNI-VIEW",
+            "text": "Tải lại→",
+            "rect": {
+              "x": 15.98978328704834,
+              "y": 254.53665161132812,
+              "width": 287.8665771484375,
+              "height": 47.994590759277344,
+              "top": 254.53665161132812,
+              "right": 303.85636043548584,
+              "bottom": 302.53124237060547,
+              "left": 15.98978328704834
+            },
+            "font": [
+              "14px",
+              "500",
+              "22.4px"
+            ],
+            "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+            "display": "flex",
+            "visibility": "visible",
+            "tabindex": "0",
+            "role": "button"
+          },
+          "leaves": [
+            {
+              "tag": "SPAN",
+              "text": "Tải lại",
+              "rect": {
+                "x": 36.78786087036133,
+                "y": 270.1478271484375,
+                "width": 36.10636901855469,
+                "height": 16.153846740722656,
+                "top": 270.1478271484375,
+                "right": 72.89422988891602,
+                "bottom": 286.30167388916016,
+                "left": 36.78786087036133
+              },
+              "font": [
+                "13px",
+                "600",
+                "20px"
+              ],
+              "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+              "display": "inline",
+              "visibility": "visible",
+              "tabindex": null,
+              "role": null
+            },
+            {
+              "tag": "SPAN",
+              "text": "→",
+              "rect": {
+                "x": 268.9867858886719,
+                "y": 268.94891357421875,
+                "width": 14.071514129638672,
+                "height": 17.769229888916016,
+                "top": 268.94891357421875,
+                "right": 283.05830001831055,
+                "bottom": 286.71814346313477,
+                "left": 268.9867858886719
+              },
+              "font": [
+                "14px",
+                "500",
+                "22.4px"
+              ],
+              "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+              "display": "inline",
+              "visibility": "visible",
+              "tabindex": null,
+              "role": null
+            }
+          ]
+        },
+        {
+          "selector": ".leader-retry-label",
+          "node": {
+            "tag": "UNI-TEXT",
+            "text": "Tải lại",
+            "rect": {
+              "x": 36.78786087036133,
+              "y": 268.5324401855469,
+              "width": 36.10636901855469,
+              "height": 20.00300407409668,
+              "top": 268.5324401855469,
+              "right": 72.89422988891602,
+              "bottom": 288.53544425964355,
+              "left": 36.78786087036133
+            },
+            "font": [
+              "13px",
+              "600",
+              "20px"
+            ],
+            "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "display": "block",
+            "visibility": "visible",
+            "tabindex": null,
+            "role": null
+          },
+          "leaves": [
+            {
+              "tag": "SPAN",
+              "text": "Tải lại",
+              "rect": {
+                "x": 36.78786087036133,
+                "y": 270.1478271484375,
+                "width": 36.10636901855469,
+                "height": 16.153846740722656,
+                "top": 270.1478271484375,
+                "right": 72.89422988891602,
+                "bottom": 286.30167388916016,
+                "left": 36.78786087036133
+              },
+              "font": [
+                "13px",
+                "600",
+                "20px"
+              ],
+              "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+              "display": "inline",
+              "visibility": "visible",
+              "tabindex": null,
+              "role": null
+            }
+          ]
+        }
+      ],
+      "nav": [
+        {
+          "strategy": "svg",
+          "rect": {
+            "x": 11.989182472229004,
+            "y": 5.994591236114502,
+            "width": 43.993988037109375,
+            "height": 43.993988037109375,
+            "top": 5.994591236114502,
+            "right": 55.98317050933838,
+            "bottom": 49.98857927322388,
+            "left": 11.989182472229004
+          },
+          "svg": 1
+        },
+        {
+          "strategy": "svg",
+          "rect": {
+            "x": 263.86297607421875,
+            "y": 5.994591236114502,
+            "width": 43.993988037109375,
+            "height": 43.993988037109375,
+            "top": 5.994591236114502,
+            "right": 307.8569641113281,
+            "bottom": 49.98857927322388,
+            "left": 263.86297607421875
+          },
+          "svg": 1
+        }
+      ]
+    },
+    {
+      "label": "r8-store-title-note-zh-light-320",
+      "time": "2026-10-27T10:30:21.455Z",
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/store/store",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BSpOlTnk.js"
+      ],
+      "theme": "light",
+      "locale": "zh",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "actions": [
+        {
+          "selector": ".entry-status .promotion-title",
+          "node": {
+            "tag": "UNI-TEXT",
+            "text": "信息暂不可用",
+            "rect": {
+              "x": 15.98978328704834,
+              "y": 184.97608947753906,
+              "width": 186.8166961669922,
+              "height": 26.603351593017578,
+              "top": 184.97608947753906,
+              "right": 202.80647945404053,
+              "bottom": 211.57944107055664,
+              "left": 15.98978328704834
+            },
+            "font": [
+              "19px",
+              "600",
+              "26.6px"
+            ],
+            "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+            "display": "block",
+            "visibility": "visible",
+            "tabindex": null,
+            "role": null
+          },
+          "leaves": [
+            {
+              "tag": "SPAN",
+              "text": "信息暂不可用",
+              "rect": {
+                "x": 15.98978328704834,
+                "y": 185.78378295898438,
+                "width": 113.9855728149414,
+                "height": 24.230756759643555,
+                "top": 185.78378295898438,
+                "right": 129.97535610198975,
+                "bottom": 210.01453971862793,
+                "left": 15.98978328704834
+              },
+              "font": [
+                "19px",
+                "600",
+                "26.6px"
+              ],
+              "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+              "display": "inline",
+              "visibility": "visible",
+              "tabindex": null,
+              "role": null
+            }
+          ]
+        },
+        {
+          "selector": ".entry-status .promotion-body",
+          "node": null,
+          "leaves": []
+        },
+        {
+          "selector": ".entry-status .nx-inline-recovery__action",
+          "node": {
+            "tag": "UNI-VIEW",
+            "text": "重新加载→",
+            "rect": {
+              "x": 214.79566955566406,
+              "y": 187.3234405517578,
+              "width": 89.0606918334961,
+              "height": 43.99397659301758,
+              "top": 187.3234405517578,
+              "right": 303.85636138916016,
+              "bottom": 231.3174171447754,
+              "left": 214.79566955566406
+            },
+            "font": [
+              "13px",
+              "600",
+              "20px"
+            ],
+            "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+            "display": "flex",
+            "visibility": "visible",
+            "tabindex": "0",
+            "role": "button"
+          },
+          "leaves": [
+            {
+              "tag": "SPAN",
+              "text": "重新加载",
+              "rect": {
+                "x": 222.7842559814453,
+                "y": 200.92800903320312,
+                "width": 51.99518966674805,
+                "height": 16.153833389282227,
+                "top": 200.92800903320312,
+                "right": 274.77944564819336,
+                "bottom": 217.08184242248535,
+                "left": 222.7842559814453
+              },
+              "font": [
+                "13px",
+                "600",
+                "20px"
+              ],
+              "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+              "display": "inline",
+              "visibility": "visible",
+              "tabindex": null,
+              "role": null
+            },
+            {
+              "tag": "SPAN",
+              "text": "→",
+              "rect": {
+                "x": 282.7680358886719,
+                "y": 200.92800903320312,
+                "width": 13.099759101867676,
+                "height": 16.153833389282227,
+                "top": 200.92800903320312,
+                "right": 295.86779499053955,
+                "bottom": 217.08184242248535,
+                "left": 282.7680358886719
+              },
+              "font": [
+                "13px",
+                "600",
+                "20px"
+              ],
+              "family": "\"General Sans\", \"General Sans\", Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif, Manrope, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, \"PingFang SC\", \"Noto Sans SC\", \"Microsoft YaHei\", sans-serif",
+              "display": "inline",
+              "visibility": "visible",
+              "tabindex": null,
+              "role": null
+            }
+          ]
+        }
+      ],
+      "nav": [
+        {
+          "strategy": "svg",
+          "rect": {
+            "x": 11.989182472229004,
+            "y": 603.00537109375,
+            "width": 295.8677673339844,
+            "height": 67.99759674072266,
+            "top": 603.00537109375,
+            "right": 307.8569498062134,
+            "bottom": 671.0029678344727,
+            "left": 11.989182472229004
+          },
+          "svg": 1
+        }
+      ]
+    },
+    {
+      "label": "r8-store-copy-geometry",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-BSpOlTnk.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/index-8t-HDpGw.css"
+      ],
+      "texts": [
+        {
+          "text": "信息暂不可用",
+          "class": "promotion-title",
+          "font": [
+            "19px",
+            "600",
+            "26.6px"
+          ],
+          "wrap": "balance",
+          "lines": [
+            {
+              "x": 15.98978328704834,
+              "y": 184.75961303710938,
+              "width": 113.9855728149414,
+              "height": 24.23077392578125
+            },
+            {
+              "x": 15.98978328704834,
+              "y": 184.75961303710938,
+              "width": 113.9855728149414,
+              "height": 24.23077392578125
+            }
+          ]
+        },
+        {
+          "text": "选择已保留，重试后确认。",
+          "class": "promotion-copy",
+          "font": [
+            "13px",
+            "400",
+            "22.1px"
+          ],
+          "wrap": "wrap",
+          "lines": [
+            {
+              "x": 15.98978328704834,
+              "y": 212.97836303710938,
+              "width": 155.96034240722656,
+              "height": 16.153839111328125
+            },
+            {
+              "x": 15.98978328704834,
+              "y": 212.97836303710938,
+              "width": 155.96034240722656,
+              "height": 16.153839111328125
+            }
+          ]
+        },
+        {
+          "text": "重新加载",
+          "class": "",
+          "font": [
+            "13px",
+            "600",
+            "20px"
+          ],
+          "wrap": "wrap",
+          "lines": [
+            {
+              "x": 222.7842559814453,
+              "y": 199.90383911132812,
+              "width": 51.99519348144531,
+              "height": 16.153854370117188
+            },
+            {
+              "x": 222.7842559814453,
+              "y": 199.90383911132812,
+              "width": 51.99519348144531,
+              "height": 16.153854370117188
+            }
+          ]
+        },
+        {
+          "text": "→",
+          "class": "",
+          "font": [
+            "13px",
+            "600",
+            "20px"
+          ],
+          "wrap": "wrap",
+          "lines": [
+            {
+              "x": 282.7680358886719,
+              "y": 199.90383911132812,
+              "width": 13.0997314453125,
+              "height": 16.153854370117188
+            },
+            {
+              "x": 282.7680358886719,
+              "y": 199.90383911132812,
+              "width": 13.0997314453125,
+              "height": 16.153854370117188
+            }
+          ]
+        }
+      ],
+      "action": [
+        {
+          "minWidth": "44px",
+          "minHeight": "44px",
+          "height": "43.994px",
+          "tabindex": 0
+        }
+      ]
+    }
+  ],
+  "photos": [
+    {
+      "label": "r7-rv01-vi-light-320",
+      "file": "r7-rv01-vi-light-320.png",
+      "clip": {
+        "height": 519.9999389648438,
+        "width": 240.11361694335935,
+        "x": 321.7613525390625,
+        "y": 86.60037231445312
+      },
+      "bytes": 13887
+    },
+    {
+      "label": "r7-rv01-vi-light-320-full",
+      "file": "r7-rv01-vi-light-320-full.jpg",
+      "fullPreview": true,
+      "bytes": 52990
+    },
+    {
+      "label": "r7-rv02-vi-light-320-full",
+      "file": "r7-rv02-vi-light-320-full.jpg",
+      "fullPreview": true,
+      "bytes": 54098
+    },
+    {
+      "label": "r7-rv03-vi-light-320-full",
+      "file": "r7-rv03-vi-light-320-full.jpg",
+      "fullPreview": true,
+      "bytes": 42803
+    },
+    {
+      "label": "r7-rv03-zh-dark-390-full",
+      "file": "r7-rv03-zh-dark-390-full.jpg",
+      "fullPreview": true,
+      "bytes": 41821
+    },
+    {
+      "label": "r7-rv01-zh-dark-390-full",
+      "file": "r7-rv01-zh-dark-390-full.jpg",
+      "fullPreview": true,
+      "bytes": 51640
+    },
+    {
+      "label": "r7-rv02-zh-dark-390-full",
+      "file": "r7-rv02-zh-dark-390-full.jpg",
+      "fullPreview": true,
+      "bytes": 51630
+    },
+    {
+      "label": "r7-store-title-zh-light-320-full",
+      "file": "r7-store-title-zh-light-320-full.jpg",
+      "fullPreview": true,
+      "bytes": 49572
+    },
+    {
+      "label": "r8-extra-trial-vi-light-320-full",
+      "file": "r8-extra-trial-vi-light-320-full.jpg",
+      "fullPreview": true,
+      "bytes": 40079
+    },
+    {
+      "label": "r8-extra-leaderboard-vi-light-320-full",
+      "file": "r8-extra-leaderboard-vi-light-320-full.jpg",
+      "fullPreview": true,
+      "bytes": 41635
+    },
+    {
+      "label": "r8-store-title-note-zh-light-320-full",
+      "file": "r8-store-title-note-zh-light-320-full.jpg",
+      "fullPreview": true,
+      "bytes": 48580
+    }
+  ],
+  "excluded": [
+    "r7-rv01-vi-light-320.png: first clipped screenshot cut off right side; JPEG bytes under PNG extension; replaced by full-preview JPG.",
+    "Staking returned Home rather than expose retry; no score.",
+    "Orders did not expose intended retry during this attempt; no score."
+  ],
+  "findings": [
+    {
+      "id": "RV04-TRIAL",
+      "priority": "P2",
+      "score": 8.8,
+      "selector": ".trial-read-retry",
+      "file": "src/pages/me/trial.vue",
+      "sourceLine": 353,
+      "actualFont": [
+        "13px",
+        "400",
+        "normal"
+      ],
+      "requiredFont": [
+        "13px",
+        "600",
+        "20px"
+      ],
+      "fix": "Set only this read-retry control to font:600 13px/20px var(--font-v5), retaining existing page error layout and target size."
+    }
+  ]
+}

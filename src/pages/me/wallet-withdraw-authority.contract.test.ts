@@ -42,7 +42,7 @@ describe("withdrawal authoritative-facts display", () => {
     expect(source).toContain('withdrawalFactsRefreshing.value || dailyFactsRefreshing.value');
     expect(source).toContain('const quoteDisplayBlocked');
     expect(source).toContain('quoteDisplayBlocked.value || !withdrawalFactsDisplayable.value');
-    expect(source).toContain('v-if="withdrawalFactsRefreshing"');
+    expect(source).toContain('v-if="withdrawalFactsNeedsRetry || (!withdrawalQuoteRefreshing && !withdrawalActionsFresh)"');
     expect(source).toContain('!withdrawalActionsFresh.value');
   });
 

@@ -1,10 +1,10 @@
 <template>
   <view class="team-summary" data-testid="team-summary" :role="canOpen ? 'link' : undefined" :tabindex="canOpen ? 0 : undefined" :aria-label="canOpen ? t.team.summaryView : undefined" :aria-busy="status === 'idle' || status === 'loading'" @click="open" @keydown.enter.prevent="open" @keydown.space.prevent="open">
-    <view class="team-summary__header"><text class="team-summary__title">{{ copy.myTeam }}</text><text v-if="canOpen" class="team-summary__arrow" aria-hidden="true">›</text></view>
-    <view class="team-summary__body" :class="{ 'team-summary__body--long-count': readable && String(total).length > 6 }"><TeamArt kind="members" :size="56" /><view class="team-summary__metrics"><text class="team-summary__number" :style="{ '--team-summary-count-units': countUnits }">{{ readable ? total : '—' }}</text><text class="team-summary__label">{{ copy.members }}</text></view></view>
-    <view class="team-summary__direct"><text>{{ copy.directInvites }}</text><text>{{ readable ? direct : '—' }}</text></view>
-    <view v-if="readable && !total" class="team-summary__empty"><text>{{ t.team.summaryEmpty }}</text><NxButton class="team-summary__action" :label="copy.inviteFriends" variant="secondary" size="medium" @click="$emit('invite')" /></view>
-    <view v-else-if="!readable" class="team-summary__status" role="status"><text>{{ status === 'error' ? t.team.summaryUnavailable : t.team.summaryLoading }}</text><NxButton v-if="status === 'error'" class="team-summary__action" :label="t.network.retry" variant="text" size="medium" @click="$emit('retry')" /></view>
+    <view class="team-summary__header"><text class="team-summary__title">{{ copy.myTeam }}</text><text class="team-summary__arrow" :style="{ visibility: canOpen ? 'visible' : 'hidden' }" aria-hidden="true">›</text></view>
+    <view class="team-summary__body" :class="{ 'team-summary__body--long-count': readable && !visibility.hidden && String(total).length > 6 }"><TeamArt kind="members" :size="56" /><view class="team-summary__metrics"><text class="team-summary__number" :style="{ '--team-summary-count-units': countUnits }">{{ totalText }}</text><text class="team-summary__label">{{ copy.members }}</text></view></view>
+    <view class="team-summary__direct"><text>{{ copy.directInvites }}</text><text>{{ visibility.mask(readable ? direct : '—') }}</text></view>
+    <view v-if="readable && !total && status !== 'error'" class="team-summary__empty"><text v-if="!visibility.hidden">{{ t.team.summaryEmpty }}</text><NxButton class="team-summary__action" :label="copy.inviteFriends" variant="secondary" size="medium" @click="$emit('invite')" /></view>
+    <view v-else-if="status === 'error'" class="team-summary__status" role="status"><text>{{ t.team.summaryUnavailable }}</text><NxButton v-if="status === 'error'" class="team-summary__action" :label="t.network.retry" variant="text" size="medium" @click="$emit('retry')" /></view>
   </view>
 </template>
 <script setup lang="ts">
@@ -14,13 +14,16 @@ import { useLocaleStore } from '@/store/locale';
 import { teamRedesignCopy } from '@/i18n/team-redesign';
 import TeamArt from './team-art.vue';
 import NxButton from '@/components/ui/nx-button.vue';
-const props=defineProps<{status:'idle'|'loading'|'ready'|'error'; total:number; direct:number; hasSnapshot?:boolean}>();
+import { useDataVisibility } from '@/store/data-visibility';
+const props=defineProps<{status:'idle'|'loading'|'ready'|'error'; total:number; direct:number; hasSnapshot?:boolean;transientFailure?:boolean}>();
 const emit=defineEmits<{(event:'invite'):void;(event:'open'):void;(event:'retry'):void}>();
 const t=useT(), locale=useLocaleStore(), copy=computed(()=>teamRedesignCopy(locale.code));
+const visibility=useDataVisibility();
 const canOpen=computed(()=>props.status==='ready' && props.total>0);
-const readable=computed(()=>props.status==='ready'||(props.status==='loading'&&props.hasSnapshot));
-// Size the real count; never abbreviate it to fit a decorative image.
-const countUnits=computed(()=>Math.max(1, String(readable.value ? props.total : '—').length * .7));
+const readable=computed(()=>props.status==='ready'||(props.hasSnapshot&&(props.status==='loading'||(props.status==='error'&&props.transientFailure))));
+// Size the rendered text so masking also conceals the original digit count.
+const totalText=computed(()=>visibility.mask(readable.value ? props.total : '—'));
+const countUnits=computed(()=>Math.max(1, totalText.value.length * .7));
 function open(){if(canOpen.value)emit('open');}
 </script>
 <style scoped>
@@ -39,6 +42,7 @@ function open(){if(canOpen.value)emit('open');}
 .team-summary__number::-webkit-scrollbar,.team-summary__direct > text:last-child::-webkit-scrollbar { display: none; }
 .team-summary__empty,.team-summary__status { display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); color: var(--v5-ink-3); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
 .team-summary__action { max-width: 100%; }
+.team-summary__status .team-summary__action { font: 600 13px/20px var(--font-v5); }
 .team-summary[role='link'] { cursor: pointer; }
 .team-summary[role='link']:active { opacity: .8; }
 .team-summary:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }

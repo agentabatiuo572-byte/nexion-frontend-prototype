@@ -44,7 +44,7 @@ describe("actual page presentation remains separate from authority", () => {
       const eligibility = ref({ status: "idle" });
       const { buyLabel } = actual(card, ["buyLabel"], {
         computed, t: ref(messages), remoteApiEnabled: true, eligibility,
-        promotionSignIn: ref(false), promotionUnavailable: ref(false), catalogUnavailable: ref(false),
+        promotionSignIn: ref(false), promotionPresentationSignIn: ref(false), promotionPresentationReady: ref(false), promotionUnavailable: ref(false), catalogUnavailable: ref(false),
         stockUnavailable: ref(false), gate: ref({ soldOut: false, blocked: true }),
       });
       expect(buyLabel.value).toBe(messages.store.purchaseEligibilityCheck);
@@ -104,4 +104,16 @@ describe("actual page presentation remains separate from authority", () => {
     stockUnavailable.value = true; expect(buyUnavailable.value).toBe(true); onBuy();
     expect(goCheckout).toHaveBeenCalledOnce();
   });
+});
+
+it("keeps only promotion labels while current promotion authority prevents purchase", () => {
+  const props = reactive({activityId:'a',promotionReady:true,product:{id:'p'},promotion:{productNos:['p'],eligibility:'ESTIMATE_ELIGIBLE'}});
+  const goCheckout=vi.fn(),goDetail=vi.fn(),retryEligibility=vi.fn();
+  const shared={computed,props,canPreviewPromotion:(p:any)=>!!p&&['ESTIMATE_ELIGIBLE','SIGN_IN_REQUIRED'].includes(p.eligibility)};
+  const promotion=actual(card,['promotionUnavailable','promotionSignIn','promotionPresentationReady','promotionPresentationSignIn'],shared);
+  const runtime={...shared,...promotion,t:ref(en),remoteApiEnabled:true,catalogUnavailable:ref(false),stockUnavailable:ref(false),gate:ref({blocked:false,soldOut:false}),eligibility:ref({status:'ready'}),goCheckout,goDetail,retryEligibility};
+  const v=actual(card,['buyLabel','buyUnavailable','onBuy'],runtime);
+  const before=v.buyLabel.value;props.promotionReady=false;expect(v.buyLabel.value).toBe(before);expect(v.buyUnavailable.value).toBe(true);v.onBuy();expect(goCheckout).not.toHaveBeenCalled();
+  props.promotion.eligibility='SIGN_IN_REQUIRED';expect(v.buyLabel.value).toBe(en.promotion.signIn);expect(v.buyUnavailable.value).toBe(true);
+  props.promotion.productNos=['other'];expect(v.buyLabel.value).toBe(en.promotion.unavailable);
 });

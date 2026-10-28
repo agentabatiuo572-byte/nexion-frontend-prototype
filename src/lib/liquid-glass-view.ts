@@ -286,9 +286,18 @@ export function mountChassis(root: HTMLElement, initial: { tabKey?: string; tabR
     if (initial.debug) console.info("UvelScroll", JSON.stringify({ event, visible, pending: pendingTop !== null,
       target: pendingTop, top: scroll.scrollTop, max: Math.max(0, scroll.scrollHeight - scroll.clientHeight) }));
   };
+  const tabLayoutReady = () => {
+    const contents = Array.from(root.querySelectorAll<HTMLElement>(".nx-tab-content"));
+    if (!contents.length) return true;
+    const shown = contents.filter(content => content.getClientRects().length > 0);
+    return shown.length === 1 && shown[0].dataset.tabContentKey === tabKey;
+  };
   const viewReady = () => visible && root.dataset.pageVisible !== "false"
     && (root.dataset.tabKey === undefined || root.dataset.tabKey === tabKey)
     && (root.dataset.tabRevision === undefined || root.dataset.tabRevision === String(tabRevision))
+    // App can deliver the host marker and v-show in separate view patches.
+    // Restore only against the incoming content's real layout, never the old tab.
+    && tabLayoutReady()
     && (!root.getClientRects || root.getClientRects().length > 0)
     && (typeof document === "undefined" || document.visibilityState !== "hidden");
   const markScroll = () => {
@@ -330,6 +339,7 @@ export function mountChassis(root: HTMLElement, initial: { tabKey?: string; tabR
     const saved = tabKey ? tabPositions.get(tabKey.split("?")[0]) : undefined;
     pendingTop = tabKey ? (saved && saved.href === tabKey ? saved.top : 0) : pageTop;
     if (tabKey && (!saved || saved.href !== tabKey)) tabPositions.set(tabKey.split("?")[0], { href: tabKey, top: pendingTop });
+    attemptRestore();
     scheduleRestore();
   };
   const cancelRestore = () => {
@@ -339,13 +349,33 @@ export function mountChassis(root: HTMLElement, initial: { tabKey?: string; tabR
     restoreFrame = 0;
     markScroll(); trace("user-cancel");
   };
+  const requestTop = () => {
+    if (!viewReady()) return;
+    cancelRestore();
+    // The helper writes scrollTop after this intent. Persist zero now: a rapid
+    // departure can fence its later scroll event behind the next tab's marker.
+    pageTop = 0;
+    if (tabKey) tabPositions.set(tabKey.split("?")[0], { href: tabKey, top: 0 });
+  };
   const keyScroll = (event: KeyboardEvent) => { if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes(event.key)) cancelRestore(); };
   scroll.addEventListener("scroll", markScroll, { passive: true });
-  for (const event of ["wheel", "touchstart", "pointerdown"]) scroll.addEventListener(event, cancelRestore, { passive: true });
+  const cancelEvents = ["wheel", "touchstart", "pointerdown"];
+  for (const event of cancelEvents) scroll.addEventListener(event, cancelRestore, { passive: true });
+  scroll.addEventListener("uvel-scroll-to-top", requestTop);
   root.addEventListener?.("keydown", keyScroll);
-  const layoutChanged = () => { onScroll(); scheduleRestore(); };
+  const layoutChanged = () => {
+    // MutationObserver runs after the DOM commit and before paint. The renderjs
+    // config may arrive a frame later; the DOM revision already owns this visit.
+    const revision = Number(root.dataset.tabRevision);
+    if (root.dataset.tabKey !== undefined && root.dataset.tabRevision !== undefined
+      && (tabRevision === undefined || revision >= tabRevision)
+      && (root.dataset.tabKey !== tabKey || revision !== tabRevision)) {
+      tabKey = root.dataset.tabKey; tabRevision = revision; restore();
+    }
+    attemptRestore(); onScroll(); scheduleRestore();
+  };
   const observer = typeof MutationObserver === "undefined" ? undefined : new MutationObserver(layoutChanged);
-  observer?.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-page-visible", "data-tab-key", "data-tab-revision", "style", "class"] });
+  observer?.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-page-visible", "data-tab-key", "data-tab-revision", "data-tab-content-key", "style", "class"] });
   const resize = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(layoutChanged);
   resize?.observe(scroll);
   const body = scroll.querySelector?.<HTMLElement>(".nx-page-enter");
@@ -354,6 +384,8 @@ export function mountChassis(root: HTMLElement, initial: { tabKey?: string; tabR
   const documentVisibility = () => { if (document.visibilityState === "visible" && visible) restore(); };
   if (typeof document !== "undefined") document.addEventListener?.("visibilitychange", documentVisibility);
   return { update(value: { tabKey?: string; tabRevision?: number; visible?: boolean; debug?: boolean } = {}) {
+    // A delayed logic-thread receipt must not reinstate an older navigation.
+    if (value.tabRevision !== undefined && tabRevision !== undefined && value.tabRevision < tabRevision) return;
     const shown = (value.visible ?? true) && !visible;
     visible = value.visible ?? true;
     if (value.tabKey !== tabKey || value.tabRevision !== tabRevision || shown) {
@@ -363,7 +395,7 @@ export function mountChassis(root: HTMLElement, initial: { tabKey?: string; tabR
     }
     trace(visible ? "show-update" : "hide-update");
     onScroll();
-  }, destroy() { clearTimeout(idle); if (restoreFrame && typeof cancelAnimationFrame !== "undefined") cancelAnimationFrame(restoreFrame); tabPositions.clear(); scroll.removeEventListener("scroll", markScroll); for (const event of ["wheel", "touchstart", "pointerdown"]) scroll.removeEventListener(event, cancelRestore); root.removeEventListener?.("keydown", keyScroll); observer?.disconnect(); resize?.disconnect(); if (typeof document !== "undefined") document.removeEventListener?.("visibilitychange", documentVisibility); } };
+  }, destroy() { clearTimeout(idle); if (restoreFrame && typeof cancelAnimationFrame !== "undefined") cancelAnimationFrame(restoreFrame); tabPositions.clear(); scroll.removeEventListener("scroll", markScroll); for (const event of cancelEvents) scroll.removeEventListener(event, cancelRestore); scroll.removeEventListener("uvel-scroll-to-top", requestTop); root.removeEventListener?.("keydown", keyScroll); observer?.disconnect(); resize?.disconnect(); if (typeof document !== "undefined") document.removeEventListener?.("visibilitychange", documentVisibility); } };
 }
 
 // App renderjs mounts a separate empty Vue instance: its $el is a comment.

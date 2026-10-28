@@ -1,0 +1,64 @@
+{
+  "durationMs": 3907.699999988079,
+  "entry": [
+    "/assets/index-CFxCm3fm.js"
+  ],
+  "events": [
+    {
+      "atMs": 160.89999997615814,
+      "elapsedTime": 24.48,
+      "name": "earn-rocket-flame-23463e95"
+    },
+    {
+      "atMs": 160.89999997615814,
+      "elapsedTime": 24.3,
+      "name": "earn-rocket-exhaust-23463e95"
+    },
+    {
+      "atMs": 160.89999997615814,
+      "elapsedTime": 24,
+      "name": "earn-rocket-hop-23463e95"
+    },
+    {
+      "atMs": 1173.899999976158,
+      "elapsedTime": 25.2,
+      "name": "earn-rocket-flame-23463e95"
+    },
+    {
+      "atMs": 1173.899999976158,
+      "elapsedTime": 25.2,
+      "name": "earn-rocket-exhaust-23463e95"
+    },
+    {
+      "atMs": 1173.899999976158,
+      "elapsedTime": 25.6,
+      "name": "earn-rocket-hop-23463e95"
+    },
+    {
+      "atMs": 2187.2999999821186,
+      "elapsedTime": 26.64,
+      "name": "earn-rocket-flame-23463e95"
+    },
+    {
+      "atMs": 2187.2999999821186,
+      "elapsedTime": 26.1,
+      "name": "earn-rocket-exhaust-23463e95"
+    },
+    {
+      "atMs": 3201,
+      "elapsedTime": 27.36,
+      "name": "earn-rocket-flame-23463e95"
+    },
+    {
+      "atMs": 3201,
+      "elapsedTime": 27,
+      "name": "earn-rocket-exhaust-23463e95"
+    },
+    {
+      "atMs": 3201,
+      "elapsedTime": 27.200000000000003,
+      "name": "earn-rocket-hop-23463e95"
+    }
+  ],
+  "samples": []
+}

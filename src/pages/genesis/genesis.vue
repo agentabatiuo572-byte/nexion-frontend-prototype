@@ -90,7 +90,7 @@
               <text v-if="tr.state === 'current'" class="block" :style="tierCurrentStyle">{{ t.genesis.tier.current }}</text>
             </view>
           </view>
-          <view class="genesis-refresh" role="button" tabindex="0" :aria-disabled="refreshing" @click="retryGenesis" @keydown.enter.prevent="retryGenesis" @keydown.space.prevent="retryGenesis"><text>{{ refreshing ? t.promotion.loading : t.genesis.refresh }}</text></view>
+          <view class="genesis-refresh" role="button" tabindex="0" :aria-disabled="refreshing" @click="retryGenesis" @keydown.enter.prevent="retryGenesis" @keydown.space.prevent="retryGenesis"><text>{{ t.genesis.refresh }}</text></view>
         </view>
 
         <!-- ════ Value / perks ════ -->

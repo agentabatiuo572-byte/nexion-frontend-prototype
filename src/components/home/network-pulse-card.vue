@@ -47,10 +47,10 @@
             <!-- Retry has its own tap target; explanation uses the whole rank cell. -->
             <text
               v-if="m.subTap"
-              class="block mt-1 font-mono-tabular truncate active:opacity-70"
+              class="block mt-1 truncate active:opacity-70"
               role="button"
               tabindex="0"
-              :style="{ fontSize: '12px', color: m.subTone ?? 'var(--v5-ink-4)', padding: '14px 0', margin: '-14px 0' }"
+              :style="{ font: '600 13px/20px var(--font-v5)', color: m.subTone ?? 'var(--v5-ink-4)', padding: '14px 0', margin: '-14px 0' }"
               @click.stop="m.subTap()"
 
               @keydown.enter.stop.prevent="activate(m.subTap)" @keydown.space.stop.prevent="activate(m.subTap)"
@@ -77,6 +77,7 @@ import { useT } from "@/i18n/use-t";
 import { useApp } from "@/store/app";
 import { useConfig } from "@/store/config";
 import { useNetworkRank } from "@/store/network-rank";
+import { useDataVisibility } from "@/store/data-visibility";
 import { remoteApiEnabled } from "@/api/runtime";
 import { compactNumber as compact } from "@/lib/platform-stats";
 import { confirm } from "@/store/ui";
@@ -86,8 +87,9 @@ const t = useT();
 const app = useApp();
 const cfg = useConfig();
 const remoteRank = useNetworkRank();
+const visibility = useDataVisibility();
 function refreshRankMoment() {
-  if (remoteApiEnabled) void remoteRank.refresh();
+  if (remoteApiEnabled) void remoteRank.ensure();
 }
 onMounted(refreshRankMoment);
 watch(() => app.accountKey, (accountKey) => {
@@ -132,7 +134,7 @@ const compactAvailable = computed(() => {
   const members = props.estimated ? props.registeredDisplay : cfg.config.networkPulse?.registeredUsers;
   const devices = cfg.config.networkPulse?.onlineDevices;
   const currentRank = rank.value;
-  return !cfg.loading && !cfg.syncFailed && remoteRank.status !== 'error'
+  return !cfg.syncFailed && remoteRank.status !== 'error'
     && typeof members === 'number' && Number.isSafeInteger(members) && members >= 0
     && typeof devices === 'number' && Number.isSafeInteger(devices) && devices >= 0
     && (currentRank.kind === 'unranked'
@@ -196,7 +198,7 @@ const metrics = computed<Cell[]>(() => {
   const retainedRank = remoteRank.status === "error" && remoteRank.snapshot !== null;
   const rankCell: Cell = {
     k: t.value.home.networkYourRank,
-    v: r.kind === "ranked" ? `#${compact(r.rank)}`
+    v: r.kind === "ranked" ? visibility.mask(`#${compact(r.rank)}`)
       : r.kind === "unranked" ? t.value.home.networkRankUnranked : "-",
     vSize: r.kind === "ranked" ? "20px" : "12px",
     tone: r.kind === "ranked" ? "var(--v5-brand)" : "var(--v5-ink-3)",
@@ -222,4 +224,5 @@ const metrics = computed<Cell[]>(() => {
 .network-compact__label {min-height:36px;}
 .network-compact__value {display:block;margin-top:4px;font:600 18px/24px var(--font-v5);font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
 .network-compact__retry {font-size:11px;}
+.network-compact__retry[role='button'] {font:600 13px/20px var(--font-v5);}
 </style>

@@ -30,27 +30,28 @@
 
     <view class="relative" style="z-index: 1">
       <view class="flex justify-between items-center gap-2">
-        <text class="font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-4); letter-spacing: 0.04em">{{ t.home.techTodaysEarnings }}</text>
+        <view class="flex items-center gap-1 min-w-0"><text class="font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-4); letter-spacing: 0.04em">{{ t.home.techTodaysEarnings }}</text><DataVisibilityToggle /></view>
         <text
           class="inline-flex items-center gap-1 font-mono-tabular"
           style="font-size: 12px; padding: 2px 7px; border-radius: 4px; background: var(--v5-tech-cyan-soft); color: var(--v5-tech-cyan-ink); font-weight: 500; letter-spacing: 0.04em; white-space: nowrap"
-        >{{ t.home.techStreaming }}</text>
+        >{{ t.home.techEarningsCurrency }}</text>
       </view>
 
       <view
         class="mt-2.5 flex items-baseline gap-1"
         style="font-family: var(--font-v5); font-weight: 600; letter-spacing: -0.024em; line-height: 1; color: var(--v5-ink)"
       >
-        <text style="font-size: 20px; color: var(--v5-ink-3); font-weight: 500">$</text>
-        <text v-if="remoteApiEnabled && remoteToday === null" class="tabular-nums" style="font-size: 56px">—</text>
+        <text v-if="!visibility.hidden" style="font-size: 20px; color: var(--v5-ink-3); font-weight: 500">$</text>
+        <text v-if="visibility.hidden" class="tabular-nums" style="font-size: 56px">{{ visibility.mask(intPart) }}</text>
+        <text v-else-if="remoteApiEnabled && remoteToday === null" class="tabular-nums" style="font-size: 56px">—</text>
         <text v-else class="tabular-nums" style="font-size: 56px">{{ intPart }}<text style="font-size: 36px; color: var(--v5-ink-3); font-weight: 600">.{{ cents }}</text></text>
       </view>
 
       <!-- 《02》§7:混合内容整句禁 Mono;保留 tabular-nums 让数字仍等宽对齐 -->
-      <view class="earnings-feedback" :aria-busy="retrying ? 'true' : 'false'">
-        <template v-if="remoteApiEnabled && (app.homeTruthStatus === 'error' || retrying)">
-          <text role="status">{{ retrying ? t.home.techEarningsLoading : t.coreReview.earningsReadFailed }}</text>
-          <view role="button" :tabindex="retrying ? -1 : 0" :aria-disabled="retrying ? 'true' : 'false'" class="earnings-retry" @click="retryEarnings" @keydown.enter.prevent="retryEarnings" @keydown.space.prevent="retryEarnings"><text>{{ t.ui.retry }}</text></view>
+      <view class="earnings-feedback" :class="{ 'nx-inline-recovery': remoteApiEnabled && (app.homeTruthStatus === 'error' || (retrying && !app.homeTruth)) }" :aria-busy="retrying ? 'true' : 'false'">
+        <template v-if="remoteApiEnabled && (app.homeTruthStatus === 'error' || (retrying && !app.homeTruth))">
+          <text class="nx-inline-recovery__copy" role="status">{{ app.homeTruthStatus === 'error' ? t.coreReview.earningsReadFailed : t.home.techEarningsLoading }}</text>
+          <view role="button" :tabindex="retrying ? -1 : 0" :aria-disabled="retrying ? 'true' : 'false'" class="earnings-retry nx-inline-recovery__action" @click="retryEarnings" @keydown.enter.prevent="retryEarnings" @keydown.space.prevent="retryEarnings"><text>{{ t.ui.retry }}</text></view>
         </template>
         <text v-else class="tabular-nums" style="color: var(--v5-success-ink)">{{ earningsSubtitle }}</text>
       </view>
@@ -69,8 +70,11 @@ import { useTicker } from "@/composables/use-ticker";
 import { remoteApiEnabled } from "@/api/runtime";
 import { homeEarningsSubtitle } from "./home-real-copy";
 import { fmt } from "@/i18n/format";
+import { useDataVisibility } from "@/store/data-visibility";
+import DataVisibilityToggle from "@/components/ui/data-visibility-toggle.vue";
 
 const t = useT();
+const visibility = useDataVisibility();
 const app = useApp();
 const retrying = ref(false);
 async function retryEarnings() {
@@ -97,21 +101,22 @@ const remoteJobCount = computed<number | null>(() => remoteApiEnabled
 const remoteTodayVsYesterdayPct = computed<number | null>(() => remoteApiEnabled
   ? app.homeTruth?.earnings.todayVsYesterdayPct ?? null
   : null);
+const settledSubtitle = computed(() => fmt(t.value.home.techSettledJobs, {
+  arrow: visibility.hidden || remoteTodayVsYesterdayPct.value === null ? "" : remoteTodayVsYesterdayPct.value > 0 ? "↑" : remoteTodayVsYesterdayPct.value < 0 ? "↓" : "→",
+  delta: visibility.mask(remoteTodayVsYesterdayPct.value === null ? "—" : `${remoteTodayVsYesterdayPct.value > 0 ? "+" : ""}${remoteTodayVsYesterdayPct.value.toFixed(1)}%`),
+  count: visibility.mask(remoteJobCount.value ?? 0),
+}));
 const earningsSubtitle = computed(() => homeEarningsSubtitle(
   remoteApiEnabled,
-  app.homeTruthStatus,
+  app.homeTruthStatus === 'loading' && app.homeTruth ? 'ready' : app.homeTruthStatus,
   remoteToday.value,
   remoteJobCount.value,
   remoteTodayVsYesterdayPct.value,
-  t.value.home.techVsYesterday,
+  visibility.hidden ? settledSubtitle.value : t.value.home.techVsYesterday,
   t.value.home.techEarningsLoading,
   t.value.uiChrome.unavailable,
   t.value.home.techEarningsEmpty,
-  fmt(t.value.home.techSettledJobs, {
-    arrow: remoteTodayVsYesterdayPct.value === null ? "" : remoteTodayVsYesterdayPct.value > 0 ? "↑" : remoteTodayVsYesterdayPct.value < 0 ? "↓" : "→",
-    delta: remoteTodayVsYesterdayPct.value === null ? "—" : `${remoteTodayVsYesterdayPct.value > 0 ? "+" : ""}${remoteTodayVsYesterdayPct.value.toFixed(1)}%`,
-    count: remoteJobCount.value ?? 0,
-  }),
+  settledSubtitle.value,
 ));
 
 // Mock-only streaming number. Remote mode renders the exact server snapshot or
@@ -136,5 +141,6 @@ function dotStyle(d:Dot):CSSProperties {
 <style scoped>
 @keyframes home-earning-dot {0%,100% {transform:translateY(0);opacity:.7;}50% {transform:translateY(-7px);opacity:1;}}
 .earnings-feedback { display:flex; align-items:center; gap:12px; min-height:44px; margin-top:4px; font:400 12px/16px var(--font-v5); color:var(--v5-ink-3); }
+.earnings-feedback.nx-inline-recovery { display:grid; }
 .earnings-retry { display:flex; align-items:center; min-height:44px; padding-inline:8px; color:var(--v5-brand); font-weight:600; flex-shrink:0; }
 </style>

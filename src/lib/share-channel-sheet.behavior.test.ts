@@ -1,13 +1,17 @@
 import * as displayDate from "@/lib/display-date";
 import * as Vue from "vue";
 import type { Component } from "vue";
-import { createPinia, setActivePinia } from "pinia";
+import { createPinia, getActivePinia, setActivePinia } from "pinia";
+import { useDataVisibility } from "@/store/data-visibility";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import ts from "typescript";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPlatformConfigApi } from "@/api/platform-config-api";
 import type { ApiClient } from "@/api/api-client";
 import type { ShareChannelDef } from "@/store/config-types";
+import type { ReferralRewardSnapshot } from "@/api/referral-reward-api";
+import type { ProductCatalogDisplayProof } from "@/store/product-catalog";
+import { captureRuntimeRevision, isCurrentRuntimeRevision } from "@/api/order-api";
 import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
 import { vi as vietnamese } from "@/i18n/messages/vi";
@@ -21,7 +25,8 @@ import detailSource from "@/components/team/invite-detail-sheet.vue?raw";
 import rulesSource from "@/components/team/invite-rule-content.vue?raw";
 
 const runtime = vi.hoisted(() => ({
-  remoteApiEnabled: true, fundsServerEnabled: true, expectedApiEnvironment: "dev",
+  remoteApiEnabled: true, fundsServerEnabled: true, expectedApiEnvironment: "dev", apiRuntimeConfig: { environment: "dev" },
+  apiRuntimeClientOrigin: { environment: "dev", baseUrl: undefined },
   platformConfigApi: { platformConfig: vi.fn() }, referralRewardApi: { snapshot: vi.fn() },
   shareEventApi: { record: vi.fn() }, sessionVault: { read: vi.fn() },
   purchaseEligibilityApi: { snapshot: vi.fn() },
@@ -75,15 +80,26 @@ const text = (root: Host): string => root.text + root.children.map(text).join(""
 const flush = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); await Vue.nextTick(); };
 const unmounts: Array<() => void> = [];
 function mount(messages = en, throughEntry = false) {
+  const shows: Array<() => void> = [], hides: Array<() => void> = [];
   const account = Vue.reactive({ accountKey: "user:1", accountBindingEpoch: 1, user: { referralCode: "UNCONFIRMED_LOCAL_CODE" } });
+  const catalogProof = Vue.ref<ProductCatalogDisplayProof | null>({ sourceEnvironment: "PRODUCTION", runId: "",
+    revision: "share-fixture", bindingEpoch: 0, runtimeEpoch: captureRuntimeRevision().epoch });
   const dependencies: Record<string, unknown> = {
     "@/lib/route": { navTo: vi.fn() },
+    "@/composables/use-tab-page-lifecycle": { onShow: (fn: () => void) => shows.push(fn), onHide: (fn: () => void) => hides.push(fn) },
+    "@/store/product-catalog": {
+      productCatalogState: Vue.reactive({ serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "", status: "ready" }),
+      productCatalogDisplayProof: catalogProof,
+      isProductCatalogDisplayCurrent: (scope = captureRuntimeRevision()) => isCurrentRuntimeRevision(scope)
+        && catalogProof.value !== null && catalogProof.value.bindingEpoch === 0 && catalogProof.value.runtimeEpoch === scope.epoch,
+    },
     vue: Vue, "@/lib/amount-display": { formatAmount }, "@/lib/display-date": displayDate, "@/i18n/format": { fmt, dateLocale },
     "@/lib/profile-date": { formatJoinedDate },
     "@/i18n/use-t": { useT: () => Vue.ref(messages) },
     "@/composables/use-product-phase": { useProductPhase: () => Vue.ref({ inviteBonusMultiplier: 1 }) },
     "@/lib/share": share, "@/api/runtime": runtime, "@/store/config": { useConfig },
     "@/store/referral-reward": { useReferralReward }, "@/store/ui": { toast: feedback },
+    "@/store/data-visibility": { useDataVisibility },
     "@/composables/use-dialog-a11y": { useDialogA11y: () => {} },
     "@/store/app": { useApp: () => account },
     "@/store/locale": { useLocaleStore: () => ({ code: messages === zh ? "zh" : messages === vietnamese ? "vi" : "en" }) },
@@ -114,7 +130,7 @@ function mount(messages = en, throughEntry = false) {
   const app = renderer.createApp({ setup: () => () => Vue.h(compiled.default, throughEntry ? {} : {
     open: open.value, onClose: () => { open.value = false; }, onOpenPoster: poster,
   }) });
-  app.mount(root); unmounts.push(() => app.unmount());
+  app.use(getActivePinia()!); app.mount(root); shows.forEach(fn => fn()); unmounts.push(() => { hides.forEach(fn => fn()); app.unmount(); });
   const control = (label: string) => all(root).find(entry => entry.props.role === "button" && (entry.props["aria-label"] === label || text(entry) === label));
   return { root, open, poster, control, account, nodes: (className: string) => all(root).filter(entry => String(entry.props.class).split(" ").includes(className)) };
 }
@@ -127,12 +143,16 @@ beforeEach(async () => {
     setClipboardData: vi.fn(({ success }) => success()),
   });
   vi.stubGlobal("navigator", {});
-  runtime.platformConfigApi.platformConfig.mockImplementation(api.platformConfig);
-  const cfg = useConfig(); await cfg.load();
-  useReferralReward().snapshot = { referralCode: "SHARE-DEMO", rewardEnabled: false, inviterRewardNex: 0,
+  runtime.platformConfigApi.platformConfig.mockReset().mockImplementation(api.platformConfig);
+  const referralSnapshot: ReferralRewardSnapshot = { referralCode: "SHARE-DEMO", rewardEnabled: false, inviterRewardNex: 0,
     invitedCount: 0, pendingCount: 0, settledCount: 0, lifetimeInviterNex: 0, walletNexAvailable: 0, recentRewards: [],
-    limit: 10, source: "ledger", sourceEnvironment: "PRODUCTION", runId: null, factSources: [], refreshedAt: "2026-10-25T00:00:00Z" };
+    limit: 10, source: "ledger", sourceEnvironment: "PRODUCTION", runId: null,
+    factSources: ["nx_referral_reward_settlement", "nx_wallet_ledger", "nx_earnings_release_entry", "nx_user_wallet"], refreshedAt: "2026-10-25T00:00:00Z" };
+  runtime.referralRewardApi.snapshot.mockReset().mockResolvedValue(referralSnapshot);
+  const cfg = useConfig(); await cfg.load();
+  await useReferralReward().refresh();
   runtime.platformConfigApi.platformConfig.mockClear();
+  runtime.referralRewardApi.snapshot.mockClear();
 });
 afterEach(() => { unmounts.splice(0).forEach(unmount => unmount()); vi.unstubAllGlobals(); });
 
@@ -141,6 +161,7 @@ describe("mounted invitation share sheet", () => {
     const cfg = useConfig(), rewards = useReferralReward();
     const snapshot = { ...rewards.snapshot!, referralCode: "UVELDEMO" };
     runtime.referralRewardApi.snapshot.mockResolvedValue(snapshot);
+    await rewards.refresh();
     cfg.configStatus = "idle"; cfg.config.share.baseUrl = ""; cfg.config.share.channels = [];
     let finish!: (value: Awaited<ReturnType<typeof api.platformConfig>>) => void;
     if (state === "failed") runtime.platformConfigApi.platformConfig.mockRejectedValue(new Error("503"));
@@ -204,7 +225,8 @@ describe("mounted invitation share sheet", () => {
     runtime.platformConfigApi.platformConfig.mockImplementationOnce(() => new Promise(done => { resolve = done; }));
     const retry = s.control(en.share.retry)!;
     const pending = retry.props.onClick(); await flush();
-    expect(text(s.root)).toContain(en.share.channelsLoading);
+    expect(text(s.root)).not.toContain(en.share.channelsLoading);
+    expect(text(s.root)).toContain(en.share.channelsEmpty);
     expect(retry.props["aria-disabled"]).toBe(true);
     expect(s.control(en.share.copyLink)!.props["aria-disabled"]).toBe(false);
     expect(s.control(en.share.posterTitle)!.props["aria-disabled"]).toBe(false);
@@ -428,11 +450,11 @@ describe("shared invitation rules authority and recovery", () => {
     expect(ruleText).toContain(teamRedesignCopy(locale).inviteRuleSettlement);
     expect(runtime.shareEventApi.record).not.toHaveBeenCalled();
   });
-  it.each([true, false])("closes stale rules for loading, failures, mismatches and disabled config (card=%s)", async entry => {
+  it.each([true, false])("keeps valid rules while loading and clears failures, mismatches and disabled config (card=%s)", async entry => {
     const { cfg, rewards } = policy(), s = await openRules(entry);
     const ruleText = () => text(s.nodes("invite-rules-content")[0]);
-    cfg.loading = true; await flush();
-    expect(ruleText()).toBe(en.team.rewardLoading);
+    const before = ruleText(); cfg.loading = true; await flush();
+    expect(ruleText()).toBe(before);
     cfg.loading = false; cfg.configStatus = "failed"; await flush();
     expect(ruleText()).toContain(teamRedesignCopy("en").inviteRuleSummary);
     expect(ruleText()).not.toContain("0.02");
@@ -445,16 +467,18 @@ describe("shared invitation rules authority and recovery", () => {
     rewards.error = null; cfg.config.rewards.enabled = false; await flush();
     expect(ruleText()).toContain(teamRedesignCopy("en").inviteRuleSummary);
     rewards.snapshot!.rewardEnabled = false; await flush();
-    expect(ruleText()).toBe(en.team.referralRewardsDisabled);
+    expect(ruleText()).toContain(en.team.referralRewardsDisabled);
     expect(s.nodes("invite-rules-retry")).toHaveLength(0);
   });
   it.each([true, false])("waits for the missing account snapshot instead of publishing public defaults (card=%s)", async entry => {
     const { rewards } = policy(), nextSnapshot = { ...rewards.snapshot! };
-    rewards.snapshot = null;
+    rewards.invalidateReadOwner();
     let finish!: (value: typeof nextSnapshot) => void;
     runtime.referralRewardApi.snapshot.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
     const s = await openRules(entry);
-    expect(text(s.nodes("invite-rules-content")[0])).toBe(en.team.rewardLoading);
+    expect(text(s.nodes("invite-rules-content")[0])).toContain(en.team.rewardLoading);
+    expect(text(s.nodes("invite-rules-content")[0])).toContain(teamRedesignCopy("en").inviteRuleQualification);
+    expect(text(s.nodes("invite-rules-content")[0])).toContain(teamRedesignCopy("en").inviteRuleSettlement);
     expect(runtime.referralRewardApi.snapshot).toHaveBeenCalledOnce();
     finish(nextSnapshot); await flush();
     expect(text(s.nodes("invite-rules-content")[0])).toContain("0.02 UVT");
@@ -478,7 +502,9 @@ describe("shared invitation rules authority and recovery", () => {
     runtime.referralRewardApi.snapshot.mockResolvedValueOnce(nextSnapshot);
     const staleRetry = s.nodes("invite-rules-retry")[0];
     const pending = staleRetry.props.onClick(); await flush();
-    expect(text(s.nodes("invite-rules-content")[0])).toBe(en.team.rewardLoading);
+    expect(text(s.nodes("invite-rules-content")[0])).toContain(en.team.rewardLoading);
+    expect(text(s.nodes("invite-rules-content")[0])).toContain(teamRedesignCopy("en").inviteRuleQualification);
+    expect(text(s.nodes("invite-rules-content")[0])).toContain(teamRedesignCopy("en").inviteRuleSettlement);
     await staleRetry.props.onClick();
     expect(runtime.platformConfigApi.platformConfig).toHaveBeenCalledTimes(2);
     expect(runtime.referralRewardApi.snapshot).toHaveBeenCalledTimes(2);

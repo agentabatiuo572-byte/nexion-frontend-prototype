@@ -1,3 +1,4 @@
+import { invalidateBeforePassiveTabRead } from "@/lib/passive-tab-read";
 import { reactive } from "vue";
 import { productPhaseApi, remoteApiEnabled } from "@/api/runtime";
 import type { PhaseId } from "./product-phase";
@@ -30,6 +31,7 @@ export function prepareServerProductPhase(): void {
 }
 
 export function refreshServerProductPhase(force = false): Promise<boolean> {
+    invalidateBeforePassiveTabRead("product-phase");
   if (!remoteApiEnabled) return Promise.resolve(true);
   if (!force && serverProductPhaseState.status === "ready" && serverProductPhaseState.phase) {
     return Promise.resolve(true);

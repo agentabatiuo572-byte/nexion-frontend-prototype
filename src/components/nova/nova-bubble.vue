@@ -22,6 +22,7 @@
 </template>
 
 <script setup lang="ts">
+import { runPassiveTabRead } from "@/lib/passive-tab-read";
 import { formatAmount } from "@/lib/amount-display";
 import { computed, onMounted, onUnmounted } from "vue";
 import { useNova } from "@/store/nova";
@@ -51,7 +52,7 @@ const messageCenter = useMessageDrawer();
 const notifications = useNotifications();
 // 创世闸(P1-2):推送前判紧迫感是否被允许;声明见 stakingEventMessage 内注释。
 const genesisCfg = useGenesisConfig();
-const { showUrgency: genesisUrgencyOk } = useGenesisSaleGate();
+const genesisUrgencyOk = remoteApiEnabled ? computed(() => false) : useGenesisSaleGate().showUrgency;
 
 // The floating shortcut retains only unread human advisor/support replies.
 // Notification and ticket counts belong to the unified message center.
@@ -161,8 +162,7 @@ const intervals: ReturnType<typeof setInterval>[] = [];
 
 onMounted(() => {
   if (remoteApiEnabled) {
-    void notifications.refreshRemote();
-    void conversations.refresh().catch(() => undefined);
+    void runPassiveTabRead("conversations", () => conversations.refresh(), { owner: conversations.scopeInvalidated }, () => !conversations.loading && !conversations.error).catch(() => undefined);
     return;
   }
   if (!NOVA_SUPPORT_VISIBLE) return;

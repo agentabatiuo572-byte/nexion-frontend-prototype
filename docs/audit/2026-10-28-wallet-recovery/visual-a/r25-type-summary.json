@@ -1,0 +1,280 @@
+[
+  {
+    "label": "r25-type-320-vi-light-profile",
+    "viewport": "320x693",
+    "theme": "#13141A",
+    "profile": "18px",
+    "sectionFonts": [
+      "14px/20px"
+    ],
+    "titleFonts": [
+      "13px/18px"
+    ],
+    "subtitleFonts": [],
+    "minHitHeight": 56,
+    "minCopyToRightSlotGap": 7.999984741210966,
+    "overflowRows": 0
+  },
+  {
+    "label": "r25-type-320-vi-light-settings",
+    "viewport": "320x693",
+    "theme": "#13141A",
+    "profile": "18px",
+    "sectionFonts": [
+      "14px/20px"
+    ],
+    "titleFonts": [
+      "13px/18px"
+    ],
+    "subtitleFonts": [],
+    "minHitHeight": 56,
+    "minCopyToRightSlotGap": 7.999984741210966,
+    "overflowRows": 0
+  },
+  {
+    "label": "r25-type-320-vi-light-help",
+    "viewport": "320x693",
+    "theme": "#13141A",
+    "profile": "18px",
+    "sectionFonts": [
+      "14px/20px"
+    ],
+    "titleFonts": [
+      "13px/18px"
+    ],
+    "subtitleFonts": [],
+    "minHitHeight": 56,
+    "minCopyToRightSlotGap": 7.999984741210966,
+    "overflowRows": 0
+  },
+  {
+    "label": "r25-type-320-vi-dark-profile",
+    "viewport": "320x693",
+    "theme": "#F5F7FA",
+    "profile": "18px",
+    "sectionFonts": [
+      "14px/20px"
+    ],
+    "titleFonts": [
+      "13px/18px"
+    ],
+    "subtitleFonts": [],
+    "minHitHeight": 56,
+    "minCopyToRightSlotGap": 7.999984741210966,
+    "overflowRows": 0
+  },
+  {
+    "label": "r25-type-320-vi-dark-settings",
+    "viewport": "320x693",
+    "theme": "#F5F7FA",
+    "profile": "18px",
+    "sectionFonts": [
+      "14px/20px"
+    ],
+    "titleFonts": [
+      "13px/18px"
+    ],
+    "subtitleFonts": [],
+    "minHitHeight": 56,
+    "minCopyToRightSlotGap": 7.999984741210966,
+    "overflowRows": 0
+  },
+  {
+    "label": "r25-type-320-vi-dark-help",
+    "viewport": "320x693",
+    "theme": "#F5F7FA",
+    "profile": "18px",
+    "sectionFonts": [
+      "14px/20px"
+    ],
+    "titleFonts": [
+      "13px/18px"
+    ],
+    "subtitleFonts": [],
+    "minHitHeight": 56,
+    "minCopyToRightSlotGap": 7.999984741210966,
+    "overflowRows": 0
+  },
+  {
+    "label": "r25-type-360-vi-light-profile",
+    "viewport": "360x780",
+    "theme": "#13141A",
+    "profile": "19px",
+    "sectionFonts": [
+      "14px/20px"
+    ],
+    "titleFonts": [
+      "14px/20px"
+    ],
+    "subtitleFonts": [],
+    "minHitHeight": 56,
+    "minCopyToRightSlotGap": 7.9999847412109375,
+    "overflowRows": 0
+  },
+  {
+    "label": "r25-type-360-vi-light-settings",
+    "viewport": "360x780",
+    "theme": "#13141A",
+    "profile": "19px",
+    "sectionFonts": [
+      "14px/20px"
+    ],
+    "titleFonts": [
+      "14px/20px"
+    ],
+    "subtitleFonts": [],
+    "minHitHeight": 56,
+    "minCopyToRightSlotGap": 7.9999847412109375,
+    "overflowRows": 0
+  },
+  {
+    "label": "r25-type-360-vi-dark-profile",
+    "viewport": "360x780",
+    "theme": "#F5F7FA",
+    "profile": "19px",
+    "sectionFonts": [
+      "14px/20px"
+    ],
+    "titleFonts": [
+      "14px/20px"
+    ],
+    "subtitleFonts": [],
+    "minHitHeight": 56,
+    "minCopyToRightSlotGap": 7.9999847412109375,
+    "overflowRows": 0
+  },
+  {
+    "label": "r25-type-360-vi-dark-settings",
+    "viewport": "360x780",
+    "theme": "#F5F7FA",
+    "profile": "19px",
+    "sectionFonts": [
+      "14px/20px"
+    ],
+    "titleFonts": [
+      "14px/20px"
+    ],
+    "subtitleFonts": [],
+    "minHitHeight": 56,
+    "minCopyToRightSlotGap": 7.9999847412109375,
+    "overflowRows": 0
+  },
+  {
+    "label": "r25-type-390-vi-light-profile",
+    "viewport": "390x844",
+    "theme": "#13141A",
+    "profile": "20px",
+    "sectionFonts": [
+      "15px/20px"
+    ],
+    "titleFonts": [
+      "15px/20px"
+    ],
+    "subtitleFonts": [],
+    "minHitHeight": 64,
+    "minCopyToRightSlotGap": 11.999984741210938,
+    "overflowRows": 0
+  },
+  {
+    "label": "r25-type-390-vi-light-settings",
+    "viewport": "390x844",
+    "theme": "#13141A",
+    "profile": "20px",
+    "sectionFonts": [
+      "15px/20px"
+    ],
+    "titleFonts": [
+      "15px/20px"
+    ],
+    "subtitleFonts": [],
+    "minHitHeight": 64,
+    "minCopyToRightSlotGap": 11.999984741210938,
+    "overflowRows": 0
+  },
+  {
+    "label": "r25-type-390-zh-dark-profile",
+    "viewport": "390x844",
+    "theme": "#F5F7FA",
+    "profile": "20px",
+    "sectionFonts": [
+      "15px/20px"
+    ],
+    "titleFonts": [
+      "15px/20px"
+    ],
+    "subtitleFonts": [],
+    "minHitHeight": 64,
+    "minCopyToRightSlotGap": 11.999984741210938,
+    "overflowRows": 0
+  },
+  {
+    "label": "r25-type-390-zh-dark-settings",
+    "viewport": "390x844",
+    "theme": "#F5F7FA",
+    "profile": "20px",
+    "sectionFonts": [
+      "15px/20px"
+    ],
+    "titleFonts": [
+      "15px/20px"
+    ],
+    "subtitleFonts": [],
+    "minHitHeight": 64,
+    "minCopyToRightSlotGap": 11.999984741210938,
+    "overflowRows": 0
+  },
+  {
+    "label": "r25-type-320-vi-light-store-reuse",
+    "viewport": "320x693",
+    "theme": "#13141A",
+    "profile": null,
+    "sectionFonts": [
+      "14px/20px"
+    ],
+    "titleFonts": [
+      "13px/18px"
+    ],
+    "subtitleFonts": [
+      "12px/16px"
+    ],
+    "minHitHeight": 68,
+    "minCopyToRightSlotGap": 7.999984741210966,
+    "overflowRows": 0
+  },
+  {
+    "label": "r25-type-360-vi-dark-store-reuse",
+    "viewport": "360x780",
+    "theme": "#F5F7FA",
+    "profile": null,
+    "sectionFonts": [
+      "14px/20px"
+    ],
+    "titleFonts": [
+      "14px/20px"
+    ],
+    "subtitleFonts": [
+      "12px/16px"
+    ],
+    "minHitHeight": 70,
+    "minCopyToRightSlotGap": 7.999984741210966,
+    "overflowRows": 0
+  },
+  {
+    "label": "r25-type-390-vi-light-store-reuse",
+    "viewport": "390x844",
+    "theme": "#13141A",
+    "profile": null,
+    "sectionFonts": [
+      "15px/20px"
+    ],
+    "titleFonts": [
+      "15px/20px"
+    ],
+    "subtitleFonts": [
+      "13px/18px"
+    ],
+    "minHitHeight": 78,
+    "minCopyToRightSlotGap": 12.000015258789062,
+    "overflowRows": 0
+  }
+]

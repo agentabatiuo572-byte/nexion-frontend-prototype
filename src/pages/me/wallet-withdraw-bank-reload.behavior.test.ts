@@ -64,7 +64,7 @@ const cleanups: Array<() => void> = [];
 async function settle() { for (let i = 0; i < 6; i++) { await Promise.resolve(); await Vue.nextTick(); } }
 
 function mount(options: { params?: Record<string, unknown>; hash?: string; bootstrap?: boolean;
-  firstFailure?: boolean; deferred?: boolean; pending?: boolean; unbound?: boolean; denyNewOwner?: number } = {}) {
+  firstFailure?: boolean; deferred?: boolean; deferredConfig?: boolean; pending?: boolean; unbound?: boolean; denyNewOwner?: number } = {}) {
   vi.stubGlobal("window", { location: { hash: options.hash ?? "#/pages/me/wallet-withdraw-bank" } });
   const storage = new Map<string, unknown>();
   const app = Vue.reactive({ accountKey: options.bootstrap ? "default" : "user:7", accountBindingEpoch: 0 });
@@ -73,10 +73,13 @@ function mount(options: { params?: Record<string, unknown>; hash?: string; boots
   let release!: (value: unknown) => void, rejectFirst!: (reason: unknown) => void;
   const firstRead = new Promise((resolve, reject) => { release = resolve; rejectFirst = reject; });
   const response = options.pending ? { ...paid, withdrawal: { ...paid.withdrawal, status: "PROCESSING" }, providerState: "PENDING", settlementEvidence: undefined } : paid;
-  let orderReads = 0;
+  let orderReads = 0, configReads = 0;
   const request = vi.fn(async (input: { path: string; method?: string; body?: unknown; idempotencyKey?: string }) => {
     if (input.method && input.method !== "GET") throw new Error("Unexpected funds mutation");
-    if (input.path === "/api/withdrawals/bank/config") return { ...config, beneficiary: options.unbound ? null : config.beneficiary };
+    if (input.path === "/api/withdrawals/bank/config") {
+      if (options.deferredConfig && configReads++ === 0) return firstRead;
+      return { ...config, beneficiary: options.unbound ? null : config.beneficiary };
+    }
     if (input.path === `/api/withdrawals/bank/orders/${orderNo}`) {
       orderReads++;
       if (options.denyNewOwner && app.accountKey === "user:8") throw new ApiError({ kind: "http", status: options.denyNewOwner, message: "ORDER_NOT_FOUND" });
@@ -125,6 +128,101 @@ beforeEach(() => {
 afterEach(() => { cleanups.splice(0).forEach(fn => fn()); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe("bank order tracking reload", () => {
+  it.each(["account", "binding"])("does not retag old config when %s changes immediately before native onShow", async boundary => {
+    const s = mount(); s.show(); await settle(); expect(s.text()).toContain("****1234");
+    s.request.mockImplementationOnce(() => new Promise(() => {}));
+    if (boundary === "account") s.app.accountKey = "user:8"; else s.app.accountBindingEpoch++;
+    s.show(); await settle();
+    expect(s.text()).not.toContain("****1234");
+    expect(s.find("bank-continue")!.props["aria-disabled"]).toBe(true);
+  });
+
+  it.each(["success", "failure"])("keeps a canonical new-scope read after an A-B-A transition despite the old %s", async outcome => {
+    const s = mount(); s.show(); await settle();
+    const reads: Array<{ resolve(value: unknown): void; reject(cause: unknown): void }> = [];
+    s.request.mockImplementation(() => new Promise((resolve, reject) => reads.push({ resolve, reject })));
+    s.app.accountKey = "user:8"; s.show(); s.app.accountKey = "user:7"; s.show(); await settle();
+    expect(s.text()).not.toContain("****1234"); expect(reads).toHaveLength(2);
+    reads[1].resolve({ ...config, beneficiary: { ...config.beneficiary, maskedAccount: "****9999" } }); await settle();
+    expect(s.text()).toContain("****9999");
+    if (outcome === "success") reads[0].resolve({ ...config, beneficiary: { ...config.beneficiary, maskedAccount: "****7777" } });
+    else reads[0].reject(new ApiError({ kind: "http", status: 403, message: "OLD_FORBIDDEN" }));
+    await settle(); expect(s.text()).toContain("****9999"); expect(s.text()).not.toContain("****7777");
+    expect(s.text()).not.toContain(en.bankWithdrawal.error);
+    s.show(); await settle(); expect(s.text()).toContain("****9999");
+    expect(s.find("bank-continue")!.props["aria-disabled"]).toBe(true);
+  });
+
+  it.each([401, 403])("drops retained config on a current %s without making unknown actions usable", async status => {
+    const s = mount(); s.show(); await settle(); expect(s.text()).toContain("****1234");
+    s.request.mockRejectedValueOnce(new ApiError({ kind: "http", status, message: "DENIED" }));
+    s.show(); await settle();
+    expect(s.text()).not.toContain("****1234"); expect(s.text()).toContain(en.bankWithdrawal.error);
+    expect(s.find("bank-continue")!.props["aria-disabled"]).toBe(true);
+    expect(s.find("bank-quote")).toBeUndefined();
+    s.request.mockImplementationOnce(() => new Promise(() => {})); s.show(); await settle();
+    expect(s.text()).not.toContain("****1234");
+  });
+  it("keeps the known new-withdrawal static shell without inventing a recipient through cold, warm and failed config reads", async () => {
+    const s = mount({ deferredConfig: true }); s.show(); await settle();
+    for (const label of [en.bankWithdrawal.recipientTitle, en.bankWithdrawal.recipientSubtitle, en.bankWithdrawal.continueWithdrawal]) expect(s.text()).toContain(label);
+    expect(s.text()).not.toContain("****1234"); expect(s.text()).not.toContain(en.bankWithdrawal.unboundNotice);
+    expect(s.find("bank-continue")!.props["aria-disabled"]).toBe(true);
+    expect(s.find("bank-continue")!.props.onClick).toBeUndefined(); expect(s.find("bank-amount")).toBeUndefined();
+    s.release(config); await settle(); expect(s.text()).toContain("****1234");
+    let fail!: (cause: Error) => void;
+    s.request.mockImplementationOnce(() => new Promise((_resolve, reject) => { fail = reject; }));
+    s.show(); await settle();
+    expect(s.text()).toContain("****1234"); expect(s.text()).not.toContain(en.bankWithdrawal.loading);
+    expect(s.find("bank-continue")!.props["aria-disabled"]).toBe(true);
+    s.find("bank-continue")!.props.onClick(); await settle(); expect(s.find("bank-amount")).toBeUndefined();
+    fail(new Error("unavailable")); await settle();
+    expect(s.text()).toContain(en.bankWithdrawal.error); expect(s.text()).toContain(en.bankWithdrawal.recipientTitle);
+    expect(s.text()).not.toContain("****1234"); expect(s.find("bank-continue")!.props["aria-disabled"]).toBe(true);
+    expect(s.request.mock.calls.every(([input]) => !input.method || input.method === "GET")).toBe(true);
+  });
+  it("silently reads a retained order but keeps cold loading and a real failure", async () => {
+    const cold = mount({ params: { order: orderNo }, deferred: true }); cold.show(); await settle();
+    expect(cold.text()).toContain(en.bankWithdrawal.loading);
+    cold.release(paid); await settle();
+    let finish!: (value: unknown) => void;
+    cold.request.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    cold.find("bank-refresh")!.props.onClick(); await settle();
+    expect(cold.text()).toContain("21.00 USDT"); expect(cold.text()).not.toContain(en.bankWithdrawal.loading);
+    expect(cold.find("bank-refresh")!.props["aria-disabled"]).toBe(true);
+    for (const label of [en.bankWithdrawal.refresh, en.bankWithdrawal.newWithdrawal, en.bankWithdrawal.backToWallet]) {
+      const button = nodesOf(cold.root).find(target => target.props.role === "button" && textOf(target) === label)!;
+      expect(button.props.style).toMatchObject({ opacity: 1 }); expect(button.props["aria-disabled"]).toBe(true);
+    }
+    finish(paid); await settle();
+    cold.request.mockRejectedValueOnce(new Error("unavailable"));
+    await cold.click("bank-refresh");
+    expect(cold.text()).toContain(en.bankWithdrawal.error); expect(cold.text()).toContain("21.00 USDT");
+    expect(cold.request.mock.calls.every(([input]) => !input.method || input.method === "GET")).toBe(true);
+  });
+
+  it("clears config presentation on same-account rebinding and rejects the previous read without releasing quote actions", async () => {
+    const s = mount(); s.show(); await settle(); expect(s.text()).toContain("****1234");
+    const completions: Array<(value: unknown) => void> = [];
+    s.request.mockImplementation(() => new Promise(resolve => completions.push(resolve)));
+    s.show(); await settle(); expect(s.text()).toContain("****1234");
+    s.app.accountBindingEpoch++; await settle(); expect(s.text()).not.toContain("****1234");
+    completions[0](config); await settle(); expect(s.text()).not.toContain("****1234");
+    expect(s.find("bank-continue")!.props["aria-disabled"]).toBe(true);
+    completions[1]({ ...config, beneficiary: null }); await settle();
+    expect(s.text()).toContain(en.bankWithdrawal.unboundNotice); expect(s.text()).not.toContain("****1234");
+    expect(s.find("bank-continue")).toBeUndefined(); expect(s.find("bank-quote")).toBeUndefined();
+    expect(s.request.mock.calls.every(([input]) => !input.method || input.method === "GET")).toBe(true);
+  });
+
+  it("keeps an unresolved-intent capability failure in its own recovery branch during a warm config read", async () => {
+    const s = mount({ deferredConfig: true }); s.show(); await settle();
+    s.release({ ...config, unresolvedIntent: undefined }); await settle();
+    expect(s.text()).toContain(en.bankWithdrawal.recoveryUnavailable); expect(s.find("bank-continue")).toBeUndefined();
+    s.request.mockImplementationOnce(() => new Promise(() => {})); s.show(); await settle();
+    expect(s.text()).toContain(en.bankWithdrawal.recoveryUnavailable); expect(s.find("bank-continue")).toBeUndefined();
+    expect(s.find("bank-quote")).toBeUndefined();
+  });
   it.each([
     ["warm onLoad", { params: { order: orderNo } }],
     ["cold H5 hash", { hash: `#/pages/me/wallet-withdraw-bank?order=${orderNo}` }],

@@ -46,6 +46,7 @@ function renderCard(
 ) {
   const component = {
     setup: () => ({
+      visibility: { hidden: false, mask: String },
       formatAmount,
       props: { active: true }, expanded, rootStyle: {}, t: { home, quest: { expired: "EXPIRED" } },
       taskCountText: unavailable ? home.dayOneUnavailable : "0 tasks", rewardText: "—",

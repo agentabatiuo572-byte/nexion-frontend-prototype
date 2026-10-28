@@ -4,10 +4,12 @@
       <SubPageHeader back="/pages/team/team" :title="t.network.pageTitle" />
 
       <view class="network-content">
-        <view v-if="remoteApiEnabled && network.remoteStatus === 'error'" :style="errorStateStyle">
-          <text class="block" style="font-weight: 600">{{ t.network.projectionErrorTitle }}</text>
-          <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ t.network.projectionErrorDesc }}</text>
-          <view role="button" tabindex="0" :style="retryStyle" @click="network.refreshCanonicalNetwork()" @keydown.enter.prevent="network.refreshCanonicalNetwork()" @keydown.space.prevent="network.refreshCanonicalNetwork()"><text>{{ t.network.retry }}</text><text aria-hidden="true">→</text></view>
+        <view v-if="remoteApiEnabled && network.remoteStatus === 'error'" class="nx-inline-recovery" :style="errorStateStyle">
+          <view class="nx-inline-recovery__copy">
+            <text class="block" style="font-weight: 600">{{ t.network.projectionErrorTitle }}</text>
+            <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ t.network.projectionErrorDesc }}</text>
+          </view>
+          <view class="nx-inline-recovery__action nx-card-recovery-action nx-card-recovery-action--quiet nx-card-recovery-action--inline" role="button" tabindex="0" @click="network.refreshCanonicalNetwork()" @keydown.enter.prevent="network.refreshCanonicalNetwork()" @keydown.space.prevent="network.refreshCanonicalNetwork()"><text>{{ t.network.retry }}</text><text aria-hidden="true">→</text></view>
         </view>
         <view class="grid grid-cols-3 network-metrics" style="gap: 8px">
           <view class="text-center" :style="metricCardStyle">
@@ -394,7 +396,6 @@ function statusColor(status: MemberStatus): string {
 // Metrics stay on the floor; the interactive graph has one quiet canvas.
 const metricCardStyle: CSSProperties = { padding: "12px 4px", display: "flex", flexDirection: "column" };
 const errorStateStyle: CSSProperties = { padding: "12px 0", borderBottom: "1px solid var(--v5-border)", color: "var(--v5-ink)" };
-const retryStyle: CSSProperties = { marginTop: "10px", minHeight: "44px", display: "flex", justifyContent: "center", alignItems: "center", gap: "12px", borderRadius: "999px", border: "1px solid var(--v5-border)", background: "color-mix(in srgb, var(--v5-ink) 6%, transparent)", color: "var(--v5-ink)" };
 const metricLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.5, flex: 1 };
 function metricValueStyle(color: string): CSSProperties {
   return { fontSize: "26px", fontWeight: 600, marginTop: "8px", color };

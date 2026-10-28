@@ -158,6 +158,9 @@ const isShare = computed(() => props.product.productType === "SHARE");
 const catalogUnavailable = computed(() => remoteApiEnabled && productCatalogState.status !== "ready");
 const marketingPromotion=computed(()=>isPromotionActive(props.promotion)?props.promotion:null);
 const promotionUnavailable=computed(()=>!!props.activityId&&(!props.promotionReady||!canPreviewPromotion(props.promotion??null)||!props.promotion?.productNos.includes(props.product.id)));
+// The catalog supplies a scoped retained activity only for read-only labels.
+const promotionPresentationReady=computed(()=>!!props.activityId&&canPreviewPromotion(props.promotion??null)&&!!props.promotion?.productNos.includes(props.product.id));
+const promotionPresentationSignIn=computed(()=>promotionPresentationReady.value&&props.promotion?.eligibility==='SIGN_IN_REQUIRED');
 const promotionSignIn=computed(()=>!!props.activityId&&!promotionUnavailable.value&&props.promotion?.eligibility==='SIGN_IN_REQUIRED');
 const stockUnavailable = computed(() => props.product.inventoryMode === "FINITE"
   && props.product.stock === 0);
@@ -245,7 +248,7 @@ const gateProgressText = computed(() =>
   fmt(t.value.store.gateProgress, { pct: Math.round(gate.value.progressPct * 100) }),
 );
 const buyLabel = computed(() =>
-  promotionSignIn.value ? t.value.promotion.signIn : promotionUnavailable.value ? t.value.promotion.unavailable : catalogUnavailable.value
+  promotionPresentationSignIn.value ? t.value.promotion.signIn : promotionUnavailable.value && !promotionPresentationReady.value ? t.value.promotion.unavailable : catalogUnavailable.value
     ? productCatalogState.status === "loading" ? t.value.store.catalogLoadingTitle : t.value.store.catalogErrorTitle
     : stockUnavailable.value
     ? t.value.store.temporarilyOutOfStock
@@ -515,8 +518,12 @@ import { getProductMedia } from "@/lib/product-media";
 .product-art-entry { position: absolute; inset: 0; }
 .product-card--entered .product-art-entry { animation: product-enter 420ms ease-out both; }
 @keyframes product-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-.product-media::after { content: ''; position:absolute; inset:0; pointer-events:none; background: linear-gradient(105deg, transparent 25%, rgba(255,255,255,.18) 50%, transparent 75%); transform: translateX(-110%); }
-.product-card:active .product-media::after { transform: translateX(110%); transition: transform 450ms ease; }
+.product-media::after { content:''; position:absolute; inset:0 auto 0 -45%; width:38%; pointer-events:none; background:linear-gradient(100deg,transparent,rgba(255,255,255,.16),transparent); opacity:0; transform:translateX(0) skewX(-12deg); animation:product-auto-sheen 6.8s ease-out var(--product-sheen-delay, .6s) infinite; animation-play-state:paused; }
+.product-card--in-view .product-media::after { animation-play-state:running; }
+.product-card:nth-child(4n + 2) { --product-sheen-delay:1.7s; }
+.product-card:nth-child(4n + 3) { --product-sheen-delay:2.8s; }
+.product-card:nth-child(4n + 4) { --product-sheen-delay:3.9s; }
+@keyframes product-auto-sheen { 0% { transform:translateX(0) skewX(-12deg); opacity:0; } 2% { opacity:.85; } 15% { transform:translateX(480%) skewX(-12deg); opacity:0; } 100% { transform:translateX(480%) skewX(-12deg); opacity:0; } }
 .product-card:nth-child(even) .product-art { animation-delay: -1.5s; }
 .product-art { transform-origin: 50% 55%; animation: product-float 4s ease-in-out infinite; animation-play-state: paused; }
 .product-card--in-view .product-art { animation-play-state: running; }
@@ -548,9 +555,5 @@ import { getProductMedia } from "@/lib/product-media";
 .product-card--compact:nth-child(2n) .product-art { animation-delay:-1.1s; }
 .product-card--compact:nth-child(3n) .product-art { animation-delay:-2.2s; }
 .product-card--compact:nth-child(4n) .product-art { animation-delay:-3.1s; }
-.product-card--compact .product-media::after { inset:0 auto 0 -60%; width:40%; background:linear-gradient(100deg,transparent,rgba(255,255,255,.14),transparent); transform:skewX(-12deg); opacity:0; }
-.product-card--compact:active .product-media::after { transform:skewX(-12deg); transition:none; animation:product-compact-sheen 900ms ease-out; }
-@keyframes product-compact-sheen { 0% { left:-60%; opacity:1; } 100% { left:130%; opacity:0; } }
-@media(hover:hover) { .product-card--compact:hover .product-media::after { animation:product-compact-sheen 900ms ease-out; } }
-@media(prefers-reduced-motion:reduce) { .product-card--compact { transition:none; }.product-card:active,.product-card--compact:active,.product-footer [role="button"]:active { transform:none; }.product-card--compact .product-art,.product-card--compact .product-art-entry,.product-card--compact:active .product-media::after,.product-card--compact:hover .product-media::after { animation:none; } }
+@media(prefers-reduced-motion:reduce) { .product-card--compact { transition:none; }.product-card:active,.product-card--compact:active,.product-footer [role="button"]:active { transform:none; }.product-card--compact .product-art,.product-card--compact .product-art-entry,.product-media::after { animation:none; } }
 </style>

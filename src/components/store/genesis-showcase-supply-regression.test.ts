@@ -1,3 +1,4 @@
+import { createPassiveTabReadFixture } from '@/lib/passive-tab-read.test-support';
 import { computed, reactive, ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
 import ts from "typescript";
@@ -95,10 +96,10 @@ function actualStoreOnShow() {
   const genesis = { syncRemote: vi.fn() };
   compile<void>(
     `let storePageVisible = false; let storeObservationEpoch = 0; ${source}; return undefined;`,
-    ["onShow", "genesisCfg", "genesis", "refreshServerProductPhase", "refreshProductCatalog", "observeDayOneStorePage", "takeNavigationQuery", "publicOnly"],
+    ["onShow", "genesisCfg", "genesis", "refreshServerProductPhase", "refreshProductCatalog", "observeDayOneStorePage", "takeNavigationQuery", "publicOnly", "runPassiveTabRead", "voucher", "revalidateProductCatalog"],
     [
       (callback: () => void) => callbacks.push(callback), genesisCfg, genesis,
-      vi.fn(), vi.fn(), vi.fn(), () => "", ref(false),
+      vi.fn(), vi.fn(), vi.fn(), () => "", ref(false), createPassiveTabReadFixture(() => "store").runPassiveTabRead, { revalidateRemote: vi.fn() }, vi.fn(),
     ],
   );
   callbacks.forEach((callback) => callback());

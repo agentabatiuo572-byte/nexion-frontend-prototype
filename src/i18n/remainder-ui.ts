@@ -4,7 +4,7 @@ import { useLocaleStore } from "@/store/locale";
 export const remainderUiCopy = {
   zh: {
     earnWays: {
-      phoneTitle: "手机算力", phoneBody: "Android 手机参与计算。", phoneAction: "设置手机", phoneReadOnly: "手机状态",
+      phoneTitle: "手机算力", phoneBody: "连接 Android 手机", phoneAction: "设置手机", phoneReadOnly: "手机状态",
       stakingBody: "期限及提前退出规则。",
       gpuTitle: "共享电脑算力", gpuBody: "闲置 GPU · 占 1 个槽位", gpuAction: "查看连接方式",
     },

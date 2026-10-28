@@ -1,3 +1,4 @@
+import { invalidateBeforePassiveTabRead } from "@/lib/passive-tab-read";
 import { market24hSummary } from "@/lib/market-24h-summary";
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
@@ -77,6 +78,7 @@ export const useMarket = defineStore("market", () => {
   // 权威不可达是常态输入,不 reject(resilience 门同族;z6 审计 P0:
   // wallet-nex 的 setInterval 裸发 tickPrice → 原 throw 每 3s 一个 unhandledRejection)。
   function syncRemote(): Promise<boolean> {
+    invalidateBeforePassiveTabRead("market");
     if (!remoteApiEnabled) return Promise.resolve(true);
     if (syncInFlight) return syncInFlight;
     if (remoteReady.value && Date.now() - lastRemoteFetchAt < 30_000) return Promise.resolve(true);

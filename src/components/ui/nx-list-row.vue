@@ -16,8 +16,13 @@ function activate(event?: Event) { if (!props.disabled && !(event as KeyboardEve
 .nx-list-row:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -2px; }
 .nx-list-row__leading { display: grid; place-items: center; flex: none; width: 36px; color: var(--v5-ink-2); }
 .nx-list-row__copy { flex: 1; min-width: 0; }
-.nx-list-row__title { display: block; font: 500 15px/20px var(--font-v5); }
-.nx-list-row__subtitle { display: block; margin-top: 2px; font: 400 13px/18px var(--font-v5); color: var(--v5-ink-3); }
+.nx-list-row__title { display: block; font: 500 var(--ui-type-list-title)/var(--ui-type-list-title-lh) var(--font-v5); overflow-wrap: anywhere; }
+.nx-list-row__subtitle { display: block; margin-top: 2px; font: 400 var(--ui-type-list-subtitle)/var(--ui-type-list-subtitle-lh) var(--font-v5); color: var(--v5-ink-3); overflow-wrap: anywhere; }
 .nx-list-row__value { max-width: 38%; font: 500 12px/1.4 var(--font-v5); color: var(--v5-ink-2); text-align: right; overflow-wrap: anywhere; }
 .nx-list-row__chevron { flex: none; color: var(--v5-ink-4); }
+@media (max-width: 374px) {
+  .nx-list-row { min-height: 56px; gap: 8px; padding: 8px 12px; }
+  .nx-list-row__leading { width: 32px; }
+  .nx-list-row__value { font-weight: 400; line-height: 16px; }
+}
 </style>

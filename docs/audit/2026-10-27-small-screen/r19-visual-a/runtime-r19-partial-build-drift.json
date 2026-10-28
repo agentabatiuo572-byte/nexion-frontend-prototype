@@ -1,0 +1,951 @@
+{
+  "frozenAt": "2026-10-27T15:57:06.811Z",
+  "status": "stopped-build-drift-not-final-pass",
+  "expectedEntry": "index-PPFyVDQc.js",
+  "expectedGlobalCss": "index-DPMvPy7r.css",
+  "validIntroCss": "intro-BZbJTasF.css",
+  "records": [
+    {
+      "label": "vi-light-320x693-before",
+      "time": "2026-10-27T15:54:03.827Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-PPFyVDQc.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-DSCGxZok.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css",
+        "http://127.0.0.1:5254/assets/standalone-page-shell-B6WTKa80.css",
+        "http://127.0.0.1:5254/assets/intro-BZbJTasF.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/onboarding/intro",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "fonts": "loaded",
+      "geometry": {
+        "doc": {
+          "w": 320,
+          "sw": 320,
+          "h": 693,
+          "sh": 693
+        },
+        "body": {
+          "w": 320,
+          "sw": 320,
+          "h": 693,
+          "sh": 693
+        },
+        "root": {
+          "display": "block",
+          "visibility": "visible",
+          "opacity": "1",
+          "font": [
+            "16px",
+            "400",
+            "normal"
+          ],
+          "overflow": [
+            "hidden",
+            "auto"
+          ],
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 320,
+            "height": 693.3333740234375,
+            "top": 0,
+            "right": 320,
+            "bottom": 693.3333740234375,
+            "left": 0
+          },
+          "text": "VIUVEL. Sức mạnh tính toán luân chuyển.Kết nối sức mạnh tính toán của thế giới để tiếp sức cho AI.—thiết bị trực tuyến—tổng đã chi trảBắt đầuĐăng nhậpTiếp tục nghĩa là bạn đồng ý vớiĐiều khoản · Chính sách quyền riêng tư",
+          "scrollW": 320,
+          "scrollH": 693
+        },
+        "content": {
+          "display": "flex",
+          "visibility": "visible",
+          "opacity": "1",
+          "font": [
+            "16px",
+            "400",
+            "normal"
+          ],
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 320,
+            "height": 655.3333740234375,
+            "top": 0,
+            "right": 320,
+            "bottom": 655.3333740234375,
+            "left": 0
+          },
+          "text": "VIUVEL. Sức mạnh tính toán luân chuyển.Kết nối sức mạnh tính toán của thế giới để tiếp sức cho AI.—thiết bị trực tuyến—tổng đã chi trảBắt đầuĐăng nhậpTiếp tục nghĩa là bạn đồng ý vớiĐiều khoản · Chính sách quyền riêng tư"
+        },
+        "orbArea": {
+          "display": "flex",
+          "visibility": "visible",
+          "opacity": "1",
+          "font": [
+            "16px",
+            "400",
+            "normal"
+          ],
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "rect": {
+            "x": 20,
+            "y": 0,
+            "width": 280,
+            "height": 320.04168701171875,
+            "top": 0,
+            "right": 300,
+            "bottom": 320.04168701171875,
+            "left": 20
+          },
+          "text": ""
+        },
+        "orb": {
+          "display": "block",
+          "visibility": "visible",
+          "opacity": "1",
+          "font": [
+            "16px",
+            "400",
+            "normal"
+          ],
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "rect": {
+            "x": 78.33333587646484,
+            "y": 100.35417175292969,
+            "width": 163.3229217529297,
+            "height": 163.3229217529297,
+            "top": 100.35417175292969,
+            "right": 241.65625762939453,
+            "bottom": 263.6770935058594,
+            "left": 78.33333587646484
+          },
+          "text": ""
+        },
+        "title": {
+          "display": "block",
+          "visibility": "visible",
+          "opacity": "1",
+          "font": [
+            "26px",
+            "600",
+            "31.2px"
+          ],
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "rect": {
+            "x": 20,
+            "y": 320.04168701171875,
+            "width": 280,
+            "height": 62.395835876464844,
+            "top": 320.04168701171875,
+            "right": 300,
+            "bottom": 382.4375228881836,
+            "left": 20
+          },
+          "text": "UVEL. Sức mạnh tính toán luân chuyển."
+        },
+        "sub": {
+          "display": "block",
+          "visibility": "visible",
+          "opacity": "1",
+          "font": [
+            "13px",
+            "400",
+            "19.5px"
+          ],
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "rect": {
+            "x": 20,
+            "y": 390.4375,
+            "width": 280,
+            "height": 39,
+            "top": 390.4375,
+            "right": 300,
+            "bottom": 429.4375,
+            "left": 20
+          },
+          "text": "Kết nối sức mạnh tính toán của thế giới để tiếp sức cho AI."
+        },
+        "stats": {
+          "display": "inline-flex",
+          "visibility": "visible",
+          "opacity": "1",
+          "font": [
+            "11px",
+            "400",
+            "16.5px"
+          ],
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "rect": {
+            "x": 46.552085876464844,
+            "y": 441.4375,
+            "width": 226.8854217529297,
+            "height": 30.5,
+            "top": 441.4375,
+            "right": 273.43750762939453,
+            "bottom": 471.9375,
+            "left": 46.552085876464844
+          },
+          "text": "—thiết bị trực tuyến—tổng đã chi trả"
+        },
+        "statsChildren": [
+          {
+            "display": "flex",
+            "visibility": "visible",
+            "opacity": "1",
+            "font": [
+              "11px",
+              "400",
+              "16.5px"
+            ],
+            "overflow": [
+              "visible",
+              "visible"
+            ],
+            "rect": {
+              "x": 56.552085876464844,
+              "y": 448.4375,
+              "width": 109.88542175292969,
+              "height": 16.5,
+              "top": 448.4375,
+              "right": 166.43750762939453,
+              "bottom": 464.9375,
+              "left": 56.552085876464844
+            },
+            "text": "—thiết bị trực tuyến"
+          },
+          {
+            "display": "flex",
+            "visibility": "visible",
+            "opacity": "1",
+            "font": [
+              "11px",
+              "400",
+              "16.5px"
+            ],
+            "overflow": [
+              "visible",
+              "visible"
+            ],
+            "rect": {
+              "x": 179.1041717529297,
+              "y": 448.4375,
+              "width": 84.33333587646484,
+              "height": 16.5,
+              "top": 448.4375,
+              "right": 263.43750762939453,
+              "bottom": 464.9375,
+              "left": 179.1041717529297
+            },
+            "text": "—tổng đã chi trả"
+          }
+        ],
+        "language": {
+          "display": "flex",
+          "visibility": "visible",
+          "opacity": "1",
+          "font": [
+            "16px",
+            "400",
+            "normal"
+          ],
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "rect": {
+            "x": 241.08334350585938,
+            "y": 10,
+            "width": 62.91666793823242,
+            "height": 44,
+            "top": 10,
+            "right": 304.0000114440918,
+            "bottom": 54,
+            "left": 241.08334350585938
+          },
+          "text": "VI"
+        },
+        "cta": [
+          {
+            "display": "flex",
+            "visibility": "visible",
+            "opacity": "1",
+            "font": [
+              "16px",
+              "400",
+              "normal"
+            ],
+            "overflow": [
+              "visible",
+              "visible"
+            ],
+            "rect": {
+              "x": 20,
+              "y": 491.9375,
+              "width": 280,
+              "height": 44,
+              "top": 491.9375,
+              "right": 300,
+              "bottom": 535.9375,
+              "left": 20
+            },
+            "text": "Bắt đầu"
+          },
+          {
+            "display": "flex",
+            "visibility": "visible",
+            "opacity": "1",
+            "font": [
+              "16px",
+              "400",
+              "normal"
+            ],
+            "overflow": [
+              "visible",
+              "visible"
+            ],
+            "rect": {
+              "x": 20,
+              "y": 543.9375,
+              "width": 280,
+              "height": 44,
+              "top": 543.9375,
+              "right": 300,
+              "bottom": 587.9375,
+              "left": 20
+            },
+            "text": "Đăng nhập"
+          }
+        ],
+        "terms": {
+          "display": "flex",
+          "visibility": "visible",
+          "opacity": "1",
+          "font": [
+            "11px",
+            "400",
+            "15.4px"
+          ],
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "rect": {
+            "x": 20,
+            "y": 595.9375,
+            "width": 280,
+            "height": 59.395835876464844,
+            "top": 595.9375,
+            "right": 300,
+            "bottom": 655.3333358764648,
+            "left": 20
+          },
+          "text": "Tiếp tục nghĩa là bạn đồng ý vớiĐiều khoản · Chính sách quyền riêng tư"
+        },
+        "links": [
+          {
+            "display": "flex",
+            "visibility": "visible",
+            "opacity": "1",
+            "font": [
+              "11px",
+              "400",
+              "15.4px"
+            ],
+            "overflow": [
+              "visible",
+              "visible"
+            ],
+            "rect": {
+              "x": 60.270835876464844,
+              "y": 611.3333740234375,
+              "width": 55.427085876464844,
+              "height": 44,
+              "top": 611.3333740234375,
+              "right": 115.69792175292969,
+              "bottom": 655.3333740234375,
+              "left": 60.270835876464844
+            },
+            "text": "Điều khoản",
+            "role": "link",
+            "tabindex": "0"
+          },
+          {
+            "display": "flex",
+            "visibility": "visible",
+            "opacity": "1",
+            "font": [
+              "11px",
+              "400",
+              "15.4px"
+            ],
+            "overflow": [
+              "visible",
+              "visible"
+            ],
+            "rect": {
+              "x": 130.5416717529297,
+              "y": 611.3333740234375,
+              "width": 129.17709350585938,
+              "height": 44,
+              "top": 611.3333740234375,
+              "right": 259.71876525878906,
+              "bottom": 655.3333740234375,
+              "left": 130.5416717529297
+            },
+            "text": "Chính sách quyền riêng tư",
+            "role": "link",
+            "tabindex": "0"
+          }
+        ],
+        "indicator": {
+          "x": 0,
+          "y": 671.3333740234375,
+          "width": 320,
+          "height": 22,
+          "top": 671.3333740234375,
+          "right": 320,
+          "bottom": 693.3333740234375,
+          "left": 0
+        },
+        "safeGap": 37.6666259765625,
+        "scrollY": 0
+      },
+      "text": "VI\nUVEL. Sức mạnh tính toán luân chuyển.\nKết nối sức mạnh tính toán của thế giới để tiếp sức cho AI.\n—\nthiết bị trực tuyến\n—\ntổng đã chi trả\nBắt đầu\nĐăng nhập\nTiếp tục nghĩa là bạn đồng ý với\nĐiều khoản\n·\nChính sách quyền riêng tư"
+    },
+    {
+      "label": "vi-light-320x693-after",
+      "time": "2026-10-27T15:54:23.984Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-PPFyVDQc.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-DPMvPy7r.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-DSCGxZok.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-CNwHOaDW.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BzGQwxRU.css",
+        "http://127.0.0.1:5254/assets/standalone-page-shell-B6WTKa80.css",
+        "http://127.0.0.1:5254/assets/intro-BZbJTasF.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/onboarding/intro",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "fonts": "loaded",
+      "geometry": {
+        "doc": {
+          "w": 320,
+          "sw": 320,
+          "h": 693,
+          "sh": 693
+        },
+        "body": {
+          "w": 320,
+          "sw": 320,
+          "h": 693,
+          "sh": 693
+        },
+        "root": {
+          "display": "block",
+          "visibility": "visible",
+          "opacity": "1",
+          "font": [
+            "16px",
+            "400",
+            "normal"
+          ],
+          "overflow": [
+            "hidden",
+            "auto"
+          ],
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 320,
+            "height": 693.3333740234375,
+            "top": 0,
+            "right": 320,
+            "bottom": 693.3333740234375,
+            "left": 0
+          },
+          "text": "VIUVEL. Sức mạnh tính toán luân chuyển.Kết nối sức mạnh tính toán của thế giới để tiếp sức cho AI.—thiết bị trực tuyến—tổng đã chi trảBắt đầuĐăng nhậpTiếp tục nghĩa là bạn đồng ý vớiĐiều khoản · Chính sách quyền riêng tư",
+          "scrollW": 320,
+          "scrollH": 693
+        },
+        "content": {
+          "display": "flex",
+          "visibility": "visible",
+          "opacity": "1",
+          "font": [
+            "16px",
+            "400",
+            "normal"
+          ],
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "rect": {
+            "x": 0,
+            "y": 0,
+            "width": 320,
+            "height": 655.3333740234375,
+            "top": 0,
+            "right": 320,
+            "bottom": 655.3333740234375,
+            "left": 0
+          },
+          "text": "VIUVEL. Sức mạnh tính toán luân chuyển.Kết nối sức mạnh tính toán của thế giới để tiếp sức cho AI.—thiết bị trực tuyến—tổng đã chi trảBắt đầuĐăng nhậpTiếp tục nghĩa là bạn đồng ý vớiĐiều khoản · Chính sách quyền riêng tư"
+        },
+        "orbArea": {
+          "display": "flex",
+          "visibility": "visible",
+          "opacity": "1",
+          "font": [
+            "16px",
+            "400",
+            "normal"
+          ],
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "rect": {
+            "x": 20,
+            "y": 0,
+            "width": 280,
+            "height": 320.04168701171875,
+            "top": 0,
+            "right": 300,
+            "bottom": 320.04168701171875,
+            "left": 20
+          },
+          "text": ""
+        },
+        "orb": {
+          "display": "block",
+          "visibility": "visible",
+          "opacity": "1",
+          "font": [
+            "16px",
+            "400",
+            "normal"
+          ],
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "rect": {
+            "x": 78.33333587646484,
+            "y": 100.35417175292969,
+            "width": 163.3229217529297,
+            "height": 163.3229217529297,
+            "top": 100.35417175292969,
+            "right": 241.65625762939453,
+            "bottom": 263.6770935058594,
+            "left": 78.33333587646484
+          },
+          "text": ""
+        },
+        "title": {
+          "display": "block",
+          "visibility": "visible",
+          "opacity": "1",
+          "font": [
+            "26px",
+            "600",
+            "31.2px"
+          ],
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "rect": {
+            "x": 20,
+            "y": 320.04168701171875,
+            "width": 280,
+            "height": 62.395835876464844,
+            "top": 320.04168701171875,
+            "right": 300,
+            "bottom": 382.4375228881836,
+            "left": 20
+          },
+          "text": "UVEL. Sức mạnh tính toán luân chuyển."
+        },
+        "sub": {
+          "display": "block",
+          "visibility": "visible",
+          "opacity": "1",
+          "font": [
+            "13px",
+            "400",
+            "19.5px"
+          ],
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "rect": {
+            "x": 20,
+            "y": 390.4375,
+            "width": 280,
+            "height": 39,
+            "top": 390.4375,
+            "right": 300,
+            "bottom": 429.4375,
+            "left": 20
+          },
+          "text": "Kết nối sức mạnh tính toán của thế giới để tiếp sức cho AI."
+        },
+        "stats": {
+          "display": "inline-flex",
+          "visibility": "visible",
+          "opacity": "1",
+          "font": [
+            "11px",
+            "400",
+            "16.5px"
+          ],
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "rect": {
+            "x": 46.552085876464844,
+            "y": 441.4375,
+            "width": 226.8854217529297,
+            "height": 30.5,
+            "top": 441.4375,
+            "right": 273.43750762939453,
+            "bottom": 471.9375,
+            "left": 46.552085876464844
+          },
+          "text": "—thiết bị trực tuyến—tổng đã chi trả"
+        },
+        "statsChildren": [
+          {
+            "display": "flex",
+            "visibility": "visible",
+            "opacity": "1",
+            "font": [
+              "11px",
+              "400",
+              "16.5px"
+            ],
+            "overflow": [
+              "visible",
+              "visible"
+            ],
+            "rect": {
+              "x": 56.552085876464844,
+              "y": 448.4375,
+              "width": 109.88542175292969,
+              "height": 16.5,
+              "top": 448.4375,
+              "right": 166.43750762939453,
+              "bottom": 464.9375,
+              "left": 56.552085876464844
+            },
+            "text": "—thiết bị trực tuyến"
+          },
+          {
+            "display": "flex",
+            "visibility": "visible",
+            "opacity": "1",
+            "font": [
+              "11px",
+              "400",
+              "16.5px"
+            ],
+            "overflow": [
+              "visible",
+              "visible"
+            ],
+            "rect": {
+              "x": 179.1041717529297,
+              "y": 448.4375,
+              "width": 84.33333587646484,
+              "height": 16.5,
+              "top": 448.4375,
+              "right": 263.43750762939453,
+              "bottom": 464.9375,
+              "left": 179.1041717529297
+            },
+            "text": "—tổng đã chi trả"
+          }
+        ],
+        "language": {
+          "display": "flex",
+          "visibility": "visible",
+          "opacity": "1",
+          "font": [
+            "16px",
+            "400",
+            "normal"
+          ],
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "rect": {
+            "x": 241.08334350585938,
+            "y": 10,
+            "width": 62.91666793823242,
+            "height": 44,
+            "top": 10,
+            "right": 304.0000114440918,
+            "bottom": 54,
+            "left": 241.08334350585938
+          },
+          "text": "VI"
+        },
+        "cta": [
+          {
+            "display": "flex",
+            "visibility": "visible",
+            "opacity": "1",
+            "font": [
+              "16px",
+              "400",
+              "normal"
+            ],
+            "overflow": [
+              "visible",
+              "visible"
+            ],
+            "rect": {
+              "x": 20,
+              "y": 491.9375,
+              "width": 280,
+              "height": 44,
+              "top": 491.9375,
+              "right": 300,
+              "bottom": 535.9375,
+              "left": 20
+            },
+            "text": "Bắt đầu"
+          },
+          {
+            "display": "flex",
+            "visibility": "visible",
+            "opacity": "1",
+            "font": [
+              "16px",
+              "400",
+              "normal"
+            ],
+            "overflow": [
+              "visible",
+              "visible"
+            ],
+            "rect": {
+              "x": 20,
+              "y": 543.9375,
+              "width": 280,
+              "height": 44,
+              "top": 543.9375,
+              "right": 300,
+              "bottom": 587.9375,
+              "left": 20
+            },
+            "text": "Đăng nhập"
+          }
+        ],
+        "terms": {
+          "display": "flex",
+          "visibility": "visible",
+          "opacity": "1",
+          "font": [
+            "11px",
+            "400",
+            "15.4px"
+          ],
+          "overflow": [
+            "visible",
+            "visible"
+          ],
+          "rect": {
+            "x": 20,
+            "y": 595.9375,
+            "width": 280,
+            "height": 59.395835876464844,
+            "top": 595.9375,
+            "right": 300,
+            "bottom": 655.3333358764648,
+            "left": 20
+          },
+          "text": "Tiếp tục nghĩa là bạn đồng ý vớiĐiều khoản · Chính sách quyền riêng tư"
+        },
+        "links": [
+          {
+            "display": "flex",
+            "visibility": "visible",
+            "opacity": "1",
+            "font": [
+              "11px",
+              "400",
+              "15.4px"
+            ],
+            "overflow": [
+              "visible",
+              "visible"
+            ],
+            "rect": {
+              "x": 60.270835876464844,
+              "y": 611.3333740234375,
+              "width": 55.427085876464844,
+              "height": 44,
+              "top": 611.3333740234375,
+              "right": 115.69792175292969,
+              "bottom": 655.3333740234375,
+              "left": 60.270835876464844
+            },
+            "text": "Điều khoản",
+            "role": "link",
+            "tabindex": "0"
+          },
+          {
+            "display": "flex",
+            "visibility": "visible",
+            "opacity": "1",
+            "font": [
+              "11px",
+              "400",
+              "15.4px"
+            ],
+            "overflow": [
+              "visible",
+              "visible"
+            ],
+            "rect": {
+              "x": 130.5416717529297,
+              "y": 611.3333740234375,
+              "width": 129.17709350585938,
+              "height": 44,
+              "top": 611.3333740234375,
+              "right": 259.71876525878906,
+              "bottom": 655.3333740234375,
+              "left": 130.5416717529297
+            },
+            "text": "Chính sách quyền riêng tư",
+            "role": "link",
+            "tabindex": "0"
+          }
+        ],
+        "indicator": {
+          "x": 0,
+          "y": 671.3333740234375,
+          "width": 320,
+          "height": 22,
+          "top": 671.3333740234375,
+          "right": 320,
+          "bottom": 693.3333740234375,
+          "left": 0
+        },
+        "safeGap": 37.6666259765625,
+        "scrollY": 0
+      },
+      "text": "VI\nUVEL. Sức mạnh tính toán luân chuyển.\nKết nối sức mạnh tính toán của thế giới để tiếp sức cho AI.\n—\nthiết bị trực tuyến\n—\ntổng đã chi trả\nBắt đầu\nĐăng nhập\nTiếp tục nghĩa là bạn đồng ý với\nĐiều khoản\n·\nChính sách quyền riêng tư"
+    }
+  ],
+  "photos": [
+    {
+      "file": "r19-intro-vi-light-320x693.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "time": "2026-10-27T15:54:23.969Z",
+      "kind": "CDP native PNG full phone clip",
+      "sha256": "71b1df8655cf1f1401a76f6ed3f8524c0ad446b7df77a24f25002acde6b95697"
+    }
+  ],
+  "drift": {
+    "observedAt": "2026-10-27T15:57:06.810Z",
+    "source": "transcribed from actual CUA/CDP result immediately above; no second sampling after mismatch",
+    "expected": "index-PPFyVDQc.js",
+    "actual": "index-B0QjbsFt.js",
+    "outerPageSelector": "onboarding/intro",
+    "actualInnerUrl": "http://127.0.0.1:5254/?nx_device=off#/",
+    "actualTheme": "light"
+  },
+  "remaining": [
+    "320x693 other theme/languages",
+    "320x568 short-screen representatives",
+    "390x844 three-language/dual-theme representatives",
+    "language control44 actual UI open/close not executed"
+  ],
+  "wallet": "old8.8 OPEN; not visited",
+  "servicesStopped": []
+}

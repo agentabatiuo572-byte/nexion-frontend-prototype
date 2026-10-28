@@ -1,3 +1,4 @@
+import { invalidateBeforePassiveTabRead } from "@/lib/passive-tab-read";
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 import { useTrialConfig, computeDiscountedPrice, computeTrialOffset, resolveTrialDeviceName } from "./trial-config";
@@ -315,6 +316,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
   }
 
   async function refreshRemote(force = false): Promise<boolean> {
+    invalidateBeforePassiveTabRead("trial-state");
     if (!remoteApiEnabled) return true;
     if (!force && refreshInFlight && refreshInFlightAccount === boundKey) return refreshInFlight;
     const requestedAccount = boundKey;
@@ -346,6 +348,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
   }
 
   async function refreshEligibilityRemote(): Promise<boolean> {
+    invalidateBeforePassiveTabRead("trial-eligibility");
     if (!remoteApiEnabled) return true;
     const requestedAccount = boundKey;
     const sequence = ++authorityRequestSequence;

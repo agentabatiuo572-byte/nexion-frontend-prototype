@@ -60,7 +60,7 @@ async function mount(published = quiz, web = true) {
     .replace(/\/\/ #ifdef H5\s+web = true;\s+\/\/ #endif/, web ? 'web = true;' : '');
   const js = ts.transpileModule(script, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
   const scope = vue.effectScope(); scopes.push(scope);
-  const worker = scope.run(() => new Function('require', 'exports', js + ';return { load, answers, allAnswered, canSubmit, result, resultDetails, restartQuiz, selectAnswer, moveAnswer, finish, pendingAttempt, interactionLocked, recoverStart, startFailureText, startRecoveryLabel, startFailure };')(
+  const worker = scope.run(() => new Function('require', 'exports', js + ';return { coursePresentation, displayCourse, displayCompleted, loading, error, course, load, answers, allAnswered, canSubmit, result, resultDetails, restartQuiz, selectAnswer, moveAnswer, finish, pendingAttempt, interactionLocked, recoverStart, startFailureText, startRecoveryLabel, startFailure };')(
     (name: string) => {
       if (name.endsWith('.vue')) return {};
       if (!(name in modules)) throw new Error(`Unexpected dependency ${name}`);
@@ -197,4 +197,43 @@ describe('quiz answer and retry behavior', () => {
     expect(h.worker.result.value).toBeNull(); expect(h.worker.answers.value).toEqual([-1, -1]);
     expect(app.accountKey).toBe('a');
   });
+});
+
+it("keeps published lesson text through warm/hide reads while all quiz authority stays live", async () => {
+  const { worker, api, fire } = await mount();
+  worker.selectAnswer(0, 1);
+  fire("hide");
+  expect(worker.displayCourse.value.body).toBe("Lesson");
+  expect(worker.course.value).toBeNull();
+  expect(worker.answers.value).toEqual([]);
+  expect(worker.canSubmit.value).toBe(false);
+  let resolve!: (value: LearningCourse) => void;
+  api.course.mockImplementationOnce(() => new Promise(done => { resolve = done; }));
+  fire("show"); await vue.nextTick();
+  expect(worker.displayCourse.value.body).toBe("Lesson");
+  await worker.finish(); expect(api.submitQuiz).not.toHaveBeenCalled();
+  resolve({...quiz, version:"v3",body:"New lesson"}); await worker.load();
+  expect(worker.displayCourse.value.body).toBe("New lesson");
+  expect(worker.answers.value).toEqual([-1,-1]);
+});
+it.each([401,403])("clears lesson presentation after current %s and fences late account reads", async status => {
+  const { worker, api, app } = await mount();
+  api.course.mockRejectedValueOnce(new ApiError({kind:"http",status,code:status,message:"FORBIDDEN"}));
+  await worker.load(); expect(worker.displayCourse.value).toBeNull();
+  let finish!: (value: LearningCourse) => void;
+  api.course.mockImplementationOnce(() => new Promise(done => {finish=done;}));
+  const old=worker.load();
+  api.course.mockImplementation(()=>new Promise(()=>{}));
+  app.accountBindingEpoch++; await vue.nextTick();
+  expect(worker.displayCourse.value).toBeNull();
+  finish({...quiz,body:"Old response"}); await old; await vue.nextTick();
+  expect(worker.displayCourse.value?.body).not.toBe("Old response");
+});
+
+it("does not retain private answers in published presentation during an active warm read",async()=>{
+ const {worker,api}=await mount();worker.selectAnswer(0,1);
+ let finish!:(value:LearningCourse)=>void;api.course.mockImplementationOnce(()=>new Promise(r=>{finish=r;}));
+ const read=worker.load();expect(worker.displayCourse.value.body).toBe("Lesson");expect(worker.answers.value).toEqual([]);
+ expect(worker.canSubmit.value).toBe(false);await worker.finish();expect(api.submitQuiz).not.toHaveBeenCalled();
+ finish(quiz);await read;
 });

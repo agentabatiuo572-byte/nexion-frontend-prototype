@@ -28,7 +28,7 @@
         <template v-else>
           <view v-if="voucherReadError" class="flex items-center justify-between" :style="remoteErrorStyle">
             <text>{{ t.authOtp.errorServiceUnavailable }}</text>
-            <view class="shrink-0 active:opacity-70" :style="retryBtnStyle" role="button" tabindex="0" @click="retryVouchers"><text>{{ t.ui.retry }}</text></view>
+            <view class="shrink-0 active:opacity-70 nx-card-recovery-action nx-card-recovery-action--quiet nx-card-recovery-action--inline" role="button" tabindex="0" @click="retryVouchers"><text>{{ t.ui.retry }}</text></view>
           </view>
           <!-- An empty voucher wallet is a definite conclusion only after its current remote read. -->
           <EmptyState v-if="voucherKnownEmpty" kind="empty-list" :title="t.empty.rewardsTitle" :desc="t.empty.rewardsDesc" />
@@ -91,7 +91,7 @@
       <template v-else>
         <view v-if="initialError" class="flex items-center justify-between" :style="remoteErrorStyle">
           <text>{{ t.walletV3.submitReasonServiceUnavailable }}</text>
-          <view class="shrink-0 active:opacity-70" :style="retryBtnStyle" role="button" tabindex="0" @click="refreshRecords"><text>{{ t.store.catalogRetry }}</text></view>
+          <view class="shrink-0 active:opacity-70 nx-card-recovery-action nx-card-recovery-action--quiet nx-card-recovery-action--inline" role="button" tabindex="0" @click="refreshRecords"><text>{{ t.store.catalogRetry }}</text></view>
         </view>
         <view v-else-if="initialLoading" :style="loadingStyle"><text>…</text></view>
         <EmptyState v-else-if="records.length === 0" kind="empty-list" :title="t.empty.rewardsTitle" :desc="fmt(t.empty.rewardsTokenDesc, { asset: platformDisplayText(symbol) })" />
@@ -124,11 +124,11 @@
         <view v-if="fundsServerEnabled && activePager.loadingMore" :style="loadingStyle" aria-live="polite" aria-busy="true"><text>…</text></view>
         <view v-if="refreshErrorWithRows" class="flex items-center justify-between" :style="remoteErrorStyle">
           <text>{{ t.walletV3.submitReasonServiceUnavailable }}</text>
-          <view class="shrink-0 active:opacity-70" :style="retryBtnStyle" role="button" tabindex="0" @click="refreshRecords"><text>{{ t.store.catalogRetry }}</text></view>
+          <view class="shrink-0 active:opacity-70 nx-card-recovery-action nx-card-recovery-action--quiet nx-card-recovery-action--inline" role="button" tabindex="0" @click="refreshRecords"><text>{{ t.store.catalogRetry }}</text></view>
         </view>
         <view v-else-if="appendError" class="flex items-center justify-between" :style="remoteErrorStyle">
           <text>{{ t.walletV3.submitReasonServiceUnavailable }}</text>
-          <view class="shrink-0 active:opacity-70" :style="retryBtnStyle" role="button" tabindex="0" @click="loadMoreRecords"><text>{{ t.store.catalogRetry }}</text></view>
+          <view class="shrink-0 active:opacity-70 nx-card-recovery-action nx-card-recovery-action--quiet nx-card-recovery-action--inline" role="button" tabindex="0" @click="loadMoreRecords"><text>{{ t.store.catalogRetry }}</text></view>
         </view>
         <view v-if="showManualLoadMore" class="inline-flex items-center active:opacity-70" :style="manualLoadMoreStyle" role="button" tabindex="0" @click="loadMoreRecords"><text>{{ t.receipt.loadMore }}</text></view>
       </template>
@@ -471,7 +471,6 @@ const emptyStyle: CSSProperties = {
 const emptyTitleStyle: CSSProperties = { marginTop: "12px", fontSize: "13px", color: "var(--v5-ink-2)" };
 const emptyHintStyle: CSSProperties = { marginTop: "6px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.6 };
 const remoteErrorStyle: CSSProperties = { margin: "0 16px 12px", padding: "10px 12px", borderRadius: "12px", background: "color-mix(in srgb, var(--v5-danger) 10%, transparent)", color: "var(--v5-danger)", fontSize: "12px", gap: "12px" };
-const retryBtnStyle: CSSProperties = { display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: "44px", minHeight: "44px", padding: "0 10px", borderRadius: "999px", background: "var(--v5-surface-2)", color: "var(--v5-ink)", fontSize: "12px" };
 const loadingStyle: CSSProperties = { margin: "0 16px", padding: "32px", textAlign: "center", color: "var(--v5-ink-3)" };
 const manualLoadMoreStyle: CSSProperties = { minHeight: "44px", margin: "8px 16px 0", padding: "0 14px", borderRadius: "999px", background: "var(--v5-surface)", color: "var(--v5-ink-2)", fontSize: "12px" };
 </script>

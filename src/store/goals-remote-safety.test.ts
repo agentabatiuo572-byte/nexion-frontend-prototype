@@ -260,3 +260,55 @@ describe("earning-goal remote safety", () => {
     expect(store.goals.map((goal) => goal.id)).toEqual(["22"]);
   });
 });
+
+it("advances list-read evidence only on current actual success, never swallowed failures or writes",async()=>{
+ const store=useGoals();await store.refresh();const revision=store.readSuccessRevision;
+ remote.goalsApi.list.mockRejectedValueOnce(new Error("FORBIDDEN"));await store.refresh();
+ expect(store.status).toBe("error");expect(store.readSuccessRevision).toBe(revision);
+ const old=deferred<ReturnType<typeof snapshot>>();remote.goalsApi.list.mockReturnValueOnce(old.promise);const reading=store.refresh();
+ remote.goalsApi.list.mockResolvedValue(snapshot([]));store.bindAccount("user:B");await store.ensure();
+ const newest=store.readSuccessRevision;old.resolve(snapshot([{id:1,targetUsdt:500}]));await reading;
+ expect(store.readSuccessRevision).toBe(newest);expect(store.goals).toEqual([]);
+});
+
+it.each(["success","failure"])("fences a coalesced old %s across a same-account rebind before current completion",async outcome=>{
+ const store=useGoals();store.bindAccount("user:A");await store.ensure();
+ const binding=store.captureReadBinding(),revision=store.readSuccessRevision;
+ const old=deferred<ReturnType<typeof snapshot>>(),fresh=deferred<ReturnType<typeof snapshot>>();
+ remote.goalsApi.list.mockReturnValueOnce(old.promise).mockReturnValueOnce(fresh.promise);
+ const calls=remote.goalsApi.list.mock.calls.length;const oldRead=store.ensure();const duplicate=store.ensure();expect(remote.goalsApi.list).toHaveBeenCalledTimes(calls+1);
+ store.bindAccount("user:A");const newRead=store.ensure();expect(remote.goalsApi.list).toHaveBeenCalledTimes(calls+2);
+ expect(store.captureReadBinding().epoch).toBeGreaterThan(binding.epoch);
+ if(outcome==="success")old.resolve(snapshot([{id:1,targetUsdt:500}]));else old.reject(new Error("FORBIDDEN"));
+ await Promise.all([oldRead,duplicate]);expect(store.readSuccessRevision).toBe(revision);expect(store.goals).toEqual([]);expect(store.status).toBe("loading");
+ fresh.resolve(snapshot([]));await newRead;
+ expect(store.readSuccessScope).toEqual(store.captureReadBinding());expect(store.readSuccessRevision).toBe(revision+1);expect(store.goals).toEqual([]);
+});
+
+import * as Vue from 'vue';
+import {flush,mountEntry,slot} from '@/lib/entry-review.test-support';
+import goalSource from '@/pages/me/goals.vue?raw';
+import {zh} from '@/i18n/messages/zh';
+import {fmt} from '@/i18n/format';
+import {formatAmount,formatGroupedAmount} from '@/lib/amount-display';
+it.each(['success','failure'])('actual Goals page refuses old coalesced %s across same-tick same-account rebind',async outcome=>{
+ const store=useGoals();store.bindAccount('user:1');await store.ensure();remote.goalsApi.recommendation.mockResolvedValue({purchaseRequired:false});
+ const app=Vue.reactive({accountKey:'user:1',accountBindingEpoch:1});const runtimeConfig=Vue.reactive({environment:'prod'});let actions:any;
+ const page=mountEntry(goalSource.replace('</script>','import {capture} from "test:probe"; capture({refreshRemoteGoals,editorDisplayReady,onSave});\n</script>'),{
+ 'test:probe':{capture:(v:any)=>{actions=v;}},'@dcloudio/uni-app':{onShow:vi.fn(),onHide:vi.fn()},
+ '@/components/app-chassis.vue':slot,'@/components/sub-page-header.vue':{default:{render:()=>null}},'@/components/me/goal-progress-bar.vue':{default:{render:()=>null}},
+ '@/lib/amount-display':{formatAmount,formatGroupedAmount},'@/lib/route':{navReset:vi.fn()},'@/lib/brand-copy':{nexGridBrandText:(v:string)=>v},
+ '@/i18n/use-t':{useT:()=>Vue.ref(zh)},'@/i18n/format':{fmt},'@/store/goals':{useGoals:()=>store},'@/store/app':{useApp:()=>app},'@/store/ui':{useUI:()=>({pushToast:vi.fn()})},'@/api/runtime':{remoteApiEnabled:true,apiRuntimeConfig:runtimeConfig},
+ });await flush();expect(actions.editorDisplayReady.value).toBe(true);
+ const old=deferred<ReturnType<typeof snapshot>>(),fresh=deferred<ReturnType<typeof snapshot>>();
+ remote.goalsApi.list.mockReturnValueOnce(old.promise).mockReturnValueOnce(fresh.promise);
+ const previous=actions.refreshRemoteGoals();
+ app.accountBindingEpoch++; // The page's synchronous watcher still sees the previous store binding.
+ expect(actions.editorDisplayReady.value).toBe(false);
+ store.bindAccount('user:1');const current=actions.refreshRemoteGoals();
+ if(outcome==='success')old.resolve(snapshot([{id:9,targetUsdt:900}]));else old.reject(new Error('FORBIDDEN'));
+ await previous;await flush();expect(actions.editorDisplayReady.value).toBe(false);expect(store.goals).toEqual([]);
+ fresh.resolve(snapshot([]));await current;await flush();
+ expect(actions.editorDisplayReady.value).toBe(true);expect(store.readSuccessScope).toEqual(store.captureReadBinding());
+ runtimeConfig.environment="dev";expect(actions.editorDisplayReady.value).toBe(false);await actions.onSave();expect(remote.goalsApi.create).not.toHaveBeenCalled();page.unmount();
+});

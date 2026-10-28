@@ -1,3 +1,4 @@
+import { invalidateBeforePassiveTabRead } from "@/lib/passive-tab-read";
 /**
  * Ported from Nexion-prototype/lib/store/orders.ts
  * (zustand persist → Pinia + uni storage).
@@ -243,6 +244,7 @@ export const useOrders = defineStore("orders", () => {
   }
 
   async function refreshRemote(): Promise<void> {
+    invalidateBeforePassiveTabRead("orders");
     if (!remoteApiEnabled) return;
     const requestBoundKey = boundKey;
     const requestEpoch = boundEpoch;

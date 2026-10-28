@@ -28,7 +28,7 @@
             <view v-if="openCategory === item.key" class="trust-category-body">
               <NxButton v-if="item.href" variant="text" :label="item.title" @click="openHref(item.href)" />
               <text v-else-if="loading" role="status" aria-live="polite">{{ auditCopy.loading }}</text>
-              <view v-else-if="hasError" role="alert"><text>{{ auditCopy.error }}</text><NxButton variant="text" size="small" :label="t.ui.retry" @click="loadTrustSections" /></view>
+              <view v-else-if="hasError" class="nx-inline-recovery" role="alert"><text class="nx-inline-recovery__copy">{{ auditCopy.error }}</text><NxButton class="nx-inline-recovery__action" variant="text" size="small" :label="t.ui.retry" @click="loadTrustSections" /></view>
               <template v-else-if="item.key === 'team' && verifiedLeadershipRows.length"><text v-for="row in verifiedLeadershipRows" :key="row.Name" class="block">{{ row.Name }} · {{ row.Role }}</text></template>
               <template v-else-if="item.key === 'audit' && verifiedAuditRows.length">
                 <view v-for="row in verifiedAuditRows" :key="row.Primary" class="trust-document" role="link" :tabindex="safeHref(row.Url) ? 0 : -1" :aria-disabled="!safeHref(row.Url)" @click="safeHref(row.Url) && openHref(row.Url)" @keydown.enter.prevent="safeHref(row.Url) && openHref(row.Url)">
@@ -101,9 +101,9 @@
         </template>
         <!-- Refresh feedback follows the retained content: its insertion/removal
              must not move the reader's anchor while a hidden page returns. -->
-        <view v-if="refreshing || refreshError" class="trust-refresh-status" role="status" aria-live="polite">
-          <text>{{ refreshing ? continuity.trustRefreshing : continuity.trustRefreshFailed }}</text>
-          <NxButton v-if="refreshError" variant="text" :label="t.ui.retry" @click="loadTrustSections" />
+        <view v-if="refreshError" class="trust-refresh-status" :class="{ 'nx-inline-recovery': refreshError }" role="status" aria-live="polite">
+          <text class="nx-inline-recovery__copy">{{ continuity.trustRefreshFailed }}</text>
+          <NxButton v-if="refreshError" class="nx-inline-recovery__action" variant="text" :label="t.ui.retry" @click="loadTrustSections" />
         </view>
       </view>
     </CardStagger>

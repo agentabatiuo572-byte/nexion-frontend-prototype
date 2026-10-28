@@ -32,12 +32,12 @@ function page(balance: number, amount: number, pendingOpenAmount: number | null 
   const toasts: Array<[unknown, unknown]> = [];
   const app = Vue.reactive({ user: { usdtBalance: balance }, accountKey: "acct", captureMoney: vi.fn(() => ({})) });
   const success = vi.fn();
-  const repurchase = {
+  const repurchase = Vue.reactive({
     config: ready ? { enabled: true, minAmountUsdt: 100, apyPct: 35, lockDays: 90, presets: [100, 200], earlyPenaltyPct: 15 } : null,
     orders: [], walletBalanceUsdt: balance, serverTime: 1, loading: false, submitting: false, error: "",
     historyLoading: false, historyError: "", pendingOpenAmount,
     refresh: vi.fn(), refreshHistory: vi.fn(), claim: vi.fn(), earlyWithdraw: vi.fn(), open, checkPendingOpen: check,
-  };
+  });
   const bindings: Record<string, unknown> = {
     useT: () => Vue.ref(copy), useApp: () => app,
     useStaking: () => ({ stake: vi.fn() }), useRepurchase: () => repurchase,
@@ -50,27 +50,22 @@ function page(balance: number, amount: number, pendingOpenAmount: number | null 
     toast: { success, info: vi.fn(), warn: vi.fn(), error: (title: unknown, detail: unknown) => toasts.push([title, detail]) },
     postMoneyBill: vi.fn(() => "ok"), navTo, navReset: vi.fn(), formatCommandAmount, normalizeCommandAmount,
   };
-  // Symbols the fix introduces resolve leniently, so running this file against
-  // the pre-fix page reports the behavioural assertion (button enabled, command
-  // dispatched) instead of a bare "is not defined" at bind time.
-  const exported = `;return { setAmount: (v) => { amount.value = v; }, showPage: () => { pageVisible = true; }, visibility, t, canSubmit, displayBalance, recovering,
-    handleRepurchase, heroStyle, benefitsGridStyle, isSandboxHold, unavailableStyle, unavailableTitle, unavailableBodyStyle,
-    isRemote, remoteReady, repurchase, loadingLabel, unavailableTitleStyle, unavailableBody, refreshRemote, retryLabel, retryCtaStyle, w, cardStyle,
-    monoLabelStyle, amount, formatCommandAmount, confirming, amountInputStyle, onAmount, presets, presetStyle, selectPreset, dollarStyle,
-    usdtStyle, balanceLabelStyle, balanceValueStyle, fmt, projectedYield, dividerStyle, lockedNoticeStyle, ctaStyle, ctaLabel,
-    refreshOrders, orderStatusLabel, handleClaim, handleEarlyWithdraw, goHow, howLinkStyle, heroIconBoxStyle, heroTitleStyle,
-    heroPtsStyle, benefitTiles, benefitStyle, benefitTextStyle, heroApy,
-    insufficientBalance: typeof insufficientBalance === "undefined" ? false : insufficientBalance,
-    goTopup: typeof goTopup === "undefined" ? () => {} : goTopup,
-    insufficientNoticeStyle: typeof insufficientNoticeStyle === "undefined" ? {} : insufficientNoticeStyle,
-    insufficientTitleStyle: typeof insufficientTitleStyle === "undefined" ? {} : insufficientTitleStyle,
-    insufficientBodyStyle: typeof insufficientBodyStyle === "undefined" ? {} : insufficientBodyStyle,
-    topupCtaStyle: typeof topupCtaStyle === "undefined" ? {} : topupCtaStyle };`;
+  // Expose the production declarations, including new presentation-only values,
+  // without supplying a parallel implementation or fallback for missing bindings.
+  const ast = ts.createSourceFile("repurchase.ts", body, ts.ScriptTarget.Latest, true);
+  const names: string[] = [];
+  for (const statement of ast.statements) {
+    if (ts.isVariableStatement(statement)) for (const declaration of statement.declarationList.declarations) {
+      if (ts.isIdentifier(declaration.name)) names.push(declaration.name.text);
+    }
+    if (ts.isFunctionDeclaration(statement) && statement.name) names.push(statement.name.text);
+  }
+  const exported = `;return { setAmount: (v) => { amount.value = v; }, showPage: () => { pageVisible = true; }, ${names.join(",")} };`;
   const raw = new Function("formatAmount", ...Object.keys(bindings), code + exported)(formatAmount, ...Object.values(bindings)) as Record<string, unknown>;
   (raw.showPage as () => void)();
   (raw.setAmount as (value: number) => void)(amount);
   return {
-    state: Vue.proxyRefs({ ...raw, formatAmount }) as Record<string, unknown>, repurchase, uiConfirm, open, check, navTo, toasts, app, success,
+    state: Vue.proxyRefs({ ...raw, formatAmount, formatCommandAmount, fmt, dateLocale: bindings.dateLocale }) as Record<string, unknown>, repurchase, uiConfirm, open, check, navTo, toasts, app, success,
   };
 }
 
@@ -82,15 +77,38 @@ const render = new Function("formatAmount", "Vue", compile(template, {
 
 const CTA = /<view class="nx-repurchase-submit-cta w-full flex items-center justify-center[^"]*"[^>]*>/;
 
-async function show(balance: number, amount: number, pendingOpenAmount: number | null = null, ready = true) {
-  const view = page(balance, amount, pendingOpenAmount, en, ready);
+async function renderPage(view: ReturnType<typeof page>) {
   const app = Vue.createSSRApp({ render, setup: () => view.state });
   const wrapper = Vue.defineComponent({ setup: (_, { slots }) => () => Vue.h("div", slots.default?.()) });
-  app.component("AppChassis", wrapper);
-  app.component("SubPageHeader", wrapper);
-  app.component("Row", Vue.defineComponent({ props: ["label", "value"], setup: (props) => () => Vue.h("p", `${props.label}=${props.value}`) }));
-  return { html: await renderToString(app), view };
+  app.component("AppChassis", wrapper); app.component("SubPageHeader", wrapper);
+  app.component("Row", Vue.defineComponent({ props: ["label", "value"], setup: props => () => Vue.h("p", `${props.label}=${props.value}`) }));
+  return renderToString(app);
 }
+async function show(balance: number, amount: number, pendingOpenAmount: number | null = null, ready = true) {
+  const view = page(balance, amount, pendingOpenAmount, en, ready);
+  return { html: await renderPage(view), view };
+}
+
+it.each([zh, en, vietnamese])("keeps the repurchase static shell and unknown values without granting fresh command authority", async copy => {
+  const view = page(500, 100, null, copy, false);
+  const cold = await renderPage(view);
+  for (const label of [copy.repurchase.amountLabel, copy.repurchase.balanceLabel, copy.repurchase.ordersTitle, copy.repurchase.principal]) expect(cold).toContain(label);
+  expect(cold).not.toContain("$500.00"); expect(cold).toContain("—"); expect(cold).toMatch(/<input[^>]*disabled/);
+  (view.state.onAmount as (event: unknown) => void)({ detail: { value: "999" } });
+  (view.state.selectPreset as (amount: number) => void)(999);
+  expect(view.state.amount).toBe(100); await (view.state.handleRepurchase as () => Promise<void>)(); expect(view.open).not.toHaveBeenCalled();
+  view.repurchase.config = { enabled: true, minAmountUsdt: 100, apyPct: 35, lockDays: 90, presets: [100, 200], earlyPenaltyPct: 15 };
+  view.repurchase.loading = true;
+  const warm = await renderPage(view);
+  for (const label of [copy.repurchase.amountLabel, copy.repurchase.balanceLabel, copy.repurchase.ordersTitle]) expect(warm).toContain(label);
+  expect(warm).toContain("500.00"); expect(warm).not.toContain(copy.repurchase.loading);
+  expect(view.state.remoteReady).toBe(false); expect(view.state.canSubmit).toBe(false);
+  await (view.state.handleRepurchase as () => Promise<void>)(); expect(view.open).not.toHaveBeenCalled();
+  view.repurchase.loading = false; view.repurchase.error = "unavailable"; view.repurchase.config = null;
+  const failed = await renderPage(view); expect(failed).toContain(copy.repurchase.unavailableTitle);
+  expect(failed).toContain(copy.repurchase.amountLabel); expect(failed).toContain(copy.repurchase.ordersTitle); expect(failed).not.toContain("500.00");
+  expect(view.state.canSubmit).toBe(false);
+});
 
 describe("re-invest main CTA balance gate", () => {
   it.each([

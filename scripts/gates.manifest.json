@@ -368,7 +368,7 @@
         "scripts/**"
       ]
     },
-    "test:janus-stop-cancellation": {
+    "test:janus-retirement": {
       "kind": "test",
       "inputs": [
         "src/**",

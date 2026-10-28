@@ -33,7 +33,7 @@
       <view class="relative mt-2 flex items-baseline gap-2">
         <view class="flex items-baseline">
           <text class="tabular-nums" style="font-family: var(--font-v5); line-height: 1; font-size: 15px; font-weight: 500; color: var(--v5-brand-2-ink); opacity: 0.75">$</text>
-          <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 34px; font-weight: 600; line-height: 1; color: var(--v5-brand-2-ink); letter-spacing: -0.014em">{{ formatAmount(ceilingGapToday) }}</text>
+          <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 34px; font-weight: 600; line-height: 1; color: var(--v5-brand-2-ink); letter-spacing: -0.014em">{{ visibility.mask(formatAmount(ceilingGapToday)) }}</text>
         </view>
         <text class="text-[12px]" style="color: var(--v5-ink-3); line-height: 1.2">{{ vsCeilingText }}</text>
       </view>
@@ -43,10 +43,10 @@
         <view>
           <view class="flex items-center justify-between mb-1" style="font-size: 12px">
             <text style="color: var(--v5-ink-3)">{{ baseLabel }}</text>
-            <text class="tabular-nums" style="color: var(--v5-ink-2)">${{ formatAmount(baseDaily) }}/d</text>
+            <text class="tabular-nums" style="color: var(--v5-ink-2)">${{ visibility.mask(formatAmount(baseDaily)) }}/d</text>
           </view>
           <view ref="elRef" class="h-1 rounded-full overflow-hidden" style="background: var(--v5-surface-2)">
-            <view class="h-full rounded-full" :style="phoneBarStyle" />
+            <view v-if="!visibility.hidden" class="h-full rounded-full" :style="phoneBarStyle" />
           </view>
         </view>
         <view>
@@ -64,7 +64,7 @@
       <view class="relative mt-4 flex items-center justify-between gap-3">
         <view class="min-w-0" style="font-size: 12px; color: var(--v5-ink-3); line-height: 1.35">
           <text class="block">{{ t.earn.cumulativeMissed }}</text>
-          <text class="block tabular-nums" style="font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-brand-2-ink); margin-top: 2px">${{ cumulativeCeilingGapRounded }}<text style="font-size: 12px; color: var(--v5-ink-4); margin-left: 6px; font-weight: 400">· {{ daysSinceJoin }}d</text></text>
+          <text class="block tabular-nums" style="font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-brand-2-ink); margin-top: 2px">${{ visibility.mask(cumulativeCeilingGapRounded) }}<text style="font-size: 12px; color: var(--v5-ink-4); margin-left: 6px; font-weight: 400">· {{ daysSinceJoin }}d</text></text>
         </view>
         <view class="shrink-0 inline-flex items-center gap-1.5 active:scale-[0.97]" :style="ctaStyle">
           <text :style="ctaLabelStyle">{{ t.earn.capExplainCta }}</text>
@@ -79,6 +79,7 @@
 </template>
 
 <script setup lang="ts">
+import { useDataVisibility } from "@/store/data-visibility";
 import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed, ref, onMounted, onUnmounted, type CSSProperties } from "vue";
@@ -90,6 +91,7 @@ import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useScrollGrowProgress, PROGRESS_GROW_TRANSITION } from "@/composables/use-scroll-grow-progress";
 
+const visibility = useDataVisibility();
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 const app = useApp();

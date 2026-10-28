@@ -120,6 +120,7 @@ const ctaTextStyle = computed<CSSProperties>(() => ({
   fontFamily: "var(--font-v5)",
   fontSize: "13px",
   fontWeight: 600,
+  lineHeight: props.kind === "recoverable-error" ? "20px" : undefined,
   color: props.emphasis ? "var(--v5-on-brand)" : "var(--v5-ink-2)",
 }));
 </script>

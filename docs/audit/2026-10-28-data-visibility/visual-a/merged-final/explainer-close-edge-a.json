@@ -1,0 +1,34 @@
+{
+  "face": {
+    "bottom": 538.4270935058594,
+    "height": 30,
+    "left": 335,
+    "right": 365,
+    "top": 508.4270935058594,
+    "width": 30,
+    "x": 335,
+    "y": 508.4270935058594
+  },
+  "flex": "0 0 auto",
+  "hit": true,
+  "outsideFace": true,
+  "point": {
+    "x": 370,
+    "y": 523.4270935058594
+  },
+  "root": {
+    "bottom": 545.4270935058594,
+    "height": 44,
+    "left": 328,
+    "right": 372,
+    "top": 501.4270935058594,
+    "width": 44,
+    "x": 328,
+    "y": 501.4270935058594
+  },
+  "after": {
+    "dialogs": 0,
+    "reduced": false,
+    "url": "http://127.0.0.1:5291/?nx_device=off#/pages/earn/earn"
+  }
+}

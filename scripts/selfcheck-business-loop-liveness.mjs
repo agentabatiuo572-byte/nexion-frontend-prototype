@@ -11,8 +11,6 @@ const BUSINESS_MODULE_FILES = [
   "src/store/milestones.ts",
   "src/store/bills.ts",
   "src/lib/money-receipt.ts",
-  "src/services/janus-c2.ts",
-  "src/services/janus-runtime.ts",
 ];
 const businessModuleSources = Object.fromEntries(
   BUSINESS_MODULE_FILES.map((file) => [file, fs.readFileSync(file, "utf8")]),

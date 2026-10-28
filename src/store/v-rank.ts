@@ -1,8 +1,10 @@
+import { runPassiveTabRead, invalidatePassiveTabRead, invalidateBeforePassiveTabRead, rememberPassiveTabRead } from "@/lib/passive-tab-read";
 import { defineStore } from "pinia";
-import { onScopeDispose, ref } from "vue";
-import { remoteApiEnabled, vRankApi } from "@/api/runtime";
+import { onScopeDispose, ref, watch } from "vue";
+import { apiRuntimeConfig, remoteApiEnabled, vRankApi } from "@/api/runtime";
 import type { CanonicalVRankLadder, CanonicalVRankState } from "@/api/v-rank-api";
 import { asApiError } from "@/api/errors";
+import { isHttpReadRateLimit, isTransientReadFailure } from "@/lib/remote-read-failure";
 import { createRemoteAccountEpoch, type RemoteAccountRequest } from "@/lib/remote-account-epoch";
 import { normalizeAccountKey } from "@/store/account-cloud";
 import { readAccountRow, writeAccountRow } from "@/store/account-scoped-storage";
@@ -217,6 +219,11 @@ export const useVRank = defineStore("vRank", () => {
   const prizeName = ref(remoteApiEnabled ? "" : "UVEL V-Rank");
   const remoteReady = ref(!remoteApiEnabled);
   const remoteError = ref<string | null>(null);
+  const remoteRateLimited = ref(false);
+  const remoteTransientFailure = ref(false);
+  let retryAt = 0;
+  let environmentInvalidated = false;
+  let inFlight: { account: VRankRemoteRequest; runtime: RuntimeRevisionScope; promise: Promise<void> } | null = null;
   const remoteAccountEpoch = createRemoteAccountEpoch(boundKey);
 
   function clearRemoteFacts(): void {
@@ -251,6 +258,7 @@ export const useVRank = defineStore("vRank", () => {
     boundKey = normalizeAccountKey(rawAccountKey);
     if (remoteApiEnabled) {
       remoteAccountEpoch.bind(boundKey);
+      inFlight = null; retryAt = 0; remoteRateLimited.value = false; remoteTransientFailure.value = false;
       clearRemoteFacts();
       void refreshCanonicalVRank(captureVRankRequest(remoteAccountEpoch));
       return;
@@ -266,12 +274,31 @@ export const useVRank = defineStore("vRank", () => {
   }
 
   let refreshGeneration = 0;
-  // H5 cold restore enters the page before the bearer is bound to this account.
-  // That local precondition must not surface as a server-unavailable error the
-  // user has to clear by hand: wait (bounded) for the session to match, then
-  // read, and retry once when the first attempt fails transiently.
+  // H5 may read before local session binding. Retry that precondition once;
+  // server authorization failures and rate limits do not use this timer.
   const SESSION_BIND_RETRY_MILLISECONDS = 500;
-  async function refreshCanonicalVRank(
+  function ensureCanonicalVRank(): Promise<void> {
+    if (Date.now() < retryAt) return Promise.resolve();
+    return runPassiveTabRead("v-rank", () => inFlight && remoteAccountEpoch.isCurrent(inFlight.account) && isCurrentRuntimeRevision(inFlight.runtime)
+      ? inFlight.promise : refreshCanonicalVRank(), [remoteAccountEpoch.snapshot(), captureRuntimeRevision()], () => remoteReady.value);
+  }
+
+  function refreshCanonicalVRank(
+    request: VRankRemoteRequest = captureVRankRequest(remoteAccountEpoch),
+    runScope: RuntimeRevisionScope = captureRuntimeRevision(),
+  ): Promise<void> {
+    invalidateBeforePassiveTabRead("v-rank");
+    if (environmentInvalidated || Date.now() < retryAt || !remoteAccountEpoch.isCurrent(request)
+      || !isCurrentRuntimeRevision(runScope)) return Promise.resolve();
+    const promise = readCanonicalVRank(request, runScope);
+    rememberPassiveTabRead("v-rank", promise, [request, runScope], undefined, () => remoteReady.value);
+    inFlight = { account: request, runtime: runScope, promise };
+    const clear = () => { if (inFlight?.promise === promise) inFlight = null; };
+    void promise.then(clear, clear);
+    return promise;
+  }
+
+  async function readCanonicalVRank(
     request: VRankRemoteRequest = captureVRankRequest(remoteAccountEpoch),
     runScope: RuntimeRevisionScope = captureRuntimeRevision(),
   ) {
@@ -298,32 +325,52 @@ export const useVRank = defineStore("vRank", () => {
         Object.entries(remoteCurrent.progress.vDownlineCounts).map(([rank, count]) => [Number(rank) as VRank, count]),
       ) as Record<VRank, number>;
       remoteReady.value = true;
-      remoteError.value = null;
+      remoteError.value = null; retryAt = 0; remoteRateLimited.value = false; remoteTransientFailure.value = false;
+    };
+    let strictFailure = false, failureRecorded = false, pairGeneration = 0;
+    const isLocalSessionPending = (cause: ReturnType<typeof asApiError>) => cause.kind === "auth"
+      && cause.message === "AUTH_SESSION_REQUIRED" && cause.status === undefined && cause.code === undefined;
+    const fail = (failure: unknown) => {
+      if (!isCurrent()) return;
+      const transient = isTransientReadFailure(failure), limited = isHttpReadRateLimit(failure);
+      if (isHttpReadRateLimit(failure)) retryAt = Math.max(retryAt, Date.now() + (failure.retryAfterMs ?? 30_000));
+      if (!transient) strictFailure = true;
+      remoteRateLimited.value = limited && !strictFailure;
+      remoteTransientFailure.value = transient && !strictFailure;
+      clearRemoteFacts(); remoteError.value = "V_RANK_REMOTE_AUTHORITY_UNAVAILABLE";
+      failureRecorded = true;
+    };
+    const readPair = () => {
+      const pair = ++pairGeneration; failureRecorded = false;
+      const observe = <T>(reading: Promise<T>): Promise<T> => reading.catch(error => {
+        // A late strict denial must revoke this pair even if its other GET
+        // already reported 429. A replaced retry pair cannot revoke newer facts.
+        if (isCurrent() && pair === pairGeneration && !isLocalSessionPending(asApiError(error))) fail(error);
+        throw error;
+      });
+      return Promise.all([observe(vRankApi.ladder()), observe(vRankApi.current())]);
     };
     try {
-      const [remoteLadder, remoteCurrent] = await Promise.all([vRankApi.ladder(), vRankApi.current()]);
+      const [remoteLadder, remoteCurrent] = await readPair();
       if (!isCurrent()) return;
       apply(remoteLadder, remoteCurrent);
     } catch (error) {
       if (!isCurrent()) return;
-      // H5 cold restore enters this page before the bearer is bound to the
-      // account; the request layer reports that local precondition as an auth
-      // failure. One bounded retry keeps a recoverable first-request failure
-      // from being shown as a server error the user must clear by hand.
-      if (asApiError(error).kind === "auth") {
+      let failure = error;
+      if (isLocalSessionPending(asApiError(error)) && !strictFailure && Date.now() >= retryAt) {
         await new Promise<void>((resolve) => setTimeout(resolve, SESSION_BIND_RETRY_MILLISECONDS));
-        if (!isCurrent()) return;
+        if (!isCurrent() || strictFailure || Date.now() < retryAt) return;
         try {
-          const [remoteLadder, remoteCurrent] = await Promise.all([vRankApi.ladder(), vRankApi.current()]);
+          const [remoteLadder, remoteCurrent] = await readPair();
           if (!isCurrent()) return;
           apply(remoteLadder, remoteCurrent);
           return;
-        } catch {
+        } catch (retryError) {
           if (!isCurrent()) return;
+          failure = retryError;
         }
       }
-      clearRemoteFacts();
-      remoteError.value = "V_RANK_REMOTE_AUTHORITY_UNAVAILABLE";
+      if (!failureRecorded) fail(failure);
     }
   }
 
@@ -334,6 +381,19 @@ export const useVRank = defineStore("vRank", () => {
     if (remoteApiEnabled) void refreshCanonicalVRank();
   });
   onScopeDispose(unsubscribeRuntime);
+
+  function invalidateReadOwner(): void {
+    invalidatePassiveTabRead("v-rank");
+
+    remoteTransientFailure.value = false;
+    refreshGeneration += 1; remoteAccountEpoch.bind(boundKey); inFlight = null;
+    clearRemoteFacts();
+    remoteError.value = Date.now() < retryAt ? "V_RANK_REMOTE_AUTHORITY_UNAVAILABLE" : null;
+  }
+
+  watch(() => [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl], () => {
+    environmentInvalidated = true; retryAt = 0; remoteRateLimited.value = false; invalidateReadOwner();
+  }, { flush: "sync" });
 
   function setMyRank(v: VRank) {
     if (remoteApiEnabled) return;
@@ -355,8 +415,8 @@ export const useVRank = defineStore("vRank", () => {
     selfComputePoints, teamComputePoints,
     myRank, selfBuyUSD, directRefs, teamVolumeUSD, vDownlineCounts, ladder, prizeName,
     capabilities,
-    remoteReady, remoteError,
-    setMyRank, setProgress, bindAccount, refreshCanonicalVRank,
+    remoteReady, remoteError, remoteRateLimited, remoteTransientFailure,
+    setMyRank, setProgress, bindAccount, refreshCanonicalVRank, ensureCanonicalVRank, invalidateReadOwner,
   };
 });
 

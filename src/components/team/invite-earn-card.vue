@@ -10,15 +10,14 @@
     </view>
     <view class="nx-invite-body">
       <view class="invite-card__reward" role="status" :aria-busy="rewards.loading">
-        <view class="invite-card__reward-line"><text class="invite-card__amount">{{ rewardReady && rewardEnabled ? rewardAmount : '—' }}</text><text class="invite-card__unit">UVT</text></view>
+        <view class="invite-card__reward-line"><text class="invite-card__amount">{{ rewardPresentationText }}</text><text class="invite-card__unit">UVT</text></view>
         <!-- Reserve the normal localized caption while loading. Only the
              active exceptional state may add height to this compact card. -->
         <view class="invite-card__descriptions">
-          <text class="invite-card__description" :class="{ 'is-active': rewardReady && rewardEnabled && !!referralCode }" :aria-hidden="!(rewardReady && rewardEnabled && referralCode)">{{ copy.qualifiedFriendReward }}</text>
-          <view class="invite-card__description" :class="{ 'is-active': rewardReady && !rewardEnabled && !!referralCode }" :aria-hidden="!(rewardReady && !rewardEnabled && referralCode)"><text>{{ t.team.referralRewardsDisabled }}</text><text>{{ t.team.sharingStillAvailable }}</text></view>
-          <text class="invite-card__description" :class="{ 'is-active': rewards.loading }" :aria-hidden="!rewards.loading">{{ t.team.rewardLoading }}</text>
-          <text class="invite-card__description" :class="{ 'is-active': !rewards.loading && !!rewards.error }" :aria-hidden="rewards.loading || !rewards.error">{{ t.team.settlementUnavailable }}</text>
-          <text class="invite-card__description" :class="{ 'is-active': !rewards.loading && !rewards.error && !referralCode }" :aria-hidden="rewards.loading || !!rewards.error || !!referralCode">{{ t.share.linkUnavailable }}</text>
+          <text class="invite-card__description" :class="{ 'is-active': rewardCaption === 'qualified' }" :aria-hidden="rewardCaption !== 'qualified'">{{ copy.qualifiedFriendReward }}</text>
+          <view class="invite-card__description" :class="{ 'is-active': rewardCaption === 'disabled' }" :aria-hidden="rewardCaption !== 'disabled'"><text>{{ t.team.referralRewardsDisabled }}</text><text>{{ t.team.sharingStillAvailable }}</text></view>
+          <text class="invite-card__description" :class="{ 'is-active': rewardCaption === 'error' }" :aria-hidden="rewardCaption !== 'error'">{{ t.team.settlementUnavailable }}</text>
+          <text class="invite-card__description" :class="{ 'is-active': rewardCaption === 'unavailable' }" :aria-hidden="rewardCaption !== 'unavailable'">{{ t.share.linkUnavailable }}</text>
         </view>
         <view class="invite-card__action invite-card__primary nx-team-share-now" role="button" :tabindex="referralCode ? 0 : -1" :aria-disabled="!referralCode" :aria-label="copy.inviteFriends" @click="openShare" @keydown.enter.prevent="openShare" @keydown.space.prevent="openShare"><LiquidGlass :radius="999" tone="control" /><text>{{ copy.inviteFriends }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-7-7 7 7-7 7" /></svg></view>
       </view>
@@ -36,7 +35,7 @@
 </template>
 <script setup lang="ts">
 import { formatAmount } from '@/lib/amount-display';
-import { ref, computed, onUnmounted } from 'vue';
+import { ref, computed, onUnmounted, watch } from 'vue';
 import { onShow, onHide } from '@/composables/use-tab-page-lifecycle';
 import ShareChannelSheet from './share-channel-sheet.vue';
 import SharePosterSheet from './share-poster-sheet.vue';
@@ -50,23 +49,45 @@ import { useT } from '@/i18n/use-t';
 import { teamRedesignCopy } from '@/i18n/team-redesign';
 import { toast } from '@/store/ui';
 import { buildShareLink, copyText } from '@/lib/share';
-import { remoteApiEnabled } from '@/api/runtime';
+import { apiRuntimeConfig, remoteApiEnabled } from '@/api/runtime';
+import { productCatalogState, productCatalogDisplayProof, isProductCatalogDisplayCurrent } from '@/store/product-catalog';
 import { subscribeRuntimeRevision } from '@/api/order-api';
 const t=useT(), app=useApp(), rewards=useReferralReward(), locale=useLocaleStore();
 const copy=computed(()=>teamRedesignCopy(locale.code));
+const rewardPresentation=ref<number|null>(null);
+const rewardRead=ref<'enabled'|'disabled'|null>(null);
+const displayEnvironmentInvalidated=ref(false);
+watch(()=>[apiRuntimeConfig.environment,apiRuntimeConfig.baseUrl],()=>{displayEnvironmentInvalidated.value=true;},{flush:'sync'});
+const displayCatalogValid=computed(()=>!displayEnvironmentInvalidated.value && productCatalogDisplayProof.value!==null && isProductCatalogDisplayCurrent()
+  && (productCatalogState.status==='error'||productCatalogState.status==='loading'||(productCatalogState.serverCanonical && productCatalogState.sourceEnvironment==='PRODUCTION' && productCatalogState.runId==='')));
+watch(()=>[app.accountKey,app.accountBindingEpoch,apiRuntimeConfig.environment,apiRuntimeConfig.baseUrl,locale.code],()=>{rewardPresentation.value=null;rewardRead.value=null;},{flush:'sync'});
+watch(()=>locale.code,()=>rewards.invalidateReadOwner(),{flush:'sync'});
+watch(displayCatalogValid,valid=>{if(!valid){rewardPresentation.value=null;rewardRead.value=null;}},{flush:'sync'});
+watch([()=>rewards.snapshot,()=>rewards.snapshot?.inviterRewardNex,()=>rewards.snapshot?.rewardEnabled,()=>rewards.loading,()=>rewards.error,()=>rewards.transientFailure],()=>{
+  if(rewards.snapshot?.rewardEnabled===false){rewardPresentation.value=null;rewardRead.value='disabled';}
+  if(rewards.error){if(!rewards.transientFailure)rewardPresentation.value=null;return;}
+  const snapshot=rewards.snapshot;
+  if(!displayCatalogValid.value||rewards.loading||!snapshot)return;
+  rewardRead.value=snapshot.sourceEnvironment==='PRODUCTION' && snapshot.source==='ledger' && (snapshot.runId===null || snapshot.runId==='')
+    && Number.isFinite(snapshot.inviterRewardNex) && snapshot.inviterRewardNex>=0 ? snapshot.rewardEnabled ? 'enabled' : 'disabled' : null;
+  rewardPresentation.value=rewardRead.value==='enabled' ? snapshot.inviterRewardNex : null;
+},{immediate:true,flush:'sync'});
+const rewardPresentationText=computed(()=>rewardPresentation.value===null||(rewards.error&&!rewards.transientFailure)?'—':formatAmount(rewardPresentation.value).replace(/\.00$/,''));
 const detailOpen=ref(false), detailMode=ref<'rules'|'records'>('rules');
 const rewardReady=computed(()=>!!rewards.snapshot && !rewards.error && !rewards.loading);
 const rewardEnabled=computed(()=>rewards.snapshot?.rewardEnabled===true);
 const nexReward=computed(()=>rewards.snapshot?.inviterRewardNex ?? 0);
 const rewardAmount=computed(()=>formatAmount(nexReward.value).replace(/\.00$/, ''));
-const referralCode=computed(()=>remoteApiEnabled ? rewards.snapshot?.referralCode ?? '' : app.user.referralCode);
+const referralCode=computed(()=>remoteApiEnabled ? !rewards.loading && !rewards.error ? rewards.snapshot?.referralCode ?? '' : '' : app.user.referralCode);
+const rewardCaption=computed(()=>rewards.error ? 'error' : !rewards.loading && rewards.snapshot && !referralCode.value ? 'unavailable'
+  : rewardRead.value==='disabled' ? 'disabled' : 'qualified');
 const needsRetry=computed(()=>!rewards.loading && (!!rewards.error || !referralCode.value));
 const copiedCode = ref(false);
 const copiedLink = ref(false);
 const posterOpen = ref(false);
 const shareOpen = ref(false);
 
-// FEAT-SHARE1 异常2:码为空四入口置灰 + toast,不产出空码链接。
+// FEAT-SHARE1:码为空四入口仍拒绝操作，不产出空码链接。
 function guardCode(): boolean {
   if (referralCode.value) return true;
   toast.info(t.value.share.noCodeYet);
@@ -127,9 +148,12 @@ defineExpose({ openShare });
 
 
 let visible = false;
-onShow(()=>{visible = true; void rewards.refresh();});
+onShow(()=>{visible = true; void rewards.ensure();});
 onHide(()=>{visible = false;});
-const stopRuntimeRefresh=subscribeRuntimeRevision(()=>{if(remoteApiEnabled && visible)void rewards.refresh();});
+const stopRuntimeRefresh=subscribeRuntimeRevision(scope=>{
+  if(!isProductCatalogDisplayCurrent(scope)){rewardPresentation.value=null;rewardRead.value=null;}
+  if(remoteApiEnabled && visible)void rewards.ensure();
+});
 onUnmounted(stopRuntimeRefresh);
 </script>
 <style scoped>
@@ -159,7 +183,7 @@ onUnmounted(stopRuntimeRefresh);
 .invite-card__actions { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 2px 6px; margin-top: 6px; border-top: 1px solid var(--v5-border); }
 .invite-card__actions > .invite-card__action + .invite-card__action::before { content: ''; position: absolute; left: -3px; top: 12px; bottom: 12px; width: 1px; background: var(--v5-border); }
 
-.invite-card__action[aria-disabled='true'] { opacity: .5; cursor: default; }
+.invite-card__action[aria-disabled='true'] { cursor: default; }
 .invite-card [tabindex='0']:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 .invite-card__action:active,.invite-card__rules:active,.invite-card__retry:active { opacity: .75; }
 .invite-card__actions svg { color: var(--v5-brand); }

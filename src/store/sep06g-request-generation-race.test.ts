@@ -4,6 +4,7 @@ import { advanceRuntimeRevision } from "@/api/order-api";
 
 const commissionRuntime = vi.hoisted(() => ({
   remoteApiEnabled: true,
+  apiRuntimeConfig: { environment: "dev", baseUrl: "https://test.invalid" },
   commissionConfigApi: { rates: vi.fn(), binary: vi.fn() },
   teamInsightsApi: { commissions: vi.fn() },
 }));

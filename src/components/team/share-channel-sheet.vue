@@ -9,8 +9,8 @@
         <view v-if="statusMessage" class="ss-status" role="status" aria-live="polite" :aria-busy="loading"><text class="ss-status__text">{{ statusMessage }}</text><view v-if="!loading || retrying" class="ss-retry" role="button" :tabindex="loading ? -1 : 0" :aria-disabled="loading" :aria-busy="retrying" @click="retry" @keydown.enter.prevent="retry" @keydown.space.prevent="retry"><LiquidGlass :radius="999" tone="control" /><text>{{ t.share.retry }}</text></view></view>
         <view class="ss-actions">
           <template v-for="(c,index) in displayChannels" :key="c.key">
-            <view v-if="index === 1" class="ss-code__copy ss-row" role="button" :aria-label="t.share.copyCode" :tabindex="codeDisabled ? -1 : 0" :aria-disabled="codeDisabled" :aria-busy="channelBusy" @click="onCopyCode" @keydown.enter.prevent="onCopyCode" @keydown.space.prevent="onCopyCode"><svg class="ss-row__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 3H5v18h14V7l-4-4H9Z"/><path d="M14 3v5h5M8 12h8M8 16h5" /></svg><text class="ss-row__label">{{ t.share.copyCode }}</text><text class="ss-code__value">{{ referralCode || '—' }}</text><svg class="ss-row__arrow" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 4H4v12" /></svg></view>
-            <view class="ss-ch ss-row" role="button" :aria-label="channelMeta(c.key).label" :tabindex="channelDisabled(c) ? -1 : 0" :aria-busy="channelBusy" :aria-disabled="channelDisabled(c)" @click="onChannel(c)" @keydown.enter.prevent="onChannel(c)" @keydown.space.prevent="onChannel(c)"><view class="ss-row__icon" aria-hidden="true" v-html="channelMeta(c.key).svg" /><text class="ss-row__label">{{ channelMeta(c.key).label }}</text><svg class="ss-row__arrow" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></view>
+            <view v-if="index === 1" class="ss-code__copy ss-row" :class="{ 'ss-row--pending': loading }" role="button" :aria-label="t.share.copyCode" :tabindex="codeDisabled ? -1 : 0" :aria-disabled="codeDisabled" :aria-busy="channelBusy" @click="onCopyCode" @keydown.enter.prevent="onCopyCode" @keydown.space.prevent="onCopyCode"><svg class="ss-row__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 3H5v18h14V7l-4-4H9Z"/><path d="M14 3v5h5M8 12h8M8 16h5" /></svg><text class="ss-row__label">{{ t.share.copyCode }}</text><text class="ss-code__value">{{ referralCode || codePresentation || '—' }}</text><svg class="ss-row__arrow" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 4H4v12" /></svg></view>
+            <view class="ss-ch ss-row" :class="{ 'ss-row--pending': loading }" role="button" :aria-label="channelMeta(c.key).label" :tabindex="channelDisabled(c) ? -1 : 0" :aria-busy="channelBusy" :aria-disabled="channelDisabled(c)" @click="onChannel(c)" @keydown.enter.prevent="onChannel(c)" @keydown.space.prevent="onChannel(c)"><view class="ss-row__icon" aria-hidden="true" v-html="channelMeta(c.key).svg" /><text class="ss-row__label">{{ channelMeta(c.key).label }}</text><svg class="ss-row__arrow" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></view>
           </template>
           <view class="ss-rules-toggle ss-row" role="button" tabindex="0" :aria-label="copy.inviteRules" :aria-expanded="rulesOpen" aria-controls="share-invite-rules" @click="rulesOpen=!rulesOpen" @keydown.enter.prevent="rulesOpen=!rulesOpen" @keydown.space.prevent="rulesOpen=!rulesOpen"><svg class="ss-row__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 3h10l4 4v14H5ZM9 11h6M9 15h6" /></svg><text class="ss-row__label">{{ copy.inviteRules }}</text><text class="ss-row__arrow" aria-hidden="true">{{ rulesOpen ? '−' : '+' }}</text></view>
           <view v-if="rulesOpen" id="share-invite-rules" class="ss-rules" role="region" :aria-label="copy.inviteRules"><InviteRuleContent /><view class="ss-rules-support" role="link" tabindex="0" @click="contactSupport" @keydown.enter.prevent="contactSupport" @keydown.space.prevent="contactSupport"><text>{{ copy.contactSupport }}</text><text aria-hidden="true">›</text></view></view>
@@ -36,7 +36,7 @@ import { fmt } from "@/i18n/format";
 import { useProductPhase } from "@/composables/use-product-phase";
 import { activateChannel, buildShareLink, copyText, currentShareReferralCode, INVITER_REWARD_USDT_ESTIMATE, visibleChannels } from "@/lib/share";
 import type { ShareChannelDef, ShareChannelKey } from "@/store/config-types";
-import { remoteApiEnabled } from "@/api/runtime";
+import { remoteApiEnabled, apiRuntimeConfig } from "@/api/runtime";
 import { useReferralReward } from "@/store/referral-reward";
 import { useConfig } from "@/store/config";
 import { toast } from "@/store/ui";
@@ -64,14 +64,29 @@ onUnmounted(invalidateActions);
 const phase = useProductPhase();
 const rewards = useReferralReward();
 const cfg = useConfig();
+const rewardPresentation = ref<{ amount: number; enabled: boolean } | null>(null);
+const channelsHaveRead = ref(false);
+const environmentInvalidated = ref(false);
+watch(() => apiRuntimeConfig?.environment, () => { environmentInvalidated.value = true; rewardPresentation.value = null; channelsHaveRead.value = false; codePresentation.value = ''; statusPresentation.value = ''; invalidateActions(); }, { flush: 'sync' });
+watch(() => [app.accountKey, app.accountBindingEpoch, locale.code], () => { rewardPresentation.value = null; channelsHaveRead.value = false; }, { flush: 'sync' });
+watch([() => rewards.snapshot, () => rewards.loading, () => rewards.error], () => {
+  if (rewards.error) { rewardPresentation.value = null; return; }
+  if (!environmentInvalidated.value && !rewards.loading && rewards.snapshot) rewardPresentation.value = {
+    amount: rewards.snapshot.inviterRewardNex, enabled: rewards.snapshot.rewardEnabled,
+  };
+}, { immediate: true });
+watch(() => cfg.configStatus, status => {
+  if (status === 'failed' || status === 'idle') channelsHaveRead.value = false;
+  else if (!environmentInvalidated.value && status === 'ready') channelsHaveRead.value = true;
+}, { immediate: true });
 
 // §8.1.1 口径:估值 × 阶段倍率(与邀请卡同一单源常量,F4)。
 const dollarReward = computed(() => Math.round(INVITER_REWARD_USDT_ESTIMATE * phase.value.inviteBonusMultiplier));
 const rewardLineText = computed(() => {
   if (remoteApiEnabled) {
-    if (rewards.loading || rewards.error) return t.value.team.settlementUnavailable;
-    if (rewards.snapshot?.rewardEnabled === false) return t.value.team.referralRewardsDisabled;
-    const nex = rewards.snapshot?.inviterRewardNex;
+    if (rewards.error || !rewardPresentation.value) return t.value.team.settlementUnavailable;
+    if (rewardPresentation.value?.enabled === false) return t.value.team.referralRewardsDisabled;
+    const nex = rewardPresentation.value?.amount;
     return nex === undefined
       ? t.value.team.settlementUnavailable
       : `${formatAmount(nex)} UVT`;
@@ -84,7 +99,7 @@ const rewardLineText = computed(() => {
   return `${base} · ${promo}`;
 });
 
-const rewardHint = computed(() => remoteApiEnabled && !rewards.loading && !rewards.error && rewards.snapshot?.rewardEnabled
+const rewardHint = computed(() => remoteApiEnabled && !rewards.error && rewardPresentation.value?.enabled
   ? copy.value.qualifiedFriendReward : '');
 const channels = computed<ShareChannelDef[]>(() => visibleChannels());
 // Built-in actions operate on confirmed invitation data. They are not an
@@ -97,17 +112,26 @@ const externalChannels = computed(() => channels.value.filter(c =>
   c.key !== "copy" && c.key !== "poster" && c.intentType !== "copy" && c.intentType !== "poster",
 ));
 const displayChannels = computed(() => [...localActions, ...externalChannels.value]);
-const referralCode = computed(() => currentShareReferralCode());
-const shareLink = computed(() => buildShareLink());
+const referralCode = computed(() => environmentInvalidated.value ? '' : currentShareReferralCode());
+const codePresentation = ref('');
+watch(() => [app.accountKey, app.accountBindingEpoch, locale.code], () => { codePresentation.value = ''; }, { flush: 'sync' });
+watch([referralCode, () => rewards.error], () => {
+  if (rewards.error || environmentInvalidated.value) codePresentation.value = '';
+  else if (referralCode.value) codePresentation.value = referralCode.value;
+}, { immediate: true });
+const shareLink = computed(() => environmentInvalidated.value ? '' : buildShareLink());
 const loading = computed(() => retrying.value || cfg.loading || cfg.configStatus === "idle" || cfg.configStatus === "loading" || (remoteApiEnabled && rewards.loading));
+const statusPresentation = ref('');
 const statusMessage = computed(() => {
-  if (loading.value) return t.value.share.channelsLoading;
+  if (loading.value) return channelsHaveRead.value && (!remoteApiEnabled || rewardPresentation.value) ? statusPresentation.value : t.value.share.channelsLoading;
   if (cfg.configStatus === "failed") return t.value.share.channelsLoadFailed;
   if (!shareLink.value) return t.value.share.linkUnavailable;
   if (remoteApiEnabled && rewards.error) return t.value.team.settlementUnavailable;
   if (!externalChannels.value.length) return t.value.share.channelsEmpty;
   return "";
 });
+watch(statusMessage, message => { if (!loading.value) statusPresentation.value = message; }, { immediate: true });
+watch(() => [app.accountKey, app.accountBindingEpoch, locale.code], () => { statusPresentation.value = ''; }, { flush: 'sync' });
 const codeDisabled = computed(() => channelBusy.value || !referralCode.value);
 function channelDisabled(c: ShareChannelDef): boolean {
   const local = c.intentType === "copy" || c.intentType === "poster";
@@ -215,9 +239,9 @@ useDialogA11y(computed(() => props.open), ".ss-root", () => emit("close"));
 .ss-grab { flex:none;width:36px;height:4px;border-radius:9px;background:var(--v5-surface-3);margin:var(--ui-space-row-y) auto 0; }.ss-head { flex:none;display:flex;align-items:center;justify-content:space-between;gap:var(--ui-space-inline);padding:var(--ui-space-row-y) 20px; }.ss-head__t { font:600 20px/1.4 var(--font-v5);color:var(--v5-ink);overflow-wrap:anywhere; }
 .ss-head__x { position:relative;isolation:isolate;flex:none;width:44px;height:44px;display:grid;place-items:center;border-radius:50%;color:var(--v5-ink);cursor:pointer; }.ss-head__x svg { position:relative; }
 .ss-body { min-height:0;overflow-y:auto;overscroll-behavior-y:contain;padding:0 20px 12px;scrollbar-width:none; }.ss-body::-webkit-scrollbar {display:none;width:0;height:0;}.ss-reward { display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:4px 0 24px; }.ss-reward__t { font:400 13px/1.6 var(--font-v5);color:var(--v5-ink-2);overflow-wrap:anywhere; }.ss-reward__t--amount { font:600 30px/1.25 var(--font-v5);color:var(--v5-ink); }.ss-reward__hint { font:400 12px/1.5 var(--font-v5);color:var(--v5-ink-3); }
-.ss-status { display:flex;align-items:center;gap:var(--ui-space-inline);margin-bottom:var(--ui-space-inset); }.ss-status__text { flex:1;min-width:0;font:400 12px/1.6 var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }.ss-retry { position:relative;isolation:isolate;flex:none;min-height:44px;padding:0 16px;display:flex;align-items:center;border-radius:999px;color:var(--v5-ink);font-size:12px; }.ss-retry text { position:relative; }
+.ss-status { display:flex;align-items:center;gap:var(--ui-space-inline);margin-bottom:var(--ui-space-inset); }.ss-status__text { flex:1;min-width:0;font:400 12px/1.6 var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }.ss-retry { position:relative;isolation:isolate;flex:none;min-height:44px;padding:0 16px;display:flex;align-items:center;border-radius:999px;color:var(--v5-ink);font:600 13px/20px var(--font-v5); }.ss-retry text { position:relative; }
 .ss-row { display:flex;align-items:center;gap:var(--ui-space-inline);min-height:62px;padding:var(--ui-space-row-y) 0;border-bottom:1px solid var(--v5-border);color:var(--v5-ink);cursor:pointer; }.ss-row__icon,.ss-row__arrow { flex:none;display:flex;align-items:center;justify-content:center; }.ss-row__label { flex:1;min-width:0;font:500 14px/1.5 var(--font-v5);overflow-wrap:anywhere; }.ss-code__value { max-width:42%;font:500 12px/1.5 var(--font-v5);color:var(--v5-ink-2);text-align:right;overflow-wrap:anywhere; }
-.ss-row[aria-disabled="true"],.ss-retry[aria-disabled="true"] { opacity:.45;cursor:default; }.ss-rules { padding:var(--ui-space-inset) 0;border-bottom:1px solid var(--v5-border); }.ss-rules text { display:block;margin-bottom:6px;font:400 12px/1.7 var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }.ss-cancel { display:flex;align-items:center;justify-content:center;min-height:48px;margin-top:6px;font:400 13px/1.5 var(--font-v5);color:var(--v5-ink-3);cursor:pointer; }
+.ss-row[aria-disabled="true"]:not(.ss-row--pending),.ss-retry[aria-disabled="true"] { opacity:.45;cursor:default; }.ss-rules { padding:var(--ui-space-inset) 0;border-bottom:1px solid var(--v5-border); }.ss-rules text { display:block;margin-bottom:6px;font:400 12px/1.7 var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }.ss-cancel { display:flex;align-items:center;justify-content:center;min-height:48px;margin-top:6px;font:400 13px/1.5 var(--font-v5);color:var(--v5-ink-3);cursor:pointer; }
 .ss-rules-support { min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px; }
 .ss-rules-support text { margin:0;color:var(--v5-ink-2); }
 .ss-sheet [tabindex="0"]:focus-visible { outline:2px solid var(--v5-brand);outline-offset:2px; }

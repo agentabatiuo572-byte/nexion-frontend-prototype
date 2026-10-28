@@ -49,7 +49,8 @@ it.each(["zh", "en", "vi"] as const)("keeps the %s purchased row compact and rev
   const screen = mount(locale);
   expect(screen.byClass("device-inventory-row__name")!.children).toBe("UVELBox Pro v2");
   expect(screen.byClass("device-inventory-row__image")!.props!.src).toBe(getProductMedia("stellarbox-pro-v2")!.src);
-  expect(screen.byClass("device-inventory-row__status")!.children).toBe(screen.t.earn.online);
+  expect(screen.byClass("device-inventory-row__status")!.children).toBe("Online");
+  expect(screen.byClass("device-inventory-row__status--online")).toBeDefined();
   expect(screen.byClass("device-inventory-row__body")).toBeUndefined();
   const heading = screen.byClass("device-inventory-row__heading")!;
   expect(heading.props).toMatchObject({ role: "button", tabindex: "0", "aria-expanded": false });
@@ -83,16 +84,22 @@ it("keeps a confirmed pending-deactivation visible before opening the row", () =
   const screen = mount(); screen.device.pendingDeactivate = true;
   expect(screen.byClass("device-inventory-row__body")).toBeUndefined();
   expect(screen.byClass("device-inventory-row__status")!.children).toBe(`${screen.t.earn.online} · ${screen.t.myDevices.inventoryPendingDeactivateChip}`);
+  expect(screen.byClass("device-inventory-row__status--online")).toBeDefined();
 });
 
 it.each(["zh", "en", "vi"] as const)("preserves online, offline and unknown status meanings in %s", locale => {
   const screen = mount(locale);
   screen.device.runtimeStatus = "OFFLINE"; expect(screen.byClass("device-inventory-row__status")!.children).toBe(screen.t.earn.offline);
+  expect(screen.byClass("device-inventory-row__status--online")).toBeUndefined();
   screen.device.runtimeStatus = "UNKNOWN"; expect(screen.byClass("device-inventory-row__status")!.children).toBe(screen.t.earn.runtimeUnknown);
+  expect(screen.byClass("device-inventory-row__status--online")).toBeUndefined();
   screen.device.runtimeStatus = "ONLINE"; screen.props.runtimeConfirmed = false;
   expect(screen.byClass("device-inventory-row__status")!.children).toBe(screen.t.earn.runtimeUnknown);
+  expect(screen.byClass("device-inventory-row__status--online")).toBeUndefined();
   screen.props.active = false; expect(screen.byClass("device-inventory-row__status")!.children).toBe(screen.t.myDevices.inventorySectionInventory);
+  expect(screen.byClass("device-inventory-row__status--online")).toBeUndefined();
   screen.device.activationUnconfirmed = true; expect(screen.byClass("device-inventory-row__status")!.children).toBe(screen.t.earn.runtimeUnknown);
+  expect(screen.byClass("device-inventory-row__status--online")).toBeUndefined();
 });
 
 it.each(["stellarbox-s1", "stellarbox-pro", "stellarbox-pro-v2", "stellarrack-p1", "stellarrack-p2", "cloud-share"] as const)("uses the actual %s product artwork", kind => {

@@ -1,0 +1,25 @@
+{
+  "reason": "Reload authorized corrected /api/config/exchange/caps mode",
+  "oldPid": 2340,
+  "newPid": 31400,
+  "node": "C:\\Users\\FL\\.pi\\agent\\runtime\\node\\node.exe",
+  "script": "D:\\WORKS\\PLAN\\.wt\\uvel-design-preview\\r20-unified-review\\r15-errorcard-proxy\\server.mjs",
+  "arguments": [
+    "D:\\WORKS\\PLAN\\.wt\\uvel-design-preview\\r20-unified-review\\r15-errorcard-proxy\\server.mjs",
+    "5274"
+  ],
+  "upstreamPort": 5254,
+  "protectedListenersBefore": [
+    {
+      "LocalPort": 5272,
+      "OwningProcess": 28216
+    },
+    {
+      "LocalPort": 5254,
+      "OwningProcess": 12200
+    }
+  ],
+  "stdout": "D:\\WORKS\\PLAN\\.wt\\uvel-design-preview\\r20-unified-review\\compact-r17-visual-a\\proxy5274-20261027-235508.stdout.log",
+  "stderr": "D:\\WORKS\\PLAN\\.wt\\uvel-design-preview\\r20-unified-review\\compact-r17-visual-a\\proxy5274-20261027-235508.stderr.log",
+  "restartedAt": "2026-10-27T23:55:08.6734911+09:00"
+}

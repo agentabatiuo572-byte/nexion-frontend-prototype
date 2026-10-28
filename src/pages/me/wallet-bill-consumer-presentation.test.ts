@@ -1,7 +1,7 @@
 // @ts-expect-error This behavior test reads SFC source in Node.
 import { readFileSync } from "node:fs";
 import ts from "typescript";
-import { computed, reactive, ref } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 import { describe, expect, it } from "vitest";
 import { resolveWalletBillMemo } from "@/lib/wallet-bill-display";
 import { en } from "@/i18n/messages/en";
@@ -21,9 +21,9 @@ const row = (memoKey = "questReward") => ({ id: "ledger-1", ts: 1, symbol: "NEX"
 function nexView(memoKey?: string) {
   const bills = reactive({ summaryStatus: "ready", summary: { recentNexBills: [row(memoKey)] } });
   const t = ref(en);
-  const code = section("./wallet-nex.vue", "const nexLedger = computed", "const pendingNex = computed");
-  const view = new Function("computed", "remoteApiEnabled", "bills", "t", "resolveWalletBillMemo",
-    `${code}; return nexLedger;`)(computed, true, bills, t, resolveWalletBillMemo);
+  const code = section("./wallet-nex.vue", "const summaryScope =", "let priceTimer") + section("./wallet-nex.vue", "const nexLedger = computed", "const pendingNex = computed");
+  const view = new Function("ref", "watch", "app", "locale", "apiRuntimeConfig", "computed", "remoteApiEnabled", "bills", "t", "resolveWalletBillMemo",
+    `${code}; return nexLedger;`)(ref, watch, { accountKey: "user:test", accountBindingEpoch: 1 }, { code: "en" }, { environment: "dev" }, computed, true, bills, t, resolveWalletBillMemo);
   return { bills, t, view };
 }
 function rewardsView(memoKey?: string) {
@@ -61,6 +61,10 @@ describe("controlled wallet descriptions on every consumer", () => {
     s.t.value = zh;
     expect(s.view.value[0].label).toBe(zh.bills.memo.questReward);
     expect(s.bills.summary.recentNexBills[0].memo).toBe("");
+  });
+  it("keeps existing NEX activity while summary authority is refreshing", () => {
+    const s = nexView(), before = s.view.value; s.bills.summaryStatus = "loading";
+    expect(s.view.value).toEqual(before); expect(s.view.value).toHaveLength(1);
   });
   it("does not display NEX activity from a failed summary", () => {
     const s = nexView(); s.bills.summaryStatus = "error";

@@ -31,6 +31,7 @@ function mount(source: string) {
   const presentation = { active: Vue.ref(true), reservedSlots: Vue.ref<number | null>(1), actionsReady: Vue.ref(true) };
   const navTo = vi.fn(), confirm = vi.fn(async () => true), toast = { warn: vi.fn(), info: vi.fn(), error: vi.fn(), success: vi.fn() };
   const modules: Record<string, unknown> = {
+    "@/store/data-visibility": { useDataVisibility: () => ({ hidden: false, mask: String }) },
     vue: Vue, "@/lib/amount-display": { formatAmount: (n: number) => n.toFixed(2) },
     "@/lib/route": { navTo, navReset: vi.fn() }, "@/store/app": { useApp: () => app },
     "@/store/free-trial": { useFreeTrial: () => trial },

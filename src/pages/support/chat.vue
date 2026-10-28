@@ -1916,7 +1916,9 @@ import LiquidGlass from "@/components/liquid-glass.vue";
 .cp-back > svg, .cp-ticket > svg { position: relative; z-index: 1; }
 .cp-root .cp-ai-history-action { background: transparent; border: none; margin: 6px 16px; }
 .cp-root .cp-ai-history-action .cp-ai-history-t { position: relative; }
-.cp-history-error { padding:7px 16px; text-align:center; color:var(--v5-ink-3); font-size:12px; }
+.cp-history-error { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:12px; padding:7px 16px; text-align:start; color:var(--v5-ink-3); font-size:12px; }
+.cp-history-error > text { min-width:0; overflow-wrap:anywhere; }
+.cp-history-error > .cp-history-text-action { min-width:44px; padding-inline:0; white-space:nowrap; font:600 13px/20px var(--font-v5); }
 .cp-history-text-action { display:flex; align-items:center; justify-content:center; min-height:44px; padding:0 16px; box-sizing:border-box; border:0; background:transparent; color:var(--v5-ink-2); font-size:13px; text-align:center; cursor:pointer; }
 .cp-history-text-action[aria-disabled="true"] { opacity:.5; cursor:default; }
 .cp-history-text-action:focus-visible { outline:2px solid var(--v5-brand); outline-offset:-2px; }

@@ -233,6 +233,7 @@
 </template>
 
 <script setup lang="ts">
+import { runPassiveTabRead, passiveTabReadScope } from "@/lib/passive-tab-read";
 import { formatAmount } from "@/lib/amount-display";
 import { computed, onMounted, ref, watch } from "vue";
 import { useTradeinSheet } from "@/store/tradein-sheet";
@@ -302,10 +303,11 @@ watch(() => app.accountKey, () => {
 async function loadCanonicalTradeinConfig() {
   if (!remoteApiEnabled) return;
   const requestScope = captureAccountScope();
-  await deviceE3Api.tradeinConfig().then((value) => {
-    if (isCurrentAccountScope(requestScope)) canonicalTradeinConfig.value = value;
+  const readScope = passiveTabReadScope();
+  await runPassiveTabRead("tradein-config", () => deviceE3Api.tradeinConfig()).then((value) => {
+    if (isCurrentAccountScope(requestScope) && readScope === passiveTabReadScope()) canonicalTradeinConfig.value = value;
   }).catch(() => {
-    if (isCurrentAccountScope(requestScope)) canonicalTradeinConfig.value = null;
+    if (isCurrentAccountScope(requestScope) && readScope === passiveTabReadScope()) canonicalTradeinConfig.value = null;
   });
 }
 onMounted(() => {

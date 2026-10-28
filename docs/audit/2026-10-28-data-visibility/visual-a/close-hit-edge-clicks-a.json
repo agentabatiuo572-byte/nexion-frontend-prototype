@@ -1,0 +1,198 @@
+[
+  {
+    "label": "320-vi-dark-left-edge",
+    "at": "2026-10-27T20:15:09.334Z",
+    "edge": "left",
+    "before": {
+      "face": {
+        "bottom": 253.73959350585935,
+        "height": 30,
+        "left": 265,
+        "right": 295,
+        "top": 223.73959350585935,
+        "width": 30,
+        "x": 265,
+        "y": 223.73959350585935
+      },
+      "hit": {
+        "insideRoot": true,
+        "label": "Đóng",
+        "tag": "UNI-VIEW"
+      },
+      "outsideVisibleFace": true,
+      "point": {
+        "x": 260,
+        "y": 238.73959350585935
+      },
+      "root": {
+        "bottom": 260.7395935058594,
+        "height": 44,
+        "left": 258,
+        "right": 302,
+        "top": 216.73959350585935,
+        "width": 44,
+        "x": 258,
+        "y": 216.73959350585935
+      },
+      "url": "http://127.0.0.1:5291/?nx_device=off#/pages/earn/earn"
+    },
+    "inputMethod": "CDP Input.dispatchMouseEvent actual pointer press/release",
+    "outerPoint": {
+      "x": 1240,
+      "y": 547.2395935058594
+    },
+    "after": {
+      "dialogs": 0,
+      "privacy": "false",
+      "rocket": "Kho tác vụ AI đang nâng cấp",
+      "url": "http://127.0.0.1:5291/?nx_device=off#/pages/earn/earn"
+    }
+  },
+  {
+    "label": "320-vi-dark-bottom-edge",
+    "at": "2026-10-27T20:15:22.455Z",
+    "edge": "bottom",
+    "before": {
+      "face": {
+        "bottom": 253.73959350585935,
+        "height": 30,
+        "left": 265,
+        "right": 295,
+        "top": 223.73959350585935,
+        "width": 30,
+        "x": 265,
+        "y": 223.73959350585935
+      },
+      "hit": {
+        "insideRoot": true,
+        "label": "Đóng",
+        "tag": "UNI-VIEW"
+      },
+      "outsideVisibleFace": true,
+      "point": {
+        "x": 280,
+        "y": 258.7395935058594
+      },
+      "root": {
+        "bottom": 260.7395935058594,
+        "height": 44,
+        "left": 258,
+        "right": 302,
+        "top": 216.73959350585935,
+        "width": 44,
+        "x": 258,
+        "y": 216.73959350585935
+      },
+      "url": "http://127.0.0.1:5291/?nx_device=off#/pages/earn/earn"
+    },
+    "inputMethod": "CDP Input.dispatchMouseEvent actual pointer press/release",
+    "outerPoint": {
+      "x": 1260,
+      "y": 567.2395935058594
+    },
+    "after": {
+      "dialogs": 0,
+      "privacy": "false",
+      "rocket": "Kho tác vụ AI đang nâng cấp",
+      "url": "http://127.0.0.1:5291/?nx_device=off#/pages/earn/earn"
+    }
+  },
+  {
+    "label": "390-zh-light-right-edge",
+    "at": "2026-10-27T20:16:00.176Z",
+    "edge": "right",
+    "before": {
+      "face": {
+        "bottom": 538.4270935058594,
+        "height": 30,
+        "left": 335,
+        "right": 365,
+        "top": 508.4270935058594,
+        "width": 30,
+        "x": 335,
+        "y": 508.4270935058594
+      },
+      "hit": {
+        "insideRoot": true,
+        "label": "关闭",
+        "tag": "UNI-VIEW"
+      },
+      "outsideVisibleFace": true,
+      "point": {
+        "x": 370,
+        "y": 523.4270935058594
+      },
+      "root": {
+        "bottom": 545.4270935058594,
+        "height": 44,
+        "left": 328,
+        "right": 372,
+        "top": 501.4270935058594,
+        "width": 44,
+        "x": 328,
+        "y": 501.4270935058594
+      },
+      "url": "http://127.0.0.1:5291/?nx_device=off#/pages/earn/earn"
+    },
+    "inputMethod": "CDP Input.dispatchMouseEvent actual pointer press/release",
+    "outerPoint": {
+      "x": 1315,
+      "y": 756.4270935058594
+    },
+    "after": {
+      "dialogs": 0,
+      "privacy": "false",
+      "rocket": "AI 作业池升级中",
+      "url": "http://127.0.0.1:5291/?nx_device=off#/pages/earn/earn"
+    }
+  },
+  {
+    "label": "390-zh-light-top-edge",
+    "at": "2026-10-27T20:16:02.199Z",
+    "edge": "top",
+    "before": {
+      "face": {
+        "bottom": 538.4270935058594,
+        "height": 30,
+        "left": 335,
+        "right": 365,
+        "top": 508.4270935058594,
+        "width": 30,
+        "x": 335,
+        "y": 508.4270935058594
+      },
+      "hit": {
+        "insideRoot": true,
+        "label": "关闭",
+        "tag": "UNI-VIEW"
+      },
+      "outsideVisibleFace": true,
+      "point": {
+        "x": 350,
+        "y": 503.4270935058594
+      },
+      "root": {
+        "bottom": 545.4270935058594,
+        "height": 44,
+        "left": 328,
+        "right": 372,
+        "top": 501.4270935058594,
+        "width": 44,
+        "x": 328,
+        "y": 501.4270935058594
+      },
+      "url": "http://127.0.0.1:5291/?nx_device=off#/pages/earn/earn"
+    },
+    "inputMethod": "CDP Input.dispatchMouseEvent actual pointer press/release",
+    "outerPoint": {
+      "x": 1295,
+      "y": 736.4270935058594
+    },
+    "after": {
+      "dialogs": 0,
+      "privacy": "false",
+      "rocket": "AI 作业池升级中",
+      "url": "http://127.0.0.1:5291/?nx_device=off#/pages/earn/earn"
+    }
+  }
+]

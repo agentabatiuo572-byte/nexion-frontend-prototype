@@ -17,6 +17,7 @@ const code = ts.transpileModule(compileScript(parse(source).descriptor, { id: "w
   templateOptions: { compilerOptions: { isCustomElement: tag => ["view", "text"].includes(tag) } },
 }).content, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
 function wallet(language: keyof typeof dictionaries) {
+  const visibility = Vue.reactive({ hidden: false, mask: (value: string | number) => visibility.hidden ? "••••" : String(value) });
   const app = Vue.reactive({ remoteFleetHasSnapshot: true, remoteFleetStatus: "ready", remoteWalletReceiptHasSnapshot: false,
     user: { usdtBalance: 10297.08, nexBalance: 4268.32, earningBuckets: { pendingReviewUsdt: 0, bonusLockedUsdt: 0 } },
     visibleDevices: [], activeSlotCount: 0, slotCap: 6 });
@@ -24,6 +25,8 @@ function wallet(language: keyof typeof dictionaries) {
   const status = Vue.ref("ready"), hasSnapshot = Vue.ref(true);
   const market = Vue.reactive({ isMockMode: false, remoteReady: true, nexPriceUSDT: .124 });
   const imports: Record<string, unknown> = {
+    "@/store/data-visibility": { useDataVisibility: () => visibility },
+    "@/components/ui/data-visibility-toggle.vue": { default: { render: () => null } },
     vue: Vue, "@/lib/finance-amount-display": { formatFinanceAmount }, "@/lib/route": { navTo: vi.fn(), navReset: vi.fn() },
     "@/i18n/use-t": { useT: () => Vue.ref(dictionaries[language]) }, "@/i18n/audit-ui": { useAuditUiCopy: () => Vue.ref(auditUiCopy[language]) },
     "@/i18n/format": { fmt, fmtMoney, openSlotsTemplate }, "@/store/app": { useApp: () => app },
@@ -36,7 +39,7 @@ function wallet(language: keyof typeof dictionaries) {
   };
   const exports = {} as { default: Vue.Component };
   new Function("require", "exports", code)((id: string) => imports[id], exports);
-  return { app, release, status, hasSnapshot, market, html: () => renderToString(Vue.createSSRApp(exports.default, { compact: true })) };
+  return { app, visibility, release, status, hasSnapshot, market, html: () => renderToString(Vue.createSSRApp(exports.default, { compact: true })) };
 }
 it.each(["zh", "en", "vi"] as const)("keeps the compact %s bucket line mounted from confirmed zero into pending/held/failure", async language => {
   const w = wallet(language);
@@ -62,4 +65,19 @@ it("preserves unknown money and quote authority plus the existing navigation des
   expect(html).not.toContain("10,297.08"); expect(html).not.toContain("4,268.32 UVT");
   expect(html).toContain("≈ — USDT · 1 UVT = — USDT");
   for (const route of ["wallet-topup", "wallet-withdraw-method", "wallet-exchange"]) expect(html).toContain('data-wallet-route="/pages/me/' + route + '"');
+});
+
+
+it("conceals wallet amount, UVT and valuation in rendered text and accessibility labels", async () => {
+  const w = wallet("zh");
+  expect(await w.html()).toContain("10,297");
+  w.visibility.hidden = true;
+  const hidden = await w.html();
+  for (const amount of ["10,297", "4,268.32", "529.27"]) expect(hidden).not.toContain(amount);
+  expect(hidden).toContain("•••• UVT");
+  expect(hidden).toContain("≈ •••• USDT");
+  expect(hidden).toContain("1 UVT = 0.124 USDT");
+  expect(w.app.user.usdtBalance).toBe(10297.08);
+  w.visibility.hidden = false;
+  expect(await w.html()).toContain("10,297");
 });

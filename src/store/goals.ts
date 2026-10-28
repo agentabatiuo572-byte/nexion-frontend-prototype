@@ -38,6 +38,10 @@ export const useGoals = defineStore("goals", () => {
   let pendingGoalRead: { scopeEpoch: number; readEpoch: number; promise: Promise<void> } | null = null;
   let pendingGoalSave: { scopeEpoch: number; promise: Promise<GoalSaveOutcome> } | null = null;
   const accountEpoch = ref(0);
+  const readBindingEpoch = ref(scopeEpoch);
+  const readSuccessRevision = ref(0);
+  const readSuccessScope = ref<{accountKey: string; epoch: number} | null>(null);
+  const captureReadBinding = () => ({accountKey: boundKey, epoch: scopeEpoch});
   const goals = ref<Goal[]>(remoteApiEnabled ? [] : hydrate(boundKey));
   const lifetimeEarningsUsdt = ref(0);
   const status = ref<GoalsLoadStatus>(remoteApiEnabled ? "idle" : "ready");
@@ -66,6 +70,7 @@ export const useGoals = defineStore("goals", () => {
       recommendationError.value = null;
       recommendationStatus.value = "idle";
       status.value = "loading";
+      readBindingEpoch.value = scopeEpoch;
       void ensure(scopeEpoch);
     } else {
       goals.value = hydrate(boundKey);
@@ -86,6 +91,8 @@ export const useGoals = defineStore("goals", () => {
       try {
       const snapshot = await goalsApi.list();
         if (expectedEpoch !== scopeEpoch || expectedReadEpoch !== readEpoch) return;
+      readSuccessRevision.value++;
+      readSuccessScope.value = captureReadBinding();
       goals.value = snapshot.goals.map((goal) => ({
         id: String(goal.id), targetUSDT: goal.targetUsdt, deadlineMs: goal.deadlineAt,
         createdAt: goal.createdAt, achieved: goal.achieved,
@@ -211,7 +218,7 @@ export const useGoals = defineStore("goals", () => {
   }
 
   return {
-    goals, lifetimeEarningsUsdt, status, error, recommendation, recommendationStatus, recommendationError, accountEpoch,
+    goals, lifetimeEarningsUsdt, status, error, recommendation, recommendationStatus, recommendationError, accountEpoch, readBindingEpoch, readSuccessRevision, readSuccessScope, captureReadBinding,
     refresh, ensure, refreshRecommendation, setGoal, markAchieved, remove, clear, bindAccount,
   };
 });

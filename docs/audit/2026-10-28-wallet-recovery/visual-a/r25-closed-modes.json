@@ -1,0 +1,32 @@
+[
+  {
+    "port": 5291,
+    "mode": "off",
+    "target": null,
+    "updatedAt": "2026-10-27T18:20:48.192Z"
+  },
+  {
+    "port": 5291,
+    "mode": "balance-zero",
+    "target": "/api/devices/earnings",
+    "updatedAt": "2026-10-27T18:20:51.219Z"
+  },
+  {
+    "port": 5291,
+    "mode": "wallet-funds",
+    "target": "/api/devices/earnings",
+    "updatedAt": "2026-10-27T18:20:53.964Z"
+  },
+  {
+    "port": 5291,
+    "mode": "off",
+    "target": null,
+    "updatedAt": "2026-10-27T18:20:59.794Z"
+  },
+  {
+    "port": 5291,
+    "mode": "off",
+    "target": null,
+    "updatedAt": "2026-10-27T18:21:53.989Z"
+  }
+]

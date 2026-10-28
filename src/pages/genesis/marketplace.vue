@@ -80,7 +80,7 @@
         <template v-if="tab === 'listings'">
           <!-- A closed market and a failed read are independent. Keep read feedback
                compact when closed, and never present an unread list as empty. -->
-          <EmptyState v-if="genesis.remotePublicReadState === 'loading'" kind="empty-list" :compact="secondaryBlock !== null"
+          <EmptyState v-if="!publicDisplayReady && genesis.remotePublicReadState !== 'unavailable'" kind="empty-list" :compact="secondaryBlock !== null"
             :title="t.marketplace.marketLoading" :desc="t.marketplace.marketLoadingHint" />
           <EmptyState v-else-if="genesis.remotePublicReadState === 'unavailable'" kind="empty-list" :compact="secondaryBlock !== null"
             :title="t.marketplace.marketUnavailable" :desc="t.marketplace.marketUnavailableHint"
@@ -99,7 +99,7 @@
             </scroll-view>
 
             <view class="grid grid-cols-2" style="gap: var(--ui-space-row-y)">
-              <ListingCard v-for="l in sortedListings" :key="l.tokenId" :l="l" :disabled="secondaryBlock !== null || buyPending" @buy="handleBuy(l)" />
+              <ListingCard v-for="l in sortedListings" :key="l.tokenId" :l="l" :disabled="secondaryBlock !== null || buyPending || !marketplaceCommandsReady" @buy="handleBuy(l)" />
             </view>
           </template>
           <!-- 一条挂单都没有 ——《06 缺省页规范》禁空容器/白屏。排序 pill 一并撤:
@@ -120,7 +120,7 @@
         <!-- ACTIVITY TAB(真实成交 + 虚拟成交混排,FEAT-GEN10)-->
         <template v-else-if="tab === 'activity'">
           <!-- The shared footer retries reads without changing the market gate. -->
-          <EmptyState v-if="genesis.remotePublicReadState === 'loading'" kind="empty-list" :compact="secondaryBlock !== null"
+          <EmptyState v-if="!publicDisplayReady && genesis.remotePublicReadState !== 'unavailable'" kind="empty-list" :compact="secondaryBlock !== null"
             :title="t.marketplace.marketLoading" :desc="t.marketplace.marketLoadingHint" />
           <EmptyState v-else-if="genesis.remotePublicReadState === 'unavailable'" kind="empty-list" :compact="secondaryBlock !== null"
             :title="t.marketplace.marketUnavailable" :desc="t.marketplace.marketUnavailableHint"
@@ -132,13 +132,13 @@
           <EmptyState v-else kind="empty-list" :title="t.empty.genesisActivityTitle" :desc="t.empty.genesisActivityDesc" />
           <view v-if="genesis.activityPage.cursor" class="active:opacity-70" role="button" tabindex="0" :aria-disabled="genesis.activityPage.busy ? 'true' : 'false'"
             :aria-busy="genesis.activityPage.busy ? 'true' : 'false'" style="padding:var(--ui-space-inline);text-align:center;color:var(--v5-brand)" @click="!genesis.activityPage.busy && genesis.loadMoreActivity()">
-            <text>{{ genesis.activityPage.error ? t.orders.retry : t.orders.loadMore }}</text>
+            <text :class="{ 'nx-market-read-retry-label': genesis.activityPage.error }">{{ genesis.activityPage.error ? t.orders.retry : t.orders.loadMore }}</text>
           </view>
         </template>
 
         <!-- MINE TAB -->
         <template v-else>
-          <view v-if="genesis.remoteAccountReadState !== 'ready'" class="text-center" :style="emptyCardStyle">
+          <view v-if="!accountDisplayReady" class="text-center" :style="emptyCardStyle">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 8px"><path d="M12 9v4" /><path d="M12 17h.01" /><circle cx="12" cy="12" r="10" /></svg>
             <text class="block" style="font-size: 13px; color: var(--v5-ink)">{{ genesis.remoteAccountReadState === 'loading' ? t.marketplace.accountLoading : t.marketplace.accountUnavailable }}</text>
             <text v-if="genesis.remoteAccountReadState !== 'loading'" class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px; line-height: 1.375">{{ t.marketplace.accountUnavailableHint }}</text>
@@ -152,14 +152,14 @@
             </view>
           </view>
           <view v-else class="grid grid-cols-2" style="gap: var(--ui-space-row-y)">
-            <MyTokenCard v-for="id in ownedTokenIds" :key="id" :token-id="id" :page-scope="listingPageScope" />
+            <MyTokenCard v-for="id in ownedTokenIds" :key="id" :token-id="id" :page-scope="listingPageScope" :read-ready="marketplaceCommandsReady" />
           </view>
         </template>
 
         <text class="block px-2" style="font-size: 12px; color: var(--v5-ink-3); line-height: 1.625">{{ marketplaceRoyaltyText }}</text>
         <view v-if="marketReadNeedsRetry" class="nx-market-retry" role="button" :tabindex="marketplaceRead.busy ? -1 : 0" :aria-busy="marketplaceRead.busy" :aria-disabled="marketplaceRead.busy"
           @click="retryMarketplaceFacts()" @keydown.enter.prevent="retryMarketplaceFacts()" @keydown.space.prevent="retryMarketplaceFacts()">
-          <text>{{ marketplaceRead.busy ? t.marketplace.marketLoading : t.marketplace.retry }}</text>
+          <text class="nx-market-read-retry-label">{{ t.marketplace.retry }}</text>
         </view>
       </view>
     </view>
@@ -172,7 +172,7 @@
 <script setup lang="ts">
 import { formatGenesisPrice } from "@/lib/genesis-marketplace-presentation";
 import { navTo } from "@/lib/route";
-import { ref, reactive, computed, nextTick, onMounted, onUnmounted, type CSSProperties } from "vue";
+import { ref, reactive, computed, nextTick, onMounted, onUnmounted, watch, type CSSProperties } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
@@ -183,6 +183,7 @@ import GenesisEligibilitySheet from "@/components/genesis/eligibility-sheet.vue"
 import EmptyState from "@/components/empty-state.vue";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
+import { useApp } from "@/store/app";
 import { genesisConsumerCopyFor } from "./genesis-consumer-copy";
 import { fmt } from "@/i18n/format";
 import { useGenesis, GENESIS_ELIGIBILITY_POLICY } from "@/store/genesis";
@@ -192,7 +193,7 @@ import { useGenesisSaleGate } from "@/composables/use-genesis-sale-gate";
 import { toast } from "@/store/ui";
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
 import { ApiError } from "@/api/errors";
-import { h3ObservationApi, remoteApiEnabled, sessionVault } from "@/api/runtime";
+import { h3ObservationApi, remoteApiEnabled, sessionVault, apiRuntimeConfig } from "@/api/runtime";
 import { subscribeRuntimeRevision } from "@/api/order-api";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
 import { authenticatedPageObservationReporter } from "@/lib/authenticated-page-observation";
@@ -201,6 +202,22 @@ import { presentGenesisFloorDelta, presentGenesisMarketplaceActivityDescription,
 
 const t = useT();
 const locale = useLocaleStore();
+const app = useApp();
+const marketOwner = computed(() => JSON.stringify([app.accountKey, app.accountBindingEpoch, locale.code, apiRuntimeConfig?.environment]));
+const publicReadOwner = ref('');
+const accountReadOwner = ref('');
+let marketEnvironmentInvalidated = false;
+let marketOwnerGeneration = 0;
+watch(marketOwner, () => {
+  marketOwnerGeneration++;
+  publicReadOwner.value = ''; accountReadOwner.value = '';
+  void nextTick(() => { if (marketplacePageVisible) void retryMarketplaceFacts(true); });
+}, { flush: 'sync' });
+watch(() => apiRuntimeConfig?.environment, () => { marketEnvironmentInvalidated = true; }, { flush: 'sync' });
+// Mark ownership only after a captured current request has actually settled successfully.
+const publicDisplayReady = computed(() => publicReadOwner.value === marketOwner.value && genesis.remotePublicReadState !== 'unavailable');
+const accountDisplayReady = computed(() => accountReadOwner.value === marketOwner.value && genesis.remoteAccountReadState !== 'unavailable');
+const marketplaceCommandsReady = computed(() => !remoteApiEnabled || (!marketEnvironmentInvalidated && publicReadOwner.value === marketOwner.value && accountReadOwner.value === marketOwner.value && genesis.remotePublicReadState === 'ready' && genesis.remoteAccountReadState === 'ready'));
 const consumerCopy = computed(() => genesisConsumerCopyFor(locale.code));
 const genesis = useGenesis();
 const cfg = useGenesisConfig();
@@ -234,7 +251,7 @@ async function refreshMarketplaceFacts(): Promise<void> {
 }
 
 async function retryMarketplaceFacts(recheck = false): Promise<boolean> {
-  if (!marketplacePageVisible) return Promise.resolve(false);
+  if (!marketplacePageVisible || marketEnvironmentInvalidated) return Promise.resolve(false);
   if (refreshInFlight) {
     if (recheck) refreshRequested = true;
     return refreshInFlight;
@@ -249,7 +266,20 @@ async function retryMarketplaceFacts(recheck = false): Promise<boolean> {
         refreshRequested = false;
         await cfg.refresh();
         if (!marketplacePageVisible) return false;
+        const owner = marketOwner.value;
+        const ownerGeneration = marketOwnerGeneration;
+        const binding = genesis.captureRemoteReadBinding();
+        if (binding.accountKey !== String(app.accountKey).trim().toLowerCase()) return false;
+        const publicRevision = genesis.remotePublicSuccessRevision;
+        const accountRevision = genesis.remoteAccountSuccessRevision;
         loaded = await genesis.syncRemote();
+        if (marketplacePageVisible && !marketEnvironmentInvalidated && owner === marketOwner.value && ownerGeneration === marketOwnerGeneration
+          && genesis.captureRemoteReadBinding().epoch === binding.epoch) {
+          if (genesis.remotePublicReadState === 'ready' && genesis.remotePublicSuccessRevision > publicRevision
+            && genesis.remotePublicSuccessScope?.accountKey === binding.accountKey && genesis.remotePublicSuccessScope?.epoch === binding.epoch) publicReadOwner.value = owner;
+          if (genesis.remoteAccountReadState === 'ready' && genesis.remoteAccountSuccessRevision > accountRevision
+            && genesis.remoteAccountSuccessScope?.accountKey === binding.accountKey && genesis.remoteAccountSuccessScope?.epoch === binding.epoch) accountReadOwner.value = owner;
+        }
       } while (refreshRequested && marketplacePageVisible);
       return loaded;
     } catch {
@@ -319,11 +349,11 @@ const secondaryBlockSub = computed(() =>
 const stats = computed(() => {
   const remote = genesis.remoteMarketStats;
   return {
-    floor: remote.floorUsdt,
-    vol24h: remote.volume24hUsdt,
-    listed: genesis.remotePublicReadState === "ready" ? genesis.remoteListings.length : null,
-    owners: remote.owners,
-    floorDeltaPct: remote.floorDeltaPct,
+    floor: publicDisplayReady.value ? remote.floorUsdt : null,
+    vol24h: publicDisplayReady.value ? remote.volume24hUsdt : null,
+    listed: publicDisplayReady.value ? genesis.remoteListings.length : null,
+    owners: publicDisplayReady.value ? remote.owners : null,
+    floorDeltaPct: publicDisplayReady.value ? remote.floorDeltaPct : null,
   };
 });
 const floorDelta = computed(() => presentGenesisFloorDelta(stats.value.floorDeltaPct));
@@ -369,7 +399,7 @@ const ownedTokenIds = computed(() => genesis.ownedTokenIds);
 
 const listingsTabText = computed(() => fmt(t.value.marketplace.listingsTab, { n: stats.value.listed ?? "—" }));
 const mineTabText = computed(() => fmt(t.value.marketplace.mineTab, {
-  n: genesis.remoteAccountReadState === "ready" ? ownedCount.value : "—",
+  n: accountDisplayReady.value ? ownedCount.value : "—",
 }));
 
 // 承接成交后本地移除(mock 演示态,刷新重置;真后台由 server 单源回写挂单状态)。
@@ -421,6 +451,7 @@ const mergedActivity = computed<ActivityEvent[]>(() => {
 
 const buyPending = ref(false);
 async function handleBuy(listing: Listing) {
+  if (!marketplaceCommandsReady.value) return;
   if (buyPending.value || !marketplacePageVisible) return;
   if (secondaryBlock.value !== null) {
     toast.error(secondaryBlockText.value, secondaryBlockSub.value);
@@ -658,6 +689,7 @@ const sortOptions = computed(() => [
   font-weight: 600;
 }
 .nx-market-retry { align-self: flex-start; padding: 0 12px; }
+.nx-market-read-retry-label { font: 600 13px/20px var(--font-v5); }
 .nx-market-retry[aria-disabled="true"] { opacity: 0.6; }
 .nx-sort-row {
   width: 100%;

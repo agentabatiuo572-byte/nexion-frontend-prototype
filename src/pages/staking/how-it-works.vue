@@ -79,7 +79,7 @@
           <HowFaqRow open :q="w.faqQ3" :a="w.faqA3" />
           <HowFaqRow open :q="w.faqQ4" :a="stakingAvailable === true ? w.faqA4 : stakingAvailable === false ? w.faqA4Paused : w.faqA4Unknown" />
           <HowFaqRow open :q="w.faqQ5" :a="w.faqA5" />
-          <view v-if="exchangeReadFailed && !staking.remoteError" class="flex items-center justify-center" :style="retryStyle" role="button" :aria-disabled="retrying" :tabindex="retrying ? -1 : 0" @click="retryRemote" @keydown.enter.prevent="retryRemote" @keydown.space.prevent="retryRemote"><text>{{ copy.retry }}</text></view>
+          <view v-if="exchangeReadFailed && !staking.remoteError" class="nx-card-recovery-action" role="button" :aria-disabled="retrying" :tabindex="retrying ? -1 : 0" @click="retryRemote" @keydown.enter.prevent="retryRemote" @keydown.space.prevent="retryRemote"><text>{{ copy.retry }}</text></view>
         </view>
       </HowSection>
 
@@ -210,7 +210,6 @@ function goStaking() {
 const paraStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.65 }; // how-page scale: body 13.5/1.65 ink-2
 const paraStyle2: CSSProperties = { ...paraStyle, marginTop: "10px" };
 const captionStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-3)", lineHeight: 1.6, marginBottom: "14px" }; // how-page scale: caption 12.5/1.6 ink-3
-const retryStyle: CSSProperties = { minHeight: "44px", marginTop: "8px", borderRadius: "999px", background: "var(--v5-brand)", color: "var(--v5-on-brand)", fontSize: "13px" };
 const introStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-3)", lineHeight: 1.6, marginBottom: "14px" };
 const tableStyle: CSSProperties = {
   paddingBlock: "4px",

@@ -1,3 +1,5 @@
+import { notifyPageActivation } from "./passive-read-window";
+
 /** Native tab content shares one page; public/business route identities stay unchanged. */
 export const NATIVE_TAB_HOST = "/pages/tabs/tabs";
 export const TAB_PATHS = {
@@ -48,6 +50,7 @@ function samePage(left: Page | undefined, right: Page): boolean {
 }
 
 export function registerNativeTabHost(value: Host): () => void {
+  notifyPageActivation(value.location().href);
   host = value;
   return () => { if (host === value) host = undefined; };
 }
@@ -58,7 +61,8 @@ export function switchNativeTab(href: string): boolean {
   if (!host || !location) return false;
   const pages = getCurrentPages();
   if (!samePage(pages[pages.length - 1], host.page)) return false;
-  host.select(location);
+  const rollback = notifyPageActivation(location.href, { tabSwitch: host.location().tab !== location.tab });
+  try { host.select(location); } catch (cause) { rollback(); throw cause; }
   routeListeners.forEach(listener => listener());
   return true;
 }

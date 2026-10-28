@@ -18,32 +18,32 @@
       <view v-if="remoteApiEnabled && (remoteRefreshError || faucet.remoteReadState === 'error')" class="mx-4 rounded-2xl" :style="remoteErrorStyle">
         <view class="flex items-center justify-between" style="gap: 12px">
           <text :style="{ color: 'var(--v5-warning)', fontSize: '12px', lineHeight: '1.5' }">{{ t.authOtp.errorServiceUnavailable }}</text>
-          <view class="shrink-0 active:opacity-70" :style="retryBtnStyle" :aria-disabled="remoteRefreshing ? 'true' : 'false'" role="button" tabindex="0" @click="refreshDaily"  @keydown.enter.prevent="refreshDaily" @keydown.space.prevent="refreshDaily">
+          <view class="nx-card-recovery-action nx-card-recovery-action--quiet nx-card-recovery-action--inline active:opacity-70" :aria-disabled="remoteRefreshing ? 'true' : 'false'" role="button" tabindex="0" @click="refreshDaily"  @keydown.enter.prevent="refreshDaily" @keydown.space.prevent="refreshDaily">
             <text>{{ t.store.catalogRetry }}</text>
           </view>
         </view>
       </view>
 
-      <view v-if="remoteInitialLoading || (remoteApiEnabled && ['idle', 'loading'].includes(faucet.remoteReadState))" class="px-4" role="status" aria-live="polite">
+      <view v-if="!dailyFactsVisible && (remoteInitialLoading || (remoteApiEnabled && ['idle', 'loading'].includes(faucet.remoteReadState)))" class="px-4" role="status" aria-live="polite">
         <text class="block text-center" style="padding: 48px 16px; color: var(--v5-ink-3); font-size: 13px">{{ t.daily.loading }}</text>
       </view>
 
       <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
-        <template v-if="dailyFactsReady">
+        <template>
         <!-- Streak hero -->
         <view class="nx-glass-card relative overflow-hidden text-center" :style="heroStyle">
           <view aria-hidden="true" :style="fireStyle"><svg width="140" height="140" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3.5 5 5 5 9.5A5 5 0 0 1 7 12.5C7 10 9 8.5 9 6.5 10.5 7.5 11 9 11 9s1-2.5 1-6z"/></svg></view>
           <view class="relative">
-            <text class="block tabular-nums" :style="streakNumStyle">{{ streak }}</text>
+            <text class="block tabular-nums" :style="streakNumStyle">{{ dailyFactsVisible ? streak : '—' }}</text>
             <text class="block" :style="streakLblStyle">{{ t.daily.activeStreak }}</text>
-            <text class="block" :style="streakPointsStyle">{{ heroLineText }}</text>
+            <text class="block" :style="streakPointsStyle">{{ dailyFactsVisible ? heroLineText : '—' }}</text>
             <!-- Sign-in button -->
             <view class="w-full inline-flex items-center justify-center active:opacity-90" :style="signInBtnStyle" role="button" tabindex="0" :aria-disabled="lastSignedToday || remoteRefreshing || checkInSubmitting || !checkInStateConfirmed ? 'true' : 'false'" @click="handleCheckIn"  @keydown.enter.prevent="handleCheckIn" @keydown.space.prevent="handleCheckIn">
-              <template v-if="lastSignedToday">
+              <template v-if="dailyFactsVisible && lastSignedToday">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px"><path d="M20 6 9 17l-5-5" /></svg>
                 <text>{{ t.daily.checkedInToday }}</text>
               </template>
-              <template v-else-if="!checkInStateConfirmed">
+              <template v-else-if="!checkInStateConfirmed && (remoteRefreshError || faucet.remoteReadState === 'error')">
                 <text>{{ t.daily.checkInUnconfirmed }}</text>
               </template>
               <template v-else>
@@ -51,7 +51,7 @@
                 <text>{{ checkInCtaText }}</text>
               </template>
             </view>
-            <view v-if="lastSignedToday" class="inline-flex items-center" :style="nextClaimStyle">
+            <view v-if="dailyFactsVisible && lastSignedToday" class="inline-flex items-center" :style="nextClaimStyle">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
               <text>{{ nextClaimText }}</text>
             </view>
@@ -70,7 +70,7 @@
             </text>
           </view>
           <view style="display: flex; flex-direction: column; gap: 8px">
-            <view v-for="m in milestones" :key="m.day" class="flex items-center" :style="milestoneRowStyle(m)">
+            <view v-for="m in (dailyFactsVisible ? milestones : [])" :key="m.day" class="flex items-center" :style="milestoneRowStyle(m)">
               <view class="grid place-items-center shrink-0" :style="milestoneIconStyle(m)">
                 <svg v-if="isMilestoneClaimed(m)" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
                 <svg v-else-if="isMilestoneUnlocked(m)" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -94,7 +94,7 @@
         </view>
 
         <!-- Streak Power-Ups -->
-        <StreakPowerUps />
+        <StreakPowerUps :facts-visible="dailyFactsVisible" />
 
         <!-- Streak Saver -->
         <view class="nx-glass-card" :style="saverCardStyle">
@@ -105,7 +105,7 @@
             <view class="flex-1 min-w-0">
               <text class="block" :style="saverLabelStyle">{{ t.daily.saver.label }}</text>
               <text class="block" :style="saverHeadlineStyle">{{ saverHeadlineText }}</text>
-              <text class="block" :style="saverCountStyle">{{ saverCountText }}</text>
+              <text class="block" :style="saverCountStyle">{{ dailyFactsVisible ? saverCountText : '—' }}</text>
             </view>
             <view class="active:opacity-80 transition-opacity" :style="saverBtnStyle" role="button" tabindex="0" :aria-disabled="!streakBroken || remoteRefreshing || saverSubmitting ? 'true' : 'false'" @click="handleUseSaver"  @keydown.enter.prevent="handleUseSaver" @keydown.space.prevent="handleUseSaver">
               <text>{{ t.daily.saver.use }}</text>
@@ -117,10 +117,10 @@
         <view :style="leaderCardStyle">
           <view class="px-4 flex items-center justify-between" style="padding-top: 12px; padding-bottom: 8px">
             <text :style="leaderLabelStyle">{{ t.daily.topStreakers.label }}</text>
-            <text :style="leaderBestStyle">{{ yourBestText }}</text>
+            <text :style="leaderBestStyle">{{ dailyFactsVisible ? yourBestText : '—' }}</text>
           </view>
           <view class="px-2" style="padding-bottom: 8px">
-            <view v-for="(s, i) in leaderRows" :key="s.name" class="flex items-center" style="gap: 10px; padding: 8px">
+            <view v-for="(s, i) in (dailyFactsVisible ? leaderRows : [])" :key="s.name" class="flex items-center" style="gap: 10px; padding: 8px">
               <text class="tabular-nums text-center" :style="rankStyle">{{ i + 1 }}</text>
               <text class="block grid place-items-center" :style="avatarStyle">{{ s.name.charAt(0) }}</text>
               <view class="flex-1 min-w-0 flex items-center" style="gap: 6px">
@@ -156,11 +156,11 @@
         <text v-if="remoteApiEnabled" class="block" :style="statSubStyle">{{ t.daily.ledgerScope }}</text>
         <view v-if="remoteApiEnabled && app.remoteFleetStatus === 'error'" role="status">
           <text class="block" :style="statSubStyle">{{ app.remoteFleetHasSnapshot ? t.wallet.fundsStaleBody : t.wallet.fundsUnavailableBody }}</text>
-          <view class="inline-flex active:opacity-70" :style="retryBtnStyle" role="button" tabindex="0" @click="refreshBalance(false)"  @keydown.enter.prevent="refreshBalance(false)" @keydown.space.prevent="refreshBalance(false)">
+          <view class="nx-card-recovery-action nx-card-recovery-action--quiet active:opacity-70" role="button" tabindex="0" @click="refreshBalance(false)"  @keydown.enter.prevent="refreshBalance(false)" @keydown.space.prevent="refreshBalance(false)">
             <text>{{ t.wallet.retryFunds }}</text>
           </view>
         </view>
-        <text v-if="remoteApiEnabled && bills.summaryStatus === 'ready' && (bills.summary?.settledRewardsNex == null || bills.summary?.withdrawalOffsetNexSpent == null)" class="block" :style="statSubStyle">{{ t.home.quickFactsFailed }}</text>
+        <text v-if="remoteApiEnabled && summaryForDisplay != null && (summaryForDisplay?.settledRewardsNex == null || summaryForDisplay?.withdrawalOffsetNexSpent == null)" class="block" :style="statSubStyle">{{ t.home.quickFactsFailed }}</text>
 
         <!-- Withdrawal context -->
         <view :style="withdrawCardStyle" class="nx-glass-card active:scale-[0.98]" role="button" tabindex="0" @click="goWithdraw"  @keydown.enter.prevent="goWithdraw" @keydown.space.prevent="goWithdraw">
@@ -179,9 +179,9 @@
         <view>
           <text class="block px-1" :style="historyLabelStyle">{{ t.daily.recent }}</text>
           <view :style="historyCardStyle">
-            <view v-if="remoteApiEnabled && bills.summaryStatus !== 'ready'" class="p-4">
+            <view v-if="remoteApiEnabled && summaryForDisplay == null" class="p-4">
               <text>{{ bills.summaryStatus === 'error' ? t.home.quickFactsFailed : t.home.quickFactsLoading }}</text>
-              <view v-if="bills.summaryStatus === 'error'" class="inline-flex active:opacity-70" :style="retryBtnStyle" role="button" tabindex="0" @click="refreshLedger()"  @keydown.enter.prevent="refreshLedger()" @keydown.space.prevent="refreshLedger()">
+              <view v-if="bills.summaryStatus === 'error'" class="nx-card-recovery-action nx-card-recovery-action--quiet active:opacity-70" role="button" tabindex="0" @click="refreshLedger()"  @keydown.enter.prevent="refreshLedger()" @keydown.space.prevent="refreshLedger()">
                 <text>{{ t.store.catalogRetry }}</text>
               </view>
             </view>
@@ -225,7 +225,7 @@ import { useApp } from "@/store/app";
 import { useBills } from "@/store/bills";
 import { resolveWalletBillMemo } from "@/lib/wallet-bill-display";
 import { geoPolicyUserMessage } from "@/api/geo-policy-error";
-import { remoteApiEnabled, sessionVault } from "@/api/runtime";
+import { remoteApiEnabled, sessionVault, apiRuntimeConfig } from "@/api/runtime";
 import { useAuth } from "@/store/auth";
 import { binarySessionReady as accountSessionReady } from "@/lib/binary-session-ready";
 import { createScopedReadCoalescer } from "@/lib/binary-read-coalescer";
@@ -276,6 +276,15 @@ const dailyFactsReady = computed(() => !remoteApiEnabled || faucet.remoteReadSta
 const app = useApp();
 const locale = useLocaleStore();
 const auth = useAuth();
+// Presentation never authorizes check-in, milestone claims or saver commands.
+const dailyHasRead = ref(faucet.remoteReadState === 'ready');
+watch(() => faucet.remoteReadState, state => {
+  if (state === 'ready') dailyHasRead.value = true;
+  else if (state === 'idle' || state === 'error') dailyHasRead.value = false;
+}, { flush: 'sync' });
+watch(() => [app.accountKey, app.accountBindingEpoch, locale.code], () => { dailyHasRead.value = false; }, { flush: 'sync' });
+watch(() => apiRuntimeConfig?.environment, () => { dailyHasRead.value = false; }, { flush: 'sync' });
+const dailyFactsVisible = computed(() => !remoteApiEnabled || (!summaryEnvironmentInvalidated.value && dailyHasRead.value));
 const remoteSessionReady = computed(() => accountSessionReady({
   remote: remoteApiEnabled, authenticated: auth.isAuthenticated,
   accountId: auth.accountId, appAccountKey: app.accountKey,
@@ -286,6 +295,15 @@ let pageVisit = 0;
 let readCoalescer = createScopedReadCoalescer();
 let dailyPageScope: string | null = null;
 const bills = useBills();
+const summaryScope = computed(() => JSON.stringify([app.accountKey, app.accountBindingEpoch, locale.code]));
+const summaryReadScope = ref('');
+const summaryEnvironmentInvalidated = ref(false);
+watch(() => apiRuntimeConfig?.environment, () => { summaryEnvironmentInvalidated.value = true; }, { flush: 'sync' });
+watch([() => bills.summary, () => bills.summaryStatus], () => {
+  if (bills.summaryStatus === 'ready' && bills.summary) summaryReadScope.value = summaryScope.value;
+}, { immediate: true, flush: 'sync' });
+const summaryForDisplay = computed(() => !summaryEnvironmentInvalidated.value && bills.summaryStatus !== 'error' && summaryReadScope.value === summaryScope.value ? bills.summary : null);
+
 async function refreshBalance(coalesce = true) {
   if (remoteApiEnabled && remoteSessionReady.value && pageActive) await app.refreshRemoteFleet(undefined, { coalesce }).catch(() => false);
 }
@@ -368,6 +386,7 @@ function readDailyPage() {
 }
 watch(() => [app.accountKey, app.accountBindingEpoch] as const, readDailyPage);
 watch(remoteSessionReady, readDailyPage, { immediate: true, flush: 'post' });
+watch(() => locale.code, () => { void nextTick(readDailyPage); });
 // Catalog preparation publishes before the remaining account-scoped stores bind.
 const unsubscribeDailyRuntime = subscribeRuntimeRevision(() => { void nextTick(readDailyPage); });
 onHide(() => { pageActive = false; pageVisit += 1; });
@@ -470,17 +489,17 @@ const yourBestText = computed(() =>
 );
 const pointsUnlockText = computed(() => t.value.daily.pointsUnlockHint);
 const lifetimeEarned = computed(() =>
-  remoteApiEnabled ? bills.summaryStatus === 'ready' && bills.summary?.settledRewardsNex != null
-    ? formatAmount(bills.summary.settledRewardsNex) : '—'
+  remoteApiEnabled ? summaryForDisplay.value != null && summaryForDisplay.value?.settledRewardsNex != null
+    ? formatAmount(summaryForDisplay.value.settledRewardsNex) : '—'
     : formatAmount(faucet.history.reduce((s, h) => s + (h.delta > 0 ? h.delta : 0), 0)),
 );
 const lifetimeSpent = computed(() =>
-  remoteApiEnabled ? bills.summaryStatus === 'ready' && bills.summary?.withdrawalOffsetNexSpent != null
-    ? formatAmount(bills.summary.withdrawalOffsetNexSpent) : '—'
+  remoteApiEnabled ? summaryForDisplay.value != null && summaryForDisplay.value?.withdrawalOffsetNexSpent != null
+    ? formatAmount(summaryForDisplay.value.withdrawalOffsetNexSpent) : '—'
     : formatAmount(-faucet.history.reduce((s, h) => s + (h.delta < 0 ? h.delta : 0), 0)),
 );
 const historyRows = computed(() => remoteApiEnabled
-  ? (bills.summaryStatus === 'ready' ? bills.summary?.recentNexBills ?? [] : []).map(b => ({
+  ? (summaryForDisplay.value != null ? summaryForDisplay.value?.recentNexBills ?? [] : []).map(b => ({
       ts: b.ts, delta: b.amount,
       reason: resolveWalletBillMemo(b, t.value.bills.memo as Record<string, string>)
         + (b.status === 'pending' ? ` · ${t.value.wallet.pending}` : ''),
@@ -711,9 +730,8 @@ const streakLblStyle: CSSProperties = {
 const streakPointsStyle: CSSProperties = { marginTop: "14px", fontSize: "13px", color: "var(--v5-ink-2)" };
 const disabledSignInColor = "var(--v5-ink-3)";
 const signInBtnStyle = computed<CSSProperties>(() => {
-  // Both "already signed in" and "state not confirmed" are non-actionable, so they
-  // share the dimmed treatment; the label says which one it is.
-  const inert = lastSignedToday.value || !checkInStateConfirmed.value;
+  // Pending reads keep the static control appearance; handlers still require fresh state.
+  const inert = lastSignedToday.value || remoteRefreshError.value || faucet.remoteReadState === 'error';
   return {
     marginTop: "18px",
     height: "54px",
@@ -958,14 +976,6 @@ const remoteErrorStyle: CSSProperties = {
   marginBottom: "12px",
   padding: "10px 12px",
   background: "color-mix(in srgb, var(--v5-warning) 8%, transparent)",
-};
-const retryBtnStyle: CSSProperties = {
-  minHeight: "44px",
-  padding: "0 10px",
-  borderRadius: "999px",
-  background: "var(--v5-surface-2)",
-  color: "var(--v5-ink)",
-  fontSize: "12px",
 };
 
 

@@ -22,7 +22,7 @@
       <view v-if="initialError" :style="ledgerErrorStyle">
         <view class="flex items-center justify-between" style="gap: 12px">
           <text>{{ t.walletV3.submitReasonServiceUnavailable }}</text>
-          <view class="shrink-0 active:opacity-70" :style="retryBtnStyle" role="button" tabindex="0" @click="refreshLedger">
+          <view class="shrink-0 active:opacity-70 nx-card-recovery-action nx-card-recovery-action--quiet nx-card-recovery-action--inline" role="button" tabindex="0" @click="refreshLedger">
             <text>{{ t.store.catalogRetry }}</text>
           </view>
         </view>
@@ -84,13 +84,13 @@
         <view v-if="fundsServerEnabled && activePager.loadingMore" :style="loadingStyle" role="status" aria-live="polite" aria-busy="true"><text>{{ t.wallet.loadingTransactions }}</text></view>
         <view v-if="refreshErrorWithRows" :style="appendErrorStyle">
           <text>{{ t.walletV3.submitReasonServiceUnavailable }}</text>
-          <view class="inline-flex items-center active:opacity-70" :style="retryBtnStyle" role="button" tabindex="0" @click="refreshLedger">
+          <view class="inline-flex items-center active:opacity-70 nx-card-recovery-action nx-card-recovery-action--quiet nx-card-recovery-action--inline" role="button" tabindex="0" @click="refreshLedger">
             <text>{{ t.store.catalogRetry }}</text>
           </view>
         </view>
         <view v-else-if="appendError" :style="appendErrorStyle">
           <text>{{ t.walletV3.submitReasonServiceUnavailable }}</text>
-          <view class="inline-flex items-center active:opacity-70" :style="retryBtnStyle" role="button" tabindex="0" @click="loadMore">
+          <view class="inline-flex items-center active:opacity-70 nx-card-recovery-action nx-card-recovery-action--quiet nx-card-recovery-action--inline" role="button" tabindex="0" @click="loadMore">
             <text>{{ t.store.catalogRetry }}</text>
           </view>
         </view>
@@ -438,14 +438,6 @@ const ledgerErrorStyle: CSSProperties = {
   borderRadius: "12px",
   background: "color-mix(in srgb, var(--v5-danger) 10%, transparent)",
   color: "var(--v5-danger)",
-  fontSize: "12px",
-};
-const retryBtnStyle: CSSProperties = {
-  minHeight: "32px",
-  padding: "0 10px",
-  borderRadius: "999px",
-  background: "var(--v5-surface-2)",
-  color: "var(--v5-ink)",
   fontSize: "12px",
 };
 const loadingStyle: CSSProperties = { margin: "0 16px", padding: "32px", textAlign: "center", color: "var(--v5-ink-3)" };

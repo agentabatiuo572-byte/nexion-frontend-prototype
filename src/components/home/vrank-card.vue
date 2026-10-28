@@ -9,33 +9,34 @@
   <view class="nx-glass-card block" style="background: var(--nx-glass-fill); box-shadow: var(--nx-glass-edge); border-radius: var(--nx-glass-radius); padding: 14px 16px; position: relative; overflow: hidden" @click="goRank">
     <view class="flex justify-between items-center font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-3)">
       <text>{{ t.home.rankYourRank }}</text>
-      <text style="color: var(--v5-ink-4)">{{ t.home.rankStep }} <text style="color: var(--v5-ink)">{{ myRank + 1 }}</text>/{{ totalRanks }}</text>
+      <text style="color: var(--v5-ink-4)">{{ t.home.rankStep }} <text style="color: var(--v5-ink)">{{ visibility.mask(myRank + 1) }}</text>/{{ totalRanks }}</text>
     </view>
 
     <view v-if="vrank.remoteReady" class="mt-1.5 flex items-baseline gap-2">
-      <text style="font-family: var(--font-v5); font-weight: 600; font-size: 26px; color: var(--v5-ink); letter-spacing: -0.022em; line-height: 1">V{{ myRank }}</text>
+      <text style="font-family: var(--font-v5); font-weight: 600; font-size: 26px; color: var(--v5-ink); letter-spacing: -0.022em; line-height: 1">V{{ visibility.mask(myRank) }}</text>
       <text v-if="myTitle" style="font-family: var(--font-v5); font-weight: 500; font-size: 15px; color: var(--v5-ink-2); letter-spacing: -0.010em">{{ myTitle }}</text>
     </view>
 
     <template v-if="vrank.remoteReady && next">
       <view class="mt-3 flex justify-between items-baseline font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-3)">
-        <text>{{ t.home.rankNext }} · <text style="color: var(--v5-brand); font-weight: 500">{{ rankLabel(next.v, locale.code, vrank.ladder) }}</text></text>
-        <text class="tabular-nums" style="color: var(--v5-success); font-weight: 500">{{ rankInfo.progressKnown ? `${pct}%` : '—' }}</text>
+        <text>{{ t.home.rankNext }} · <text style="color: var(--v5-brand); font-weight: 500">{{ visibility.mask(rankLabel(next.v, locale.code, vrank.ladder)) }}</text></text>
+        <text class="tabular-nums" style="color: var(--v5-success); font-weight: 500">{{ visibility.mask(rankInfo.progressKnown ? `${pct}%` : '—') }}</text>
       </view>
       <view ref="elRef" class="mt-1.5 h-1.5 rounded-full overflow-hidden" style="background: var(--v5-surface-3)">
-        <view class="h-full rounded-full" :style="barStyle" />
+        <view v-if="!visibility.hidden" class="h-full rounded-full" :style="barStyle" />
       </view>
-      <text v-if="missing.length > 0" class="block mt-1.5 font-mono-tabular truncate" style="font-size: 12px; color: var(--v5-ink-3)">{{ missingText }}</text>
+      <text v-if="missing.length > 0" class="block mt-1.5 font-mono-tabular truncate" style="font-size: 12px; color: var(--v5-ink-3)">{{ visibility.mask(missingText) }}</text>
       <view v-if="rewardNex > 0" class="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full" style="background: var(--v5-brand-2-soft); font-size: 12px; color: var(--v5-brand-2); font-weight: 500">
         <text>🎁</text>
         <text style="color: var(--v5-brand-2)">{{ rewardText }} · {{ unlockAtText }}</text>
       </view>
     </template>
-    <text v-else class="block mt-3" style="font-size: 12px; color: var(--v5-ink-3); font-family: var(--font-v5)">{{ vrank.remoteReady ? t.home.rankTopTier : '—' }}</text>
+    <text v-else class="block mt-3" style="font-size: 12px; color: var(--v5-ink-3); font-family: var(--font-v5)">{{ visibility.mask(vrank.remoteReady ? t.home.rankTopTier : '—') }}</text>
   </view>
 </template>
 
 <script setup lang="ts">
+import { useDataVisibility } from "@/store/data-visibility";
 import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
@@ -46,6 +47,7 @@ import { rankGapText, rankLabel, rankTitle } from "@/lib/v-rank-copy";
 import { useLocaleStore } from "@/store/locale";
 import { useScrollGrowProgress, PROGRESS_GROW_TRANSITION } from "@/composables/use-scroll-grow-progress";
 
+const visibility = useDataVisibility();
 const t = useT();
 const vrank = useVRank();
 const { elRef, inView } = useScrollGrowProgress();

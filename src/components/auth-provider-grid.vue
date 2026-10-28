@@ -1,5 +1,5 @@
 <template>
-  <view class="auth-provider-grid" :class="{ 'auth-provider-grid--linked': linked.length }" :aria-label="t.authOtp.alternativeSignInMethods">
+  <view class="auth-provider-grid" :class="{ 'auth-provider-grid--linked': linked.length, 'auth-provider-grid--stable': preserveAppearance }" :aria-label="t.authOtp.alternativeSignInMethods">
     <view v-if="providers.includes('Passkey')" class="auth-provider" data-provider="Passkey" :class="{ 'auth-provider--linked': linked.includes('Passkey') }" role="button" :tabindex="linked.includes('Passkey') ? -1 : 0" :aria-label="ariaLabel('Passkey')" :aria-disabled="busy || linked.includes('Passkey')" @click="activate('Passkey')" @keydown.enter.prevent="activate('Passkey')" @keydown.space.prevent="activate('Passkey')">
       <view class="auth-provider__icon auth-provider__icon--ink">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="10" r="5" /><path d="M13 10h8M17 10v4M20 10v3" /></svg>
@@ -41,8 +41,8 @@ import { useT } from "@/i18n/use-t";
 type AuthProviderLabel = "Passkey" | "Google" | "Apple" | "Telegram";
 
 const t = useT();
-const props = withDefaults(defineProps<{ busy?: boolean; development?: boolean; providers?: AuthProviderLabel[]; linked?: AuthProviderLabel[] }>(), {
-  busy: false,
+const props = withDefaults(defineProps<{ busy?: boolean; preserveAppearance?: boolean; development?: boolean; providers?: AuthProviderLabel[]; linked?: AuthProviderLabel[] }>(), {
+  busy: false, preserveAppearance: false,
   linked: () => [],
   providers: () => ["Passkey", "Google", "Apple", "Telegram"],
   development: false,
@@ -65,6 +65,7 @@ function activate(provider: AuthProviderLabel) {
 .auth-provider:not([aria-disabled="true"]):active { transform: scale(0.98); opacity: 0.8; }
 .auth-provider:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
 .auth-provider[aria-disabled="true"] { opacity: 0.5; }
+.auth-provider-grid--stable .auth-provider[aria-disabled="true"] { opacity: 1; }
 .auth-provider-grid--linked .auth-provider { height: 82px; }
 .auth-provider--linked[aria-disabled="true"] { opacity: 1; }
 .auth-provider__status { font-size: 12px; line-height: 14px; color: var(--v5-ink-3); }

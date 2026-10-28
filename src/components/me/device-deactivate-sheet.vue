@@ -154,10 +154,13 @@ const descStyle: CSSProperties = {
   lineHeight: 1.45,
 };
 const closeBtnStyle: CSSProperties = {
-  width: "36px",
-  height: "36px",
+  width: "44px",
+  height: "44px",
+  boxSizing: "border-box",
+  padding: "4px",
   borderRadius: "999px",
   background: "var(--v5-surface-2)",
+  backgroundClip: "content-box",
 };
 const taskCardStyle: CSSProperties = {
   marginTop: "12px",

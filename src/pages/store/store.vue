@@ -8,11 +8,11 @@
           <view class="promotion-link" role="button" tabindex="0" @click="clearPromotion"><text>{{ activity?t.promotion.scopeClear:t.promotion.allProducts }}</text></view>
         </view>
         <text class="promotion-title">{{ activity ? localized(activity.title,locale.code) : promotionStatus==='ready'?t.promotion.disabled:promotionStatus==='error'?t.promotion.error:t.promotion.loading }}</text>
-        <text v-if="promotionStatus==='loading'||promotionStatus==='idle'" class="promotion-copy" role="status">{{ t.promotion.loading }}</text>
-        <view v-else-if="promotionStatus==='error'" role="alert"><text class="promotion-copy">{{ t.promotion.errorNote }}</text><view class="promotion-link" role="button" tabindex="0" @click="refreshPromotion"><text>{{ t.promotion.retry }}</text></view></view>
-        <text v-else-if="activity&&!promotionAvailable" class="promotion-copy">{{ localized(activity.eligibilityMessage,locale.code)||t.promotion.disabledNote }}</text>
+        <text v-if="!activity&&(promotionStatus==='loading'||promotionStatus==='idle')" class="promotion-copy" role="status">{{ t.promotion.loading }}</text>
+        <view v-else-if="promotionStatus==='error'" class="nx-inline-recovery" role="alert"><text class="promotion-copy nx-inline-recovery__copy">{{ t.promotion.errorNote }}</text><view class="promotion-link nx-inline-recovery__action" role="button" tabindex="0" @click="refreshPromotion"><text>{{ t.promotion.retry }}</text></view></view>
+        <text v-else-if="activity&&promotionStatus==='ready'&&!promotionAvailable" class="promotion-copy">{{ localized(activity.eligibilityMessage,locale.code)||t.promotion.disabledNote }}</text>
         <text v-else-if="activity" class="promotion-copy">{{ t.promotion.promoSub }}</text>
-        <view v-if="activity && promotionAvailable && unlockedProducts.filter(p=>p.productType!=='SHARE').length>=2" class="promotion-link" role="button" tabindex="0" @click="navTo(promotionBundleHref(activityId))"><text>{{ t.promotion.bundle }}</text></view>
+        <view v-if="activity && unlockedProducts.filter(p=>p.productType!=='SHARE').length>=2" :aria-disabled="!promotionAvailable" class="promotion-link" role="button" tabindex="0" @click="promotionAvailable && navTo(promotionBundleHref(activityId))"><text>{{ t.promotion.bundle }}</text></view>
       </view>
       <template v-else-if="!publicOnly">
         <view v-if="voucherContext.voucherId" class="promotion promotion-flat"><text class="promotion-title">{{ t.promotion.eventVoucher }}</text><text class="promotion-copy">{{ t.promotion.eventVoucherTerms }}</text><view class="promotion-link" role="button" tabindex="0" @click="clearPromotion" @keydown.enter.prevent="clearPromotion" @keydown.space.prevent="clearPromotion"><text>{{ t.promotion.scopeClear }}</text></view></view>
@@ -56,7 +56,7 @@
       <view class="nx-glass-card" v-else-if="catalogStatus === 'error' && !catalogHasProducts" data-testid="store-catalog-error" :style="catalogStateStyle">
         <text class="block" :style="catalogStateTitleStyle">{{ t.store.catalogErrorTitle }}</text>
         <text class="block mt-1" :style="catalogStateBodyStyle">{{ t.store.catalogErrorBody }}</text>
-        <view class="inline-flex mt-3 active:opacity-70" role="button" tabindex="0" :style="catalogRetryStyle" @click="retryCatalog">
+        <view class="nx-card-recovery-action active:opacity-70" role="button" tabindex="0" @click="retryCatalog">
           <text>{{ t.store.catalogRetry }}</text>
         </view>
       </view>
@@ -92,6 +92,7 @@
 </template>
 
 <script setup lang="ts">
+import { runPassiveTabRead } from "@/lib/passive-tab-read";
 import { onUnmounted, ref, computed, nextTick, onMounted, watch, type CSSProperties } from "vue";
 import AppChassis from "@/components/tab-page-frame.vue";
 import CardStagger from "@/components/card-stagger.vue";
@@ -119,7 +120,7 @@ import NxSection from "@/components/ui/nx-section.vue";
 import NxListGroup from "@/components/ui/nx-list-group.vue";
 import NxListRow from "@/components/ui/nx-list-row.vue";
 import { PRODUCTS } from "@/mock/products";
-import { productCatalogState, productCatalogPresentation, refreshProductCatalog } from "@/store/product-catalog";
+import { productCatalogState, productCatalogPresentation, refreshProductCatalog, revalidateProductCatalog } from "@/store/product-catalog";
 import { refreshServerProductPhase } from "@/store/server-product-phase";
 import { useProductPhase } from "@/composables/use-product-phase";
 import { isProductAvailable } from "@/store/product-availability";
@@ -141,7 +142,7 @@ const locale=useLocaleStore();
 const activityId=ref('');
 const voucherContext=ref<VoucherEntryContext>({});
 const publicOnly=computed(()=>{void app.accountKey;void app.accountBindingEpoch;return !sessionVault.read();});
-const {activity,status:promotionStatus,available:promotionAvailable,refresh:refreshPromotion}=usePromotionContext(activityId);
+const {activity,status:promotionStatus,available:promotionAvailable,refresh:refreshPromotion}=usePromotionContext(activityId, true);
 function readPromotionQuery(query:Record<string,string|undefined>){
   voucherContext.value=voucherEntryContext(query);
   if(query.scope==='all'||voucherContext.value.voucherId)activityId.value='';
@@ -176,14 +177,14 @@ onShow(() => {
   if(pending){const query=new URLSearchParams(pending),values:Record<string,string>={};query.forEach((value,key)=>{values[key]=value;});readPromotionQuery(values);}
   storePageVisible = true;
   if(publicOnly.value)return;
-  genesisCfg.refresh();
-  void voucher.refreshRemote();
+  void runPassiveTabRead('genesis-config', () => genesisCfg.refresh(), undefined, () => genesisCfg.loaded);
+  void voucher.revalidateRemote();
   // G4's public state owns supply independently of the configuration fields.
   // Re-read it whenever the store becomes visible so a prior failed 0/0
   // bootstrap can recover without an account rebind or a Genesis-detail visit.
-  void genesis.syncRemote();
-  void refreshServerProductPhase(true);
-  void refreshProductCatalog(true);
+  void runPassiveTabRead('genesis-state', () => genesis.syncRemote());
+  void runPassiveTabRead('product-phase', () => refreshServerProductPhase(true));
+  void revalidateProductCatalog();
   void observeDayOneStorePage();
 });
 onHide(() => {
@@ -296,11 +297,13 @@ const upgradeBaseImageUrl = computed(() => {
   const base = upgrade.value?.base;
   return base ? displayProducts.value.find(p => p.id === base.kind)?.imageUrl : undefined;
 });
-const voucherClaimable = computed(() => voucher.claimableVouchers.filter(offer => voucherSupportsSurface(offer, 'store')));
-const voucherOffers = computed(() => [...new Map([...voucherClaimable.value, ...voucher.claimedUnused].map(offer => [offer.id, offer])).values()]);
+const voucherClaimable = computed(() => (remoteApiEnabled ? voucher.presentationClaimable : voucher.claimableVouchers).filter(offer => voucherSupportsSurface(offer, 'store')));
+const voucherOffers = computed(() => remoteApiEnabled
+  ? voucher.presentationOffers.filter(offer => !voucher.presentationClaimable.some(item => item.id === offer.id) || voucherSupportsSurface(offer, 'store'))
+  : [...new Map([...voucherClaimable.value, ...voucher.claimedUnused].map(offer => [offer.id, offer])).values()]);
 const voucherBenefit = computed(() => voucherBenefitSummary(voucherOffers.value));
 function openStoreVouchers() {
-  if (voucherClaimable.value.length) voucherClaimSheet.show('store');
+  if (voucher.remoteStatus === 'ready' && voucher.claimableVouchers.some(offer => voucherSupportsSurface(offer, 'store'))) voucherClaimSheet.show('store');
   else if (voucherOffers.value.length) navTo('/pages/me/rewards-list?cat=voucher');
 }
 
@@ -384,16 +387,6 @@ const catalogStateBodyStyle: CSSProperties = {
   fontSize: "13px",
   lineHeight: "19px",
   color: "var(--v5-ink-3)",
-};
-const catalogRetryStyle: CSSProperties = {
-  minHeight: "44px",
-  alignItems: "center",
-  padding: "0 14px",
-  borderRadius: "9999px",
-  background: "var(--v5-brand)",
-  color: "var(--v5-on-brand)",
-  fontSize: "13px",
-  fontWeight: 600,
 };
 
 // Goal-recommendation context card — same filled/no-border L1 idiom as the

@@ -1,11 +1,12 @@
 <template>
-  <view v-if="loading || activities.length || error || hasMore" class="promotion referral-progress" data-testid="referral-progress">
-    <text v-if="loading && !activities.length" class="promotion-copy" role="status">{{ t.promotion.loading }}</text>
+  <text v-if="loading && listRead && !activities.length" class="referral-refresh-status" role="status" aria-live="polite">{{ t.promotion.loading }}</text>
+  <view v-if="(loading && !listRead) || activities.length || error || hasMore" class="promotion referral-progress" data-testid="referral-progress">
+    <text v-if="loading && !listRead && !activities.length" class="promotion-copy" role="status">{{ t.promotion.loading }}</text>
     <view v-for="activity in activities" :key="activity.activityId" class="referral-activity" :data-activity-id="activity.activityId">
       <view class="referral-hero">
         <view class="referral-copy">
           <text class="referral-title">{{ localized(activity.title,locale.code) || copy.firstPurchase }}</text>
-          <view class="referral-count" aria-live="polite"><text class="referral-number">{{ qualifyingCount(activity.activityId) }}</text><text class="referral-caption">{{ copy.orderUnit }}{{ locale.code === 'zh' ? '' : ' · ' }}{{ copy.firstPurchaseCount }}</text></view>
+          <view class="referral-count" aria-live="polite"><text class="referral-number">{{ visibility.mask(qualifyingCount(activity.activityId)) }}</text><text class="referral-caption">{{ copy.orderUnit }}{{ locale.code === 'zh' ? '' : ' · ' }}{{ copy.firstPurchaseCount }}</text></view>
           <view class="referral-actions"><NxButton class="referral-cta referral-progress-link" variant="secondary" size="medium" :disabled="progressBusy[activity.activityId] || !auth.isAuthenticated" :aria-expanded="expandedActivity===activity.activityId" :label="copy.viewProgress" @click="showProgress(activity.activityId)"><text>{{ copy.viewProgress }}</text><text aria-hidden="true">→</text></NxButton></view>
         </view>
         <view class="referral-art" aria-hidden="true"><CatalogMachineImage class="referral-gift" v-bind="referralImageProps(activity)" /></view>
@@ -14,19 +15,21 @@
         <text class="referral-activity-title">{{ localized(activity.title,locale.code) }}</text>
         <text class="promotion-copy">{{ t.promotion.inviteNote }}</text>
         <text v-if="progressErrors[activity.activityId]" class="promotion-copy" role="alert">{{ t.promotion.error }}</text>
-        <RewardRows v-if="progress[activity.activityId]" :rewards="progress[activity.activityId].ownRewards" />
+        <RewardRows v-if="progress[activity.activityId]" :rewards="progress[activity.activityId].ownRewards" :value-mask="visibility.hidden ? visibility.mask('') : undefined" />
         <NxButton class="referral-cta" size="medium" :busy="loading || progressBusy[activity.activityId]" :label="t.promotion.refresh" @click="loadActivities(true)"><text>{{ t.promotion.refresh }}</text><text aria-hidden="true">→</text></NxButton>
         <view class="referral-rule-link" role="button" tabindex="0" @click="termsActivity=activity" @keydown.enter.prevent="termsActivity=activity" @keydown.space.prevent="termsActivity=activity"><text>{{ t.promotion.rulesLink }}</text><text aria-hidden="true">›</text></view>
       </view>
     </view>
-    <view v-if="error" class="referral-recovery"><text class="promotion-copy" role="alert">{{ t.promotion.error }}</text><NxButton class="referral-retry" variant="text" size="medium" :busy="loading" :label="t.promotion.retry" @click="loadActivities(true)"><text>{{ t.promotion.retry }}</text><text aria-hidden="true">→</text></NxButton></view>
+    <view v-if="error" class="referral-recovery nx-inline-recovery"><text class="promotion-copy nx-inline-recovery__copy" role="alert">{{ t.promotion.error }}</text><NxButton class="referral-retry nx-inline-recovery__action" variant="text" size="medium" :busy="loading" :label="t.promotion.retry" @click="loadActivities(true)"><text>{{ t.promotion.retry }}</text><text aria-hidden="true">→</text></NxButton></view>
     <NxButton v-if="hasMore" class="referral-cta referral-more" size="medium" :busy="loading" :label="t.promotion.more" @click="loadActivities(false)"><text>{{ t.promotion.more }}</text><text aria-hidden="true">→</text></NxButton>
     <PromotionTerms :open="!!termsActivity" :title="localized(termsActivity?.title,locale.code)" :terms="localized(termsActivity?.terms,locale.code)" :disclosures="promotionDisclosures(termsActivity)" @close="termsActivity=null" />
   </view>
 </template>
 <script setup lang="ts">
+import { runPassiveTabRead, invalidatePassiveTabRead, passiveTabReadScope } from "@/lib/passive-tab-read";
 import{computed,ref,watch,onBeforeUnmount}from'vue';import{promotionApi,remoteApiEnabled,sessionVault}from'@/api/runtime';import type{PublicPromotion,ReferralProgress}from'@/api/promotion-contracts';import{useApp}from'@/store/app';import{useAuth}from'@/store/auth';import{useT}from'@/i18n/use-t';import{useLocaleStore}from'@/store/locale';import{localized}from'@/lib/promotion-display';import RewardRows from'./reward-rows.vue';
 import { onHide,onShow } from '@/composables/use-tab-page-lifecycle';
+import { useDataVisibility } from '@/store/data-visibility';
 import { teamRedesignCopy } from '@/i18n/team-redesign';
 import NxButton from '@/components/ui/nx-button.vue';
 import PromotionTerms from './promotion-terms.vue';
@@ -34,8 +37,9 @@ import { isPromotionActive,promotionDisclosures } from '@/lib/promotion-entry';
 import CatalogMachineImage from '@/components/catalog-machine-image.vue';
 import { promotionMachineSlots } from '@/components/catalog-machine-image';
 import { getProduct } from '@/mock/products';
-import { productCatalogState,refreshProductCatalog } from '@/store/product-catalog';
-const emit=defineEmits<{(e:'share'):void}>(),t=useT(),app=useApp(),auth=useAuth(),locale=useLocaleStore();const activities=ref<PublicPromotion[]>([]),progress=ref<Record<string,ReferralProgress>>({}),loading=ref(false),error=ref(false),hasMore=ref(false);let cursor:string|null=null,generation=0,alive=true,visible=true;
+import { productCatalogState,refreshProductCatalog,revalidateProductCatalog } from '@/store/product-catalog';
+const emit=defineEmits<{(e:'share'):void}>(),t=useT(),app=useApp(),auth=useAuth(),locale=useLocaleStore();const activities=ref<PublicPromotion[]>([]),progress=ref<Record<string,ReferralProgress>>({}),loading=ref(false),error=ref(false),hasMore=ref(false),listRead=ref(false);let cursor:string|null=null,generation=0,alive=true,visible=true;
+const visibility=useDataVisibility();
 const copy=computed(()=>teamRedesignCopy(locale.code)),expandedActivity=ref<string|null>(null);
 const termsActivity=ref<PublicPromotion|null>(null);
 const progressBusy=ref<Record<string,boolean>>({}),progressErrors=ref<Record<string,boolean>>({});
@@ -49,20 +53,24 @@ function referralImageProps(activity:PublicPromotion){
 }
 function qualifyingCount(id:string){return progressBusy.value[id]||progressErrors.value[id]?'-':progress.value[id]?.qualifyingOrders??'-';}
 function showProgress(id:string){if(!visible||progressBusy.value[id]||!auth.isAuthenticated)return;expandedActivity.value=expandedActivity.value===id?null:id;if(expandedActivity.value)void loadProgress(id,true);}
-function currentRead(){const request=generation,account=app.accountKey,epoch=app.accountBindingEpoch,authenticated=auth.isAuthenticated,language=locale.code;return()=>alive&&visible&&request===generation&&account===app.accountKey&&epoch===app.accountBindingEpoch&&authenticated===auth.isAuthenticated&&language===locale.code;}
+function currentRead(){const request=generation,account=app.accountKey,epoch=app.accountBindingEpoch,authenticated=auth.isAuthenticated,language=locale.code,readScope=passiveTabReadScope();return()=>alive&&visible&&request===generation&&account===app.accountKey&&epoch===app.accountBindingEpoch&&authenticated===auth.isAuthenticated&&language===locale.code&&readScope===passiveTabReadScope();}
 function clearRead(preserveExpanded=true){
   generation++;activities.value=[];progress.value={};progressBusy.value={};progressErrors.value={};imageRefresh.value={};termsActivity.value=null;
   if(!preserveExpanded)expandedActivity.value=null;
-  cursor=null;hasMore.value=false;error.value=false;loading.value=false;
+  cursor=null;hasMore.value=false;error.value=false;loading.value=false;listRead.value=false;
 }
-async function loadActivities(reset=false){
+async function loadActivities(reset=false,passive=false){
   if(!visible||!remoteApiEnabled||(!reset&&loading.value))return;
   if(reset){generation++;progressBusy.value={};termsActivity.value=null;}
-  const current=currentRead();loading.value=true;error.value=false;
+  const current=currentRead();loading.value=true;if(!passive)error.value=false;
   const catalogRead=reset&&auth.isAuthenticated&&sessionVault.read()
-    ?refreshProductCatalog(productCatalogState.status!=='loading'):Promise.resolve();
+    ?passive?revalidateProductCatalog():refreshProductCatalog(productCatalogState.status!=='loading'):Promise.resolve();
   try{
-    const [page]=await Promise.all([promotionApi.list({cursor:reset?null:cursor,limit:20},auth.isAuthenticated),catalogRead]);if(!current())return;
+    const query={cursor:reset?null:cursor,limit:20},authenticated=auth.isAuthenticated;
+    const read=()=>promotionApi.list(query,authenticated);
+    const list=passive?runPassiveTabRead('promotion-list',read,{...query,authenticated}):(invalidatePassiveTabRead('promotion-list'),read());
+    const [page]=await Promise.all([list,catalogRead]);if(!current())return;
+    listRead.value=true;error.value=false;
     const returnedIds=new Set(page.items.map(p=>p.activityId));
     const previous=reset?[]:activities.value.filter(p=>!returnedIds.has(p.activityId));
     activities.value=[...new Map([...previous,...page.items.filter(p=>p.template==='DIRECT_REFERRAL'&&isPromotionActive(p))].map(activity=>[activity.activityId,activity])).values()];
@@ -71,25 +79,26 @@ async function loadActivities(reset=false){
     const ids=new Set(activities.value.map(p=>p.activityId));
     progress.value=Object.fromEntries(Object.entries(progress.value).filter(([id])=>ids.has(id)));
     progressErrors.value=Object.fromEntries(Object.entries(progressErrors.value).filter(([id])=>ids.has(id)));
-    if(auth.isAuthenticated)await Promise.all(activities.value.map(p=>loadProgress(p.activityId)));
+    if(auth.isAuthenticated)await Promise.all(activities.value.map(p=>loadProgress(p.activityId,false,passive)));
   }catch{if(current())error.value=true;}finally{if(current())loading.value=false;}
 }
-async function loadProgress(id:string,refreshImage=false){
+async function loadProgress(id:string,refreshImage=false,passive=false){
   if(!visible||!auth.isAuthenticated||!sessionVault.read()||progressBusy.value[id])return;
   const current=currentRead();progressBusy.value={...progressBusy.value,[id]:true};
   if(refreshImage||progressErrors.value[id])imageRefresh.value={...imageRefresh.value,[id]:(imageRefresh.value[id]??0)+1};
-  try{const result=await promotionApi.referral(id);if(current()){progress.value={...progress.value,[id]:result};progressErrors.value={...progressErrors.value,[id]:false};}}
+  try{const read=()=>promotionApi.referral(id);const result=await(passive?runPassiveTabRead('promotion-referral',read,{id}):(invalidatePassiveTabRead('promotion-referral'),read()));if(current()){progress.value={...progress.value,[id]:result};progressErrors.value={...progressErrors.value,[id]:false};}}
   catch{if(current())progressErrors.value={...progressErrors.value,[id]:true};}
   finally{if(current())progressBusy.value={...progressBusy.value,[id]:false};}
 }
-watch(()=>[app.accountKey,app.accountBindingEpoch,auth.isAuthenticated,locale.code],()=>{clearRead(false);if(visible)void loadActivities(true);},{immediate:true});
-onShow(()=>{visible=true;void loadActivities(true);});
+watch(()=>[app.accountKey,app.accountBindingEpoch,auth.isAuthenticated,locale.code],()=>{clearRead(false);if(visible)void loadActivities(true,true);},{immediate:true,flush:'sync'});
+onShow(()=>{visible=true;void loadActivities(true,true);});
 onHide(()=>{visible=false;generation++;progressBusy.value={};loading.value=false;termsActivity.value=null;});
 onBeforeUnmount(()=>{alive=false;visible=false;generation++;});
 </script>
 <style src="./promotion.css"></style>
 <style scoped>
 .referral-progress { min-width: 0; }
+.referral-refresh-status { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .referral-activity { padding: var(--ui-space-inset); border-radius: 22px; border: 1px solid var(--v5-border); background: radial-gradient(ellipse at 86% 36%,color-mix(in srgb,var(--v5-brand) 8%,transparent),transparent 58%),linear-gradient(140deg,var(--ui-spotlight-top),var(--ui-ticket-bottom)); }
 .referral-activity + .referral-activity { margin-top: var(--ui-space-inset); }
 .referral-hero { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
@@ -109,8 +118,8 @@ onBeforeUnmount(()=>{alive=false;visible=false;generation++;});
 .referral-details { margin-top: var(--ui-space-inset); padding-top: 16px; border-top: 1px solid var(--v5-border); }
 .referral-activity-title { display: block; margin-bottom: 6px; font: 600 14px/1.5 var(--font-v5); }
 .referral-details > .referral-cta { margin-top: var(--ui-space-inline); }
-.referral-retry { width: 100%; }
-.referral-recovery { display: flex; flex-direction: column; align-items: center; gap: var(--ui-space-inline); margin-top: var(--ui-space-inline); }
+.referral-retry { width: auto; }
+.referral-recovery { margin-top: var(--ui-space-inline); }
 .referral-more { margin-top: var(--ui-space-inset); }
 .referral-rule-link { display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;margin-top:8px;color:var(--v5-ink-3);font:400 12px/1.5 var(--font-v5); }
 .referral-rule-link:focus-visible { outline:2px solid var(--v5-brand);outline-offset:2px; }

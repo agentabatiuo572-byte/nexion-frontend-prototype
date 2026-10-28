@@ -2,6 +2,7 @@ import * as displayDate from "@/lib/display-date";
 import { formatFinanceAmount } from "@/lib/finance-amount-display";
 import * as Vue from "vue";
 import { createPinia, setActivePinia } from "pinia";
+import { useDataVisibility } from '@/store/data-visibility';
 import { formatAmount } from "@/lib/amount-display";
 import type { Component } from "vue";
 import { compileScript, compileStyle, parse } from "@vue/compiler-sfc";
@@ -19,7 +20,7 @@ import { auditUiCopy, useAuditUiCopy } from "@/i18n/audit-ui";
 import { useLocaleStore } from "@/store/locale";
 import { remoteAuthorityStatus } from "@/lib/remote-authority-display";
 import type { ReferralRewardSnapshot } from "@/api/referral-reward-api";
-import { advanceRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
+import { advanceRuntimeRevision, captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 import * as tabLifecycle from "@/composables/use-tab-page-lifecycle";
 vi.mock("@dcloudio/uni-app", () => ({ onLoad: vi.fn(), onShow: vi.fn(), onHide: vi.fn(), onUnload: vi.fn() }));
 
@@ -64,6 +65,7 @@ function compile(source: string, dependencies: Record<string, unknown>) {
     if (id === "@/lib/finance-amount-display") return { formatFinanceAmount };
     if (id === "@/lib/amount-display") return { formatAmount };
     if (id === "vue") return Vue;
+    if (id === '@/store/data-visibility') return { useDataVisibility };
     if (id === "@/composables/use-tab-page-lifecycle") return tabLifecycle;
     if (id in dependencies) return dependencies[id];
     if (id === "@/lib/route") return { navTo: vi.fn() };
@@ -95,10 +97,14 @@ function snapshot(rewardEnabled = false): ReferralRewardSnapshot {
     refreshedAt: "2026-10-01T00:00:00Z" };
 }
 
-async function invitation(copy = en) {
+async function invitation(copy = en, initial: ReferralRewardSnapshot | null = snapshot()) {
   useLocaleStore().setLocale(copy === zh ? "zh" : copy === vietnamese ? "vi" : "en");
-  const rewards = Vue.reactive({ snapshot: snapshot() as ReferralRewardSnapshot | null,
-    error: "", loading: false, refresh: vi.fn(async () => true) });
+  const rewards = Vue.reactive({ snapshot: initial,
+    error: "", loading: false, invalidateReadOwner: vi.fn(), ensure: vi.fn(async () => true), refresh: vi.fn(async () => true) });
+  const pageApp = Vue.reactive({ accountKey: 'user:fixture', accountBindingEpoch: 1, user: { referralCode: 'STALE_LOCAL_CODE' } });
+  const runtime = Vue.reactive({ environment: 'dev' });
+  const catalog = Vue.reactive({ serverCanonical: true, sourceEnvironment: 'PRODUCTION', runId: '', status: 'ready' });
+  const catalogProof = Vue.ref({ sourceEnvironment: 'PRODUCTION', runId: '', runtimeEpoch: captureRuntimeRevision().epoch });
   const copyText = vi.fn(async () => true);
   const recordShareEvent = vi.fn();
   const notifyUnavailableShareLink = vi.fn();
@@ -107,37 +113,60 @@ async function invitation(copy = en) {
     "@/i18n/use-t": { useT: () => Vue.ref(copy) }, "@/lib/display-date": displayDate, "@/i18n/format": { fmt, dateLocale },
     "@/store/locale": { useLocaleStore }, "@/i18n/team-redesign": { teamRedesignCopy, referralSettlementStatus },
     "@/composables/use-dialog-a11y": { useDialogA11y: () => {} },
-    "@/store/app": { useApp: () => ({ user: { referralCode: "STALE_LOCAL_CODE" } }) },
+    "@/store/app": { useApp: () => pageApp },
     "@/store/referral-reward": { useReferralReward: () => rewards },
-    "@/api/runtime": { remoteApiEnabled: true },
+    "@/api/runtime": { remoteApiEnabled: true, apiRuntimeConfig: runtime },
+    "@/store/product-catalog": { productCatalogState: catalog, productCatalogDisplayProof: Vue.readonly(catalogProof),
+      isProductCatalogDisplayCurrent: (scope = captureRuntimeRevision()) => isCurrentRuntimeRevision(scope) && scope.epoch === catalogProof.value.runtimeEpoch },
     "@/api/order-api": { subscribeRuntimeRevision },
     "@/store/ui": { toast },
     "@/lib/share": { copyText, recordShareEvent, notifyUnavailableShareLink,
       buildShareLink: (code: string) => code ? `https://invite.example/?ref=${code}` : "" },
   });
-  return { root, rewards, copyText, recordShareEvent, notifyUnavailableShareLink, toast };
+  return { root, rewards, copyText, recordShareEvent, notifyUnavailableShareLink, toast, pageApp, runtime, catalog };
 }
 
-beforeEach(() => { vi.useFakeTimers(); setActivePinia(createPinia()); });
-afterEach(() => { unmounts.splice(0).forEach(unmount => unmount()); setActivePinia(undefined); vi.useRealTimers(); });
+beforeEach(() => { vi.stubGlobal('uni', { getStorageSync: () => undefined, setStorageSync: vi.fn() }); vi.useFakeTimers(); setActivePinia(createPinia()); });
+afterEach(() => { unmounts.splice(0).forEach(unmount => unmount()); setActivePinia(undefined); vi.useRealTimers(); vi.unstubAllGlobals(); });
+test.each([en, zh, vietnamese])('shared hiding masks personal reward records but retains the public reward and dates', async copy => {
+  const card = await invitation(copy), visibility = useDataVisibility();
+  card.rewards.snapshot = { ...snapshot(true), inviterRewardNex: 10, lifetimeInviterNex: 876.54, invitedCount: 55, settledCount: 34, pendingCount: 21,
+    recentRewards: [{ settlementNo: 'private-row', amountNex: 123.45, balanceAfter: 876.54,
+      ledgerStatus: 'SUCCESS', releaseBucket: 'withdrawable', sourceEnvironment: 'PRODUCTION', settledAt: '2026-10-19T12:00:00Z' }] };
+  await Vue.nextTick();
+  find(card.root, 'invite-card__history').props.onClick(); await Vue.nextTick();
+  const dateBefore = text(find(card.root, 'invite-detail__record').children[0]);
+  expect(text(find(card.root, 'invite-detail__total'))).toContain('876.54');
+  visibility.toggle(); await Vue.nextTick();
+  expect(text(find(card.root, 'invite-card__amount'))).toBe('10');
+  expect(text(find(card.root, 'invite-detail__total'))).toContain('•••• UVT');
+  expect(text(find(card.root, 'invite-detail__counts'))).not.toMatch(/34|21/);
+  expect(text(find(card.root, 'invite-detail__record'))).not.toContain('123.45');
+  expect(text(find(card.root, 'invite-detail__record').children[0])).toBe(dateBefore);
+  expect(accessibleText(find(card.root, 'invite-detail'))).not.toMatch(/876\.54|123\.45/);
+  expect(card.rewards.snapshot.lifetimeInviterNex).toBe(876.54);
+  visibility.toggle(); await Vue.nextTick();
+  expect(text(find(card.root, 'invite-detail__total'))).toContain('876.54');
+  expect(text(find(card.root, 'invite-detail__record'))).toContain('+123.45');
+});
 test('visible invitation refreshes after a catalog revision invalidates its snapshot', async () => {
-  const card=await invitation();const before=card.rewards.refresh.mock.calls.length;
-  advanceRuntimeRevision();await Vue.nextTick();expect(card.rewards.refresh.mock.calls.length).toBe(before+1);
+  const card=await invitation();const before=card.rewards.ensure.mock.calls.length;
+  advanceRuntimeRevision();await Vue.nextTick();expect(card.rewards.ensure.mock.calls.length).toBe(before+1);
 });
 
 test("hidden invitation defers catalog refresh until it becomes visible again", async () => {
   const card = await invitation();
-  const before = card.rewards.refresh.mock.calls.length;
+  const before = card.rewards.ensure.mock.calls.length;
   lifecycles.get(card.root)!.setVisible(false);
   advanceRuntimeRevision(); await Vue.nextTick();
-  expect(card.rewards.refresh.mock.calls.length).toBe(before);
+  expect(card.rewards.ensure.mock.calls.length).toBe(before);
   lifecycles.get(card.root)!.setVisible(true); await Vue.nextTick();
-  expect(card.rewards.refresh.mock.calls.length).toBe(before + 1);
+  expect(card.rewards.ensure.mock.calls.length).toBe(before + 1);
 });
 
 test.each([en, zh, vietnamese])("disabled invitation rewards keep sharing without reward or cooldown promises", async copy => {
   const card = await invitation(copy);
-  expect(card.rewards.refresh).toHaveBeenCalledOnce();
+  expect(card.rewards.ensure).toHaveBeenCalledOnce();
   const status = text(find(card.root, "invite-card__reward"));
   expect(status).toContain(copy.team.referralRewardsDisabled);
   expect(status).toContain(copy.team.sharingStillAvailable);
@@ -194,10 +223,10 @@ test("the same invitation card follows server enablement, unavailable reads and 
   expect(text(find(card.root, "invite-card__reward"))).not.toContain(en.team.perFriendCooldown);
   card.rewards.error = ""; card.rewards.snapshot = null; card.rewards.loading = true; await Vue.nextTick();
   expect(find(card.root, "invite-card__reward").props["aria-busy"]).toBe(true);
-  expect(text(find(card.root, "invite-card__amount"))).toBe('—');
+  expect(text(find(card.root, "invite-card__amount"))).toBe('12');
   expect(find(card.root, "nx-team-share-now").props["aria-disabled"]).toBe(true);
   expect(find(card.root, "nx-team-share-now").props.tabindex).toBe(-1);
-  expect(accessibleText(find(card.root, 'invite-card__descriptions'))).toBe(en.team.rewardLoading);
+  expect(accessibleText(find(card.root, 'invite-card__descriptions'))).toBe(teamRedesignCopy('en').qualifiedFriendReward);
   expect(find(card.root, "invite-card__retry")).toBeUndefined();
   card.rewards.loading = false; card.rewards.error = 'unavailable'; await Vue.nextTick();
   card.rewards.refresh.mockImplementationOnce(async () => {
@@ -215,9 +244,10 @@ test.each([en, zh, vietnamese])("H5 share emphasis only names a reward after a s
   expect(text(find(card.root, "nx-team-share-now"))).toBe(teamRedesignCopy(useLocaleStore().code).inviteFriends);
   expect(text(find(card.root, "invite-card__reward"))).toContain(teamRedesignCopy(useLocaleStore().code).qualifiedFriendReward);
   card.rewards.loading = true; await Vue.nextTick();
-  expect(text(find(card.root, "invite-card__amount"))).toBe("—");
+  expect(text(find(card.root, "invite-card__amount"))).toBe("12");
   expect(text(find(card.root, "nx-team-share-now"))).toBe(teamRedesignCopy(useLocaleStore().code).inviteFriends);
-  expect(text(card.root)).not.toContain("12UVT");
+  expect(text(find(card.root, "nx-team-share-now"))).not.toContain("12UVT");
+  expect(accessibleText(find(card.root, "invite-card__descriptions"))).toBe(teamRedesignCopy(useLocaleStore().code).qualifiedFriendReward);
   expect(text(card.root)).not.toContain("+7.00 UVT");
   expect(text(card.root)).not.toContain(copy.team.perFriendCooldown);
   card.rewards.loading = false; card.rewards.error = "unavailable"; await Vue.nextTick();
@@ -225,6 +255,14 @@ test.each([en, zh, vietnamese])("H5 share emphasis only names a reward after a s
   expect(accessibleText(find(card.root, "invite-card__descriptions"))).toBe(copy.team.settlementUnavailable);
   expect(find(card.root, "invite-card__retry").props['aria-label']).toBe(copy.network.retry);
   expect(text(card.root)).not.toContain("12UVT");
+});
+
+test("a cold invitation read never invents an amount or enables share actions", async () => {
+  const card = await invitation(en, null);
+  card.rewards.snapshot = null; card.rewards.loading = true; await Vue.nextTick();
+  expect(text(find(card.root, 'invite-card__amount'))).toBe('—');
+  expect(find(card.root, 'nx-team-share-now').props['aria-disabled']).toBe(true);
+  expect(accessibleText(find(card.root, 'invite-card__descriptions'))).toBe(teamRedesignCopy('en').qualifiedFriendReward);
 });
 
 test.each([en, zh, vietnamese])("invitation amounts remain accurate without Native Intl or locale number formatting", async copy => {
@@ -277,7 +315,7 @@ test("sharing tools retain clipboard failure feedback and never copy or export a
 });
 
 test.each([en, zh, vietnamese])('initial invitation keeps its content slots and isolates loading, failure and ready messages', async copy => {
-  const card = await invitation(copy);
+  const card = await invitation(copy, null);
   const language = copy === zh ? 'zh' : copy === vietnamese ? 'vi' : 'en';
   const classes = ['nx-invite-body', 'invite-card__reward', 'invite-card__art', 'nx-invite-actions',
     'nx-team-share-now', 'nx-team-copy-code', 'nx-team-copy-link', 'nx-team-share-poster'];
@@ -288,7 +326,7 @@ test.each([en, zh, vietnamese])('initial invitation keeps its content slots and 
     expect(node.props['aria-disabled']).toBe(true); expect(node.props.tabindex).toBe(-1);
   }
   expect(text(find(card.root, 'invite-card__amount'))).toBe('—');
-  expect(accessibleText(find(card.root, 'invite-card__descriptions'))).toBe(copy.team.rewardLoading);
+  expect(accessibleText(find(card.root, 'invite-card__descriptions'))).toBe(teamRedesignCopy(language).qualifiedFriendReward);
   card.rewards.loading = false; card.rewards.error = 'failed'; await Vue.nextTick();
   expect(accessibleText(find(card.root, 'invite-card__descriptions'))).toBe(copy.team.settlementUnavailable);
   expect(Number(find(card.root, 'invite-card__retry').props.tabindex)).toBe(0);
@@ -299,6 +337,41 @@ test.each([en, zh, vietnamese])('initial invitation keeps its content slots and 
   }
   expect(text(find(card.root, 'invite-card__amount'))).toBe('12');
   expect(accessibleText(find(card.root, 'invite-card__descriptions'))).toBe(teamRedesignCopy(language).qualifiedFriendReward);
+});
+
+test.each([en, zh, vietnamese].flatMap(copy => [true, false].map(enabled => ({ copy, enabled }))))('confirmed enabled/disabled invitation refresh is silent, without retaining share permission', async ({ copy, enabled }) => {
+  const card = await invitation(copy, snapshot(enabled));
+  const amount = text(find(card.root, 'invite-card__amount'));
+  card.rewards.snapshot = null; card.rewards.loading = true; await Vue.nextTick();
+  expect(text(find(card.root, 'invite-card__amount'))).toBe(amount);
+  const caption = enabled ? teamRedesignCopy(useLocaleStore().code).qualifiedFriendReward : copy.team.referralRewardsDisabled + copy.team.sharingStillAvailable;
+  expect(accessibleText(find(card.root, 'invite-card__descriptions'))).toBe(caption);
+  expect(find(card.root, 'invite-card__reward').props['aria-busy']).toBe(true);
+  expect(find(card.root, 'nx-team-share-now').props['aria-disabled']).toBe(true);
+  find(card.root, 'nx-team-share-now').props.onClick(); expect(card.copyText).not.toHaveBeenCalled();
+  card.rewards.loading = false; card.rewards.error = 'offline'; await Vue.nextTick();
+  expect(accessibleText(find(card.root, 'invite-card__descriptions'))).toBe(copy.team.settlementUnavailable);
+  expect(find(card.root, 'invite-card__retry')).toBeDefined();
+  card.rewards.error = ''; card.rewards.loading = true; await Vue.nextTick();
+  expect(accessibleText(find(card.root, 'invite-card__descriptions'))).toBe(caption);
+});
+
+test.each(['account', 'binding', 'catalog', 'environment'])('old disabled caption is discarded on %s while static unknown copy and action guards remain', async boundary => {
+  const card = await invitation(en, snapshot(false));
+  card.rewards.snapshot = null; card.rewards.loading = true;
+  if (boundary === 'account') card.pageApp.accountKey = 'user:next';
+  if (boundary === 'binding') card.pageApp.accountBindingEpoch++;
+  if (boundary === 'catalog') card.catalog.serverCanonical = false;
+  if (boundary === 'environment') card.runtime.environment = 'prod';
+  await Vue.nextTick();
+  expect(accessibleText(find(card.root, 'invite-card__descriptions'))).toBe(teamRedesignCopy('en').qualifiedFriendReward);
+  for (const cls of ['nx-team-share-poster', 'nx-team-copy-code', 'nx-team-copy-link', 'nx-team-share-now']) {
+    const button = find(card.root, cls);
+    expect(button.props['aria-disabled']).toBe(true); expect(button.props.tabindex).toBe(-1);
+    button.props.onClick();
+  }
+  expect(card.copyText).not.toHaveBeenCalled(); expect(card.recordShareEvent).not.toHaveBeenCalled();
+  expect(all(card.root).filter(n => n.props.open === true)).toHaveLength(0);
 });
 
 async function wallet(copy = en, initialBalance = 11, confirmed = true) {
@@ -537,7 +610,9 @@ test("wallet valuation names USDT for both values and preserves the remote unava
   market.remoteReady = false; await Vue.nextTick();
   expect(text(find(root, "nx-wallet-valuation"))).toContain("≈ — USDT · 1 UVT = — USDT");
   expect(text(find(root, "nx-wallet-valuation"))).not.toContain("0.124");
-  find(root, "nx-wallet-heading").props.onClick();
+  const billsLink = find(root, "nx-wallet-heading-link");
+  expect(billsLink.props.role).toBe('link');
+  billsLink.props.onClick();
   expect(navTo).toHaveBeenCalledExactlyOnceWith("/pages/me/wallet-bills");
   navTo.mockClear();
   find(root, "nx-wallet-nex").props.onClick();

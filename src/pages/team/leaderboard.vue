@@ -4,17 +4,17 @@
       <SubPageHeader back="/pages/team/team" :title="t.leaderboard.pageTitle" />
       <view class="leader-content">
         <GlassSegments class="nx-leader-periods" :label="t.leaderboard.pageTitle" :model-value="period" @select="selectPeriod" :options="periodOptions" />
-        <view v-if="remoteApiEnabled && remoteState !== 'ready'" class="leader-state" role="status" :aria-busy="remoteState === 'loading'">
+        <view v-if="remoteApiEnabled && remoteState !== 'ready' && !(remoteState === 'loading' && remoteSnapshot)" class="leader-state" role="status" :aria-busy="remoteState === 'loading'">
           <text>{{ remoteState === 'loading' ? t.leaderboard.loading : t.leaderboard.loadError }}</text>
-          <view v-if="remoteState === 'error'" class="leader-cta" role="button" tabindex="0" @click="loadRemote()" @keydown.enter.prevent="loadRemote()" @keydown.space.prevent="loadRemote()"><text>{{ t.leaderboard.retry }}</text><text aria-hidden="true">→</text></view>
+          <view v-if="remoteState === 'error'" class="leader-cta" role="button" tabindex="0" @click="loadRemote()" @keydown.enter.prevent="loadRemote()" @keydown.space.prevent="loadRemote()"><text class="leader-retry-label">{{ t.leaderboard.retry }}</text><text aria-hidden="true">→</text></view>
         </view>
-        <template v-if="!remoteApiEnabled || remoteState === 'ready'">
+        <template v-if="!remoteApiEnabled || remoteState === 'ready' || (remoteState === 'loading' && remoteSnapshot !== null)">
           <view v-if="paused" role="status" aria-live="polite" class="leader-state">
             <text class="leader-state-title">{{ t.leaderboard.pausedTitle }}</text>
             <text>{{ t.leaderboard.pausedBody }}</text>
             <text>{{ snapshotAvailable ? `${t.leaderboard.frozenAt} · ${pauseCapturedAt}` : t.leaderboard.snapshotUnavailable }}</text>
             <text v-if="snapshotAvailable && prize.poolUSD > 0">{{ t.leaderboard.pool.label }} · {{ fmtCompactUSD(prize.poolUSD) }}</text>
-            <view class="leader-cta" role="button" tabindex="0" @click="loadRemote()" @keydown.enter.prevent="loadRemote()" @keydown.space.prevent="loadRemote()"><text>{{ t.leaderboard.retry }}</text><text aria-hidden="true">→</text></view>
+            <view class="leader-cta" role="button" tabindex="0" @click="loadRemote()" @keydown.enter.prevent="loadRemote()" @keydown.space.prevent="loadRemote()"><text class="leader-retry-label">{{ t.leaderboard.retry }}</text><text aria-hidden="true">→</text></view>
           </view>
           <template v-else>
             <view class="leader-hero">
@@ -41,8 +41,8 @@
               </view>
               </view>
             </view>
-            <view v-if="hasMore" class="leader-more" role="button" :tabindex="remoteLoadingMore ? -1 : 0" :aria-disabled="remoteLoadingMore" :aria-busy="remoteLoadingMore" @click="loadMore" @keydown.enter.prevent="loadMore" @keydown.space.prevent="loadMore">
-              <text>{{ remoteLoadingMore ? t.leaderboard.loading : remoteLoadMoreError ? t.leaderboard.retry : t.leaderboard.cta.loadMore }}</text><text aria-hidden="true">↓</text>
+            <view v-if="hasMore" class="leader-more" role="button" :tabindex="remoteState !== 'ready' || remoteLoadingMore ? -1 : 0" :aria-disabled="remoteState !== 'ready' || remoteLoadingMore" :aria-busy="remoteLoadingMore" @click="loadMore" @keydown.enter.prevent="loadMore" @keydown.space.prevent="loadMore">
+              <text :class="{ 'leader-retry-label': remoteLoadMoreError }">{{ remoteLoadMoreError ? t.leaderboard.retry : t.leaderboard.cta.loadMore }}</text><text aria-hidden="true">↓</text>
             </view>
             <NxButton class="leader-share" variant="secondary" :label="t.leaderboard.cta.share" @click="go('/pages/team/team?intent=share')">
               <text>{{ t.leaderboard.cta.share }}</text><text aria-hidden="true">→</text>
@@ -72,9 +72,10 @@ import { useLocaleStore } from "@/store/locale";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { LEADERBOARD, MY_RANK, type LeaderPeriod } from "@/mock/leaderboard";
-import { remoteApiEnabled, teamInsightsApi } from "@/api/runtime";
+import { apiRuntimeConfig, remoteApiEnabled, teamInsightsApi } from "@/api/runtime";
 import type { TeamLeaderboardSnapshot } from "@/api/team-insights-api";
 import { asApiError } from "@/api/errors";
+import { useAuth } from '@/store/auth';
 import { useApp } from "@/store/app";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
 import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
@@ -82,6 +83,11 @@ import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevis
 const t = useT();
 const locale = useLocaleStore();
 const app = useApp();
+const auth = useAuth();
+const readEnvironment = [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const;
+let environmentInvalidated = false;
+watch(() => [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const, () => { environmentInvalidated = true; }, { flush: 'sync' });
+const environmentCurrent = () => !environmentInvalidated && readEnvironment[0] === apiRuntimeConfig.environment && readEnvironment[1] === apiRuntimeConfig.baseUrl;
 const PERIODS: LeaderPeriod[] = ["today", "week", "month", "all"];
 const period = ref<LeaderPeriod>("week");
 const remoteSnapshot = ref<TeamLeaderboardSnapshot | null>(null);
@@ -93,12 +99,12 @@ let mounted = true;
 // One screen's worth per load — reduces initial render + (future) server load.
 const PAGE_SIZE = 20;
 const visibleCount = ref(PAGE_SIZE);
-watch(period, () => { visibleCount.value = PAGE_SIZE; if (remoteApiEnabled) void loadRemote(1, false); });
-watch(() => app.accountKey, () => {
+watch(period, () => { remoteSnapshot.value = null; visibleCount.value = PAGE_SIZE; if (remoteApiEnabled) void loadRemote(1, false); }, { flush: 'sync' });
+watch(() => [app.accountKey, app.accountBindingEpoch, auth.isAuthenticated, locale.code, apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const, () => {
   if (!remoteApiEnabled) return;
-  remoteSnapshot.value = null;
-  void loadRemote(1, false);
-});
+  remoteRequest += 1; remoteSnapshot.value = null; remoteState.value = 'loading';
+  if (auth.isAuthenticated && environmentCurrent()) void loadRemote(1, false);
+}, { flush: 'sync' });
 
 const rows = computed(() => remoteApiEnabled ? (remoteSnapshot.value?.period === period.value ? remoteSnapshot.value.rows : []) : LEADERBOARD[period.value]);
 const paused = computed(() => remoteApiEnabled && remoteSnapshot.value?.period === period.value && remoteSnapshot.value.paused === true);
@@ -121,7 +127,7 @@ const hasMore = computed(() => remoteApiEnabled
 
 function loadMore() {
   if (remoteApiEnabled) {
-    if (remoteLoadingMore.value || !hasMore.value || !remoteSnapshot.value) return;
+    if (remoteState.value !== 'ready' || remoteLoadingMore.value || !hasMore.value || !remoteSnapshot.value) return;
     void loadRemote(remoteSnapshot.value.page + 1, true);
     return;
   }
@@ -129,25 +135,27 @@ function loadMore() {
 }
 
 async function loadRemote(page = 1, append = false) {
+  if (!pageVisible || !auth.isAuthenticated || !environmentCurrent()) return;
   const request = ++remoteRequest;
   const accountKey = app.accountKey;
   const accountScope = captureAccountScope();
   const runScope = captureRuntimeRevision();
+  const readLocale = locale.code;
   const requestedPeriod = period.value;
   remoteLoadMoreError.value = false;
   if (append) remoteLoadingMore.value = true;
   else {
     remoteState.value = "loading";
-    remoteSnapshot.value = null;
   }
   const current = () => mounted && request === remoteRequest && accountKey === app.accountKey
     && isCurrentAccountScope(accountScope) && isCurrentRuntimeRevision(runScope)
+    && auth.isAuthenticated && readLocale === locale.code && environmentCurrent()
     && requestedPeriod === period.value;
   try {
     const snapshot = await teamInsightsApi.leaderboard(requestedPeriod, page, PAGE_SIZE,
       append ? remoteSnapshot.value?.snapshotAt : null,
       append ? remoteSnapshot.value?.snapshotVersion : null);
-    if (!current()) { if (request === remoteRequest && !append) { remoteSnapshot.value = null; remoteState.value = "error"; } return; }
+    if (!current()) return;
     if (append) {
       const previous = remoteSnapshot.value;
       const expectedFirstRank = previous ? previous.rows.length + 1 : -1;
@@ -166,7 +174,7 @@ async function loadRemote(page = 1, append = false) {
     }
     remoteState.value = "ready";
   } catch (error) {
-    if (!current()) { if (request === remoteRequest && !append) { remoteSnapshot.value = null; remoteState.value = "error"; } return; }
+    if (!current()) return;
     const apiError = asApiError(error);
     if (append && apiError.message === "TEAM_LEADERBOARD_SNAPSHOT_STALE") {
       // The server deliberately refuses a continuation after its five-minute
@@ -263,6 +271,7 @@ const periodOptions = computed(() => PERIODS.map(value => ({ value, label: t.val
 .leader-currency { display: block; margin-top: 4px; font-size: 11px; color: var(--v5-ink-3); }
 .leader-cta { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inset); min-height: 48px; padding: var(--ui-space-inline) 20px; box-sizing: border-box; border: 1px solid var(--v5-border); border-radius: 999px; color: var(--v5-ink); background: color-mix(in srgb, var(--v5-ink) 6%, transparent); font-size: 14px; font-weight: 500; }
 .leader-more { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; font-size: 13px; color: var(--v5-ink-2); }
+.leader-retry-label { font: 600 13px/20px var(--font-v5); }
 .leader-share { width:100%; }
 .leader-state { display: flex; flex-direction: column; gap: 14px; padding: 32px 0; color: var(--v5-ink-2); font-size: 13px; line-height: 1.6; }
 .leader-state-title { font-size: 17px; font-weight: 600; color: var(--v5-ink); }

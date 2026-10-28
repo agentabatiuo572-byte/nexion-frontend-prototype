@@ -1,0 +1,89 @@
+{
+  "heading": {
+    "backdrop": "none",
+    "background": "rgba(0, 0, 0, 0)",
+    "border": "0px none rgb(19, 20, 26)",
+    "font": "",
+    "rect": {
+      "bottom": 368.6666870117187,
+      "height": 44,
+      "left": 20,
+      "right": 300,
+      "top": 324.66668701171875,
+      "width": 280,
+      "x": 20,
+      "y": 324.66668701171875
+    },
+    "text": "Đội thiết bị của tôi••••"
+  },
+  "info": {
+    "backdrop": "none",
+    "background": "rgba(0, 0, 0, 0)",
+    "border": "0px none rgb(14, 72, 230)",
+    "font": "",
+    "rect": {
+      "bottom": 368.6666870117187,
+      "height": 44,
+      "left": 146.90625,
+      "right": 190.90625,
+      "top": 324.66668701171875,
+      "width": 44,
+      "x": 146.90625,
+      "y": 324.66668701171875
+    },
+    "text": ""
+  },
+  "jobs": {
+    "backdrop": "none",
+    "background": "rgba(0, 0, 0, 0)",
+    "border": "0px none rgb(106, 110, 119)",
+    "font": "",
+    "rect": {
+      "bottom": 386.6666870117187,
+      "height": 18,
+      "left": 20,
+      "right": 300,
+      "top": 368.6666870117187,
+      "width": 280,
+      "x": 20,
+      "y": 368.6666870117187
+    },
+    "text": "Đã hoàn thành •••• tác vụ"
+  },
+  "slot": {
+    "backdrop": "blur(12px)",
+    "background": "color(srgb 0.980392 0.968627 0.941176 / 0.48)",
+    "border": "0.666667px dashed color(srgb 0.415686 0.431373 0.466667 / 0.3)",
+    "font": "",
+    "rect": {
+      "bottom": 651.3333740234375,
+      "height": 60,
+      "left": 30,
+      "right": 290,
+      "top": 591.3333740234375,
+      "width": 260,
+      "x": 30,
+      "y": 591.3333740234375
+    },
+    "text": "Thêm thiết bị"
+  },
+  "slotIcon": {
+    "backdrop": "none",
+    "background": "color(srgb 0.415686 0.431373 0.466667 / 0.07)",
+    "border": "0px none rgb(106, 110, 119)",
+    "font": "",
+    "rect": {
+      "bottom": 637.3333740234375,
+      "height": 32,
+      "left": 42.66666793823242,
+      "right": 74.66666793823242,
+      "top": 605.3333740234375,
+      "width": 32,
+      "x": 42.66666793823242,
+      "y": 605.3333740234375
+    },
+    "text": ""
+  },
+  "theme": "#13141A",
+  "width": 320
+}

@@ -1,6 +1,8 @@
+import { runPassiveTabRead, invalidateBeforePassiveTabRead, rememberPassiveTabRead } from "@/lib/passive-tab-read";
 import { defineStore } from "pinia";
 import { ref, computed, onScopeDispose } from "vue";
 import { remoteApiEnabled, voucherApi } from "@/api/runtime";
+import { ApiError } from "@/api/errors";
 import type { CanonicalVoucher, VoucherSnapshot } from "@/api/voucher-api";
 import {
   captureRuntimeRevision,
@@ -82,8 +84,13 @@ export const useVoucher = defineStore("voucher", () => {
   const catalogLoadedAt = ref(0);
   const remoteStatus = ref<"idle" | "loading" | "ready" | "error">(remoteApiEnabled ? "idle" : "ready");
   const remoteError = ref("");
+  // Display only: runtime invalidation still clears every selectable voucher.
+  const presentationOffers = ref<VoucherDef[]>([]);
+  const presentationClaimable = ref<VoucherDef[]>([]);
   const remoteAccountEpoch = createRemoteAccountEpoch("default");
   let remoteGeneration = 0;
+  let retryAt = 0;
+  let readInFlight: { generation: number; promise: Promise<boolean> } | null = null;
   /**
    * 目录是否已到货。mock 档目录是同步字面量,恒为 true;remote 档要等 refreshRemote 落地。
    * 🔴 存在的意义:空目录有**两种**含义 —— 「还没拉回来」与「拉回来了确实没有可领券」。
@@ -92,14 +99,16 @@ export const useVoucher = defineStore("voucher", () => {
    */
   const catalogReady = ref(!remoteApiEnabled);
 
-  function clearRemoteFacts() {
+  function clearRemoteFacts(clearPresentation = true) {
     if (!remoteApiEnabled) return;
+    const cooling = !clearPresentation && Date.now() < retryAt;
+    if (clearPresentation) { retryAt = 0; presentationOffers.value = []; presentationClaimable.value = []; }
     claimed.value = [];
     remoteCatalog.value = [];
     catalogLoadedAt.value = 0;
-    catalogReady.value = !remoteApiEnabled;
-    remoteStatus.value = remoteApiEnabled ? "idle" : "ready";
-    remoteError.value = "";
+    catalogReady.value = cooling || !remoteApiEnabled;
+    remoteStatus.value = cooling ? "error" : "idle";
+    if (!cooling) remoteError.value = "";
   }
 
   function applyRemoteSnapshot(snapshot: VoucherSnapshot) {
@@ -115,6 +124,8 @@ export const useVoucher = defineStore("voucher", () => {
     catalogReady.value = true;
     remoteStatus.value = "ready";
     remoteError.value = "";
+    presentationClaimable.value = claimableVouchers.value;
+    presentationOffers.value = [...new Map([...claimableVouchers.value, ...claimedUnused.value].map(offer => [offer.id, offer])).values()];
   }
 
   function remoteRequestIsCurrent(
@@ -141,7 +152,24 @@ export const useVoucher = defineStore("voucher", () => {
     void refreshRemote();
   }
 
-  async function refreshRemote(): Promise<boolean> {
+  const passiveReadOwner = () => [remoteAccountEpoch.snapshot(), captureRuntimeRevision()];
+  function revalidateRemote(): Promise<boolean> {
+    if (Date.now() < retryAt) return Promise.resolve(false);
+    return runPassiveTabRead("voucher", () => readInFlight?.generation === remoteGeneration
+      ? readInFlight.promise : refreshRemote(), passiveReadOwner());
+  }
+
+  function refreshRemote(): Promise<boolean> {
+    invalidateBeforePassiveTabRead("voucher");
+    if (Date.now() < retryAt) return Promise.resolve(false);
+    const generation = remoteGeneration + 1;
+    const promise = readRemote();
+    rememberPassiveTabRead("voucher", promise, passiveReadOwner());
+    readInFlight = { generation, promise };
+    void promise.finally(() => { if (readInFlight?.promise === promise) readInFlight = null; });
+    return promise;
+  }
+  async function readRemote(): Promise<boolean> {
     if (!remoteApiEnabled) return true;
     const request = remoteAccountEpoch.snapshot();
     const runScope = captureRuntimeRevision();
@@ -151,10 +179,13 @@ export const useVoucher = defineStore("voucher", () => {
     try {
       const snapshot = await voucherApi.state();
       if (!remoteRequestIsCurrent(request, runScope, generation)) return false;
+      retryAt = 0;
       applyRemoteSnapshot(snapshot);
       return true;
     } catch (cause) {
       if (!remoteRequestIsCurrent(request, runScope, generation)) return false;
+      if (cause instanceof ApiError && cause.status === 429) retryAt = Date.now() + (cause.retryAfterMs ?? 30_000);
+      if (cause instanceof ApiError && (cause.status === 401 || cause.status === 403)) clearRemoteFacts();
       // 拉取失败也算「等到头了」:再等下去只会把自动弹层无限期卡住,让位给下一个候选。
       catalogReady.value = true;
       remoteStatus.value = "error";
@@ -180,7 +211,7 @@ export const useVoucher = defineStore("voucher", () => {
   }
 
   async function claimRemote(id: string, surface: VoucherDef["claimSurfaces"][number]): Promise<boolean> {
-    if (!remoteApiEnabled) return false;
+    if (!remoteApiEnabled || Date.now() < retryAt) return false;
     const request = remoteAccountEpoch.snapshot();
     const runScope = captureRuntimeRevision();
     const generation = ++remoteGeneration;
@@ -225,7 +256,7 @@ export const useVoucher = defineStore("voucher", () => {
     // A runtime revision invalidates both in-flight reads and existing voucher
     // facts. Clear selectable old vouchers before requesting the new catalog.
     remoteGeneration += 1;
-    clearRemoteFacts();
+    clearRemoteFacts(false);
     void refreshRemote();
   });
   onScopeDispose(unsubscribeCommerceRun);
@@ -403,6 +434,7 @@ export const useVoucher = defineStore("voucher", () => {
     claimRemote,
     markUsed, release,
     refreshRemote,
+    revalidateRemote,
     markPopupSeen,
     claimableVouchers,
     autoPopupCadence,
@@ -412,6 +444,8 @@ export const useVoucher = defineStore("voucher", () => {
     catalogReady,
     remoteStatus,
     remoteError,
+    presentationOffers,
+    presentationClaimable,
     claimedUnused,
     expiredVouchers,
     hasClaimableForSurface,

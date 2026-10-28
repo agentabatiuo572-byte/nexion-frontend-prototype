@@ -263,3 +263,37 @@ describe("Genesis secondary commands against a server replay cache", () => {
     expect(runtime.genesisApi.list).not.toHaveBeenCalled();
   });
 });
+
+it("advances public/account display evidence only from separately successful actual reads",async()=>{
+ const store=await boot();const pub=store.remotePublicSuccessRevision,account=store.remoteAccountSuccessRevision;
+ runtime.genesisApi.account.mockRejectedValueOnce(new Error("FORBIDDEN"));
+ expect(await store.syncRemote()).toBe(true);
+ expect(store.remotePublicSuccessRevision).toBeGreaterThan(pub);
+ expect(store.remoteAccountSuccessRevision).toBe(account);
+ expect(store.remoteAccountReadState).toBe("unavailable");expect(store.ownedTokenIds).toEqual([]);
+ const currentPublic=store.remotePublicSuccessRevision;
+ runtime.genesisApi.state.mockRejectedValueOnce(new Error("PUBLIC_UNAVAILABLE"));
+ runtime.genesisApi.account.mockResolvedValueOnce({...accountStateEmpty()});
+ expect(await store.syncRemote()).toBe(true);
+ expect(store.remotePublicSuccessRevision).toBe(currentPublic);
+ expect(store.remoteAccountSuccessRevision).toBeGreaterThan(account);
+ expect(store.remotePublicReadState).toBe("unavailable");expect(store.remoteAccountReadState).toBe("ready");
+ expect(store.ownedTokenIds).toEqual([]);
+});
+function accountStateEmpty():GenesisAccountState{return {...account(),holdings:[],orders:[],emissions:[]};}
+
+it.each(["success","failure"])("does not count an old %s after the actual same-account binding fence advances",async outcome=>{
+ const store=await boot();const binding=store.captureRemoteReadBinding();const pub=store.remotePublicSuccessRevision,acct=store.remoteAccountSuccessRevision;
+ let finishPublic!:(value:any)=>void,failPublic!:(value:any)=>void,finishAccount!:(value:any)=>void,failAccount!:(value:any)=>void;
+ const currentPublic=runtime.genesisApi.state.getMockImplementation()!,currentAccount=runtime.genesisApi.account.getMockImplementation()!;
+ runtime.genesisApi.state.mockImplementationOnce(()=>new Promise((r,j)=>{finishPublic=r;failPublic=j;}));
+ runtime.genesisApi.account.mockImplementationOnce(()=>new Promise((r,j)=>{finishAccount=r;failAccount=j;}));
+ const old=store.syncRemote();
+ runtime.genesisApi.state.mockRejectedValue(new Error("FORBIDDEN"));runtime.genesisApi.account.mockRejectedValue(new Error("FORBIDDEN"));runtime.genesisApi.eligibility.mockRejectedValue(new Error("FORBIDDEN"));
+ store.bindAccount("user:7");await store.syncRemote();
+ expect(store.captureRemoteReadBinding().epoch).toBeGreaterThan(binding.epoch);
+ if(outcome==="success"){finishPublic(await currentPublic());finishAccount(await currentAccount());}else{failPublic(new Error("FORBIDDEN"));failAccount(new Error("FORBIDDEN"));}
+ await old;expect(store.remotePublicSuccessRevision).toBe(pub);expect(store.remoteAccountSuccessRevision).toBe(acct);
+ expect(store.remotePublicSuccessScope).toEqual(binding);expect(store.remoteAccountSuccessScope).toEqual(binding);
+ expect(store.remoteListings).toEqual([]);expect(store.ownedTokenIds).toEqual([]);expect(store.remoteAccountReadState).toBe("unavailable");
+});

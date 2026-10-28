@@ -29,7 +29,7 @@ function card(listed = false, copy = en) {
   const scope = effectScope();
   const unmounts: Array<() => void> = [];
   const pageScope = reactive({ visible: true, epoch: 1 });
-  const props = reactive({ tokenId: "holding-a", pageScope });
+  const props = reactive({ tokenId: "holding-a", pageScope, readReady:true });
   const genesis = reactive({
     myListings: listed ? [{ tokenId: "holding-a", askPriceUSDT: 12, listedAt: 100 }] : [],
     remoteMarketStats: { floorUsdt: null }, remoteRoyaltyPct: 2.5,
@@ -130,16 +130,16 @@ describe("Genesis card confirmation and response ownership", () => {
       const tag = source.match(new RegExp(`<view[^>]*@click="${handler}"[^>]*>`))?.[0] ?? "";
       expect(tag).toContain('role="button"');
       if (handler === "handleList") {
-        expect(tag).toContain(':tabindex="listBlocked || pending ? -1 : 0"');
-        expect(tag).toContain(':aria-disabled="listBlocked || pending"');
+        expect(tag).toContain(':tabindex="listBlocked || pending || readReady === false ? -1 : 0"');
+        expect(tag).toContain(':aria-disabled="listBlocked || pending || readReady === false"');
         expect(tag).toContain('@keydown.enter.prevent="handleList"');
         expect(tag).toContain('@keydown.space.prevent="handleList"');
       } else {
-        expect(tag).toContain('tabindex="0"');
+        expect(tag).toContain(':tabindex="pending || readReady === false ? -1 : 0"');
       }
     }
     expect(source.match(/<input[^>]*>/)?.[0]).toContain(':aria-label="t.marketplace.listForSale"');
-    expect(source.match(/<input[^>]*>/)?.[0]).toContain(':disabled="listBlocked || pending"');
+    expect(source.match(/<input[^>]*>/)?.[0]).toContain(':disabled="listBlocked || pending || readReady === false"');
   });
 });
 
@@ -160,4 +160,13 @@ describe("Genesis exact price confirmation", () => {
     expect(c.genesis.listNode).toHaveBeenCalledExactlyOnceWith("holding-a", 0.000001);
     expect(ui.toasts.at(-1)?.description).toContain("0.000001");
   });
+});
+
+it.each(["list","cancel"])("retained %s display cannot command before or after confirmation while read authority is absent",async operation=>{
+ const ui=setup(),c=card(operation==="cancel");c.props.readReady=false;
+ const run=()=>operation==="cancel"?c.handleCancel():c.handleList();
+ await run();expect(ui.confirmQueue).toHaveLength(0);
+ c.props.readReady=true;const pending=run();expect(ui.confirmQueue).toHaveLength(1);
+ c.props.readReady=false;ui.resolveConfirm(ui.confirmQueue[0].id,true);await pending;
+ expect(c.genesis.listNode).not.toHaveBeenCalled();expect(c.genesis.cancelListing).not.toHaveBeenCalled();
 });

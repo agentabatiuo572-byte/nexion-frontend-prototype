@@ -16,7 +16,7 @@
   <view v-if="sheet.open" class="sas-root" role="dialog" aria-modal="true" :aria-label="t.slotSheet.title">
     <view class="sas-backdrop" @click="hide" />
 
-    <view class="sas-panel" @click.stop>
+    <view class="sas-panel nx-glass-sheet" @click.stop>
       <!-- header -->
       <view class="sas-head">
         <view class="sas-head-meta">
@@ -228,8 +228,7 @@ useDialogA11y(computed(() => sheet.open), ".sas-root", hide);
   box-sizing: border-box;
   max-height: calc(100% - var(--nx-overlay-top));
   overflow-y: auto;
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
+  border-radius: 16px 16px 0 0;
   background: var(--nx-glass-fill);
   border-top: 1px solid var(--v5-border);
   padding: 18px 16px;
@@ -270,16 +269,19 @@ useDialogA11y(computed(() => sheet.open), ".sas-root", hide);
   text-wrap: pretty;
 }
 .sas-close {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
+  box-sizing: border-box;
+  padding: 4px;
   border-radius: 999px;
   background: var(--v5-surface-2);
+  background-clip: content-box;
   display: grid;
   place-items: center;
   flex-shrink: 0;
 }
 .sas-close:active {
-  background: var(--v5-surface-3);
+  background-color: var(--v5-surface-3);
 }
 /* primary CTA — brand fill, recommended weight */
 .sas-store-cta {

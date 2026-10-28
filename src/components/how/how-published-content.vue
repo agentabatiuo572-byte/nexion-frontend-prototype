@@ -5,7 +5,7 @@
     <view v-if="content" class="pb-8">
       <view v-if="languageFallback" class="mx-4" style="margin: 16px; padding: 14px; border-radius: 12px; background: var(--v5-surface-2);" role="status" aria-live="polite">
         <text class="block" :style="bodyStyle">{{ t.howPublished.languageFallback }}</text>
-        <view class="flex items-center justify-center" style="margin-top: 12px; min-height: 44px; border-radius: 999px; background: var(--v5-brand); color: var(--v5-on-brand);" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load">
+        <view class="nx-card-recovery-action" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load">
           <text>{{ t.ui.retry }}</text>
         </view>
       </view>
@@ -31,7 +31,7 @@
       <view style="padding: 14px; border-radius: 12px; background: var(--v5-surface-2); color: var(--v5-ink-2);">
         <text class="block" style="font-size: 15px; font-weight: 600;">{{ t.howPublished.unavailableTitle }}</text>
         <text class="block" style="margin-top: 6px; font-size: 12px; color: var(--v5-ink-3);">{{ t.howPublished.unavailableBody }}</text>
-        <view class="flex items-center justify-center" style="margin-top: 12px; min-height: 44px; border-radius: 999px; background: var(--v5-brand); color: var(--v5-on-brand);" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load">
+        <view class="nx-card-recovery-action" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load">
           <text>{{ t.ui.retry }}</text>
         </view>
       </view>

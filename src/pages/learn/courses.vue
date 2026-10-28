@@ -2,12 +2,16 @@
   <AppChassis active="me">
     <view class="learning-center">
       <SubPageHeader design back="/pages/me/me" :title="t.learning.centerTitle" />
-      <view v-if="loading" class="learning-state" role="status"><text>{{ t.learning.centerLoading }}</text></view>
+      <view v-if="loading && !overview" class="learning-state" role="status"><text>{{ t.learning.centerLoading }}</text></view>
       <view v-else-if="error" class="learning-state" role="alert" aria-live="assertive">
         <text class="block">{{ errorText }}</text>
-        <NxButton class="learning-retry" variant="text" :label="t.ui.retry" @click="load" />
+        <NxButton class="learning-retry nx-retry-action" variant="text" :label="t.ui.retry" @click="load" />
       </view>
-      <view v-else-if="overview">
+      <view v-if="!overview" class="learning-summary">
+        <view class="learning-summary__line"><text class="learning-summary__progress">{{ fmt(pageCopy.progress, {done:'—',total:'—'}) }}</text><view class="learning-summary__earned"><text>{{ pageCopy.earned }}</text><text class="learning-reward">— UVT</text></view></view>
+        <view class="course-list__heading"><text class="course-list__title">{{ pageCopy.allCourses }}</text><text class="course-list__count">—</text></view>
+      </view>
+      <view v-if="overview && !error">
         <view class="learning-summary">
           <view class="learning-summary__line">
             <text class="learning-summary__progress">{{ progressLine }}</text>
@@ -61,7 +65,7 @@ import NxButton from "@/components/ui/nx-button.vue";
 import EmptyState from "@/components/empty-state.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import { learningApi } from "@/api/learning-runtime";
-import { remoteApiEnabled } from "@/api/runtime";
+import { remoteApiEnabled, apiRuntimeConfig } from "@/api/runtime";
 import { fmt } from "@/i18n/format";
 import { courseDurationText } from "@/lib/course-duration";
 import { learningRecommendationCopy } from '@/i18n/learning-recommendation';
@@ -113,10 +117,13 @@ const fenceReader = createLearningPageFenceReader(
 );
 function fence(): LearningPageFence { return fenceReader.capture(); }
 function current(scope: LearningPageFence): boolean { return fenceReader.isCurrent(scope); }
+let environmentInvalidated = false;
+watch(() => apiRuntimeConfig?.environment, () => { environmentInvalidated = true; accountEpoch += 1; generation += 1; overview.value = null; error.value = 'centerUnavailable'; }, { flush: 'sync' });
 async function load() {
+  if (environmentInvalidated) return;
+  generation += 1;
   const scope = fence();
   loading.value = true;
-  overview.value = null;
   error.value = "";
   if (!remoteApiEnabled) {
     if (!current(scope)) return;
@@ -128,7 +135,7 @@ async function load() {
     const value = await learningApi.courses(language.value);
     if (current(scope)) overview.value = value;
   } catch (cause) {
-    if (current(scope)) error.value = cause instanceof Error && cause.message.includes("GEO_COUNTRY_UNRESOLVED") ? "centerGeoUnresolved" : "centerUnavailable";
+    if (current(scope)) { overview.value = null; error.value = cause instanceof Error && cause.message.includes("GEO_COUNTRY_UNRESOLVED") ? "centerGeoUnresolved" : "centerUnavailable"; }
   } finally {
     if (current(scope)) loading.value = false;
   }
@@ -161,9 +168,9 @@ function refreshForScopeChange() {
   error.value = "";
   if (mounted) void load();
 }
-watch(() => String(app.accountKey), refreshForScopeChange);
-watch(() => app.accountBindingEpoch, refreshForScopeChange);
-watch(() => language.value, refreshForScopeChange);
+watch(() => String(app.accountKey), refreshForScopeChange, { flush: "sync" });
+watch(() => app.accountBindingEpoch, refreshForScopeChange, { flush: "sync" });
+watch(() => language.value, refreshForScopeChange, { flush: "sync" });
 const stopRuntimeRefresh = subscribeRuntimeRevision(refreshForScopeChange);
 onUnmounted(stopRuntimeRefresh);
 

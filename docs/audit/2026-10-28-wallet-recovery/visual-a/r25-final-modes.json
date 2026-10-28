@@ -1,0 +1,26 @@
+[
+  {
+    "port": 5291,
+    "mode": "wallet-funds",
+    "target": "/api/devices/earnings",
+    "updatedAt": "2026-10-27T17:55:46.386Z"
+  },
+  {
+    "port": 5291,
+    "mode": "off",
+    "target": null,
+    "updatedAt": "2026-10-27T17:56:09.932Z"
+  },
+  {
+    "port": 5291,
+    "mode": "balance-long",
+    "target": "/api/devices/earnings",
+    "updatedAt": "2026-10-27T17:56:31.142Z"
+  },
+  {
+    "port": 5291,
+    "mode": "off",
+    "target": null,
+    "updatedAt": "2026-10-27T17:56:36.741Z"
+  }
+]

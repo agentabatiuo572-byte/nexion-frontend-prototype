@@ -4,9 +4,9 @@ import techMoneyCardSource from "./tech-money-card.vue?raw";
 import { homeEarningsSubtitle } from "./home-real-copy";
 
 describe("home real-data copy", () => {
-  it("uses the prototype live label without a remote-only settlement badge", () => {
+  it("labels the earnings currency without a remote-only settlement badge", () => {
     const template = techMoneyCardSource.split("<script setup")[0];
-    expect(template).toContain("{{ t.home.techStreaming }}");
+    expect(template).toContain("{{ t.home.techEarningsCurrency }}");
     expect(template).not.toContain("techSettlementSnapshot");
   });
 

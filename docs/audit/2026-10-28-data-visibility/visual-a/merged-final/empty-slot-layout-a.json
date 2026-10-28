@@ -1,0 +1,28 @@
+{
+  "root": {
+    "bottom": 654.6666870117188,
+    "height": 60,
+    "left": 30,
+    "right": 360,
+    "top": 594.6666870117188,
+    "width": 330,
+    "x": 30,
+    "y": 594.6666870117188
+  },
+  "slot": {
+    "bottom": 640.6666870117188,
+    "height": 32,
+    "left": 42.66666793823242,
+    "right": 74.66666793823242,
+    "top": 608.6666870117188,
+    "width": 32,
+    "x": 42.66666793823242,
+    "y": 608.6666870117188
+  },
+  "styles": {
+    "backdropFilter": "blur(12px)",
+    "background": "color(srgb 0.980392 0.968627 0.941176 / 0.48)",
+    "slotBorderStyle": "none",
+    "slotBorderWidth": "0px"
+  }
+}

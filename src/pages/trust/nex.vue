@@ -21,8 +21,8 @@
         <text class="block active:opacity-70" :style="retryStyle" role="button" tabindex="0" @click="loadNarrative(true)" @keydown.enter.prevent="loadNarrative(true)" @keydown.space.prevent="loadNarrative(true)">{{ t.ui.retry }}</text>
       </view>
 
-      <template v-else>
-      <HowHero :label="`${w.heroLabel} · ${narrative.version}`" :title="narrative.hero" :sub="narrative.subhero ?? ''" accent="purple" />
+      <template>
+      <HowHero :label="narrative.state === 'ready' ? `${w.heroLabel} · ${narrative.version}` : w.heroLabel" :title="narrative.state === 'ready' ? narrative.hero : '—'" :sub="narrative.state === 'ready' ? narrative.subhero ?? '' : ''" accent="purple" />
 
       <HowSection :title="w.s1Title" accent="purple">
         <template #icon>
@@ -209,7 +209,7 @@ function goBack(event?: KeyboardEvent | PointerEvent) {
 
 const stateCardStyle: CSSProperties = { marginTop: "16px", padding: "16px", borderRadius: "16px", background: "var(--v5-surface)" };
 const stateTextStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.6 };
-const retryStyle: CSSProperties = { marginTop: "8px", minHeight: "44px", display: "inline-flex", alignItems: "center", fontSize: "13px", color: "var(--v5-brand)" };
+const retryStyle: CSSProperties = { marginTop: "8px", minHeight: "44px", display: "inline-flex", alignItems: "center", font: "600 13px/20px var(--font-v5)", color: "var(--v5-brand)" };
 const paraStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-2)", lineHeight: 1.65 }; // how-page scale: body 13.5/1.65 ink-2
 const introStyle: CSSProperties = { fontSize: "13px", color: "var(--v5-ink-3)", lineHeight: 1.6, marginBottom: "14px" }; // how-page scale: caption 12.5/1.6 ink-3
 const tableStyle: CSSProperties = {

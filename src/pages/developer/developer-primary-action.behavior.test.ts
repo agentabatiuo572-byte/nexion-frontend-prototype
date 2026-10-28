@@ -19,11 +19,12 @@ it("keeps the branded primary action keyboard-operable and suppresses duplicate 
     validateDeveloperAccess, toast, t: Vue.ref(zh), remoteApiEnabled: true, developerAccessApi: api }, "submitRequest");
   const styleBlock = source.match(/const submitBtnStyle: CSSProperties = \{[\s\S]*?\n\};/)![0];
   const submitBtnStyle = execute(styleBlock, {}, "submitBtnStyle");
-  const context = { t: zh, submitting, canSubmitAccessRequest, submitRequest, submitBtnStyle };
+  const latestLoadFailed=Vue.ref(false),requestState=Vue.ref<{canReapply:boolean}|null>(null);
+  const context = { t: zh, submitting, canSubmitAccessRequest, submitRequest, submitBtnStyle, latestLoadFailed, requestState };
   const button = source.match(/<view\b[^>]*:aria-label="t\.developer\.formSubmit"[^>]*>[\s\S]*?<\/view>/)![0];
   const page = mountEntry(`<template>${button}</template><script setup lang="ts">
     import { useContext } from "test:context";
-    const {t, submitting, canSubmitAccessRequest, submitRequest, submitBtnStyle} = useContext();
+    const {t, submitting, canSubmitAccessRequest, submitRequest, submitBtnStyle, latestLoadFailed, requestState} = useContext();
   </script>`, { "test:context": { useContext: () => context } });
   const control = () => page.nodes("mt-3")[0];
   expect(control().props.role).toBe("button"); expect(control().props.tabindex).toBe(0);
@@ -37,7 +38,8 @@ it("keeps the branded primary action keyboard-operable and suppresses duplicate 
   submitting.value = true; await flush();
   expect(control().props.tabindex).toBe(-1); expect(control().props["aria-disabled"]).toBe("true"); expect(control().props["aria-busy"]).toBe("true");
   await key("Enter"); await control().props.onClick(); expect(toast.warn).toHaveBeenCalledTimes(2); expect(api.submit).not.toHaveBeenCalled();
-  canSubmitAccessRequest.value = false; await flush(); expect(page.nodes("mt-3")).toHaveLength(0);
+  canSubmitAccessRequest.value = false; await flush(); expect(control().props["aria-disabled"]).toBe("true");
+  requestState.value={canReapply:false}; await flush(); expect(page.nodes("mt-3")).toHaveLength(0);
   page.unmount();
 });
 

@@ -5,6 +5,7 @@ const { platformConfig } = vi.hoisted(() => ({ platformConfig: vi.fn() }));
 vi.mock("@/api/runtime", () => ({
   remoteApiEnabled: true,
   apiRuntimeConfig: { environment: "dev", mode: "dev" },
+  apiRuntimeClientOrigin: { environment: "dev", baseUrl: undefined },
   platformConfigApi: { platformConfig },
 }));
 

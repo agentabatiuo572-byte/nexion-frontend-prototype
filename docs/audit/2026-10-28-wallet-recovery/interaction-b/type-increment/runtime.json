@@ -1,0 +1,4108 @@
+{
+  "scope": "new responsive Me lists/section/profile + sampled non-Me shared rows; wallet quick long only",
+  "browser": "official CUA Chrome4",
+  "tab": "1733373110",
+  "origin": "http://127.0.0.1:5294",
+  "entry": "index-DDUUBFKu.js",
+  "entrySha256": "E159FF20C2BE1F6C4759F1A879AA318EA00DB319FABA4BAFF54025C44DE3D69C",
+  "source": {
+    "src/styles/tokens.css": "86f8859b0193a40fb38989fefa486351f8e664975bb31a0e82b9bdca5771da00",
+    "src/components/ui/nx-list-row.vue": "de56dca4e49b27162720347c570dc5fc1992d22204ca0e9d35490210cff739fb",
+    "src/components/ui/nx-section.vue": "53b023ef6462dcee31a49ab6f688b298658681b08093b31916df0157bc4e57c5",
+    "src/components/me/profile-row.vue": "46866e2b86868037a8a9395b3b608417fa543226005737dd2e4f56c63f59dc1c"
+  },
+  "reads": [
+    {
+      "css": [
+        "http://127.0.0.1:5294/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5294/assets/index-gu3lZQtt.css",
+        "http://127.0.0.1:5294/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5294/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5294/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5294/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5294/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5294/assets/app-chassis-DSCGxZok.css",
+        "http://127.0.0.1:5294/assets/daily-check-in-row-BoXMjQFA.css",
+        "http://127.0.0.1:5294/assets/nx-section-DKnURi4h.css",
+        "http://127.0.0.1:5294/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5294/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5294/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5294/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5294/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5294/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5294/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5294/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5294/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5294/assets/index-XhPNOL6J.css",
+        "http://127.0.0.1:5294/assets/card-stagger-BAUXl1m9.css",
+        "http://127.0.0.1:5294/assets/nx-list-row-Wr_g_i_N.css",
+        "http://127.0.0.1:5294/assets/me-DxUOriDN.css"
+      ],
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DDUUBFKu.js"
+      ],
+      "frame": {
+        "clientWidth": 320,
+        "css": {
+          "color": "rgb(24, 33, 39)",
+          "font": "14px",
+          "line": "21px",
+          "weight": "400"
+        },
+        "rect": {
+          "height": 693,
+          "width": 320,
+          "x": 980,
+          "y": 280.5
+        },
+        "scrollWidth": 320,
+        "text": ""
+      },
+      "height": 693,
+      "nav": null,
+      "overflow": 0,
+      "profile": {
+        "clientWidth": 184,
+        "css": {
+          "color": "rgb(19, 20, 26)",
+          "font": "18px",
+          "line": "normal",
+          "weight": "600"
+        },
+        "rect": {
+          "height": 24,
+          "width": 184,
+          "x": 86,
+          "y": 78.33333587646484
+        },
+        "scrollWidth": 184,
+        "text": "Alex"
+      },
+      "rows": [
+        {
+          "key": "genesis",
+          "root": {
+            "clientWidth": 287,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "16px",
+              "line": "normal",
+              "weight": "400"
+            },
+            "rect": {
+              "height": 56,
+              "width": 286.66668701171875,
+              "x": 16.666667938232422,
+              "y": 1152.385498046875
+            },
+            "scrollWidth": 287,
+            "text": "Genesis Node"
+          },
+          "sub": null,
+          "title": {
+            "clientWidth": 199,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "13px",
+              "line": "18px",
+              "weight": "500"
+            },
+            "rect": {
+              "height": 18,
+              "width": 198.6666717529297,
+              "x": 68.66667175292969,
+              "y": 1171.385498046875
+            },
+            "scrollWidth": 199,
+            "text": "Genesis Node"
+          },
+          "value": null
+        },
+        {
+          "key": "cards",
+          "root": {
+            "clientWidth": 287,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "16px",
+              "line": "normal",
+              "weight": "400"
+            },
+            "rect": {
+              "height": 56,
+              "width": 286.66668701171875,
+              "x": 16.666667938232422,
+              "y": 1208.385498046875
+            },
+            "scrollWidth": 287,
+            "text": "Thẻ ngân hàng\nQuản lý thẻ"
+          },
+          "sub": null,
+          "title": {
+            "clientWidth": 129,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "13px",
+              "line": "18px",
+              "weight": "500"
+            },
+            "rect": {
+              "height": 18,
+              "width": 128.73959350585938,
+              "x": 68.66667175292969,
+              "y": 1227.71875
+            },
+            "scrollWidth": 129,
+            "text": "Thẻ ngân hàng"
+          },
+          "value": {
+            "clientWidth": 62,
+            "css": {
+              "color": "rgb(60, 63, 71)",
+              "font": "12px",
+              "line": "16px",
+              "weight": "400"
+            },
+            "rect": {
+              "height": 16,
+              "width": 61.92708587646485,
+              "x": 205.40625,
+              "y": 1228.71875
+            },
+            "scrollWidth": 62,
+            "text": "Quản lý thẻ"
+          }
+        },
+        {
+          "key": "security",
+          "root": {
+            "clientWidth": 287,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "16px",
+              "line": "normal",
+              "weight": "400"
+            },
+            "rect": {
+              "height": 56,
+              "width": 286.66668701171875,
+              "x": 16.666667938232422,
+              "y": 1264.385498046875
+            },
+            "scrollWidth": 287,
+            "text": "Bảo mật\nBật"
+          },
+          "sub": null,
+          "title": {
+            "clientWidth": 172,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "13px",
+              "line": "18px",
+              "weight": "500"
+            },
+            "rect": {
+              "height": 18,
+              "width": 171.92709350585938,
+              "x": 68.66667175292969,
+              "y": 1283.71875
+            },
+            "scrollWidth": 172,
+            "text": "Bảo mật"
+          },
+          "value": {
+            "clientWidth": 19,
+            "css": {
+              "color": "rgb(60, 63, 71)",
+              "font": "12px",
+              "line": "16px",
+              "weight": "400"
+            },
+            "rect": {
+              "height": 16,
+              "width": 18.73958396911621,
+              "x": 248.59375,
+              "y": 1284.71875
+            },
+            "scrollWidth": 19,
+            "text": "Bật"
+          }
+        },
+        {
+          "key": "preferences",
+          "root": {
+            "clientWidth": 287,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "16px",
+              "line": "normal",
+              "weight": "400"
+            },
+            "rect": {
+              "height": 56,
+              "width": 286.66668701171875,
+              "x": 16.666667938232422,
+              "y": 1377.71875
+            },
+            "scrollWidth": 287,
+            "text": "Tùy chọn"
+          },
+          "sub": null,
+          "title": {
+            "clientWidth": 199,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "13px",
+              "line": "18px",
+              "weight": "500"
+            },
+            "rect": {
+              "height": 18,
+              "width": 198.6666717529297,
+              "x": 68.66667175292969,
+              "y": 1396.71875
+            },
+            "scrollWidth": 199,
+            "text": "Tùy chọn"
+          },
+          "value": null
+        },
+        {
+          "key": "theme",
+          "root": {
+            "clientWidth": 287,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "16px",
+              "line": "normal",
+              "weight": "400"
+            },
+            "rect": {
+              "height": 56,
+              "width": 286.66668701171875,
+              "x": 16.666667938232422,
+              "y": 1433.71875
+            },
+            "scrollWidth": 287,
+            "text": "Giao diện\nSáng"
+          },
+          "sub": null,
+          "title": {
+            "clientWidth": 163,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "13px",
+              "line": "18px",
+              "weight": "500"
+            },
+            "rect": {
+              "height": 18,
+              "width": 162.83334350585938,
+              "x": 68.66667175292969,
+              "y": 1453.0521240234375
+            },
+            "scrollWidth": 163,
+            "text": "Giao diện"
+          },
+          "value": {
+            "clientWidth": 28,
+            "css": {
+              "color": "rgb(60, 63, 71)",
+              "font": "12px",
+              "line": "16px",
+              "weight": "400"
+            },
+            "rect": {
+              "height": 16,
+              "width": 27.83333396911621,
+              "x": 239.5,
+              "y": 1454.0521240234375
+            },
+            "scrollWidth": 28,
+            "text": "Sáng"
+          }
+        },
+        {
+          "key": "language",
+          "root": {
+            "clientWidth": 287,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "16px",
+              "line": "normal",
+              "weight": "400"
+            },
+            "rect": {
+              "height": 56,
+              "width": 286.66668701171875,
+              "x": 16.666667938232422,
+              "y": 1489.71875
+            },
+            "scrollWidth": 287,
+            "text": "Ngôn ngữ\nVI"
+          },
+          "sub": null,
+          "title": {
+            "clientWidth": 180,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "13px",
+              "line": "18px",
+              "weight": "500"
+            },
+            "rect": {
+              "height": 18,
+              "width": 179.86459350585938,
+              "x": 68.66667175292969,
+              "y": 1509.0521240234375
+            },
+            "scrollWidth": 180,
+            "text": "Ngôn ngữ"
+          },
+          "value": {
+            "clientWidth": 11,
+            "css": {
+              "color": "rgb(60, 63, 71)",
+              "font": "12px",
+              "line": "16px",
+              "weight": "400"
+            },
+            "rect": {
+              "height": 16,
+              "width": 10.802083969116213,
+              "x": 256.53125,
+              "y": 1510.0521240234375
+            },
+            "scrollWidth": 11,
+            "text": "VI"
+          }
+        },
+        {
+          "key": "messages",
+          "root": {
+            "clientWidth": 287,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "16px",
+              "line": "normal",
+              "weight": "400"
+            },
+            "rect": {
+              "height": 56,
+              "width": 286.66668701171875,
+              "x": 16.666667938232422,
+              "y": 1603.0521240234375
+            },
+            "scrollWidth": 287,
+            "text": "Tin nhắn"
+          },
+          "sub": null,
+          "title": {
+            "clientWidth": 199,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "13px",
+              "line": "18px",
+              "weight": "500"
+            },
+            "rect": {
+              "height": 18,
+              "width": 198.6666717529297,
+              "x": 68.66667175292969,
+              "y": 1622.0521240234375
+            },
+            "scrollWidth": 199,
+            "text": "Tin nhắn"
+          },
+          "value": null
+        },
+        {
+          "key": "support",
+          "root": {
+            "clientWidth": 287,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "16px",
+              "line": "normal",
+              "weight": "400"
+            },
+            "rect": {
+              "height": 56,
+              "width": 286.66668701171875,
+              "x": 16.666667938232422,
+              "y": 1659.0521240234375
+            },
+            "scrollWidth": 287,
+            "text": "Hỗ trợ khách hàng\nXem các kênh hỗ trợ và hội thoại"
+          },
+          "sub": null,
+          "title": {
+            "clientWidth": 91,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "13px",
+              "line": "18px",
+              "weight": "500"
+            },
+            "rect": {
+              "height": 36,
+              "width": 90.85417175292967,
+              "x": 68.66667175292969,
+              "y": 1669.385498046875
+            },
+            "scrollWidth": 91,
+            "text": "Hỗ trợ khách hàng"
+          },
+          "value": {
+            "clientWidth": 100,
+            "css": {
+              "color": "rgb(60, 63, 71)",
+              "font": "12px",
+              "line": "16px",
+              "weight": "400"
+            },
+            "rect": {
+              "height": 32,
+              "width": 99.8125,
+              "x": 167.52084350585938,
+              "y": 1671.385498046875
+            },
+            "scrollWidth": 100,
+            "text": "Xem các kênh hỗ trợ và hội thoại"
+          }
+        },
+        {
+          "key": "faq",
+          "root": {
+            "clientWidth": 287,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "16px",
+              "line": "normal",
+              "weight": "400"
+            },
+            "rect": {
+              "height": 56,
+              "width": 286.66668701171875,
+              "x": 16.666667938232422,
+              "y": 1715.0521240234375
+            },
+            "scrollWidth": 287,
+            "text": "Trợ giúp & FAQ"
+          },
+          "sub": null,
+          "title": {
+            "clientWidth": 199,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "13px",
+              "line": "18px",
+              "weight": "500"
+            },
+            "rect": {
+              "height": 18,
+              "width": 198.6666717529297,
+              "x": 68.66667175292969,
+              "y": 1734.385498046875
+            },
+            "scrollWidth": 199,
+            "text": "Trợ giúp & FAQ"
+          },
+          "value": null
+        },
+        {
+          "key": "trust",
+          "root": {
+            "clientWidth": 287,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "16px",
+              "line": "normal",
+              "weight": "400"
+            },
+            "rect": {
+              "height": 56,
+              "width": 286.66668701171875,
+              "x": 16.666667938232422,
+              "y": 1771.0521240234375
+            },
+            "scrollWidth": 287,
+            "text": "Trung tâm tin cậy\nUVT · Số liệu"
+          },
+          "sub": null,
+          "title": {
+            "clientWidth": 123,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "13px",
+              "line": "18px",
+              "weight": "500"
+            },
+            "rect": {
+              "height": 18,
+              "width": 123.08333587646484,
+              "x": 68.66667175292969,
+              "y": 1790.385498046875
+            },
+            "scrollWidth": 123,
+            "text": "Trung tâm tin cậy"
+          },
+          "value": {
+            "clientWidth": 68,
+            "css": {
+              "color": "rgb(60, 63, 71)",
+              "font": "12px",
+              "line": "16px",
+              "weight": "400"
+            },
+            "rect": {
+              "height": 16,
+              "width": 67.58333587646484,
+              "x": 199.75,
+              "y": 1791.385498046875
+            },
+            "scrollWidth": 68,
+            "text": "UVT · Số liệu"
+          }
+        },
+        {
+          "key": "risk",
+          "root": {
+            "clientWidth": 287,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "16px",
+              "line": "normal",
+              "weight": "400"
+            },
+            "rect": {
+              "height": 56,
+              "width": 286.66668701171875,
+              "x": 16.666667938232422,
+              "y": 1827.0521240234375
+            },
+            "scrollWidth": 287,
+            "text": "Công bố rủi ro"
+          },
+          "sub": null,
+          "title": {
+            "clientWidth": 199,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "13px",
+              "line": "18px",
+              "weight": "500"
+            },
+            "rect": {
+              "height": 18,
+              "width": 198.6666717529297,
+              "x": 68.66667175292969,
+              "y": 1846.385498046875
+            },
+            "scrollWidth": 199,
+            "text": "Công bố rủi ro"
+          },
+          "value": null
+        },
+        {
+          "key": "developer",
+          "root": {
+            "clientWidth": 287,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "16px",
+              "line": "normal",
+              "weight": "400"
+            },
+            "rect": {
+              "height": 56,
+              "width": 286.66668701171875,
+              "x": 16.666667938232422,
+              "y": 1883.0521240234375
+            },
+            "scrollWidth": 287,
+            "text": "Nhà phát triển"
+          },
+          "sub": null,
+          "title": {
+            "clientWidth": 199,
+            "css": {
+              "color": "rgb(19, 20, 26)",
+              "font": "13px",
+              "line": "18px",
+              "weight": "500"
+            },
+            "rect": {
+              "height": 18,
+              "width": 198.6666717529297,
+              "x": 68.66667175292969,
+              "y": 1902.385498046875
+            },
+            "scrollWidth": 199,
+            "text": "Nhà phát triển"
+          },
+          "value": null
+        }
+      ],
+      "scrollers": [
+        {
+          "cls": "nx-content nx-scroll",
+          "h": 693,
+          "sh": 2147,
+          "top": 0
+        }
+      ],
+      "sections": [
+        {
+          "clientWidth": 135,
+          "css": {
+            "color": "rgb(19, 20, 26)",
+            "font": "14px",
+            "line": "20px",
+            "weight": "600"
+          },
+          "rect": {
+            "height": 20,
+            "width": 134.6666717529297,
+            "x": 18,
+            "y": 691.71875
+          },
+          "scrollWidth": 135,
+          "text": "Tiện ích thường dùng"
+        },
+        {
+          "clientWidth": 109,
+          "css": {
+            "color": "rgb(19, 20, 26)",
+            "font": "14px",
+            "line": "20px",
+            "weight": "600"
+          },
+          "rect": {
+            "height": 20,
+            "width": 108.54167175292967,
+            "x": 18,
+            "y": 939.71875
+          },
+          "scrollWidth": 109,
+          "text": "Mạng lưới của tôi"
+        },
+        {
+          "clientWidth": 61,
+          "css": {
+            "color": "rgb(19, 20, 26)",
+            "font": "14px",
+            "line": "20px",
+            "weight": "600"
+          },
+          "rect": {
+            "height": 20,
+            "width": 60.97916793823242,
+            "x": 18,
+            "y": 1119.71875
+          },
+          "scrollWidth": 61,
+          "text": "Tài khoản"
+        },
+        {
+          "clientWidth": 58,
+          "css": {
+            "color": "rgb(19, 20, 26)",
+            "font": "14px",
+            "line": "20px",
+            "weight": "600"
+          },
+          "rect": {
+            "height": 20,
+            "width": 58.125,
+            "x": 18,
+            "y": 1345.0521240234375
+          },
+          "scrollWidth": 58,
+          "text": "Tùy chọn"
+        },
+        {
+          "clientWidth": 108,
+          "css": {
+            "color": "rgb(19, 20, 26)",
+            "font": "14px",
+            "line": "20px",
+            "weight": "600"
+          },
+          "rect": {
+            "height": 20,
+            "width": 107.63542175292967,
+            "x": 18,
+            "y": 1570.385498046875
+          },
+          "scrollWidth": 108,
+          "text": "Trợ giúp & Hỗ trợ"
+        }
+      ],
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/me",
+      "width": 320,
+      "label": "me-320-vi-light-profile",
+      "at": "2026-10-27T18:42:15.554Z"
+    },
+    {
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DDUUBFKu.js"
+      ],
+      "height": 693,
+      "overflow": 0,
+      "profile": {
+        "color": "rgb(245, 247, 250)",
+        "font": "18px",
+        "h": 24,
+        "line": "normal",
+        "overflow": 0,
+        "text": "Alex",
+        "w": 184,
+        "weight": "600",
+        "x": 86,
+        "y": 90.33333587646484
+      },
+      "rows": [
+        {
+          "key": "genesis",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Genesis Node",
+            "w": 286.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1163.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "13px",
+            "h": 18,
+            "line": "18px",
+            "overflow": 0,
+            "text": "Genesis Node",
+            "w": 198.6666717529297,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1182.71875
+          },
+          "value": null
+        },
+        {
+          "key": "cards",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Thẻ ngân hàng\nQuản lý thẻ",
+            "w": 286.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1219.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "13px",
+            "h": 18,
+            "line": "18px",
+            "overflow": 0,
+            "text": "Thẻ ngân hàng",
+            "w": 130.21875,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1239.0521240234375
+          },
+          "value": {
+            "color": "rgb(209, 213, 219)",
+            "font": "12px",
+            "h": 16,
+            "line": "16px",
+            "overflow": 0,
+            "text": "Quản lý thẻ",
+            "w": 60.44791793823242,
+            "weight": "400",
+            "x": 206.8854217529297,
+            "y": 1240.0521240234375
+          }
+        },
+        {
+          "key": "security",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Bảo mật\n—",
+            "w": 286.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1275.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "13px",
+            "h": 18,
+            "line": "18px",
+            "overflow": 0,
+            "text": "Bảo mật",
+            "w": 181.6666717529297,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1295.0521240234375
+          },
+          "value": {
+            "color": "rgb(209, 213, 219)",
+            "font": "12px",
+            "h": 16,
+            "line": "16px",
+            "overflow": 0,
+            "text": "—",
+            "w": 9,
+            "weight": "400",
+            "x": 258.3333435058594,
+            "y": 1296.0521240234375
+          }
+        },
+        {
+          "key": "preferences",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Tùy chọn",
+            "w": 286.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1389.0521240234375
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "13px",
+            "h": 18,
+            "line": "18px",
+            "overflow": 0,
+            "text": "Tùy chọn",
+            "w": 198.6666717529297,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1408.0521240234375
+          },
+          "value": null
+        },
+        {
+          "key": "theme",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Giao diện\nTối",
+            "w": 286.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1445.0521240234375
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "13px",
+            "h": 18,
+            "line": "18px",
+            "overflow": 0,
+            "text": "Giao diện",
+            "w": 174.84375,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1464.385498046875
+          },
+          "value": {
+            "color": "rgb(209, 213, 219)",
+            "font": "12px",
+            "h": 16,
+            "line": "16px",
+            "overflow": 0,
+            "text": "Tối",
+            "w": 15.822916984558104,
+            "weight": "400",
+            "x": 251.5104217529297,
+            "y": 1465.385498046875
+          }
+        },
+        {
+          "key": "language",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Ngôn ngữ\nVI",
+            "w": 286.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1501.0521240234375
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "13px",
+            "h": 18,
+            "line": "18px",
+            "overflow": 0,
+            "text": "Ngôn ngữ",
+            "w": 179.86459350585938,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1520.385498046875
+          },
+          "value": {
+            "color": "rgb(209, 213, 219)",
+            "font": "12px",
+            "h": 16,
+            "line": "16px",
+            "overflow": 0,
+            "text": "VI",
+            "w": 10.802083969116213,
+            "weight": "400",
+            "x": 256.53125,
+            "y": 1521.385498046875
+          }
+        },
+        {
+          "key": "messages",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Tin nhắn",
+            "w": 286.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1614.385498046875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "13px",
+            "h": 18,
+            "line": "18px",
+            "overflow": 0,
+            "text": "Tin nhắn",
+            "w": 198.6666717529297,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1633.385498046875
+          },
+          "value": null
+        },
+        {
+          "key": "support",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Hỗ trợ khách hàng\nXem các kênh hỗ trợ và hội thoại",
+            "w": 286.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1670.385498046875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "13px",
+            "h": 36,
+            "line": "18px",
+            "overflow": 0,
+            "text": "Hỗ trợ khách hàng",
+            "w": 90.85417175292967,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1680.71875
+          },
+          "value": {
+            "color": "rgb(209, 213, 219)",
+            "font": "12px",
+            "h": 32,
+            "line": "16px",
+            "overflow": 0,
+            "text": "Xem các kênh hỗ trợ và hội thoại",
+            "w": 99.8125,
+            "weight": "400",
+            "x": 167.52084350585938,
+            "y": 1682.71875
+          }
+        },
+        {
+          "key": "faq",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Trợ giúp & FAQ",
+            "w": 286.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1726.385498046875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "13px",
+            "h": 18,
+            "line": "18px",
+            "overflow": 0,
+            "text": "Trợ giúp & FAQ",
+            "w": 198.6666717529297,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1745.71875
+          },
+          "value": null
+        },
+        {
+          "key": "trust",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Trung tâm tin cậy\nUVT · Số liệu",
+            "w": 286.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1782.385498046875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "13px",
+            "h": 18,
+            "line": "18px",
+            "overflow": 0,
+            "text": "Trung tâm tin cậy",
+            "w": 123.82292175292967,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1801.71875
+          },
+          "value": {
+            "color": "rgb(209, 213, 219)",
+            "font": "12px",
+            "h": 16,
+            "line": "16px",
+            "overflow": 0,
+            "text": "UVT · Số liệu",
+            "w": 66.84375,
+            "weight": "400",
+            "x": 200.48959350585935,
+            "y": 1802.71875
+          }
+        },
+        {
+          "key": "risk",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Công bố rủi ro",
+            "w": 286.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1838.385498046875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "13px",
+            "h": 18,
+            "line": "18px",
+            "overflow": 0,
+            "text": "Công bố rủi ro",
+            "w": 198.6666717529297,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1857.71875
+          },
+          "value": null
+        },
+        {
+          "key": "developer",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Nhà phát triển",
+            "w": 286.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1894.385498046875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "13px",
+            "h": 18,
+            "line": "18px",
+            "overflow": 0,
+            "text": "Nhà phát triển",
+            "w": 198.6666717529297,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1913.71875
+          },
+          "value": null
+        }
+      ],
+      "scroll": [
+        {
+          "h": 693,
+          "sh": 2202,
+          "top": 0
+        }
+      ],
+      "sections": [
+        {
+          "color": "rgb(245, 247, 250)",
+          "font": "14px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "Tiện ích thường dùng",
+          "w": 133.7916717529297,
+          "weight": "600",
+          "x": 18,
+          "y": 703.0521240234375
+        },
+        {
+          "color": "rgb(245, 247, 250)",
+          "font": "14px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "Mạng lưới của tôi",
+          "w": 107.46875,
+          "weight": "600",
+          "x": 18,
+          "y": 951.0521240234376
+        },
+        {
+          "color": "rgb(245, 247, 250)",
+          "font": "14px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "Tài khoản",
+          "w": 60.3125,
+          "weight": "600",
+          "x": 18,
+          "y": 1131.0521240234375
+        },
+        {
+          "color": "rgb(245, 247, 250)",
+          "font": "14px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "Tùy chọn",
+          "w": 57.95833587646485,
+          "weight": "600",
+          "x": 18,
+          "y": 1356.385498046875
+        },
+        {
+          "color": "rgb(245, 247, 250)",
+          "font": "14px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "Trợ giúp & Hỗ trợ",
+          "w": 107.69792175292967,
+          "weight": "600",
+          "x": 18,
+          "y": 1581.71875
+        }
+      ],
+      "theme": "dark",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/me",
+      "width": 320,
+      "label": "me-320-vi-dark",
+      "at": "2026-10-27T18:44:15.301Z"
+    },
+    {
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DDUUBFKu.js"
+      ],
+      "height": 780,
+      "overflow": 0,
+      "profile": {
+        "color": "rgb(245, 247, 250)",
+        "font": "19px",
+        "h": 26,
+        "line": "normal",
+        "overflow": 0,
+        "text": "Alex",
+        "w": 224,
+        "weight": "600",
+        "x": 86,
+        "y": -1286.666748046875
+      },
+      "rows": [
+        {
+          "key": "genesis",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Genesis Node",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": -215.61459350585935
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "14px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Genesis Node",
+            "w": 238.6666717529297,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": -197.61459350585935
+          },
+          "value": null
+        },
+        {
+          "key": "cards",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Thẻ ngân hàng\nQuản lý thẻ",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": -159.61459350585938
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "14px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Thẻ ngân hàng",
+            "w": 168.73959350585938,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": -141.28125
+          },
+          "value": {
+            "color": "rgb(209, 213, 219)",
+            "font": "12px",
+            "h": 16,
+            "line": "16px",
+            "overflow": 0,
+            "text": "Quản lý thẻ",
+            "w": 61.92708587646485,
+            "weight": "400",
+            "x": 245.40625,
+            "y": -139.28125
+          }
+        },
+        {
+          "key": "security",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Bảo mật\nBật",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": -103.61458587646484
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "14px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Bảo mật",
+            "w": 211.92709350585935,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": -85.28125
+          },
+          "value": {
+            "color": "rgb(209, 213, 219)",
+            "font": "12px",
+            "h": 16,
+            "line": "16px",
+            "overflow": 0,
+            "text": "Bật",
+            "w": 18.73958396911621,
+            "weight": "400",
+            "x": 288.59375,
+            "y": -83.28125
+          }
+        },
+        {
+          "key": "preferences",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Tùy chọn",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 9.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "14px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Tùy chọn",
+            "w": 238.6666717529297,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 27.71875
+          },
+          "value": null
+        },
+        {
+          "key": "theme",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Giao diện\nTối",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 65.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "14px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Giao diện",
+            "w": 214.84375,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 84.05208587646484
+          },
+          "value": {
+            "color": "rgb(209, 213, 219)",
+            "font": "12px",
+            "h": 16,
+            "line": "16px",
+            "overflow": 0,
+            "text": "Tối",
+            "w": 15.822916984558104,
+            "weight": "400",
+            "x": 291.51043701171875,
+            "y": 86.05208587646484
+          }
+        },
+        {
+          "key": "language",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Ngôn ngữ\nVI",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 121.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "14px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Ngôn ngữ",
+            "w": 219.86459350585935,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 140.05209350585938
+          },
+          "value": {
+            "color": "rgb(209, 213, 219)",
+            "font": "12px",
+            "h": 16,
+            "line": "16px",
+            "overflow": 0,
+            "text": "VI",
+            "w": 10.802083969116213,
+            "weight": "400",
+            "x": 296.53125,
+            "y": 142.05209350585938
+          }
+        },
+        {
+          "key": "messages",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Tin nhắn",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 235.05209350585935
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "14px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Tin nhắn",
+            "w": 238.6666717529297,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 253.05209350585935
+          },
+          "value": null
+        },
+        {
+          "key": "support",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56.66666793823242,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Hỗ trợ khách hàng\nXem các kênh hỗ trợ và hội thoại",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 291.0520935058594
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "14px",
+            "h": 40,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Hỗ trợ khách hàng",
+            "w": 115.65625,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 299.71875
+          },
+          "value": {
+            "color": "rgb(209, 213, 219)",
+            "font": "12px",
+            "h": 32,
+            "line": "16px",
+            "overflow": 0,
+            "text": "Xem các kênh hỗ trợ và hội thoại",
+            "w": 115.01042175292967,
+            "weight": "400",
+            "x": 192.3229217529297,
+            "y": 303.71875
+          }
+        },
+        {
+          "key": "faq",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Trợ giúp & FAQ",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 347.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "14px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Trợ giúp & FAQ",
+            "w": 238.6666717529297,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 366.0520935058594
+          },
+          "value": null
+        },
+        {
+          "key": "trust",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Trung tâm tin cậy\nUVT · Số liệu",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 403.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "14px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Trung tâm tin cậy",
+            "w": 163.08334350585938,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 422.0520935058594
+          },
+          "value": {
+            "color": "rgb(209, 213, 219)",
+            "font": "12px",
+            "h": 16,
+            "line": "16px",
+            "overflow": 0,
+            "text": "UVT · Số liệu",
+            "w": 67.58333587646484,
+            "weight": "400",
+            "x": 239.75,
+            "y": 424.0520935058594
+          }
+        },
+        {
+          "key": "risk",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Công bố rủi ro",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 459.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "14px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Công bố rủi ro",
+            "w": 238.6666717529297,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 478.0520935058594
+          },
+          "value": null
+        },
+        {
+          "key": "developer",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Nhà phát triển",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 515.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "14px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Nhà phát triển",
+            "w": 238.6666717529297,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 534.0521240234375
+          },
+          "value": null
+        }
+      ],
+      "scroll": [
+        {
+          "h": 780,
+          "sh": 2144,
+          "top": 1364
+        }
+      ],
+      "sections": [
+        {
+          "color": "rgb(245, 247, 250)",
+          "font": "14px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "Tiện ích thường dùng",
+          "w": 134.6666717529297,
+          "weight": "600",
+          "x": 18,
+          "y": -672.28125
+        },
+        {
+          "color": "rgb(245, 247, 250)",
+          "font": "14px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "Mạng lưới của tôi",
+          "w": 108.54167175292967,
+          "weight": "600",
+          "x": 18,
+          "y": -428.28125
+        },
+        {
+          "color": "rgb(245, 247, 250)",
+          "font": "14px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "Tài khoản",
+          "w": 60.97916793823242,
+          "weight": "600",
+          "x": 18,
+          "y": -248.28125
+        },
+        {
+          "color": "rgb(245, 247, 250)",
+          "font": "14px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "Tùy chọn",
+          "w": 58.125,
+          "weight": "600",
+          "x": 18,
+          "y": -22.947917938232425
+        },
+        {
+          "color": "rgb(245, 247, 250)",
+          "font": "14px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "Trợ giúp & Hỗ trợ",
+          "w": 107.63542175292967,
+          "weight": "600",
+          "x": 18,
+          "y": 202.3854217529297
+        }
+      ],
+      "theme": "dark",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/me",
+      "width": 360,
+      "label": "me-360-vi-dark",
+      "at": "2026-10-27T18:44:29.026Z"
+    },
+    {
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DDUUBFKu.js"
+      ],
+      "height": 780,
+      "overflow": 0,
+      "profile": {
+        "color": "rgb(19, 20, 26)",
+        "font": "19px",
+        "h": 26,
+        "line": "normal",
+        "overflow": 0,
+        "text": "Alex",
+        "w": 224,
+        "weight": "600",
+        "x": 86,
+        "y": 77.33333587646484
+      },
+      "rows": [
+        {
+          "key": "genesis",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Genesis Node",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1148.385498046875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "14px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Genesis Node",
+            "w": 238.6666717529297,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1166.385498046875
+          },
+          "value": null
+        },
+        {
+          "key": "cards",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Thẻ ngân hàng\nQuản lý thẻ",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1204.385498046875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "14px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Thẻ ngân hàng",
+            "w": 168.73959350585938,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1222.71875
+          },
+          "value": {
+            "color": "rgb(60, 63, 71)",
+            "font": "12px",
+            "h": 16,
+            "line": "16px",
+            "overflow": 0,
+            "text": "Quản lý thẻ",
+            "w": 61.92708587646485,
+            "weight": "400",
+            "x": 245.40625,
+            "y": 1224.71875
+          }
+        },
+        {
+          "key": "security",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Bảo mật\nBật",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1260.385498046875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "14px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Bảo mật",
+            "w": 211.92709350585935,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1278.71875
+          },
+          "value": {
+            "color": "rgb(60, 63, 71)",
+            "font": "12px",
+            "h": 16,
+            "line": "16px",
+            "overflow": 0,
+            "text": "Bật",
+            "w": 18.73958396911621,
+            "weight": "400",
+            "x": 288.59375,
+            "y": 1280.71875
+          }
+        },
+        {
+          "key": "preferences",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Tùy chọn",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1373.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "14px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Tùy chọn",
+            "w": 238.6666717529297,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1391.71875
+          },
+          "value": null
+        },
+        {
+          "key": "theme",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Giao diện\nSáng",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1429.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "14px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Giao diện",
+            "w": 202.83334350585935,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1448.0521240234375
+          },
+          "value": {
+            "color": "rgb(60, 63, 71)",
+            "font": "12px",
+            "h": 16,
+            "line": "16px",
+            "overflow": 0,
+            "text": "Sáng",
+            "w": 27.83333396911621,
+            "weight": "400",
+            "x": 279.5,
+            "y": 1450.0521240234375
+          }
+        },
+        {
+          "key": "language",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Ngôn ngữ\nVI",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1485.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "14px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Ngôn ngữ",
+            "w": 219.86459350585935,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1504.0521240234375
+          },
+          "value": {
+            "color": "rgb(60, 63, 71)",
+            "font": "12px",
+            "h": 16,
+            "line": "16px",
+            "overflow": 0,
+            "text": "VI",
+            "w": 10.802083969116213,
+            "weight": "400",
+            "x": 296.53125,
+            "y": 1506.0521240234375
+          }
+        },
+        {
+          "key": "messages",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Tin nhắn",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1599.0521240234375
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "14px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Tin nhắn",
+            "w": 238.6666717529297,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1617.0521240234375
+          },
+          "value": null
+        },
+        {
+          "key": "support",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 56.66666793823242,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Hỗ trợ khách hàng\nXem các kênh hỗ trợ và hội thoại",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1655.0521240234375
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "14px",
+            "h": 40,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Hỗ trợ khách hàng",
+            "w": 115.65625,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1663.71875
+          },
+          "value": {
+            "color": "rgb(60, 63, 71)",
+            "font": "12px",
+            "h": 32,
+            "line": "16px",
+            "overflow": 0,
+            "text": "Xem các kênh hỗ trợ và hội thoại",
+            "w": 115.01042175292967,
+            "weight": "400",
+            "x": 192.3229217529297,
+            "y": 1667.71875
+          }
+        },
+        {
+          "key": "faq",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Trợ giúp & FAQ",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1711.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "14px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Trợ giúp & FAQ",
+            "w": 238.6666717529297,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1730.0521240234375
+          },
+          "value": null
+        },
+        {
+          "key": "trust",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Trung tâm tin cậy\nUVT · Số liệu",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1767.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "14px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Trung tâm tin cậy",
+            "w": 163.08334350585938,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1786.0521240234375
+          },
+          "value": {
+            "color": "rgb(60, 63, 71)",
+            "font": "12px",
+            "h": 16,
+            "line": "16px",
+            "overflow": 0,
+            "text": "UVT · Số liệu",
+            "w": 67.58333587646484,
+            "weight": "400",
+            "x": 239.75,
+            "y": 1788.0521240234375
+          }
+        },
+        {
+          "key": "risk",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Công bố rủi ro",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1823.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "14px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Công bố rủi ro",
+            "w": 238.6666717529297,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1842.0521240234375
+          },
+          "value": null
+        },
+        {
+          "key": "developer",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Nhà phát triển",
+            "w": 326.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1879.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "14px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Nhà phát triển",
+            "w": 238.6666717529297,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1898.0521240234375
+          },
+          "value": null
+        }
+      ],
+      "scroll": [
+        {
+          "h": 780,
+          "sh": 2144,
+          "top": 0
+        }
+      ],
+      "sections": [
+        {
+          "color": "rgb(19, 20, 26)",
+          "font": "14px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "Tiện ích thường dùng",
+          "w": 134.6666717529297,
+          "weight": "600",
+          "x": 18,
+          "y": 691.71875
+        },
+        {
+          "color": "rgb(19, 20, 26)",
+          "font": "14px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "Mạng lưới của tôi",
+          "w": 108.54167175292967,
+          "weight": "600",
+          "x": 18,
+          "y": 935.71875
+        },
+        {
+          "color": "rgb(19, 20, 26)",
+          "font": "14px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "Tài khoản",
+          "w": 60.97916793823242,
+          "weight": "600",
+          "x": 18,
+          "y": 1115.71875
+        },
+        {
+          "color": "rgb(19, 20, 26)",
+          "font": "14px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "Tùy chọn",
+          "w": 58.125,
+          "weight": "600",
+          "x": 18,
+          "y": 1341.0521240234375
+        },
+        {
+          "color": "rgb(19, 20, 26)",
+          "font": "14px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "Trợ giúp & Hỗ trợ",
+          "w": 107.63542175292967,
+          "weight": "600",
+          "x": 18,
+          "y": 1566.385498046875
+        }
+      ],
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/me",
+      "width": 360,
+      "label": "me-360-vi-light",
+      "at": "2026-10-27T18:44:33.640Z"
+    },
+    {
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DDUUBFKu.js"
+      ],
+      "height": 844,
+      "overflow": 0,
+      "profile": {
+        "color": "rgb(19, 20, 26)",
+        "font": "20px",
+        "h": 26.666667938232425,
+        "line": "normal",
+        "overflow": 0,
+        "text": "Alex",
+        "w": 254,
+        "weight": "600",
+        "x": 86,
+        "y": -1287
+      },
+      "rows": [
+        {
+          "key": "genesis",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Genesis Node",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": -215.61459350585935
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Genesis Node",
+            "w": 248.6666717529297,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": -193.61459350585935
+          },
+          "value": null
+        },
+        {
+          "key": "cards",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Thẻ ngân hàng\nQuản lý thẻ",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": -151.61459350585938
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Thẻ ngân hàng",
+            "w": 173.48959350585938,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": -129.28125
+          },
+          "value": {
+            "color": "rgb(60, 63, 71)",
+            "font": "12px",
+            "h": 16.791667938232422,
+            "line": "16.8px",
+            "overflow": 0,
+            "text": "Quản lý thẻ",
+            "w": 63.17708587646485,
+            "weight": "500",
+            "x": 266.15625,
+            "y": -127.67708587646484
+          }
+        },
+        {
+          "key": "security",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Bảo mật\nBật",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": -87.61458587646484
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Bảo mật",
+            "w": 217.48959350585935,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": -65.28125
+          },
+          "value": {
+            "color": "rgb(60, 63, 71)",
+            "font": "12px",
+            "h": 16.791667938232422,
+            "line": "16.8px",
+            "overflow": 0,
+            "text": "Bật",
+            "w": 19.17708396911621,
+            "weight": "500",
+            "x": 310.15625,
+            "y": -63.67708587646485
+          }
+        },
+        {
+          "key": "preferences",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Tùy chọn",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 33.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Tùy chọn",
+            "w": 248.6666717529297,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": 55.71875
+          },
+          "value": null
+        },
+        {
+          "key": "theme",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Giao diện\nSáng",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 97.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Giao diện",
+            "w": 208.33334350585935,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": 120.05208587646484
+          },
+          "value": {
+            "color": "rgb(60, 63, 71)",
+            "font": "12px",
+            "h": 16.791667938232422,
+            "line": "16.8px",
+            "overflow": 0,
+            "text": "Sáng",
+            "w": 28.33333396911621,
+            "weight": "500",
+            "x": 301,
+            "y": 121.65625
+          }
+        },
+        {
+          "key": "language",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Ngôn ngữ\nVI",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 161.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Ngôn ngữ",
+            "w": 225.3125,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": 184.05209350585935
+          },
+          "value": {
+            "color": "rgb(60, 63, 71)",
+            "font": "12px",
+            "h": 16.791667938232422,
+            "line": "16.8px",
+            "overflow": 0,
+            "text": "VI",
+            "w": 11.354166984558104,
+            "weight": "500",
+            "x": 317.97918701171875,
+            "y": 185.65625
+          }
+        },
+        {
+          "key": "messages",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Tin nhắn",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 283.0520935058594
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Tin nhắn",
+            "w": 248.6666717529297,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": 305.0520935058594
+          },
+          "value": null
+        },
+        {
+          "key": "support",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Hỗ trợ khách hàng\nXem các kênh hỗ trợ và hội thoại",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 347.0520935058594
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "15px",
+            "h": 40,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Hỗ trợ khách hàng",
+            "w": 113.30208587646484,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": 359.38543701171875
+          },
+          "value": {
+            "color": "rgb(60, 63, 71)",
+            "font": "12px",
+            "h": 33.583335876464844,
+            "line": "16.8px",
+            "overflow": 0,
+            "text": "Xem các kênh hỗ trợ và hội thoại",
+            "w": 123.36458587646484,
+            "weight": "500",
+            "x": 205.96875,
+            "y": 362.59375
+          }
+        },
+        {
+          "key": "faq",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Trợ giúp & FAQ",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 411.0520935058594
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Trợ giúp & FAQ",
+            "w": 248.6666717529297,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": 433.3854370117187
+          },
+          "value": null
+        },
+        {
+          "key": "trust",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Trung tâm tin cậy\nUVT · Số liệu",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 475.0520935058594
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Trung tâm tin cậy",
+            "w": 167.40625,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": 497.3854370117187
+          },
+          "value": {
+            "color": "rgb(60, 63, 71)",
+            "font": "12px",
+            "h": 16.791667938232422,
+            "line": "16.8px",
+            "overflow": 0,
+            "text": "UVT · Số liệu",
+            "w": 69.26042175292969,
+            "weight": "500",
+            "x": 260.07293701171875,
+            "y": 498.9895935058594
+          }
+        },
+        {
+          "key": "risk",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Công bố rủi ro",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 539.0521240234375
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Công bố rủi ro",
+            "w": 248.6666717529297,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": 561.3854370117188
+          },
+          "value": null
+        },
+        {
+          "key": "developer",
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Nhà phát triển",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 603.0521240234375
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Nhà phát triển",
+            "w": 248.6666717529297,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": 625.3854370117188
+          },
+          "value": null
+        }
+      ],
+      "scroll": [
+        {
+          "h": 844,
+          "sh": 2251,
+          "top": 1364
+        }
+      ],
+      "sections": [
+        {
+          "color": "rgb(19, 20, 26)",
+          "font": "15px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "Tiện ích thường dùng",
+          "w": 144.28125,
+          "weight": "600",
+          "x": 18,
+          "y": -672.28125
+        },
+        {
+          "color": "rgb(19, 20, 26)",
+          "font": "15px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "Mạng lưới của tôi",
+          "w": 116.29167175292967,
+          "weight": "600",
+          "x": 18,
+          "y": -428.28125
+        },
+        {
+          "color": "rgb(19, 20, 26)",
+          "font": "15px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "Tài khoản",
+          "w": 65.33333587646484,
+          "weight": "600",
+          "x": 18,
+          "y": -248.28125
+        },
+        {
+          "color": "rgb(19, 20, 26)",
+          "font": "15px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "Tùy chọn",
+          "w": 62.28125,
+          "weight": "600",
+          "x": 18,
+          "y": 1.0520833730697632
+        },
+        {
+          "color": "rgb(19, 20, 26)",
+          "font": "15px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "Trợ giúp & Hỗ trợ",
+          "w": 115.32292175292967,
+          "weight": "600",
+          "x": 18,
+          "y": 250.3854217529297
+        }
+      ],
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/me",
+      "width": 390,
+      "label": "me-390-vi-light",
+      "at": "2026-10-27T18:45:03.331Z"
+    },
+    {
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DDUUBFKu.js"
+      ],
+      "height": 844,
+      "overflow": 0,
+      "profile": {
+        "color": "rgb(245, 247, 250)",
+        "font": "20px",
+        "h": 26.666667938232425,
+        "line": "normal",
+        "overflow": 0,
+        "text": "Alex",
+        "w": 254,
+        "weight": "600",
+        "x": 86,
+        "y": 77
+      },
+      "rows": [
+        {
+          "key": "genesis",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "创世节点",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1113.0521240234375
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "创世节点",
+            "w": 248.6666717529297,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": 1135.0521240234375
+          },
+          "value": null
+        },
+        {
+          "key": "cards",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "银行卡\n卡片管理",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1177.0521240234375
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "银行卡",
+            "w": 188.6666717529297,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": 1199.385498046875
+          },
+          "value": {
+            "color": "rgb(209, 213, 219)",
+            "font": "12px",
+            "h": 16.791667938232422,
+            "line": "16.8px",
+            "overflow": 0,
+            "text": "卡片管理",
+            "w": 48,
+            "weight": "500",
+            "x": 281.3333435058594,
+            "y": 1200.9896240234375
+          }
+        },
+        {
+          "key": "security",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "安全设置\n已开启",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1241.0521240234375
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "安全设置",
+            "w": 200.6666717529297,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": 1263.385498046875
+          },
+          "value": {
+            "color": "rgb(209, 213, 219)",
+            "font": "12px",
+            "h": 16.791667938232422,
+            "line": "16.8px",
+            "overflow": 0,
+            "text": "已开启",
+            "w": 36,
+            "weight": "500",
+            "x": 293.3333435058594,
+            "y": 1264.9896240234375
+          }
+        },
+        {
+          "key": "preferences",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "偏好设置",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1362.385498046875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "偏好设置",
+            "w": 248.6666717529297,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": 1384.385498046875
+          },
+          "value": null
+        },
+        {
+          "key": "theme",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "主题\n深色",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1426.385498046875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "主题",
+            "w": 212.6666717529297,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": 1448.71875
+          },
+          "value": {
+            "color": "rgb(209, 213, 219)",
+            "font": "12px",
+            "h": 16.791667938232422,
+            "line": "16.8px",
+            "overflow": 0,
+            "text": "深色",
+            "w": 24,
+            "weight": "500",
+            "x": 305.3333435058594,
+            "y": 1450.322998046875
+          }
+        },
+        {
+          "key": "language",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "语言\nZH",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1490.385498046875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "语言",
+            "w": 220.33334350585935,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": 1512.71875
+          },
+          "value": {
+            "color": "rgb(209, 213, 219)",
+            "font": "12px",
+            "h": 16.791667938232422,
+            "line": "16.8px",
+            "overflow": 0,
+            "text": "ZH",
+            "w": 16.33333396911621,
+            "weight": "500",
+            "x": 313,
+            "y": 1514.322998046875
+          }
+        },
+        {
+          "key": "messages",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "消息",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1611.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "消息",
+            "w": 248.6666717529297,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": 1633.71875
+          },
+          "value": null
+        },
+        {
+          "key": "support",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "客服支持\n查看服务方式和在线会话",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1675.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "客服支持",
+            "w": 113.30208587646484,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": 1698.0521240234375
+          },
+          "value": {
+            "color": "rgb(209, 213, 219)",
+            "font": "12px",
+            "h": 33.583335876464844,
+            "line": "16.8px",
+            "overflow": 0,
+            "text": "查看服务方式和在线会话",
+            "w": 123.36458587646484,
+            "weight": "500",
+            "x": 205.96875,
+            "y": 1691.260498046875
+          }
+        },
+        {
+          "key": "faq",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "帮助与 FAQ",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1739.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "帮助与 FAQ",
+            "w": 248.6666717529297,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": 1762.0521240234375
+          },
+          "value": null
+        },
+        {
+          "key": "trust",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "信任中心\nUVT · 平台数据",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1803.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "信任中心",
+            "w": 156.5,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": 1826.0521240234375
+          },
+          "value": {
+            "color": "rgb(209, 213, 219)",
+            "font": "12px",
+            "h": 16.791667938232422,
+            "line": "16.8px",
+            "overflow": 0,
+            "text": "UVT · 平台数据",
+            "w": 80.16667175292969,
+            "weight": "500",
+            "x": 249.1666717529297,
+            "y": 1827.65625
+          }
+        },
+        {
+          "key": "risk",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "风险提示书",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1867.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "风险提示书",
+            "w": 248.6666717529297,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": 1890.0521240234375
+          },
+          "value": null
+        },
+        {
+          "key": "developer",
+          "root": {
+            "color": "rgb(245, 247, 250)",
+            "font": "16px",
+            "h": 64,
+            "line": "normal",
+            "overflow": 0,
+            "text": "开发者",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1931.71875
+          },
+          "sub": null,
+          "title": {
+            "color": "rgb(245, 247, 250)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "开发者",
+            "w": 248.6666717529297,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": 1954.0521240234375
+          },
+          "value": null
+        }
+      ],
+      "scroll": [
+        {
+          "h": 844,
+          "sh": 2216,
+          "top": 0
+        }
+      ],
+      "sections": [
+        {
+          "color": "rgb(245, 247, 250)",
+          "font": "15px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "常用功能",
+          "w": 58.80208587646485,
+          "weight": "600",
+          "x": 18,
+          "y": 656.3854370117188
+        },
+        {
+          "color": "rgb(245, 247, 250)",
+          "font": "15px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "我的网络",
+          "w": 58.80208587646485,
+          "weight": "600",
+          "x": 18,
+          "y": 900.3854370117188
+        },
+        {
+          "color": "rgb(245, 247, 250)",
+          "font": "15px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "账户",
+          "w": 29.40625,
+          "weight": "600",
+          "x": 18,
+          "y": 1080.385498046875
+        },
+        {
+          "color": "rgb(245, 247, 250)",
+          "font": "15px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "偏好",
+          "w": 29.40625,
+          "weight": "600",
+          "x": 18,
+          "y": 1329.71875
+        },
+        {
+          "color": "rgb(245, 247, 250)",
+          "font": "15px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "帮助与支持",
+          "w": 73.51042175292969,
+          "weight": "600",
+          "x": 18,
+          "y": 1579.0521240234375
+        }
+      ],
+      "theme": "dark",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/me",
+      "width": 390,
+      "label": "me-390-zh-dark",
+      "at": "2026-10-27T18:45:18.372Z"
+    },
+    {
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DDUUBFKu.js"
+      ],
+      "height": 693,
+      "overflow": 0,
+      "profile": null,
+      "rows": [
+        {
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Hạn ngạch phần cứng\nXem hạn mức thiết bị",
+            "w": 288,
+            "weight": "400",
+            "x": 16,
+            "y": 1544.28125
+          },
+          "sub": {
+            "color": "rgb(106, 110, 119)",
+            "font": "12px",
+            "h": 16,
+            "line": "16px",
+            "overflow": 0,
+            "text": "Xem hạn mức thiết bị",
+            "w": 232,
+            "weight": "400",
+            "x": 48,
+            "y": 1574.28125
+          },
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "14px",
+            "h": 18,
+            "line": "18px",
+            "overflow": 0,
+            "text": "Hạn ngạch phần cứng",
+            "w": 232,
+            "weight": "500",
+            "x": 48,
+            "y": 1554.28125
+          },
+          "value": null
+        },
+        {
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Hợp tác khu vực\nXem cơ hội hợp tác khu vực",
+            "w": 288,
+            "weight": "400",
+            "x": 16,
+            "y": 1600.28125
+          },
+          "sub": {
+            "color": "rgb(106, 110, 119)",
+            "font": "12px",
+            "h": 16,
+            "line": "16px",
+            "overflow": 0,
+            "text": "Xem cơ hội hợp tác khu vực",
+            "w": 232,
+            "weight": "400",
+            "x": 48,
+            "y": 1630.6146240234375
+          },
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "14px",
+            "h": 18,
+            "line": "18px",
+            "overflow": 0,
+            "text": "Hợp tác khu vực",
+            "w": 232,
+            "weight": "500",
+            "x": 48,
+            "y": 1610.6146240234375
+          },
+          "value": null
+        },
+        {
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Mạng lưới thành viên\nXem phân bố thành viên",
+            "w": 288,
+            "weight": "400",
+            "x": 16,
+            "y": 1656.28125
+          },
+          "sub": {
+            "color": "rgb(106, 110, 119)",
+            "font": "12px",
+            "h": 16,
+            "line": "16px",
+            "overflow": 0,
+            "text": "Xem phân bố thành viên",
+            "w": 232,
+            "weight": "400",
+            "x": 48,
+            "y": 1686.6146240234375
+          },
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "14px",
+            "h": 18,
+            "line": "18px",
+            "overflow": 0,
+            "text": "Mạng lưới thành viên",
+            "w": 232,
+            "weight": "500",
+            "x": 48,
+            "y": 1666.6146240234375
+          },
+          "value": null
+        },
+        {
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 56,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Quan hệ thành viên\nXem thành viên nhóm",
+            "w": 288,
+            "weight": "400",
+            "x": 16,
+            "y": 1712.28125
+          },
+          "sub": {
+            "color": "rgb(106, 110, 119)",
+            "font": "12px",
+            "h": 16,
+            "line": "16px",
+            "overflow": 0,
+            "text": "Xem thành viên nhóm",
+            "w": 232,
+            "weight": "400",
+            "x": 48,
+            "y": 1742.6146240234375
+          },
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "14px",
+            "h": 18,
+            "line": "18px",
+            "overflow": 0,
+            "text": "Quan hệ thành viên",
+            "w": 232,
+            "weight": "500",
+            "x": 48,
+            "y": 1722.6146240234375
+          },
+          "value": null
+        }
+      ],
+      "scroll": [
+        {
+          "h": 693,
+          "sh": 1936,
+          "top": 0
+        }
+      ],
+      "sections": [],
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/team/team",
+      "width": 320,
+      "label": "team-320-vi-light-shared-rows",
+      "at": "2026-10-27T18:45:38.808Z"
+    },
+    {
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DDUUBFKu.js"
+      ],
+      "height": 693,
+      "overflow": 0,
+      "profile": null,
+      "rows": [
+        {
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 68,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Nút Genesis\nQuyền nhận token · Biểu quyết cộng đồng\nSắp ra mắt",
+            "w": 286.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1907.3333740234375
+          },
+          "sub": {
+            "color": "rgb(106, 110, 119)",
+            "font": "12px",
+            "h": 32,
+            "line": "16px",
+            "overflow": 0,
+            "text": "Quyền nhận token · Biểu quyết cộng đồng",
+            "w": 131.98959350585938,
+            "weight": "400",
+            "x": 68.66667175292969,
+            "y": 1935.3333740234375
+          },
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "13px",
+            "h": 18,
+            "line": "18px",
+            "overflow": 0,
+            "text": "Nút Genesis",
+            "w": 131.98959350585938,
+            "weight": "500",
+            "x": 68.66667175292969,
+            "y": 1915.3333740234375
+          },
+          "value": {
+            "color": "rgb(60, 63, 71)",
+            "font": "12px",
+            "h": 16,
+            "line": "16px",
+            "overflow": 0,
+            "text": "Sắp ra mắt",
+            "w": 58.67708587646485,
+            "weight": "400",
+            "x": 208.65625,
+            "y": 1933.3333740234375
+          }
+        }
+      ],
+      "scroll": [
+        {
+          "h": 693,
+          "sh": 2190,
+          "top": 0
+        }
+      ],
+      "sections": [
+        {
+          "color": "rgb(19, 20, 26)",
+          "font": "14px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "Thiết bị",
+          "w": 47.98958587646485,
+          "weight": "600",
+          "x": 18,
+          "y": 816.6666870117188
+        }
+      ],
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/store/store",
+      "width": 320,
+      "label": "store-320-vi-light-shared",
+      "at": "2026-10-27T18:45:58.655Z"
+    },
+    {
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DDUUBFKu.js"
+      ],
+      "height": 844,
+      "overflow": 0,
+      "profile": null,
+      "rows": [
+        {
+          "root": {
+            "color": "rgb(19, 20, 26)",
+            "font": "16px",
+            "h": 78,
+            "line": "normal",
+            "overflow": 0,
+            "text": "Nút Genesis\nQuyền nhận token · Biểu quyết cộng đồng\nSắp ra mắt",
+            "w": 356.66668701171875,
+            "weight": "400",
+            "x": 16.666667938232422,
+            "y": 1758.49853515625
+          },
+          "sub": {
+            "color": "rgb(106, 110, 119)",
+            "font": "13px",
+            "h": 36,
+            "line": "18px",
+            "overflow": 0,
+            "text": "Quyền nhận token · Biểu quyết cộng đồng",
+            "w": 176.84375,
+            "weight": "400",
+            "x": 80.66667175292969,
+            "y": 1790.49853515625
+          },
+          "title": {
+            "color": "rgb(19, 20, 26)",
+            "font": "15px",
+            "h": 20,
+            "line": "20px",
+            "overflow": 0,
+            "text": "Nút Genesis",
+            "w": 176.84375,
+            "weight": "500",
+            "x": 80.66667175292969,
+            "y": 1768.49853515625
+          },
+          "value": {
+            "color": "rgb(60, 63, 71)",
+            "font": "12px",
+            "h": 16.791667938232422,
+            "line": "16.8px",
+            "overflow": 0,
+            "text": "Sắp ra mắt",
+            "w": 59.82291793823242,
+            "weight": "500",
+            "x": 269.51043701171875,
+            "y": 1789.102783203125
+          }
+        }
+      ],
+      "scroll": [
+        {
+          "h": 844,
+          "sh": 2063,
+          "top": 0
+        }
+      ],
+      "sections": [
+        {
+          "color": "rgb(19, 20, 26)",
+          "font": "15px",
+          "h": 20,
+          "line": "20px",
+          "overflow": 0,
+          "text": "Thiết bị",
+          "w": 51.41666793823242,
+          "weight": "600",
+          "x": 18,
+          "y": 769.8319091796875
+        }
+      ],
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/store/store",
+      "width": 390,
+      "label": "store-390-vi-light-shared",
+      "at": "2026-10-27T18:46:38.794Z"
+    },
+    {
+      "label": "wallet-quick-long-320",
+      "aria": "Số dư USDT: $1,234,567,890.12",
+      "children": [
+        {
+          "font": "23.5294px",
+          "nowrap": "pre-line",
+          "rect": {
+            "bottom": 241.875,
+            "height": 25.875,
+            "left": 32,
+            "right": 45.9375,
+            "top": 216,
+            "width": 13.9375,
+            "x": 32,
+            "y": 216
+          },
+          "text": "$",
+          "textRects": [
+            {
+              "bottom": 243.33334350585935,
+              "height": 29.333343505859375,
+              "left": 32,
+              "right": 45.9375,
+              "top": 214,
+              "width": 13.9375,
+              "x": 32,
+              "y": 214
+            },
+            {
+              "bottom": 243.33334350585935,
+              "height": 29.333343505859375,
+              "left": 32,
+              "right": 45.9375,
+              "top": 214,
+              "width": 13.9375,
+              "x": 32,
+              "y": 214
+            }
+          ]
+        },
+        {
+          "font": "23.5294px",
+          "nowrap": "pre-line",
+          "rect": {
+            "bottom": 243.3333339691162,
+            "height": 29.33333396911621,
+            "left": 32,
+            "right": 45.9375,
+            "top": 214,
+            "width": 13.9375,
+            "x": 32,
+            "y": 214
+          },
+          "text": "$",
+          "textRects": [
+            {
+              "bottom": 243.33334350585935,
+              "height": 29.333343505859375,
+              "left": 32,
+              "right": 45.9375,
+              "top": 214,
+              "width": 13.9375,
+              "x": 32,
+              "y": 214
+            }
+          ]
+        },
+        {
+          "font": "23.5294px",
+          "nowrap": "nowrap",
+          "rect": {
+            "bottom": 241.875,
+            "height": 25.875,
+            "left": 48.9375,
+            "right": 218.875,
+            "top": 216,
+            "width": 169.9375,
+            "x": 48.9375,
+            "y": 216
+          },
+          "text": "1,234,567,890.12",
+          "textRects": [
+            {
+              "bottom": 243.33334350585935,
+              "height": 29.333343505859375,
+              "left": 48.9375,
+              "right": 218.875,
+              "top": 214,
+              "width": 169.9375,
+              "x": 48.9375,
+              "y": 214
+            },
+            {
+              "bottom": 243.33334350585935,
+              "height": 29.333343505859375,
+              "left": 48.9375,
+              "right": 218.875,
+              "top": 214,
+              "width": 169.9375,
+              "x": 48.9375,
+              "y": 214
+            }
+          ]
+        },
+        {
+          "font": "23.5294px",
+          "nowrap": "nowrap",
+          "rect": {
+            "bottom": 243.3333339691162,
+            "height": 29.33333396911621,
+            "left": 48.9375,
+            "right": 218.875,
+            "top": 214,
+            "width": 169.9375,
+            "x": 48.9375,
+            "y": 214
+          },
+          "text": "1,234,567,890.12",
+          "textRects": [
+            {
+              "bottom": 243.33334350585935,
+              "height": 29.333343505859375,
+              "left": 48.9375,
+              "right": 218.875,
+              "top": 214,
+              "width": 169.9375,
+              "x": 48.9375,
+              "y": 214
+            }
+          ]
+        }
+      ],
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DDUUBFKu.js"
+      ],
+      "overflow": 0,
+      "root": {
+        "bottom": 241.875,
+        "height": 25.875,
+        "left": 32,
+        "right": 288,
+        "top": 216,
+        "width": 256,
+        "x": 32,
+        "y": 216
+      },
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/me",
+      "width": 320
+    },
+    {
+      "label": "final-entry-stable",
+      "at": "2026-10-27T18:49:17.514Z",
+      "balance": "$\n52,800.64",
+      "bodyOverflow": 0,
+      "entry": [
+        "http://127.0.0.1:5294/assets/index-DDUUBFKu.js"
+      ],
+      "theme": "dark",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/me",
+      "width": 360
+    }
+  ],
+  "routes": [
+    {
+      "dialogs": [
+        {
+          "aria": "Giao diện",
+          "text": "Giao diện\nSáng\nTối\nTheo hệ thống"
+        }
+      ],
+      "headings": [
+        "Tiện ích thường dùng",
+        "Mạng lưới của tôi",
+        "Tài khoản",
+        "Tùy chọn",
+        "Trợ giúp & Hỗ trợ"
+      ],
+      "rowCount": 12,
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/me",
+      "label": "theme-Enter"
+    },
+    {
+      "dialogs": [],
+      "headings": [],
+      "rowCount": 0,
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/language",
+      "label": "language-Space"
+    },
+    {
+      "dialogs": [],
+      "headings": [],
+      "rowCount": 0,
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/support",
+      "label": "support-click"
+    },
+    {
+      "dialogs": [],
+      "headings": [],
+      "rowCount": 0,
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/team/tree",
+      "label": "shared-team-genealogy-Enter"
+    },
+    {
+      "dialogs": [],
+      "headings": [],
+      "rowCount": 0,
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/genesis/genesis",
+      "label": "shared-store-genesis-Space"
+    },
+    {
+      "dialogs": [],
+      "headings": [],
+      "rowCount": 0,
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/profile",
+      "label": "profile-Enter"
+    },
+    {
+      "dialogs": [],
+      "headings": [],
+      "rowCount": 0,
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/preferences",
+      "label": "preferences-click"
+    },
+    {
+      "dialogs": [],
+      "headings": [],
+      "rowCount": 0,
+      "theme": "light",
+      "url": "http://127.0.0.1:5294/?nx_device=off#/pages/me/help",
+      "label": "faq-Enter"
+    }
+  ],
+  "shots": [
+    {
+      "name": "me-320-vi-light-profile",
+      "at": "2026-10-27T18:42:29.919Z",
+      "clip": {
+        "height": 693,
+        "width": 320,
+        "x": 980,
+        "y": 280.5
+      },
+      "sha256": "8918740d77d1facada24f3cc931c0218276607e29015b3d98359bbdb35d6a7f7"
+    },
+    {
+      "name": "me-320-vi-light-lower",
+      "at": "2026-10-27T18:42:30.291Z",
+      "clip": {
+        "height": 693,
+        "width": 320,
+        "x": 980,
+        "y": 280.5
+      },
+      "sha256": "3b775c0deee65aa487d1cd4b81fa231a818ee95aeb48f4ce05f81c92bc0984c3"
+    },
+    {
+      "name": "me-320-vi-light-theme-sheet",
+      "at": "2026-10-27T18:42:55.051Z",
+      "clip": {
+        "height": 693,
+        "width": 320,
+        "x": 980,
+        "y": 280.5
+      },
+      "sha256": "bf07ed639317b6fcabec7e94b909851f902ad1780632339e5ec4156c8120cf38"
+    },
+    {
+      "name": "me-320-vi-dark-profile",
+      "at": "2026-10-27T18:44:18.166Z",
+      "clip": {
+        "height": 693,
+        "width": 320,
+        "x": 980,
+        "y": 280.5
+      },
+      "sha256": "3ad6d6766ac7cb09c6ad5ab2b72cd9bd4563b9b06dd073f04a7f78013f58f0f4"
+    },
+    {
+      "name": "me-320-vi-dark-lower",
+      "at": "2026-10-27T18:44:20.734Z",
+      "clip": {
+        "height": 693,
+        "width": 320,
+        "x": 980,
+        "y": 280.5
+      },
+      "sha256": "84a99d53c0f1156c9e2d2f56fd8e3c308c510c9fd63317defd09a8d71e985970"
+    },
+    {
+      "name": "me-360-vi-dark-profile",
+      "at": "2026-10-27T18:44:29.112Z",
+      "clip": {
+        "height": 780,
+        "width": 360,
+        "x": 960,
+        "y": 237
+      },
+      "sha256": "0b942bfc1014cc98861eac0d9c46a0cf5bf2eaa2717975b58ad880fd3d886bb6",
+      "note": "文件名沿用当次计划，但实际为下半屏；只作lower实景，不计为可见profile。正确profile另见visible文件。"
+    },
+    {
+      "name": "me-360-vi-dark-lower",
+      "at": "2026-10-27T18:44:30.439Z",
+      "clip": {
+        "height": 780,
+        "width": 360,
+        "x": 960,
+        "y": 237
+      },
+      "sha256": "2bf24c58108ca983017108355dbe1efa1ac876e08c30a18c75317d33edef4f1e"
+    },
+    {
+      "name": "me-360-vi-light-profile",
+      "at": "2026-10-27T18:44:33.766Z",
+      "clip": {
+        "height": 780,
+        "width": 360,
+        "x": 960,
+        "y": 237
+      },
+      "sha256": "5d9c8a37e132036fd010d64512a20ec08bce39016eaed30e8a74888f60003b40"
+    },
+    {
+      "name": "me-360-vi-light-lower",
+      "at": "2026-10-27T18:44:34.103Z",
+      "clip": {
+        "height": 780,
+        "width": 360,
+        "x": 960,
+        "y": 237
+      },
+      "sha256": "78f48f3408a043155fb22f8d6d9b06e1a3dfa83334f1e45472ed9253622a4ac9"
+    },
+    {
+      "name": "me-390-vi-light-profile",
+      "at": "2026-10-27T18:45:10.445Z",
+      "clip": {
+        "height": 844,
+        "width": 390,
+        "x": 945,
+        "y": 205
+      },
+      "sha256": "37ed35043da755c0c15cf5d5d51e5ff7cf8011ed8f603740e4f671a704edcf1f"
+    },
+    {
+      "name": "me-390-vi-light-lower",
+      "at": "2026-10-27T18:45:15.155Z",
+      "clip": {
+        "height": 844,
+        "width": 390,
+        "x": 945,
+        "y": 205
+      },
+      "sha256": "6b5cbe4f8c20c947e86aaae693a431e84ce71cba39174d106c1e34121574c51f"
+    },
+    {
+      "name": "me-390-zh-dark-profile",
+      "at": "2026-10-27T18:45:18.487Z",
+      "clip": {
+        "height": 844,
+        "width": 390,
+        "x": 945,
+        "y": 205
+      },
+      "sha256": "ade30d9424f1ddc25525008befe48663d42129e2089905bb03378d389aab554d"
+    },
+    {
+      "name": "me-390-zh-dark-lower",
+      "at": "2026-10-27T18:45:18.991Z",
+      "clip": {
+        "height": 844,
+        "width": 390,
+        "x": 945,
+        "y": 205
+      },
+      "sha256": "de6f23627c56f8b85ec6dc38fe6a8c3a63a6667b4d18c776e62ebaa7eee083c8"
+    },
+    {
+      "name": "team-shared-320-vi-light",
+      "at": "2026-10-27T18:45:58.377Z",
+      "clip": {
+        "height": 693,
+        "width": 320,
+        "x": 980,
+        "y": 280.5
+      },
+      "sha256": "570498e8cf49ce1b891d751ac897e11973e9baeb73be922136febd20dac5e5a1"
+    },
+    {
+      "name": "store-shared-320-vi-light",
+      "at": "2026-10-27T18:46:10.842Z",
+      "clip": {
+        "height": 693,
+        "width": 320,
+        "x": 980,
+        "y": 280.5
+      },
+      "sha256": "a41c8f8cbf6db290f51a7a55d2238339fbdd65987e6c305f8c29a0b673419dbb"
+    },
+    {
+      "name": "wallet-quick-long-320-vi-light",
+      "at": "2026-10-27T18:47:29.984Z",
+      "clip": {
+        "height": 693,
+        "width": 320,
+        "x": 980,
+        "y": 280.5
+      },
+      "sha256": "74845ac6e0856765a1a00fcf2219c21abf9596a01e2f948ad98e44cec784eae4"
+    },
+    {
+      "name": "me-320-vi-light-settings-middle",
+      "at": "2026-10-27T18:47:31.958Z",
+      "clip": {
+        "height": 693,
+        "width": 320,
+        "x": 980,
+        "y": 280.5
+      },
+      "sha256": "10c5effb4561e0d1b62a6483b2260b44555def217effe043eb17eb5aa8b3bf63",
+      "note": "文件名描述不作为屏内范围证明，实际画面已目检；只计该帧可见内容。"
+    },
+    {
+      "name": "me-320-vi-light-settings-full",
+      "at": "2026-10-27T18:48:27.377Z",
+      "clip": {
+        "height": 693,
+        "width": 320,
+        "x": 980,
+        "y": 280.5
+      },
+      "sha256": "dc5a3cf8441723cdf65a52975519eecf8a03d8f61a3f0a1efacd1d7f0ef4ccf8",
+      "note": "文件名描述不作为屏内范围证明，实际画面已目检；只计该帧可见内容。"
+    },
+    {
+      "name": "me-360-vi-dark-profile-visible",
+      "at": "2026-10-27T18:48:28.858Z",
+      "clip": {
+        "height": 780,
+        "width": 360,
+        "x": 960,
+        "y": 237
+      },
+      "sha256": "308f9ef295f6ba52eaaeab889c51138f4da7be0002be725d16f20486073b09ca"
+    }
+  ],
+  "notes": [
+    "No product edits/build/tests/Git",
+    "One language screenshot request timed out; no saved language screenshot claimed",
+    "Right-side value is distinct from subtitle per design-system/10-responsive-type.md",
+    "Team title14px is preexisting explicit page override, not claimed13",
+    "No raw state backup or store/DOM mutation"
+  ]
+}

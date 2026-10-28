@@ -114,6 +114,19 @@ it('order creation, recovery and payment keep the UVEL display name without rewr
   }
 });
 
+it('retains wallet text silently during a read without making old balance payment authority',async()=>{
+  const page=screen();await page.start();await page.view.createOrder();
+  const pending=deferred<boolean>();page.app.refreshRemoteFleet.mockReturnValueOnce(pending.promise);
+  const reading=page.view.refreshWallet();await flush();
+  expect(await page.html()).toContain('150.00 USDT');
+  expect(await page.html()).not.toContain(commerceCopy('zh').walletLoading);
+  expect(await page.html()).toMatch(/class="promotion-link"[^>]*aria-disabled="true"[^>]*style="opacity:1;"/);
+  expect(page.view.walletState.value).toBe('loading');expect(page.view.canPay.value).toBe(false);
+  await page.view.pay();expect(page.api.pay).not.toHaveBeenCalled();
+  pending.resolve(false);await reading;
+  expect(await page.html()).toContain(commerceCopy('zh').walletError);expect(page.view.canPay.value).toBe(false);
+});
+
 it('summarizes one eligible buyer device gift and retains its published rules entry',async()=>{
   const q=quote(),reward=q.expectedRewards[0];
   reward.reward={rewardRuleId:'gift',beneficiaryRole:'BUYER',type:'DEVICE',giftProductNo:'share',quantity:1,deviceRightsProfile:{policyId:'policy',version:1,contentHash:'hash'}};

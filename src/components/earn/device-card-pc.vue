@@ -49,7 +49,7 @@
     </view>
 
     <view v-if="detailPage" class="device-management-heading">
-      <view><text class="block device-section-title">{{ t.coreReview.management }}</text><text class="block" style="font-size:12px;margin-top:4px" :style="{ color: statusColor }">{{ statusLabel }}</text></view>
+      <view><text class="block device-section-title">{{ t.coreReview.management }}</text><text class="block" :class="{ 'device-status-online': statusOnline }" style="font-size:12px;margin-top:4px" :style="{ color: statusColor }">{{ statusLabel }}</text></view>
       <NxButton v-if="phoneLocalReady || degradable" size="small" :label="t.home.fleetManage" @click="openMenu" />
     </view>
     <view v-else-if="showManage && (phoneLocalReady || degradable)" class="flex justify-end" style="padding:8px 16px"><NxButton size="small" :label="t.home.fleetManage" @click="openMenu" /></view>
@@ -73,7 +73,7 @@
         <view class="earn-device-meta">
           <text class="earn-device-name">{{ displayName }}</text>
           <view class="earn-device-status">
-            <text class="nx-device-status-label" style="font-size: 12px" :style="{ color: statusColor }">{{ statusLabel }}</text>
+            <text class="nx-device-status-label" :class="{ 'device-status-online': statusOnline }" :style="{ color: statusColor }">{{ statusLabel }}</text>
           </view>
         </view>
       </view>
@@ -81,7 +81,7 @@
         <view class="earn-device-amount">
           <!-- Compact rows use neutral realized earnings; detailed pending/warning states retain their semantics. -->
           <text class="earn-device-amount-label">{{ t.earn.todayEarnings }}</text>
-          <text class="earn-device-value tabular-nums">{{ phoneLocalReady ? formatUsd(device.todayEarnings) : '—' }}</text>
+          <text class="earn-device-value tabular-nums">{{ visibility.mask(phoneLocalReady ? formatUsd(device.todayEarnings) : '—') }}</text>
         </view>
         <view class="grid place-items-center shrink-0 active:opacity-60" :style="chevronBtnStyle">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :style="{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s ease' }"><path d="m6 9 6 6 6-6" /></svg>
@@ -104,7 +104,7 @@
         </view>
         <view v-else-if="phoneLocalReady && degradable && lifecycle" class="nx-device-explainer inline-flex items-center gap-1 shrink-0 active:opacity-70" :style="chipStyle" role="button" tabindex="0" @click.stop="openExplainer"  @keydown.enter.stop.prevent="openExplainer" @keydown.space.stop.prevent="openExplainer">
           <text style="opacity: 0.9">{{ t.earn.capacityChipLabel }}</text>
-          <text>{{ (lifecycle.efficiency * 100).toFixed(0) }}%</text>
+          <text>{{ visibility.mask((lifecycle.efficiency * 100).toFixed(0)) }}%</text>
           <text style="opacity: 0.65">·</text>
           <text style="opacity: 0.9">{{ monthsLabel }}</text>
         </view>
@@ -136,8 +136,8 @@
       <view class="flex items-center justify-between gap-2">
         <text :style="sectionLabelStyle">{{ t.earn.hashCapability }}</text>
         <view class="flex items-center gap-1.5">
-          <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-ink-2)">{{ baselineTops == null ? '-' : `${baselineTops} ${t.onboarding.phoneComputeUnit}` }}</text>
-          <text v-if="capTier != null" style="font-size: 12px; color: var(--v5-ink-3)">{{ fmt(t.earn.hashTier, { n: capTier }) }}</text>
+          <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-ink-2)">{{ visibility.mask(baselineTops == null ? '-' : `${baselineTops} ${t.onboarding.phoneComputeUnit}`) }}</text>
+          <text v-if="capTier != null" style="font-size: 12px; color: var(--v5-ink-3)">{{ visibility.mask(fmt(t.earn.hashTier, { n: capTier })) }}</text>
         </view>
       </view>
       <text v-if="baselineTops == null" class="block" style="font-size: 12px; color: var(--v5-ink-3)">{{ t.earn.hashCapabilityUnknown }}</text>
@@ -149,17 +149,17 @@
         <text :style="sectionLabelStyle">{{ t.earn.hashLabel }}</text>
         <view class="flex items-center gap-1" :style="capChipStyle">
           <text style="color: var(--v5-ink-3)">{{ t.earn.hashCapability }}</text>
-          <text class="tabular-nums" style="font-family: var(--font-v5); color: var(--v5-ink-2); font-weight: 600">{{ baselineTops?.toFixed(1) }} {{ t.onboarding.phoneComputeUnit }}</text>
+          <text class="tabular-nums" style="font-family: var(--font-v5); color: var(--v5-ink-2); font-weight: 600">{{ visibility.mask(baselineTops?.toFixed(1) ?? '—') }} {{ t.onboarding.phoneComputeUnit }}</text>
           <text style="color: var(--v5-ink-4)">·</text>
-          <text style="color: var(--v5-brand)">{{ capTier == null ? '—' : fmt(t.earn.hashTier, { n: capTier }) }}</text>
+          <text style="color: var(--v5-brand)">{{ visibility.mask(capTier == null ? '—' : fmt(t.earn.hashTier, { n: capTier })) }}</text>
         </view>
       </view>
       <view class="flex items-end justify-between">
         <view class="flex items-baseline" style="gap: 4px">
-          <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 34px; line-height: 1; font-weight: 600; color: var(--v5-brand); letter-spacing: -0.014em">{{ live.effectiveTops.toFixed(1) }}</text>
+          <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 34px; line-height: 1; font-weight: 600; color: var(--v5-brand); letter-spacing: -0.014em">{{ visibility.mask(live.effectiveTops.toFixed(1)) }}</text>
           <text style="font-size: 12px; font-weight: 600; color: var(--v5-ink-3)">{{ t.onboarding.phoneComputeUnit }}</text>
         </view>
-        <svg width="110" height="28" viewBox="0 0 110 28" preserveAspectRatio="none" fill="none">
+        <svg v-if="!visibility.hidden" width="110" height="28" viewBox="0 0 110 28" preserveAspectRatio="none" fill="none">
           <polyline :points="sparkPoints" fill="none" stroke="var(--v5-brand)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       </view>
@@ -168,7 +168,7 @@
           <view style="width: 6px; height: 6px; border-radius: 50%; background: var(--v5-brand); box-shadow: 0 0 6px var(--v5-brand)" />
           <text style="font-size: 12px; color: var(--v5-ink-2)">{{ factorLabel }}</text>
         </view>
-        <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 12px; color: var(--v5-ink-3)">{{ fmt(t.earn.hashOutput, { n: live.effectivePct }) }}</text>
+        <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 12px; color: var(--v5-ink-3)">{{ visibility.mask(fmt(t.earn.hashOutput, { n: live.effectivePct })) }}</text>
       </view>
       <!-- R7: no fresh device heartbeat → hosted baseline; the viewing shell is irrelevant. -->
       <view v-if="!deviceOnline" class="flex items-center" style="gap: 6px; margin-top: 8px; padding: 7px 10px; border-radius: 8px; background: color-mix(in srgb, var(--v5-tech-cyan) 10%, transparent)">
@@ -186,10 +186,10 @@
     <view v-if="detailPage" id="device-statistics" class="device-statistics" tabindex="-1" :aria-label="t.coreReview.statistics">
       <text class="block device-section-title">{{ t.coreReview.statistics }}</text>
       <view class="device-statistics__values">
-        <view><text class="block device-statistics__label">{{ t.earn.todayEarnings }}</text><text class="block device-statistics__amount">{{ phoneLocalReady ? formatUsd(device.todayEarnings) : '—' }}</text><text class="block device-statistics__label">{{ phoneLocalReady ? `${formatAmount(device.todayEarningsNEX)} UVT` : '—' }}</text></view>
-        <view><text class="block device-statistics__label">{{ t.coreReview.cumulativeEarnings }}</text><text class="block device-statistics__amount">{{ phoneLocalReady ? formatUsd(device.cumulativeEarningsUsdt) : '—' }}</text></view>
+        <view><text class="block device-statistics__label">{{ t.earn.todayEarnings }}</text><text class="block device-statistics__amount">{{ visibility.mask(phoneLocalReady ? formatUsd(device.todayEarnings) : '—') }}</text><text class="block device-statistics__label">{{ visibility.mask(phoneLocalReady ? `${formatAmount(device.todayEarningsNEX)} UVT` : '—') }}</text></view>
+        <view><text class="block device-statistics__label">{{ t.coreReview.cumulativeEarnings }}</text><text class="block device-statistics__amount">{{ visibility.mask(phoneLocalReady ? formatUsd(device.cumulativeEarningsUsdt) : '—') }}</text></view>
       </view>
-      <view v-if="remoteApiEnabled && phoneLocalReady" class="device-statistics__status"><text>{{ statisticsCopy.currentStatus }}</text><text class="device-statistics__label">{{ device.runtimeStatus === 'ONLINE' ? t.earn.online : device.runtimeStatus === 'OFFLINE' ? t.earn.offline : t.earn.runtimeUnknown }}</text></view>
+      <view v-if="remoteApiEnabled && phoneLocalReady" class="device-statistics__status"><text>{{ statisticsCopy.currentStatus }}</text><text class="device-statistics__label" :class="{ 'device-status-online': statusOnline }">{{ statusLabel }}</text></view>
       <text class="block device-statistics__scope">{{ statisticsCopy.scope }}</text>
     </view>
     <text v-if="detailPage" class="block device-section-title" style="padding:16px 20px 12px">{{ t.coreReview.jobs }}</text>
@@ -249,14 +249,14 @@
       <text v-if="task.status === 'PAUSED'" class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ t.earn.phoneTaskPausedHint }}</text>
       <view v-if="task.status !== 'PAUSED'" class="mt-3 flex items-center gap-3">
         <view class="flex-1 h-1 rounded-full overflow-hidden" style="background: var(--v5-surface-2)">
-          <view class="h-full" :style="progressBarStyle" />
+          <view v-if="!visibility.hidden" class="h-full" :style="progressBarStyle" />
         </view>
-        <text class="tabular-nums text-right" style="font-family: var(--font-v5); font-size: 12px; color: color-mix(in srgb, var(--v5-ink) 80%, transparent); width: 48px">{{ progressPct }}%</text>
+        <text class="tabular-nums text-right" style="font-family: var(--font-v5); font-size: 12px; color: color-mix(in srgb, var(--v5-ink) 80%, transparent); width: 48px">{{ visibility.mask(progressPct) }}%</text>
       </view>
       <view v-if="task.status !== 'PAUSED'" class="mt-1.5 flex items-center justify-between" style="font-size: 12px; color: var(--v5-ink-3)">
         <text v-if="awaitingExecutionResultConfirmation">{{ t.earn.taskAwaitingExecutionResultConfirmation }}</text>
         <text v-else>~{{ elapsedRemaining }} {{ t.earn.remaining }}</text>
-        <text style="color: var(--v5-success-ink)">{{ t.earn.reward }} {{ formatUsd(task.reward, 'detail', true) }}</text>
+        <text style="color: var(--v5-success-ink)">{{ t.earn.reward }} {{ visibility.mask(formatUsd(task.reward, 'detail', true)) }}</text>
       </view>
     </view>
 
@@ -264,7 +264,7 @@
          this list only mirrors settled task previews returned for this device. -->
     <view v-if="phoneLocalReady" class="nx-device-today-completed" data-device-today-completed="true" style="padding: 0 20px 16px">
       <view class="flex items-center justify-between" style="margin-bottom: 8px">
-        <text :style="sectionLabelStyle">{{ t.earn.todayRecentCompleted }}<template v-if="taskHistoryReady"> ({{ deviceTodayCompleted.length }})</template></text>
+        <text :style="sectionLabelStyle">{{ t.earn.todayRecentCompleted }}<template v-if="taskHistoryReady"> ({{ visibility.mask(deviceTodayCompleted.length) }})</template></text>
         <view
           class="active:opacity-60"
           style="min-height: 44px; padding-left: 16px; display: flex; align-items: center"
@@ -291,7 +291,7 @@
           style="min-height: 28px; font-size: 12px"
         >
           <text class="flex-1 truncate min-w-0" style="color: var(--v5-ink-2)">{{ task.model }}<text style="color: var(--v5-ink-4); margin: 0 4px">·</text><text style="color: var(--v5-ink-3)">{{ workloadLabel(task.category) }}</text></text>
-          <text class="tabular-nums shrink-0" style="font-family: var(--font-v5); color: var(--v5-success-ink)">{{ formatUsd(task.reward, 'detail', true) }}</text>
+          <text class="tabular-nums shrink-0" style="font-family: var(--font-v5); color: var(--v5-success-ink)">{{ visibility.mask(formatUsd(task.reward, 'detail', true)) }}</text>
           <text class="tabular-nums text-right shrink-0" style="font-family: var(--font-v5); font-size: 12px; color: var(--v5-ink-4); width: 38px">{{ localClockTime(task.completedAt) }}</text>
         </view>
       </view>
@@ -381,10 +381,10 @@
       <view class="flex items-baseline gap-2.5" style="margin-top: 4px">
         <!-- 《09》§3 正收益=success:本组是「今日已实现收益」(USDT 主数 + NEX 增量),
              与卡内 −$锁定日产 / 未解锁潜在收益(仍 warning=Pending)语义不同,不可混用。 -->
-        <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 34px; line-height: 1; font-weight: 600; color: var(--v5-success-ink); letter-spacing: -0.014em">{{ formatUsd(device.todayEarnings) }}</text>
+        <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 34px; line-height: 1; font-weight: 600; color: var(--v5-success-ink); letter-spacing: -0.014em">{{ visibility.mask(formatUsd(device.todayEarnings)) }}</text>
         <view class="font-mono-tabular flex items-center gap-1 tabular-nums" style="font-size: 12px; color: var(--v5-success-ink); font-weight: 600">
           <text style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: color-mix(in srgb, var(--v5-success) 75%, transparent)">+</text>
-          <text>{{ formatAmount(device.todayEarningsNEX) }} UVT</text>
+          <text>{{ visibility.mask(formatAmount(device.todayEarningsNEX)) }} UVT</text>
         </view>
       </view>
     </view>
@@ -393,6 +393,7 @@
 </template>
 
 <script setup lang="ts">
+import { useDataVisibility } from "@/store/data-visibility";
 import { formatAmount } from "@/lib/amount-display";
 import { formatUsd } from "@/lib/usd-display";
 import { useDeviceStatisticsCapabilityCopy } from "@/i18n/device-statistics-capability";
@@ -423,6 +424,7 @@ import { fmt } from "@/i18n/format";
 import { remoteApiEnabled } from "@/api/runtime";
 import { localClockTime, todayCompletedTasks } from "@/lib/today-completed-tasks";
 
+const visibility = useDataVisibility();
 const props = defineProps<{ device: Device; expanded?: boolean; divider?: boolean; showManage?: boolean; detailPage?: boolean }>();
 const emit = defineEmits<{ toggle: []; statistics: [] }>();
 const app = useApp();
@@ -516,13 +518,9 @@ const statusLabel = computed(() => {
   if (reconnecting.value) return t.value.earn.reconnecting;
   if (task.value?.status === "PAUSED") return t.value.earn.phoneTaskPaused;
   if (idleGated.value) return t.value.earn.idle;
-  if (props.device.capacitySource === "server" && props.device.kind === "phone") {
+  if (props.device.capacitySource === "server") {
     if (props.device.runtimeStatus === "ONLINE") return t.value.earn.online;
     if (props.device.runtimeStatus === "OFFLINE") return t.value.earn.offline;
-    return t.value.earn.runtimeUnknown;
-  }
-  if (props.device.kind !== "phone" && props.device.capacitySource === "server"
-      && (props.device.runtimeStatus == null || props.device.runtimeStatus === "UNKNOWN")) {
     return t.value.earn.runtimeUnknown;
   }
   if (!deviceOnline.value) {
@@ -541,7 +539,9 @@ const statusColor = computed(() => {
   if (idleGated.value || !deviceOnline.value) return "var(--v5-ink-3)";
   return "var(--v5-brand)";
 });
-const statusGlow = computed(() => phoneLocalReady.value && !props.device.pendingDeactivate && !reconnecting.value && !idleGated.value && deviceOnline.value);
+const statusOnline = computed(() => phoneLocalReady.value && !props.device.pendingDeactivate && !reconnecting.value
+  && task.value?.status !== "PAUSED" && !idleGated.value
+  && (props.device.capacitySource === "server" ? props.device.runtimeStatus === "ONLINE" : deviceOnline.value));
 
 const elapsedRemaining = computed(() => {
   const tk = task.value;
@@ -743,8 +743,8 @@ const tasksToday = computed(() => {
 });
 const capacityRowText = computed(() =>
   capacityFloored.value
-    ? fmt(t.value.earn.capacityRowFloored, { pct: capacityPct.value })
-    : fmt(t.value.earn.capacityRow, { pct: capacityPct.value, n: tasksToday.value }),
+    ? fmt(t.value.earn.capacityRowFloored, { pct: visibility.mask(capacityPct.value) })
+    : fmt(t.value.earn.capacityRow, { pct: visibility.mask(capacityPct.value), n: visibility.mask(tasksToday.value) }),
 );
 const capacityRowStyle = computed<CSSProperties>(() => ({
   fontSize: "12px",
@@ -944,12 +944,14 @@ import DeviceSlot from "@/components/home/device-slot.vue";
 .earn-device-art :deep(.hf-computer) { width: 52px; height: 56px; }
 .earn-device-art :deep(.hf-computer svg) { width: 38px; height: 38px; }
 .earn-device-meta { flex: 1; min-width: 0; }
-.earn-device-name { display: block; font: 600 15px/1.4 var(--font-v5); color: var(--v5-ink); overflow-wrap: anywhere; }
+.earn-device-name { display: block; font: 600 clamp(13px,3.85vw,15px)/1.4 var(--font-v5); color: var(--v5-ink); overflow-wrap: anywhere; }
 .earn-device-status { margin-top: 4px; line-height: 1.45; overflow-wrap: anywhere; }
+.nx-device-status-label { font-size:clamp(11px,3.08vw,12px); }
+.device-status-online::before { content:""; display:inline-block; width:7px; height:7px; margin-right:6px; border-radius:50%; background:var(--v5-success); vertical-align:1px; }
 .nx-device-card__numbers { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 152px; }
 .earn-device-amount { text-align: right; min-width: 0; }
-.earn-device-amount-label { display: block; font: 400 12px/1.4 var(--font-v5); color: var(--v5-ink-3); }
-.earn-device-value { display: block; margin-top: 4px; font: 600 15px/1.3 var(--font-v5); color: var(--v5-ink); overflow-wrap: anywhere; }
+.earn-device-amount-label { display: block; font: 400 clamp(11px,3.08vw,12px)/1.4 var(--font-v5); color: var(--v5-ink-3); }
+.earn-device-value { display: block; margin-top: 4px; font: 600 clamp(13px,3.85vw,15px)/1.3 var(--font-v5); color: var(--v5-ink); overflow-wrap: anywhere; }
 .nx-device-card__details { animation: earn-detail-in .2s ease-out; }
 .device-management-heading { display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px; }
 .device-section-title { font:600 15px/22px var(--font-v5);color:var(--v5-ink); }

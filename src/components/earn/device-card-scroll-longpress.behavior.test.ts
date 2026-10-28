@@ -68,7 +68,7 @@ async function mount(copy: Messages = zh, device = cloudDevice(), expanded = fal
   const toggle = vi.fn();
   const app = Vue.reactive({ accountKey: "render-only", visibleDevices: [device], remotePhoneBindingInvalid: false, setPhoneRuntime });
   const blank = Vue.defineComponent({ setup: () => () => Vue.h("view") });
-  const dependencies: Record<string, unknown> = {
+  const dependencies: Record<string, unknown> = { '@/store/data-visibility': { useDataVisibility: () => ({ hidden: false, mask: String }) },
     "@/composables/use-tab-page-lifecycle": tabLifecycle,
     "@/lib/amount-display": { formatAmount },
     "@/lib/usd-display": { formatUsd },
@@ -112,6 +112,34 @@ async function mount(copy: Messages = zh, device = cloudDevice(), expanded = fal
   await Vue.nextTick();
   return { root, device, toggle, navTo, setPhoneRuntime, unmount, hide: () => tabVisit.setVisible(false), show: () => tabVisit.setVisible(true) };
 }
+
+test.each([en, zh, vietnamese])("uses Online only for confirmed running cards", async copy => {
+  for (const kind of ["stellarbox-s1", "phone"] as const) {
+    const device = Vue.reactive({ ...cloudDevice(), kind, status: "online", runtimeStatus: "ONLINE" } as Device);
+    const card = await mount(copy, device, true);
+    const assertStatus = (label: string, online: boolean) => {
+      expect(text(find(card.root, "nx-device-status-label")!)).toBe(label);
+      expect(all(card.root).filter(entry => String(entry.props.class ?? "").split(/\s+/).includes("device-status-online"))).toHaveLength(online ? 1 : 0);
+    };
+    assertStatus("Online", true);
+    // The last local status must not override the current server conclusion.
+    device.runtimeStatus = "OFFLINE"; await Vue.nextTick(); assertStatus(copy.earn.offline, false);
+    device.runtimeStatus = "UNKNOWN"; await Vue.nextTick(); assertStatus(copy.earn.runtimeUnknown, false);
+    device.runtimeStatus = "ONLINE";
+    if (kind === "phone") {
+      device.interruptedAt = now; await Vue.nextTick(); assertStatus(copy.earn.reconnecting, false);
+      device.interruptedAt = null;
+      device.currentTask = { id: "paused-task", category: "LL", type: "LLM inference", model: "Llama", client: "UVEL", location: "Device",
+        totalSec: 120, startedAt: now, reward: 0, status: "PAUSED" };
+      await Vue.nextTick(); assertStatus(copy.earn.phoneTaskPaused, false);
+      device.currentTask = null; device.pausedReason = "low-battery";
+      await Vue.nextTick(); assertStatus(copy.earn.idle, false);
+      device.pausedReason = null;
+    }
+    device.pendingDeactivate = true; await Vue.nextTick(); assertStatus(copy.myDevices.inventoryPendingDeactivateChip, false);
+    device.pendingDeactivate = false; await Vue.nextTick(); assertStatus("Online", true);
+  }
+});
 
 test("the retained device clock stops while hidden and resumes without duplicate intervals", async () => {
   const card = await mount();

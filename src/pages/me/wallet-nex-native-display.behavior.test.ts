@@ -48,7 +48,9 @@ const unmounts: Array<() => void> = [];
 const timestamp = new Date(2026, 9, 3, 16, 34, 40).getTime();
 const bill = (amount = 3, ts = timestamp) => ({ id: "nex:1", amount, ts, symbol: "NEX", status: "settled", memo: "", memoKey: "mining" });
 async function mount(translations = en) {
-  const app = Vue.reactive({ user: { nexBalance: 143 }, remoteFleetHasSnapshot: true, visibleDevices: [], refreshRemoteFleet: vi.fn(async () => {}) });
+  const app = Vue.reactive({ accountKey: "user:wallet-fixture", accountBindingEpoch: 1, user: { nexBalance: 143 }, remoteFleetHasSnapshot: true, visibleDevices: [], refreshRemoteFleet: vi.fn(async () => {}) });
+  const locale = Vue.reactive({ code: translations === zh ? "zh" : translations === vietnamese ? "vi" : "en" });
+  const apiRuntimeConfig = Vue.reactive({ environment: "dev", baseUrl: "https://test.example" });
   const market = Vue.reactive({
     nexPriceUSDT: 0.124, costBasis: 0.085, change24hPct: 0, change24hAvailable: true,
     klineHourly: [], remoteReady: true, remoteError: null as string | null,
@@ -75,7 +77,8 @@ async function mount(translations = en) {
     "@/lib/remote-authority-display": { remoteAuthorityStatus },
     "@/store/app": { useApp: () => app }, "@/store/market": { useMarket: () => market },
     "@/store/bills": { useBills: () => bills }, "@/store/commission": { useCommission: () => ({ events: [] }) },
-    "@/api/runtime": { remoteApiEnabled: true },
+    "@/store/locale": { useLocaleStore: () => locale },
+    "@/api/runtime": { remoteApiEnabled: true, apiRuntimeConfig },
   };
   const exports = { default: {} as Component };
   new Function("require", "exports", code)((id: string) => {

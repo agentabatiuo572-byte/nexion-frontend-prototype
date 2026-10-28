@@ -23,18 +23,18 @@
       </view>
 
       <view class="relative mt-2 flex items-baseline gap-2">
-        <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 34px; font-weight: 600; line-height: 1; letter-spacing: -0.014em" :style="{ color: accent }">{{ (avgEfficiency * 100).toFixed(1) }}%</text>
+        <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 34px; font-weight: 600; line-height: 1; letter-spacing: -0.014em" :style="{ color: accent }">{{ visibility.mask((avgEfficiency * 100).toFixed(1)) }}%</text>
         <text class="text-[12px]" style="color: var(--v5-ink-3); line-height: 1.2">{{ subtitleText }}</text>
       </view>
 
       <view class="relative mt-3 h-1 rounded-full overflow-hidden" style="background: var(--v5-surface-2)">
-        <view class="h-full rounded-full" :style="barStyle" />
+        <view v-if="!visibility.hidden" class="h-full rounded-full" :style="barStyle" />
       </view>
 
       <view class="relative mt-4 flex items-center justify-between gap-3">
         <view class="min-w-0" style="font-size: 12px; color: var(--v5-ink-3); line-height: 1.35">
           <text class="block">{{ t.earn.lifecycleMonthlyLoss }}</text>
-          <text class="block tabular-nums" style="font-family: var(--font-v5); font-size: 15px; font-weight: 600; margin-top: 2px" :style="{ color: accent }">−${{ formatAmount(totalMonthlyLossUSD) }}<text style="font-size: 12px; color: var(--v5-ink-4); margin-left: 6px; font-weight: 400">· {{ monthsLabel }}</text></text>
+          <text class="block tabular-nums" style="font-family: var(--font-v5); font-size: 15px; font-weight: 600; margin-top: 2px" :style="{ color: accent }">−${{ visibility.mask(formatAmount(totalMonthlyLossUSD)) }}<text style="font-size: 12px; color: var(--v5-ink-4); margin-left: 6px; font-weight: 400">· {{ monthsLabel }}</text></text>
         </view>
         <view class="shrink-0 inline-flex items-center gap-1.5 active:scale-[0.97]" :style="ctaStyle">
           <text :style="ctaLabelStyle">{{ t.earn.lifecycleCta }}</text>
@@ -46,6 +46,7 @@
 </template>
 
 <script setup lang="ts">
+import { useDataVisibility } from "@/store/data-visibility";
 import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed, ref, onMounted, onUnmounted, type CSSProperties } from "vue";
@@ -54,6 +55,7 @@ import { getLifecycleSummary, getNetworkMonthlyLoss, hasServerLifecycleProjectio
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 
+const visibility = useDataVisibility();
 const ONE_MIN_MS = 60_000;
 
 const app = useApp();
@@ -98,7 +100,7 @@ const accent = computed(() =>
       : "var(--v5-brand-2)",
 );
 
-const subtitleText = computed(() => fmt(t.value.earn.lifecycleSubtitle, { n: summaries.value.length }));
+const subtitleText = computed(() => fmt(t.value.earn.lifecycleSubtitle, { n: visibility.mask(summaries.value.length) }));
 const monthsLabel = computed(() => {
   const o = oldest.value;
   if (!o) return "";

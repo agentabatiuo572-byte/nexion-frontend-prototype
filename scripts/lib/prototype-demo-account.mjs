@@ -23,22 +23,4 @@ export function accountDemo(url, locale, state, request) {
     state.profile.language = language;
     return { status: 'UPDATED', language };
   }
-  if (path === '/api/app/compute-share/enrollments' && method === 'POST') {
-    const requestedGpuModel = String(body().requestedGpuModel || '').trim().replace(/\s+/g, ' ');
-    if (requestedGpuModel.length < 3 || requestedGpuModel.length > 128) reject('COMPUTE_SHARE_GPU_MODEL_INVALID', 400);
-    const key = request.headers?.()['idempotency-key'];
-    if (!key) reject('IDEMPOTENCY_KEY_REQUIRED', 400);
-    state.pairingCommands ??= {};
-    if (state.pairingCommands[key]) return { ...state.pairingCommands[key] };
-    const enrollment = { enrollmentNo: 'CSE-DEMO' + (Object.keys(state.pairingCommands).length + 1), pairingCode: '482719', status: 'PENDING', requestedGpuModel, expiresAt: new Date(Date.now() + 600000).toISOString(), deviceId: null, source: 'server' };
-    state.pairingCommands[key] = enrollment;
-    return { ...enrollment };
-  }
-  if (path.startsWith('/api/app/compute-share/enrollments/') && method === 'GET') {
-    const enrollmentNo = decodeURIComponent(path.split('/').pop());
-    const enrollment = Object.values(state.pairingCommands || {}).find(row => row.enrollmentNo === enrollmentNo);
-    if (!enrollment) reject('COMPUTE_SHARE_ENROLLMENT_NOT_FOUND', 404);
-    const status = state.pairingState === 'connected' ? 'CONNECTED' : state.pairingState === 'expired' || Date.now() >= Date.parse(enrollment.expiresAt) ? 'EXPIRED' : 'PENDING';
-    return { ...enrollment, status, pairingCode: status === 'PENDING' ? enrollment.pairingCode : null, deviceId: status === 'CONNECTED' ? 43 : null };
-  }
 }

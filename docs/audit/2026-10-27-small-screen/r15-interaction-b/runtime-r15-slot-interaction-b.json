@@ -1,0 +1,268 @@
+{
+  "freeze": {
+    "time": "2026-10-27T13:51:51.798Z",
+    "reason": "User requests immediate r15 freeze after current slot capture; remaining cases move to r16",
+    "entry": "index-efmh8j2a.js",
+    "css": "index-CqtM5MAW.css",
+    "proxyMode": "5272 off",
+    "open": [
+      "B-R15-P2-01 invite native scrollbar 8.7",
+      "r16 wallet balance typography and ref copy/layout/CTA pending new build",
+      "r16 unclaimed claim action right-bottom / lifecycle card entry / fixed machine and floor art / shorter benefit cards / compact checked checkin pending new build"
+    ],
+    "untested": [
+      "staking FAQ: exchange-config target misses /caps actual endpoint",
+      "legacy wallet-cards gate redirects to wallet-cards-new",
+      "repurchase historyError inaccessible read-only",
+      "no nextPage append branches",
+      "r15 slot dark/material and fresh outer-edge point not completed after immediate freeze instruction"
+    ]
+  },
+  "cases": [
+    {
+      "url": "http://127.0.0.1:5262/?nx_device=off#/pages/earn/earn",
+      "entry": [
+        "http://127.0.0.1:5262/assets/index-efmh8j2a.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5262/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5262/assets/index-CqtM5MAW.css",
+        "http://127.0.0.1:5262/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5262/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5262/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5262/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5262/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5262/assets/app-chassis-ClheQOhH.css",
+        "http://127.0.0.1:5262/assets/daily-check-in-row-DSAJ71ku.css",
+        "http://127.0.0.1:5262/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5262/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5262/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5262/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5262/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5262/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5262/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5262/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5262/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5262/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5262/assets/index-BvHcFBHy.css",
+        "http://127.0.0.1:5262/assets/card-stagger-BAUXl1m9.css",
+        "http://127.0.0.1:5262/assets/compute-share-entry-DabWMmmY.css",
+        "http://127.0.0.1:5262/assets/capacity-explainer-sheet-CjyrGoKq.css",
+        "http://127.0.0.1:5262/assets/earn-CIyLOhln.css"
+      ],
+      "theme": "light",
+      "viewport": [
+        320,
+        693
+      ],
+      "frame": {
+        "x": 846,
+        "y": 266.8333435058594,
+        "width": 320,
+        "height": 693,
+        "top": 266.8333435058594,
+        "right": 1166,
+        "bottom": 959.8333435058594,
+        "left": 846
+      },
+      "width": [
+        320,
+        320
+      ],
+      "panel": {
+        "cls": "sas-panel nx-glass-sheet",
+        "box": {
+          "x": 0,
+          "y": 391.0833435058594,
+          "width": 320,
+          "height": 302.25,
+          "top": 391.0833435058594,
+          "right": 320,
+          "bottom": 693.3333435058594,
+          "left": 0
+        },
+        "style": {
+          "background": "linear-gradient(155deg, color(srgb 0.0745098 0.0784314 0.101961 / 0.04), rgba(0, 0, 0, 0) 55%) repeat scroll 0% 0% / auto padding-box border-box, color(srgb 1 1 1 / 0.98) none repeat scroll 0% 0% / auto padding-box border-box",
+          "backgroundColor": "color(srgb 1 1 1 / 0.98)",
+          "backgroundImage": "linear-gradient(155deg, color(srgb 0.0745098 0.0784314 0.101961 / 0.04), rgba(0, 0, 0, 0) 55%), none",
+          "borderRadius": "16px 16px 0px 0px",
+          "border": "",
+          "padding": "18px 16px 38px",
+          "fill": "linear-gradient(155deg, color-mix(in srgb, #13141A 4%, transparent), transparent 55%), color-mix(in srgb, #FFFFFF 98%, transparent)",
+          "backdrop": "none"
+        },
+        "before": {
+          "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "backgroundImage": "none",
+          "borderRadius": "0px",
+          "border": "0px none rgb(19, 20, 26)",
+          "padding": "0px",
+          "fill": "linear-gradient(155deg, color-mix(in srgb, #13141A 4%, transparent), transparent 55%), color-mix(in srgb, #FFFFFF 98%, transparent)",
+          "backdrop": "none"
+        },
+        "text": "Lấp đầy khe tính toán\nThêm thiết bị mới — khe trống sẽ sinh lời ngay lập tức\nMua thiết bị mới\nKích hoạt thiết bị có sẵn (1)\nUVEL Box S1\n$6.20/ngày"
+      },
+      "close": {
+        "box": {
+          "x": 260,
+          "y": 409.75,
+          "width": 44,
+          "height": 44,
+          "top": 409.75,
+          "right": 304,
+          "bottom": 453.75,
+          "left": 260
+        },
+        "style": {
+          "background": "rgb(250, 247, 240) none repeat scroll 0% 0% / auto padding-box content-box",
+          "backgroundColor": "rgb(250, 247, 240)",
+          "backgroundImage": "none",
+          "borderRadius": "999px",
+          "border": "0px none rgb(19, 20, 26)",
+          "padding": "4px",
+          "fill": "linear-gradient(155deg, color-mix(in srgb, #13141A 4%, transparent), transparent 55%), color-mix(in srgb, #FFFFFF 98%, transparent)",
+          "backdrop": "none"
+        },
+        "svg": {
+          "x": 274,
+          "y": 423.75,
+          "width": 16,
+          "height": 16,
+          "top": 423.75,
+          "right": 290,
+          "bottom": 439.75,
+          "left": 274
+        }
+      },
+      "controls": [
+        {
+          "cls": "sas-close",
+          "text": "",
+          "label": "Đóng",
+          "box": {
+            "x": 260,
+            "y": 409.75,
+            "width": 44,
+            "height": 44,
+            "top": 409.75,
+            "right": 304,
+            "bottom": 453.75,
+            "left": 260
+          }
+        },
+        {
+          "cls": "sas-store-cta",
+          "text": "Mua thiết bị mới",
+          "label": null,
+          "box": {
+            "x": 16,
+            "y": 481.3333435058594,
+            "width": 288,
+            "height": 48,
+            "top": 481.3333435058594,
+            "right": 304,
+            "bottom": 529.3333435058594,
+            "left": 16
+          }
+        },
+        {
+          "cls": "sas-activate-toggle is-open",
+          "text": "Kích hoạt thiết bị có sẵn (1)",
+          "label": null,
+          "box": {
+            "x": 16,
+            "y": 539.3333740234375,
+            "width": 288,
+            "height": 44,
+            "top": 539.3333740234375,
+            "right": 304,
+            "bottom": 583.3333740234375,
+            "left": 16
+          }
+        },
+        {
+          "cls": "sas-device",
+          "text": "UVEL Box S1\n$6.20/ngày",
+          "label": null,
+          "box": {
+            "x": 16,
+            "y": 591.3333740234375,
+            "width": 288,
+            "height": 64,
+            "top": 591.3333740234375,
+            "right": 304,
+            "bottom": 655.3333740234375,
+            "left": 16
+          }
+        }
+      ],
+      "focus": "Đóng",
+      "file": "32-slot-current-r15-light-vi-320.jpg"
+    }
+  ],
+  "actions": [
+    {
+      "name": "Space closes current sheet before freeze",
+      "state": {
+        "url": "http://127.0.0.1:5262/?nx_device=off#/pages/earn/earn",
+        "entry": [
+          "http://127.0.0.1:5262/assets/index-efmh8j2a.js"
+        ],
+        "css": [
+          "http://127.0.0.1:5262/assets/uni.c39fe708.css",
+          "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+          "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+          "http://127.0.0.1:5262/assets/index-CqtM5MAW.css",
+          "http://127.0.0.1:5262/assets/nova-avatar-D5GOd_PR.css",
+          "http://127.0.0.1:5262/assets/liquid-glass-CtBmG5K8.css",
+          "http://127.0.0.1:5262/assets/brand-lockup-BuVYk5AL.css",
+          "http://127.0.0.1:5262/assets/global-ui-rtRD1Jcw.css",
+          "http://127.0.0.1:5262/assets/device-status-bar-Q_PY6aEV.css",
+          "http://127.0.0.1:5262/assets/app-chassis-ClheQOhH.css",
+          "http://127.0.0.1:5262/assets/daily-check-in-row-DSAJ71ku.css",
+          "http://127.0.0.1:5262/assets/nx-section-rLmXDH8J.css",
+          "http://127.0.0.1:5262/assets/nx-list-group-BmH7i_UJ.css",
+          "http://127.0.0.1:5262/assets/device-slot-CLCoDqc9.css",
+          "http://127.0.0.1:5262/assets/trial-device-row-DU82OTma.css",
+          "http://127.0.0.1:5262/assets/team-art-DR37f503.css",
+          "http://127.0.0.1:5262/assets/nx-sheet-DbVsiSWQ.css",
+          "http://127.0.0.1:5262/assets/disclosure-details-BnM275Gf.css",
+          "http://127.0.0.1:5262/assets/promotion-terms-BV3PvWse.css",
+          "http://127.0.0.1:5262/assets/catalog-machine-image-Sr0pZ4Bd.css",
+          "http://127.0.0.1:5262/assets/promotion-entry-zHMQocHU.css",
+          "http://127.0.0.1:5262/assets/index-BvHcFBHy.css",
+          "http://127.0.0.1:5262/assets/card-stagger-BAUXl1m9.css",
+          "http://127.0.0.1:5262/assets/compute-share-entry-DabWMmmY.css",
+          "http://127.0.0.1:5262/assets/capacity-explainer-sheet-CjyrGoKq.css",
+          "http://127.0.0.1:5262/assets/earn-CIyLOhln.css"
+        ],
+        "theme": "light",
+        "viewport": [
+          320,
+          693
+        ],
+        "frame": {
+          "x": 846,
+          "y": 266.8333435058594,
+          "width": 320,
+          "height": 693,
+          "top": 266.8333435058594,
+          "right": 1166,
+          "bottom": 959.8333435058594,
+          "left": 846
+        },
+        "width": [
+          320,
+          320
+        ],
+        "panel": null,
+        "close": null,
+        "controls": [],
+        "focus": null
+      }
+    }
+  ]
+}

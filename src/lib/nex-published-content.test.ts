@@ -46,3 +46,10 @@ describe("published NEX narrative", () => {
     expect(resolvePublishedNexNarrative([], "ready", "en")).toEqual({ state: "unpublished" });
   });
 });
+
+it("retains only a previously published locale during warm loading and still exposes errors", () => {
+  const sections = [section([{ key: "hero.en", label: "Headline", value: "Confirmed" }])];
+  expect(resolvePublishedNexNarrative(sections, "loading", "en")).toMatchObject({state:"ready",hero:"Confirmed"});
+  expect(resolvePublishedNexNarrative(sections, "loading", "vi")).toEqual({state:"unpublished"});
+  expect(resolvePublishedNexNarrative(sections, "error", "en")).toEqual({state:"error"});
+});

@@ -1,0 +1,2650 @@
+{
+  "frozenAt": "2026-10-27T12:27:41.490Z",
+  "entry": "index-DfgZV_HM.js",
+  "globalCss": "index-64PWOPxR.css",
+  "browser": "Official CUA Chrome extension browser4, own tab1733372932",
+  "origin": "http://127.0.0.1:5254",
+  "sourceBoundary": "当前运行Dfg；源码ff01591f及r14候选修改未据此签核。",
+  "records": [
+    {
+      "label": "r13-initial",
+      "time": "2026-10-27T12:03:03.213Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-DfgZV_HM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-64PWOPxR.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-CeIzW7G_.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-DSAJ71ku.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BgXnWYv9.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        390,
+        844
+      ],
+      "overflow": 0,
+      "data": {
+        "theme": "light"
+      }
+    },
+    {
+      "label": "r13-converted-order-vi-light-320",
+      "time": "2026-10-27T12:03:44.774Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-DfgZV_HM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-64PWOPxR.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-CeIzW7G_.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-DSAJ71ku.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BgXnWYv9.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "data": {
+        "cards": [
+          {
+            "class": "vb-wrap vb-wrap--embedded",
+            "rect": {
+              "x": 16,
+              "y": 133.6666717529297,
+              "width": 138,
+              "height": 205.33334350585938,
+              "top": 133.6666717529297,
+              "right": 154,
+              "bottom": 339.00001525878906,
+              "left": 16
+            }
+          },
+          {
+            "class": "nx-trial-hero nx-trial-hero--embedded nx-trial-hero--long-copy nx-trial-hero--lifecycle nx-trial-hero--card-entry",
+            "state": "converted",
+            "rect": {
+              "x": 166,
+              "y": 133.6666717529297,
+              "width": 138,
+              "height": 205.33334350585938,
+              "top": 133.6666717529297,
+              "right": 304,
+              "bottom": 339.00001525878906,
+              "left": 166
+            }
+          }
+        ],
+        "hero": {
+          "role": "button",
+          "tabindex": "0",
+          "aria": "Đã mua thiết bị · UVELBox S1 · Xem thiết bị",
+          "display": "flex",
+          "direction": "column",
+          "children": [
+            {
+              "class": "trial-aura",
+              "rect": {
+                "x": 180,
+                "y": 302.3333435058594,
+                "width": 110,
+                "height": 22,
+                "top": 302.3333435058594,
+                "right": 290,
+                "bottom": 324.3333435058594,
+                "left": 180
+              },
+              "order": "0",
+              "position": "absolute"
+            },
+            {
+              "class": "trial-art",
+              "rect": {
+                "x": 187,
+                "y": 236.33334350585938,
+                "width": 96,
+                "height": 96,
+                "top": 236.33334350585938,
+                "right": 283,
+                "bottom": 332.3333435058594,
+                "left": 187
+              },
+              "order": "1",
+              "position": "relative"
+            },
+            {
+              "class": "trial-meta",
+              "rect": {
+                "x": 166.6666717529297,
+                "y": 134.33334350585938,
+                "width": 136.6666717529297,
+                "height": 98,
+                "top": 134.33334350585938,
+                "right": 303.3333435058594,
+                "bottom": 232.33334350585938,
+                "left": 166.6666717529297
+              },
+              "order": "0",
+              "position": "relative"
+            }
+          ],
+          "ctas": 0,
+          "countdown": null
+        }
+      }
+    },
+    {
+      "label": "r13-benefits-active-vi-light-320-geometry",
+      "time": "2026-10-27T12:04:14.303Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-DfgZV_HM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-64PWOPxR.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-CeIzW7G_.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-DSAJ71ku.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BgXnWYv9.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "data": {
+        "cards": [
+          {
+            "class": "vb-wrap vb-wrap--embedded",
+            "rect": {
+              "x": 16,
+              "y": 133.67282104492188,
+              "width": 138,
+              "height": 201.33334350585938,
+              "top": 133.67282104492188,
+              "right": 154,
+              "bottom": 335.00616455078125,
+              "left": 16
+            }
+          },
+          {
+            "class": "nx-trial-hero nx-trial-hero--embedded nx-trial-hero--long-copy nx-trial-hero--lifecycle nx-trial-hero--card-entry",
+            "state": "active",
+            "rect": {
+              "x": 166,
+              "y": 133.67282104492188,
+              "width": 138,
+              "height": 201.33334350585938,
+              "top": 133.67282104492188,
+              "right": 304,
+              "bottom": 335.00616455078125,
+              "left": 166
+            }
+          }
+        ],
+        "hero": {
+          "role": "button",
+          "tabindex": "0",
+          "aria": "Đang dùng thử miễn phí · UVELBox S1 · Xem dùng thử",
+          "display": "flex",
+          "direction": "column",
+          "children": [
+            {
+              "class": "trial-aura",
+              "rect": {
+                "x": 180,
+                "y": 298.3394775390625,
+                "width": 110,
+                "height": 22,
+                "top": 298.3394775390625,
+                "right": 290,
+                "bottom": 320.3394775390625,
+                "left": 180
+              },
+              "order": "0",
+              "position": "absolute"
+            },
+            {
+              "class": "trial-art",
+              "rect": {
+                "x": 187,
+                "y": 232.3394775390625,
+                "width": 96,
+                "height": 96,
+                "top": 232.3394775390625,
+                "right": 283,
+                "bottom": 328.3394775390625,
+                "left": 187
+              },
+              "order": "1",
+              "position": "relative"
+            },
+            {
+              "class": "trial-meta",
+              "rect": {
+                "x": 166.6666717529297,
+                "y": 134.3394775390625,
+                "width": 136.6666717529297,
+                "height": 94,
+                "top": 134.3394775390625,
+                "right": 303.3333435058594,
+                "bottom": 228.3394775390625,
+                "left": 166.6666717529297
+              },
+              "order": "0",
+              "position": "relative"
+            }
+          ],
+          "ctas": 0,
+          "statusRow": {
+            "x": 178.6666717529297,
+            "y": 146.3394775390625,
+            "width": 112.66667175292969,
+            "height": 16,
+            "top": 146.3394775390625,
+            "right": 291.3333435058594,
+            "bottom": 162.3394775390625,
+            "left": 178.6666717529297
+          },
+          "countdown": {
+            "text": "2d 0h:01",
+            "rect": {
+              "x": 253.4479217529297,
+              "y": 146.3394775390625,
+              "width": 37.88541793823242,
+              "height": 16,
+              "top": 146.3394775390625,
+              "right": 291.3333396911621,
+              "bottom": 162.3394775390625,
+              "left": 253.4479217529297
+            },
+            "font": [
+              "10.5px",
+              "400",
+              "16px"
+            ],
+            "color": "rgb(106, 110, 119)",
+            "background": "rgba(0, 0, 0, 0)",
+            "display": "block",
+            "visibility": "visible"
+          }
+        }
+      }
+    },
+    {
+      "label": "r13-benefits-grace-vi-light-320-geometry",
+      "time": "2026-10-27T12:04:14.857Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-DfgZV_HM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-64PWOPxR.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-CeIzW7G_.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-DSAJ71ku.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BgXnWYv9.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "data": {
+        "cards": [
+          {
+            "class": "vb-wrap vb-wrap--embedded",
+            "rect": {
+              "x": 16,
+              "y": 133.7065887451172,
+              "width": 138,
+              "height": 201.33334350585938,
+              "top": 133.7065887451172,
+              "right": 154,
+              "bottom": 335.03993225097656,
+              "left": 16
+            }
+          },
+          {
+            "class": "nx-trial-hero nx-trial-hero--embedded nx-trial-hero--long-copy nx-trial-hero--lifecycle nx-trial-hero--card-entry",
+            "state": "grace",
+            "rect": {
+              "x": 166,
+              "y": 133.7065887451172,
+              "width": 138,
+              "height": 201.33334350585938,
+              "top": 133.7065887451172,
+              "right": 304,
+              "bottom": 335.03993225097656,
+              "left": 166
+            }
+          }
+        ],
+        "hero": {
+          "role": "button",
+          "tabindex": "0",
+          "aria": "Đã hết dùng thử · Còn khấu trừ · UVELBox S1 · Xem dùng thử",
+          "display": "flex",
+          "direction": "column",
+          "children": [
+            {
+              "class": "trial-aura",
+              "rect": {
+                "x": 180,
+                "y": 298.3732604980469,
+                "width": 110,
+                "height": 22,
+                "top": 298.3732604980469,
+                "right": 290,
+                "bottom": 320.3732604980469,
+                "left": 180
+              },
+              "order": "0",
+              "position": "absolute"
+            },
+            {
+              "class": "trial-art",
+              "rect": {
+                "x": 187,
+                "y": 232.37326049804688,
+                "width": 96,
+                "height": 96,
+                "top": 232.37326049804688,
+                "right": 283,
+                "bottom": 328.3732604980469,
+                "left": 187
+              },
+              "order": "1",
+              "position": "relative"
+            },
+            {
+              "class": "trial-meta",
+              "rect": {
+                "x": 166.6666717529297,
+                "y": 134.37326049804688,
+                "width": 136.6666717529297,
+                "height": 94,
+                "top": 134.37326049804688,
+                "right": 303.3333435058594,
+                "bottom": 228.37326049804688,
+                "left": 166.6666717529297
+              },
+              "order": "0",
+              "position": "relative"
+            }
+          ],
+          "ctas": 0,
+          "statusRow": {
+            "x": 178.6666717529297,
+            "y": 146.37326049804688,
+            "width": 112.66667175292969,
+            "height": 16,
+            "top": 146.37326049804688,
+            "right": 291.3333435058594,
+            "bottom": 162.37326049804688,
+            "left": 178.6666717529297
+          },
+          "countdown": {
+            "text": "6d 0h:01",
+            "rect": {
+              "x": 253.08334350585938,
+              "y": 146.37326049804688,
+              "width": 38.25,
+              "height": 16,
+              "top": 146.37326049804688,
+              "right": 291.3333435058594,
+              "bottom": 162.37326049804688,
+              "left": 253.08334350585938
+            },
+            "font": [
+              "10.5px",
+              "400",
+              "16px"
+            ],
+            "color": "rgb(106, 110, 119)",
+            "background": "rgba(0, 0, 0, 0)",
+            "display": "block",
+            "visibility": "visible"
+          }
+        }
+      }
+    },
+    {
+      "label": "r13-benefits-ended-vi-light-320-geometry",
+      "time": "2026-10-27T12:04:15.375Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-DfgZV_HM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-64PWOPxR.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-CeIzW7G_.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-DSAJ71ku.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BgXnWYv9.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "data": {
+        "cards": [
+          {
+            "class": "vb-wrap vb-wrap--embedded",
+            "rect": {
+              "x": 16,
+              "y": 133.7112274169922,
+              "width": 138,
+              "height": 223.3332977294922,
+              "top": 133.7112274169922,
+              "right": 154,
+              "bottom": 357.0445251464844,
+              "left": 16
+            }
+          },
+          {
+            "class": "nx-trial-hero nx-trial-hero--embedded nx-trial-hero--long-copy nx-trial-hero--lifecycle nx-trial-hero--card-entry",
+            "state": "ended",
+            "rect": {
+              "x": 166,
+              "y": 133.7112274169922,
+              "width": 138,
+              "height": 223.3332977294922,
+              "top": 133.7112274169922,
+              "right": 304,
+              "bottom": 357.0445251464844,
+              "left": 166
+            }
+          }
+        ],
+        "hero": {
+          "role": "button",
+          "tabindex": "0",
+          "aria": "Đã kết thúc dùng thử · UVELBox S1 · Chọn mua thiết bị",
+          "display": "flex",
+          "direction": "column",
+          "children": [
+            {
+              "class": "trial-aura",
+              "rect": {
+                "x": 180,
+                "y": 320.3778991699219,
+                "width": 110,
+                "height": 22,
+                "top": 320.3778991699219,
+                "right": 290,
+                "bottom": 342.3778991699219,
+                "left": 180
+              },
+              "order": "0",
+              "position": "absolute"
+            },
+            {
+              "class": "trial-art",
+              "rect": {
+                "x": 187,
+                "y": 254.37789916992188,
+                "width": 96,
+                "height": 95.99996185302734,
+                "top": 254.37789916992188,
+                "right": 283,
+                "bottom": 350.3778610229492,
+                "left": 187
+              },
+              "order": "1",
+              "position": "relative"
+            },
+            {
+              "class": "trial-meta",
+              "rect": {
+                "x": 166.6666717529297,
+                "y": 134.37789916992188,
+                "width": 136.6666717529297,
+                "height": 116,
+                "top": 134.37789916992188,
+                "right": 303.3333435058594,
+                "bottom": 250.37789916992188,
+                "left": 166.6666717529297
+              },
+              "order": "0",
+              "position": "relative"
+            }
+          ],
+          "ctas": 0,
+          "countdown": null
+        }
+      }
+    },
+    {
+      "label": "r13-benefits-unclaimed-vi-light-320-geometry",
+      "time": "2026-10-27T12:05:42.871Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-DfgZV_HM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-64PWOPxR.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-CeIzW7G_.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-DSAJ71ku.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BgXnWYv9.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "data": {
+        "cards": [
+          {
+            "class": "vb-wrap vb-wrap--embedded",
+            "rect": {
+              "x": 16,
+              "y": 133.7020721435547,
+              "width": 138,
+              "height": 283.3333435058594,
+              "top": 133.7020721435547,
+              "right": 154,
+              "bottom": 417.03541564941406,
+              "left": 16
+            }
+          },
+          {
+            "class": "nx-trial-hero nx-trial-hero--embedded nx-trial-hero--long-copy",
+            "state": "none",
+            "rect": {
+              "x": 166,
+              "y": 133.7020721435547,
+              "width": 138,
+              "height": 283.3333435058594,
+              "top": 133.7020721435547,
+              "right": 304,
+              "bottom": 417.03541564941406,
+              "left": 166
+            }
+          }
+        ],
+        "hero": {
+          "role": null,
+          "tabindex": null,
+          "aria": null,
+          "display": "flex",
+          "direction": "column",
+          "children": [
+            {
+              "class": "trial-aura",
+              "rect": {
+                "x": 187.33334350585938,
+                "y": 376.3687438964844,
+                "width": 110,
+                "height": 22,
+                "top": 376.3687438964844,
+                "right": 297.3333435058594,
+                "bottom": 398.3687438964844,
+                "left": 187.33334350585938
+              },
+              "order": "0",
+              "position": "absolute"
+            },
+            {
+              "class": "trial-art",
+              "rect": {
+                "x": 217.33334350585938,
+                "y": 258.3687438964844,
+                "width": 92,
+                "height": 92,
+                "top": 258.3687438964844,
+                "right": 309.3333435058594,
+                "bottom": 350.3687438964844,
+                "left": 217.33334350585938
+              },
+              "order": "2",
+              "position": "relative"
+            },
+            {
+              "class": "trial-meta",
+              "rect": {
+                "x": 166.6666717529297,
+                "y": 134.36874389648438,
+                "width": 136.6666717529297,
+                "height": 124,
+                "top": 134.36874389648438,
+                "right": 303.3333435058594,
+                "bottom": 258.3687438964844,
+                "left": 166.6666717529297
+              },
+              "order": "1",
+              "position": "relative"
+            },
+            {
+              "class": "trial-cta nx-design-glass",
+              "rect": {
+                "x": 180.6666717529297,
+                "y": 358.3687438964844,
+                "width": 108.66667175292969,
+                "height": 44,
+                "top": 358.3687438964844,
+                "right": 289.3333435058594,
+                "bottom": 402.3687438964844,
+                "left": 180.6666717529297
+              },
+              "order": "3",
+              "position": "relative"
+            }
+          ],
+          "ctas": 1,
+          "countdown": null
+        }
+      }
+    },
+    {
+      "label": "r13-benefits-unclaimed-zh-dark-390-geometry",
+      "time": "2026-10-27T12:05:44.278Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-DfgZV_HM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-64PWOPxR.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-CeIzW7G_.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-DSAJ71ku.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BgXnWYv9.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "dark",
+      "locale": "zh",
+      "viewport": [
+        390,
+        844
+      ],
+      "overflow": 0,
+      "data": {
+        "cards": [
+          {
+            "class": "vb-wrap vb-wrap--embedded",
+            "rect": {
+              "x": 16,
+              "y": 133.69821166992188,
+              "width": 173,
+              "height": 184,
+              "top": 133.69821166992188,
+              "right": 189,
+              "bottom": 317.6982116699219,
+              "left": 16
+            }
+          },
+          {
+            "class": "nx-trial-hero nx-trial-hero--embedded",
+            "state": "none",
+            "rect": {
+              "x": 201,
+              "y": 133.69821166992188,
+              "width": 173,
+              "height": 184,
+              "top": 133.69821166992188,
+              "right": 374,
+              "bottom": 317.6982116699219,
+              "left": 201
+            }
+          }
+        ],
+        "hero": {
+          "role": null,
+          "tabindex": null,
+          "aria": null,
+          "display": "block",
+          "direction": "row",
+          "children": [
+            {
+              "class": "trial-aura",
+              "rect": {
+                "x": 257.3333435058594,
+                "y": 277.03155517578125,
+                "width": 110,
+                "height": 22,
+                "top": 277.03155517578125,
+                "right": 367.3333435058594,
+                "bottom": 299.03155517578125,
+                "left": 257.3333435058594
+              },
+              "order": "0",
+              "position": "absolute"
+            },
+            {
+              "class": "trial-art",
+              "rect": {
+                "x": 261.3333435058594,
+                "y": 191.0315399169922,
+                "width": 118,
+                "height": 118,
+                "top": 191.0315399169922,
+                "right": 379.3333435058594,
+                "bottom": 309.0315399169922,
+                "left": 261.3333435058594
+              },
+              "order": "0",
+              "position": "absolute"
+            },
+            {
+              "class": "trial-meta",
+              "rect": {
+                "x": 201.6666717529297,
+                "y": 134.3648681640625,
+                "width": 171.6666717529297,
+                "height": 106,
+                "top": 134.3648681640625,
+                "right": 373.3333435058594,
+                "bottom": 240.3648681640625,
+                "left": 201.6666717529297
+              },
+              "order": "0",
+              "position": "relative"
+            },
+            {
+              "class": "trial-cta nx-design-glass",
+              "rect": {
+                "x": 215.6666717529297,
+                "y": 259.03155517578125,
+                "width": 80,
+                "height": 44,
+                "top": 259.03155517578125,
+                "right": 295.6666717529297,
+                "bottom": 303.03155517578125,
+                "left": 215.6666717529297
+              },
+              "order": "0",
+              "position": "absolute"
+            }
+          ],
+          "ctas": 1,
+          "countdown": null
+        }
+      }
+    },
+    {
+      "label": "r13-benefits-active-zh-dark-390-geometry",
+      "time": "2026-10-27T12:06:55.726Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-DfgZV_HM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-64PWOPxR.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-CeIzW7G_.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-DSAJ71ku.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BgXnWYv9.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "dark",
+      "locale": "zh",
+      "viewport": [
+        390,
+        844
+      ],
+      "overflow": 0,
+      "data": {
+        "cards": [
+          {
+            "class": "vb-wrap vb-wrap--embedded",
+            "rect": {
+              "x": 16,
+              "y": 133.69125366210938,
+              "width": 173,
+              "height": 204.67709350585938,
+              "top": 133.69125366210938,
+              "right": 189,
+              "bottom": 338.36834716796875,
+              "left": 16
+            }
+          },
+          {
+            "class": "nx-trial-hero nx-trial-hero--embedded nx-trial-hero--lifecycle nx-trial-hero--card-entry",
+            "state": "active",
+            "rect": {
+              "x": 201,
+              "y": 133.69125366210938,
+              "width": 173,
+              "height": 204.67709350585938,
+              "top": 133.69125366210938,
+              "right": 374,
+              "bottom": 338.36834716796875,
+              "left": 201
+            }
+          }
+        ],
+        "hero": {
+          "role": "button",
+          "tabindex": "0",
+          "aria": "免费试用中 · UVELBox S1 · 查看试用",
+          "display": "flex",
+          "direction": "column",
+          "children": [
+            {
+              "class": "trial-aura",
+              "rect": {
+                "x": 232.5,
+                "y": 301.70166015625,
+                "width": 110,
+                "height": 22,
+                "top": 301.70166015625,
+                "right": 342.5,
+                "bottom": 323.70166015625,
+                "left": 232.5
+              },
+              "order": "0",
+              "position": "absolute"
+            },
+            {
+              "class": "trial-art",
+              "rect": {
+                "x": 233.5,
+                "y": 223.70166015625,
+                "width": 108,
+                "height": 108,
+                "top": 223.70166015625,
+                "right": 341.5,
+                "bottom": 331.70166015625,
+                "left": 233.5
+              },
+              "order": "1",
+              "position": "relative"
+            },
+            {
+              "class": "trial-meta",
+              "rect": {
+                "x": 201.6666717529297,
+                "y": 134.35791015625,
+                "width": 171.6666717529297,
+                "height": 87.34375,
+                "top": 134.35791015625,
+                "right": 373.3333435058594,
+                "bottom": 221.70166015625,
+                "left": 201.6666717529297
+              },
+              "order": "0",
+              "position": "relative"
+            }
+          ],
+          "ctas": 0,
+          "statusRow": {
+            "x": 215.6666717529297,
+            "y": 148.35791015625,
+            "width": 143.6666717529297,
+            "height": 18.75,
+            "top": 148.35791015625,
+            "right": 359.3333435058594,
+            "bottom": 167.10791015625,
+            "left": 215.6666717529297
+          },
+          "countdown": {
+            "text": "2d 0h:01",
+            "rect": {
+              "x": 319.63543701171875,
+              "y": 149.0245819091797,
+              "width": 39.69791793823242,
+              "height": 18,
+              "top": 149.0245819091797,
+              "right": 359.3333549499512,
+              "bottom": 167.0245819091797,
+              "left": 319.63543701171875
+            },
+            "font": [
+              "11px",
+              "400",
+              "18px"
+            ],
+            "color": "rgb(155, 163, 181)",
+            "background": "rgba(0, 0, 0, 0)",
+            "display": "block",
+            "visibility": "visible"
+          }
+        }
+      }
+    },
+    {
+      "label": "r13-active-card-enter-destination",
+      "time": "2026-10-27T12:09:32.517Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-DfgZV_HM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-64PWOPxR.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-CeIzW7G_.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-DSAJ71ku.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BgXnWYv9.css",
+        "http://127.0.0.1:5254/assets/sub-page-header-ClEhqBiM.css",
+        "http://127.0.0.1:5254/assets/trial-Cr6VJnLf.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/me/trial",
+      "theme": "dark",
+      "locale": "zh",
+      "viewport": [
+        390,
+        844
+      ],
+      "overflow": 0,
+      "data": {
+        "body": "免费试用\nUVELBox S1\n免费体验中\nUVEL Box S1\n已累计试用收益\n$\n38.59\n+ 65.12 UVT\n试用期内,抵扣金持续累加\n剩余时间\n1 天 23 小时\n开始 2026/10/26\n购买截止 2026/11/05\n当前可抵购机款\n$38.59\n试用期预计抵扣\n≈ $50.00\n现在即可购买；仅按当前已累计抵扣结算，购买后试用结束。\n立即购买 · 可抵 $38.59\n查看抵扣规则\n去赚取页看试用抵扣金 →"
+      }
+    },
+    {
+      "label": "r13-inventory-zh-dark-390",
+      "time": "2026-10-27T12:09:33.125Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-DfgZV_HM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-64PWOPxR.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-CeIzW7G_.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-DSAJ71ku.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BgXnWYv9.css",
+        "http://127.0.0.1:5254/assets/sub-page-header-ClEhqBiM.css",
+        "http://127.0.0.1:5254/assets/trial-Cr6VJnLf.css",
+        "http://127.0.0.1:5254/assets/compute-share-entry-DabWMmmY.css",
+        "http://127.0.0.1:5254/assets/devices-BJkU9Gjp.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/me/devices",
+      "theme": "dark",
+      "locale": "zh",
+      "viewport": [
+        390,
+        844
+      ],
+      "overflow": 0,
+      "data": {
+        "trialArt": {
+          "x": 32.66666793823242,
+          "y": 168.6666717529297,
+          "width": 64,
+          "height": 64,
+          "top": 168.6666717529297,
+          "right": 96.66666793823242,
+          "bottom": 232.6666717529297,
+          "left": 32.66666793823242
+        },
+        "rows": [
+          {
+            "key": "device:41",
+            "art": {
+              "x": 32.66666793823242,
+              "y": 257.3333435058594,
+              "width": 64,
+              "height": 64,
+              "top": 257.3333435058594,
+              "right": 96.66666793823242,
+              "bottom": 321.3333435058594,
+              "left": 32.66666793823242
+            },
+            "status": {
+              "text": "Online",
+              "color": "rgb(155, 163, 181)",
+              "dot": [
+                "7px",
+                "7px",
+                "rgb(158, 220, 29)"
+              ]
+            },
+            "spec": {
+              "x": 32.66666793823242,
+              "y": 346.3333435058594,
+              "width": 232.6666717529297,
+              "height": 18,
+              "top": 346.3333435058594,
+              "right": 265.3333396911621,
+              "bottom": 364.3333435058594,
+              "left": 32.66666793823242
+            },
+            "action": {
+              "text": "取消激活",
+              "rect": {
+                "x": 277.3333435058594,
+                "y": 333.3333435058594,
+                "width": 80,
+                "height": 44,
+                "top": 333.3333435058594,
+                "right": 357.3333435058594,
+                "bottom": 377.3333435058594,
+                "left": 277.3333435058594
+              },
+              "beforeHeight": "32px"
+            }
+          },
+          {
+            "key": "device:42",
+            "art": {
+              "x": 32.66666793823242,
+              "y": 402,
+              "width": 64,
+              "height": 64,
+              "top": 402,
+              "right": 96.66666793823242,
+              "bottom": 466,
+              "left": 32.66666793823242
+            },
+            "status": {
+              "text": "Online",
+              "color": "rgb(155, 163, 181)",
+              "dot": [
+                "7px",
+                "7px",
+                "rgb(158, 220, 29)"
+              ]
+            },
+            "action": null
+          }
+        ]
+      }
+    },
+    {
+      "label": "r13-inventory-vi-light-320",
+      "time": "2026-10-27T12:10:18.974Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-DfgZV_HM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-64PWOPxR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-CeIzW7G_.css",
+        "http://127.0.0.1:5254/assets/sub-page-header-ClEhqBiM.css",
+        "http://127.0.0.1:5254/assets/compute-share-entry-DabWMmmY.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/devices-BJkU9Gjp.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/me/devices",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "data": {
+        "trial": {
+          "art": {
+            "x": 32.66666793823242,
+            "y": 156.6666717529297,
+            "width": 56,
+            "height": 56,
+            "top": 156.6666717529297,
+            "right": 88.66666793823242,
+            "bottom": 212.6666717529297,
+            "left": 32.66666793823242
+          },
+          "name": {
+            "x": 100.66667175292969,
+            "y": 165.27084350585938,
+            "width": 76.11458587646484,
+            "height": 16.791667938232422,
+            "top": 165.27084350585938,
+            "right": 176.78125762939453,
+            "bottom": 182.0625114440918,
+            "left": 100.66667175292969
+          },
+          "remaining": {
+            "x": 184.78125,
+            "y": 186.0625,
+            "width": 70.55208587646484,
+            "height": 14.395833969116211,
+            "top": 186.0625,
+            "right": 255.33333587646484,
+            "bottom": 200.4583339691162,
+            "left": 184.78125
+          },
+          "status": "Online"
+        },
+        "rows": [
+          {
+            "key": "device:41",
+            "art": {
+              "x": 32.66666793823242,
+              "y": 237.33334350585938,
+              "width": 56,
+              "height": 56,
+              "top": 237.33334350585938,
+              "right": 88.66666793823242,
+              "bottom": 293.3333435058594,
+              "left": 32.66666793823242
+            },
+            "status": {
+              "text": "Online",
+              "dot": [
+                "7px",
+                "7px",
+                "rgb(14, 142, 74)"
+              ]
+            },
+            "spec": {
+              "text": "$6.20/ngày · GPU",
+              "rect": {
+                "x": 32.66666793823242,
+                "y": 318.3333435058594,
+                "width": 178.6666717529297,
+                "height": 18,
+                "top": 318.3333435058594,
+                "right": 211.3333396911621,
+                "bottom": 336.3333435058594,
+                "left": 32.66666793823242
+              }
+            },
+            "action": {
+              "text": "Tắt",
+              "rect": {
+                "x": 223.33334350585938,
+                "y": 305.3333435058594,
+                "width": 64,
+                "height": 44,
+                "top": 305.3333435058594,
+                "right": 287.3333435058594,
+                "bottom": 349.3333435058594,
+                "left": 223.33334350585938
+              },
+              "beforeHeight": "32px"
+            }
+          },
+          {
+            "key": "device:42",
+            "art": {
+              "x": 32.66666793823242,
+              "y": 374,
+              "width": 56,
+              "height": 56,
+              "top": 374,
+              "right": 88.66666793823242,
+              "bottom": 430,
+              "left": 32.66666793823242
+            },
+            "status": {
+              "text": "Online",
+              "dot": [
+                "7px",
+                "7px",
+                "rgb(14, 142, 74)"
+              ]
+            },
+            "spec": null,
+            "action": null
+          }
+        ]
+      }
+    },
+    {
+      "label": "r13-deactivate-sheet-safe-area",
+      "time": "2026-10-27T12:12:54.067Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-DfgZV_HM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-64PWOPxR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-CeIzW7G_.css",
+        "http://127.0.0.1:5254/assets/sub-page-header-ClEhqBiM.css",
+        "http://127.0.0.1:5254/assets/compute-share-entry-DabWMmmY.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/devices-BJkU9Gjp.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/me/devices",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "data": {
+        "panel": {
+          "x": 0,
+          "y": 326.54168701171875,
+          "width": 320,
+          "height": 366.79168701171875,
+          "top": 326.54168701171875,
+          "right": 320,
+          "bottom": 693.3333740234375,
+          "left": 0
+        },
+        "bottomGap": -0.3333740234375,
+        "buttons": [
+          {
+            "text": "",
+            "aria": "Đóng",
+            "rect": {
+              "x": 260,
+              "y": 344.54168701171875,
+              "width": 44,
+              "height": 44,
+              "top": 344.54168701171875,
+              "right": 304,
+              "bottom": 388.54168701171875,
+              "left": 260
+            },
+            "bottomGap": 304.45831298828125
+          },
+          {
+            "text": "Tự tắt sau khi xong nhiệm vụ",
+            "aria": null,
+            "rect": {
+              "x": 16,
+              "y": 503.3333435058594,
+              "width": 288,
+              "height": 48,
+              "top": 503.3333435058594,
+              "right": 304,
+              "bottom": 551.3333435058594,
+              "left": 16
+            },
+            "bottomGap": 141.66665649414062
+          },
+          {
+            "text": "Tắt ngay (bỏ tiền thưởng nhiệm vụ)",
+            "aria": null,
+            "rect": {
+              "x": 16,
+              "y": 559.3333740234375,
+              "width": 288,
+              "height": 48,
+              "top": 559.3333740234375,
+              "right": 304,
+              "bottom": 607.3333740234375,
+              "left": 16
+            },
+            "bottomGap": 85.6666259765625
+          },
+          {
+            "text": "Quay lại",
+            "aria": null,
+            "rect": {
+              "x": 16,
+              "y": 615.3333740234375,
+              "width": 288,
+              "height": 40,
+              "top": 615.3333740234375,
+              "right": 304,
+              "bottom": 655.3333740234375,
+              "left": 16
+            },
+            "bottomGap": 37.6666259765625
+          }
+        ]
+      }
+    },
+    {
+      "label": "r13-midbreakpoint-en-light-360",
+      "time": "2026-10-27T12:15:22.955Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-DfgZV_HM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-64PWOPxR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-CeIzW7G_.css",
+        "http://127.0.0.1:5254/assets/sub-page-header-ClEhqBiM.css",
+        "http://127.0.0.1:5254/assets/compute-share-entry-DabWMmmY.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/devices-BJkU9Gjp.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-DSAJ71ku.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BgXnWYv9.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "light",
+      "locale": "en",
+      "viewport": [
+        360,
+        780
+      ],
+      "overflow": 0,
+      "data": {
+        "brand": {
+          "x": 16,
+          "y": 6.5,
+          "width": 124,
+          "height": 43,
+          "top": 6.5,
+          "right": 140,
+          "bottom": 49.5,
+          "left": 16
+        },
+        "top": [
+          {
+            "hit": {
+              "x": 248,
+              "y": 6,
+              "width": 44,
+              "height": 44,
+              "top": 6,
+              "right": 292,
+              "bottom": 50,
+              "left": 248
+            },
+            "face": {
+              "x": 250,
+              "y": 8,
+              "width": 40,
+              "height": 40,
+              "top": 8,
+              "right": 290,
+              "bottom": 48,
+              "left": 250
+            },
+            "icon": {
+              "x": 260.5,
+              "y": 18.5,
+              "width": 19,
+              "height": 19,
+              "top": 18.5,
+              "right": 279.5,
+              "bottom": 37.5,
+              "left": 260.5
+            }
+          },
+          {
+            "hit": {
+              "x": 300,
+              "y": 6,
+              "width": 44,
+              "height": 44,
+              "top": 6,
+              "right": 344,
+              "bottom": 50,
+              "left": 300
+            },
+            "face": {
+              "x": 302,
+              "y": 8,
+              "width": 40,
+              "height": 40,
+              "top": 8,
+              "right": 342,
+              "bottom": 48,
+              "left": 302
+            },
+            "icon": {
+              "x": 312.5,
+              "y": 18.5,
+              "width": 19,
+              "height": 19,
+              "top": 18.5,
+              "right": 331.5,
+              "bottom": 37.5,
+              "left": 312.5
+            }
+          }
+        ],
+        "checkin": {
+          "flame": {
+            "x": 28.666667938232422,
+            "y": 299,
+            "width": 32,
+            "height": 32,
+            "top": 299,
+            "right": 60.66666793823242,
+            "bottom": 331,
+            "left": 28.666667938232422
+          },
+          "button": {
+            "x": 261.29168701171875,
+            "y": 293,
+            "width": 70.04167175292969,
+            "height": 44,
+            "top": 293,
+            "right": 331.33335876464844,
+            "bottom": 337,
+            "left": 261.29168701171875
+          }
+        }
+      }
+    },
+    {
+      "label": "r13-benefits-active-en-light-360-geometry",
+      "time": "2026-10-27T12:15:23.606Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-DfgZV_HM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-64PWOPxR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-CeIzW7G_.css",
+        "http://127.0.0.1:5254/assets/sub-page-header-ClEhqBiM.css",
+        "http://127.0.0.1:5254/assets/compute-share-entry-DabWMmmY.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/devices-BJkU9Gjp.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-DSAJ71ku.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BgXnWYv9.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "light",
+      "locale": "en",
+      "viewport": [
+        360,
+        780
+      ],
+      "overflow": 0,
+      "data": {
+        "cards": [
+          {
+            "class": "vb-wrap vb-wrap--embedded",
+            "rect": {
+              "x": 16,
+              "y": 133.06787109375,
+              "width": 158,
+              "height": 201.33334350585938,
+              "top": 133.06787109375,
+              "right": 174,
+              "bottom": 334.4012145996094,
+              "left": 16
+            }
+          },
+          {
+            "class": "nx-trial-hero nx-trial-hero--embedded nx-trial-hero--long-copy nx-trial-hero--lifecycle nx-trial-hero--card-entry",
+            "state": "active",
+            "rect": {
+              "x": 186,
+              "y": 133.06787109375,
+              "width": 158,
+              "height": 201.33334350585938,
+              "top": 133.06787109375,
+              "right": 344,
+              "bottom": 334.4012145996094,
+              "left": 186
+            }
+          }
+        ],
+        "hero": {
+          "role": "button",
+          "tabindex": "0",
+          "aria": "Free trial active · UVELBox S1 · View trial",
+          "display": "flex",
+          "direction": "column",
+          "children": [
+            {
+              "class": "trial-aura",
+              "rect": {
+                "x": 210,
+                "y": 297.73455810546875,
+                "width": 110,
+                "height": 22,
+                "top": 297.73455810546875,
+                "right": 320,
+                "bottom": 319.73455810546875,
+                "left": 210
+              },
+              "order": "0",
+              "position": "absolute"
+            },
+            {
+              "class": "trial-art",
+              "rect": {
+                "x": 217,
+                "y": 231.7345428466797,
+                "width": 96,
+                "height": 96,
+                "top": 231.7345428466797,
+                "right": 313,
+                "bottom": 327.7345428466797,
+                "left": 217
+              },
+              "order": "1",
+              "position": "relative"
+            },
+            {
+              "class": "trial-meta",
+              "rect": {
+                "x": 186.6666717529297,
+                "y": 133.7345428466797,
+                "width": 156.6666717529297,
+                "height": 94,
+                "top": 133.7345428466797,
+                "right": 343.3333435058594,
+                "bottom": 227.7345428466797,
+                "left": 186.6666717529297
+              },
+              "order": "0",
+              "position": "relative"
+            }
+          ],
+          "ctas": 0,
+          "statusRow": {
+            "x": 198.6666717529297,
+            "y": 145.7345428466797,
+            "width": 132.6666717529297,
+            "height": 16,
+            "top": 145.7345428466797,
+            "right": 331.3333435058594,
+            "bottom": 161.7345428466797,
+            "left": 198.6666717529297
+          },
+          "countdown": {
+            "text": "1d 23h:52",
+            "rect": {
+              "x": 288.72918701171875,
+              "y": 145.7345428466797,
+              "width": 42.60416793823242,
+              "height": 16,
+              "top": 145.7345428466797,
+              "right": 331.3333549499512,
+              "bottom": 161.7345428466797,
+              "left": 288.72918701171875
+            },
+            "font": [
+              "10.5px",
+              "400",
+              "16px"
+            ],
+            "color": "rgb(106, 110, 119)",
+            "background": "rgba(0, 0, 0, 0)",
+            "display": "block",
+            "visibility": "visible"
+          }
+        }
+      }
+    },
+    {
+      "label": "reload-verified",
+      "time": "2026-10-27T12:22:22.405Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-DfgZV_HM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-64PWOPxR.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-CeIzW7G_.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-DSAJ71ku.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BgXnWYv9.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        390,
+        844
+      ],
+      "overflow": 0,
+      "data": {
+        "title": "UVEL",
+        "body": "3\nChào buổi tối, Alex\nThu nhập hôm nay\nđang chảy về\n$\n16.24\n→ 0.0% so với hôm qua · đã hoàn tất 10 t"
+      }
+    },
+    {
+      "label": "r13-360-top-settled",
+      "time": "2026-10-27T12:22:30.639Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-DfgZV_HM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-64PWOPxR.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-CeIzW7G_.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-DSAJ71ku.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BgXnWYv9.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/index/index",
+      "theme": "light",
+      "locale": "en",
+      "viewport": [
+        360,
+        780
+      ],
+      "overflow": 0,
+      "data": {
+        "roots": []
+      }
+    },
+    {
+      "label": "retry-developer-docs-vi320",
+      "time": "2026-10-27T12:22:59.722Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-DfgZV_HM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-64PWOPxR.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-CeIzW7G_.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-DSAJ71ku.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BgXnWYv9.css",
+        "http://127.0.0.1:5254/assets/sub-page-header-ClEhqBiM.css",
+        "http://127.0.0.1:5254/assets/developer-BBPSsVQQ.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/developer/developer",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "data": [
+        {
+          "text": "Thử lại",
+          "label": {
+            "x": 44,
+            "y": 360.5,
+            "width": 232,
+            "height": 20,
+            "top": 360.5,
+            "right": 276,
+            "bottom": 380.5,
+            "left": 44
+          },
+          "font": {
+            "font": [
+              "13px",
+              "600",
+              "20px"
+            ],
+            "color": "rgb(19, 20, 26)",
+            "background": "rgba(0, 0, 0, 0)",
+            "display": "block",
+            "visibility": "visible"
+          },
+          "hit": {
+            "x": 32,
+            "y": 328.5,
+            "width": 256,
+            "height": 62,
+            "top": 328.5,
+            "right": 288,
+            "bottom": 390.5,
+            "left": 32
+          }
+        }
+      ]
+    },
+    {
+      "label": "retry-raffle-vi320",
+      "time": "2026-10-27T12:23:11.394Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-DfgZV_HM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-64PWOPxR.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-CeIzW7G_.css",
+        "http://127.0.0.1:5254/assets/daily-check-in-row-DSAJ71ku.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/device-slot-CLCoDqc9.css",
+        "http://127.0.0.1:5254/assets/trial-device-row-DU82OTma.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/index-BgXnWYv9.css",
+        "http://127.0.0.1:5254/assets/sub-page-header-ClEhqBiM.css",
+        "http://127.0.0.1:5254/assets/developer-BBPSsVQQ.css",
+        "http://127.0.0.1:5254/assets/genesis-raffle-HAczr2Y2.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/events/genesis-raffle",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "data": [
+        {
+          "text": "Thử lại",
+          "font": {
+            "font": [
+              "13px",
+              "600",
+              "20px"
+            ],
+            "color": "rgb(14, 72, 230)",
+            "background": "rgba(0, 0, 0, 0)",
+            "display": "block",
+            "visibility": "visible"
+          },
+          "hit": {
+            "x": 32,
+            "y": 230.39584350585938,
+            "width": 256,
+            "height": 46,
+            "top": 230.39584350585938,
+            "right": 288,
+            "bottom": 276.3958435058594,
+            "left": 32
+          }
+        }
+      ]
+    },
+    {
+      "label": "retry-event-detail-vi320",
+      "time": "2026-10-27T12:23:55.482Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-DfgZV_HM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-64PWOPxR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-CeIzW7G_.css",
+        "http://127.0.0.1:5254/assets/sub-page-header-ClEhqBiM.css",
+        "http://127.0.0.1:5254/assets/card-stagger-BAUXl1m9.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/events-CPZrzwfL.css",
+        "http://127.0.0.1:5254/assets/detail-BdPXEuNd.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/events/detail?id=demo-upgrade",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "data": [
+        {
+          "text": "Thử lại",
+          "font": {
+            "font": [
+              "13px",
+              "600",
+              "20px"
+            ],
+            "color": "rgb(14, 72, 230)",
+            "background": "rgba(0, 0, 0, 0)",
+            "display": "block",
+            "visibility": "visible"
+          },
+          "hit": {
+            "x": 16,
+            "y": 152.25,
+            "width": 288,
+            "height": 46,
+            "top": 152.25,
+            "right": 304,
+            "bottom": 198.25,
+            "left": 16
+          }
+        }
+      ]
+    },
+    {
+      "label": "retry-marketplace-vi320",
+      "time": "2026-10-27T12:24:03.717Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-DfgZV_HM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-64PWOPxR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-CeIzW7G_.css",
+        "http://127.0.0.1:5254/assets/sub-page-header-ClEhqBiM.css",
+        "http://127.0.0.1:5254/assets/card-stagger-BAUXl1m9.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/events-CPZrzwfL.css",
+        "http://127.0.0.1:5254/assets/detail-BdPXEuNd.css",
+        "http://127.0.0.1:5254/assets/genesis-artwork-LPgiZclf.css",
+        "http://127.0.0.1:5254/assets/eligibility-sheet-Cb22YfIo.css",
+        "http://127.0.0.1:5254/assets/marketplace-D2A2sIvj.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/genesis/marketplace",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "data": [
+        {
+          "text": "Thử lại",
+          "font": {
+            "font": [
+              "13px",
+              "600",
+              "20px"
+            ],
+            "color": "rgb(14, 72, 230)",
+            "background": "rgba(0, 0, 0, 0)",
+            "display": "block",
+            "visibility": "visible"
+          },
+          "hit": {
+            "x": 16,
+            "y": 858.5,
+            "width": 65,
+            "height": 44,
+            "top": 858.5,
+            "right": 81,
+            "bottom": 902.5,
+            "left": 16
+          }
+        }
+      ]
+    },
+    {
+      "label": "retry-register-download-vi320",
+      "time": "2026-10-27T12:24:23.307Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-DfgZV_HM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-64PWOPxR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-CeIzW7G_.css",
+        "http://127.0.0.1:5254/assets/sub-page-header-ClEhqBiM.css",
+        "http://127.0.0.1:5254/assets/card-stagger-BAUXl1m9.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/events-CPZrzwfL.css",
+        "http://127.0.0.1:5254/assets/detail-BdPXEuNd.css",
+        "http://127.0.0.1:5254/assets/genesis-artwork-LPgiZclf.css",
+        "http://127.0.0.1:5254/assets/eligibility-sheet-Cb22YfIo.css",
+        "http://127.0.0.1:5254/assets/marketplace-D2A2sIvj.css",
+        "http://127.0.0.1:5254/assets/standalone-page-shell-B6WTKa80.css",
+        "http://127.0.0.1:5254/assets/success-DFs6Zan-.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/register/success",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "data": [
+        {
+          "text": "Thử lại",
+          "font": {
+            "font": [
+              "13px",
+              "600",
+              "20px"
+            ],
+            "color": "rgb(14, 72, 230)",
+            "background": "rgb(255, 255, 255)",
+            "display": "flex",
+            "visibility": "visible"
+          },
+          "hit": {
+            "x": 24,
+            "y": 557.125,
+            "width": 256.66668701171875,
+            "height": 44,
+            "top": 557.125,
+            "right": 280.66668701171875,
+            "bottom": 601.125,
+            "left": 24
+          },
+          "visible": true
+        }
+      ]
+    },
+    {
+      "label": "retry-product-material-vi320",
+      "time": "2026-10-27T12:25:32.888Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-DfgZV_HM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-64PWOPxR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-CeIzW7G_.css",
+        "http://127.0.0.1:5254/assets/sub-page-header-ClEhqBiM.css",
+        "http://127.0.0.1:5254/assets/card-stagger-BAUXl1m9.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/events-CPZrzwfL.css",
+        "http://127.0.0.1:5254/assets/detail-BdPXEuNd.css",
+        "http://127.0.0.1:5254/assets/genesis-artwork-LPgiZclf.css",
+        "http://127.0.0.1:5254/assets/eligibility-sheet-Cb22YfIo.css",
+        "http://127.0.0.1:5254/assets/marketplace-D2A2sIvj.css",
+        "http://127.0.0.1:5254/assets/standalone-page-shell-B6WTKa80.css",
+        "http://127.0.0.1:5254/assets/success-DFs6Zan-.css",
+        "http://127.0.0.1:5254/assets/reward-rows-BiWv8z9R.css",
+        "http://127.0.0.1:5254/assets/promotion-CdusBIV4.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/nx-list-row-TJWSpHkz.css",
+        "http://127.0.0.1:5254/assets/store-CWwZOLTz.css",
+        "http://127.0.0.1:5254/assets/detail-B19-hjC7.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/store/detail?id=stellarbox-s1",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "data": [
+        {
+          "text": "Thử lại",
+          "font": {
+            "font": [
+              "13px",
+              "600",
+              "20px"
+            ],
+            "color": "rgb(19, 20, 26)",
+            "background": "rgba(0, 0, 0, 0)",
+            "display": "block",
+            "visibility": "visible"
+          },
+          "hit": {
+            "x": 32,
+            "y": 260,
+            "width": 97.35417175292969,
+            "height": 44,
+            "top": 260,
+            "right": 129.3541717529297,
+            "bottom": 304,
+            "left": 32
+          }
+        }
+      ]
+    },
+    {
+      "label": "retry-terms-vi320",
+      "time": "2026-10-27T12:25:42.296Z",
+      "entry": [
+        "http://127.0.0.1:5254/assets/index-DfgZV_HM.js"
+      ],
+      "css": [
+        "http://127.0.0.1:5254/assets/uni.c39fe708.css",
+        "https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap",
+        "https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap",
+        "http://127.0.0.1:5254/assets/index-64PWOPxR.css",
+        "http://127.0.0.1:5254/assets/liquid-glass-CtBmG5K8.css",
+        "http://127.0.0.1:5254/assets/brand-lockup-BuVYk5AL.css",
+        "http://127.0.0.1:5254/assets/global-ui-rtRD1Jcw.css",
+        "http://127.0.0.1:5254/assets/nova-avatar-D5GOd_PR.css",
+        "http://127.0.0.1:5254/assets/device-status-bar-Q_PY6aEV.css",
+        "http://127.0.0.1:5254/assets/app-chassis-CeIzW7G_.css",
+        "http://127.0.0.1:5254/assets/sub-page-header-ClEhqBiM.css",
+        "http://127.0.0.1:5254/assets/card-stagger-BAUXl1m9.css",
+        "http://127.0.0.1:5254/assets/team-art-DR37f503.css",
+        "http://127.0.0.1:5254/assets/nx-sheet-DbVsiSWQ.css",
+        "http://127.0.0.1:5254/assets/disclosure-details-BnM275Gf.css",
+        "http://127.0.0.1:5254/assets/promotion-terms-BV3PvWse.css",
+        "http://127.0.0.1:5254/assets/catalog-machine-image-Sr0pZ4Bd.css",
+        "http://127.0.0.1:5254/assets/promotion-entry-zHMQocHU.css",
+        "http://127.0.0.1:5254/assets/events-CPZrzwfL.css",
+        "http://127.0.0.1:5254/assets/detail-BdPXEuNd.css",
+        "http://127.0.0.1:5254/assets/genesis-artwork-LPgiZclf.css",
+        "http://127.0.0.1:5254/assets/eligibility-sheet-Cb22YfIo.css",
+        "http://127.0.0.1:5254/assets/marketplace-D2A2sIvj.css",
+        "http://127.0.0.1:5254/assets/standalone-page-shell-B6WTKa80.css",
+        "http://127.0.0.1:5254/assets/success-DFs6Zan-.css",
+        "http://127.0.0.1:5254/assets/reward-rows-BiWv8z9R.css",
+        "http://127.0.0.1:5254/assets/promotion-CdusBIV4.css",
+        "http://127.0.0.1:5254/assets/nx-section-rLmXDH8J.css",
+        "http://127.0.0.1:5254/assets/nx-list-group-BmH7i_UJ.css",
+        "http://127.0.0.1:5254/assets/nx-list-row-TJWSpHkz.css",
+        "http://127.0.0.1:5254/assets/store-CWwZOLTz.css",
+        "http://127.0.0.1:5254/assets/detail-B19-hjC7.css",
+        "http://127.0.0.1:5254/assets/terms-NQAJsgNz.css"
+      ],
+      "url": "http://127.0.0.1:5254/?nx_device=off#/pages/onboarding/terms",
+      "theme": "light",
+      "locale": "vi",
+      "viewport": [
+        320,
+        693
+      ],
+      "overflow": 0,
+      "data": [
+        {
+          "text": "Thử lại",
+          "font": {
+            "font": [
+              "13px",
+              "600",
+              "20px"
+            ],
+            "color": "rgb(255, 255, 255)",
+            "background": "rgba(0, 0, 0, 0)",
+            "display": "inline",
+            "visibility": "visible"
+          },
+          "hit": {
+            "x": 36,
+            "y": 194.25,
+            "width": 69,
+            "height": 36,
+            "top": 194.25,
+            "right": 105,
+            "bottom": 230.25,
+            "left": 36
+          }
+        }
+      ]
+    }
+  ],
+  "photos": [
+    {
+      "file": "r13-benefits-converted-order-vi-light-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "bytes": 166942,
+      "time": "2026-10-27T12:03:44.895Z"
+    },
+    {
+      "file": "r13-benefits-active-vi-light-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "bytes": 159366,
+      "time": "2026-10-27T12:04:14.436Z"
+    },
+    {
+      "file": "r13-benefits-grace-vi-light-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "bytes": 166375,
+      "time": "2026-10-27T12:04:14.975Z"
+    },
+    {
+      "file": "r13-benefits-ended-vi-light-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "bytes": 164426,
+      "time": "2026-10-27T12:04:15.503Z"
+    },
+    {
+      "file": "r13-benefits-unclaimed-vi-light-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "bytes": 178268,
+      "time": "2026-10-27T12:05:42.986Z"
+    },
+    {
+      "file": "r13-benefits-unclaimed-zh-dark-390.png",
+      "clip": {
+        "height": 844,
+        "scale": 1,
+        "width": 390,
+        "x": 811,
+        "y": 191.33334350585935
+      },
+      "bytes": 228676,
+      "time": "2026-10-27T12:05:44.421Z"
+    },
+    {
+      "file": "r13-benefits-active-zh-dark-390.png",
+      "clip": {
+        "height": 844,
+        "scale": 1,
+        "width": 390,
+        "x": 811,
+        "y": 191.33334350585935
+      },
+      "bytes": 187680,
+      "time": "2026-10-27T12:06:55.855Z"
+    },
+    {
+      "file": "r13-inventory-expanded-online-zh-dark-390.png",
+      "clip": {
+        "height": 844,
+        "scale": 1,
+        "width": 390,
+        "x": 811,
+        "y": 191.33334350585935
+      },
+      "bytes": 100246,
+      "time": "2026-10-27T12:09:34.880Z"
+    },
+    {
+      "file": "r13-inventory-expanded-online-vi-light-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "bytes": 87418,
+      "time": "2026-10-27T12:10:21.863Z"
+    },
+    {
+      "file": "r13-device-deactivate-dialog-vi-light-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "bytes": 120022,
+      "time": "2026-10-27T12:12:02.080Z"
+    },
+    {
+      "file": "r13-home-top-en-light-360.png",
+      "clip": {
+        "height": 780,
+        "scale": 1,
+        "width": 360,
+        "x": 826,
+        "y": 223.33334350585935
+      },
+      "bytes": 193834,
+      "time": "2026-10-27T12:15:23.492Z"
+    },
+    {
+      "file": "r13-benefits-active-en-light-360.png",
+      "clip": {
+        "height": 780,
+        "scale": 1,
+        "width": 360,
+        "x": 826,
+        "y": 223.33334350585935
+      },
+      "bytes": 190852,
+      "time": "2026-10-27T12:15:23.732Z"
+    },
+    {
+      "file": "r13-home-top-en-light-360-settled.png",
+      "clip": {
+        "height": 844,
+        "scale": 1,
+        "width": 390,
+        "x": 811,
+        "y": 191.33334350585935
+      },
+      "bytes": 349019,
+      "time": "2026-10-27T12:21:19.720Z"
+    },
+    {
+      "file": "r13-home-top-en-light-360-resumed.png",
+      "clip": {
+        "height": 780,
+        "scale": 1,
+        "width": 360,
+        "x": 826,
+        "y": 223.33334350585935
+      },
+      "bytes": 225294,
+      "time": "2026-10-27T12:22:30.921Z"
+    },
+    {
+      "file": "r13-retry-developer-docs-vi-light-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "bytes": 64685,
+      "time": "2026-10-27T12:22:59.817Z"
+    },
+    {
+      "file": "r13-retry-raffle-vi-light-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "bytes": 47143,
+      "time": "2026-10-27T12:23:12.669Z"
+    },
+    {
+      "file": "r13-retry-event-detail-vi-light-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "bytes": 33213,
+      "time": "2026-10-27T12:23:56.658Z"
+    },
+    {
+      "file": "r13-retry-marketplace-vi-light-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "bytes": 81971,
+      "time": "2026-10-27T12:24:11.221Z"
+    },
+    {
+      "file": "r13-retry-register-download-vi-light-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "bytes": 102854,
+      "time": "2026-10-27T12:24:24.228Z"
+    },
+    {
+      "file": "r13-retry-product-material-vi-light-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "bytes": 110446,
+      "time": "2026-10-27T12:25:32.983Z"
+    },
+    {
+      "file": "r13-retry-terms-vi-light-320.png",
+      "clip": {
+        "height": 693,
+        "scale": 1,
+        "width": 320,
+        "x": 846,
+        "y": 266.8333435058594
+      },
+      "bytes": 50969,
+      "time": "2026-10-27T12:25:43.228Z"
+    }
+  ],
+  "excludedPhotos": [
+    {
+      "file": "r13-home-top-en-light-360.png",
+      "reason": "过渡帧，不作为稳定顶部验收，后续resumed帧替代。"
+    },
+    {
+      "file": "r13-home-top-en-light-360-settled.png",
+      "reason": "重连后截图上下文不一致，实际为390VI商城；标签错误，不计任何通过证据。"
+    }
+  ],
+  "networkBlockRestored": true,
+  "openFindings": [
+    {
+      "id": "R13-BENEFITS-01",
+      "score": 8.7,
+      "title": "320VI未领取双卡过高，券卡留白",
+      "evidence": "r13-benefits-unclaimed-vi-light-320.png",
+      "details": "138×283.33，92图+长说明+两行领取CTA纵向堆叠。≤350修复源码待r14，不预签。"
+    },
+    {
+      "id": "R13-SUCCESS-01",
+      "score": 8.6,
+      "title": "注册/引导完成长页右侧宽灰色原生滚动条",
+      "evidence": "r13-retry-register-download-vi-light-320.png",
+      "userEvidence": "C:/Users/FL/AppData/Local/Temp/codex-clipboard-4eb7f5e5-fcc4-409e-a789-439a35a975d4.png",
+      "details": "本人原截图已显示却漏报，当前撤销页面通过。字体读回不代表整页通过。"
+    },
+    {
+      "id": "R13-TERMS-01",
+      "score": 8.8,
+      "title": "条款读取失败重试根触区仅36px高",
+      "evidence": "r13-retry-terms-vi-light-320.png",
+      "record": "retry-terms-vi320",
+      "details": "根69×36；label13px/600/20px。局部补min-height44并保持文案居中。"
+    }
+  ],
+  "untested": [
+    "promotion-reward-detail真实obligationId失败重试分支",
+    "无未激活设备，SlotActionSheet及库存激活分支当前普通入口不可达；Add设备按契约去商城",
+    "converted/ended整卡路由与Space未逐一实测，只有390active Enter实际进入trial",
+    "当前r13未补原生键盘或多行末尾光标；仅继承r12浏览器144px高度证据",
+    "APP真机/正式后端/H5同源最终构建均未代签"
+  ]
+}

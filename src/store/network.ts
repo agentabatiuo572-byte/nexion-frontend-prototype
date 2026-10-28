@@ -1,8 +1,10 @@
+import { runPassiveTabRead, invalidatePassiveTabRead, invalidateBeforePassiveTabRead, rememberPassiveTabRead } from "@/lib/passive-tab-read";
+import { isHttpReadRateLimit, isTransientReadFailure } from "@/lib/remote-read-failure";
 import { defineStore } from "pinia";
-import { onScopeDispose, ref } from "vue";
+import { onScopeDispose, ref, watch } from "vue";
 import { sumComputePoints } from "@/i18n/compute-points";
 import type { VRank } from "./v-rank";
-import { remoteApiEnabled, teamNetworkApi } from "@/api/runtime";
+import { apiRuntimeConfig, remoteApiEnabled, teamNetworkApi } from "@/api/runtime";
 import {
   captureRuntimeRevision,
   isCurrentRuntimeRevision,
@@ -145,12 +147,20 @@ export const useNetwork = defineStore("network", () => {
   const totalLifetimeComputePoints = ref<number | null>(remoteApiEnabled ? null : sumComputePoints(initial.map(m => m.lifetimeComputePoints)));
   const remoteStatus = ref<"idle" | "loading" | "ready" | "error">(remoteApiEnabled ? "idle" : "ready");
   const hasRemoteSnapshot = ref(false);
+  const remoteRateLimited = ref(false);
+  const remoteTransientFailure = ref(false);
+
+  let retryAt = 0;
+  let environmentInvalidated = false;
   let accountEpoch = 0;
   let refreshSequence = 0;
   let inFlight: { epoch: number; runtime: ReturnType<typeof captureRuntimeRevision>; promise: Promise<boolean> } | null = null;
 
-  function clearRemoteNetwork(): void {
+  function clearRemoteNetwork(preserveCooldown = false): void {
     refreshSequence += 1;
+
+    remoteTransientFailure.value = false;
+    if (!preserveCooldown) { retryAt = 0; remoteRateLimited.value = false; }
     members.value = [];
     totalMembers.value = 0;
     totalMonthVolumeUSD.value = 0;
@@ -166,19 +176,24 @@ export const useNetwork = defineStore("network", () => {
     // The commerce runtime moved (catalogue/order revision). Re-read the
     // projection, but keep the last confirmed snapshot mounted: clearing it
     // blanked the whole influence-network page mid-refresh (BUG 63).
+
     void refreshCanonicalNetwork();
   });
   onScopeDispose(unsubscribeCommerceRun);
 
   function ensureCanonicalNetwork(): Promise<boolean> {
-    return inFlight && inFlight.epoch === accountEpoch && isCurrentRuntimeRevision(inFlight.runtime)
-      ? inFlight.promise : refreshCanonicalNetwork();
+    if (Date.now() < retryAt) return Promise.resolve(false);
+    return runPassiveTabRead("network", () => inFlight && inFlight.epoch === accountEpoch && isCurrentRuntimeRevision(inFlight.runtime)
+      ? inFlight.promise : refreshCanonicalNetwork(), [accountEpoch, captureRuntimeRevision()]);
   }
 
   function refreshCanonicalNetwork(): Promise<boolean> {
+    invalidateBeforePassiveTabRead("network");
+    if (environmentInvalidated || Date.now() < retryAt) return Promise.resolve(false);
     const epoch = accountEpoch;
     const runtime = captureRuntimeRevision();
     const promise = readCanonicalNetwork();
+    rememberPassiveTabRead("network", promise, [epoch, runtime]);
     inFlight = { epoch, runtime, promise };
     const clear = () => { if (inFlight?.promise === promise) inFlight = null; };
     void promise.then(clear, clear);
@@ -210,14 +225,37 @@ export const useNetwork = defineStore("network", () => {
       totalAllTimeVolumeUSD.value = snapshot.lifetimeVolumeUsdt;
       totalMonthComputePoints.value = snapshot.monthComputePoints ?? null;
       totalLifetimeComputePoints.value = snapshot.lifetimeComputePoints ?? null;
+      retryAt = 0;
       remoteStatus.value = "ready";
+      remoteRateLimited.value = false;
+      remoteTransientFailure.value = false;
       hasRemoteSnapshot.value = true;
       return true;
-    } catch {
+    } catch (cause) {
       if (!current()) return false;
+
+      if (isHttpReadRateLimit(cause)) {
+        retryAt = Date.now() + (cause.retryAfterMs ?? 30_000);
+      }
+      if (isTransientReadFailure(cause)) {
+        remoteRateLimited.value = isHttpReadRateLimit(cause);
+        remoteTransientFailure.value = true;
+      } else clearRemoteNetwork();
       remoteStatus.value = "error";
       return false;
     }
+  }
+
+  watch(() => [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl], () => {
+    environmentInvalidated = true; accountEpoch += 1; inFlight = null; clearRemoteNetwork();
+  }, { flush: "sync" });
+
+  function invalidateReadOwner(): void {
+    invalidatePassiveTabRead("network");
+
+    accountEpoch += 1; inFlight = null;
+    clearRemoteNetwork(true);
+    if (Date.now() < retryAt) remoteStatus.value = "error";
   }
 
   function bindAccount(_accountKey: string): void {
@@ -302,6 +340,6 @@ export const useNetwork = defineStore("network", () => {
   return {
     members, totalMembers, totalMonthVolumeUSD, totalAllTimeVolumeUSD, totalMonthComputePoints, totalLifetimeComputePoints,
     byLayer, byBinary, leftVolumeMonth, rightVolumeMonth,
-    binaryMatchToday, vDownlineCounts, addSpillover, remoteStatus, hasRemoteSnapshot, refreshCanonicalNetwork, ensureCanonicalNetwork, bindAccount,
+    binaryMatchToday, vDownlineCounts, addSpillover, remoteStatus, remoteRateLimited, remoteTransientFailure, hasRemoteSnapshot, refreshCanonicalNetwork, ensureCanonicalNetwork, invalidateReadOwner, bindAccount,
   };
 });

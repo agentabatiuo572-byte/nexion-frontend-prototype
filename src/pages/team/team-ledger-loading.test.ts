@@ -8,9 +8,12 @@ function page() {
   const start = source.indexOf("const ledgerFailed = computed(");
   const end = source.indexOf("const pool =", start);
   if (start < 0 || end < start) throw new Error("Missing actual team ledger presentation");
-  const state = new Function("computed", "network", "commission", "remoteApiEnabled",
+  // Selector-only checks supply its confirmed display projection. Actual SFC
+  // capture/reset across runtime and account epochs is exercised separately.
+  const ledgerPresentation = computed(() => commission.eventsEvidence);
+  const state = new Function("computed", "network", "commission", "remoteApiEnabled", "ledgerPresentation",
     source.slice(start, end) + ";return { ledgerFailed, ledgerLoading, ledgerVisible };")(
-    computed, network, commission, true);
+    computed, network, commission, true, ledgerPresentation);
   return { network, commission, state };
 }
 

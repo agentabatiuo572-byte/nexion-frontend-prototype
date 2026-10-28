@@ -1,7 +1,7 @@
 <template>
   <AppChassis active="me"><view class="promotion promotion-main promotion-reward-detail">
     <view v-if="loading&&!reward" class="promotion-flat" role="status"><text>{{ p.loading }}</text></view>
-    <view v-if="error" class="promotion-flat" role="alert"><text class="promotion-title">{{ p.error }}</text><view v-if="id" class="promotion-link" role="button" tabindex="0" @click="load"><text>{{ p.retry }}</text></view><view class="promotion-link" role="button" tabindex="0" @click="navTo('/pages/me/rewards-list?cat=promotion')"><text>{{ p.back }}</text></view></view>
+    <view v-if="error" class="promotion-flat" role="alert"><text class="promotion-title">{{ p.error }}</text><view v-if="id" class="promotion-link" role="button" tabindex="0" @click="load"><text class="promotion-read-retry-label">{{ p.retry }}</text></view><view class="promotion-link" role="button" tabindex="0" @click="navTo('/pages/me/rewards-list?cat=promotion')"><text>{{ p.back }}</text></view></view>
     <template v-if="reward">
       <view class="promotion-flat"><text class="promotion-title">{{ localized(reward.disclosure.title,locale.code) }}</text><RewardRows :rewards="[reward]" :link-details="false" /><text class="promotion-copy">{{ displayDeadline(reward.updatedAt,locale.code) }}</text><view class="promotion-link" role="button" tabindex="0" :aria-disabled="loading" @click="load"><text>{{ p.refresh }}</text></view><view v-if="['RETRYABLE_FAILED','MANUAL_REVIEW'].includes(reward.state)" class="promotion-link" role="button" tabindex="0" @click="navTo('/pages/me/support')"><text>{{ t.help.contactSupport }}</text></view></view>
       <view class="promotion-rule-section"><text class="promotion-title">{{ p.rights }}</text><DisclosureDetails :disclosure="reward.disclosure" /></view>
@@ -20,3 +20,6 @@ async function load(){if(!id){error.value=true;loading.value=false;return;}const
 watch(()=>[app.accountKey,app.accountBindingEpoch],()=>{generation++;reward.value=null;progress.value=null;void load();});onShow(()=>{visible=true;void load();});onHide(()=>{visible=false;generation++;loading.value=false;});onBeforeUnmount(()=>{visible=false;generation++;});
 </script>
 <style src="../../components/promotion/promotion.css"></style>
+<style scoped>
+.promotion-read-retry-label { font: 600 13px/20px var(--font-v5); }
+</style>

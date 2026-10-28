@@ -6,7 +6,7 @@ afterEach(() => vi.unstubAllGlobals());
 describe("current tab reselection", () => {
   it("scrolls the active App WebView when the service layer has no document", () => {
     vi.stubGlobal("document", undefined);
-    const actual = { scrollTop: 783 };
+    const actual = { scrollTop: 783, dispatchEvent: vi.fn(() => true) };
     const proxy = { $el: { scrollTop: 783 } };
     const evalJS = vi.fn((script: string) => {
       new Function("document", script)({ querySelector: (selector: string) => selector === ".nx-content" ? actual : null });
@@ -14,6 +14,7 @@ describe("current tab reselection", () => {
     expect(scrollNativeCurrentTabToTop({ $getAppWebview: () => ({ evalJS }) })).toBe(true);
     expect(evalJS).toHaveBeenCalledOnce();
     expect(actual.scrollTop).toBe(0);
+    expect(actual.dispatchEvent).toHaveBeenCalledWith(expect.objectContaining({ type: "uvel-scroll-to-top" }));
     expect(proxy.$el.scrollTop).toBe(783);
   });
 

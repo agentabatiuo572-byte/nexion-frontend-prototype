@@ -3,7 +3,7 @@
     <SubPageHeader back="/pages/me/wallet-withdraw-method" :title="c.title" :back-action="goBack" />
     <view class="bank-withdraw" :aria-busy="busy">
       <view v-if="error" class="notice danger" role="alert"><text>{{ error }}</text></view>
-      <text v-if="busy" class="muted loading" role="status">{{ c.loading }}</text>
+      <text v-if="busy && !silentRead" class="muted loading" role="status">{{ c.loading }}</text>
 
       <template v-if="order">
         <view class="status-mark" aria-hidden="true"><text>{{ outcome === 'paid' ? '✓' : outcome === 'refunded' ? '↶' : '⋯' }}</text></view>
@@ -18,28 +18,28 @@
           <view v-if="outcome === 'refunded'" class="row"><text>{{ c.refundAmount }}</text><text>{{ money(order.settlementEvidence!.amountUsdt!) }}</text></view>
           <view v-if="terminal && order.settlementEvidence?.checkedAt" class="row"><text>{{ c.confirmedAt }}</text><text>{{ displayDate(order.settlementEvidence.checkedAt) }}</text></view>
         </view>
-        <view class="action primary" role="button" tabindex="0" data-testid="bank-refresh" :aria-disabled="busy" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load"><text>{{ c.refresh }}</text></view>
-        <view v-if="terminal" class="action secondary" role="button" tabindex="0" data-testid="bank-new" :aria-disabled="busy" @click="startNew" @keydown.enter.prevent="startNew" @keydown.space.prevent="startNew"><text>{{ c.newWithdrawal }}</text></view>
-        <view class="action secondary" role="button" tabindex="0" :aria-disabled="busy" @click="backToWallet" @keydown.enter.prevent="backToWallet" @keydown.space.prevent="backToWallet"><text>{{ c.backToWallet }}</text></view>
+        <view class="action primary" role="button" tabindex="0" data-testid="bank-refresh" :aria-disabled="busy" :style="{ opacity: silentRead ? 1 : undefined }" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load"><text>{{ c.refresh }}</text></view>
+        <view v-if="terminal" class="action secondary" role="button" tabindex="0" data-testid="bank-new" :aria-disabled="busy" :style="{ opacity: silentRead ? 1 : undefined }" @click="startNew" @keydown.enter.prevent="startNew" @keydown.space.prevent="startNew"><text>{{ c.newWithdrawal }}</text></view>
+        <view class="action secondary" role="button" tabindex="0" :aria-disabled="busy" :style="{ opacity: silentRead ? 1 : undefined }" @click="backToWallet" @keydown.enter.prevent="backToWallet" @keydown.space.prevent="backToWallet"><text>{{ c.backToWallet }}</text></view>
       </template>
 
-      <template v-else-if="uncertain || multipleIntents.length || (config && config.unresolvedIntent === undefined)">
+      <template v-else-if="uncertain || displayIntents.length || (displayConfig && displayConfig.unresolvedIntent === undefined)">
         <text class="screen-title">{{ c.title }}</text>
-        <view v-if="!busy || !uncertain" class="notice" role="alert"><text>{{ multipleIntents.length ? c.multipleIntents : uncertain ? c.unknown : c.recoveryUnavailable }}</text></view>
-        <view v-for="intent in multipleIntents" :key="intent.quoteNo" class="action secondary" role="button" tabindex="0" :aria-disabled="busy" @click="openIntent(intent)" @keydown.enter.prevent="openIntent(intent)" @keydown.space.prevent="openIntent(intent)"><text>{{ intent.withdrawalNo || intent.quoteNo }}</text></view>
+        <view v-if="!busy || !uncertain" class="notice" role="alert"><text>{{ displayIntents.length ? c.multipleIntents : uncertain ? c.unknown : c.recoveryUnavailable }}</text></view>
+        <view v-for="intent in displayIntents" :key="intent.quoteNo" class="action secondary" role="button" tabindex="0" :aria-disabled="busy" @click="openIntent(intent)" @keydown.enter.prevent="openIntent(intent)" @keydown.space.prevent="openIntent(intent)"><text>{{ intent.withdrawalNo || intent.quoteNo }}</text></view>
         <view class="action primary" role="button" tabindex="0" data-testid="bank-refresh" :aria-disabled="busy" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load"><text>{{ c.reload }}</text></view>
       </template>
 
-      <template v-else-if="config">
+      <template v-else-if="displayConfig">
         <text class="screen-title" role="heading" aria-level="1">{{ title }}</text>
         <text class="intro">{{ quote ? c.confirmHint : formStep === 'amount' ? c.amountHint : c.recipientSubtitle }}</text>
-        <view v-if="!quote && formStep === 'account'" class="chip" :class="{ warn: !config.enabled || !config.beneficiary?.canWithdraw }" data-testid="bank-account-status" role="status"><text>{{ !config.enabled ? c.unavailable : !config.beneficiary ? c.unbound : config.beneficiary.canWithdraw ? c.available : accountStatus }}</text></view>
+        <view v-if="!quote && formStep === 'account'" class="chip" :class="{ warn: !displayConfig.enabled || !displayConfig.beneficiary?.canWithdraw }" data-testid="bank-account-status" role="status"><text>{{ !displayConfig.enabled ? c.unavailable : !displayConfig.beneficiary ? c.unbound : displayConfig.beneficiary.canWithdraw ? c.available : accountStatus }}</text></view>
         <view v-if="recipient" class="account-card">
           <text class="muted">{{ c.recipientTitle }}</text>
           <text class="account-number">{{ recipient.maskedAccount }}</text>
           <text class="bank-name">{{ useTranslations.bankBinding.accountRoutedLabel }}</text>
         </view>
-        <view v-if="(config.beneficiary && !hasVerifiedBankIdentity(config.beneficiary)) || (quote && !hasVerifiedBankIdentity(quote))" class="notice" role="status"><text>{{ c.bankRoutingUnverified }}</text></view>
+        <view v-if="(displayConfig.beneficiary && !hasVerifiedBankIdentity(displayConfig.beneficiary)) || (quote && !hasVerifiedBankIdentity(quote))" class="notice" role="status"><text>{{ c.bankRoutingUnverified }}</text></view>
 
         <template v-if="quote">
           <view class="amount-card"><text class="muted">{{ c.receiveLabel }}</text><text class="money">{{ formatAmount(quote.amountVnd, 'VND') }}</text><text class="currency">VND</text></view>
@@ -58,11 +58,11 @@
         </template>
 
         <template v-else-if="formStep === 'account'">
-          <view class="notice"><text>{{ config.beneficiary ? c.bindingNotice : c.unboundNotice }}</text></view>
-          <view v-if="config.enabled && config.beneficiary && (!config.policy || !config.capacity)" class="notice" role="status"><text>{{ c.capacityUnavailable }}</text></view>
-          <view v-else-if="config.capacity && !config.capacity.withdrawalEnabled" class="notice"><text>{{ c.unavailable }}</text></view>
-          <view v-if="config.beneficiary" class="action primary" role="button" tabindex="0" data-testid="bank-continue" :aria-disabled="busy || !canContinue" @click="continueWithdrawal" @keydown.enter.prevent="continueWithdrawal" @keydown.space.prevent="continueWithdrawal"><text>{{ c.continueWithdrawal }}</text></view>
-          <view class="action" :class="config.beneficiary ? 'secondary' : 'primary'" role="button" tabindex="0" :aria-disabled="busy" @click="manageBank" @keydown.enter.prevent="manageBank" @keydown.space.prevent="manageBank"><text>{{ config.beneficiary ? c.changeAccount : c.addAccount }}</text></view>
+          <view class="notice"><text>{{ displayConfig.beneficiary ? c.bindingNotice : c.unboundNotice }}</text></view>
+          <view v-if="displayConfig.enabled && displayConfig.beneficiary && (!displayConfig.policy || !displayConfig.capacity)" class="notice" role="status"><text>{{ c.capacityUnavailable }}</text></view>
+          <view v-else-if="displayConfig.capacity && !displayConfig.capacity.withdrawalEnabled" class="notice"><text>{{ c.unavailable }}</text></view>
+          <view v-if="displayConfig.beneficiary" class="action primary" role="button" tabindex="0" data-testid="bank-continue" :aria-disabled="busy || !canContinue" @click="continueWithdrawal" @keydown.enter.prevent="continueWithdrawal" @keydown.space.prevent="continueWithdrawal"><text>{{ c.continueWithdrawal }}</text></view>
+          <view class="action" :class="displayConfig.beneficiary ? 'secondary' : 'primary'" role="button" tabindex="0" :aria-disabled="busy" @click="manageBank" @keydown.enter.prevent="manageBank" @keydown.space.prevent="manageBank"><text>{{ displayConfig.beneficiary ? c.changeAccount : c.addAccount }}</text></view>
         </template>
 
         <template v-else>
@@ -71,19 +71,35 @@
             <input data-testid="bank-amount" v-model="amount" type="text" inputmode="decimal" :disabled="busy || !canContinue" placeholder="0.00" :aria-label="c.amount" />
             <view class="use-max" role="button" tabindex="0" data-testid="bank-max" :aria-disabled="busy || !canContinue || maxAmount <= 0" @click="useMax" @keydown.enter.prevent="useMax" @keydown.space.prevent="useMax"><text>{{ c.all }}</text></view>
           </view>
-          <view class="limits" v-if="config.policy && config.capacity">
-            <text data-testid="bank-single-limit">{{ format(c.rangeLabel, { min: money(config.policy.minAmountUsd), max: money(config.policy.maxAmountUsd) }) }}</text>
-            <text data-testid="bank-balance">{{ format(c.availableLabel, { amount: money(config.capacity.maxWithdrawableUsdt) }) }}</text>
-            <text>{{ format(c.dailyLabel, { remaining: config.capacity.dailyRemainingCount, total: config.capacity.dailyLimitCount }) }}</text>
+          <view class="limits" v-if="displayConfig.policy && displayConfig.capacity">
+            <text data-testid="bank-single-limit">{{ format(c.rangeLabel, { min: money(displayConfig.policy.minAmountUsd), max: money(displayConfig.policy.maxAmountUsd) }) }}</text>
+            <text data-testid="bank-balance">{{ format(c.availableLabel, { amount: money(displayConfig.capacity.maxWithdrawableUsdt) }) }}</text>
+            <text>{{ format(c.dailyLabel, { remaining: displayConfig.capacity.dailyRemainingCount, total: displayConfig.capacity.dailyLimitCount }) }}</text>
             <view class="refresh-limits" role="button" tabindex="0" data-testid="bank-refresh-limits" :aria-disabled="busy" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load"><text>{{ c.refreshLimits }}</text></view>
           </view>
-          <view v-if="config.capacity?.dailyRemainingCount === 0" class="notice" role="status"><text>{{ c.dailyExhausted }} {{ displayDate(config.capacity.dailyCountResetAt) }}</text></view>
+          <view v-if="displayConfig.capacity?.dailyRemainingCount === 0" class="notice" role="status"><text>{{ c.dailyExhausted }} {{ displayDate(displayConfig.capacity.dailyCountResetAt) }}</text></view>
           <text v-if="amountError" class="error-text" role="alert">{{ amountError }}</text>
           <view class="notice"><text>{{ c.feeIncluded }}</text><text class="fee-rule">{{ feeRule }}</text></view>
           <view class="action primary" role="button" tabindex="0" data-testid="bank-quote" :aria-disabled="busy || !canContinue || !!amountProblem" @click="getQuote" @keydown.enter.prevent="getQuote" @keydown.space.prevent="getQuote"><text>{{ c.quote }}</text></view>
           <view class="action secondary" role="button" tabindex="0" :aria-disabled="busy" @click="goBack" @keydown.enter.prevent="goBack" @keydown.space.prevent="goBack"><text>{{ c.backToAccount }}</text></view>
         </template>
-        <view v-if="error || (!quote && config.enabled && (!config.policy || !config.capacity))" class="action secondary" role="button" tabindex="0" data-testid="bank-refresh" :aria-disabled="busy" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load"><text>{{ c.reload }}</text></view>
+        <view v-if="error || (!quote && displayConfig.enabled && (!displayConfig.policy || !displayConfig.capacity))" class="action secondary" role="button" tabindex="0" data-testid="bank-refresh" :aria-disabled="busy" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load"><text>{{ c.reload }}</text></view>
+      </template>
+      <template v-else-if="requestedOrder === null">
+        <text class="screen-title" role="heading" aria-level="1">{{ title }}</text>
+        <text class="intro">{{ formStep === 'amount' ? c.amountHint : c.recipientSubtitle }}</text>
+        <template v-if="formStep === 'account'">
+          <view class="account-card"><text class="muted">{{ c.recipientTitle }}</text><text class="account-number">—</text><text class="bank-name">—</text></view>
+          <view class="action primary" role="button" tabindex="-1" data-testid="bank-continue" :aria-disabled="true"><text>{{ c.continueWithdrawal }}</text></view>
+        </template>
+        <template v-else>
+          <text class="field-label">{{ c.totalDebit }} · USDT</text>
+          <view class="amount-input"><input data-testid="bank-amount" type="text" inputmode="decimal" disabled placeholder="—" :aria-label="c.amount" /><view class="use-max" role="button" tabindex="-1" aria-disabled="true"><text>{{ c.all }}</text></view></view>
+          <view class="notice"><text>{{ c.feeIncluded }}</text></view>
+          <view class="action primary" role="button" tabindex="-1" data-testid="bank-quote" :aria-disabled="true"><text>{{ c.quote }}</text></view>
+          <view class="action secondary" role="button" tabindex="0" :aria-disabled="busy" @click="goBack"><text>{{ c.backToAccount }}</text></view>
+        </template>
+        <view v-if="error" class="action secondary" role="button" tabindex="0" data-testid="bank-refresh" :aria-disabled="busy" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load"><text>{{ c.reload }}</text></view>
       </template>
       <view v-else-if="error" class="action primary" role="button" tabindex="0" data-testid="bank-refresh" :aria-disabled="busy" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load"><text>{{ c.reload }}</text></view>
     </view>
@@ -116,7 +132,14 @@ const config = ref<BankConfig | null>(null);
 const quote = ref<BankQuote | null>(null);
 const order = ref<BankOrder | null>(null);
 const busy = ref(false);
+const silentRead = ref(false);
 const error = ref("");
+const configPresentation = ref<{ owner: string; epoch: number; value: BankConfig } | null>(null);
+const displayConfig = computed(() => {
+  const snapshot = configPresentation.value;
+  if (!snapshot || snapshot.owner !== app.accountKey || snapshot.epoch !== app.accountBindingEpoch) return null;
+  return config.value ?? (busy.value && !error.value ? snapshot.value : null);
+});
 const uncertain = ref(false);
 const amount = ref("");
 const formStep = ref<"account" | "amount">("account");
@@ -137,20 +160,22 @@ const canSubmit = computed(() => accepted.value && !!quote.value && !quoteExpire
   && config.value.unresolvedIntent !== undefined && config.value.unresolvedIntent?.state !== "MULTIPLE"
   && bankBeneficiaryReady(config.value.beneficiary) && hasVerifiedBankIdentity(quote.value));
 const multipleIntents = computed(() => config.value?.unresolvedIntent?.state === "MULTIPLE" ? config.value.unresolvedIntent.intents : []);
-const accountStatus = computed(() => config.value?.beneficiary ? c.value.accountStatus[bankAccountNotice(config.value.beneficiary)] : "");
+const displayIntents = computed(() => displayConfig.value?.unresolvedIntent?.state === "MULTIPLE" ? displayConfig.value.unresolvedIntent.intents : []);
+const accountStatus = computed(() => displayConfig.value?.beneficiary ? c.value.accountStatus[bankAccountNotice(displayConfig.value.beneficiary)] : "");
 const outcome = computed(() => order.value ? bankOrderOutcome(order.value) : "review");
 const terminal = computed(() => !!order.value && ["paid", "refunded"].includes(outcome.value));
 const statusLabel = computed(() => c.value[outcome.value]);
-const recipient = computed(() => order.value?.bank ?? quote.value ?? config.value?.beneficiary);
+const recipient = computed(() => order.value?.bank ?? quote.value ?? displayConfig.value?.beneficiary);
 const canContinue = computed(() => bankCanQuote(config.value) && !!config.value?.policy && !!config.value?.capacity && config.value.capacity.withdrawalEnabled);
 const amountProblem = computed(() => bankAmountError(amount.value, config.value));
 const maxAmount = computed(() => bankMaximumAmount(config.value));
 const secondsLeft = computed(() => Math.max(0, Math.ceil(((parseServerTimestamp(quote.value?.expiresAt) ?? 0) - now.value) / 1000)));
 const title = computed(() => quote.value ? c.value.confirmTitle : formStep.value === "amount" ? c.value.amountTitle : c.value.recipientTitle);
-const feeRule = computed(() => config.value?.policy ? format(c.value.feeRule, { rate: formatHowNumber(config.value.policy.feeRatePct, dateLocale()), min: money(config.value.policy.feeMinUsd), max: money(config.value.policy.feeMaxUsd) }) : "");
+const feeRule = computed(() => displayConfig.value?.policy ? format(c.value.feeRule, { rate: formatHowNumber(displayConfig.value.policy.feeRatePct, dateLocale()), min: money(displayConfig.value.policy.feeMinUsd), max: money(displayConfig.value.policy.feeMaxUsd) }) : "");
 const amountError = computed(() => {
-  if (!amount.value || !amountProblem.value) return "";
-  return c.value.amountErrors[amountProblem.value];
+  const problem = silentRead.value ? bankAmountError(amount.value, displayConfig.value) : amountProblem.value;
+  if (!amount.value || !problem) return "";
+  return c.value.amountErrors[problem];
 });
 function format(template: string, values: Record<string, string | number>) { return template.replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? "")); }
 function continueWithdrawal() { if (!busy.value && canContinue.value) formStep.value = "amount"; }
@@ -167,16 +192,20 @@ function scope() {
   const id = ++revision, owner = app.accountKey, epoch = app.accountBindingEpoch, runtime = captureRuntimeRevision();
   return () => alive && revision === id && app.accountKey === owner && app.accountBindingEpoch === epoch && isCurrentRuntimeRevision(runtime);
 }
-function report(_err: unknown) { error.value = c.value.error; }
-async function run(action: (current: () => boolean) => Promise<void>) {
+function report(_err: unknown) {
+  if (!config.value) configPresentation.value = null;
+  error.value = c.value.error;
+}
+async function run(action: (current: () => boolean) => Promise<void>, quietRead = false) {
   if (busy.value) return;
-  const current = scope(); busy.value = true; error.value = "";
+  const current = scope(); busy.value = true; silentRead.value = quietRead; error.value = "";
   inFlight = { current, orderNo: requestedOrder ?? order.value?.withdrawalNo ?? null };
   try { await action(current); } catch (err) { if (current()) report(err); }
-  finally { if (inFlight?.current === current) inFlight = null; if (current()) busy.value = false; }
+  finally { if (inFlight?.current === current) inFlight = null; if (current()) { busy.value = false; silentRead.value = false; } }
 }
 async function load() {
   await run(async current => {
+    const owner = app.accountKey, epoch = app.accountBindingEpoch;
     config.value = null; accepted.value = false;
     if (requestedOrder !== null || order.value) {
       const orderNo = requestedOrder ?? order.value!.withdrawalNo;
@@ -193,6 +222,7 @@ async function load() {
       if (recovered.state === "COMMITTED") return;
     }
     const loaded = await api.config(); if (!current()) return; config.value = loaded;
+    configPresentation.value = { owner, epoch, value: loaded };
     if (loaded.unresolvedIntent?.state === "MULTIPLE") { quote.value = null; uncertain.value = true; return; }
     const intent = loaded.unresolvedIntent?.intents[0];
     if (intent) {
@@ -202,7 +232,7 @@ async function load() {
     } else if (loaded.unresolvedIntent === null) {
       quote.value = null; uncertain.value = false;
     }
-  });
+  }, order.value !== null || config.value !== null);
 }
 function applyRecovery(recovered: BankRecovery) {
   accepted.value = false;
@@ -246,7 +276,10 @@ async function abandon() {
     applyRecovery(recovered);
     if (recovered.state === "ABANDONED" || recovered.state === "EXPIRED") {
       config.value = null; formStep.value = "amount";
-      const loaded = await api.config(); if (current()) config.value = loaded;
+      const owner = app.accountKey, epoch = app.accountBindingEpoch;
+      const loaded = await api.config(); if (current()) {
+        config.value = loaded; configPresentation.value = { owner, epoch, value: loaded };
+      }
     }
   });
 }
@@ -254,12 +287,16 @@ function startNew() {
   if (!terminal.value || busy.value) return;
   order.value = null; quote.value = null; requestedOrder = null; amount.value = ""; formStep.value = "account"; accepted.value = false; void load();
 }
+function clearScope() {
+  revision++; configPresentation.value = null; config.value = null; quote.value = null; order.value = null; busy.value = false; silentRead.value = false; error.value = ""; uncertain.value = false;
+  amount.value = ""; formStep.value = "account"; accepted.value = false; lastCapacityResetRead = "";
+}
 function invalidate() {
   if (busy.value && inFlight?.current() && inFlight.orderNo === (requestedOrder ?? order.value?.withdrawalNo ?? null)) return;
-  revision++; config.value = null; quote.value = null; order.value = null; busy.value = false; error.value = ""; uncertain.value = false;
-  amount.value = ""; formStep.value = "account"; accepted.value = false; lastCapacityResetRead = "";
+  clearScope();
   if (alive && visible) void load();
 }
+watch(() => [app.accountKey, app.accountBindingEpoch] as const, clearScope, { flush: "sync" });
 watch(() => [app.accountKey, app.accountBindingEpoch] as const, invalidate);
 const stopRuntime = subscribeRuntimeRevision(invalidate);
 onLoad(params => {

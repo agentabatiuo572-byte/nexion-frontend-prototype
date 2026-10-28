@@ -24,10 +24,10 @@
           <view>
             <view class="flex justify-between items-baseline font-mono-tabular mb-1" style="font-size: 12px; color: var(--v5-ink-3)">
               <text style="color: var(--v5-ink-3)">{{ baseShort }}</text>
-              <text class="tabular-nums" style="color: var(--v5-ink); font-weight: 500">{{ baseRate }}</text>
+              <text class="tabular-nums" style="color: var(--v5-ink); font-weight: 500">{{ visibility.mask(baseRate) }}</text>
             </view>
             <view class="rounded-full overflow-hidden" style="height: 3px; background: var(--v5-surface-3)">
-              <view class="h-full rounded-full" :style="{ width: baseWidthPct + '%', background: 'var(--v5-ink-4)', opacity: 0.72 }" />
+              <view v-if="!visibility.hidden" class="h-full rounded-full" :style="{ width: baseWidthPct + '%', background: 'var(--v5-ink-4)', opacity: 0.72 }" />
             </view>
           </view>
           <!-- target rate bar -->
@@ -64,6 +64,7 @@
 </template>
 
 <script setup lang="ts">
+import { useDataVisibility } from "@/store/data-visibility";
 import { formatAmount } from "@/lib/amount-display";
 import { navTo } from "@/lib/route";
 import { computed, type CSSProperties } from "vue";
@@ -73,6 +74,7 @@ import { useApp } from "@/store/app";
 import { deviceNameInline } from "@/lib/device-copy";
 import { nexGridBrandText } from "@/lib/brand-copy";
 
+const visibility = useDataVisibility();
 const t = useT();
 const app = useApp();
 
@@ -96,7 +98,7 @@ const headlineSegs = computed(() => {
   const tpl = t.value.home.doMathHeadline;
   const vars: Record<string, { text: string; color: string }> = {
     target: { text: targetLabel.value, color: "var(--v5-ink)" },
-    mult: { text: `${calculator.value?.multiplier ?? 0}×`, color: "var(--v5-success-ink)" },
+    mult: { text: visibility.mask(`${calculator.value?.multiplier ?? 0}×`), color: "var(--v5-success-ink)" },
     base: { text: baseShort.value, color: "var(--v5-brand-2-ink)" },
   };
   const segs: { text: string; color?: string }[] = [];
@@ -115,7 +117,7 @@ const headlineSegs = computed(() => {
 
 const stats = computed(() => calculator.value ? [
   { k: t.value.home.doMathDaily, v: formatAmount(calculator.value.target.dailyUsdt), tone: "var(--v5-ink)" },
-  { k: fmt(t.value.home.doMathVs, { base: baseShort.value }), v: `${calculator.value.multiplier}×`, tone: "var(--v5-success)" },
+  { k: fmt(t.value.home.doMathVs, { base: baseShort.value }), v: visibility.mask(`${calculator.value.multiplier}×`), tone: "var(--v5-success)" },
 ] : []);
 
 const gridBgStyle: CSSProperties = {

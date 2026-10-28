@@ -95,7 +95,8 @@ const unreadCases = (["en", "zh", "vi"] as const).flatMap(locale =>
 test.each(unreadCases)("$locale $status with $catalog catalog stays neutral and cannot navigate", async ({ locale, status, catalog }) => {
   const page = await mount(locale, status, catalog);
   const messages = translations[locale];
-  const label = catalog === "error" ? messages.store.catalogErrorTitle : messages.store.catalogLoadingTitle;
+  const normalLabel = textContent((await mount(locale, status, "ready")).buy());
+  const label = catalog === "error" ? messages.store.catalogErrorTitle : normalLabel;
   expect(textContent(page.buy())).toBe(label);
   expect(page.buy().props).toMatchObject({ "aria-label": label, "aria-disabled": "true", tabindex: -1, "aria-busy": catalog === "error" ? "false" : "true" });
   expect(textContent(page.root)).not.toContain(messages.store.temporarilyOutOfStock);
@@ -138,7 +139,7 @@ test.each(["active", "grace", "ended"] as const)("%s can independently retry a f
   await Vue.nextTick();
   expect(page.refresh).toHaveBeenCalledExactlyOnceWith(true);
   expect(page.retry()).toBeUndefined();
-  expect(textContent(page.buy())).toBe(zh.store.catalogLoadingTitle);
+  expect(textContent(page.buy())).not.toBe(zh.store.catalogLoadingTitle);
   click(page.buy()); expect(page.navTo).not.toHaveBeenCalled();
   page.catalog.status = "ready"; finish(true);
   await Vue.nextTick();

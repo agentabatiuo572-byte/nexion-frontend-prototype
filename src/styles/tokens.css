@@ -52,6 +52,15 @@
   --ui-radius-icon: 12px;
   --ui-text-body: 15px;
   --ui-text-caption: 13px;
+  /* Responsive role sizes are defined in uvel-docs/design-system/10-responsive-type.md.
+     Keep explicit page exceptions separate; these do not rescale the whole screen. */
+  --ui-type-list-title: 15px;
+  --ui-type-list-title-lh: 20px;
+  --ui-type-list-subtitle: 13px;
+  --ui-type-list-subtitle-lh: 18px;
+  --ui-type-section: 15px;
+  --ui-type-section-lh: 20px;
+  --ui-type-profile: 20px;
   --ui-space-inline: 12px;
   --ui-space-inset: 16px;
   --ui-space-row-y: 10px;
@@ -186,8 +195,8 @@
   --v5-spotlight-brand-strong: none;
   --v5-spotlight-brand-2: none;
 
-  /* Card lift shadow — light theme uses v5 SKILL signature soft blur
-     (warm shadow on cream). Dark overrides to higher-contrast obsidian shadow. */
+  /* Card lift shadow — see uvel-docs/design-system/01-foundations.md.
+     Light uses a restrained warm shadow; dark lifts neutral obsidian surfaces. */
   --v5-card-shadow-lift: 0 1px 2px rgba(20,16,8,0.04), 0 4px 12px rgba(20,16,8,0.06);
   --v5-card-shadow-lift-strong: 0 2px 4px rgba(20,16,8,0.06), 0 8px 24px rgba(20,16,8,0.10);
 
@@ -223,7 +232,7 @@
   --font-v5: "General Sans", var(--font-display), "Manrope", -apple-system,
     BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
 
-  /* Radius ladder — 《03 空间圆角边框分层》阶梯落 token(vibe-playbook P2-F 2026-07-22)。
+  /* Radius ladder — current authority: uvel-docs/design-system/01-foundations.md.
      主题无关;新代码优先引用,存量迁移随「尺寸迁移工程」分批。
      值域哨兵(scripts/value-ladder-sentinel.mjs)拦「基线外且非阶梯」的新离散值。 */
   --v5-radius-s: 12px;    /* 小标签 / 小状态 */
@@ -319,11 +328,10 @@
    ───────────────────────────────────────────────────────────────────── */
 /* ─────────────────────────────────────────────────────────────────────
    Dark mode — default until a saved light preference reaches the page WebView.
-   Per SKILL-nexgrid-v5-dark-design-system.md: v4 obsidian + lemon-green
-   identity. Pure black page, #0F0F0F cards, #9EDC1D lemon brand, #FF6B35
-   orange brand-2, #7C5CFF purple tech accent, #FFBE3D amber warning.
-   All non-color v5 rules (typography / spacing / nesting / sheets /
-   buttons / home indicator) remain identical — see the light SKILL.
+   Current authority: uvel-docs/design-system/01-foundations.md.
+   Neutral black/gray surfaces and lemon-green actions. Light uses electric blue.
+   Responsive component rules and approved exceptions are maintained in that
+   system; legacy NexGrid skill snapshots are no longer execution rules.
    ───────────────────────────────────────────────────────────────────── */
 :root:not([data-theme="light"]) {
   /* Surface ladder — neutral obsidian, NO hue tint. Wider luminance steps
@@ -366,7 +374,7 @@
   --v5-brand-2-border: rgba(255,122,61,0.45);
   --v5-on-brand-2: #0A0A0A;     /* near-black on orange — white-on-orange fails WCAG AA on #FF7A3D (~3:1) */
 
-  /* Earnings/success re-uses brand lemon on dark per dark SKILL */
+  /* Earnings/success use the dark theme's lemon semantic color. */
   --v5-success: #9EDC1D;
   --v5-success-soft: rgba(158,220,29,0.20);
   --v5-warning: #FFCB4D;        /* amber, brighter on dark surfaces */
@@ -484,7 +492,7 @@ body {
    Dark theme — global card lift hierarchy.
    In dark mode every "rounded card on the page" needs a subtle floating
    shadow so it visibly lifts off the pure-black bg. Light theme keeps
-   no shadow (cream-on-cream relies on border only — SKILL克制装饰).
+   a restrained theme-aware shadow with borders for separation.
    Selectors target only block-level rounded surface containers so chips
    (typically size-* + rounded-full, no padding) are skipped. The hot-CTA
    spotlights (Sprint 2) win over this default via specificity / longer cascade. */
@@ -497,10 +505,10 @@ body {
 }
 
 
-/* Display font — alias to var(--font-v5) per V5 SKILL.
+/* Display font — compatibility alias to the current --font-v5 family.
    Both .font-display Tailwind class and inline `fontFamily: var(--font-v5)`
    now resolve to the same chain: General Sans → Manrope → system.
-   Max font-weight 600 per v5 design rules — never 700+. */
+   Typography roles and approved page exceptions live in uvel-docs/design-system. */
 .font-display {
   font-family: var(--font-v5);
   letter-spacing: -0.01em;
@@ -651,6 +659,17 @@ body {
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
+
+/* Mobile page and sheet scrollports keep native scrolling without desktop
+   scrollbar tracks. The prototype's outer controls are a separate document. */
+:where(html, body, .nx-chassis, .nx-chassis *, .nx-standalone-page, .nx-standalone-page *, .nx-glass-sheet, .nx-glass-sheet *) {
+  scrollbar-width: none;
+}
+:where(html, body, .nx-chassis, .nx-chassis *, .nx-standalone-page, .nx-standalone-page *, .nx-glass-sheet, .nx-glass-sheet *)::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
 
 @keyframes scan {
   0% { background-position: -100% 0; }
@@ -1054,3 +1073,133 @@ uni-input {
 /* The renderer supplies the optical map. Keep it aligned with the outer rim
    and attenuated, so a small pill never gains a second white contour. */
 .nx-design-glass > .nx-liquid-glass > .nx-liquid-specular { inset:0;opacity:.18;filter:blur(.7px);mix-blend-mode:screen; }
+/* Small-screen header controls keep their 44px hit target; only the glass
+   surface and icon contract. Apply the same sizing to message headers. */
+@media (max-width: 374px) {
+  .nx-header__r, .message-nav, .cp-head { --ui-header-glass-inset: 2px; --ui-header-icon-size: 19px; }
+  .nx-header__r .nx-icon-btn > .nx-liquid-glass,
+  .nx-header__r .invite-scan__button > .nx-liquid-glass,
+  .message-nav .message-icon-button > .nx-liquid-glass,
+  .cp-head .cp-back > .nx-liquid-glass,
+  .cp-head .cp-ticket > .nx-liquid-glass { inset: var(--ui-header-glass-inset); }
+  .nx-header__r .nx-icon-btn > svg, .nx-header__r .nx-icon-btn > .nx-native-svg,
+  .nx-header-scan-icon > svg, .nx-header-scan-icon > .nx-native-svg,
+  .message-nav .message-icon-button > svg, .message-nav .message-icon-button > .nx-native-svg,
+  .cp-head .cp-back > svg, .cp-head .cp-back > .nx-native-svg,
+  .cp-head .cp-ticket > svg, .cp-head .cp-ticket > .nx-native-svg { max-width: var(--ui-header-icon-size); max-height: var(--ui-header-icon-size); }
+  .nx-header__r .nx-native-svg svg,
+  .message-nav .message-icon-button .nx-native-svg svg,
+  .cp-head .cp-back .nx-native-svg svg,
+  .cp-head .cp-ticket .nx-native-svg svg { width: 100%; height: 100%; display: block; }
+}
+@media (max-width: 350px) {
+  .nx-header__r, .message-nav, .cp-head { --ui-header-glass-inset: 3px; --ui-header-icon-size: 18px; }
+}
+
+/* Card read recovery: a 32px surface inside an unchanged 44px hit target.
+   The combined selector also wins over the later inline-recovery stylesheet. */
+.nx-card-recovery-action,
+.nx-inline-recovery__action.nx-card-recovery-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  min-width: 44px;
+  min-height: 44px;
+  height: 44px;
+  box-sizing: border-box;
+  position: relative;
+  isolation: isolate;
+  flex-shrink: 0;
+  margin: 8px 0 0 auto;
+  align-self: flex-end;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9999px;
+  background: none;
+  color: var(--v5-on-brand);
+  font: 600 13px/20px var(--font-v5);
+  white-space: nowrap;
+  text-align: center;
+  cursor: pointer;
+}
+.nx-card-recovery-action::before {
+  content: "";
+  position: absolute;
+  inset: 6px 0;
+  z-index: -1;
+  box-sizing: border-box;
+  border-radius: inherit;
+  background: var(--v5-brand);
+  pointer-events: none;
+}
+.nx-card-recovery-action.nx-card-recovery-action--quiet {
+  color: var(--v5-ink);
+}
+.nx-card-recovery-action--quiet::before {
+  background: var(--v5-surface-2);
+  border: 1px solid var(--v5-border);
+}
+.nx-card-recovery-action.nx-card-recovery-action--inline {
+  margin: 0 0 0 auto;
+  align-self: flex-end;
+}
+/* Retain the reward controls' existing glass, edge, arrow and focus treatment. */
+.nx-card-recovery-action.nx-card-recovery-action--glass {
+  gap: 9px;
+  color: #f7f8fa;
+}
+.nx-card-recovery-action--glass::before {
+  background: var(--reward-glass);
+  border: 1px solid var(--reward-edge);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.nx-card-recovery-action--glass::after {
+  content: "→";
+  flex-shrink: 0;
+  font-size: 19px;
+  font-weight: 400;
+}
+.nx-card-recovery-action--glass:focus-visible {
+  outline: 2px solid var(--reward-accent);
+  outline-offset: 3px;
+}
+.nx-card-recovery-action--glass[aria-disabled="true"] {
+  opacity: .5;
+  cursor: default;
+}
+@media (prefers-reduced-transparency: reduce) {
+  .nx-card-recovery-action--glass::before {
+    background: #27292d;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* Width means CSS viewport width, independent of device pixel ratio and theme. */
+@media (min-width: 414px) {
+  :root { --ui-type-section: 16px; --ui-type-section-lh: 22px; }
+}
+@media (max-width: 389px) {
+  :root { --ui-text-body: 14px; }
+}
+@media (max-width: 374px) {
+  :root {
+    --ui-type-list-title: 14px;
+    --ui-type-list-subtitle: 12px;
+    --ui-type-list-subtitle-lh: 16px;
+    --ui-type-section: 14px;
+    --ui-type-profile: 19px;
+  }
+}
+@media (max-width: 339px) {
+  :root {
+    --ui-text-body: 13px;
+    --ui-type-list-title: 13px;
+    --ui-type-list-title-lh: 18px;
+    --ui-type-profile: 18px;
+  }
+}

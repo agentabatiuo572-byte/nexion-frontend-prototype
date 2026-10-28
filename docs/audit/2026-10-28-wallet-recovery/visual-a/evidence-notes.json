@@ -1,0 +1,33 @@
+{
+  "oldPackageEntry": "index-BpZnWN6Z.js",
+  "finalPackageEntry": "index-BS_Ljxkz.js",
+  "exclusions": [
+    {
+      "file": "r25-vi-light-320-withdrawals.png",
+      "reason": "Initial native scroll overshot; target card outside visible viewport. Use withdrawals-visible.png."
+    },
+    {
+      "file": "r25-zh-dark-390-wallet-release.png",
+      "reason": "Page entrance opacity transition; use wallet-release-settled.png."
+    },
+    {
+      "file": "r25-en-light-320-wallet-withdrawals.png",
+      "reason": "Actual DOM ink and screenshot are dark; filename light is incorrect. Kept as English dark supplement only, excluded from light matrix."
+    }
+  ],
+  "timingNotes": [
+    {
+      "label": "r25-vi-light-320-funds-recovered",
+      "reason": "DOM sample preceded settled screenshot; use funds-recovered-settled for stable balance."
+    },
+    {
+      "label": "r25-vi-light-320-overview",
+      "reason": "Early DOM before funds settled; use overview-settled for stable card coordinates."
+    },
+    {
+      "label": "r25-vi-light-320-withdrawals-auto-recovered-before-click",
+      "reason": "Card disappeared after mode off before click. Not counted as a click success; later withdrawals-click-recovered is the actual click repeat."
+    }
+  ],
+  "bounds": "Other immediate recovered samples assert card removal; do not infer all unrelated balances settled from that moment."
+}

@@ -40,10 +40,10 @@ function createHarness() {
   const newWebhookSecret = { value: "one-time-fixture-secret" as string | null };
   const busy = new Set<string>();
   const makeLoadResources = new Function("deps", `
-    const { apiKeys, webhooks, resourcesLoading, resourcesReady, resourcesLoadFailed, resourcesApprovalRequired, resourcesNotReleased, isDeveloperApprovalRequired, isDeveloperCapabilityUnavailable, newWebhookSecret,
+    const { apiKeys, webhooks, resourcesLoading, resourcesReady, resourcesLoadFailed, resourcesApprovalRequired, resourcesNotReleased, isDeveloperApprovalRequired, isDeveloperCapabilityUnavailable, newWebhookSecret, ApiError,
       developerResourcesApi, resourceFence, resourceFenceCurrent, resourceBusy,
       setResourceBusy, refreshRotationRecovery } = deps;
-    const remoteApiEnabled = true;
+    const remoteApiEnabled = true, developerEnvironmentInvalidated = false;
     const webhookDeliveries = { value: {} };
     let resourceReadVersion = 0;
     ${loadResourcesSource}
@@ -51,7 +51,7 @@ function createHarness() {
   `) as (deps: Record<string, unknown>) => (fence?: { scope: string }) => Promise<void>;
   const loadResources = makeLoadResources({
     apiKeys, webhooks, resourcesLoading, resourcesReady, resourcesLoadFailed, resourcesApprovalRequired, resourcesNotReleased, newWebhookSecret,
-    isDeveloperApprovalRequired, isDeveloperCapabilityUnavailable,
+    isDeveloperApprovalRequired, isDeveloperCapabilityUnavailable, ApiError,
     developerResourcesApi: {
       listKeys: () => { const read = deferred<unknown[]>(); keyReads.push(read); return read.promise; },
       listWebhooks: () => { const read = deferred<unknown[]>(); hookReads.push(read); return read.promise; },
@@ -165,4 +165,37 @@ describe("developer loadResources concurrent read authority", () => {
     expect(h.state.webhooks.value).toEqual([]);
     expect(h.state.resourcesReady.value).toBe(false);
   });
+});
+
+it("keeps masked read-only metadata during a warm read, strips secrets and clears on a real denial", async () => {
+  const h = createHarness();
+  const first = h.loadResources();
+  h.keyReads[0].resolve([{ id: 1, prefix: "key", last4: "1234", secret: "do-not-retain" }]);
+  h.hookReads[0].resolve([{ id: 2, name: "hook", secret: "do-not-retain" }]); await first;
+  expect(h.state.apiKeys.value).toEqual([{ id: 1, prefix: "key", last4: "1234" }]);
+  expect(h.state.webhooks.value).toEqual([{ id: 2, name: "hook" }]);
+  const warm = h.loadResources();
+  expect(h.state.resourcesLoading.value).toBe(true); expect(h.state.resourcesReady.value).toBe(true);
+  expect(h.state.apiKeys.value).toHaveLength(1);
+  h.keyReads[1].reject(new ApiError({ kind: "http", status: 403, code: 403, message: "DEVELOPER_ACCESS_APPROVAL_REQUIRED" }));
+  h.hookReads[1].resolve([]); await warm;
+  expect(h.state.apiKeys.value).toEqual([]); expect(h.state.webhooks.value).toEqual([]);
+  expect(h.state.resourcesReady.value).toBe(false); expect(h.state.newWebhookSecret.value).toBeNull();
+});
+
+it.each([401, 403])("clears one-time secret and resource presentation after ordinary HTTP %s, including after successful retry", async status => {
+  const h=createHarness();
+  const initial=h.loadResources();h.keyReads[0].resolve([{id:1,prefix:'p',last4:'1234'}]);h.hookReads[0].resolve([{id:2,name:'visible-before-denial'}]);await initial;
+  expect(h.state.resourcesReady.value).toBe(true);expect(h.state.newWebhookSecret.value).toBe('one-time-fixture-secret');
+  const denied=h.loadResources();h.keyReads[1].reject(new ApiError({kind:status===401?'auth':'http',status,code:status,message:status===401?'AUTH_REQUIRED':'FORBIDDEN'}));h.hookReads[1].resolve([]);await denied;
+  expect(h.state.newWebhookSecret.value).toBeNull();expect(h.state.apiKeys.value).toEqual([]);expect(h.state.webhooks.value).toEqual([]);expect(h.state.resourcesReady.value).toBe(false);expect(h.state.resourcesLoadFailed.value).toBe(true);
+  const retry=h.loadResources();h.keyReads[2].resolve([{id:9}]);h.hookReads[2].resolve([{id:10}]);await retry;
+  expect(h.state.resourcesReady.value).toBe(true);expect(h.state.resourcesLoadFailed.value).toBe(false);expect(h.state.newWebhookSecret.value).toBeNull();
+});
+
+it("an older ordinary denial cannot clear a newer scoped one-time secret or successful resources", async () => {
+ const h=createHarness();const old=h.loadResources();h.changeScope();const fresh=h.loadResources();
+ h.keyReads[1].resolve([{id:10}]);h.hookReads[1].resolve([{id:20}]);await fresh;h.state.newWebhookSecret.value='new-scope-once-only';
+ h.keyReads[0].reject(new ApiError({kind:'http',status:403,code:403,message:'FORBIDDEN'}));h.hookReads[0].resolve([]);await old;
+ expect(h.state.newWebhookSecret.value).toBe('new-scope-once-only');expect(h.state.apiKeys.value).toEqual([{id:10}]);expect(h.state.webhooks.value).toEqual([{id:20}]);expect(h.state.resourcesReady.value).toBe(true);expect(h.state.resourcesLoadFailed.value).toBe(false);
 });

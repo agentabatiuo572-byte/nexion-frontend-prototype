@@ -35,12 +35,11 @@ it.each(["zh", "en", "vi"] as const)("places trial and purchased devices togethe
   const screen = mount(locale), tree = nodes(screen.node());
   const sections = tree.filter(node => node.props?.["data-inventory-section"]);
   expect(sections.map(node => node.props!["data-inventory-section"])).toEqual(["devices", "pending", "unconfirmed", "connections"]);
+  expect(tree.some(node => node.type === "ComputeShareEntry")).toBe(false);
   const fleet = nodes(sections[0]);
   expect(fleet.some(node => node.children === messages[locale].myDevices.inventorySectionDevices)).toBe(true);
   expect(fleet.some(node => node.type === "text" && node.children === "2")).toBe(true);
   expect(fleet.filter(node => ["TrialDeviceRow", "DeviceInventoryRow"].includes(String(node.type))).map(node => node.type)).toEqual(["TrialDeviceRow", "DeviceInventoryRow"]);
-  expect(nodes(sections[3]).some(node => node.type === "ComputeShareEntry")).toBe(true);
-  expect(tree.findIndex(node => node.type === "ComputeShareEntry")).toBeGreaterThan(tree.findIndex(node => node.type === "DeviceInventoryRow"));
   screen.context.trialPresentation.active.value = false;
   expect(nodes(screen.node()).filter(node => node.type === "TrialDeviceRow")).toHaveLength(0);
   expect(screen.context.slotsUsed).toBe(3);

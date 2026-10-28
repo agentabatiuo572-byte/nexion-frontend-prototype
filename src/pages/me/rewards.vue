@@ -23,7 +23,7 @@
 
       <view v-if="summaryFailed" class="flex items-center justify-between" :style="summaryErrorStyle">
         <text>{{ t.walletV3.submitReasonServiceUnavailable }}</text>
-        <view class="shrink-0 active:opacity-70" :style="retryBtnStyle" role="button" tabindex="0" @click="refreshRewardSummary"><text>{{ t.store.catalogRetry }}</text></view>
+        <view class="shrink-0 active:opacity-70 nx-card-recovery-action nx-card-recovery-action--quiet nx-card-recovery-action--inline" role="button" tabindex="0" @click="refreshRewardSummary"><text>{{ t.store.catalogRetry }}</text></view>
       </view>
 
       <view
@@ -256,7 +256,6 @@ const hintStyle: CSSProperties = {
   lineHeight: 1.6,
 };
 const summaryErrorStyle: CSSProperties = { margin: "0 16px 12px", padding: "10px 12px", borderRadius: "12px", background: "color-mix(in srgb, var(--v5-danger) 10%, transparent)", color: "var(--v5-danger)", fontSize: "12px", gap: "12px" };
-const retryBtnStyle: CSSProperties = { display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: "44px", minHeight: "44px", padding: "0 10px", borderRadius: "999px", background: "var(--v5-surface-2)", color: "var(--v5-ink)", fontSize: "12px" };
 
 
 </script>
