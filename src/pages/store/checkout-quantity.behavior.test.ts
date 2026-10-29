@@ -20,7 +20,7 @@ function screen(overrides:Record<string,unknown>={}) {
   const deps={pageAlive:true,pageVisible:true,quantityReady:ref(true),checkoutRouteInitialized:true,activeCheckoutLoad:null,
     promotionRoute:ref(null),product:ref({id:'real-sku'}),purchaseUnavailable:ref(false),step:ref('select-payment'),
     quantitySwitching:ref(false),voucherSelecting:ref(false),confirming:false,purchaseConfirmationOpen:false,dialogsOpen:0,
-    trialCheckoutSource:false,trialConversionMode:ref(false),appliedTradeinView:ref(null),reAddingTradein:ref(false),
+    trialCheckoutSource:false,trialConversionMode:ref(false),trialQuoteUnavailable:ref(false),appliedTradeinView:ref(null),reAddingTradein:ref(false),
     remoteTradeinRecoveryRequired:ref(false),activeSession:ref(null),resumeSessionId:null,orderId:ref(null),
     remoteOrderFailure:ref(null),receiptWriteFailure:ref(null),captureCheckoutRoute:()=>scope,
     isCurrentCheckoutRoute:()=>current,resumeServerOrder:vi.fn().mockResolvedValue(false),

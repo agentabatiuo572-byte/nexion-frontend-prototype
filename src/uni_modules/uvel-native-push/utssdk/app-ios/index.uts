@@ -14,13 +14,15 @@ export class UvelNativePushHook implements UTSiOSHookProxy {
     }
     return true
   }
-  didRegisterForRemoteNotifications(deviceToken: Data): void { NativePushBridge.registered(deviceToken) }
-  didFailToRegisterForRemoteNotifications(error: NSError): void { NativePushBridge.registrationFailed() }
+  didRegisterForRemoteNotifications(deviceToken: Data | null): void {
+    if (deviceToken != null) NativePushBridge.registered(deviceToken!)
+  }
+  didFailToRegisterForRemoteNotifications(error: NSError | null): void { NativePushBridge.registrationFailed() }
 }
 
 let listeners = new Map<number, (event: UTSJSONObject) => void>()
 let sequence = 0
-export function initializeNativePush(config: UTSJSONObject): void { NativePushBridge.initialize() }
+export function initializeNativePush(config: UTSJSONObject): void { NativePushBridge.startRegistration() }
 export function getNativePushToken(callback: (result: UTSJSONObject) => void): void {
   NativePushBridge.getToken((value: string) => { callback(JSON.parseObject(value)!) })
 }

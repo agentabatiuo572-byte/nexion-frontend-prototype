@@ -447,6 +447,7 @@ function captureCheckoutRoute(): CheckoutRouteScope {
 function invalidateCheckoutRoute(): void {
   checkoutRouteFence.invalidate();
   activeCheckoutLoad = null;
+  remoteTradeinRecoveryBusy.value = false;
 }
 
 function isCurrentCheckoutRoute(scope: CheckoutRouteScope): boolean {
@@ -954,6 +955,9 @@ watch([() => app.accountKey, () => app.accountBindingEpoch], () => {
   // 正开着的确认框渲染的是上一个账号的商品名与金额 —— 一并收掉。
   if (dialogsOpen > 0) useUI().clearConfirmsBy(dialogOwner);
   step.value = "select-payment";
+  // Cookie restoration keeps this checkout mounted. Re-read the newly bound
+  // account's original result even when onLoad only saw the guest account.
+  if (remoteApiEnabled && checkoutRouteInitialized && pageAlive && pageVisible) void resumeServerOrder();
 });
 async function fireTradeinIntercept(interactive = false): Promise<boolean | undefined> {
   if (interceptFired) return;

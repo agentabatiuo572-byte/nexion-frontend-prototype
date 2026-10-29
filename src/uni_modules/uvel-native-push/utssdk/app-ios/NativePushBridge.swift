@@ -36,7 +36,7 @@ public final class NativePushBridge: NSObject, UNUserNotificationCenterDelegate 
         }
     }
     public static func launchId(_ id: String) { shared.click(["notificationId": id]) }
-    public static func initialize() {
+    public static func startRegistration() {
         DispatchQueue.main.async {
             install()
             if !shared.enabled { shared.generation += 1 }

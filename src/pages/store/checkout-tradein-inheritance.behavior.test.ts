@@ -4,7 +4,9 @@ import ts from "typescript";
 import source from "./checkout.vue?raw";
 import { completeVerifiedMutation } from "@/domain/e20-capacity-coordinator";
 import { ApiError, asApiError, isSettledRejection } from "@/api/errors";
-import { rememberCheckoutOrder, readCheckoutTradein, finishCheckoutTradein } from "@/lib/checkout-order-recovery";
+import { rememberCheckoutOrder, readCheckoutTradein, finishCheckoutTradein, recoverCheckoutOrder } from "@/lib/checkout-order-recovery";
+import { createOrderApi } from "@/api/order-api";
+import type { ApiClient } from "@/api/api-client";
 import { en } from "@/i18n/messages/en";
 
 let disk: Record<string, unknown>;
@@ -26,11 +28,12 @@ function checkout(active: boolean) {
   const order = { ...submitted, canonicalStatus: active ? "activated" : "inventory", paymentStatus: "PAID",
     orderStatus: "COMPLETED", activationStatus: active ? "ACTIVATED" : "INVENTORY", amountUsdt: 80 };
   const target = { id: "33", activatedAt: active ? 1000 : null, activationUnconfirmed: false };
-  const scope = { accountKey: "a", accountEpoch: 1, productNo: "stellarbox-pro" };
+  const scope = { accountKey: "a", accountEpoch: 1, productNo: "stellarbox-pro", generation: 1 };
   const deps: Record<string, any> = {
     remoteApiEnabled: true, completeVerifiedMutation, asApiError, isSettledRejection, scope, isCurrentAccountScope: () => true,
     readCheckoutTradein, rememberCheckoutOrder: vi.fn(rememberCheckoutOrder), finishCheckoutTradein: vi.fn(finishCheckoutTradein),
-    captureCheckoutRoute: () => ({ ...scope }), isCurrentCheckoutRoute: (snapshot: typeof scope) => snapshot.accountKey === scope.accountKey && snapshot.accountEpoch === scope.accountEpoch,
+    captureCheckoutRoute: () => ({ ...scope }), isCurrentCheckoutRoute: (snapshot: typeof scope) => snapshot.accountKey === scope.accountKey
+      && snapshot.accountEpoch === scope.accountEpoch && snapshot.generation === scope.generation,
     app: { user: { usdtBalance: 100 }, captureRemoteAccountRequest: () => ({}), devices: [target],
       refreshRemoteFleet: vi.fn().mockResolvedValue(true) },
     product: ref({ id: "stellarbox-pro" }), purchaseUnavailable: ref(false), voucherQuote: { id: null },
@@ -43,11 +46,13 @@ function checkout(active: boolean) {
     remoteTradeinRecoveryError: ref(false), remoteTradeinRecoveryBusy: ref(false), navReplace: vi.fn().mockResolvedValue(true),
     remoteTradeinRecoveryRequired: ref(false), retireRemoteOrderKey: vi.fn(), orderId: ref(null), step: ref("confirm"),
     t: ref(en), toast: { warn: vi.fn(), error: vi.fn() },
+    checkoutRouteFence: { invalidate: () => { scope.generation++; } }, activeCheckoutLoad: null,
   };
   // The settled-result replay starts at "confirmed"; its timers belong to the page watcher.
   deps.presentSettledPurchase = vi.fn(() => { deps.step.value = "confirmed"; });
   deps.completeRemoteTradein = handler("completeRemoteTradein", deps);
   deps.resumePendingRemoteTradein = handler("resumePendingRemoteTradein", deps);
+  deps.invalidateCheckoutRoute = handler("invalidateCheckoutRoute", deps);
   return { ...deps, target, order, quote, submit: handler("submitRemoteOrder", deps) } as Record<string, any>;
 }
 
@@ -173,4 +178,71 @@ it("retains the original command when the server explicitly reports an unknown i
   await first.submit();
   expect(readCheckoutTradein("a", "stellarbox-pro")!.commandKey).toBe("e3-same-key");
   expect(first.remoteTradeinRecoveryError.value).toBe(true);
+});
+
+it("recovers a warehouse result through the real inventory-order parser after reload", async () => {
+  const first = checkout(false); first.orderApi.list.mockRejectedValueOnce(new Error("orders blocked"));
+  await first.submit();
+  const recovery = readCheckoutTradein("a", "stellarbox-pro")!;
+  const refreshed = checkout(false);
+  const payload = { source: "server", sourceEnvironment: "PRODUCTION", runId: null, serverCanonical: true, nextCursor: null,
+    orders: [{ ...refreshed.order, productId: 5, productNo: "stellarbox-pro×1", productName: "Pro×1", quantity: 1,
+      subtotalUsdt: 100, unitPriceUsdt: 100, paymentMethod: "USDT_WALLET", orderType: "TRADE_IN",
+      placedAt: 1000, expiresAt: null, paidAt: 1001, activatedAt: null, itemCount: 1,
+      targetDeviceInstanceNo: "DEV-TI-1", dataCenter: "DC", refundedAt: null, refundAmountUsdt: null,
+      refundChannel: null, refundBillNo: null, refundReasonCode: null, closeReasonCode: null }] };
+  const request = vi.fn().mockResolvedValue(payload);
+  refreshed.orderApi.list.mockImplementation(createOrderApi({ request } as unknown as ApiClient, "dev").list);
+  refreshed.product.value = null; refreshed.appliedTradeinView.value = null; refreshed.tradein.appliedTradein = null;
+  refreshed.app.user.usdtBalance = 0; refreshed.refreshPurchaseEligibility.mockResolvedValue("ineligible");
+  await refreshed.resumePendingRemoteTradein({ ...refreshed.scope }, true);
+  expect(request).toHaveBeenCalledExactlyOnceWith({ method: "GET", path: "/api/orders?pageSize=50" });
+  expect(refreshed.deviceE3Api.submit).not.toHaveBeenCalled();
+  expect(refreshed.navReplace).toHaveBeenCalledExactlyOnceWith(`/pages/store/order-detail?id=${recovery.orderNo}`);
+  expect(refreshed.orderId.value).toBe("ORD-1"); expect(refreshed.remoteTradeinRecoveryError.value).toBe(false);
+  expect(readCheckoutTradein("a", "stellarbox-pro")).toBeNull();
+});
+
+it("retries the original known result after a pending recovery loses its page scope", async () => {
+  const first = checkout(false); first.orderApi.list.mockRejectedValueOnce(new Error("orders blocked")); await first.submit();
+  const refreshed = checkout(false);
+  let failOld!: (error: Error) => void;
+  refreshed.orderApi.list.mockReturnValueOnce(new Promise((_resolve, reject) => { failOld = reject; }));
+  const old = refreshed.resumePendingRemoteTradein({ ...refreshed.scope }, true);
+  await vi.waitFor(() => expect(refreshed.orderApi.list).toHaveBeenCalledOnce());
+  refreshed.invalidateCheckoutRoute();
+  failOld(new Error("old page read failed")); await old;
+  await refreshed.resumePendingRemoteTradein({ ...refreshed.scope }, true);
+  expect(refreshed.orderApi.list).toHaveBeenCalledTimes(2);
+  expect(refreshed.orderId.value).toBe("ORD-1");
+  expect(refreshed.deviceE3Api.submit).not.toHaveBeenCalled();
+  expect(readCheckoutTradein("a", "stellarbox-pro")).toBeNull();
+});
+
+it.each(["a", "b"])("cookie bootstrap reads only bound account %s's recovery after checkout first read the guest account", async nextAccount => {
+  const first = checkout(false); first.orderApi.list.mockRejectedValueOnce(new Error("orders blocked")); await first.submit();
+  const refreshed = checkout(false);
+  refreshed.scope.accountKey = "default";
+  const recoverySource = source.slice(source.indexOf("let serverOrderRecovery:"), source.indexOf("function onKeyboardActivate("));
+  const code = ts.transpileModule(recoverySource + "; return resumeServerOrder;", { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  const recoveryDeps = { ...refreshed, recoverCheckoutOrder };
+  const resumeServerOrder = new Function(...Object.keys(recoveryDeps), code)(...Object.values(recoveryDeps));
+  await expect(resumeServerOrder()).resolves.toBe(false);
+  expect(refreshed.orderApi.list).not.toHaveBeenCalled();
+  const watchNode = ast.statements.filter(ts.isExpressionStatement).map(node => node.expression)
+    .filter(ts.isCallExpression).find(node => node.expression.getText(ast) === "watch"
+      && node.arguments[0]?.getText(ast) === "[() => app.accountKey, () => app.accountBindingEpoch]")!;
+  const deps = { ...refreshed, resumeServerOrder, interceptFired: false, tradeinAvailable: ref(false),
+    remoteCapacityGate: { reset: vi.fn() }, checkoutWalletRefreshSequence: 0, checkoutWalletRefreshing: ref(false),
+    quantityReady: ref(false), clearRemotePurchaseEligibility: vi.fn(), remoteOrderFailure: ref(null),
+    receiptWriteFailure: ref(null), receiptRetrying: ref(false), restoreReceiptRecovery: vi.fn(),
+    remoteOrderCommandKey: { clear: vi.fn() }, activeSession: ref(null), dialogsOpen: 0,
+    checkoutRouteInitialized: true, pageAlive: true, pageVisible: true };
+  const callback = new Function(...Object.keys(deps), `return ${watchNode.arguments[1].getText(ast)};`)(...Object.values(deps));
+  refreshed.scope.accountKey = nextAccount; refreshed.scope.accountEpoch++;
+  callback();
+  await vi.waitFor(() => expect(refreshed.orderId.value).toBe(nextAccount === "a" ? "ORD-1" : null));
+  expect(refreshed.deviceE3Api.submit).not.toHaveBeenCalled();
+  expect(refreshed.navReplace).toHaveBeenCalledTimes(nextAccount === "a" ? 1 : 0);
+  expect(readCheckoutTradein("a", "stellarbox-pro")?.orderNo).toBe(nextAccount === "a" ? undefined : "ORD-1");
 });

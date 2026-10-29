@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-polish",
+  "sourcePath": "D:\\workspace\\worktrees\\push-direct-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "a555ac730ba1ed343821500c779337350a39093c",
-  "sourceRef": "a555ac730ba1ed343821500c779337350a39093c",
+  "sourceHead": "4f36f857c5f4a8c151707e55b151e2e7c6241997",
+  "sourceRef": "4f36f857c5f4a8c151707e55b151e2e7c6241997",
   "sourceRefKind": "commit",
-  "sourceTree": "08439b263991cba754f078477651652238c636a1",
+  "sourceTree": "0be407f704eb5d5441927559a11e49d39bc7ef63",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -272,10 +272,10 @@
       "mode": "100644"
     },
     "PRD/UVEL_算力激活队列与六槽_20261029.md": {
-      "sourceBlob": "4c190d04c953cc6f5d6211285d83f3970bcc2e5d",
-      "sourceSha256": "16f2ac62c54c0b2b40cbf8f970886c6584032d7fdde566c399d5d13b55c1739d",
-      "targetBlob": "4c190d04c953cc6f5d6211285d83f3970bcc2e5d",
-      "targetSha256": "16f2ac62c54c0b2b40cbf8f970886c6584032d7fdde566c399d5d13b55c1739d",
+      "sourceBlob": "02831bbf189d6f15f3ae57067890aeccdedd15d2",
+      "sourceSha256": "ef711f1a5461484b904a1649ca41781f1d3649da107fc9ccd13a7cb3b9c1dece",
+      "targetBlob": "02831bbf189d6f15f3ae57067890aeccdedd15d2",
+      "targetSha256": "ef711f1a5461484b904a1649ca41781f1d3649da107fc9ccd13a7cb3b9c1dece",
       "mode": "100644"
     },
     "PRD/UVEL_设计审查功能同步_20261026.md": {
@@ -13929,10 +13929,10 @@
       "mode": "100644"
     },
     "src/pages/store/checkout-quantity.behavior.test.ts": {
-      "sourceBlob": "c58b6b96e72bc9b7dd059ea900e4ec4db7687d45",
-      "sourceSha256": "c8b13d71d2011ab498ee85b647584e3729302ba16376afdb0a95c966ca506b49",
-      "targetBlob": "c58b6b96e72bc9b7dd059ea900e4ec4db7687d45",
-      "targetSha256": "c8b13d71d2011ab498ee85b647584e3729302ba16376afdb0a95c966ca506b49",
+      "sourceBlob": "721e26d5a5c9792ab4bfb7a1aa0ddb85864d902a",
+      "sourceSha256": "04b0c6fbbc948180c15505f7774fe0a9136b7448e09c977879c096bb814ecfb3",
+      "targetBlob": "721e26d5a5c9792ab4bfb7a1aa0ddb85864d902a",
+      "targetSha256": "04b0c6fbbc948180c15505f7774fe0a9136b7448e09c977879c096bb814ecfb3",
       "mode": "100644"
     },
     "src/pages/store/checkout-remote-summary.contract.test.ts": {
@@ -13943,10 +13943,10 @@
       "mode": "100644"
     },
     "src/pages/store/checkout-tradein-inheritance.behavior.test.ts": {
-      "sourceBlob": "7b8b857ce5389ed15808fc78e0b7e2b9aeb745cd",
-      "sourceSha256": "e1f6b42e9f4d52a2c10d0bd41a7aa5cf073e5b561dc6c94c3cfdf54803ca5839",
-      "targetBlob": "7b8b857ce5389ed15808fc78e0b7e2b9aeb745cd",
-      "targetSha256": "e1f6b42e9f4d52a2c10d0bd41a7aa5cf073e5b561dc6c94c3cfdf54803ca5839",
+      "sourceBlob": "8eacbc4ed7c131658fa143163c05d7c189d652ab",
+      "sourceSha256": "23e6cad43e90ec91f255b4840d870cfc36272c153275d27d50c95ff398bef3ca",
+      "targetBlob": "8eacbc4ed7c131658fa143163c05d7c189d652ab",
+      "targetSha256": "23e6cad43e90ec91f255b4840d870cfc36272c153275d27d50c95ff398bef3ca",
       "mode": "100644"
     },
     "src/pages/store/checkout-tradein-readd.behavior.test.ts": {
@@ -13985,10 +13985,10 @@
       "mode": "100644"
     },
     "src/pages/store/checkout.vue": {
-      "sourceBlob": "7956cdd0c56cd2bbc138f4267f241775e3f7d43a",
-      "sourceSha256": "d9448aca675617d53715b1bb7c736abf0891b8c0b4d04ffff205347e2cb18ea5",
-      "targetBlob": "7956cdd0c56cd2bbc138f4267f241775e3f7d43a",
-      "targetSha256": "d9448aca675617d53715b1bb7c736abf0891b8c0b4d04ffff205347e2cb18ea5",
+      "sourceBlob": "b0c91bc074df964267b21f5b6accbf83ec9b23ae",
+      "sourceSha256": "fe0c785cc9322aaa8bf0411f626d420f989e31869b4b71b689dddd84291c581b",
+      "targetBlob": "b0c91bc074df964267b21f5b6accbf83ec9b23ae",
+      "targetSha256": "fe0c785cc9322aaa8bf0411f626d420f989e31869b4b71b689dddd84291c581b",
       "mode": "100644"
     },
     "src/pages/store/detail-loading-header.contract.test.ts": {
@@ -17268,10 +17268,10 @@
       "mode": "100644"
     },
     "src/uni_modules/uvel-native-push/utssdk/app-ios/NativePushBridge.swift": {
-      "sourceBlob": "b5428d38f341b09a0725a861b6fbf0fc2e3a8b5e",
-      "sourceSha256": "00ccabe80ff31ebaba70d9602074b4b5d395af9f7af8e171b80a187eae74af2e",
-      "targetBlob": "b5428d38f341b09a0725a861b6fbf0fc2e3a8b5e",
-      "targetSha256": "00ccabe80ff31ebaba70d9602074b4b5d395af9f7af8e171b80a187eae74af2e",
+      "sourceBlob": "786af2b40c48e4336c3b9155021aa7e957838498",
+      "sourceSha256": "a62204a41518888056be845cf95f1ae3c1dbceccdf844577eb4d3bd08f3575bb",
+      "targetBlob": "786af2b40c48e4336c3b9155021aa7e957838498",
+      "targetSha256": "a62204a41518888056be845cf95f1ae3c1dbceccdf844577eb4d3bd08f3575bb",
       "mode": "100644"
     },
     "src/uni_modules/uvel-native-push/utssdk/app-ios/config.json": {
@@ -17282,10 +17282,10 @@
       "mode": "100644"
     },
     "src/uni_modules/uvel-native-push/utssdk/app-ios/index.uts": {
-      "sourceBlob": "b274b3d4db2b8464d7eaa85ee5c370d908316a86",
-      "sourceSha256": "c8b037fdaf0503c932a4e027184978b4a9239b71934464b6ae1fca571026c6b7",
-      "targetBlob": "b274b3d4db2b8464d7eaa85ee5c370d908316a86",
-      "targetSha256": "c8b037fdaf0503c932a4e027184978b4a9239b71934464b6ae1fca571026c6b7",
+      "sourceBlob": "53d27a2a2724f45497f1e7f9d474dd6859cb9d85",
+      "sourceSha256": "34b3a506ab045fa7254f6942649372c05ff532f782a4466f1f27fc2094db249c",
+      "targetBlob": "53d27a2a2724f45497f1e7f9d474dd6859cb9d85",
+      "targetSha256": "34b3a506ab045fa7254f6942649372c05ff532f782a4466f1f27fc2094db249c",
       "mode": "100644"
     },
     "tsconfig.json": {
