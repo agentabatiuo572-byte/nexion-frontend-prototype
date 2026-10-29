@@ -446,8 +446,8 @@ describe("shared invitation rules authority and recovery", () => {
     expect(ruleText).toContain("0.02 UVT"); expect(ruleText).toContain("2026");
     expect(ruleText).not.toContain("99");
     const locale = messages === zh ? "zh" : messages === vietnamese ? "vi" : "en";
-    expect(ruleText).toContain(teamRedesignCopy(locale).inviteRuleQualification);
-    expect(ruleText).toContain(teamRedesignCopy(locale).inviteRuleSettlement);
+    expect(ruleText).toContain(teamRedesignCopy(locale).inviteRuleSteps[0].body);
+    expect(ruleText).toContain(teamRedesignCopy(locale).inviteRuleSteps[2].body);
     expect(runtime.shareEventApi.record).not.toHaveBeenCalled();
   });
   it.each([true, false])("keeps valid rules while loading and clears failures, mismatches and disabled config (card=%s)", async entry => {
@@ -477,8 +477,8 @@ describe("shared invitation rules authority and recovery", () => {
     runtime.referralRewardApi.snapshot.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
     const s = await openRules(entry);
     expect(text(s.nodes("invite-rules-content")[0])).toContain(en.team.rewardLoading);
-    expect(text(s.nodes("invite-rules-content")[0])).toContain(teamRedesignCopy("en").inviteRuleQualification);
-    expect(text(s.nodes("invite-rules-content")[0])).toContain(teamRedesignCopy("en").inviteRuleSettlement);
+    expect(text(s.nodes("invite-rules-content")[0])).toContain(teamRedesignCopy("en").inviteRuleSteps[0].body);
+    expect(text(s.nodes("invite-rules-content")[0])).toContain(teamRedesignCopy("en").inviteRuleSteps[2].body);
     expect(runtime.referralRewardApi.snapshot).toHaveBeenCalledOnce();
     finish(nextSnapshot); await flush();
     expect(text(s.nodes("invite-rules-content")[0])).toContain("0.02 UVT");
@@ -503,8 +503,8 @@ describe("shared invitation rules authority and recovery", () => {
     const staleRetry = s.nodes("invite-rules-retry")[0];
     const pending = staleRetry.props.onClick(); await flush();
     expect(text(s.nodes("invite-rules-content")[0])).toContain(en.team.rewardLoading);
-    expect(text(s.nodes("invite-rules-content")[0])).toContain(teamRedesignCopy("en").inviteRuleQualification);
-    expect(text(s.nodes("invite-rules-content")[0])).toContain(teamRedesignCopy("en").inviteRuleSettlement);
+    expect(text(s.nodes("invite-rules-content")[0])).toContain(teamRedesignCopy("en").inviteRuleSteps[0].body);
+    expect(text(s.nodes("invite-rules-content")[0])).toContain(teamRedesignCopy("en").inviteRuleSteps[2].body);
     await staleRetry.props.onClick();
     expect(runtime.platformConfigApi.platformConfig).toHaveBeenCalledTimes(2);
     expect(runtime.referralRewardApi.snapshot).toHaveBeenCalledTimes(2);

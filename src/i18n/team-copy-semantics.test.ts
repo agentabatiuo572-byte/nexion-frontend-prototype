@@ -60,7 +60,7 @@ describe('team copy distinguishes reward mechanisms', () => {
   });
 
   it('provides every approved compact-card label with locale fallback', () => {
-    const keys = ['inviteFriends', 'qualifiedFriendReward', 'rewardRecords', 'myTeam', 'members', 'directInvites', 'myRank', 'currentRank', 'promotionRequirements', 'benefitsAndRewards', 'rules', 'inviteRules', 'inviteRuleSummary', 'inviteRuleSettlement', 'recentRewards', 'settled', 'pending', 'totalEarned', 'latestRecords', 'viewProgress', 'firstPurchase', 'firstPurchaseCount', 'orderUnit'] as const;
+    const keys = ['inviteFriends', 'qualifiedFriendReward', 'rewardRecords', 'myTeam', 'members', 'directInvites', 'myRank', 'currentRank', 'promotionRequirements', 'benefitsAndRewards', 'rules', 'inviteRules', 'inviteRuleSummary', 'inviteRulePerFriend', 'recentRewards', 'settled', 'pending', 'totalEarned', 'latestRecords', 'viewProgress', 'firstPurchase', 'firstPurchaseCount', 'orderUnit'] as const;
     for (const locale of ['zh', 'en', 'vi']) for (const key of keys) expect(teamRedesignCopy(locale)[key].trim()).not.toBe('');
     expect(teamRedesignCopy('VI-vn')).toBe(teamRedesignCopy('vi'));
     expect(teamRedesignCopy('zh_CN')).toBe(teamRedesignCopy('zh'));
@@ -69,9 +69,9 @@ describe('team copy distinguishes reward mechanisms', () => {
 
   it.each(Object.entries({ zh, en, vi }))('%s does not infer invitation cooling days or purchase eligibility from unavailable fields', (locale, messages) => {
     const copy = teamRedesignCopy(locale);
-    expect([copy.inviteRuleSummary, copy.inviteRuleSettlement, messages.team.perFriendCooldown].join(' ')).not.toMatch(/30|冷却|cooling|cooldown|chờ \d/i);
+    expect([copy.inviteRuleSummary, copy.inviteRuleSteps[2].body, messages.team.perFriendCooldown].join(' ')).not.toMatch(/30|冷却|cooling|cooldown|chờ \d/i);
     expect(copy.inviteRuleSummary).toMatch(/条件|conditions|điều kiện/i);
-    expect(copy.inviteRuleSettlement).toMatch(/奖励记录|reward records|bản ghi thưởng/);
+    expect(copy.inviteRuleSteps[2].body).toMatch(/奖励记录|reward records|bản ghi thưởng/);
     expect(copy.settled).not.toMatch(/预估|estimate|ước tính/i);
     expect(copy.pending).not.toBe(copy.settled);
     expect(copy.estimated).toMatch(/预估|Estimated|Ước tính/);

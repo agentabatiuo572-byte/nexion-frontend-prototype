@@ -31,7 +31,7 @@
   </view>
   <SharePosterSheet :open="posterOpen" @close="posterOpen=false" />
   <ShareChannelSheet :open="shareOpen" @close="shareOpen=false" @open-poster="shareOpen=false; posterOpen=true" />
-  <InviteDetailSheet :open="detailOpen" :mode="detailMode" @close="detailOpen=false" @records="detailMode='records'" />
+  <InviteDetailSheet :open="detailOpen" :mode="detailMode" @close="detailOpen=false" />
 </template>
 <script setup lang="ts">
 import { formatAmount } from '@/lib/amount-display';
