@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { readFileSync } from 'node:fs'
 import { firebaseResources } from '../configure-android.mjs'
 
 const client = (pkg, appId) => ({ client_info: { android_client_info: { package_name: pkg }, mobilesdk_app_id: appId }, api_key: [{ current_key: 'public-key' }] })
@@ -19,4 +20,11 @@ test('missing, ambiguous, or incomplete Firebase client fails before writing a c
   assert.throws(() => firebaseResources(configuration, 'com.example.missing'), /Exactly one/)
   assert.throws(() => firebaseResources({ ...configuration, client: [client('same', 'one'), client('same', 'two')] }, 'same'), /Exactly one/)
   assert.throws(() => firebaseResources({ ...configuration, project_info: {} }, 'com.example.target'), /incomplete/)
+})
+
+test('declares the Google Play services API used for the real GMS availability preflight', () => {
+  const native = readFileSync(new URL('../utssdk/app-android/NativePushBridge.kt', import.meta.url), 'utf8')
+  const config = JSON.parse(readFileSync(new URL('../utssdk/app-android/config.json', import.meta.url), 'utf8'))
+  assert.match(native, /import com\.google\.android\.gms\.common\.GoogleApiAvailability/)
+  assert.ok(config.dependencies.includes('com.google.android.gms:play-services-base:18.1.0'))
 })

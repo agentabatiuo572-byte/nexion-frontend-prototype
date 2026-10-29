@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "/Volumes/HD1/Projects/UVEL/rm-claude-app",
+  "sourcePath": "D:\\workspace\\worktrees\\push-direct-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "284adf4c21e677b6aa2c10e2db52d662a8431b6b",
-  "sourceRef": "284adf4c21e677b6aa2c10e2db52d662a8431b6b",
+  "sourceHead": "53b6f010c919c73de37ff1c93d0ba720fc3a44bc",
+  "sourceRef": "53b6f010c919c73de37ff1c93d0ba720fc3a44bc",
   "sourceRefKind": "commit",
-  "sourceTree": "47c1f7b2b0b7eea4826290c0f2fa2a6f0f8a7c9b",
+  "sourceTree": "ecb81bafe00ff8b6ea26036ae0979dfc61cb8c1f",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -468,10 +468,10 @@
       "mode": "100644"
     },
     "docs/前端产品更新日志.md": {
-      "sourceBlob": "af7fb446cd440ea7e3827ad5b0c9991150964684",
-      "sourceSha256": "5b1cbb25f5fd9c18cc5bf38b0709abdc2979102f020403588122f9c34e7ddaae",
-      "targetBlob": "af7fb446cd440ea7e3827ad5b0c9991150964684",
-      "targetSha256": "5b1cbb25f5fd9c18cc5bf38b0709abdc2979102f020403588122f9c34e7ddaae",
+      "sourceBlob": "b596a7454143719f6b7f01637b896b4d99eb1abc",
+      "sourceSha256": "786eee586a6bdb6813ec2f7cc4e5792a5c2c8f72bbb498668b769a12cde114f1",
+      "targetBlob": "b596a7454143719f6b7f01637b896b4d99eb1abc",
+      "targetSha256": "786eee586a6bdb6813ec2f7cc4e5792a5c2c8f72bbb498668b769a12cde114f1",
       "mode": "100644"
     },
     "index.html": {
@@ -17184,10 +17184,10 @@
       "mode": "100644"
     },
     "src/uni_modules/uvel-native-push/tests/configure-android.test.mjs": {
-      "sourceBlob": "64d0252b89dcd4f14ec3b042b9f248f42d47cb90",
-      "sourceSha256": "e9161139f7487e1588ab097516e7c2c9746ae9dc24693f20a351ec0f8683ace7",
-      "targetBlob": "64d0252b89dcd4f14ec3b042b9f248f42d47cb90",
-      "targetSha256": "e9161139f7487e1588ab097516e7c2c9746ae9dc24693f20a351ec0f8683ace7",
+      "sourceBlob": "1b0b266422697d298839b2433d40ca42333bd29b",
+      "sourceSha256": "74ae499f84a7cfb1adff3b3f70069dcee2bf5f8085d88182dc79e670c52bf221",
+      "targetBlob": "1b0b266422697d298839b2433d40ca42333bd29b",
+      "targetSha256": "74ae499f84a7cfb1adff3b3f70069dcee2bf5f8085d88182dc79e670c52bf221",
       "mode": "100644"
     },
     "src/uni_modules/uvel-native-push/tests/native-proxy-runtime.test.mjs": {
@@ -17212,10 +17212,10 @@
       "mode": "100644"
     },
     "src/uni_modules/uvel-native-push/utssdk/app-android/config.json": {
-      "sourceBlob": "8e8dc4527b06e7e5d052fc781801bf2de71a95be",
-      "sourceSha256": "8cb44e1cbd62f99e4960e4c7552570b25cbf389ea2f416c7dad5a6d22e816701",
-      "targetBlob": "8e8dc4527b06e7e5d052fc781801bf2de71a95be",
-      "targetSha256": "8cb44e1cbd62f99e4960e4c7552570b25cbf389ea2f416c7dad5a6d22e816701",
+      "sourceBlob": "eb7472f725236f3e49533281e60834e15acdda3d",
+      "sourceSha256": "ee7213e5b89b3f6857a7ed0d728d22998d69f04101f071d33742bd991a7210eb",
+      "targetBlob": "eb7472f725236f3e49533281e60834e15acdda3d",
+      "targetSha256": "ee7213e5b89b3f6857a7ed0d728d22998d69f04101f071d33742bd991a7210eb",
       "mode": "100644"
     },
     "src/uni_modules/uvel-native-push/utssdk/app-android/index.uts": {

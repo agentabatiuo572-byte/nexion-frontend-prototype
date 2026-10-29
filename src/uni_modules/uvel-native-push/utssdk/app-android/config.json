@@ -1,4 +1,7 @@
 {
   "minSdkVersion": 23,
-  "dependencies": ["com.google.firebase:firebase-messaging:24.1.2"]
+  "dependencies": [
+    "com.google.firebase:firebase-messaging:24.1.2",
+    "com.google.android.gms:play-services-base:18.1.0"
+  ]
 }
