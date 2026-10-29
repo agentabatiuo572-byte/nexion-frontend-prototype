@@ -3,10 +3,10 @@
   "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-polish",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "cfcb8743dbacb70c64ce532599f642a2b1823173",
-  "sourceRef": "cfcb8743dbacb70c64ce532599f642a2b1823173",
+  "sourceHead": "a555ac730ba1ed343821500c779337350a39093c",
+  "sourceRef": "a555ac730ba1ed343821500c779337350a39093c",
   "sourceRefKind": "commit",
-  "sourceTree": "cdc14eb2824a58158530a0f856fa7a879d7b6f45",
+  "sourceTree": "08439b263991cba754f078477651652238c636a1",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -125,10 +125,10 @@
       "mode": "100644"
     },
     "PRD/NexGrid_产品功能架构设计文档_v3.7.md": {
-      "sourceBlob": "21ece6c808053fc08252e02660a811e13b909ffc",
-      "sourceSha256": "17e88429c9708a3aad806ff8ea75e3c1bd2b7848ea0b8dcf95d6d46ef12ac245",
-      "targetBlob": "21ece6c808053fc08252e02660a811e13b909ffc",
-      "targetSha256": "17e88429c9708a3aad806ff8ea75e3c1bd2b7848ea0b8dcf95d6d46ef12ac245",
+      "sourceBlob": "33fb36219158fea495d77e700d02129d92b638bd",
+      "sourceSha256": "f400455443ab74fefac46d0d4d757f87999ef809f6e40c5cbf13f2ab6ea21187",
+      "targetBlob": "33fb36219158fea495d77e700d02129d92b638bd",
+      "targetSha256": "f400455443ab74fefac46d0d4d757f87999ef809f6e40c5cbf13f2ab6ea21187",
       "mode": "100644"
     },
     "PRD/UVEL_Goals绑定返回恢复_20261027.md": {
@@ -468,10 +468,10 @@
       "mode": "100644"
     },
     "docs/前端产品更新日志.md": {
-      "sourceBlob": "506d31a40140e8bd274c70d816397ff5912a1ee9",
-      "sourceSha256": "809b0b673f16dd2f7ce7a1b9d4460cb95f80fcadba42a5bbe8a479d232d34a11",
-      "targetBlob": "506d31a40140e8bd274c70d816397ff5912a1ee9",
-      "targetSha256": "809b0b673f16dd2f7ce7a1b9d4460cb95f80fcadba42a5bbe8a479d232d34a11",
+      "sourceBlob": "626be3a43b7b39d44e5de7b0d82fcce74530b24b",
+      "sourceSha256": "71bd74a0c912bdc655650e37fd5067929d0fb23880ade128b67d527bcdf02de0",
+      "targetBlob": "626be3a43b7b39d44e5de7b0d82fcce74530b24b",
+      "targetSha256": "71bd74a0c912bdc655650e37fd5067929d0fb23880ade128b67d527bcdf02de0",
       "mode": "100644"
     },
     "index.html": {
@@ -741,10 +741,10 @@
       "mode": "100644"
     },
     "scripts/bank-binding-runtime.mjs": {
-      "sourceBlob": "88eb081a02a014182c9569b8cab6f061784d972f",
-      "sourceSha256": "e5cd85eb99312d5aadeb1f9f1061cda4e4f70f20d8d90857708fcaa609fc24c6",
-      "targetBlob": "88eb081a02a014182c9569b8cab6f061784d972f",
-      "targetSha256": "e5cd85eb99312d5aadeb1f9f1061cda4e4f70f20d8d90857708fcaa609fc24c6",
+      "sourceBlob": "db37b367ed036443e282ec2253753dee3db85f4a",
+      "sourceSha256": "d35b7c3b67beba89734e5168f64f2efec06eb166a87ff247d3d521ff4e17b985",
+      "targetBlob": "db37b367ed036443e282ec2253753dee3db85f4a",
+      "targetSha256": "d35b7c3b67beba89734e5168f64f2efec06eb166a87ff247d3d521ff4e17b985",
       "mode": "100644"
     },
     "scripts/bank-withdrawal-runtime.mjs": {
@@ -2631,10 +2631,10 @@
       "mode": "100644"
     },
     "scripts/social-facts-authority-contract.test.mjs": {
-      "sourceBlob": "877959371904b822a337c935cb4f84d85dc0b327",
-      "sourceSha256": "e8240d795351f4142dea2ef259addaf51f770690830ddf4cb6d2b9297cb8185f",
-      "targetBlob": "877959371904b822a337c935cb4f84d85dc0b327",
-      "targetSha256": "e8240d795351f4142dea2ef259addaf51f770690830ddf4cb6d2b9297cb8185f",
+      "sourceBlob": "9a7ed3ff3374f48f10760b9d965f3d3c456a5f1c",
+      "sourceSha256": "1fc4b435c3b5d6126553fc38bac49578337eea7aab9fcd3ed4ee4d03d39a4ad1",
+      "targetBlob": "9a7ed3ff3374f48f10760b9d965f3d3c456a5f1c",
+      "targetSha256": "1fc4b435c3b5d6126553fc38bac49578337eea7aab9fcd3ed4ee4d03d39a4ad1",
       "mode": "100644"
     },
     "scripts/spec-sentinel-render-gate.mjs": {
@@ -5641,17 +5641,17 @@
       "mode": "100644"
     },
     "src/components/home/live-feed-card.vue": {
-      "sourceBlob": "d37358aa5628225ed7bef93abcbf87727ea59804",
-      "sourceSha256": "caaf443cc6e96a19f9121302aa86ccbdce6ba0206299480a2b4349d2859b03de",
-      "targetBlob": "d37358aa5628225ed7bef93abcbf87727ea59804",
-      "targetSha256": "caaf443cc6e96a19f9121302aa86ccbdce6ba0206299480a2b4349d2859b03de",
+      "sourceBlob": "9418e9c9ab7890f853dba598f9212bb66772791f",
+      "sourceSha256": "76be1f13e886be2f83d28d40477619d004a0f19fd472981da4ef7b8ab4f19fd5",
+      "targetBlob": "9418e9c9ab7890f853dba598f9212bb66772791f",
+      "targetSha256": "76be1f13e886be2f83d28d40477619d004a0f19fd472981da4ef7b8ab4f19fd5",
       "mode": "100644"
     },
     "src/components/home/live-feed-reveal.behavior.test.ts": {
-      "sourceBlob": "79033a27a3356fdfcf314f053444ebafc8f85734",
-      "sourceSha256": "21fb8f38f71b2ab6784d3dad3bcda78ffee67ea0cd33afc214f57b2e221c3895",
-      "targetBlob": "79033a27a3356fdfcf314f053444ebafc8f85734",
-      "targetSha256": "21fb8f38f71b2ab6784d3dad3bcda78ffee67ea0cd33afc214f57b2e221c3895",
+      "sourceBlob": "e674fb0b1cf7829a95dc38ae6d7c3099748a3b60",
+      "sourceSha256": "33df5f275e31e1b08adf7b65b36b64dfe68b54bddf06be822dd8fc76c63a7567",
+      "targetBlob": "e674fb0b1cf7829a95dc38ae6d7c3099748a3b60",
+      "targetSha256": "33df5f275e31e1b08adf7b65b36b64dfe68b54bddf06be822dd8fc76c63a7567",
       "mode": "100644"
     },
     "src/components/home/market-board-card.vue": {
@@ -5949,10 +5949,10 @@
       "mode": "100644"
     },
     "src/components/me/bank-account-binding.vue": {
-      "sourceBlob": "7c65e0c7911b6d0f25fea9c5f3a0ed0d1838ea49",
-      "sourceSha256": "6a3917ea694c311c11097a5fd42534e597d0b005e325aba65f35d89e18109356",
-      "targetBlob": "7c65e0c7911b6d0f25fea9c5f3a0ed0d1838ea49",
-      "targetSha256": "6a3917ea694c311c11097a5fd42534e597d0b005e325aba65f35d89e18109356",
+      "sourceBlob": "5e0f3959a9206c7bf46f72eab9665364b1de91e9",
+      "sourceSha256": "9bc62891929f5a1f092cddc723fe26087264901d6e6ba1d750603d625a7036ff",
+      "targetBlob": "5e0f3959a9206c7bf46f72eab9665364b1de91e9",
+      "targetSha256": "9bc62891929f5a1f092cddc723fe26087264901d6e6ba1d750603d625a7036ff",
       "mode": "100644"
     },
     "src/components/me/bill-type-icon.vue": {
@@ -8021,10 +8021,10 @@
       "mode": "100644"
     },
     "src/i18n/messages/en.ts": {
-      "sourceBlob": "084d64e9e9ac8d36f71a9a3b61381cda26f8ca16",
-      "sourceSha256": "5b3780cbe22a967e7cb1ad899254fec3aec7e887ea6016536976cbb0e3266787",
-      "targetBlob": "084d64e9e9ac8d36f71a9a3b61381cda26f8ca16",
-      "targetSha256": "5b3780cbe22a967e7cb1ad899254fec3aec7e887ea6016536976cbb0e3266787",
+      "sourceBlob": "38326a1d86b3aa62eda234db5d3102b34df1f92b",
+      "sourceSha256": "13b0ee21c6d8bfa63d7c2a555ba100a73c4655b40bd1e1ea4a7b38eb19daa113",
+      "targetBlob": "38326a1d86b3aa62eda234db5d3102b34df1f92b",
+      "targetSha256": "13b0ee21c6d8bfa63d7c2a555ba100a73c4655b40bd1e1ea4a7b38eb19daa113",
       "mode": "100644"
     },
     "src/i18n/messages/genesis-cta-copy.test.ts": {
@@ -8042,17 +8042,17 @@
       "mode": "100644"
     },
     "src/i18n/messages/vi.ts": {
-      "sourceBlob": "a0fc8973f6c91e8f83381b52aa6e564b783bf0ae",
-      "sourceSha256": "c10444f76ea9c057ffceb219aaf4450f4b13ab06b7a3fa65235e5ca7428b628f",
-      "targetBlob": "a0fc8973f6c91e8f83381b52aa6e564b783bf0ae",
-      "targetSha256": "c10444f76ea9c057ffceb219aaf4450f4b13ab06b7a3fa65235e5ca7428b628f",
+      "sourceBlob": "69b278807cb91c40a1e7419b7b40da13f1fbd446",
+      "sourceSha256": "a4e822f85fa4c51f1f768eac96a8085152e5c6a84e4a292f5e3092a3c209b0a0",
+      "targetBlob": "69b278807cb91c40a1e7419b7b40da13f1fbd446",
+      "targetSha256": "a4e822f85fa4c51f1f768eac96a8085152e5c6a84e4a292f5e3092a3c209b0a0",
       "mode": "100644"
     },
     "src/i18n/messages/zh.ts": {
-      "sourceBlob": "30fe89cd6789b475746fae590eaf4bb805b597f4",
-      "sourceSha256": "4b4d5dfb5a1d39041f1db6e61827a7c55a60a275cbc27db7834025b6a3284511",
-      "targetBlob": "30fe89cd6789b475746fae590eaf4bb805b597f4",
-      "targetSha256": "4b4d5dfb5a1d39041f1db6e61827a7c55a60a275cbc27db7834025b6a3284511",
+      "sourceBlob": "3521a8f86c52d6ba6fcf5f22e3aa51b810b2f0cb",
+      "sourceSha256": "dde3ae80e111ccf445f2325b28085ddf618c7d22afb3ecc2f316dc5bee7dfef3",
+      "targetBlob": "3521a8f86c52d6ba6fcf5f22e3aa51b810b2f0cb",
+      "targetSha256": "dde3ae80e111ccf445f2325b28085ddf618c7d22afb3ecc2f316dc5bee7dfef3",
       "mode": "100644"
     },
     "src/i18n/native-push.ts": {
@@ -13222,10 +13222,10 @@
       "mode": "100644"
     },
     "src/pages/me/wallet-cards-new.vue": {
-      "sourceBlob": "225db4b9de3bf441371ab81e855710d6507c44ce",
-      "sourceSha256": "562786cd9bec733dd42b928fea7b404788c37dd6dd957a2a43a32c4f0c3bea1a",
-      "targetBlob": "225db4b9de3bf441371ab81e855710d6507c44ce",
-      "targetSha256": "562786cd9bec733dd42b928fea7b404788c37dd6dd957a2a43a32c4f0c3bea1a",
+      "sourceBlob": "124b6320799f18098688c506a360e0769a61e160",
+      "sourceSha256": "61e8c78e82f8e18299b86e545d17c6b7e01dad1d22e551f84f068a8926e35824",
+      "targetBlob": "124b6320799f18098688c506a360e0769a61e160",
+      "targetSha256": "61e8c78e82f8e18299b86e545d17c6b7e01dad1d22e551f84f068a8926e35824",
       "mode": "100644"
     },
     "src/pages/me/wallet-cards-unavailable.test.ts": {

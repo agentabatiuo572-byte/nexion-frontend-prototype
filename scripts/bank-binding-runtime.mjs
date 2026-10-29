@@ -87,27 +87,31 @@ export async function verifyBankBindingPage(page, gotoProtected) {
     assert.equal(await page.evaluate(()=>window.__bindingFixture.otps),0);
     // Existing bindings can change immediately, even with a legacy nextChangeAt in the future, after SMS.
     await gotoProtected("/pages/me/wallet"); await gotoProtected("/pages/me/wallet-cards-new");
-    await page.locator(".bound-summary").waitFor(); assert.equal(await account.isEditable(),true);
+    // A bound account opens on its overview; changing it is overview -> new account -> review + SMS.
+    await page.locator(".bound-summary").waitFor(); assert.equal(await account.count(),0);
     assert.match(await page.locator(".bound-summary").innerText(), /20\d\d-\d\d-\d\d \d\d:\d\d:\d\d UTC\+7/);
     assert.doesNotMatch(await page.getByTestId("bank-account-binding").innerText(), /7 (days|天|ngày)/);
+    await page.getByTestId("bank-change").press("Enter");
+    assert.equal(await account.isEditable(),true);
     await account.fill("00123456789"); await holder.fill("NGUYEN VAN A");
+    await page.getByTestId("bank-change-next").press("Enter");
     const otp=page.locator('[data-testid="bank-otp"] input'), send=page.getByTestId("bank-send-otp");
     assert.equal(await submit.getAttribute("aria-disabled"),"true");
     await send.press("Enter"); await page.getByTestId("bank-otp-status").waitFor();
     assert.equal(await send.getAttribute("aria-disabled"),"true");
     await visitSmsApp();
-    assert.equal(await account.inputValue(),"00123456789");
-    assert.equal(await holder.inputValue(),"NGUYEN VAN A");
+    assert.equal(await page.getByTestId("bank-review-account").innerText(),"00123456789");
+    assert.equal(await page.getByTestId("bank-review-holder").innerText(),"NGUYEN VAN A");
     await page.getByTestId("bank-otp-status").waitFor();
     await otp.fill("123456");
     await page.waitForFunction(()=>document.querySelector('[data-testid="bank-bind-continue"]')?.getAttribute("aria-disabled")==="false");
     await page.screenshot({path:path.join(artifact,"bank-change-sms.png"),fullPage:true});
     await page.evaluate(()=>{window.__bindingFixture.loseResponse=true;});
-    await submit.press("Enter");
-    assert.equal(await page.evaluate(()=>window.__bindingFixture.binds.length),2);
-    await confirm.press("Enter"); await page.locator(".error-note").waitFor();
+    // Step 2 shows the new account beside the code, so submitting it is the confirmation.
+    await submit.press("Enter"); await page.locator(".error-note").waitFor();
+    assert.equal(await page.evaluate(()=>window.__bindingFixture.binds.length),3);
     await visitSmsApp();
-    assert.equal(await account.isEditable(),false);
+    assert.equal(await otp.isEditable(),false);
     await submit.press("Enter"); await page.getByTestId("bank-bind-saved").waitFor();
     assert.equal(await page.evaluate(()=>window.__bindingFixture.binds.length),4);
     const replacementCalls=await page.evaluate(()=>window.__bindingFixture.binds.slice(2));

@@ -91,6 +91,8 @@ import { useDataVisibility } from "@/store/data-visibility";
 import { useIntroMotion } from "@/composables/use-intro-motion";
 import { useVisibleInterval } from "@/composables/use-tab-page-lifecycle";
 import { buildCanonicalHomeFeed, formatHomeFeedTime } from "./home-live-feed";
+import { parseServerTimestamp } from "@/api/server-time";
+import type { AppHomeEarningsLedgerRow } from "@/api/app-home-api";
 
 interface FeedRow {
   k: number | string;
@@ -114,36 +116,42 @@ const visibility = useDataVisibility();
 const tab = ref<"activity" | "earnings">("activity");
 
 const FEED_ROWS = 6;
-// Read past the visible rows so held new settlements never shorten the list.
-const canonicalFeed = computed(() => buildCanonicalHomeFeed(app.homeTruth?.earningsLedger ?? [], FEED_ROWS * 2));
-
 // New settlements arrive in batches with each ledger refresh. Hold them and
 // reveal one at a time at the original ticker pace, each sliding in at the top
-// and pushing the list down. The first snapshot (or a different account's) and
-// reduced motion show everything at once. Only real ledger rows are shown.
+// and pushing the bottom row out. The server returns only its newest rows, so
+// the rows already on screen stay until the new ones replace them. The first
+// snapshot (or a different account's) and reduced motion show everything at
+// once. Only real ledger rows are shown.
 const REVEAL_INTERVAL_MS = 3200;
 const motionAllowed = useIntroMotion();
-const heldIds = ref<string[]>([]);
+const shownEntries = ref<AppHomeEarningsLedgerRow[]>([]);
+const heldEntries = ref<AppHomeEarningsLedgerRow[]>([]); // newest first
 const enteringId = ref<string | null>(null);
-let knownIds = new Set<string>();
+let revealCap = FEED_ROWS;
+const canonicalFeed = computed(() => buildCanonicalHomeFeed(shownEntries.value, FEED_ROWS));
 function revealNext() {
-  const next = heldIds.value.at(-1);
+  const next = heldEntries.value.at(-1);
   if (next === undefined) return;
-  heldIds.value = heldIds.value.slice(0, -1);
-  enteringId.value = next;
+  heldEntries.value = heldEntries.value.slice(0, -1);
+  shownEntries.value = [next, ...shownEntries.value].slice(0, revealCap);
+  enteringId.value = next.id;
 }
 useVisibleInterval(revealNext, REVEAL_INTERVAL_MS);
-watch(() => canonicalFeed.value.activityRows.map((row) => row.id), (ids) => {
-  if (ids.length === 0) return;
-  const fresh = ids.filter((id) => !knownIds.has(id));
-  const continuing = ids.length > fresh.length;
-  knownIds = new Set(ids);
-  // Newest first; drop held rows that left the ledger.
-  const held = [...fresh, ...heldIds.value.filter((id) => ids.includes(id) && !fresh.includes(id))];
-  heldIds.value = continuing && motionAllowed.value ? held : [];
+watch(() => app.homeTruth?.earningsLedger ?? [], (ledger) => {
+  if (ledger.length === 0) return;
+  const ordered = ledger.slice().sort((left, right) =>
+    (parseServerTimestamp(right.completedAt) ?? 0) - (parseServerTimestamp(left.completedAt) ?? 0));
+  const known = new Set([...shownEntries.value, ...heldEntries.value].map((entry) => entry.id));
+  const fresh = ordered.filter((entry) => !known.has(entry.id));
+  if (fresh.length === ordered.length || !motionAllowed.value || (fresh.length === 0 && heldEntries.value.length === 0)) {
+    heldEntries.value = [];
+    shownEntries.value = ordered.slice(0, FEED_ROWS);
+    return;
+  }
+  revealCap = Math.min(FEED_ROWS, Math.max(ordered.length, shownEntries.value.length));
+  const current = new Set(ordered.map((entry) => entry.id));
+  heldEntries.value = [...fresh, ...heldEntries.value.filter((entry) => current.has(entry.id))];
 }, { immediate: true });
-const visibleLedgerIds = computed(() => canonicalFeed.value.activityRows
-  .map((row) => row.id).filter((id) => !heldIds.value.includes(id)).slice(0, FEED_ROWS));
 
 const tabOrder = ["activity", "earnings"] as const;
 const feedTabOptions = computed(() => [
@@ -152,7 +160,7 @@ const feedTabOptions = computed(() => [
 ]);
 
 const displayActivityRows = computed<FeedRow[]>(() => {
-  return canonicalFeed.value.activityRows.filter((row) => visibleLedgerIds.value.includes(row.id)).map((row) => ({
+  return canonicalFeed.value.activityRows.map((row) => ({
     k: row.id,
     lvl: "ok",
     who: "You",
@@ -162,7 +170,7 @@ const displayActivityRows = computed<FeedRow[]>(() => {
   }));
 });
 const displayEarningsItems = computed<EarningsItem[]>(() => {
-  return canonicalFeed.value.earningsItems.filter((row) => visibleLedgerIds.value.includes(row.id)).map((row) => ({
+  return canonicalFeed.value.earningsItems.map((row) => ({
     id: row.id,
     name: row.model,
     product: row.client,

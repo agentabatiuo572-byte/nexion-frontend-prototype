@@ -346,10 +346,4 @@ const disclaimerStyle: CSSProperties = { marginTop: "12px", padding: "0 4px", fo
 
 <style scoped>
 /* Separate the bound account, fields and conditions without changing their gates. */
-.bank-binding-layout :deep(.bound-summary) { margin-top: var(--ui-space-inline); padding: var(--ui-space-inline); border-bottom: 0; border-radius: 12px; background: var(--v5-surface); }
-.bank-binding-layout :deep(.binding-head) { border-bottom: 0; padding-bottom: 4px; }
-.bank-binding-layout :deep(.binding-fields > .hint) { margin: 4px 0 12px; }
-.bank-binding-layout :deep(.field-label) { margin-top: 8px; margin-bottom: 6px; }
-.bank-binding-layout :deep(.disclaimer) { margin-top: var(--ui-space-row-y); line-height: 1.6; }
-.bank-binding-layout :deep(.default-row) { flex-wrap: wrap; }
 </style>

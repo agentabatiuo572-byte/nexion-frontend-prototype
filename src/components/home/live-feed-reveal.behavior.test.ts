@@ -5,6 +5,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import source from "./live-feed-card.vue?raw";
 import * as feed from "./home-live-feed";
 import { formatUsd } from "@/lib/usd-display";
+import { parseServerTimestamp } from "@/api/server-time";
 import { zh } from "@/i18n/messages/zh";
 
 const cleanups: Array<() => void> = [];
@@ -19,7 +20,7 @@ function mount(motion = true) {
   const code = ts.transpileModule(compileScript(parse(source).descriptor, { id: "live-feed-reveal" }).content,
     { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
   const imports: Record<string, unknown> = {
-    vue: Vue, "./home-live-feed": feed, "@/lib/usd-display": { formatUsd }, "@/lib/route": { navTo: vi.fn() },
+    vue: Vue, "./home-live-feed": feed, "@/api/server-time": { parseServerTimestamp }, "@/lib/usd-display": { formatUsd }, "@/lib/route": { navTo: vi.fn() },
     "@/components/glass-segments.vue": { default: { render: () => null } },
     "@/i18n/use-t": { useT: () => Vue.ref(zh) }, "@/store/locale": { useLocaleStore: () => ({ code: "zh" }) },
     "@/store/app": { useApp: () => app }, "@/store/data-visibility": { useDataVisibility: () => ({ hidden: false, mask: String }) },
@@ -70,4 +71,23 @@ it("shows a different account's ledger and reduced-motion updates at once", asyn
   still.app.homeTruth.earningsLedger = [...still.app.homeTruth.earningsLedger, row("d", 4)];
   await Vue.nextTick();
   expect(still.shown()).toEqual(["d", "c", "b", "a"]);
+});
+
+it("keeps the rows on screen while the server's newest-five window has already moved on", async () => {
+  const view = mount();
+  const old = Array.from({ length: 5 }, (_, i) => row(`old${i}`, i));
+  view.app.homeTruth.earningsLedger = old;
+  await Vue.nextTick();
+  view.tick();
+  expect(view.shown()).toEqual(["old4", "old3", "old2", "old1", "old0"]);
+  view.app.homeTruth.earningsLedger = [old[3], old[4], row("new1", 10), row("new2", 11), row("new3", 12)];
+  await Vue.nextTick();
+  expect(view.shown()).toEqual(["old4", "old3", "old2", "old1", "old0"]);
+  view.tick();
+  expect(view.shown()).toEqual(["new1", "old4", "old3", "old2", "old1"]);
+  view.tick(); view.tick();
+  expect(view.shown()).toEqual(["new3", "new2", "new1", "old4", "old3"]);
+  view.app.homeTruth.earningsLedger = [...view.app.homeTruth.earningsLedger];
+  await Vue.nextTick();
+  expect(view.shown()).toEqual(["new3", "new2", "new1", "old4", "old3"]);
 });
