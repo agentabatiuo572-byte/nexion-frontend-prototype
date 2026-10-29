@@ -7,7 +7,8 @@
 //   2. src/mock/products.ts         PRODUCTS[id].dailyEarn / dailyEarnNEX
 //        → drives the store card + detail page — what is ADVERTISED
 //   3. src/i18n/messages/{en,zh}.ts vsNexPerDay / vsS1NexPerDay
-//        → VsPhoneHero NEX sublines (hardcoded copy, phone + S1)
+//        → VsPhoneHero NEX sublines (hardcoded copy, phone + S1); deleted as dead keys in the
+//          2026-10-29 copy audit — checked only if they come back
 //   4. src/store/trial-config.ts    shadowDailyUSD / shadowDailyNEX
 //        → free-trial shadow accrual — what the trial ADVERTISES it earns
 //          (must equal the trialProductId device baseline, currently S1 7/40)
@@ -100,17 +101,18 @@ for (const id of SHARED) {
 const phone = deviceSpec("phone");
 const s1 = deviceSpec("stellarbox-s1");
 const i18nNum = (src, key) => {
+  if (!new RegExp(`\\b${key}:`).test(src)) return null;
   const m = src.match(new RegExp(`${key}:\\s*"\\+?\\s*([0-9.]+)`));
   return m ? +m[1] : NaN;
 };
 for (const [label, src] of [["en", en], ["zh", zh], ["vi", vi]]) {
   if (phone) {
     const v = i18nNum(src, "vsNexPerDay");
-    if (v !== phone.nex) errs.push(`i18n ${label}: vsNexPerDay ${v} ≠ phone baseRateNEX ${phone.nex}`);
+    if (v !== null && v !== phone.nex) errs.push(`i18n ${label}: vsNexPerDay ${v} ≠ phone baseRateNEX ${phone.nex}`);
   }
   if (s1) {
     const v = i18nNum(src, "vsS1NexPerDay");
-    if (v !== s1.nex) errs.push(`i18n ${label}: vsS1NexPerDay ${v} ≠ S1 baseRateNEX ${s1.nex}`);
+    if (v !== null && v !== s1.nex) errs.push(`i18n ${label}: vsS1NexPerDay ${v} ≠ S1 baseRateNEX ${s1.nex}`);
   }
 }
 

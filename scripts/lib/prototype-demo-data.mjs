@@ -79,10 +79,8 @@ function demoEvents(locale,state,now) {
     ['upgrade','discount','设备升级礼','Device upgrade offer','Ưu đãi nâng cấp','AVAILABLE','ongoing',500,'/pages/store/store'],
     ['invite','referral','邀请好友挑战','Invitation challenge','Thử thách mời bạn','JOINED','ongoing',200,'/pages/team/team'],
     ['spin','wheel','每日幸运转盘','Daily lucky spin','Vòng quay mỗi ngày','AVAILABLE','ongoing',50,''],
-    ['regional','regional','区域算力挑战','Regional compute challenge','Thử thách khu vực','JOINED','ongoing',300,'/pages/team/leaderboard'],
     ['weekend','boost','周末签到加成','Weekend check-in boost','Thưởng điểm danh cuối tuần','CLAIMABLE','ongoing',20,'/pages/daily/daily'],
     ['season','seasonal','秋季算力季','Autumn compute season','Mùa tính toán thu','AVAILABLE','upcoming',800,'/pages/events/events'],
-    ['holding','holding','持有者里程碑','Holder milestone','Cột mốc người nắm giữ','CLAIMED','ended',100,'/pages/me/achievements'],
     ['welcome','onboarding','新用户成长礼','New member rewards','Quà thành viên mới','CLAIMABLE','ongoing',100,'/pages/missions/missions'],
   ];
   return entries.map(([code,kind,zh,en,vi,baseStatus,baseState,rewardAmount,href],i)=>{

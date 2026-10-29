@@ -225,6 +225,7 @@ sentinel_present() {
 # 跳过的格走 scoped_skip 计数(与 skip 分开:skip=该跑没跑成=红;scoped_skip=按范围有意不跑=不红,但结果行必点名)。
 VERIFY_MODE="${VERIFY_MODE:-full}"
 case "$VERIFY_MODE" in full|scoped|static) ;; *) echo "VERIFY_MODE 只认 full|scoped|static(给的是 $VERIFY_MODE)"; exit 2 ;; esac
+if [ "$VERIFY_MODE" != "full" ] && [ "${BASH_VERSINFO[0]}" -lt 4 ]; then echo "VERIFY_MODE=$VERIFY_MODE 需要 bash ≥ 4(范围表是关联数组);当前 bash $BASH_VERSION,换 bash 5 或用 full 档"; exit 2; fi
 declare -A SCOPE_RUN SCOPE_WHY SCOPE_ROUTES_FOR SCOPE_CELLS
 SCOPE_MODE="$VERIFY_MODE"; SCOPE_REQUESTED="$VERIFY_MODE"; SCOPE_UPGRADED=""; SCOPE_CHANGED_COUNT=-1; SCOPE_BASE_USED=""; SCOPE_ROUTES="*"; SCOPE_ROUTES_NOTE=""; SCOPE_H5_PROBE_ROUTES_JSON=""   # 不叫 SCOPE_BASE:调用方 export 的 SCOPE_BASE 要原样透传给 plan 子进程(tester-A 2026-08-17)
 scoped_skip=0
@@ -242,8 +243,10 @@ fi
 unset PROBE_ROUTES
 if [ "$SCOPE_MODE" = "scoped" ] && [ -n "$SCOPE_H5_PROBE_ROUTES_JSON" ]; then export H5_PROBE_ROUTES="$SCOPE_H5_PROBE_ROUTES_JSON"; else unset H5_PROBE_ROUTES; fi
 route_scope() {
+  # 非 scoped 先返回,不读关联数组:macOS 自带 bash 3.2 没有 declare -A,门 id 会被当算术求值(spec6: unbound variable)
+  if [ "$SCOPE_MODE" != "scoped" ]; then unset PROBE_ROUTES; return 0; fi
   local r="${SCOPE_ROUTES_FOR[$1]:-*}"
-  if [ "$SCOPE_MODE" = "scoped" ] && [ "$r" != "*" ]; then export PROBE_ROUTES="$r"; else unset PROBE_ROUTES; fi
+  if [ "$r" != "*" ]; then export PROBE_ROUTES="$r"; else unset PROBE_ROUTES; fi
 }
 # 用法:if scope_hit <id>; then …真跑… ; fi —— 返回 1 时已自行计数并点名 SCOPED-SKIP;未声明的 id 照跑
 scope_hit() {
@@ -917,8 +920,8 @@ if grep -qE '5-15%|5-15%' src/i18n/messages/en.ts src/i18n/messages/zh.ts 2>/dev
 else
   ok "staking disclosure includes canonical high-tier penalties"
 fi
-sentinel_present "staking risk disclosure EN names all four penalties" src/i18n/messages/en.ts '5% / 15% / 30% / 50% of principal'
-sentinel_present "staking risk disclosure ZH names all four penalties" src/i18n/messages/zh.ts '5% / 15% / 30% / 50% 本金'
+sentinel_present "staking risk disclosure EN names all four penalties" src/i18n/messages/en.ts '5% / 15% / 30% / 50% of the locked amount'
+sentinel_present "staking risk disclosure ZH names all four penalties" src/i18n/messages/zh.ts '锁定金额的 5% / 15% / 30% / 50%'
 # The explanation renders current pool penalties. Fixed default strings cannot
 # prove that operator changes (including fractional rates) reach all locales.
 staking_display_log="${VERIFY_LOG_PREFIX}-staking-display.log"

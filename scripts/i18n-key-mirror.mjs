@@ -107,8 +107,6 @@ const MARK_EXEMPT = {
   "me.networkCardGapVDownlines": { marks: ["s"], locales: ["zh", "vi"] },
   // en `"{n} Genesis seat{s} secured"` 同上(purchase-sheet.vue 传 `s: qty > 1 ? "s" : ""`)。
   "genesis.purchaseSuccess": { marks: ["s"], locales: ["zh", "vi"] },
-  // 超集传参:binary-how.vue 同时传 {freq} 与 {unit},zh 取 {freq}、en/vi 同取 {unit}。
-  "binaryHowItWorks.s4Intro": { marks: ["freq", "unit"], locales: ["zh"] },
 };
 
 let failed = false;

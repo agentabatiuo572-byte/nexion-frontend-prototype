@@ -536,8 +536,8 @@ describe('isolated prototype data uses the real read contracts',()=>{
     const d=demo(locale);
     expect((await createQuestApi(d.client).state(locale)).quests).toHaveLength(10);
     const events=await createEventsApi(d.client).state(locale);
-    expect(events.events).toHaveLength(8);
-    expect(new Set(events.events.map(e=>e.kind)).size).toBe(8);
+    expect(events.events).toHaveLength(6);
+    expect(new Set(events.events.map(e=>e.kind)).size).toBe(6);
     expect((await createEventDetailApi(d.client).detail('demo-invite',locale)).userStatus).toBe('JOINED');
     const daily=await createPointsApi(d.client).state();
     expect(daily.badgeAchievements).toHaveLength(6);expect(daily.dailyMilestones).toHaveLength(4);

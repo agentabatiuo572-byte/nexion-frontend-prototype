@@ -1211,7 +1211,7 @@ estimateDisclaimer: "Estimate before purchase cost; earnings decrease with time 
     s4Body: "Withdrawal processing time follows the order status. Each withdrawal pays one fixed network confirmation fee set per network; it does not scale with the amount, and some networks may be free. You can optionally cover this fee with UVT — the option is off by default and UVT is never used without turning it on. Earn UVT through check-ins, compute tasks and referrals.",
     s4BodyLargeAmount: "Withdrawals above ${large} may need a {d}-day extra security check; the later of the two dates applies.",
     s5Title: "Staking lock-ups are irreversible",
-    s5Body: "Staked funds are locked for the full term. Unlocking early deducts a share of the locked amount by term and forfeits accrued rewards; the rates are shown on the staking page. Read each plan before staking.",
+    s5Body: "Staked funds are locked for the full term. Unlocking early deducts 5% / 15% / 30% / 50% of the locked amount on 30d / 90d / 180d / 365d plans and forfeits accrued rewards. Read each plan before staking.",
     s6Title: "Invite rewards",
     s6Body: "Invite rewards are paid under the platform rules and depend on invited users completing qualifying actions. Bulk sign-ups or spam referrals will be voided and may lead to account suspension.",
     s7Title: "Custody, compliance, and regulatory jurisdiction",
