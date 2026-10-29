@@ -29,26 +29,30 @@
       @click="closeMenu"
       @keydown="onMenuKeydown"
     >
-      <view class="nx-glass-sheet w-full p-3" style="border-radius: var(--nx-glass-radius) var(--nx-glass-radius) 0 0; box-sizing: border-box; padding-bottom: calc(12px + var(--nx-overlay-safe-bottom)); max-height: calc(100vh - var(--nx-overlay-top)); overflow-y: auto; overscroll-behavior: contain" @click.stop>
-        <view class="mx-auto mb-2" style="width: 40px; height: 4px; border-radius: 3px; background: var(--v5-border-strong)" />
-        <text class="block px-2 py-1.5 truncate font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-3)">{{ displayName }}</text>
-        <view class="space-y-1">
-          <view v-if="canControlDevice(device) && device.activatedAt !== null" class="nx-device-quick-deactivate flex items-center gap-2.5 px-3 py-2.5 rounded-lg active:opacity-70" role="button" :tabindex="device.pendingDeactivate ? -1 : 0" :aria-disabled="!!device.pendingDeactivate" @click="goDeactivateMenu" @keydown.enter.stop.prevent="goDeactivateMenu" @keydown.space.stop.prevent="goDeactivateMenu">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v10" /><path d="M6.3 5.3a9 9 0 1 0 11.4 0" /></svg>
-            <text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink)">{{ device.pendingDeactivate ? t.myDevices.inventoryPendingDeactivateChip : t.myDevices.inventoryRowDeactivate }}</text>
+      <!-- Mobile action sheet: handle, device header, grouped actions, separate cancel. -->
+      <view class="nx-glass-sheet nx-action-sheet" @click.stop>
+        <view class="nx-action-sheet__handle" aria-hidden="true" />
+        <view class="nx-action-sheet__head">
+          <text class="nx-action-sheet__title">{{ displayName }}</text>
+          <view class="nx-action-sheet__meta"><view v-if="statusOnline" class="nx-action-sheet__dot" aria-hidden="true" /><text>{{ statusLabel }}<text v-if="displayGpu"> · {{ displayGpu }}</text><text v-if="displayLocation"> · {{ displayLocation }}</text></text></view>
+        </view>
+        <view class="nx-action-sheet__group" role="group" :aria-label="displayName">
+          <view v-if="canControlDevice(device) && device.activatedAt !== null" class="nx-device-quick-deactivate nx-action-sheet__row" role="button" :tabindex="device.pendingDeactivate ? -1 : 0" :aria-disabled="!!device.pendingDeactivate" @click="goDeactivateMenu" @keydown.enter.stop.prevent="goDeactivateMenu" @keydown.space.stop.prevent="goDeactivateMenu">
+            <view class="nx-action-sheet__icon nx-action-sheet__icon--warning" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v10" /><path d="M6.3 5.3a9 9 0 1 0 11.4 0" /></svg></view>
+            <text class="nx-action-sheet__label">{{ device.pendingDeactivate ? t.myDevices.inventoryPendingDeactivateChip : t.myDevices.inventoryRowDeactivate }}</text>
           </view>
-          <view v-if="phoneFactsReady && !detailPage" class="nx-device-quick-stats flex items-center gap-2.5 px-3 py-2.5 rounded-lg active:opacity-70" role="button" tabindex="0" @click="goStatsMenu"  @keydown.enter.stop.prevent="goStatsMenu" @keydown.space.stop.prevent="goStatsMenu">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-tech-cyan-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" /></svg>
-            <text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink)">{{ t.earn.quickMenu.stats }}</text>
+          <view v-if="phoneFactsReady && !detailPage" class="nx-device-quick-stats nx-action-sheet__row" role="button" tabindex="0" @click="goStatsMenu" @keydown.enter.stop.prevent="goStatsMenu" @keydown.space.stop.prevent="goStatsMenu">
+            <view class="nx-action-sheet__icon nx-action-sheet__icon--info" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" /></svg></view>
+            <text class="nx-action-sheet__label">{{ t.earn.quickMenu.stats }}</text>
+            <svg class="nx-action-sheet__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
           </view>
-          <view v-if="degradable" class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg active:opacity-70" role="button" tabindex="0" @click="goTradeinMenu"  @keydown.enter.stop.prevent="goTradeinMenu" @keydown.space.stop.prevent="goTradeinMenu">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2-ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
-            <text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink)">{{ t.earn.quickMenu.tradein }}</text>
+          <view v-if="degradable" class="nx-action-sheet__row" role="button" tabindex="0" @click="goTradeinMenu" @keydown.enter.stop.prevent="goTradeinMenu" @keydown.space.stop.prevent="goTradeinMenu">
+            <view class="nx-action-sheet__icon nx-action-sheet__icon--brand" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4" /><path d="M3 7h18" /><path d="M7 21l-4-4 4-4" /><path d="M21 17H3" /></svg></view>
+            <text class="nx-action-sheet__label">{{ t.earn.quickMenu.tradein }}</text>
+            <svg class="nx-action-sheet__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
           </view>
         </view>
-        <view class="mt-2 w-full grid place-items-center" style="min-height: 44px; border-radius: 999px; background: var(--v5-surface-2)" role="button" tabindex="0" @click="closeMenu"  @keydown="onMenuKeydown">
-          <text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2)">{{ t.earn.quickMenu.cancel }}</text>
-        </view>
+        <view class="nx-action-sheet__cancel" role="button" tabindex="0" @click="closeMenu" @keydown="onMenuKeydown"><LiquidGlass :radius="24" tone="control" /><text>{{ t.earn.quickMenu.cancel }}</text></view>
       </view>
     </view>
 
@@ -401,6 +405,7 @@ import { useDeviceStatisticsCapabilityCopy } from "@/i18n/device-statistics-capa
 import { canControlDevice } from "@/lib/device-control-platform";
 import NxButton from "@/components/ui/nx-button.vue";
 import NxTag from "@/components/ui/nx-tag.vue";
+import LiquidGlass from "@/components/liquid-glass.vue";
 import { computed, nextTick, ref, watch, onUnmounted, type CSSProperties } from "vue";
 import { onHide, useVisibleInterval } from "@/composables/use-tab-page-lifecycle";
 import { advanceMonotonicHighWater, deadlineRemainingDays, deadlineRemainingMs, projectServerNow, readMonotonicNowMs } from "@/lib/server-deadline-clock";
@@ -935,6 +940,26 @@ import DeviceSlot from "@/components/home/device-slot.vue";
 </script>
 
 <style scoped>
+.nx-action-sheet { width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 8px 16px calc(16px + var(--nx-overlay-safe-bottom)); border-radius: 24px 24px 0 0; background: var(--v5-surface); max-height: calc(100vh - var(--nx-overlay-top)); overflow-y: auto; overscroll-behavior: contain; font-family: var(--font-v5); }
+.nx-action-sheet__handle { width: 36px; height: 4px; border-radius: 999px; background: color-mix(in srgb, var(--v5-ink) 18%, transparent); align-self: center; }
+.nx-action-sheet__head { display: flex; flex-direction: column; gap: 2px; padding: 4px 4px 0; }
+.nx-action-sheet__title { color: var(--v5-ink); font-size: var(--ui-type-section); line-height: var(--ui-type-section-lh); font-weight: var(--ui-type-section-weight); overflow-wrap: anywhere; }
+.nx-action-sheet__meta { display: flex; align-items: center; gap: 6px; color: var(--v5-ink-3); font-size: var(--ui-type-description); line-height: var(--ui-type-description-lh); }
+.nx-action-sheet__dot { width: 6px; height: 6px; flex: none; border-radius: 999px; background: var(--v5-success); }
+.nx-action-sheet__group { border-radius: 20px; background: var(--v5-surface-2); overflow: hidden; }
+.nx-action-sheet__row { min-height: 56px; box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--v5-border); cursor: pointer; }
+.nx-action-sheet__row:last-child { border-bottom: 0; }
+.nx-action-sheet__row:active { opacity: .75; }
+.nx-action-sheet__row[aria-disabled="true"] { opacity: .5; pointer-events: none; }
+.nx-action-sheet__icon { width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 10px; }
+.nx-action-sheet__icon--warning { background: var(--v5-warning-soft); color: var(--v5-warning-ink); }
+.nx-action-sheet__icon--brand { background: var(--v5-brand-soft); color: var(--v5-brand); }
+.nx-action-sheet__icon--info { background: color-mix(in srgb, var(--v5-tech-cyan) 16%, transparent); color: var(--v5-tech-cyan-ink); }
+.nx-action-sheet__label { flex: 1; min-width: 0; color: var(--v5-ink); font-size: var(--ui-type-subheading); line-height: var(--ui-type-subheading-lh); font-weight: var(--ui-type-subheading-weight); }
+.nx-action-sheet__chevron { flex: none; color: var(--v5-ink-4); }
+.nx-action-sheet__cancel { position: relative; isolation: isolate; min-height: 48px; display: grid; place-items: center; border-radius: 24px; color: var(--v5-ink); font-size: var(--ui-type-button); line-height: var(--ui-type-button-lh); font-weight: var(--ui-type-button-weight); cursor: pointer; }
+.nx-action-sheet__cancel > text { position: relative; z-index: 1; }
+.nx-action-sheet [role="button"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: -2px; }
 .nx-capacity-tag { min-height: 44px; display: inline-flex; align-items: center; }
 .nx-capacity-tag__chevron { margin-left: 4px; }
 .nx-device-card__header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: 88px; padding: 14px; }

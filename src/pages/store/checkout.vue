@@ -77,7 +77,16 @@
                 <view class="checkout-option-copy"><text class="checkout-row-title">{{ t.voucher.checkoutRowLabel }}</text><text class="checkout-row-description">{{ remoteApiEnabled && trialConversionMode ? trialCopy.voucherUnavailable : hasVoucher ? auditCopy.autoApplyVoucher : !voucherAutomatic ? t.promotion.noVoucher : expiredVoucherForSku ? t.voucher.expiredNote : t.promotion.noVoucher }}</text></view>
                 <text v-if="hasVoucher" class="checkout-discount">−{{ voucherDiscountText }} USDT</text><svg class="checkout-chevron" :class="{ 'checkout-chevron--open': voucherDetailsOpen }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
               </view>
-              <view v-if="voucherDetailsOpen" class="checkout-voucher-details"><text v-if="voucherMatch" class="checkout-row-description">{{ voucherMatch.def.name }}</text><view role="group" :aria-label="t.promotion.voucher"><button class="checkout-voucher-choice" :disabled="!canChangeVoucher()" :aria-pressed="!voucherAutomatic" @click="selectAutomaticVoucher(false)">{{ t.promotion.noVoucher }}</button><button class="checkout-voucher-choice" :disabled="!canChangeVoucher()" :aria-pressed="voucherAutomatic" @click="selectAutomaticVoucher(true)">{{ reviewCopy.automaticVoucher }}</button></view><NxButton variant="text" size="small" :label="auditCopy.vouchers" @click="navTo('/pages/me/rewards-list?cat=voucher')" /></view>
+              <view v-if="voucherDetailsOpen" class="checkout-voucher-details">
+                <text v-if="voucherMatch" class="checkout-row-description checkout-voucher-match">{{ voucherMatch.def.name }}</text>
+                <view class="checkout-voucher-choices" role="radiogroup" :aria-label="t.promotion.voucher">
+                  <view v-for="choice in [{ automatic: true, label: reviewCopy.automaticVoucher }, { automatic: false, label: t.promotion.noVoucher }]" :key="String(choice.automatic)" class="checkout-voucher-choice" role="radio" :aria-checked="voucherAutomatic === choice.automatic" :aria-disabled="!canChangeVoucher()" :tabindex="canChangeVoucher() ? 0 : -1" @click="canChangeVoucher() && selectAutomaticVoucher(choice.automatic)">
+                    <text class="checkout-voucher-choice__label">{{ choice.label }}</text>
+                    <view class="checkout-voucher-radio" :class="{ 'checkout-voucher-radio--on': voucherAutomatic === choice.automatic }" aria-hidden="true"><svg v-if="voucherAutomatic === choice.automatic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7" /></svg></view>
+                  </view>
+                </view>
+                <view class="checkout-voucher-link" role="link" tabindex="0" @click="navTo('/pages/me/rewards-list?cat=voucher')"><text>{{ auditCopy.vouchers }}</text><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg></view>
+              </view>
               <view v-if="promoDiscount > 0" class="checkout-option"><view class="checkout-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12v9h16v-9M2 7h20v5H2zM12 7v14M12 7C3 8 4 0 8 2c3 1 4 5 4 5s1-4 4-5c4-2 5 6-4 5" /></svg></view><view class="checkout-option-copy"><text class="checkout-row-title">{{ promoRowLabel }}</text></view><text class="checkout-discount">−{{ promoDiscountText }} USDT</text></view>
               <view v-if="trialOffsetView.offsetUSD > 0" class="checkout-option"><view class="checkout-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg></view><view class="checkout-option-copy"><text class="checkout-row-title">{{ t.store.coRowTrialOffset }}</text></view><text class="checkout-discount">−{{ trialOffsetText }} USDT</text></view>
               <view v-if="trialOffsetView.earlyDiscountUSD > 0" class="checkout-option" data-testid="checkout-trial-early-discount"><view class="checkout-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" /></svg></view><view class="checkout-option-copy"><text class="checkout-row-title">{{ trialCopy.earlyDiscountLabel }}</text></view><text class="checkout-discount">−{{ trialEarlyDiscountText }} USDT</text></view>
@@ -2467,8 +2476,10 @@ button.checkout-quantity-button::after {border:0;}
 .checkout-chevron { flex:none; width:16px; height:16px; color:var(--v5-ink-4); transition:transform 180ms ease; }
 .checkout-chevron--open { transform:rotate(90deg); }
 .checkout-voucher { cursor:pointer; }
-.checkout-voucher-details { padding:0 16px 12px 64px; border-bottom:1px solid var(--v5-border); }
-.checkout-voucher-details :deep(.nx-button) { padding-left:0; color:var(--v5-brand); }
+/* Voucher choice is a single-select list aligned with the row copy, then a muted link to the voucher list. */
+.checkout-voucher-details { border-bottom:1px solid var(--v5-border); }
+.checkout-voucher-match { padding:8px 16px 0 64px; }
+.checkout-voucher-choices { padding:4px 16px 4px 64px; }
 .checkout-tradein :deep(.nx-button) { flex:none; max-width:42%; min-height:44px; padding:6px 0 6px 8px; color:var(--v5-brand); font-size:13px; }
 .checkout-payment { cursor:pointer; transition:background 180ms ease; }
 .checkout-payment--active { background:linear-gradient(90deg,color-mix(in srgb,var(--v5-brand) 12%,transparent),color-mix(in srgb,var(--v5-brand) 2%,transparent)); box-shadow:inset 3px 0 0 var(--v5-brand); }
@@ -2515,7 +2526,13 @@ button.checkout-policy-link::after { border:0; }
 </style>
 
 <style scoped>
-.checkout-voucher-choice { min-height:44px; margin:8px 0 0; padding:10px 14px; background:var(--v5-surface-2); color:var(--v5-ink); font:500 var(--ui-type-list-subtitle)/1.5 var(--font-v5); border-radius:14px; white-space:normal; }
-.checkout-voucher-choice[aria-pressed=true] { color:var(--v5-brand); box-shadow:inset 0 0 0 1px var(--v5-brand); }
-.checkout-voucher-choice:disabled { opacity:.45; }
+.checkout-voucher-choice { min-height:48px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--v5-border); cursor:pointer; }
+.checkout-voucher-choice:last-child { border-bottom:0; }
+.checkout-voucher-choice__label { flex:1; min-width:0; color:var(--v5-ink-2); font:400 var(--ui-type-subheading)/var(--ui-type-subheading-lh) var(--font-v5); }
+.checkout-voucher-choice[aria-checked="true"] .checkout-voucher-choice__label { color:var(--v5-ink); font-weight:var(--ui-type-subheading-weight); }
+.checkout-voucher-choice[aria-disabled="true"] { opacity:.45; pointer-events:none; }
+.checkout-voucher-radio { width:22px; height:22px; flex:none; box-sizing:border-box; display:grid; place-items:center; border-radius:999px; border:1.5px solid var(--v5-ink-4); }
+.checkout-voucher-radio--on { border:0; background:var(--v5-brand); color:var(--v5-on-brand); }
+.checkout-voucher-link { min-height:48px; display:flex; align-items:center; justify-content:space-between; padding:0 16px 0 64px; border-top:1px solid var(--v5-border); color:var(--v5-ink-3); font:500 var(--ui-type-text-link)/var(--ui-type-text-link-lh) var(--font-v5); cursor:pointer; }
+.checkout-voucher-choice:focus-visible,.checkout-voucher-link:focus-visible { outline:2px solid var(--v5-brand); outline-offset:-2px; }
 </style>

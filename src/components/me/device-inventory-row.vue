@@ -4,9 +4,10 @@
       :aria-label="`${t.earn.deviceDetailTitle}: ${deviceName(t, device)} · ${statusText}`"
       :aria-expanded="expanded" :aria-controls="detailsId" @click="expanded = !expanded">
       <view class="device-inventory-row__main">
-        <view class="device-inventory-row__art" aria-hidden="true">
+        <view class="device-inventory-row__art" :class="{ 'device-inventory-row__art--inactive': !active }">
           <image v-if="imageSource" class="device-inventory-row__image" :src="imageSource" mode="aspectFit" />
           <svg v-else width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 21h8m-4-5v5" /></svg>
+          <text class="device-inventory-row__state" :class="active ? 'device-inventory-row__state--active' : 'device-inventory-row__state--inactive'">{{ active ? t.myDevices.inventoryTagActive : t.myDevices.inventoryTagInactive }}</text>
         </view>
         <view class="device-inventory-row__identity">
           <text class="device-inventory-row__name">{{ deviceName(t, device) }}</text>
@@ -81,7 +82,7 @@ const imageSource = computed(() => props.device.kind === "phone"
 const onlineState = computed(() => deviceOnlineState(props.device, Date.now(), props.runtimeConfirmed));
 const statusText = computed(() => {
   if (props.device.activationUnconfirmed) return t.value.earn.runtimeUnknown;
-  if (!props.active) return t.value.myDevices.inventorySectionInventory;
+  if (!props.active) return t.value.myDevices.inventoryInactiveStatus;
   const status = onlineState.value;
   const runtimeLabel = status === "unknown" ? t.value.earn.runtimeUnknown : status === "online" ? t.value.earn.online : t.value.earn.offline;
   return props.device.pendingDeactivate ? `${runtimeLabel} · ${props.pendingChipLabel}` : runtimeLabel;
@@ -100,8 +101,13 @@ function onAction() {
 .device-inventory-row { min-width: 0; overflow: hidden; color: var(--v5-ink); }
 .device-inventory-row__heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: 64px; box-sizing: border-box; padding: 12px 16px; }
 .device-inventory-row__main { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.device-inventory-row__art { display: grid; place-items: center; flex: none; width: 64px; height: 64px; }
-.device-inventory-row__image { display: block; width: 64px; height: 64px; }
+.device-inventory-row__art { position: relative; display: flex; justify-content: center; align-items: flex-start; flex: none; width: 88px; height: 80px; }
+.device-inventory-row__art--inactive .device-inventory-row__image { opacity: .55; }
+/* Activation state sits on the art's bottom edge; the outline separates it from the device render. */
+.device-inventory-row__state { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); height: 20px; display: inline-flex; align-items: center; padding: 0 8px; border-radius: 999px; font: 600 11px/14px var(--font-v5); white-space: nowrap; box-shadow: 0 0 0 2px var(--v5-surface); }
+.device-inventory-row__state--active { background: color-mix(in srgb, var(--v5-brand) 16%, var(--v5-surface)); color: var(--v5-brand); }
+.device-inventory-row__state--inactive { background: var(--v5-surface-3); color: var(--v5-ink-2); }
+.device-inventory-row__image { display: block; width: 88px; height: 68px; }
 .device-inventory-row__identity { min-width: 0; flex: 1; }
 .device-inventory-row__name { display: block; font: 600 clamp(12px,3.34vw,13px)/1.4 var(--font-v5); overflow-wrap: anywhere; }
 .device-inventory-row__status { display: block; margin-top: 4px; color: var(--v5-ink-3); font: 400 clamp(11px,3.08vw,12px)/18px var(--font-v5); overflow-wrap: anywhere; }
@@ -130,7 +136,8 @@ function onAction() {
 .device-inventory-row__heading:focus-visible { outline-offset: -2px; }
 @media (max-width: 374px) {
   .device-inventory-row__main { gap: 10px; }
-  .device-inventory-row__art, .device-inventory-row__image { width: 56px; height: 56px; }
+  .device-inventory-row__art { width: 72px; height: 66px; }
+  .device-inventory-row__image { width: 72px; height: 56px; }
 }
 @media (prefers-reduced-motion: reduce) { .device-inventory-row__chevron svg { transition: none; } }
 </style>
