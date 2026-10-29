@@ -45,7 +45,8 @@ function mount(raw: string, device: Device) {
   const modules: Record<string, unknown> = { vue: Vue, "@/composables/use-device-product-image": { useDeviceProductImage },
     "@/i18n/use-t": { useT: () => Vue.ref(en) }, "@/lib/amount-display": { formatAmount: String },
     "@/lib/device-copy": { deviceName: () => device.name, deviceGpuLabel: () => "GPU" },
-    "@/lib/hashpower": { deviceOnlineState: () => "online" } };
+    "@/lib/hashpower": { deviceOnlineState: () => "online" }, "@/i18n/format": { fmtMoney: String },
+    "@/store/data-visibility": { useDataVisibility: () => ({ hidden: false, mask: String }) } };
   const exports: Record<string, any> = {};
   new Function("require", "exports", code)((id: string) => modules[id], exports);
   const props = Vue.reactive({ device, online: true, active: true, runtimeConfirmed: true, showAction: false });

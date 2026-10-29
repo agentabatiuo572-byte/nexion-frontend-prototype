@@ -20,7 +20,7 @@
     </view>
     <view v-if="expanded" :id="detailsId" class="device-inventory-row__body">
       <view class="device-inventory-row__summary">
-        <text class="device-inventory-row__spec">{{ device.kind === "cloud-share" ? `${formatAmount(device.baseRateNEX)} UVT${t.store.cardPerDaySuffix}` : `$${formatAmount(device.baseRate)}${t.store.cardPerDaySuffix}` }} · {{ deviceGpuLabel(t, device) }}</text>
+        <text class="device-inventory-row__spec">{{ t.myDevices.inventoryEarnedLabel }} <text class="device-inventory-row__earned font-mono-tabular">{{ visibility.mask(runtimeConfirmed ? fmtMoney(device.cumulativeEarningsUsdt) : "-") }}</text></text>
         <view v-if="showAction" class="device-inventory-row__action" :class="{ 'device-inventory-row__action--active': active }"
           role="button" :tabindex="actionDisabled ? -1 : 0" :aria-disabled="actionDisabled" @click="onAction">
           <text>{{ actionLabel }}</text>
@@ -45,14 +45,16 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { formatAmount } from "@/lib/amount-display";
 import type { Device } from "@/store/types";
 import { useT } from "@/i18n/use-t";
-import { deviceName, deviceGpuLabel } from "@/lib/device-copy";
+import { fmtMoney } from "@/i18n/format";
+import { deviceName } from "@/lib/device-copy";
+import { useDataVisibility } from "@/store/data-visibility";
 import { deviceOnlineState } from "@/lib/hashpower";
 import { useDeviceProductImage } from "@/composables/use-device-product-image";
 
 const t = useT();
+const visibility = useDataVisibility();
 const props = withDefaults(
   defineProps<{
     device: Device;
@@ -111,6 +113,7 @@ function onAction() {
 .device-inventory-row__body { padding: 0 16px 12px; }
 .device-inventory-row__summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .device-inventory-row__spec { display: block; flex: 1; min-width: 0; color: var(--v5-ink-3); font: 400 12px/18px var(--font-v5); overflow-wrap: anywhere; }
+.device-inventory-row__earned { color: var(--v5-ink); }
 .device-inventory-row__pending { display: flex; align-items: flex-start; gap: 6px; margin-top: 8px; padding: 8px; border-radius: 8px; background: color-mix(in srgb, var(--v5-warning) 12%, transparent); color: var(--v5-warning-ink); font: 400 12px/18px var(--font-v5); }
 .device-inventory-row__pending svg { flex: none; margin-top: 3px; }
 .device-inventory-row__tradein { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 12px; margin-top: 8px; font: 500 12px/18px var(--font-v5); }
