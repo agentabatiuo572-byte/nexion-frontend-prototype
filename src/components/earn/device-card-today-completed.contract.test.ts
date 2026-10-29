@@ -9,6 +9,7 @@ import viSource from "../../i18n/messages/vi.ts?raw";
 import * as Vue from 'vue';
 import { formatAmount } from '@/lib/amount-display';
 import { formatUsd } from '@/lib/usd-display';
+import { canControlDevice } from '@/lib/device-control-platform';
 import { deviceStatisticsCapabilityCopy } from '@/i18n/device-statistics-capability';
 import { compileScript, parse } from '@vue/compiler-sfc';
 import ts from 'typescript';
@@ -189,6 +190,7 @@ async function setup(name: string) {
   const blank = { render: () => null };
   const chassis = Vue.defineComponent({ setup: (_p, ctx) => () => Vue.h('view', ctx.slots.default?.()) });
   const deps: Record<string, unknown> = {
+    '@/lib/device-control-platform': { canControlDevice },
     '@/store/data-visibility': { useDataVisibility: () => ({ hidden: false, mask: String }) },
     '@/lib/amount-display': { formatAmount },
     '@/lib/usd-display': { formatUsd },

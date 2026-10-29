@@ -3,6 +3,8 @@ import source from "./app.ts?raw";
 import cardContent from "../components/earn/device-card-pc.vue?raw";
 import slotSheetContent from "../components/slot-action-sheet.vue?raw";
 import slotStoreSource from "./slot-action-sheet.ts?raw";
+import earnSource from "../pages/earn/earn.vue?raw";
+import homeSource from "../components/home/my-fleet-section.vue?raw";
 import ts from "typescript";
 import { isActiveSlotDevice, isActivatableInventoryDevice, requiresActivationConfirmation } from "../lib/device-slot-policy";
 
@@ -98,7 +100,7 @@ function findLabel(node: ts.Node) {
   ts.forEachChild(node, findLabel);
 }
 findLabel(cardAst);
-const labelFactory = new Function("props", "reconnecting", "idleGated", "deviceOnline", "task", "t", "phoneLocalReady", "phoneActivationGuidance", `return (${labelBody})();`);
+const labelFactory = new Function("props", "reconnecting", "idleGated", "deviceOnline", "task", "t", "phoneFactsReady", "phoneActivationGuidance", `return (${labelBody})();`);
 const texts = { value: { earn: { runtimeUnknown: "unknown", offline: "offline", online: "online", phoneTaskPaused: "paused" }, myDevices: { inventoryPendingDeactivateChip: "pending", phoneActivationTitle: "activate phone", phoneActivationAppOnlyTitle: "use Android App" } } };
 const withoutTask = (props: unknown, reconnecting: unknown, idleGated: unknown, deviceOnline: unknown, t: unknown) =>
   labelFactory(props, reconnecting, idleGated, deviceOnline, { value: null }, t, { value: true }, { value: { title: "activate phone" } });
@@ -122,7 +124,7 @@ describe("actual device card runtime label", () => {
     expect(labelFactory({ device: {kind:"phone", capacitySource:"server", runtimeStatus:"ONLINE"} },
       {value:false}, {value:false}, {value:false}, {value:{status:"PAUSED"}}, texts, {value:true}, {value:{title:"activate phone"}})).toBe("paused");
   });
-  it("does not claim a different phone is running locally", () => {
+  it("retains activation guidance for an unconfirmed phone without server activation facts", () => {
     const phone = { device: { kind: "phone", capacitySource: "server", runtimeStatus: "ONLINE" } };
     for (const title of ["activate phone", "use Android App", "native unavailable"]) {
       expect(labelFactory(phone, {value:false}, {value:false}, {value:false}, {value:null}, texts, {value:false}, {value:{title}})).toBe(title);
@@ -174,10 +176,26 @@ function inventorySelection(content: string, name: string, visibleDevices: unkno
   }
   visit(ast);
   if (!callback) throw new Error(`${name} missing`);
-  return new Function("app", "isActivatableInventoryDevice", "requiresActivationConfirmation", `return (${callback})();`)(
-    { visibleDevices }, isActivatableInventoryDevice, requiresActivationConfirmation,
+  return new Function("app", "isActivatableInventoryDevice", "requiresActivationConfirmation", "deviceOnlineState", "fleetReady", `return (${callback})();`)(
+    { visibleDevices }, isActivatableInventoryDevice, requiresActivationConfirmation, () => "offline", { value: true },
   );
 }
+
+describe("activation queue preserves device instances", () => {
+  it.each([[earnSource, "devices"], [homeSource, "allDevices"]])("excludes an inactive phone and preserves offline activated phones and both Cloud Share purchases", (content, selector) => {
+    const devices = [
+      project({ ...fixture, id: 1144, kind: "phone", status: "DEACTIVATED", activatedAt: null }, 1000, 20),
+      project({ ...fixture, id: 1151, kind: "phone", runtimeStatus: "OFFLINE" }, 1000, 20),
+      project({ ...fixture, id: 1152, kind: "cloud-share", runtimeStatus: "OFFLINE" }, 1000, 20),
+      project({ ...fixture, id: 1156, kind: "stellarbox-s1", runtimeStatus: "OFFLINE" }, 1000, 20),
+      project({ ...fixture, id: 1202, kind: "cloud-share", runtimeStatus: "ONLINE" }, 1000, 20),
+      project({ ...fixture, id: 1203, kind: "cloud-share", status: "EXPIRED" }, 1000, 20),
+    ];
+    expect(inventorySelection(content, selector, devices).map(device => device.id)).toEqual(["1151", "1152", "1156", "1202"]);
+    expect(devices.filter(isActiveSlotDevice).map(device => device.id)).toEqual(["1151", "1156"]);
+    expect(devices).toHaveLength(6);
+  });
+});
 
 const slotStoreAst = ts.createSourceFile("slot-action-sheet.ts", slotStoreSource, ts.ScriptTarget.Latest, true);
 let openForSlotBody = "";

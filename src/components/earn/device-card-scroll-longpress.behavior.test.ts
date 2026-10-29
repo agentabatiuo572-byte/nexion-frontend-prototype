@@ -157,6 +157,19 @@ test.each([en, zh, vietnamese])("uses Online only for confirmed running cards", 
   }
 });
 
+test.each([en, zh, vietnamese])("keeps an activated account phone readable without local calibration or a native runtime", async copy => {
+  const phone = { ...cloudDevice(), kind: "phone", todayEarnings: 1.25 } as Device;
+  const before = JSON.stringify(phone);
+  for (const [native, calibrated] of [[true, false], [false, false]]) {
+    const card = await mount(copy, phone, true, native, calibrated);
+    expect(text(find(card.root, "nx-device-status-label")!)).toBe(copy.earn.offline);
+    expect(text(card.root)).not.toContain(copy.myDevices.phoneActivationTitle);
+    expect(text(card.root)).toContain(formatUsd(1.25));
+    expect(card.setPhoneRuntime).not.toHaveBeenCalled();
+    expect(JSON.stringify(phone)).toBe(before);
+  }
+});
+
 test("the retained device clock stops while hidden and resumes without duplicate intervals", async () => {
   const card = await mount();
   const shown = vi.getTimerCount();
@@ -181,7 +194,7 @@ for (const copy of [en, zh, vietnamese]) {
     expect(text(label().parent!.children[1].children[0])).toBe("-");
     expect(text(label().parent!.parent!)).toContain(copy.earn.hashCapabilityUnknown);
     for (const [native, calibrated] of [[true, false], [false, true]]) {
-      const blocked = await mount(copy, phone, true, native, calibrated);
+      const blocked = await mount(copy, { ...phone, activatedAt: null }, true, native, calibrated);
       expect(all(blocked.root).some(entry => text(entry) === copy.earn.hashCapability)).toBe(false);
       const guidance = phoneGuidance.resolvePhoneActivationGuidance(native, copy.myDevices);
       expect(text(blocked.root)).toContain(guidance.title);

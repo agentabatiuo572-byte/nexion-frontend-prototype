@@ -2,6 +2,7 @@ import * as Vue from "vue";
 import * as tabLifecycle from "@/composables/use-tab-page-lifecycle";
 import { formatAmount } from "@/lib/amount-display";
 import { formatUsd } from "@/lib/usd-display";
+import { canControlDevice } from "@/lib/device-control-platform";
 import { deviceStatisticsCapabilityCopy } from "@/i18n/device-statistics-capability";
 import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
@@ -108,6 +109,7 @@ async function mount(copy: Messages, device = serverDevice()) {
   const blank = Vue.defineComponent({ setup: () => () => Vue.h("view") });
   const sfc = (value: Component) => ({ __esModule: true, default: value });
   const dependencies: Record<string, unknown> = { '@/store/data-visibility': { useDataVisibility: () => ({ hidden: false, mask: String }) },
+    "@/lib/device-control-platform": { canControlDevice },
     "@/lib/amount-display": { formatAmount },
     "@/lib/usd-display": { formatUsd },
     "@/i18n/device-statistics-capability": { useDeviceStatisticsCapabilityCopy: () => Vue.ref(deviceStatisticsCapabilityCopy[copy === zh ? "zh" : copy === vietnamese ? "vi" : "en"]) },
@@ -249,7 +251,7 @@ test("unknown remote capacity does not invent a subsidy/capacity entry", async (
   expect(view.device.capacityPct).toBeNull();
 });
 
-test('detail has one earnings summary, known totals, an accurate capability note, and a working statistics action', async () => {
+test('detail has one earnings summary, known totals, an accurate capability note, and a working management action', async () => {
   const view = await mount(zh, serverDevice({ todayEarnings: 12.34, cumulativeEarningsUsdt: 567.89 }));
   expect(find(view.root, 'nx-device-card__header')).toBeUndefined();
   expect(all(view.root).filter(entry => entry.children.length === 0 && text(entry) === zh.earn.todayEarnings)).toHaveLength(1);
@@ -263,13 +265,10 @@ test('detail has one earnings summary, known totals, an accurate capability note
   expect(text(view.root)).toContain(zh.coreReview.management);
   expect(text(view.root)).toContain(zh.coreReview.jobs);
   await fire(all(view.root).find(entry => entry.props['aria-label'] === zh.home.fleetManage)!, 'click');
-  const target = { scrollIntoView: vi.fn(), focus: vi.fn() };
-  vi.stubGlobal('document', { getElementById: vi.fn(() => target), querySelectorAll: () => [], removeEventListener: vi.fn() });
-  await fire(find(view.root, 'nx-device-quick-stats')!, 'click');
+  expect(find(view.root, 'nx-device-quick-stats')).toBeUndefined();
+  await fire(find(view.root, 'nx-device-quick-deactivate')!, 'click');
   await Vue.nextTick();
-  expect(target.scrollIntoView).toHaveBeenCalledWith({ block: 'start' });
-  expect(target.focus).toHaveBeenCalledWith({ preventScroll: true });
   expect(find(view.root, 'nx-device-quick-menu')).toBeUndefined();
-  expect(view.navTo).not.toHaveBeenCalled();
+  expect(view.navTo).toHaveBeenCalledExactlyOnceWith(`/pages/me/devices?deactivate=${encodeURIComponent(view.device.id)}`);
   expect(view.refreshRemoteFleet).not.toHaveBeenCalled();
 });
