@@ -1,6 +1,6 @@
 <template>
   <AppChassis :key="accountScope" :active="location.tab" :logical-route="location.route" :tab-location-key="location.href" :tab-host="true" :host-visible="visible">
-    <NativeTabContent v-for="entry in visited" :key="`${accountScope}:${entry.href}`" :content="components[entry.tab]" :query="entry.query" :location-key="entry.href" :visible="visible && entry.href === location.href" />
+    <NativeTabContent v-for="entry in visited" :key="`${accountScope}:${entry.href}`" :content="components[entry.tab]" :query="entry.query" :location-key="entry.href" :active="entry.href === location.href" :visible="visible && entry.href === location.href" />
   </AppChassis>
 </template>
 <script setup lang="ts">

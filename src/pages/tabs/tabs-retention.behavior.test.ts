@@ -10,11 +10,11 @@ import { useNow } from "@/composables/use-now";
 
 vi.mock("@dcloudio/uni-app", () => ({ onLoad: vi.fn(), onShow: vi.fn(), onHide: vi.fn(), onUnload: vi.fn() }));
 
-type Node = { children: Node[]; parent?: Node; style: Record<string, string> };
-const node = (): Node => ({ children: [], style: {} });
+type Node = { children: Node[]; parent?: Node; style: Record<string, string>; props: Record<string, unknown> };
+const node = (): Node => ({ children: [], style: {}, props: {} });
 const renderer = Vue.createRenderer<Node, Node>({
   createElement: node, createText: node, createComment: node,
-  setText() {}, setElementText() {}, patchProp() {},
+  setText() {}, setElementText() {}, patchProp(item, key, _previous, value) { item.props[key] = value; },
   parentNode: item => item.parent ?? null, nextSibling: () => null,
   insert(item, parent) { if (item.parent) item.parent.children = item.parent.children.filter(child => child !== item); item.parent = parent; parent.children.push(item); },
   remove(item) { if (item.parent) item.parent.children = item.parent.children.filter(child => child !== item); },
@@ -62,7 +62,8 @@ it("retains at most one instance per tab/query, delivers visibility, and discard
     "@/store/app": { useApp: () => appState }, "@/store/locale": { useLocaleStore: () => locale }, "@/api/runtime": { apiRuntimeConfig: runtime },
   });
   const app = renderer.createApp(tabs);
-  app.mount(node()); loaded[0]({});
+  const root = node();
+  app.mount(root); loaded[0]({});
   const select = async (href: string) => { expect(navigation.switchNativeTab(href)).toBe(true); await Vue.nextTick(); };
   await select("/pages/store/store?activityId=a");
   await select("/pages/index/index");
@@ -76,8 +77,16 @@ it("retains at most one instance per tab/query, delivers visibility, and discard
   expect(events).toContain("store:2:load:b");
   for (const path of Object.values(navigation.TAB_PATHS)) await select(path);
   expect(Object.values(instances).reduce((a, b) => a + b, 0) - events.filter(value => value.endsWith(":unload")).length).toBe(5);
+  await select('/pages/index/index');
+  const contents = (item: Node): Node[] => item.children.flatMap(child =>
+    child.props['data-tab-content-key'] ? [child] : contents(child));
+  const activeContent = contents(root).find(item => item.props['data-tab-content-key'] === '/pages/index/index')!;
+  expect(activeContent.style.display).not.toBe('none');
   hidden[0](); await Vue.nextTick(); expect(vi.getTimerCount()).toBe(0);
+  expect(activeContent.style.display).not.toBe('none');
+  expect(contents(root).filter(item => item.style.display !== 'none')).toEqual([activeContent]);
   shown[0](); await Vue.nextTick(); expect(vi.getTimerCount()).toBe(1);
+  expect(contents(root).find(item => item.props['data-tab-content-key'] === '/pages/index/index')).toBe(activeContent);
   for (const change of [() => appState.accountBindingEpoch++, () => appState.accountKey = "user:2", () => locale.code = "vi", () => runtime.baseUrl = "https://prod.example"]) {
     change(); await Vue.nextTick();
     expect(Object.values(instances).reduce((a, b) => a + b, 0) - events.filter(value => value.endsWith(":unload")).length).toBe(1);
