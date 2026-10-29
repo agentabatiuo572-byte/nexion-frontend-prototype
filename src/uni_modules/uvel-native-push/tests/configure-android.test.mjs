@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { readFileSync } from 'node:fs'
+import JSON5 from 'json5'
 import { firebaseResources } from '../configure-android.mjs'
 
 const client = (pkg, appId) => ({ client_info: { android_client_info: { package_name: pkg }, mobilesdk_app_id: appId }, api_key: [{ current_key: 'public-key' }] })
@@ -27,4 +28,12 @@ test('declares the Google Play services API used for the real GMS availability p
   const config = JSON.parse(readFileSync(new URL('../utssdk/app-android/config.json', import.meta.url), 'utf8'))
   assert.match(native, /import com\.google\.android\.gms\.common\.GoogleApiAvailability/)
   assert.ok(config.dependencies.includes('com.google.android.gms:play-services-base:18.1.0'))
+})
+
+test('targets Android 13 permission control while retaining the native SDK minimum', () => {
+  const manifest = JSON5.parse(readFileSync(new URL('../../../manifest.json', import.meta.url), 'utf8'))
+  const android = manifest['app-plus'].distribute.android
+  assert.equal(android.minSdkVersion, 23)
+  assert.ok(android.targetSdkVersion >= 33)
+  assert.ok(android.permissions.includes('<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>'))
 })

@@ -59,6 +59,8 @@
             },
             /* android打包配置 */
             "android" : {
+                "minSdkVersion": 23,
+                "targetSdkVersion": 33,
                 "enableOAID": false,
                 "schemes": "uvel",
                 "permissions" : [
