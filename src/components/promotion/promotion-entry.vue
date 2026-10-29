@@ -13,8 +13,9 @@
       <text class="promotion-title">{{ t.promotion.empty }}</text><text class="promotion-copy">{{ t.promotion.emptyNote }}</text>
       <NxButton class="entry-cta" size="medium" :label="t.promotion.allProducts" @click="navTo(promotionStoreHref())"><text>{{ t.promotion.allProducts }}</text><text aria-hidden="true">→</text></NxButton>
     </view>
-    <view v-for="activity in visibleItems" :key="activity.activityId" :class="[mode==='home'?'entry-advert':'entry-event', 'entry-kind-'+activityKind(activity), { 'entry-advert--banner': mode==='home' && bannerReady(activity) }]" :data-color-scheme="theme.resolved" :data-activity-id="activity.activityId" :data-activity-kind="activityKind(activity)">
-      <view v-if="mode==='home'" class="entry-advert-target" role="button" :tabindex="active ? 0 : -1" :aria-hidden="!active" :aria-label="localized(activity.title,locale.code)+' · '+t.promotion.browse" @click="active && navTo(promotionStoreHref(activity.activityId))" @keydown.enter.prevent="active && navTo(promotionStoreHref(activity.activityId))" @keydown.space.prevent="active && navTo(promotionStoreHref(activity.activityId))" />
+    <view class="entry-list" :class="{ 'entry-list--home': mode==='home' }"><view class="entry-track" :style="mode==='home' ? { transform: `translateX(-${activeIndex * 100}%)` } : undefined">
+    <view v-for="(activity, index) in items" :key="activity.activityId" :inert="mode==='home' && index!==activeIndex ? true : undefined" :aria-hidden="mode==='home' && index!==activeIndex ? 'true' : undefined" :class="[mode==='home'?'entry-advert':'entry-event', 'entry-kind-'+activityKind(activity), { 'entry-advert--banner': mode==='home' && bannerReady(activity) }]" :data-color-scheme="theme.resolved" :data-activity-id="activity.activityId" :data-activity-kind="activityKind(activity)">
+      <view v-if="mode==='home'" class="entry-advert-target" role="button" :tabindex="active && index===activeIndex ? 0 : -1" :aria-hidden="!active || index!==activeIndex" :aria-label="localized(activity.title,locale.code)+' · '+t.promotion.browse" @click="active && navTo(promotionStoreHref(activity.activityId))" @keydown.enter.prevent="active && navTo(promotionStoreHref(activity.activityId))" @keydown.space.prevent="active && navTo(promotionStoreHref(activity.activityId))" />
       <CatalogMachineImage v-if="mode==='home'&&bannerUrl(activity)" :key="bannerKey(activity)" v-show="bannerReady(activity)" class="entry-artwork" v-bind="bannerImageProps(activity)" />
       <view v-if="mode==='home'&&!bannerReady(activity)&&promoSlots(activity).length" class="entry-product-art" aria-hidden="true"><CatalogMachineImage v-for="slot in promoSlots(activity)" :key="slot.role" :sku="slot.sku" :image-url="slot.imageUrl" :scope-key="activity.activityId+':'+slot.role" :refresh-key="catalogRefreshKey" :class="slot.role==='purchase' ? 'entry-main-image' : 'entry-gift-image'" /></view>
       <text v-if="mode==='home'" class="entry-remaining">{{ homeRemaining(activity) }}</text>
@@ -47,6 +48,7 @@
         </view>
       </view>
     </view>
+    </view></view>
     <view v-if="mode==='home'&&items.length>1" class="entry-pagination" role="button" tabindex="0" :aria-label="`${t.promotion.nextOffer} · ${activeIndex+1} / ${items.length}`" @click="cycleOffer(1)" @keydown.enter.prevent="cycleOffer(1)" @keydown.space.prevent="cycleOffer(1)" @keydown.right.prevent="cycleOffer(1)" @keydown.left.prevent="cycleOffer(-1)">
       <view v-for="(_,index) in items" :key="index" class="entry-page-dot" :class="{selected:activeIndex===index}" aria-hidden="true" />
     </view>
@@ -97,7 +99,6 @@ function promoSlots(activity:PublicPromotion) {
   return promotionMachineSlots(activity).map(slot=>({...slot,imageUrl:ready?getProduct(slot.sku)?.imageUrl:undefined}));
 }
 const fence=createPromotionReadFence();let visible=true,pendingTicket:number|null=null;
-const visibleItems=computed(()=>props.mode==='home'?items.value.slice(activeIndex.value,activeIndex.value+1):items.value);
 // The published banner contract has no theme variants. In light mode use the
 // same published rules and catalog images in a theme-aware, readable layout.
 function bannerUrl(activity:PublicPromotion){return theme.resolved==='dark'&&activity.bannerImageUrl?apiRuntimeConfig.baseUrl.replace(/\/+$/,'')+activity.bannerImageUrl:null;}
@@ -183,6 +184,11 @@ onBeforeUnmount(()=>{visible=false;stopAutoplay();fence.invalidate();clear();});
 <style scoped>
 .promotion-entry { display: flex; flex-direction: column; gap: var(--ui-space-inset); }
 .promotion-entry-home { gap: 0; }
+.entry-list, .entry-track { display: contents; }
+.entry-list--home { display: block; overflow: hidden; border-radius: 24px; }
+.entry-list--home > .entry-track { display: flex; transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1); }
+.entry-list--home .entry-advert { flex: 0 0 100%; box-sizing: border-box; }
+@media (prefers-reduced-motion: reduce) { .entry-list--home > .entry-track { transition: none; } }
 .entry-placeholder { min-height:146px;box-sizing:border-box;padding:20px;border-radius:24px;background:var(--v5-surface);border:1px solid var(--v5-border); }
 .entry-placeholder > view { width:70%;height:18px;border-radius:8px;background:var(--v5-surface-2); }
 .entry-placeholder > view + view { width:50%;height:30px;margin-top:18px; }

@@ -106,11 +106,9 @@
         <view v-if="phoneFactsReady && degradable && inSubsidy" class="nx-device-explainer inline-flex items-center gap-1 shrink-0 active:opacity-70" :style="subsidyChipStyle" role="button" tabindex="0" @click.stop="openExplainer"  @keydown.enter.stop.prevent="openExplainer" @keydown.space.stop.prevent="openExplainer">
           <text>{{ subsidyText }}</text>
         </view>
-        <view v-else-if="phoneFactsReady && degradable && lifecycle" class="nx-device-explainer inline-flex items-center gap-1 shrink-0 active:opacity-70" :style="chipStyle" role="button" tabindex="0" @click.stop="openExplainer"  @keydown.enter.stop.prevent="openExplainer" @keydown.space.stop.prevent="openExplainer">
-          <text style="opacity: 0.9">{{ t.earn.capacityChipLabel }}</text>
-          <text>{{ visibility.mask((lifecycle.efficiency * 100).toFixed(0)) }}%</text>
-          <text style="opacity: 0.65">·</text>
-          <text style="opacity: 0.9">{{ monthsLabel }}</text>
+        <!-- Capacity is only flagged once it falls below 70%; the tag opens the capacity explainer. -->
+        <view v-else-if="phoneFactsReady && degradable && lifecycle && lifecycle.efficiency < 0.7" class="nx-device-explainer nx-capacity-tag shrink-0 active:opacity-70" role="button" tabindex="0" :aria-label="`${t.earn.capacityChipLabel} ${visibility.mask((lifecycle.efficiency * 100).toFixed(0))}% · ${monthsLabel} · ${t.earn.capExplainS1Title}`" @click.stop="openExplainer"  @keydown.enter.stop.prevent="openExplainer" @keydown.space.stop.prevent="openExplainer">
+          <NxTag tone="warning">{{ t.earn.capacityChipLabel }} {{ visibility.mask((lifecycle.efficiency * 100).toFixed(0)) }}% · {{ monthsLabel }}<svg class="nx-capacity-tag__chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg></NxTag>
         </view>
       </view>
 
@@ -402,6 +400,7 @@ import { formatUsd } from "@/lib/usd-display";
 import { useDeviceStatisticsCapabilityCopy } from "@/i18n/device-statistics-capability";
 import { canControlDevice } from "@/lib/device-control-platform";
 import NxButton from "@/components/ui/nx-button.vue";
+import NxTag from "@/components/ui/nx-tag.vue";
 import { computed, nextTick, ref, watch, onUnmounted, type CSSProperties } from "vue";
 import { onHide, useVisibleInterval } from "@/composables/use-tab-page-lifecycle";
 import { advanceMonotonicHighWater, deadlineRemainingDays, deadlineRemainingMs, projectServerNow, readMonotonicNowMs } from "@/lib/server-deadline-clock";
@@ -683,11 +682,6 @@ const lifecycle = computed(() => {
   const s = getLifecycleSummary(props.device, now.value);
   return s.isDegradable ? s : null;
 });
-const chipColor = computed(() => {
-  const s = lifecycle.value;
-  if (!s) return "var(--v5-ink-3)";
-  return s.efficiency >= 0.85 ? "var(--v5-brand)" : s.efficiency >= 0.65 ? "var(--v5-warning)" : "var(--v5-brand-2)";
-});
 const monthsLabel = computed(() => {
   const s = lifecycle.value;
   if (!s) return "";
@@ -911,14 +905,6 @@ const warnIconStyle: CSSProperties = {
   background: "color-mix(in oklab, var(--v5-warning) 18%, transparent)",
   color: "var(--v5-warning-ink)",
 };
-const chipStyle = computed<CSSProperties>(() => ({
-  padding: "2px 12px",
-  borderRadius: "999px",
-  fontSize: "12px",
-  fontFamily: "var(--font-v5)",
-  background: `color-mix(in srgb, ${chipColor.value} 12%, transparent)`,
-  color: chipColor.value,
-}));
 const progressBarStyle = computed<CSSProperties>(() => ({
   width: `${progressPct.value}%`,
   background: "color-mix(in srgb, var(--v5-brand) 40%, transparent)",
@@ -949,6 +935,8 @@ import DeviceSlot from "@/components/home/device-slot.vue";
 </script>
 
 <style scoped>
+.nx-capacity-tag { min-height: 44px; display: inline-flex; align-items: center; }
+.nx-capacity-tag__chevron { margin-left: 4px; }
 .nx-device-card__header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: 88px; padding: 14px; }
 .nx-device-card__main { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .earn-device-art { flex: none; width: 52px; height: 56px; overflow: hidden; }

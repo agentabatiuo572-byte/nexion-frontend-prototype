@@ -179,9 +179,9 @@ it('cycles actual home offers and leaves absolute expiry and purchase conditions
   expect(screen.view.termsText.value).toContain('2026/11/06 00:00 · UTC');
   expect(screen.view.termsRules.value[0].text).toContain('2');
   find(screen.node(),'entry-pagination')!.props!.onClick();
-  expect(screen.view.visibleItems.value[0].activityId).toBe('a2');
+  expect(screen.view.items.value[screen.view.activeIndex.value].activityId).toBe('a2');
   screen.view.cycleOffer(-1);screen.view.cycleOffer(-1);
-  expect(screen.view.visibleItems.value[0].activityId).toBe('a3');
+  expect(screen.view.items.value[screen.view.activeIndex.value].activityId).toBe('a3');
 });
 
 it.each([['DEVICE','gift','Actual gift device × 1'],['DISCOUNT_USDT','coupon','50.00 USDT'],['UVT','spark','50.00 UVT']] as const)('renders %s from published rewards without inventing claim or completion state',async(type,kind,benefit)=>{

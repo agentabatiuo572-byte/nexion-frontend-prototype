@@ -213,6 +213,7 @@ async function setup(name: string) {
     '@/components/earn/capacity-explainer-sheet.vue': { __esModule: true, default: blank },
     '@/components/home/device-slot.vue': { __esModule: true, default: blank },
     '@/components/ui/nx-button.vue': { __esModule: true, default: blank },
+    '@/components/ui/nx-tag.vue': { __esModule: true, default: blank },
   };
   const imports = (id: string) => {
     if (id === '@/composables/use-tab-page-lifecycle') return tabLifecycle;

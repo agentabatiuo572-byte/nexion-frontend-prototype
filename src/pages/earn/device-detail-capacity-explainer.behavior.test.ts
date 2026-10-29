@@ -216,14 +216,20 @@ for (const [locale, copy] of languages) {
   });
 }
 
-test.each([0, 1])("expired-subsidy capacity entry %s uses the same detail sheet", async index => {
+test.each([0, 1])("expired-subsidy capacity entry %s below 70%% uses the same detail sheet", async index => {
   const view = await mount(en, serverDevice({ capacitySubsidized: false, capacitySubsidyRemainingDays: 0,
-    capacitySubsidyEndsAt: null, capacityPct: 73.25, capacityAgeMonths: 5 }));
+    capacitySubsidyEndsAt: null, capacityPct: 64.5, capacityAgeMonths: 5 }));
   const entries = all(view.root).filter(entry => hasClass(entry, "nx-device-explainer"));
   expect(entries).toHaveLength(2);
   await fire(entries[index], "click");
   expect(find(view.root, "nx-capacity-explainer-root")?.props["aria-label"]).toBe(en.earn.capExplainTitle);
-  expect(view.device.capacityPct).toBe(73.25);
+  expect(view.device.capacityPct).toBe(64.5);
+});
+
+test("capacity at or above 70% shows no capacity tag", async () => {
+  const view = await mount(en, serverDevice({ capacitySubsidized: false, capacitySubsidyRemainingDays: 0,
+    capacitySubsidyEndsAt: null, capacityPct: 73.25, capacityAgeMonths: 5 }));
+  expect(all(view.root).filter(entry => hasClass(entry, "nx-capacity-tag"))).toHaveLength(0);
 });
 
 test("the existing sheet CTA closes then navigates to the store without business changes", async () => {
