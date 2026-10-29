@@ -220,13 +220,16 @@
      every text node falls back to the browser default (Times New Roman serif).
      Defining them here makes all three usages (--font-v5 / body / .font-mono-
      tabular) valid → clean sans-serif even before the web fonts load. (P-038) */
-  --font-display: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+  --font-display: "UVEL Figures", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
     "PingFang SC", "Noto Sans SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
   --font-jet-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  /* v5 font stack — for use in inline style fontFamily. Inter covers Latin,
-     Vietnamese and figures; CJK falls through to the system fonts (DS-25). */
+  /* v5 font stack — for use in inline style fontFamily. General Sans draws digits and
+     numeric symbols ("UVEL Figures", DS-26), Inter draws Latin and Vietnamese (DS-25),
+     CJK falls through to the system fonts. */
   --font-v5: var(--font-display);
+  /* Wallet card balances only: Montserrat digits over the UI stack (DS-26). */
+  --font-balance: "UVEL Balance", var(--font-display);
 
   /* Radius ladder — current authority: uvel-docs/design-system/01-foundations.md.
      主题无关;新代码优先引用,存量迁移随「尺寸迁移工程」分批。
@@ -692,9 +695,9 @@ body {
 
 /* ─── Mission Control (Home v2) ─── */
 
-/* Figures in the UI font with aligned digits — amounts, units, counts and IDs (01 §1.2). */
+/* Mono font helper — JetBrains Mono used for live numbers, tiny labels (restored by DS-26). */
 .font-mono-tabular {
-  font-family: var(--font-v5);
+  font-family: var(--font-jet-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-variant-numeric: tabular-nums;
 }
 /* Monospace only for addresses, hashes and codes read character by character. */

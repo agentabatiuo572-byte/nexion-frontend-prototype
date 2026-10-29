@@ -293,11 +293,11 @@ const usdtFitStyle = computed<CSSProperties>(() => ({
 .nx-wallet-heading-link { margin-left: auto; display: flex; align-items: center; gap: 6px; min-height: 44px; min-width: 44px; justify-content: flex-end; }
 .nx-wallet-symbol { display: grid; place-items: center; width: 24px; height: 24px; color: var(--v5-nex); flex-shrink: 0; }
 .nx-wallet-title { min-width: 0; font: 600 20px/1.3 var(--font-v5); }
-.nx-wallet-total { position: relative; z-index: 1; display: flex; align-items: baseline; margin: 28px 0 26px; gap: 3px; color: var(--v5-ink); font-family: var(--font-v5); font-weight: 500; letter-spacing: -.035em; line-height: 1.1; }
+.nx-wallet-total { position: relative; z-index: 1; display: flex; align-items: baseline; margin: 28px 0 26px; gap: 3px; color: var(--v5-ink); font-family: var(--font-balance); font-weight: 500; letter-spacing: -.03em; line-height: 1.1; }
 .nx-wallet-currency { font-size: min(clamp(28px, 8vw, 38px), var(--nx-wallet-fit-size)); }
 .nx-wallet-amount { min-width: 0; white-space: nowrap; overflow-wrap: normal; font-size: min(clamp(32px, 10.5vw, 52px), var(--nx-wallet-fit-size)); }
 .nx-wallet-fraction { color: var(--v5-ink-3); }
-.nx-wallet-nex { position: relative; z-index: 1; display: flex; align-items: center; gap: 10px; padding-bottom: 8px; font: 500 20px/1.4 var(--font-v5); color: var(--v5-ink-2); overflow-wrap: anywhere; }
+.nx-wallet-nex { position: relative; z-index: 1; display: flex; align-items: center; gap: 10px; padding-bottom: 8px; font: 500 20px/1.4 var(--font-balance); color: var(--v5-ink-2); overflow-wrap: anywhere; }
 .nx-wallet-coin { display: grid; place-items: center; flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; color: var(--v5-bg); background: var(--v5-nex); }
 .nx-wallet-arc { position: absolute; width: 360px; height: 300px; border-radius: 50%;  bottom: -220px; right: -190px; transform: rotate(-30deg); background: radial-gradient(ellipse at center, var(--v5-nex-soft), transparent 68%); box-shadow: 0 0 40px var(--v5-nex-soft); pointer-events: none; animation: wallet-arc-breathe 7s ease-in-out infinite alternate; }
 .nx-wallet-particles { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
