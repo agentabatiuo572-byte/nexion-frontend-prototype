@@ -49,7 +49,9 @@
 .message-center .notification-chevron { flex-shrink: 0; align-self: center; color: var(--v5-ink-4); }
 .message-center .notification-detail { padding: 0 2px 14px 38px; }
 .message-center .notification-body { display: block; color: var(--v5-ink-3); font-size: var(--ui-type-message-preview); line-height: var(--ui-type-message-preview-lh); overflow-wrap: anywhere; white-space: pre-wrap; }
-.message-center .notification-cta { margin-top: 14px; }
+/* Compact trailing pill: a 32px glass inside the 44px tap target. */
+.message-center .notification-cta { display: flex; width: fit-content; margin: 4px 0 -6px auto; padding: 0 12px; gap: 4px; font-size: 12.5px; line-height: 18px; }
+.message-center .notification-cta > .nx-liquid-glass { inset: 6px 0; }
 .message-center .message-state { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 26px 0; font-size: 13px; line-height: 1.6; color: var(--v5-ink-3); text-align: center; }
 .message-center .message-state--inline { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 12px 0; text-align: start; }
 .message-center .message-state--inline > text { min-width: 0; overflow-wrap: anywhere; }

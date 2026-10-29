@@ -3,10 +3,10 @@
   "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-polish",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "392dc79a18c1b20c321ab453f957167d3dbd43d6",
-  "sourceRef": "392dc79a18c1b20c321ab453f957167d3dbd43d6",
+  "sourceHead": "9ded093cef1af9243bc73ed43d35aedaf76cebbf",
+  "sourceRef": "9ded093cef1af9243bc73ed43d35aedaf76cebbf",
   "sourceRefKind": "commit",
-  "sourceTree": "be17e88f8781085856d51115b70a4192d1675e9c",
+  "sourceTree": "acc5161f036d5159e2bc2bc0c503451e6496eb20",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -12522,10 +12522,10 @@
       "mode": "100644"
     },
     "docs/前端产品更新日志.md": {
-      "sourceBlob": "d131d9166cdf461a050e693a1b89f5a57cdd1a7b",
-      "sourceSha256": "322319b9012aa36e08d8af50ba747e45d222c7a80d5192901ec9a035dc338958",
-      "targetBlob": "d131d9166cdf461a050e693a1b89f5a57cdd1a7b",
-      "targetSha256": "322319b9012aa36e08d8af50ba747e45d222c7a80d5192901ec9a035dc338958",
+      "sourceBlob": "b357090c48462ac6edd7843c24325a055ce2ef2c",
+      "sourceSha256": "a76a7a33e961c88c1f303a3f0f811a56c95b18088f333e1b8d8c3bff569bdb25",
+      "targetBlob": "b357090c48462ac6edd7843c24325a055ce2ef2c",
+      "targetSha256": "a76a7a33e961c88c1f303a3f0f811a56c95b18088f333e1b8d8c3bff569bdb25",
       "mode": "100644"
     },
     "index.html": {
@@ -24842,10 +24842,10 @@
       "mode": "100644"
     },
     "src/pages/me/notifications.vue": {
-      "sourceBlob": "fd73b85512cebdffd205a1c4c07215045823265c",
-      "sourceSha256": "d5ac4b62a3594018e23a22c1491b7d33a5cdd82ec9f08f4c267d6d895c012066",
-      "targetBlob": "fd73b85512cebdffd205a1c4c07215045823265c",
-      "targetSha256": "d5ac4b62a3594018e23a22c1491b7d33a5cdd82ec9f08f4c267d6d895c012066",
+      "sourceBlob": "5c0f53edc66c6bc044cea4bef29989aad5b14b6d",
+      "sourceSha256": "14cabcdb61d46c5d1ce2abb51733d4fc2be7c48409f3a967ccd30091aed13782",
+      "targetBlob": "5c0f53edc66c6bc044cea4bef29989aad5b14b6d",
+      "targetSha256": "14cabcdb61d46c5d1ce2abb51733d4fc2be7c48409f3a967ccd30091aed13782",
       "mode": "100644"
     },
     "src/pages/me/p3-18-account-page-fence.test.ts": {
@@ -29070,10 +29070,10 @@
       "mode": "100644"
     },
     "src/styles/message-center.css": {
-      "sourceBlob": "4ebbc7808c2c89fd3811a846aa82d1bcd04e2dfe",
-      "sourceSha256": "4c1b70e6de57b3304e392122a4509091308c97365c42e8f7aeaca5af5b520d20",
-      "targetBlob": "4ebbc7808c2c89fd3811a846aa82d1bcd04e2dfe",
-      "targetSha256": "4c1b70e6de57b3304e392122a4509091308c97365c42e8f7aeaca5af5b520d20",
+      "sourceBlob": "07ea9efa64556c0f0dedb5aa1606cadc43887ad3",
+      "sourceSha256": "1a8446b1c32df368de86dc833ef1d840c336dd533e59fc9ade217f05801c4df4",
+      "targetBlob": "07ea9efa64556c0f0dedb5aa1606cadc43887ad3",
+      "targetSha256": "1a8446b1c32df368de86dc833ef1d840c336dd533e59fc9ade217f05801c4df4",
       "mode": "100644"
     },
     "src/styles/message-family.css": {
