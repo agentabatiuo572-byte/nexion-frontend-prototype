@@ -198,8 +198,8 @@ const kindLineStyle = computed<CSSProperties>(() => ({
 }));
 const titleStyle: CSSProperties = {
   marginTop: "2px",
-  fontSize: "var(--ui-type-section)",
-  fontWeight: 600,
+  fontSize: "var(--ui-type-card-title)",
+  fontWeight: "var(--ui-type-card-title-weight)",
   color: "var(--v5-ink)",
   lineHeight: 1.25,
 };

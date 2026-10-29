@@ -22,7 +22,7 @@ const open = ref(false);
 <style scoped>
 .reward-rule { color: var(--v5-ink); padding: var(--ui-space-row-y) 0; border-bottom: 1px solid var(--v5-border); }
 .reward-rule--section { margin: 0 16px; padding: 22px 0; }
-.reward-rule__heading { display: flex; align-items: center; gap: 9px; font-size: var(--ui-type-section); font-weight: 600; line-height: 1.5; margin-bottom: var(--ui-space-row-y); }
+.reward-rule__heading { display: flex; align-items: center; gap: 9px; font-size: var(--ui-type-subheading); font-weight: var(--ui-type-subheading-weight); line-height: 1.5; margin-bottom: var(--ui-space-row-y); }
 .reward-rule__number { color: var(--v5-ink-3); font-size: 12px; font-variant-numeric: tabular-nums; min-width: 20px; }
 .reward-rule__icon { display: flex; color: var(--v5-ink-2); flex-shrink: 0; }
 .reward-rule__body, .reward-rule__copy { color: var(--v5-ink-2); font-size: var(--ui-type-long-form); line-height: var(--ui-type-long-form-lh); white-space: pre-line; overflow-wrap: anywhere; }

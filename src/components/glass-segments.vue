@@ -133,6 +133,14 @@ export default viewImplementation;
 .nx-glass-option--disabled { opacity: .45; cursor: default; }
 .nx-glass-option__label { font-family: var(--font-v5); font-size: 12px; font-weight: 600; line-height: 17px; text-align: center; overflow-wrap: anywhere; }
 .nx-glass-option__count { font-size: 12px; font-variant-numeric: tabular-nums; }
+/* Main switch and secondary filters (design system 03 §3.7): 32px visible options inside a
+   40px track, 44px hit area, 500 labels, muted until selected. :where() keeps page overrides
+   (home 90x26 switch, message centre) stronger than these defaults. */
+:where(.nx-glass-segments--filter) .nx-glass-option { min-height: 32px; padding: 6px 12px; color: var(--v5-ink-3); }
+:where(.nx-glass-segments--filter) .nx-glass-option::after { content: ""; position: absolute; inset: -6px 0; }
+:where(.nx-glass-segments--filter) .nx-glass-option--selected { color: var(--v5-brand); }
+:where(.nx-glass-segments--filter) .nx-glass-option__label { font-size: var(--ui-type-segment); font-weight: var(--ui-type-segment-weight); line-height: var(--ui-type-segment-lh); }
+:where(.nx-glass-segments--scroll, .nx-glass-segments--wrap) .nx-glass-option__label { font-size: var(--ui-type-compact-button); line-height: var(--ui-type-compact-button-lh); }
 .nx-glass-segments--scroll { overflow-x: auto; scrollbar-width: none; }
 .nx-glass-segments--scroll::-webkit-scrollbar { display: none; }
 .nx-glass-segments--scroll .nx-glass-option { flex: 0 0 auto; white-space: nowrap; padding-inline: 16px; }

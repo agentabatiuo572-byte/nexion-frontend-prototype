@@ -111,11 +111,11 @@ function emitClose() { emit("update:open", false); }
 function emitSubscribe() { emit("subscribe"); }
 
 const panelStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)", background: "var(--nx-glass-fill)", borderTop: "none", padding: "18px 16px calc(env(safe-area-inset-bottom) + 38px)" };
-const titleStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "20px", fontWeight: 600, letterSpacing: "-0.018em", color: "var(--v5-ink)", lineHeight: 1.2 };
+const titleStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "20px", fontWeight: "var(--ui-type-card-title-weight)", letterSpacing: "-0.018em", color: "var(--v5-ink)", lineHeight: 1.2 };
 const subtitleStyle: CSSProperties = { marginTop: "4px", fontFamily: "var(--font-v5)", fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-3)" };
 const closeBtnStyle: CSSProperties = { width: "40px", height: "40px", borderRadius: "999px", color: "var(--v5-ink-3)" };
 const unlockedBannerStyle: CSSProperties = { background: "color-mix(in srgb, var(--v5-success) 12%, transparent)", borderRadius: "14px", padding: "12px 14px", marginBottom: "12px" };
-const unlockedTitleStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "var(--ui-type-section)", fontWeight: 600, color: "var(--v5-ink)", lineHeight: 1.25 };
+const unlockedTitleStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "var(--ui-type-card-title)", fontWeight: 600, color: "var(--v5-ink)", lineHeight: 1.25 };
 const unlockedSubStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.4 };
 const ruleListStyle: CSSProperties = { display: "flex", flexDirection: "column", gap: "10px" };
 const ruleRowStyle: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", background: "var(--v5-surface-2)", borderRadius: "14px", padding: "13px 14px" };

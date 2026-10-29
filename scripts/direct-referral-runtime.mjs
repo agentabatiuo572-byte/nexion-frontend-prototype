@@ -19,7 +19,6 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const identity = await identify(base, { root, environment: arg("--environment", "development") });
 assert(identity.ok, identity.why);
 const templateText = await readFile(contentPath, "utf8"), publication = JSON.parse(templateText);
-const fontCss = (await readFile(path.join(root, "src/styles/fonts.css"), "utf8")).replaceAll("../static/fonts/", new URL("/src/static/fonts/", base).href);
 const git = (...args) => execFileSync("git", args, { cwd: root, encoding: "utf8", maxBuffer: 20 * 1024 * 1024 });
 const hash = value => createHash("sha256").update(value).digest("hex");
 async function snapshot() {
@@ -111,7 +110,7 @@ async function visit(page, route) { await page.goto(directAppUrl(base, `pages/te
 async function contains(page, value) { await page.getByText(value, { exact: false }).first().waitFor({ timeout: 12000 }); trace.push({ assertion: "DOM contains", value }); }
 async function capture(page, name) {
   const fonts = await page.evaluate(async () => {
-    const requests = [400, 500, 600, 700].map(weight => `${weight} 15px "General Sans"`).concat(['400 15px "Manrope"', '400 15px "JetBrains Mono"']);
+    const requests = [400, 500, 600].map(weight => `${weight} 15px "Inter"`).concat(['400 15px "JetBrains Mono"']);
     const loaded = await Promise.all(requests.map(async font => {
       const faces = await document.fonts.load(font);
       return { font, loaded: faces.length > 0 && faces.every(face => face.status === "loaded") };
@@ -120,7 +119,7 @@ async function capture(page, name) {
     return loaded;
   });
   assert(fonts.every(font => font.loaded), `Bundled fonts failed to load: ${name}`);
-  trace.push({ assertion: "six bundled brand fonts loaded", fonts });
+  trace.push({ assertion: "bundled Inter and JetBrains Mono loaded", fonts });
   const overflow = await page.evaluate(() => [...document.querySelectorAll("uni-page .nx-content")].filter(el => el.getBoundingClientRect().height > 0).some(el => el.scrollWidth > el.clientWidth + 1));
   assert.equal(overflow, false, `Horizontal overflow: ${name}`);
   const amountLayout = await page.locator('.nx-direct-amount').evaluateAll(elements => elements.map(el => ({
@@ -157,7 +156,6 @@ async function session(locale = "en", theme = "dark", width = 390, authDelayMs =
     }
     return route.fallback();
   });
-  await page.route(/^https:\/\/(?:api\.fontshare\.com\/v2\/css|fonts\.googleapis\.com\/css2)(?:\?|$)/, route => route.fulfill({ status: 200, contentType: "text/css", body: fontCss }));
   await page.route("**/api/**", async route => {
     const url = new URL(route.request().url());
     trace.push({ request: url.pathname + url.search, method: route.request().method(), injectedFailure: Boolean(state.fail && url.pathname.includes(state.fail)) });

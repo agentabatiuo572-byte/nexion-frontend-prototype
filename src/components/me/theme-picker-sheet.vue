@@ -108,8 +108,8 @@ const panelStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
 };
 const titleStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "var(--ui-type-section)",
-  fontWeight: 600,
+  fontSize: "var(--ui-type-hero-title)",
+  fontWeight: "var(--ui-type-hero-title-weight)",
   color: "var(--v5-ink)",
 };
 const closeBtnStyle: CSSProperties = {

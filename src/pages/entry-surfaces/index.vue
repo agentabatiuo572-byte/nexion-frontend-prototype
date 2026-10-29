@@ -132,8 +132,8 @@ function open(route: string) {
 .entry-index__row-label {
   display: block;
   color: var(--v5-ink);
-  font-size: var(--ui-type-section);
-  font-weight: 600;
+  font-size: var(--ui-type-subheading);
+  font-weight: var(--ui-type-subheading-weight);
 }
 
 .entry-index__row-summary {

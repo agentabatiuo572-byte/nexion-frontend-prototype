@@ -417,9 +417,9 @@ const idleCardStyle: CSSProperties = {
   textAlign: "center",
 };
 const idleIconBoxStyle: CSSProperties = { width: "48px", height: "48px", borderRadius: "999px", background: "color-mix(in srgb, var(--v5-brand) 15%, transparent)", margin: "0 auto" };
-const idleTitleStyle: CSSProperties = { marginTop: "12px", fontSize: "var(--ui-type-section)", fontWeight: 600, color: "var(--v5-ink)" };
+const idleTitleStyle: CSSProperties = { marginTop: "12px", fontSize: "var(--ui-type-card-title)", fontWeight: 600, color: "var(--v5-ink)" };
 const idleBodyStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.375, padding: "0 8px", textWrap: "pretty" };
-const idleCtaStyle: CSSProperties = { marginTop: "16px", height: "48px", padding: "0 24px", borderRadius: "999px", background: "var(--v5-brand)", color: "var(--v5-on-brand)", fontSize: "13px", fontWeight: 600 };
+const idleCtaStyle: CSSProperties = { marginTop: "16px", height: "48px", padding: "0 24px", borderRadius: "999px", background: "var(--v5-brand)", color: "var(--v5-on-brand)", fontSize: "13px", fontWeight: "var(--ui-type-card-title-weight)" };
 const idleCtaDisabledStyle: CSSProperties = { marginTop: "16px", height: "48px", padding: "0 24px", borderRadius: "999px", background: "var(--v5-surface-2)", color: "var(--v5-ink-4)", fontSize: "13px", fontWeight: 600 };
 const reasonNoteStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.625, textWrap: "pretty" };
 const terminalCardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", borderRadius: "var(--nx-glass-radius)", background: "var(--nx-glass-fill)", padding: "24px 20px", textAlign: "center" };
@@ -446,7 +446,7 @@ useDialogA11y(computed(() => rulesOpen.value), ".trs-root", () => { rulesOpen.va
 .trial-estimate-row { display:flex;justify-content:space-between;gap:var(--v5-space-3);margin-top:var(--v5-space-2);color:var(--v5-ink-3);font-size:var(--ui-type-meta);line-height:var(--ui-type-meta-lh); }
 .trial-estimate-row > text:last-child { flex-shrink:0;font-variant-numeric:tabular-nums; }
 .trial-buy { display:flex;flex-direction:column;gap:var(--v5-space-3);padding-top:var(--v5-space-2); }
-.trial-buy-title { display:block;font-size:var(--ui-type-section);line-height:var(--ui-type-section-lh);font-weight:600;color:var(--v5-ink);text-wrap:pretty; }
+.trial-buy-title { display:block;font-size:var(--ui-type-card-title);line-height:var(--ui-type-card-title-lh);font-weight: var(--ui-type-card-title-weight);color:var(--v5-ink);text-wrap:pretty; }
 .trial-buy-deadline { display:inline-flex;align-items:center;gap:var(--v5-space-1);margin-top:var(--v5-space-2);padding:var(--v5-space-1) var(--v5-space-3);border-radius:var(--v5-radius-full);background:var(--v5-brand-soft);color:var(--v5-brand);font-size:var(--ui-type-meta);line-height:var(--ui-type-meta-lh);font-weight:600; }
 .trial-buy-card { display:flex;flex-direction:column;gap:var(--v5-space-2);padding:var(--v5-space-3) var(--v5-space-4);border-radius:var(--v5-radius-l);background:var(--v5-surface); }
 .trial-buy-card-label { font-size:var(--ui-type-meta);line-height:var(--ui-type-meta-lh);font-weight:600;color:var(--v5-ink-3); }

@@ -151,7 +151,7 @@ onBeforeUnmount(()=>{visible=false;fence.invalidate();if(expiryTimer)clearInterv
 </script>
 <style src="./promotion.css"></style>
 <style scoped>
-.bundle-name { display:block;font-size:var(--ui-type-section);font-weight:600;overflow-wrap:anywhere; }
+.bundle-name { display:block;font-size:var(--ui-type-card-title);font-weight: var(--ui-type-card-title-weight);overflow-wrap:anywhere; }
 .bundle-stepper { display:flex;align-items:center;border:1px solid var(--v5-border);border-radius:999px;width:max-content;max-width:100%;margin-top:var(--ui-space-row-y);overflow:hidden; }
 .bundle-stepper view,.bundle-add,.bundle-remove { min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;font-size:20px; }
 .bundle-stepper view { background:var(--v5-surface-2); }

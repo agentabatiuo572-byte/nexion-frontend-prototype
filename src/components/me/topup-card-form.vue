@@ -304,8 +304,8 @@ const spinnerStyle: CSSProperties = {
 const centerTitleStyle: CSSProperties = {
   marginTop: "14px",
   fontFamily: "var(--font-v5)",
-  fontWeight: 600,
-  fontSize: "var(--ui-type-section)",
+  fontWeight: "var(--ui-type-card-title-weight)",
+  fontSize: "var(--ui-type-card-title)",
   letterSpacing: "-0.005em",
   color: "var(--v5-ink)",
 };
@@ -367,8 +367,8 @@ const failIconStyle: CSSProperties = {
 const failTitleStyle: CSSProperties = {
   marginTop: "14px",
   fontFamily: "var(--font-v5)",
-  fontWeight: 600,
-  fontSize: "var(--ui-type-section)",
+  fontWeight: "var(--ui-type-card-title-weight)",
+  fontSize: "var(--ui-type-card-title)",
   letterSpacing: "-0.014em",
   color: "var(--v5-ink)",
 };

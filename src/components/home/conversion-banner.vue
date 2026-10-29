@@ -280,7 +280,7 @@ function onCardAction() {
   min-width: 0;
   overflow: hidden;
   font-family: var(--font-v5);
-  font-size: var(--ui-type-section);
+  font-size: var(--ui-type-card-title);
   font-weight: 600;
   color: var(--v5-ink);
   text-overflow: ellipsis;

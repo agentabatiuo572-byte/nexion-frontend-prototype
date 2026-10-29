@@ -785,8 +785,8 @@ const boostStyle: CSSProperties = {
 };
 const boostLabelStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontWeight: 600,
-  fontSize: "var(--ui-type-section)",
+  fontWeight: "var(--ui-type-button-weight)",
+  fontSize: "var(--ui-type-button)",
   color: "var(--v5-on-brand)",
   letterSpacing: "-0.008em",
 };
@@ -833,7 +833,7 @@ const noteStyle: CSSProperties = {
 .gh-disclosure svg { flex-shrink: 0; }
 .gh-heading { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: var(--ui-type-section); font-weight: 600; line-height: 1.5; }
 .gh-heading::after { content: ""; width: 40px; height: 1px; flex-shrink: 0; background: linear-gradient(90deg, var(--v5-genesis-gold), transparent); }
-.gh-title { display: block; font-size: var(--ui-type-section); font-weight: 600; line-height: 1.5; }
+.gh-title { display: block; font-size: var(--ui-type-card-title); font-weight: var(--ui-type-card-title-weight); line-height: 1.5; }
 .gh-link { color: var(--v5-brand); font-size: var(--ui-type-list-subtitle); }
 .gh-how { display: flex; align-items: center; justify-content: center; align-self: center; min-height: 44px; padding: 0 12px; text-align: center; }
 .gh-section-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }

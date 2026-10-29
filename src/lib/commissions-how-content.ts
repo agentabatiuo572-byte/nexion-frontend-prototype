@@ -87,7 +87,8 @@ export function buildCommissionsHowContent(snapshot: CommissionsHowSnapshot | nu
     amounts.network = directPolicy.configured && directPolicy.purchase.enabled && directPolicy.nexUsdtPrice !== null ? copy.pendingAmount : copy.notConfigured;
     const cultivation = ranks.find(r => r.cultivationBonus > 0);
     tokens.exampleRank = cultivation ? `V${cultivation.v}` : copy.none;
-    amounts.cultivation = cultivation ? `${money(cultivation.cultivationBonus, "UVT")} (${copy.configured})` : copy.none;
+    const qualified = (value: string, note: string) => locale.startsWith("zh") ? `${value}（${note}）` : `${value} (${note})`;
+    amounts.cultivation = cultivation ? qualified(money(cultivation.cultivationBonus, "UVT"), copy.configured) : copy.none;
     amounts.peer = guide.capabilities.peer ? copy.pendingAmount : copy.notOpen;
     amounts.leadership = l ? copy.pendingAmount : copy.notConfigured;
     Object.assign(publicBodies, {

@@ -595,8 +595,8 @@ const saveBtnStyle: CSSProperties = {
 const saveBtnPendingStyle: CSSProperties = { background: "var(--v5-surface-2)", color: "var(--v5-ink-3)" };
 const saveLabelStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "var(--ui-type-section)",
-  fontWeight: 600,
+  fontSize: "var(--ui-type-button)",
+  fontWeight: "var(--ui-type-button-weight)",
   color: "inherit",
 };
 const sectionLabelStyle: CSSProperties = {

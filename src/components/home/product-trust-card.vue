@@ -75,15 +75,15 @@ onMounted(() => {
 });
 
 const cardStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", padding: "14px", borderRadius: "var(--nx-glass-radius)", background: "var(--nx-glass-fill)" };
-const titleStyle: CSSProperties = { fontSize: "var(--ui-type-section)", fontWeight: 600, color: "var(--v5-ink)" };
+const titleStyle: CSSProperties = { fontSize: "var(--ui-type-card-title)", fontWeight: 600, color: "var(--v5-ink)" };
 const subtitleStyle: CSSProperties = { marginTop: "3px", fontSize: "12px", color: "var(--v5-ink-3)" };
-const linkStyle: CSSProperties = { display: "inline-flex", alignItems: "center", minHeight: "44px", padding: "0 12px", flexShrink: 0, fontSize: "12px", fontWeight: 600, color: "var(--v5-brand)" };
+const linkStyle: CSSProperties = { display: "inline-flex", alignItems: "center", minHeight: "44px", padding: "0 12px", flexShrink: 0, fontSize: "12px", fontWeight: "var(--ui-type-card-title-weight)", color: "var(--v5-brand)" };
 const mutedStyle: CSSProperties = { flexShrink: 0, fontSize: "12px", color: "var(--v5-ink-3)" };
 const emptyStyle: CSSProperties = { marginTop: "12px", fontSize: "12px", color: "var(--v5-ink-3)" };
-const productNameStyle: CSSProperties = { fontSize: "var(--ui-type-section)", fontWeight: 600, color: "var(--v5-ink)" };
+const productNameStyle: CSSProperties = { fontSize: "var(--ui-type-subheading)", fontWeight: "var(--ui-type-subheading-weight)", color: "var(--v5-ink)" };
 const taglineStyle: CSSProperties = { marginTop: "3px", fontSize: "12px", color: "var(--v5-ink-3)" };
 const pricePillStyle: CSSProperties = { flexShrink: 0, padding: "5px 9px", borderRadius: "999px", background: "var(--v5-brand-soft)" };
-const priceStyle: CSSProperties = { fontSize: "12px", fontWeight: 600, color: "var(--v5-brand)" };
+const priceStyle: CSSProperties = { fontSize: "12px", fontWeight: "var(--ui-type-subheading-weight)", color: "var(--v5-brand)" };
 const specStyle: CSSProperties = { minWidth: 0, padding: "9px", borderRadius: "10px", };
 const specLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-4)" };
 const specValueStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", lineHeight: 1.35, color: "var(--v5-ink-2)", overflowWrap: "anywhere" };

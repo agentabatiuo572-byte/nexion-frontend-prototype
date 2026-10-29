@@ -275,10 +275,10 @@ async function handleBind() {
 
 // ── styles ──
 const bodyStyle: CSSProperties = { padding: "0 16px" };
-const providerHoldTitleStyle: CSSProperties = { fontSize: "var(--ui-type-section)", fontWeight: 600, color: "var(--v5-ink)" };
+const providerHoldTitleStyle: CSSProperties = { fontSize: "var(--ui-type-card-title)", fontWeight: 600, color: "var(--v5-ink)" };
 const providerHoldBodyStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", lineHeight: 1.5, color: "var(--v5-ink-3)" };
 const providerHoldCtaStyle: CSSProperties = { minHeight: "44px", marginTop: "16px", borderRadius: "999px", background: "var(--v5-surface-2)" };
-const providerHoldCtaTextStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink-2)" };
+const providerHoldCtaTextStyle: CSSProperties = { fontSize: "13px", fontWeight: "var(--ui-type-card-title-weight)", color: "var(--v5-ink-2)" };
 
 // De-carded form wrapper — the head + recessed input fields sit on the page
 // floor. Input controls (PAN/expiry/CVV/holder) are untouched; only the

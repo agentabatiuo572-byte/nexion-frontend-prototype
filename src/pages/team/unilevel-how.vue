@@ -4,14 +4,14 @@
       <HowPublishedContent v-if="howMode === 'published'" :heading="t.unilevelHowItWorks.navTitle" :back-label="w.ctaBack" kind="members" content-key="team-unilevel-how" back="/pages/team/unilevel" />
       <view v-if="howMode === 'local'" class="pb-8">
         <SubPageHeader :title="t.unilevelHowItWorks.navTitle" back="/pages/team/unilevel" />
-        <HowHero kind="members" :title="copy.title" :sub="copy.intro" />
-        <HowSection :title="copy.sources" initial-open>
-          <HowRow :title="copy.direct" :body="copy.directBody" />
-          <HowRow :title="copy.network" :body="copy.networkBody" />
-          <HowRow :title="copy.device" :body="copy.deviceBody" />
+        <HowHero kind="members" :title="copy.title" :sub="copy.intro" :sections="directory" :nav-label="copy.contents" />
+        <HowSection anchor="sources" :title="copy.sources" list>
+          <HowRow item :title="copy.direct" :body="copy.directBody" />
+          <HowRow item :title="copy.network" :body="copy.networkBody" />
+          <HowRow item :title="copy.device" :body="copy.deviceBody" />
         </HowSection>
-        <HowSection :title="copy.settlement"><text>{{ copy.settlementBody }}</text></HowSection>
-        <HowSection :title="copy.references"><text>{{ copy.referencesBody }}</text></HowSection>
+        <HowSection anchor="settlement" :title="copy.settlement" :body="copy.settlementBody" />
+        <HowSection anchor="references" :title="copy.references" :body="copy.referencesBody" />
         <view class="team-guide-unavailable" role="status">
           <text>{{ t.howPublished.unavailableTitle }}</text>
           <text>{{ t.howPublished.unavailableBody }}</text>
@@ -42,8 +42,9 @@ const t = useT(), locale = useLocaleStore();
 const w = computed(() => t.value.unilevelHowItWorks);
 const copy = computed(() => teamRuleGuideCopy(locale.code));
 const howMode = howContentMode(remoteApiEnabled);
+const directory = computed(() => [{ id: 'sources', title: copy.value.sources }, { id: 'settlement', title: copy.value.settlement }, { id: 'references', title: copy.value.references }]);
 function goBack() { navBack('/pages/team/unilevel'); }
 </script>
 <style scoped>
-.team-guide-unavailable { margin: 24px 16px 0; padding: 16px 0; display: flex; flex-direction: column; gap: 8px; color: var(--v5-ink-3); font-size: 13px; line-height: 1.75; }
+.team-guide-unavailable { margin: 24px 20px 0; display: flex; flex-direction: column; gap: 4px; color: var(--v5-ink-3); font: var(--ui-type-note-weight) var(--ui-type-note)/var(--ui-type-note-lh) var(--font-v5); }
 </style>

@@ -15,6 +15,7 @@ import { networkReauditCopy } from "@/i18n/network-reaudit";
 import { rankLabel } from "@/lib/v-rank-copy";
 import { teamPrivacyFixture } from './team-privacy.test-support';
 import { ruleSection } from '@/components/team/team-rule-guide.test-support';
+import { teamRuleGuideCopy } from '@/components/team/team-rule-guide-copy';
 
 // Real SFC script/template; only remote reads and chassis children are isolated.
 type Host = { text: string; props: Record<string, any>; parent: Host | null; children: Host[] };
@@ -60,6 +61,7 @@ async function mount(nextPayoutAt: unknown, remoteRead?: () => Promise<unknown>,
     "@/components/sub-page-header.vue": { default: slot },
     "@/components/team/team-rule-hero.vue": { default: slot },
     "@/components/team/team-rule-section.vue": interactiveSections ? ruleSection : { default: slot },
+    "@/components/team/team-rule-guide-copy": { teamRuleGuideCopy },
     "@/i18n/use-t": { useT: () => Vue.computed(() => dictionaries[locale.value]) },
     "@/store/locale": { useLocaleStore: () => Vue.reactive({ get code() { return locale.value; } }) },
     "@/i18n/network-reaudit": { networkReauditCopy },
@@ -166,12 +168,9 @@ test.each(['zh', 'en', 'vi'] as const)('R10 %s hidden-first and expanded partici
   const page = await mount(snapshot.nextPayoutAt, async () => snapshot, { ladder: configuredLadder }, true);
   page.locale.value = language; page.visibility.toggle(); await page.show();
   const nodes = (name: string) => all(page.root).filter(n => hasClass(n, name));
-  const section = (title: string) => nodes('team-rule-section__toggle').find(n => text(n).includes(title))!;
   const words = dictionaries[language], copy = networkReauditCopy(language);
-  for (const title of [words.poolHowItWorks.s2Title, copy.poolFactsTitle]) {
-    section(title).props.onKeydown.forEach((handler: (e: object) => void) => handler({ key: ' ', preventDefault() {} }));
-    await flush();
-  }
+  // Rule sections stay expanded (design system 04.7), so participation is visible without a toggle.
+  expect(nodes('team-rule-section__title').map(text)).toEqual([words.poolHowItWorks.currentRulesTitle, words.poolHowItWorks.s2Title, copy.poolFactsTitle]);
   const assertHidden = () => {
     expect(nodes('pool-how-facts')[0].children.map(row => text(row.children.at(-1)!))).toEqual(['••••', '••••', '••••']);
     expect(nodes('pool-how-distribution-row').map(text)).toEqual(snapshot.distribution.map(row =>
@@ -182,7 +181,6 @@ test.each(['zh', 'en', 'vi'] as const)('R10 %s hidden-first and expanded partici
     expect(nodes('pool-how-weight-row').map(text)).toEqual([2,3,4,5,6,7,8].map(v => `V${v}${v}`));
     expect(text(page.root)).toContain(fmt(words.poolHowItWorks.currentRules, { rank: 2 }));
     expect(text(page.root)).toContain(fmt(words.poolHowItWorks.nextPayout, { time: formatDisplayDateTime(snapshot.nextPayoutAt, language, true) }));
-    expect(nodes('team-rule-section__toggle').every(n => n.props['aria-expanded'])).toBe(true);
   };
   assertHidden();
   page.visibility.toggle(); await flush();

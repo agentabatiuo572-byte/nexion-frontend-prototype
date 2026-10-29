@@ -12,7 +12,7 @@
 <template>
   <view class="nx-earn-task-center nx-glass-card mx-4 p-4">
     <view class="flex items-center justify-between mb-2.5 px-0">
-      <text style="font-family: var(--font-v5); font-size: var(--ui-type-section); font-weight: 600; color: var(--v5-ink); letter-spacing: -0.012em">{{ t.earn.taskCenter }}</text>
+      <text style="font-family: var(--font-v5); font-size: var(--ui-type-card-title); font-weight: var(--ui-type-card-title-weight); color: var(--v5-ink); letter-spacing: -0.012em">{{ t.earn.taskCenter }}</text>
       <view class="flex items-center gap-1" style="font-size: 12px; color: var(--v5-ink-3)">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" /></svg>
         <text class="tabular-nums" style="font-family: var(--font-v5); color: var(--v5-brand)">{{ activeJobsText }}</text>

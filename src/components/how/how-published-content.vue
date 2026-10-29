@@ -29,7 +29,7 @@
     </view>
     <view v-if="error" class="mx-4" style="padding: 28px 0;" role="alert" aria-live="polite">
       <view style="padding: 14px; border-radius: 12px; background: var(--v5-surface-2); color: var(--v5-ink-2);">
-        <text class="block" style="font-size: var(--ui-type-section); font-weight: 600;">{{ t.howPublished.unavailableTitle }}</text>
+        <text class="block" style="font-size: var(--ui-type-card-title); font-weight: var(--ui-type-card-title-weight);">{{ t.howPublished.unavailableTitle }}</text>
         <text class="block" style="margin-top: 6px; font-size: 12px; color: var(--v5-ink-3);">{{ t.howPublished.unavailableBody }}</text>
         <view class="nx-card-recovery-action" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load">
           <text>{{ t.ui.retry }}</text>

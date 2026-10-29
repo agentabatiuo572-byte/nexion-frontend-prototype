@@ -310,7 +310,7 @@ const quotaReady = computed(() => !remoteApiEnabled || (catalogDisplayReady.valu
 .quota-route { display:flex;justify-content:space-between;align-items:center;gap:14px;padding:var(--ui-space-inset) 0;min-height:44px;font:500 var(--ui-type-list-subtitle)/1.6 var(--font-v5);color:var(--v5-ink-2);cursor:pointer; }.quota-route + .quota-route { border-top:1px solid var(--v5-border); }.quota-route > view { flex:1;min-width:0;overflow-wrap:anywhere; }.quota-route svg { flex:none; }.quota-route:focus-visible { outline:2px solid var(--v5-brand);outline-offset:3px; }
 /* Tiers are separate sections; conditions remain inside their owning product. */
 .quota-content :deep(.quota-tier) { padding: 26px 0; margin: 0; background: transparent; border: 0; border-bottom: 1px solid var(--v5-border); border-radius: 0; }
-.quota-content :deep(.quota-product__name) { font-size: var(--ui-type-section); line-height: var(--ui-type-section-lh); }
+.quota-content :deep(.quota-product__name) { font-size: var(--ui-type-subheading); line-height: var(--ui-type-subheading-lh); }
 .quota-content :deep(.quota-product__price) { font-size: var(--ui-type-list-subtitle); line-height: var(--ui-type-list-subtitle-lh); }
 .quota-content :deep(.quota-product__qualification) { font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); }
 .quota-content :deep(.quota-product__image) { width: 64px; height: 72px; }

@@ -107,7 +107,7 @@ async function checkIn() {
 .daily-check-in-row :deep(.daily-check-in-row__action--checked .nx-native-svg svg) { width:100%;height:100%;display:block; }
 .daily-check-in-row__copy { min-width: 0; min-height: 44px; display: flex; flex-direction: column; justify-content: center; cursor: pointer; }
 .daily-check-in-row__copy:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; border-radius: 8px; }
-.daily-check-in-row__title { display: block; font: 600 var(--ui-type-section)/20px var(--font-v5); }
+.daily-check-in-row__title { display: block; font: var(--ui-type-card-title-weight) var(--ui-type-card-title)/20px var(--font-v5); }
 .daily-check-in-row__meta { display: block; margin-top: 2px; font: 400 12.5px/18px var(--font-v5); color: var(--v5-ink-3); }
 .daily-check-in-row__days { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 6px; grid-column: 1 / -1; margin-top:14px; }
 .daily-check-in-row__days > view { display: flex; flex-direction: column; justify-content:center;align-items: center; gap: 2px; height:50px; border-radius: 14px; font: 400 11.5px/14px var(--font-v5); color: var(--v5-ink-3); background: var(--v5-surface-2); }

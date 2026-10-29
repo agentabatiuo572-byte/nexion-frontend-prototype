@@ -260,7 +260,7 @@ onUnmounted(() => {
 
 <style scoped>
 .third-party-auth { margin: 20px 0; color: var(--v5-ink); }
-.oauth-title { display: block; font-size: var(--ui-type-section); font-weight: 600; margin-bottom: 12px; }
+.oauth-title { display: block; font-size: var(--ui-type-subheading); font-weight: var(--ui-type-subheading-weight); margin-bottom: 12px; }
 .oauth-copy { display: block; font-size: var(--ui-type-list-subtitle); line-height: 1.6; color: var(--v5-ink-2); margin: 10px 0; overflow-wrap: anywhere; }
 .oauth-panel { padding: 14px; margin-top: 12px; border-radius: 16px; background: var(--v5-surface); }
 .oauth-identity { display: block; overflow-wrap: anywhere; font-weight: 600; margin: 12px 0; }

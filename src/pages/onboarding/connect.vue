@@ -675,7 +675,7 @@ onUnmounted(() => {
 .cn-cta { margin-top: auto; padding-top: 24px; }
 .cn-go { width: 100%; height: 48px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--v5-brand); transition: transform 0.15s ease; }
 .cn-go--glow { box-shadow: 0 0 24px color-mix(in oklab, var(--v5-brand) 35%, transparent); }
-.cn-go__t { font-size: var(--ui-type-section); font-weight: 600; color: var(--v5-on-brand); }
+.cn-go__t { font-size: var(--ui-type-button); font-weight: var(--ui-type-button-weight); color: var(--v5-on-brand); }
 .cn-go__t--on { font-size: var(--ui-type-body); }
 .cn-error-actions { display: flex; flex-direction: column; gap: 10px; }
 .cn-go--secondary { background: var(--v5-surface); }

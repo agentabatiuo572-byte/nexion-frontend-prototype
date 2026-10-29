@@ -5,15 +5,15 @@
     <template v-if="content">
       <view v-if="languageFallback" class="team-rule-published__notice" role="status" aria-live="polite">
         <text>{{ t.howPublished.languageFallback }}</text>
-        <view class="nx-card-recovery-action nx-card-recovery-action--glass" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load"><text>{{ t.ui.retry }}</text></view>
+        <view class="nx-card-recovery-action" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load"><text>{{ t.ui.retry }}</text></view>
       </view>
-      <TeamRuleHero :kind="kind" :title="copy.overview" />
-      <TeamRuleDocument :blocks="content.blocks" :locale="locale.code" />
+      <TeamRuleHero :kind="kind" :title="copy.overview" :sections="directory" :nav-label="copy.contents" />
+      <TeamRuleDocument :blocks="content.blocks" />
     </template>
     <view v-if="error" class="team-rule-published__notice" role="alert" aria-live="polite">
       <text class="team-rule-published__error-title">{{ t.howPublished.unavailableTitle }}</text>
       <text>{{ t.howPublished.unavailableBody }}</text>
-      <view class="nx-card-recovery-action nx-card-recovery-action--glass" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load"><text>{{ t.ui.retry }}</text></view>
+      <view class="nx-card-recovery-action" role="button" tabindex="0" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load"><text>{{ t.ui.retry }}</text></view>
     </view>
     <view class="mx-4 mt-6"><view class="reward-cta reward-cta--wide" role="button" tabindex="0" @click="navBack(back)" @keydown.enter.prevent="navBack(back)" @keydown.space.prevent="navBack(back)"><text>{{ backLabel }}</text></view></view>
   </view>
@@ -38,6 +38,11 @@ const copy = computed(() => teamRuleGuideCopy(locale.code));
 const content = ref<HowContentDocument | null>(null);
 const loading = ref(true), error = ref(false);
 const requestFence = new PublishedContentRequestFence();
+// Directory chips only when the publication is short enough to scan (design system 04.7).
+const directory = computed(() => {
+  const sections = (content.value?.blocks ?? []).filter(block => block.kind !== "callout").map(block => ({ id: block.id, title: block.title }));
+  return sections.length <= 6 ? sections : [];
+});
 const languageFallback = computed(() => !!content.value && content.value.locale.split(/[-_]/)[0].toLowerCase() !== locale.code.split(/[-_]/)[0].toLowerCase());
 
 // Keep the existing publication acceptance and refresh boundary. Only its
@@ -70,6 +75,6 @@ onUnmounted(() => requestFence.invalidate());
 </script>
 <style src="./team-rule-type.css"></style>
 <style scoped>
-.team-rule-published__notice { margin: 16px; padding: 20px 0; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; color: var(--v5-ink-2); font-size: var(--team-guide-body); line-height: var(--team-guide-body-lh); }
-.team-rule-published__error-title { color: var(--v5-ink); font-size: var(--team-guide-heading); line-height: var(--team-guide-heading-lh); font-weight: 600; }
+.team-rule-published__notice { margin: 16px; padding: 20px 0; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; color: var(--v5-ink-2); font: var(--ui-type-guide-body-weight) var(--ui-type-guide-body)/var(--ui-type-guide-body-lh) var(--font-v5); }
+.team-rule-published__error-title { color: var(--v5-ink); font: var(--ui-type-card-title-weight) var(--ui-type-card-title)/var(--ui-type-card-title-lh) var(--font-v5); }
 </style>

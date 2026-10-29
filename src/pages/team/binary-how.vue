@@ -4,14 +4,14 @@
       <HowPublishedContent v-if="howMode === 'published'" :heading="t.headerTitles.teamBinary + t.headerTitles.howItWorksSuffix" :back-label="w.ctaBack" kind="balance" content-key="team-binary-how" back="/pages/team/binary" />
       <view v-if="howMode === 'local'" class="pb-8" style="color: var(--v5-ink)">
         <SubPageHeader :title="t.headerTitles.teamBinary + t.headerTitles.howItWorksSuffix" back="/pages/team/binary" />
-        <HowHero kind="balance" :label="w.heroLabel" :title="w.heroTitle" :sub="w.heroSub" />
+        <HowHero kind="balance" :title="w.heroTitle" :sub="w.heroSub" :sections="directory" :nav-label="guide.contents" />
 
-        <HowSection :title="w.s1Title" initial-open>
+        <HowSection anchor="balance" :title="w.s1Title">
           <text class="block">{{ w.s1Para1 }}</text>
           <text class="block" style="margin-top: 10px">{{ t.binary.spilloverHint }}</text>
         </HowSection>
 
-        <HowSection :title="w.s4Title">
+        <HowSection anchor="gap" :title="w.s4Title">
           <text class="block">{{ t.binary.gapHint }}</text>
           <view class="binary-how-unavailable" role="status">
             <text class="block">{{ t.howPublished.unavailableTitle }}</text>
@@ -19,8 +19,8 @@
           </view>
         </HowSection>
 
-        <HowSection :title="w.faqTitle">
-          <HowFaqRow :q="w.faqQ1" :a="t.binary.spilloverHint" />
+        <HowSection anchor="faq" :title="w.faqTitle" list>
+          <HowFaqRow :q="w.faqQ1" :a="t.binary.spilloverHint" initial-open />
           <HowFaqRow :q="w.faqQ2" :a="t.binary.blockReasons.BINARY_THRESHOLD_NOT_MET" />
           <HowFaqRow :q="w.faqQ3" :a="t.howPublished.unavailableBody" />
         </HowSection>
@@ -47,16 +47,21 @@ import HowHero from "@/components/team/team-rule-hero.vue";
 import HowSection from "@/components/team/team-rule-section.vue";
 import HowFaqRow from "@/components/team/team-rule-section.vue";
 import { useT } from "@/i18n/use-t";
+import { useLocaleStore } from "@/store/locale";
+import { teamRuleGuideCopy } from "@/components/team/team-rule-guide-copy";
 import { navBack } from "@/lib/route";
 
 const t = useT();
 const howMode = howContentMode(remoteApiEnabled);
 const w = computed(() => t.value.binaryHowItWorks);
+const locale = useLocaleStore();
+const guide = computed(() => teamRuleGuideCopy(locale.code));
+const directory = computed(() => [{ id: "balance", title: w.value.s1Title }, { id: "gap", title: w.value.s4Title }, { id: "faq", title: w.value.faqTitle }]);
 // The local runtime has no published point-to-reward rules. Keep their absence
 // explicit; the former USD examples and static thresholds are not point data.
 function goBack() { navBack("/pages/team/binary"); }
 </script>
 
 <style scoped>
-.binary-how-unavailable { margin-top: var(--ui-space-inset); padding: var(--ui-space-inset) 0; border-top: 1px solid var(--v5-border); color: var(--v5-ink-3); }
+.binary-how-unavailable { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--v5-border); color: var(--v5-ink-3); font: var(--ui-type-description-weight) var(--ui-type-description)/var(--ui-type-description-lh) var(--font-v5); }
 </style>

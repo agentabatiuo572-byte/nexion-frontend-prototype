@@ -100,7 +100,7 @@
         <view :style="perksCardStyle">
           <view v-for="(p, i) in PERKS" :key="p.name" class="genesis-perk-row" :class="{'genesis-perk-last':i===PERKS.length-1}">
             <view class="genesis-perk-icon" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path :d="p.path" /></svg></view>
-            <view><text class="block" style="font-size: var(--ui-type-section);font-weight:600">{{ p.name }}</text><text class="block" style="margin-top:3px;font-size:var(--ui-type-list-subtitle);line-height:1.6;color:var(--v5-ink-3)">{{ p.desc }}</text></view>
+            <view><text class="block" style="font-size: var(--ui-type-subheading);font-weight: var(--ui-type-subheading-weight)">{{ p.name }}</text><text class="block" style="margin-top:3px;font-size:var(--ui-type-list-subtitle);line-height:1.6;color:var(--v5-ink-3)">{{ p.desc }}</text></view>
           </view>
         </view>
 

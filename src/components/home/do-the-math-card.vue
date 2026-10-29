@@ -8,7 +8,7 @@
 <template>
   <view v-if="calculator" data-home-section="do-the-math">
     <view class="flex items-center justify-between" style="margin: 8px 2px 10px">
-      <text style="font-family: var(--font-v5); font-weight: 600; font-size: var(--ui-type-section); color: var(--v5-ink); letter-spacing: -0.012em">{{ t.home.doMathTitle }}</text>
+      <text style="font-family: var(--font-v5); font-weight: var(--ui-type-card-title-weight); font-size: var(--ui-type-card-title); color: var(--v5-ink); letter-spacing: -0.012em">{{ t.home.doMathTitle }}</text>
     </view>
 
     <view class="nx-glass-card relative overflow-hidden" style="background: var(--nx-glass-fill); box-shadow: var(--nx-glass-edge); border-radius: var(--nx-glass-radius); padding: 16px">
@@ -60,7 +60,7 @@
     </view>
   </view>
   <view v-else data-home-section="do-the-math">
-    <text class="block" style="font-size: var(--ui-type-section); font-weight: 600; color: var(--v5-ink)">{{ t.home.doMathTitle }}</text>
+    <text class="block" style="font-size: var(--ui-type-card-title); font-weight: var(--ui-type-card-title-weight); color: var(--v5-ink)">{{ t.home.doMathTitle }}</text>
     <view class="flex items-center justify-between" style="gap: 12px; min-height: 64px; font-size: 13px; color: var(--v5-ink-2)">
       <text>{{ app.homeTruthStatus === 'idle' || app.homeTruthStatus === 'loading' ? t.home.networkStatUpdating : app.homeTruthStatus === 'error' ? t.uiChrome.unavailable : t.home.doMathUnavailable }}</text>
       <view v-if="app.homeTruthStatus === 'error'" class="shrink-0 inline-flex items-center" style="min-height: 44px; color: var(--v5-brand)" role="button" tabindex="0" @click="app.refreshHomeTruth()" @keydown.enter.stop.prevent="app.refreshHomeTruth()" @keydown.space.stop.prevent="app.refreshHomeTruth()">{{ t.ui.retry }}</view>

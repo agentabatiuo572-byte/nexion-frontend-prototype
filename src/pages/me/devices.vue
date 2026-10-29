@@ -704,8 +704,8 @@ const emptyIconStyle: CSSProperties = {
 const emptyTitleStyle: CSSProperties = {
   marginTop: "12px",
   fontFamily: "var(--font-v5)",
-  fontSize: "var(--ui-type-section)",
-  fontWeight: 600,
+  fontSize: "var(--ui-type-card-title)",
+  fontWeight: "var(--ui-type-card-title-weight)",
   color: "var(--v5-ink)",
 };
 const emptyBodyStyle: CSSProperties = {

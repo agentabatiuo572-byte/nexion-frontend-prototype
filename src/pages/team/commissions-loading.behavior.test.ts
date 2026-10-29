@@ -6,6 +6,7 @@ import { networkReauditCopy } from "@/i18n/network-reaudit";
 import { commissionFilterCopy } from "@/i18n/commission-filter-copy";
 import { teamRuleGuideCopy } from '@/components/team/team-rule-guide-copy';
 import { commissionPublishedBlocks } from '@/components/team/team-rule-commission-copy';
+import { ruleDocument, ruleHero, ruleSection } from '@/components/team/team-rule-guide.test-support';
 import type { Component } from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import ts from "typescript";
@@ -76,14 +77,11 @@ async function mount(source: string, dependencies: Record<string, unknown>) {
   const defaults: Record<string, unknown> = {
     '@/components/team/team-rule-guide-copy': { teamRuleGuideCopy },
     '@/components/team/team-rule-commission-copy': { commissionPublishedBlocks },
-    '@/components/team/team-rule-hero.vue': { default: copyComponent('hero') },
-    '@/components/team/team-rule-section.vue': { default: Vue.defineComponent({
-      props: ['label', 'title', 'body', 'q', 'a'],
-      setup: (props, { slots }) => () => Vue.h('view', { 'data-component': slots.default ? 'section' : 'rule' }, [
-        ...Object.values(props).filter(value => value != null).map(value => Vue.h('text', String(value))), ...(slots.default?.() ?? []),
-      ]),
-    }) },
-    '@/components/team/team-rule-document.vue': { default: slot },
+    // The guide passes its copy as props, so the shared rule components render for real.
+    '@/components/team/team-rule-hero.vue': ruleHero,
+    '@/components/team/team-rule-section.vue': ruleSection,
+    '@/components/team/team-rule-document.vue': ruleDocument,
+    '@/components/ui/nx-tag.vue': { default: slot },
     '@/store/app': { useApp: () => Vue.reactive({ accountKey: 'user:A', accountBindingEpoch: 1 }) },
     '@/store/auth': { useAuth: () => Vue.reactive({ isAuthenticated: true }) },
     '@/store/locale': { useLocaleStore: () => Vue.reactive({ code: 'en' }) },
@@ -212,6 +210,8 @@ async function guide(code: Locale = "en") {
   } };
 }
 const buttons = (root: Host) => all(root).filter(item => item.props.role === "button");
+const ruleParts = (root: Host, name: string) => all(root).filter(item => String(item.props.class ?? "").split(" ").includes(name));
+const guideShown = (root: Host) => ruleParts(root, "team-rule-hero").length + ruleParts(root, "team-rule-section").length > 0;
 const filterTrigger = (root: Host) => buttons(root).find(item => item.props["aria-haspopup"] === "dialog")!;
 const filterOptions = (root: Host) => buttons(root).filter(item => item.props["aria-pressed"] !== undefined);
 const publicOutput = (root: Host) => [text(root), ...all(root).flatMap(item => Object.entries(item.props)
@@ -410,13 +410,14 @@ test.each(["en", "zh", "vi"] as const)("guide %s pending has one loading notice;
     expect(text(page.root).split(copy.loading)).toHaveLength(2);
     expect(text(page.root)).not.toContain(copy.unavailable);
     expect(text(page.root)).not.toContain(copy.missing);
-    expect(all(page.root).some(item => item.props["data-component"] === "hero" || item.props["data-component"] === "section")).toBe(false);
+    expect(guideShown(page.root)).toBe(false);
     expect(buttons(page.root).map(text)).toEqual([networkReauditCopy(code).backCommissions]);
   }
   expect(page.published).toHaveBeenCalledOnce(); // Same-locale pending reads stay deduplicated.
   page.reads[0].resolve(guideSnapshot()); await flush();
   expect(text(page.root)).not.toContain(copy.loading); expect(text(page.root)).not.toContain(copy.unavailable);
-  expect(all(page.root).filter(item => item.props["data-component"] === "section")).toHaveLength(6);
+  expect(ruleParts(page.root, "team-rule-section")).toHaveLength(5);
+  expect(ruleParts(page.root, "team-rule-fold")).toHaveLength(1);
   expect(text(page.root)).toContain(copy.missing); expect(text(page.root)).toContain(copy.hold);
   expect(text(page.root)).toContain(copy.unsupported); expect(text(page.root)).toContain(copy.notOpen);
   expect(text(page.root)).toContain(copy.noTotal);
@@ -429,7 +430,7 @@ test("guide failed read shows one real error and keyboard Retry, then replaces i
   page.reads[0].reject(new Error("isolated failed guide")); await flush();
   expect(text(page.root).split(copy.unavailable)).toHaveLength(2);
   expect(buttons(page.root).at(-1) && text(buttons(page.root).at(-1)!)).toBe(networkReauditCopy('en').backCommissions);
-  expect(all(page.root).some(item => item.props["data-component"] === "section")).toBe(false);
+  expect(guideShown(page.root)).toBe(false);
   const retry = buttons(page.root).find(item => text(item) === copy.retry)!;
   expect(retry.props.tabindex).toBe("0");
   const preventDefault = vi.fn();
@@ -464,7 +465,7 @@ test("guide refresh retains prior published rules while pending and preserves in
   expect(text(page.root)).toContain(copy.unavailable);
   expect(text(buttons(page.root).at(-1)!)).toBe(networkReauditCopy('en').backCommissions);
   expect(buttons(page.root).some(item => text(item) === copy.retry)).toBe(true);
-  expect(all(page.root).some(item => item.props["data-component"] === "hero" || item.props["data-component"] === "section")).toBe(false);
+  expect(guideShown(page.root)).toBe(false);
   expect(text(page.root)).not.toContain("13 USDT"); // Incomplete published context still suppresses amounts.
 });
 

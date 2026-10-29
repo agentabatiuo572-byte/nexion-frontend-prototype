@@ -607,9 +607,9 @@ const ctaStyle = computed<CSSProperties>(() => ({
 }));
 const lockedNoticeStyle: CSSProperties = { padding: "0 8px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.625 };
 const unavailableStyle: CSSProperties = { padding: "16px", borderRadius: "12px", background: "var(--v5-surface-2)" };
-const unavailableTitleStyle: CSSProperties = { fontSize: "var(--ui-type-section)", fontWeight: 600, color: "var(--v5-ink)" };
+const unavailableTitleStyle: CSSProperties = { fontSize: "var(--ui-type-card-title)", fontWeight: 600, color: "var(--v5-ink)" };
 const unavailableBodyStyle: CSSProperties = { marginTop: "8px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.625 };
-const retryCtaStyle: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", marginTop: "12px", minHeight: "44px", borderRadius: "999px", background: "var(--v5-surface)", color: "var(--v5-ink-2)", fontSize: "13px", fontWeight: 600 };
+const retryCtaStyle: CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", marginTop: "12px", minHeight: "44px", borderRadius: "999px", background: "var(--v5-surface)", color: "var(--v5-ink-2)", fontSize: "13px", fontWeight: "var(--ui-type-card-title-weight)" };
 // 余额不足提示:warning 描边 + 一句原因 + 一个充值出口。读屏靠 role="status" 播报,
 // 视觉靠 warning 色与主按钮的置灰形成对照。
 const insufficientNoticeStyle: CSSProperties = { padding: "12px", borderRadius: "12px", background: "color-mix(in srgb, var(--v5-warning) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--v5-warning) 40%, transparent)" };

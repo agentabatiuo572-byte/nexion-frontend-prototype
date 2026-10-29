@@ -732,8 +732,8 @@ const heroIconStyle = computed<CSSProperties>(() => ({
   background: tint(statusColor.value, 12),
 }));
 const heroLabelStyle = computed<CSSProperties>(() => ({
-  fontSize: "var(--ui-type-section)",
-  fontWeight: 600,
+  fontSize: "var(--ui-type-card-title)",
+  fontWeight: "var(--ui-type-card-title-weight)",
   lineHeight: "1.2",
   color: statusColor.value,
 }));

@@ -192,14 +192,15 @@ import LiquidGlass from "@/components/liquid-glass.vue";
   .spv-titlewrap, .spv-glass, .spv-action { transition: none; }
   .spv-titlewrap[data-hidden="true"], .spv-side:active .spv-glass, .spv-action:active { transform: none; }
 }
+/* Sub-page nav title role (design system 10.1, 15/20 at the 390 band; 500 in the 14px bands). */
 .spv-title {
   max-width: 100%;
   font-family: var(--font-v5);
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: -0.014em;
+  font-size: var(--ui-type-nav-title);
+  font-weight: var(--ui-type-nav-title-weight);
+  letter-spacing: -0.01em;
   color: var(--v5-ink);
-  line-height: 24px;
+  line-height: var(--ui-type-nav-title-lh);
   white-space: normal;
   overflow-wrap: anywhere;
 }
@@ -229,6 +230,6 @@ import LiquidGlass from "@/components/liquid-glass.vue";
 .spv--design .spv-back { margin-left:6px; }
 .spv--design .spv-glass { width:44px;height:44px;border-radius:50%; }
 .spv--design .spv-glass svg { width:20px;height:20px; }
-.spv--design .spv-title { font-size:18px;line-height:24px;font-weight:600; }
+.spv-title:lang(zh) { letter-spacing: 0; }
 .spv--design .spv-action { min-width:72px;padding:0 4px;font-size:14px; }
 </style>

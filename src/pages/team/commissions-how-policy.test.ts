@@ -5,8 +5,8 @@ const page = readFileSync(new URL("./commissions-how.vue", import.meta.url), "ut
 describe("commission guide layout and server authority", () => {
   it("retains five reference sections, six channel cards, lifecycle, example and four FAQs", () => {
     expect((page.match(/<HowSection\b/g) || [])).toHaveLength(5);
-    expect(page).toContain("HowIconRow"); expect(page).toContain("HowFaqRow");
-    expect(page).toContain("statusBoxStyle"); expect(page).toContain("exampleBoxStyle");
+    expect(page).toContain('<HowItem v-for="(item, index) in channels"'); expect((page.match(/<HowFaqRow\b/g) || [])).toHaveLength(4);
+    expect(page).toContain("commission-guide-status"); expect(page).toContain("commission-guide-example");
   });
   it("never swaps failed published content for the fixed prototype narrative", () => {
     expect(page).not.toMatch(/HowPublishedContent|publishedContentUnavailable|BINARY_SETTLE_PERIOD|45\.20|2,000|79\.00/);

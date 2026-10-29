@@ -291,7 +291,7 @@ const extBtnStyle: CSSProperties = {
   color: "var(--v5-ink-2)",
 };
 const holdStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", padding: "16px", borderRadius: "var(--nx-glass-radius)", background: "var(--nx-glass-fill)" };
-const holdTitleStyle: CSSProperties = { fontSize: "var(--ui-type-section)", fontWeight: 600, color: "var(--v5-ink)" };
+const holdTitleStyle: CSSProperties = { fontSize: "var(--ui-type-card-title)", fontWeight: 600, color: "var(--v5-ink)" };
 const holdBodyStyle: CSSProperties = { marginTop: "6px", fontSize: "var(--ui-type-list-subtitle)", lineHeight: "19px", color: "var(--v5-ink-3)" };
 
 

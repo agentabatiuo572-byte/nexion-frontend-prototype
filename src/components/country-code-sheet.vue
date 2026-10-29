@@ -140,7 +140,7 @@ function select(item: CountryRow) {
 @keyframes cc-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
 .cc-grab { flex: 0 0 auto; width: 40px; height: 4px; margin: 10px auto 0; border-radius: 9999px; background: var(--v5-surface-3); }
 .cc-head { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 8px 16px 6px 20px; }
-.cc-head__title { font-family: var(--font-v5); font-size: var(--ui-type-section); font-weight: 600; color: var(--v5-ink); }
+.cc-head__title { font-family: var(--font-v5); font-size: var(--ui-type-hero-title); font-weight: var(--ui-type-hero-title-weight); color: var(--v5-ink); }
 .cc-head__close { width: 44px; height: 44px; border-radius: 9999px; background: var(--v5-surface-2); display: flex; align-items: center; justify-content: center; }
 .cc-list { flex: none; min-height: 0; height: calc(min(74vh, 620px, 100vh - var(--nx-overlay-top)) - 72px - max(calc(env(safe-area-inset-bottom, 0px) + 24px), var(--nx-overlay-bottom))); padding: 0 16px; box-sizing: border-box; scrollbar-width: none; }
 .cc-list::-webkit-scrollbar { display: none; width: 0; height: 0; }

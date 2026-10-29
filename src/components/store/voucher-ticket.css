@@ -5,7 +5,7 @@
 .store-voucher-ticket__currency { font-size:var(--ui-type-body); color:var(--ui-lime-soft); }
 .store-voucher-ticket__rule { align-self:stretch; margin:6px 0; border-left:1px dashed var(--v5-border-strong); }
 .store-voucher-ticket__copy { flex:1; min-width:0; }
-.store-voucher-ticket__title { display:block; font:600 var(--ui-type-section)/20px var(--font-v5); }
+.store-voucher-ticket__title { display:block; font: var(--ui-type-subheading-weight) var(--ui-type-subheading)/20px var(--font-v5); }
 .store-voucher-ticket__hint { display:block; margin-top:2px; font:400 12.5px/18px var(--font-v5); color:var(--v5-ink-3); }
 .store-voucher-ticket__art { width:72px; height:72px; margin:-4px -6px -4px 0; flex:none; animation:ticket-bob 4.6s ease-in-out infinite; }
 .store-voucher-ticket:focus-visible { outline:2px solid var(--v5-brand); outline-offset:3px; }

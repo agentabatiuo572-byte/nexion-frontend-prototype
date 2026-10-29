@@ -8,6 +8,7 @@ import { zh } from '@/i18n/messages/zh';
 import { vi as vietnamese } from '@/i18n/messages/vi';
 import { fmt } from '@/i18n/format';
 import { COMMISSIONS_HOW_SLOTS } from '@/lib/commissions-how-content';
+import { ruleDocument, ruleHero, ruleSection } from '@/components/team/team-rule-guide.test-support';
 const sources = import.meta.glob('./*.vue', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>;
 const quotaSource = import.meta.glob('../../components/team/quota-tier-card.vue', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>;
 const stops: Array<() => void> = [];
@@ -51,6 +52,8 @@ async function screen(name: string, language: 'en'|'zh'|'vi' = 'en', actualPayou
     '@/lib/payout-clock':{createPayoutClock:()=>({start(){},stop(){}})},
     '@/lib/route':{navTo:vi.fn(),navBack:vi.fn()},
     '@/composables/use-scroll-grow-progress':{useScrollGrowProgress:()=>({elRef:Vue.ref(null),inView:Vue.ref(true)}),PROGRESS_GROW_TRANSITION:''},
+    // Rule guides pass their copy as props, so the shared rule components render for real.
+    '@/components/team/team-rule-section.vue':ruleSection, '@/components/team/team-rule-hero.vue':ruleHero, '@/components/team/team-rule-document.vue':ruleDocument,
   };
   if (actualPayoutClock) deps['@/lib/payout-clock'] = await vi.importActual('@/lib/payout-clock');
   let source = name==='quota-tier-card'?Object.values(quotaSource)[0]:sources['./'+name+'.vue'];
@@ -130,7 +133,6 @@ for(const name of ['rank-how','commissions-how'])test(name+' retains accepted pu
  const document={contentKey:'team-commissions-how',locale:'en',blocks:COMMISSIONS_HOW_SLOTS.map(id=>({id,title:'Published '+id,body:id==='network'?'{directPurchaseRules} {directDeviceRules}':'Published body '+id}))};
  const settle=async(index:number)=>{p.reads.published[index].resolve(name==='rank-how'?rankPolicy:document);p.reads.ladder[index].resolve({ranks:[],capabilities:{peer:false,genesis:false}});if(name==='commissions-how'){p.reads.policy[index].resolve({configured:false,purchase:{},deviceEarning:{},nexUsdtPrice:null});p.reads.guide[index].resolve({binary:null,leadership:null,coolingDays:null,capabilities:{peer:false,genesis:false}});}await flush();};
  await p.show();await settle(0);
- if(name==='rank-how'){all(p.root).find(n=>n.props['aria-controls']==='rule-overview')!.props.onClick();await flush();}
  expect(text(p.root)).toContain('Published body overview');
  await p.show();expect(p.view.state.loading).toBe(true);expect(text(p.root)).toContain('Published body overview');expect(text(p.root)).not.toContain(p.view.content.copy.loading);
  p.app.accountBindingEpoch++;expect(p.view.state[name==='rank-how'?'policy':'snapshot']).toBeNull();await flush();await settle(1);expect(p.view.state[name==='rank-how'?'policy':'snapshot']).toBeNull();

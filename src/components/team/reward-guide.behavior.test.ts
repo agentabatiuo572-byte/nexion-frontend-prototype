@@ -11,6 +11,7 @@ import { vi as vietnamese } from "@/i18n/messages/vi";
 import binaryHowSource from "@/pages/team/binary-how.vue?raw";
 import { howContentMode } from "@/lib/team-how-content-mode";
 import { ruleSection, ruleHero } from './team-rule-guide.test-support';
+import { teamRuleGuideCopy } from './team-rule-guide-copy';
 
 const sources = import.meta.glob("./reward-*.vue", { eager: true, query: "?raw", import: "default" });
 const cleanups: Array<() => void> = [];
@@ -166,6 +167,8 @@ describe("binary local guide without authoritative rules", () => {
       "@/components/sub-page-header.vue": slot,
       "@/components/team/team-rule-hero.vue": ruleHero,
       "@/components/team/team-rule-section.vue": ruleSection,
+      "@/components/team/team-rule-guide-copy": { teamRuleGuideCopy },
+      "@/store/locale": { useLocaleStore: () => ({ code: dictionary === zh ? "zh" : dictionary === vietnamese ? "vi" : "en" }) },
       "@/api/runtime": { remoteApiEnabled: false },
       "@/lib/team-how-content-mode": { howContentMode },
       "@/i18n/use-t": { useT: () => Vue.ref(dictionary) },
@@ -173,11 +176,11 @@ describe("binary local guide without authoritative rules", () => {
     });
     cleanups.push(page.unmount);
     expect(text(page.root)).toContain(dictionary.binaryHowItWorks.s1Para1);
-    page.control(dictionary.binaryHowItWorks.s4Title)!.props.onClick(); await flush();
+    // Sections stay expanded (design system 04.7); the hero directory only scrolls to them.
+    expect(page.control(dictionary.binaryHowItWorks.s4Title)!.props.role).toBe("link");
     expect(text(page.root)).toContain(dictionary.binary.gapHint);
     expect(text(page.root)).toContain(dictionary.howPublished.unavailableBody);
     for (const invented of ["$3,000", "$2,000", "$200", "10%", "Sarah"]) expect(text(page.root)).not.toContain(invented);
-    page.control(dictionary.binaryHowItWorks.faqTitle)!.props.onClick(); await flush();
     const faq = all(page.root).find(node => node.props.role === "button" && text(node).startsWith(dictionary.binaryHowItWorks.faqQ3))!;
     faq.props.onClick(); await flush();
     expect(text(page.root).split(dictionary.howPublished.unavailableBody)).toHaveLength(3);

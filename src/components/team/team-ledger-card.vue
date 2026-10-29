@@ -106,7 +106,7 @@ function goCommissions() {
 <style scoped>
 .team-ledger { background: transparent; box-shadow: none; border-radius: 0; padding: 0; }
 .team-ledger__header { display: flex; align-items: center; gap: 4px; }
-.team-ledger__title { font-size: var(--ui-type-section); font-weight: 600; }
+.team-ledger__title { font-size: var(--ui-type-card-title); font-weight: var(--ui-type-card-title-weight); }
 .team-ledger__secondary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
 .team-ledger__details { display: flex; align-items: center; justify-content: flex-end; width: fit-content; max-width: 48%; margin-left: auto; gap: 5px; min-width: 44px; min-height: 44px; color: var(--v5-ink-3); font-size: 12px; flex-shrink: 0; }
 .team-ledger__details > text { min-width: 0; text-align: right; overflow-wrap: anywhere; }

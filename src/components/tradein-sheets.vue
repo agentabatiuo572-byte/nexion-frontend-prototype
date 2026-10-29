@@ -1192,7 +1192,7 @@ useDialogA11y(computed(() => state.value.kind !== "none"), ".tis-root", hide);
 .tis-title {
   display: block;
   font-family: var(--font-v5);
-  font-size: var(--ui-type-section);
+  font-size: var(--ui-type-hero-title);
   font-weight: 600;
   color: var(--v5-ink);
   line-height: 1.3;

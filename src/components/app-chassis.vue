@@ -11,7 +11,7 @@
   `active` prop is an optional fallback for the very first frame.
 -->
 <template>
-  <view v-bind="$attrs" :id="chassisHostId" class="nx-chassis" :data-tab-key="tabHost ? tabLocationKey : undefined" :data-tab-revision="tabHost ? tabRevision : undefined" :data-page-visible="pageVisible && hostVisible ? 'true' : 'false'" style="background: var(--v5-bg)" :chrome-config="chromeConfiguration" :change:chrome-config="chromeView.update">
+  <view v-bind="$attrs" :id="chassisHostId" class="nx-chassis" :lang="contentLang" :data-tab-key="tabHost ? tabLocationKey : undefined" :data-tab-revision="tabHost ? tabRevision : undefined" :data-page-visible="pageVisible && hostVisible ? 'true' : 'false'" style="background: var(--v5-bg)" :chrome-config="chromeConfiguration" :change:chrome-config="chromeView.update">
     <view class="nx-top-chrome" :style="{ height: statusBarHeight + 'px' }" />
 
     <!-- Status bar safe area (real on device, ~0 on desktop H5) -->
@@ -183,6 +183,7 @@ import VoucherClaimSheet from "@/components/voucher-claim-sheet.vue";
 import DeviceHomeIndicator from "@/components/device/device-home-indicator.vue";
 import DeviceStatusBar from "@/components/device/device-status-bar.vue";
 import { useT } from "@/i18n/use-t";
+import { useLocaleStore } from "@/store/locale";
 import { useNotifications } from "@/store/notifications";
 import { useMessageDrawer } from "@/store/message-drawer";
 import { formatUnreadBadge } from "@/lib/unread-badge";
@@ -221,6 +222,8 @@ const props = withDefaults(defineProps<{
 }>(), { hostVisible: true });
 
 const t = useT();
+// The App build has no document in the logic layer; the shell root carries the language for :lang() rules.
+const contentLang = computed(() => useLocaleStore().code);
 const notifications = useNotifications();
 const messageDrawer = useMessageDrawer();
 const refresh = useRefresh();

@@ -966,7 +966,7 @@ import DeviceSlot from "@/components/home/device-slot.vue";
 .earn-device-value { display: block; margin-top: 4px; font: 600 clamp(13px,3.85vw,15px)/1.3 var(--font-v5); color: var(--v5-ink); overflow-wrap: anywhere; }
 .nx-device-card__details { animation: earn-detail-in .2s ease-out; }
 .device-management-heading { display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px; }
-.device-section-title { font:600 var(--ui-type-section)/22px var(--font-v5);color:var(--v5-ink); }
+.device-section-title { font: var(--ui-type-card-title-weight) var(--ui-type-card-title)/22px var(--font-v5);color:var(--v5-ink); }
 .device-statistics { padding:20px;border-block:1px solid var(--v5-border);scroll-margin-top:76px; }
 .device-statistics:focus-visible { outline:2px solid var(--v5-brand);outline-offset:-2px; }
 .device-statistics__values { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-block:16px; }

@@ -1,52 +1,23 @@
-/* UI-OPT-027: guide-only roles; the application's general type scale stays intact. */
+/* Rule guides (design system 04.7) use the shared 2.0 type roles; UI-OPT-027's guide-only
+   scale is retired. Only the guide art size stays local. */
 .team-rule-hero,
 .team-rule-section,
+.team-rule-item,
+.team-rule-note,
+.team-rule-faq,
+.team-rule-fold,
 .team-rule-document,
 .team-rule-published,
 .rank-how-page {
-  --team-guide-hero: 18px;
-  --team-guide-hero-lh: 26px;
-  --team-guide-heading: 14px;
-  --team-guide-heading-lh: 21px;
-  --team-guide-body: 13px;
-  --team-guide-body-lh: 22px;
-  --team-guide-caption: 12px;
-  --team-guide-caption-lh: 18px;
-  --team-guide-art-size: 64px;
-  --ui-type-long-form: var(--team-guide-body);
-  --ui-type-long-form-lh: var(--team-guide-body-lh);
-  --ui-type-section: var(--team-guide-heading);
-  --ui-type-section-lh: var(--team-guide-heading-lh);
-  --ui-type-list-subtitle: var(--team-guide-body);
-  --ui-type-list-subtitle-lh: var(--team-guide-body-lh);
+  --team-guide-art-size: 56px;
   font-family: var(--font-v5);
-  font-size: var(--team-guide-body);
-  line-height: var(--team-guide-body-lh);
+  font-size: var(--ui-type-guide-body);
+  line-height: var(--ui-type-guide-body-lh);
 }
 
-@media (max-width: 339px) {
-  .team-rule-hero, .team-rule-section, .team-rule-document, .team-rule-published, .rank-how-page {
-    --team-guide-hero: 16px;
-    --team-guide-hero-lh: 24px;
-    --team-guide-heading: 13px;
-    --team-guide-heading-lh: 20px;
-    --team-guide-body-lh: 21px;
-    --team-guide-art-size: 56px;
-  }
-}
-@media (min-width: 340px) and (max-width: 374px) {
-  .team-rule-hero, .team-rule-section, .team-rule-document, .team-rule-published, .rank-how-page {
-    --team-guide-hero: 17px;
-    --team-guide-hero-lh: 25px;
-    --team-guide-heading: 13px;
-    --team-guide-heading-lh: 20px;
-    --team-guide-body-lh: 21px;
-    --team-guide-art-size: 60px;
-  }
-}
-@media (min-width: 375px) and (max-width: 389px) {
-  .team-rule-hero, .team-rule-section, .team-rule-document, .team-rule-published, .rank-how-page {
-    --team-guide-heading: 13.5px;
-    --team-guide-heading-lh: 20px;
+@media (max-width: 374px) {
+  .team-rule-hero, .team-rule-section, .team-rule-item, .team-rule-note, .team-rule-faq, .team-rule-fold,
+  .team-rule-document, .team-rule-published, .rank-how-page {
+    --team-guide-art-size: 48px;
   }
 }

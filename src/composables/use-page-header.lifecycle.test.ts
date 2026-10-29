@@ -58,6 +58,7 @@ function chassis(translations: Vue.Ref<typeof en>, back: ReturnType<typeof vi.fn
   const dependencies: Record<string, unknown> = {
     vue: Vue, "@/i18n/use-t": { useT: () => translations },
     "@/store/ui": { toast: idle },
+    "@/store/locale": { useLocaleStore: () => ({ code: "zh" }) },
     "@/store/page-header": { usePageHeader }, "@/store/notifications": { useNotifications: () => ({ unread: 0 }) },
     "@/store/message-drawer": { useMessageDrawer: () => ({ show: messages }) },
     "@/store/refresh": { useRefresh: () => ({ isRefreshing: false }) },

@@ -62,6 +62,9 @@
   --ui-device-ink: #157A9E;
   --ui-device-soft: #E3F3FB;
   --ui-space-section: 20px;
+  --ui-space-card-gap: 12px;
+  --ui-space-inset-hero: 20px;
+  --ui-space-section-gap: 32px;
   --bg-base: #000000;
   --bg-app: #000000;
   --bg-card: #0F0F0F;
@@ -92,11 +95,11 @@
   --v5-border-strong: #D5CDB8;
 
   --v5-ink: #13141A;          /* primary text */
-  --v5-ink-2: #3C3F47;
+  --v5-ink-2: #4A4E57;          /* 2.0 body text: 7.4:1 on the page (DS-20) */
   /* 2026-07-23:#6A6F78 对页面底 #F4F1E9 实测 4.47 —— 差 0.03 不达 AA,而它承载
      「忘记密码 / 或使用其他方式 / 立即注册」这类需读懂的辅助信息。微调至 4.53,
      色相偏移 3°、肉眼无差。 */
-  --v5-ink-3: #6A6E77;
+  --v5-ink-3: #666A73;          /* 2.0 muted: 4.5:1+ on every light surface, surface-3 included */
   /* 🔴 ink-4 用法边界(2026-07-23 AA 分析结论,值未改):它是「禁用/最弱占位」层,
      WCAG 2.1 §1.4.3 对 disabled 文本明确豁免。**不要为达 AA 去加深它** —— 实算
      压到 4.5 会得到 #696E79,与 ink-3 的 #6A6E77 几乎重合,文字层级体系会被摧毁。
@@ -132,6 +135,8 @@
   --v5-nex: #7C5CFF;
   --v5-nex-soft: #ECE7FF;
   --v5-nex-border: #C9BCFF;
+  /* UVT amounts set as text: #7C5CFF is 3.85:1 on the page, so text uses this AA shade (01 §1.1.1). */
+  --v5-nex-ink: #6447E6;
 
   /* Chrome (Header + TabBar + frosted glass tap-target boxes).
      Theme-aware so Header / TabBar / .pd-back glass tiles adapt cleanly
@@ -215,13 +220,13 @@
      every text node falls back to the browser default (Times New Roman serif).
      Defining them here makes all three usages (--font-v5 / body / .font-mono-
      tabular) valid → clean sans-serif even before the web fonts load. (P-038) */
-  --font-display: "General Sans", "Manrope", -apple-system, BlinkMacSystemFont,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  --font-display: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "PingFang SC", "Noto Sans SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
   --font-jet-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  /* v5 font stack — for use in inline style fontFamily. */
-  --font-v5: "General Sans", var(--font-display), "Manrope", -apple-system,
-    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  /* v5 font stack — for use in inline style fontFamily. Inter covers Latin,
+     Vietnamese and figures; CJK falls through to the system fonts (DS-25). */
+  --font-v5: var(--font-display);
 
   /* Radius ladder — current authority: uvel-docs/design-system/01-foundations.md.
      主题无关;新代码优先引用,存量迁移随「尺寸迁移工程」分批。
@@ -343,8 +348,8 @@
   /* Ink — slightly off-white for less eye strain, brighter secondary tier
      so info hierarchy doesn't collapse into one grey blur. */
   --v5-ink: #F5F7FA;            /* primary text — cool off-white */
-  --v5-ink-2: #D1D5DB;          /* secondary, brighter than before */
-  --v5-ink-3: #9BA3B5;          /* tertiary — readable mid-grey (was #8A95A8) */
+  --v5-ink-2: #BAC0CB;          /* 2.0 body text, clearly below primary (DS-20) */
+  --v5-ink-3: #8D95A6;          /* 2.0 muted: 6.1:1 on surface, recedes behind body (DS-20) */
   --v5-ink-4: #6B7385;          /* quaternary / disabled */
 
   /* Brand — lemon green retained as NexGrid signature. Soft alpha bumped from
@@ -382,6 +387,7 @@
   --v5-nex: #B47FFF;
   --v5-nex-soft: rgba(180,127,255,0.20);
   --v5-nex-border: rgba(180,127,255,0.45);
+  --v5-nex-ink: #B47FFF;
 
   /* Conversion spotlight tokens — hierarchy = "谁该 glow 谁就 glow".
      意图:只给 7 个转化触点(main Buy CTA / Hero amount / task progress /
@@ -498,11 +504,15 @@ body {
 
 /* Display font — compatibility alias to the current --font-v5 family.
    Both .font-display Tailwind class and inline `fontFamily: var(--font-v5)`
-   now resolve to the same chain: General Sans → Manrope → system.
+   now resolve to the same chain: Inter → system (CJK uses the system fonts).
    Typography roles and approved page exceptions live in uvel-docs/design-system. */
 .font-display {
   font-family: var(--font-v5);
   letter-spacing: -0.01em;
+}
+/* Chinese text never takes negative tracking (01 §1.2); <html lang> follows the locale store. */
+.font-display:lang(zh) {
+  letter-spacing: 0;
 }
 
 body {
@@ -510,13 +520,10 @@ body {
      v5 token replaces legacy --bg-base (which was hardcoded #000 v2 token). */
   background: var(--v5-bg);
   color: var(--v5-ink);
-  /* v5 default body font — General Sans (Fontshare, loaded via <link> in
-     layout.tsx). Falls back to Manrope (next/font, var(--font-display))
-     during load, then system fonts. */
-  font-family: "General Sans", var(--font-display), "Manrope", -apple-system,
-    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Default body font — bundled Inter (src/styles/fonts.css), then system
+     fonts. No global stylistic sets: figures use tabular-nums where they align. */
+  font-family: var(--font-v5);
   -webkit-font-smoothing: antialiased;
-  font-feature-settings: "cv11", "ss01", "ss03";
   /* Suppress native overscroll bounce so our pull-to-refresh owns the gesture
      at scrollY === 0. Without this, iOS Safari's elastic bounce competes with
      the indicator. */
@@ -685,9 +692,14 @@ body {
 
 /* ─── Mission Control (Home v2) ─── */
 
-/* Mono font helper — JetBrains Mono used for live numbers, tiny labels. */
+/* Figures in the UI font with aligned digits — amounts, units, counts and IDs (01 §1.2). */
 .font-mono-tabular {
-  font-family: var(--font-jet-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-v5);
+  font-variant-numeric: tabular-nums;
+}
+/* Monospace only for addresses, hashes and codes read character by character. */
+.font-mono-code {
+  font-family: var(--font-jet-mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -994,14 +1006,14 @@ body {
 @keyframes nx-home-art-drift { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
 .nx-home-arrow { display: grid; place-items: center; border-radius: var(--v5-radius-full); background: var(--v5-surface-2); color: var(--v5-ink-2); box-shadow:var(--ui-glass-edge-shadow); }
 /* Shared capsule material: soft rim and broad inner refraction, like the wallet edge. */
-.nx-frosted-button, .promotion-action, .nx-liquid-glass, .nx-home-arrow {
+.nx-frosted-button, .promotion-action, .reward-cta, .nx-liquid-glass, .nx-home-arrow {
   --ui-button-rim: rgba(255,255,255,.10);
   --ui-button-highlight: rgba(255,255,255,.24);
   --ui-button-bottom: rgba(0,0,0,.28);
   --ui-button-sheen: rgba(255,255,255,.06);
   --ui-glass-edge-shadow: inset 0 0 0 1px var(--ui-button-rim),inset 0 3px 6px -2px var(--ui-button-highlight),inset 2px 0 8px -4px var(--ui-button-highlight),inset 0 -4px 9px -4px var(--ui-button-bottom);
 }
-.nx-frosted-button, .promotion-action {
+.nx-frosted-button, .promotion-action, .reward-cta {
   color: var(--ui-button-ink,var(--v5-ink));
   border: 0;
   background: linear-gradient(145deg,var(--ui-button-sheen),transparent 38%,transparent 66%,var(--ui-button-sheen)),var(--ui-button-fill,color-mix(in srgb,var(--v5-ink) 7%,transparent));
@@ -1009,17 +1021,17 @@ body {
   backdrop-filter: blur(12px) saturate(125%);
   -webkit-backdrop-filter: blur(12px) saturate(125%);
 }
-[data-theme="light"] .nx-frosted-button, [data-theme="light"] .promotion-action, [data-theme="light"] .nx-liquid-glass, [data-theme="light"] .nx-home-arrow {
+[data-theme="light"] .nx-frosted-button, [data-theme="light"] .promotion-action, [data-theme="light"] .reward-cta, [data-theme="light"] .nx-liquid-glass, [data-theme="light"] .nx-home-arrow {
   --ui-button-rim: rgba(73,94,125,.12);
   --ui-button-highlight: rgba(255,255,255,.85);
   --ui-button-bottom: rgba(87,115,155,.18);
   --ui-button-sheen: rgba(255,255,255,.30);
 }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  .nx-frosted-button, .promotion-action { background:var(--ui-button-solid,var(--v5-surface-2));backdrop-filter:none;-webkit-backdrop-filter:none; }
+  .nx-frosted-button, .promotion-action, .reward-cta { background:var(--ui-button-solid,var(--v5-surface-2));backdrop-filter:none;-webkit-backdrop-filter:none; }
 }
 @media (forced-colors: active) {
-  .nx-frosted-button, .promotion-action { color:ButtonText;background:ButtonFace;box-shadow:none;outline:1px solid ButtonText;outline-offset:-1px;backdrop-filter:none;-webkit-backdrop-filter:none; }
+  .nx-frosted-button, .promotion-action, .reward-cta { color:ButtonText;background:ButtonFace;box-shadow:none;outline:1px solid ButtonText;outline-offset:-1px;backdrop-filter:none;-webkit-backdrop-filter:none; }
   .nx-home-arrow { box-shadow:none;outline:1px solid ButtonText;outline-offset:-1px; }
 }
 .nx-home-empty-plinth { position: absolute; width: 92%; height: 26px; bottom: 14px; left: 4%; border-radius: 50%; background: linear-gradient(175deg, color-mix(in srgb, var(--v5-ink) 5%, transparent), var(--v5-liquid-rim) 48%, color-mix(in srgb, var(--v5-surface-3) 30%, transparent) 56%, transparent); box-shadow: inset 0 0 0 .5px color-mix(in srgb, var(--v5-ink-3) 40%, transparent), inset 0 1px 1px var(--v5-liquid-highlight), inset 0 -3px 1px var(--v5-liquid-rim), 0 8px 12px color-mix(in srgb, var(--v5-ink) 8%, transparent); }
@@ -1121,8 +1133,9 @@ uni-input .uni-input-placeholder {
   .nx-header__r, .message-nav, .cp-head { --ui-header-glass-inset: 3px; --ui-header-icon-size: 18px; }
 }
 
-/* Card read recovery: a 32px surface inside an unchanged 44px hit target.
-   The combined selector also wins over the later inline-recovery stylesheet. */
+/* Card read recovery is a text button (design system 03 §3.1, 10 §10.2): brand text 13/18
+   at 500, no fill, inside an unchanged 44px hit target. The combined selector also wins over
+   the later inline-recovery stylesheet. */
 .nx-card-recovery-action,
 .nx-inline-recovery__action.nx-card-recovery-action {
   display: flex;
@@ -1143,8 +1156,8 @@ uni-input .uni-input-placeholder {
   border: 0;
   border-radius: 9999px;
   background: none;
-  color: var(--v5-on-brand);
-  font: 600 13px/20px var(--font-v5);
+  color: var(--v5-brand);
+  font: var(--ui-type-compact-button-weight) var(--ui-type-compact-button)/var(--ui-type-compact-button-lh) var(--font-v5);
   white-space: nowrap;
   text-align: center;
   cursor: pointer;
@@ -1156,52 +1169,22 @@ uni-input .uni-input-placeholder {
   z-index: -1;
   box-sizing: border-box;
   border-radius: inherit;
-  background: var(--v5-brand);
+  background: transparent;
   pointer-events: none;
 }
-.nx-card-recovery-action.nx-card-recovery-action--quiet {
-  color: var(--v5-ink);
+.nx-card-recovery-action:active::before {
+  background: var(--v5-brand-soft);
 }
-.nx-card-recovery-action--quiet::before {
-  background: var(--v5-surface-2);
-  border: 1px solid var(--v5-border);
+.nx-card-recovery-action.nx-card-recovery-action--quiet {
+  color: var(--v5-brand);
 }
 .nx-card-recovery-action.nx-card-recovery-action--inline {
   margin: 0 0 0 auto;
   align-self: flex-end;
 }
-/* Retain the reward controls' existing glass, edge, arrow and focus treatment. */
-.nx-card-recovery-action.nx-card-recovery-action--glass {
-  gap: 9px;
-  color: #f7f8fa;
-}
-.nx-card-recovery-action--glass::before {
-  background: var(--reward-glass);
-  border: 1px solid var(--reward-edge);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-}
-.nx-card-recovery-action--glass::after {
-  content: "→";
-  flex-shrink: 0;
-  font-size: 19px;
-  font-weight: 400;
-}
-.nx-card-recovery-action--glass:focus-visible {
-  outline: 2px solid var(--reward-accent);
-  outline-offset: 3px;
-}
-.nx-card-recovery-action--glass[aria-disabled="true"] {
-  opacity: .5;
-  cursor: default;
-}
-@media (prefers-reduced-transparency: reduce) {
-  .nx-card-recovery-action--glass::before {
-    background: #27292d;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
+/* Section rhythm: 32px between page sections, 24px on compact widths (design system 01 §1.3). */
+@media (max-width: 374px) {
+  :root { --ui-space-section-gap: 24px; }
 }
 
 /* Five responsive type bands — uvel-docs design-system/10-responsive-type.md §10.1.
@@ -1211,7 +1194,7 @@ uni-input .uni-input-placeholder {
    exactly one row. Roles only — approved page exceptions stay local to their page. */
 :root {
   --ui-type-page-title: 24px; --ui-type-page-title-lh: 32px;
-  --ui-type-section: 15px; --ui-type-section-lh: 20px;
+  --ui-type-section: 17px; --ui-type-section-lh: 24px;
   --ui-type-body: 15px; --ui-type-body-lh: 22px;
   --ui-type-list-title: 15px; --ui-type-list-title-lh: 20px;
   --ui-type-list-subtitle: 13px; --ui-type-list-subtitle-lh: 18px;
@@ -1220,16 +1203,40 @@ uni-input .uni-input-placeholder {
   --ui-type-message-meta: 12px; --ui-type-message-meta-lh: 16px;
   --ui-type-meta: 12px; --ui-type-meta-lh: 16px;
   --ui-type-profile: 20px; --ui-type-profile-lh: 28px;
-  --ui-type-button: 14px; --ui-type-button-lh: 20px;
+  --ui-type-button: 15px; --ui-type-button-lh: 20px;
   --ui-type-long-form: 15px; --ui-type-long-form-lh: 22px;
   --ui-type-input: 16px; --ui-type-input-lh: 24px;
   --ui-type-wallet-amount: 36px; --ui-type-wallet-amount-lh: 44px;
+  /* Visual spec 2.0 roles (DS-22). */
+  --ui-type-nav-title: 15px; --ui-type-nav-title-lh: 20px;
+  --ui-type-display-title: 26px; --ui-type-display-title-lh: 34px;
+  --ui-type-hero-title: 20px; --ui-type-hero-title-lh: 28px;
+  --ui-type-card-title: 16px; --ui-type-card-title-lh: 22px;
+  --ui-type-subheading: 15px; --ui-type-subheading-lh: 22px;
+  --ui-type-guide-body: 14px; --ui-type-guide-body-lh: 22px;
+  --ui-type-description: 13px; --ui-type-description-lh: 20px;
+  --ui-type-note: 12px; --ui-type-note-lh: 18px;
+  --ui-type-metric-value: 18px; --ui-type-metric-value-lh: 24px;
+  --ui-type-compact-button: 13px; --ui-type-compact-button-lh: 18px;
+  --ui-type-chip: 12px; --ui-type-chip-lh: 16px;
+  --ui-type-text-link: 13px; --ui-type-text-link-lh: 18px;
+  --ui-type-segment: 14px; --ui-type-segment-lh: 20px;
+  /* Role weights: only 400 / 500 / 600, and at most 500 at 14px and below (DS-21). */
+  --ui-type-page-title-weight: 600; --ui-type-display-title-weight: 600; --ui-type-nav-title-weight: 600;
+  --ui-type-section-weight: 600; --ui-type-card-title-weight: 600; --ui-type-hero-title-weight: 600;
+  --ui-type-subheading-weight: 500; --ui-type-list-title-weight: 500; --ui-type-message-title-weight: 500;
+  --ui-type-metric-value-weight: 500; --ui-type-button-weight: 500; --ui-type-compact-button-weight: 500;
+  --ui-type-chip-weight: 500; --ui-type-text-link-weight: 500; --ui-type-profile-weight: 500;
+  --ui-type-body-weight: 400; --ui-type-guide-body-weight: 400; --ui-type-long-form-weight: 400;
+  --ui-type-description-weight: 400; --ui-type-note-weight: 400; --ui-type-list-subtitle-weight: 400;
+  --ui-type-meta-weight: 400; --ui-type-message-preview-weight: 400; --ui-type-message-meta-weight: 400;
+  --ui-type-input-weight: 400; --ui-type-wallet-amount-weight: 550; --ui-type-segment-weight: 500;
   --ui-text-body: var(--ui-type-body);
 }
 @media (max-width: 339px) {
   :root {
     --ui-type-page-title: 20px; --ui-type-page-title-lh: 28px;
-    --ui-type-section: 14px; --ui-type-section-lh: 20px;
+    --ui-type-section: 16px; --ui-type-section-lh: 24px;
     --ui-type-body: 13px; --ui-type-body-lh: 20px;
     --ui-type-list-title: 13px; --ui-type-list-title-lh: 18px;
     --ui-type-list-subtitle: 12px; --ui-type-list-subtitle-lh: 16px;
@@ -1240,12 +1247,22 @@ uni-input .uni-input-placeholder {
     --ui-type-button: 13px; --ui-type-button-lh: 18px;
     --ui-type-long-form: 14px; --ui-type-long-form-lh: 21px;
     --ui-type-wallet-amount: 30px; --ui-type-wallet-amount-lh: 36px;
+    --ui-type-nav-title: 14px; --ui-type-nav-title-lh: 20px;
+    --ui-type-display-title: 22px; --ui-type-display-title-lh: 30px;
+    --ui-type-hero-title: 18px; --ui-type-hero-title-lh: 26px;
+    --ui-type-card-title: 15px; --ui-type-card-title-lh: 22px;
+    --ui-type-subheading: 14px; --ui-type-subheading-lh: 21px;
+    --ui-type-guide-body: 13px; --ui-type-guide-body-lh: 21px;
+    --ui-type-description: 12px; --ui-type-description-lh: 18px;
+    --ui-type-metric-value: 16px; --ui-type-metric-value-lh: 22px;
+    --ui-type-segment: 13px; --ui-type-segment-lh: 18px;
+    --ui-type-nav-title-weight: 500; --ui-type-wallet-amount-weight: 500;
   }
 }
 @media (min-width: 340px) and (max-width: 374px) {
   :root {
     --ui-type-page-title: 22px; --ui-type-page-title-lh: 30px;
-    --ui-type-section: 14px; --ui-type-section-lh: 20px;
+    --ui-type-section: 16px; --ui-type-section-lh: 24px;
     --ui-type-body: 14px; --ui-type-body-lh: 21px;
     --ui-type-list-title: 14px; --ui-type-list-title-lh: 20px;
     --ui-type-list-subtitle: 12px; --ui-type-list-subtitle-lh: 16px;
@@ -1253,9 +1270,17 @@ uni-input .uni-input-placeholder {
     --ui-type-message-preview: 12px; --ui-type-message-preview-lh: 17px;
     --ui-type-message-meta: 12px; --ui-type-message-meta-lh: 16px;
     --ui-type-profile: 19px; --ui-type-profile-lh: 26px;
-    --ui-type-button: 13px; --ui-type-button-lh: 18px;
+    --ui-type-button: 14px; --ui-type-button-lh: 20px;
     --ui-type-long-form: 14px; --ui-type-long-form-lh: 21px;
     --ui-type-wallet-amount: 32px; --ui-type-wallet-amount-lh: 38px;
+    --ui-type-nav-title: 14px; --ui-type-nav-title-lh: 20px;
+    --ui-type-display-title: 24px; --ui-type-display-title-lh: 32px;
+    --ui-type-hero-title: 19px; --ui-type-hero-title-lh: 26px;
+    --ui-type-card-title: 15px; --ui-type-card-title-lh: 22px;
+    --ui-type-description: 12px; --ui-type-description-lh: 18px;
+    --ui-type-metric-value: 17px; --ui-type-metric-value-lh: 23px;
+    --ui-type-segment: 13px; --ui-type-segment-lh: 18px;
+    --ui-type-nav-title-weight: 500; --ui-type-wallet-amount-weight: 500;
   }
 }
 @media (min-width: 375px) and (max-width: 389px) {
@@ -1265,13 +1290,13 @@ uni-input .uni-input-placeholder {
     --ui-type-body: 14px; --ui-type-body-lh: 21px;
     --ui-type-long-form: 14px; --ui-type-long-form-lh: 21px;
     --ui-type-wallet-amount: 34px; --ui-type-wallet-amount-lh: 40px;
+    --ui-type-display-title: 25px; --ui-type-display-title-lh: 33px;
   }
 }
 @media (min-width: 414px) {
   :root {
-    --ui-type-section: 16px; --ui-type-section-lh: 22px;
     --ui-type-message-preview: 13px; --ui-type-message-preview-lh: 19px;
     --ui-type-message-meta: 12px; --ui-type-message-meta-lh: 16px;
-    --ui-type-button: 15px; --ui-type-button-lh: 20px;
+    --ui-type-nav-title: 16px; --ui-type-nav-title-lh: 22px;
   }
 }

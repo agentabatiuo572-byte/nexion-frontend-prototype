@@ -523,8 +523,8 @@ async function deferPhoneActivation() {
 }
 .est-phone__name {
   display: block;
-  font-size: var(--ui-type-section);
-  font-weight: 600;
+  font-size: var(--ui-type-subheading);
+  font-weight: var(--ui-type-subheading-weight);
   color: var(--v5-ink);
   overflow-wrap: anywhere;
 }
@@ -632,8 +632,8 @@ async function deferPhoneActivation() {
   background: var(--v5-brand);
 }
 .est-go__t {
-  font-size: var(--ui-type-section);
-  font-weight: 600;
+  font-size: var(--ui-type-button);
+  font-weight: var(--ui-type-button-weight);
   color: var(--v5-ink-4);
 }
 .est-go--on .est-go__t {

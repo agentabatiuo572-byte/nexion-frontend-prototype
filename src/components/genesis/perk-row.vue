@@ -30,8 +30,8 @@ const iconStyle: CSSProperties = {
 };
 const nameStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontWeight: 600,
-  fontSize: "var(--ui-type-section)",
+  fontWeight: "var(--ui-type-subheading-weight)",
+  fontSize: "var(--ui-type-subheading)",
   color: "var(--v5-ink)",
   letterSpacing: "-0.008em",
 };

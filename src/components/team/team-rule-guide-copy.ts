@@ -10,7 +10,7 @@ const copy = {
     settlement: '何时到账', settlementBody: '奖励以 USDT 和 UVT 发放，待到账期结束后可提现。',
     references: '在哪里查看', referencesBody: '在奖励明细中展开记录，可查看对应订单和时间。',
     networkRule: '团队购买奖励以实际发放为准。',
-    contents: '按主题阅读', fullText: '完整发布说明', expandAll: '展开全部', collapseAll: '收起全部',
+    contents: '按主题阅读', fullText: '完整发布说明',
   },
   en: {
     overview: 'At a glance',
@@ -23,7 +23,7 @@ const copy = {
     settlement: 'When rewards arrive', settlementBody: 'Rewards are paid in USDT and UVT and can be withdrawn after the pending period.',
     references: 'Where to check', referencesBody: 'Open a record in your reward history to see the related order and date.',
     networkRule: 'Team purchase rewards are subject to actual payout.',
-    contents: 'Read by topic', fullText: 'Full published guide', expandAll: 'Expand all', collapseAll: 'Collapse all',
+    contents: 'Read by topic', fullText: 'Full published guide',
   },
   vi: {
     overview: 'Tổng quan',
@@ -36,7 +36,7 @@ const copy = {
     settlement: 'Khi nào được ghi nhận', settlementBody: 'Thưởng được chi trả bằng USDT và UVT, có thể rút sau thời gian chờ.',
     references: 'Xem ở đâu', referencesBody: 'Mở một bản ghi trong lịch sử thưởng để xem đơn hàng và thời gian liên quan.',
     networkRule: 'Thưởng nhóm mua hàng theo kết quả chi trả thực tế.',
-    contents: 'Đọc theo chủ đề', fullText: 'Hướng dẫn đã công bố đầy đủ', expandAll: 'Mở tất cả', collapseAll: 'Thu gọn tất cả',
+    contents: 'Đọc theo chủ đề', fullText: 'Hướng dẫn đã công bố đầy đủ',
   },
 };
 

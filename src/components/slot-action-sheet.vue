@@ -256,7 +256,7 @@ useDialogA11y(computed(() => sheet.open), ".sas-root", hide);
 }
 .sas-title {
   font-family: var(--font-v5);
-  font-size: var(--ui-type-section);
+  font-size: var(--ui-type-hero-title);
   font-weight: 600;
   color: var(--v5-ink);
   line-height: 1.2;

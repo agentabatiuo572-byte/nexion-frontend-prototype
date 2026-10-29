@@ -188,8 +188,8 @@ useDialogA11y(computed(() => ui.netError.visible), ".nx-mask--neterr", undefined
   gap: 2px;
 }
 .nx-toast__title {
-  font-size: var(--ui-type-section);
-  font-weight: 600;
+  font-size: var(--ui-type-subheading);
+  font-weight: var(--ui-type-subheading-weight);
   color: var(--v5-ink);
 }
 .nx-toast__desc {
@@ -226,7 +226,7 @@ useDialogA11y(computed(() => ui.netError.visible), ".nx-mask--neterr", undefined
 }
 .nx-modal > * { flex-shrink: 0; }
 .nx-modal__title {
-  font-size: var(--ui-type-section);
+  font-size: var(--ui-type-hero-title);
   font-weight: 600;
   color: var(--v5-ink);
 }

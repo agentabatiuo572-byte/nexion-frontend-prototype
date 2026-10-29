@@ -277,7 +277,7 @@ const periodOptions = computed(() => PERIODS.map(value => ({ value, label: t.val
 .leader-retry-label { font: 600 13px/20px var(--font-v5); }
 .leader-share { width:100%; }
 .leader-state { display: flex; flex-direction: column; gap: 14px; padding: 32px 0; color: var(--v5-ink-2); font-size: var(--ui-type-list-subtitle); line-height: 1.6; }
-.leader-state-title { font-size: var(--ui-type-section); line-height: var(--ui-type-section-lh); font-weight: 600; color: var(--v5-ink); }
+.leader-state-title { font-size: var(--ui-type-card-title); line-height: var(--ui-type-card-title-lh); font-weight: var(--ui-type-card-title-weight); color: var(--v5-ink); }
 [role="button"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 @media (max-width: 374px) { .leader-content { padding-left: 16px; padding-right: 16px; } .leader-hero :deep(.team-art) { --team-art-size: 72px; } .leader-row { gap: 6px; min-height: 56px; } .leader-podium { padding-inline: 8px; } .leader-points { font-size: var(--ui-type-list-subtitle); } }
 </style>

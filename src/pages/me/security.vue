@@ -1226,8 +1226,8 @@ const pwdSaveStyle: CSSProperties = {
 };
 const pwdSaveLabelStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
-  fontSize: "var(--ui-type-section)",
-  fontWeight: 600,
+  fontSize: "var(--ui-type-button)",
+  fontWeight: "var(--ui-type-button-weight)",
   color: "var(--v5-on-brand)",
 };
 const toggleTrackStyle = computed<CSSProperties>(() => ({

@@ -169,7 +169,7 @@
         <view class="flex items-center justify-between" :style="memoBoxStyle">
           <view class="flex-1 min-w-0">
             <text class="block font-mono-tabular" :style="metaLabelStyle">{{ t.bankPane.memoLabel }}</text>
-            <text class="block font-mono-tabular" :style="memoCodeStyle">{{ intent.memoCode }}</text>
+            <text class="block font-mono-code" :style="memoCodeStyle">{{ intent.memoCode }}</text>
           </view>
           <view class="nx-bank-copy-memo-cta grid place-items-center shrink-0 active:opacity-80" :style="memoCopyBtnStyle" role="button" tabindex="0" @click="copyMemo">
             <text style="font-size: 13px; font-weight: 600; color: var(--v5-ink)">{{ t.bankPane.copyCta }}</text>
@@ -1022,8 +1022,8 @@ const stepNumStyle: CSSProperties = {
 const stateTitleStyle: CSSProperties = {
   marginTop: "12px",
   fontFamily: "var(--font-v5)",
-  fontSize: "var(--ui-type-section)",
-  fontWeight: 600,
+  fontSize: "var(--ui-type-card-title)",
+  fontWeight: "var(--ui-type-card-title-weight)",
   color: "var(--v5-ink)",
 };
 const stateBodyStyle: CSSProperties = {

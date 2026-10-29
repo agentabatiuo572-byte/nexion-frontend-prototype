@@ -348,7 +348,7 @@ function goPrivacy() {
   margin: 2px auto 10px;
 }
 .intro-lang-sheet__title {
-  font-size: var(--ui-type-section);
+  font-size: var(--ui-type-hero-title);
   font-weight: 600;
   color: var(--v5-ink);
   padding: 0 4px 10px;

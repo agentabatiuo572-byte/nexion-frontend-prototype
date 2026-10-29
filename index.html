@@ -19,17 +19,9 @@
     <link rel="icon" href="%BASE_URL%static/brand-web/favicon.ico" sizes="16x16 32x32 48x48" />
     <link rel="icon" type="image/png" sizes="32x32" href="%BASE_URL%static/brand-web/favicon-32.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="%BASE_URL%static/brand-web/apple-touch-icon-180.png" />
-    <!-- v5 brand fonts — General Sans (Fontshare) + Manrope + JetBrains Mono
-         (Google). The prototype loads these via next/font + a Fontshare <link>
-         in app/layout.tsx; uni-app has no layout.tsx, so they are loaded here.
-         Without them every text node renders in the system fallback (or, when
-         the var(--font-*) chain is broken, Times New Roman). display=swap →
-         no FOIT. (PITFALLS P-038) -->
-    <link rel="preconnect" href="https://api.fontshare.com" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
+    <!-- Fonts ship with the bundle (src/styles/fonts.css: Inter, JetBrains Mono); no external
+         font hosts. tokens.css keeps --font-display / --font-jet-mono defined so the
+         font-family chains stay valid before the files load. (PITFALLS P-038) -->
     <style>
       html.nx-device-host,
       html.nx-device-host body {
@@ -44,7 +36,7 @@
         overflow: hidden;
         background: var(--nx-device-host-bg);
         background-size: var(--nx-device-host-bg-size);
-        font-family: "General Sans", "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
 
       html.nx-device-host[data-nx-app-theme="dark"],

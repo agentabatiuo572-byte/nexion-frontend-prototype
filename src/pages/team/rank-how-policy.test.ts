@@ -45,7 +45,7 @@ describe("rank-how page source contract", () => {
 
   it("keeps published rules, the dynamic ladder and examples in the flat layout", () => {
     for (const binding of ['content.ladder', 'phases', 'requirements', 'unlocks', 'results', 'faqs', 'sectionId.protection', 'sectionId.stepwise']) expect(source).toContain(binding);
-    for (const component of ['TeamArt', 'VBadgeIcon']) expect(source).toContain(`<${component}`);
+    for (const component of ['TeamRuleHero', 'TeamRuleSection', 'VBadgeIcon']) expect(source).toContain(`<${component}`);
     expect(source).not.toContain('v-if="!remoteApiEnabled"');
     expect(source).toContain("buildRankHowContent");
   });
@@ -54,8 +54,8 @@ describe("rank-how page source contract", () => {
     expect(source).not.toMatch(/\bw\.(?:value\.)?(req\d\w*|s1Para\d|s5\w*|faqA\d)|useVRank|v-html|\.current\(/);
     expect(source).toContain("createRankHowResource");
     expect(source).toContain('@click="goBack"');
-    expect(source).toContain('@click="toggleRule(group.id)"');
-    expect(source).toContain('role="button" tabindex="0"');
-    expect(source).toContain('aria-controls="how-rules"');
+    expect(source).toContain(':sections="directory"');
+    expect(source).toContain(':q="item.title" :a="item.body"');
+    expect(source).toContain('role="link" tabindex="0"');
   });
 });

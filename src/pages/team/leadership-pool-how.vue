@@ -3,26 +3,22 @@
     <RewardPageSurface>
     <view class="pb-8" style="color: var(--v5-ink)">
       <SubPageHeader back="/pages/team/leadership-pool" />
-      <HowHero kind="balance" :label="w.heroLabel" :title="w.heroTitle" :sub="w.heroSub" accent="purple" />
+      <HowHero kind="balance" :title="w.heroTitle" :sub="w.heroSub" :sections="remoteState === 'ready' || remotePool || ruleFacts ? directory : []" :nav-label="guide.contents" />
 
       <view v-if="remoteState !== 'ready' && !(remoteState === 'loading' && (remotePool || ruleFacts))" class="text-center" style="padding: 48px 20px">
         <text class="block" :style="{ color: 'var(--v5-ink-2)', fontSize: '13px' }">{{ remoteState === 'hold' ? t.pool.settlementHold : remoteState === 'error' || vState.remoteError ? t.pool.loadError : t.pool.loading }}</text>
-        <view v-if="remoteState === 'hold' || remoteState === 'error' || vState.remoteError" class="reward-cta" style="margin-top: 14px" role="button" tabindex="0" @click="loadRemotePool" @keydown.enter.prevent="loadRemotePool" @keydown.space.prevent="loadRemotePool">
-          <text :style="{ color: 'var(--v5-on-brand)', fontSize: '13px', fontWeight: 600 }">{{ t.pool.retry }}</text>
+        <view v-if="remoteState === 'hold' || remoteState === 'error' || vState.remoteError" class="nx-card-recovery-action" style="margin: 14px auto 0" role="button" tabindex="0" @click="loadRemotePool" @keydown.enter.prevent="loadRemotePool" @keydown.space.prevent="loadRemotePool">
+          <text>{{ t.pool.retry }}</text>
         </view>
       </view>
 
       <template v-else>
-        <HowSection :title="w.currentRulesTitle" accent="purple" initial-open>
-          <template #icon>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
-          </template>
+        <HowSection anchor="rules" :title="w.currentRulesTitle">
           <text class="block" :style="bodyStyle">{{ currentRulesText }}</text>
           <text v-if="nextPayoutText" class="block" :style="{ ...bodyStyle, marginTop: '10px' }">{{ nextPayoutText }}</text>
         </HowSection>
 
-        <HowSection :title="w.s2Title">
-          <text class="block" :style="bodyStyle">{{ w.s2Intro }}</text>
+        <HowSection anchor="votes" :title="w.s2Title" :lead="w.s2Intro">
           <template v-if="rankDisplayReady">
             <view v-if="configuredVoteRows.length" class="pool-how-weight-list">
               <view class="pool-how-weight-heading"><text>{{ w.colRank }}</text><text>{{ w.colVotes }}{{ t.pool.eaShort }}</text></view>
@@ -34,11 +30,11 @@
           </template>
           <view v-else role="status" class="pool-how-config-state">
             <text class="block">{{ vState.remoteError ? t.pool.loadError : t.pool.loading }}</text>
-            <view v-if="vState.remoteError" class="reward-cta" role="button" tabindex="0" @click="refreshRankConfig" @keydown.enter.prevent="refreshRankConfig" @keydown.space.prevent="refreshRankConfig"><text>{{ t.pool.retry }}</text></view>
+            <view v-if="vState.remoteError" class="nx-card-recovery-action" role="button" tabindex="0" @click="refreshRankConfig" @keydown.enter.prevent="refreshRankConfig" @keydown.space.prevent="refreshRankConfig"><text>{{ t.pool.retry }}</text></view>
           </view>
         </HowSection>
 
-        <HowSection :title="auditCopy.poolFactsTitle">
+        <HowSection anchor="facts" :title="auditCopy.poolFactsTitle">
           <view class="pool-how-facts">
             <view><text>{{ auditCopy.votes }}</text><text>{{ visibility.mask(remotePool?.myVotes ?? '—') }}</text></view>
             <view><text>{{ auditCopy.totalVotes }}</text><text>{{ visibility.mask(remotePool?.totalVotes ?? '—') }}</text></view>
@@ -52,8 +48,8 @@
             </view>
           </view>
           <text v-else class="block" :style="bodyStyle">{{ remotePool ? w.noVoteRows : '—' }}</text>
-          <text class="block" :style="bodyStyle">{{ auditCopy.poolFactsHint }}</text>
-          <text class="block" :style="{ ...bodyStyle, marginTop: '10px' }">{{ auditCopy.poolRulesPending }}</text>
+          <text class="block pool-how-note">{{ auditCopy.poolFactsHint }}</text>
+          <text class="block pool-how-note">{{ auditCopy.poolRulesPending }}</text>
         </HowSection>
 
         <view class="mx-4 mt-6">
@@ -76,6 +72,7 @@ import RewardPageSurface from "@/components/team/reward-page-surface.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import HowHero from "@/components/team/team-rule-hero.vue";
 import HowSection from "@/components/team/team-rule-section.vue";
+import { teamRuleGuideCopy } from "@/components/team/team-rule-guide-copy";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
 import { networkReauditCopy } from "@/i18n/network-reaudit";
@@ -177,20 +174,26 @@ onHide(() => { pageVisible = false; remoteRequest++; remotePool.value = null; re
 onUnmounted(() => { mounted = false; remoteRequest += 1; remotePool.value = null; unsubscribeRemotePoolRun(); });
 function goBack() { navBack("/pages/team/leadership-pool"); }
 
-const bodyStyle: CSSProperties = { fontSize: "var(--ui-type-long-form)", color: "var(--v5-ink-2)", lineHeight: "var(--ui-type-long-form-lh)" };
+const bodyStyle: CSSProperties = { color: "var(--v5-ink-2)" };
+const guide = computed(() => teamRuleGuideCopy(locale.code));
+const directory = computed(() => [{ id: "rules", title: w.value.currentRulesTitle }, { id: "votes", title: w.value.s2Title }, { id: "facts", title: auditCopy.value.poolFactsTitle }]);
 </script>
 
 <style scoped>
-.pool-how-facts { display: flex; flex-direction: column; gap: var(--ui-space-row-y); margin-bottom: var(--ui-space-inset); }
-.pool-how-facts > view { display: flex; justify-content: space-between; gap: var(--ui-space-inset); font-size: var(--ui-type-list-subtitle); }
-.pool-how-facts > view > text:last-child { font-variant-numeric: tabular-nums; font-weight: 600; }
-.pool-how-weight-list { margin-top: var(--ui-space-inset); }
-.pool-how-weight-heading, .pool-how-weight-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(60px,auto); gap: var(--ui-space-inset); padding: var(--ui-space-row-y) 0; border-bottom: 1px solid var(--v5-border); }
-.pool-how-weight-heading { color: var(--v5-ink-3); font-size: 12px; }
+.pool-how-facts { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; margin-bottom: 4px; border-bottom: 1px solid var(--v5-border); }
+.pool-how-facts > view { display: flex; justify-content: space-between; gap: var(--ui-space-inset); color: var(--v5-ink-3); font: var(--ui-type-description-weight) var(--ui-type-description)/var(--ui-type-description-lh) var(--font-v5); }
+.pool-how-facts > view > text:last-child { color: var(--v5-ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+.pool-how-note { margin-top: 8px; color: var(--v5-ink-3); font: var(--ui-type-note-weight) var(--ui-type-note)/var(--ui-type-note-lh) var(--font-v5); }
+.pool-how-weight-list { margin-top: -4px; }
+.pool-how-weight-heading, .pool-how-weight-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(60px,auto); gap: var(--ui-space-inset); padding: 10px 0; color: var(--v5-ink); font: var(--ui-type-description-weight) var(--ui-type-description)/var(--ui-type-description-lh) var(--font-v5); }
+.pool-how-weight-row + .pool-how-weight-row, .pool-how-weight-heading + .pool-how-weight-row { border-top: 1px solid var(--v5-border); }
+.pool-how-weight-heading { color: var(--v5-ink-3); font: var(--ui-type-note-weight) var(--ui-type-note)/var(--ui-type-note-lh) var(--font-v5); }
+.pool-how-weight-row > text:last-child { font-weight: 500; }
 .pool-how-weight-row > text:last-child, .pool-how-weight-heading > text:last-child { text-align: right; font-variant-numeric: tabular-nums; }
 .pool-how-distribution { margin: var(--ui-space-inset) 0; }
-.pool-how-distribution-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: var(--ui-space-inline) 0; border-bottom: 1px solid var(--v5-border); }
-.pool-how-distribution-rank { flex-basis: 100%; color: var(--v5-ink); }
-.pool-how-distribution-total { margin-left: auto; font-variant-numeric: tabular-nums; }
+.pool-how-distribution-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; padding: 12px 0; color: var(--v5-ink-3); font: var(--ui-type-description-weight) var(--ui-type-description)/var(--ui-type-description-lh) var(--font-v5); }
+.pool-how-distribution-row + .pool-how-distribution-row { border-top: 1px solid var(--v5-border); }
+.pool-how-distribution-rank { flex-basis: 100%; color: var(--v5-ink); font: var(--ui-type-subheading-weight) var(--ui-type-subheading)/var(--ui-type-subheading-lh) var(--font-v5); }
+.pool-how-distribution-total { margin-left: auto; color: var(--v5-ink); font-weight: 500; font-variant-numeric: tabular-nums; }
 .pool-how-config-state { margin-top: var(--ui-space-inline); }
 </style>

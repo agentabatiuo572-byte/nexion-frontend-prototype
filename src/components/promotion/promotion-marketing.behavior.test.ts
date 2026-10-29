@@ -152,7 +152,7 @@ it('040 keeps published purchase/gift text and gives gifts distinct hierarchy ac
               pageOverflow:document.documentElement.scrollWidth>innerWidth};
           });
           expect(result.purchase.text).toBe(offer.title[language]);expect(result.gift.text).toBe(rule.buyerReward.disclosure.benefitDescription[language]);
-          expect(result.purchase.fontFamily).toContain('General Sans');expect(result.gift.fontSize-result.purchase.fontSize).toBeGreaterThanOrEqual(4);
+          expect(result.purchase.fontFamily).toContain('Inter');expect(result.gift.fontSize-result.purchase.fontSize).toBeGreaterThanOrEqual(4);
           expect(result.gift.fontWeight).toBeGreaterThan(result.purchase.fontWeight);expect(result.gift.color).not.toBe(result.purchase.color);
           expect(result.gift.top).toBeGreaterThanOrEqual(result.purchase.bottom);expect(result.rules.top).toBeGreaterThanOrEqual(result.gift.bottom);
           for(const line of [result.purchase,result.gift,result.rules]){expect(line.overflow).toBe(false);expect(line.left).toBeGreaterThanOrEqual(result.card.left);expect(line.right).toBeLessThanOrEqual(result.card.right+1);}

@@ -188,6 +188,6 @@ function goEarnings() {
 .nx-home-feed-tabs { flex:0 0 90px;width:90px;height:26px;min-width:0;padding:2px;gap:1px; }
 .nx-home-feed-tabs :deep(.nx-glass-option) { min-height:22px;padding:0; }
 .nx-home-feed-tabs :deep(.nx-glass-option::after) { content:"";position:absolute;inset:-11px 0; }
-.nx-home-feed-tabs :deep(.nx-glass-option__label) { font-size:10px;line-height:12px;white-space:nowrap; }
+.nx-home-feed-tabs :deep(.nx-glass-option__label) { font-size:10px;font-weight:600;line-height:12px;white-space:nowrap; }
 .nx-home-feed-tabs--vi :deep(.nx-glass-option__label) { font-size:9px;letter-spacing:-.4px; }
 </style>

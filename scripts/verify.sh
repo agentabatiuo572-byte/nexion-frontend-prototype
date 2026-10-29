@@ -2402,8 +2402,8 @@ chassis_chrome_complete
 # aren't redefined locally: (a) the undefined var() makes the WHOLE font-family
 # declaration invalid → every text node falls back to Times New Roman serif;
 # (b) content-box makes height/width+padding elements larger than the prototype.
-# Plus the brand fonts must be loaded (index.html) — the prototype loads them in
-# layout.tsx. This sentinel guards all three so the foundation can't regress.
+# Plus the UI font must be bundled (src/styles/fonts.css declares Inter; design
+# system DS-25). This sentinel guards all three so the foundation can't regress.
 css_foundation() {
   local t="src/styles/tokens.css"
   local miss=""
@@ -2411,8 +2411,8 @@ css_foundation() {
   grep -qE '^\s*--font-display:' "$t"  || miss="${miss}--font-display-undef(→TimesNewRoman) "
   grep -qE '^\s*--font-jet-mono:' "$t" || miss="${miss}--font-jet-mono-undef "
   grep -qE 'box-sizing:\s*border-box' "$t" || miss="${miss}no-border-box-reset "
-  grep -q 'general-sans' index.html 2>/dev/null || miss="${miss}no-brand-font-link(index.html) "
-  if [ -z "$miss" ]; then ok "css foundation (font vars defined + border-box reset + brand font loaded)";
+  grep -q 'font-family: "Inter"' src/styles/fonts.css 2>/dev/null || miss="${miss}no-bundled-ui-font(fonts.css) "
+  if [ -z "$miss" ]; then ok "css foundation (font vars defined + border-box reset + UI font bundled)";
   else bad "css foundation BROKEN — $miss"; fi
 }
 css_foundation

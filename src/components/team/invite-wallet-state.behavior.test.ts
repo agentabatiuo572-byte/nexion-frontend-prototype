@@ -178,7 +178,7 @@ test('033 localized header fits 320/360/390 with 44px controls in both themes an
   const page = await browser.newPage();
   const tokens = readFileSync(new URL('../../styles/tokens.css', import.meta.url), 'utf8').replace(/@import[^;]+;/g, '');
   const css = parse(inviteSource).descriptor.styles.map(style => style.content).join('\n');
-  const fonts = [400, 600].map(weight => `@font-face { font-family: 'General Sans'; font-weight: ${weight}; src: url(data:font/woff2;base64,${readFileSync(new URL(`../../static/fonts/GeneralSans-${weight}.woff2`, import.meta.url)).toString('base64')}); }`).join('\n');
+  const fonts = readFileSync(new URL('../../styles/fonts.css', import.meta.url), 'utf8').replace(/url\("\.\.\/static\/fonts\/([^"/]+)"\)/g, (_match: string, name: string) => `url(data:font/${name.endsWith('.ttf') ? 'ttf' : 'woff2'};base64,${readFileSync(new URL(`../../static/fonts/${name}`, import.meta.url)).toString('base64')})`);
   const renderHost = (host: Host): Vue.VNode => host.tag === '#text' ? Vue.createTextVNode(host.text)
     : host.tag === '#comment' ? Vue.createCommentVNode('') : Vue.h(host.tag, host.props, [host.text, ...host.children.map(renderHost)]);
   const measurements: unknown[] = [];
@@ -215,7 +215,7 @@ test('033 localized header fits 320/360/390 with 44px controls in both themes an
             expect(control.overflow).toBe(false);
           }
           expect(icon.width).toBe(18); expect(icon.height).toBe(18);
-          expect(geometry.titleFont).toContain('General Sans'); expect(geometry.columnGap).toBe('12px');
+          expect(geometry.titleFont).toContain('Inter'); expect(geometry.columnGap).toBe('12px');
           expect(title.overflow).toBe(false); expect(geometry.pageOverflow).toBe(false);
           measurements.push({ language, width, theme, retry, ...geometry });
           if (env.UI_OPT_033_EVIDENCE_DIR && width === 320 && !retry) await page.screenshot({ path: `${env.UI_OPT_033_EVIDENCE_DIR}/invite-reward-033-header-${language}-${theme}-320.png` });

@@ -41,34 +41,30 @@ function published(read: (...args: any[]) => Promise<unknown>, language: keyof t
   cleanups.push(page.unmount);
   return { ...page, locale, navBack };
 }
-async function expandAll(page: ReturnType<typeof published>) {
-  page.control(teamRuleGuideCopy(page.locale.code).expandAll)!.props.onClick(); await flush();
-}
 
 describe('018 published team guide', () => {
   it.each(['zh', 'en', 'vi'] as const)('keeps every authoritative sentence and item reachable without rewriting in %s', async language => {
     const page = published(vi.fn().mockResolvedValue(document(language)), language); await flush();
     expect(page.nodes('team-rule-hero__title').map(text)).toEqual([teamRuleGuideCopy(language).overview]);
-    expect(text(page.root)).not.toContain(blocks[0].body);
-    expect(page.nodes('team-rule-section__toggle')).toHaveLength(blocks.length);
-    await expandAll(page);
+    // Published blocks stay expanded (design system 04.7): no section toggles, no expand-all.
+    expect(page.nodes('team-rule-faq__toggle')).toHaveLength(0);
+    expect(page.nodes('team-rule-fold__toggle')).toHaveLength(0);
     for (const block of blocks) {
       expect(text(page.root)).toContain(block.title);
       expect(text(page.root)).toContain(block.body);
       for (const item of block.items ?? []) expect(text(page.root).split(item)).toHaveLength(2);
     }
     expect(text(page.root)).not.toContain('private-publication-version');
-    const first = page.nodes('team-rule-section__toggle')[0];
-    expect(all(page.root).some(node => node.props.id === first.props['aria-controls'])).toBe(true);
-    first.props.onKeydown.forEach((handler: (event: object) => void) => handler({ key: ' ', preventDefault() {} })); await flush();
-    expect(text(page.root)).not.toContain(blocks[0].body);
-    expect(text(page.root)).toContain(blocks[2].items![1]);
+    const sections = blocks.filter(block => block.kind !== 'callout');
+    expect(page.nodes('team-rule-hero__jump').map(text)).toEqual(sections.map(block => block.title));
+    for (const block of sections) expect(all(page.root).some(node => node.props.id === `team-rule-${block.id}`)).toBe(true);
+    expect(page.nodes('team-rule-note').map(text)[0]).toContain(blocks[3].items![1]);
     page.control('Return')!.props.onClick(); expect(page.navBack).toHaveBeenCalledWith('/pages/team/unilevel');
   });
-  it('preserves an expanded publication during refresh and warm network failure, then recovers', async () => {
+  it('preserves the publication during refresh and warm network failure, then recovers', async () => {
     const refresh = deferred<ReturnType<typeof document>>();
     const read = vi.fn().mockResolvedValueOnce(document('en')).mockReturnValueOnce(refresh.promise).mockResolvedValueOnce(document('vi'));
-    const page = published(read, 'vi'); await flush(); await expandAll(page);
+    const page = published(read, 'vi'); await flush();
     page.control(vietnamese.ui.retry)!.props.onClick(); await flush();
     expect(text(page.root)).toContain(blocks[0].body);
     refresh.reject(new ApiError({ kind: 'network', message: 'OFFLINE' })); await flush();
@@ -83,7 +79,7 @@ describe('018 published team guide', () => {
     const read = vi.fn().mockReturnValueOnce(previous.promise).mockResolvedValueOnce(document('zh'));
     const page = published(read); page.locale.code = 'zh'; await flush();
     previous.resolve({ ...document(), blocks: [{ ...blocks[0], body: 'STALE' }] }); await flush();
-    await expandAll(page); expect(text(page.root)).not.toContain('STALE'); expect(text(page.root)).toContain(blocks[0].body);
+    expect(text(page.root)).not.toContain('STALE'); expect(text(page.root)).toContain(blocks[0].body);
   });
   it.each(['unresolved', 'missing-direct', 'missing-scope', 'old-template'])('rejects %s without local rule fallback', async kind => {
     const value = document();
@@ -110,8 +106,6 @@ it.each(['zh', 'en', 'vi'] as const)('local guide uses scope language and never 
   });
   cleanups.push(page.unmount);
   expect(text(page.root)).toContain(teamRuleGuideCopy(language).deviceBody);
-  for (const control of page.nodes('team-rule-section__toggle')) if (!control.props['aria-expanded']) control.props.onClick();
-  await flush();
   expect(text(page.root)).toContain(teamRuleGuideCopy(language).referencesBody);
   expect(text(page.root)).not.toMatch(/L[1-7]|层级|收益层|\blayers?\b|tầng|10%|182\.40|Influence Score|Verified/);
   expect(text(page.root)).toContain(dictionaries[language].howPublished.unavailableBody);

@@ -7,6 +7,8 @@ import { installKeyboardActivation, uninstallKeyboardActivation } from '@/lib/a1
 import { buildRankHowContent, createRankHowResource } from '@/lib/rank-how-content';
 import { rankName } from '@/lib/v-rank-copy';
 import { rankGuideCopy } from '@/i18n/rank-guide-copy';
+import { ruleHero, ruleSection } from '@/components/team/team-rule-guide.test-support';
+import { teamRuleGuideCopy } from '@/components/team/team-rule-guide-copy';
 import { zh } from '@/i18n/messages/zh';
 import { en } from '@/i18n/messages/en';
 import { vi as vietnamese } from '@/i18n/messages/vi';
@@ -49,7 +51,8 @@ function page(language: keyof typeof dictionaries = 'en') {
   const p = mountEntry(source, {
     '@dcloudio/uni-app': { onHide: () => {}, onShow: (fn: () => void) => shown.push(fn) },
     '@/components/app-chassis.vue': slot, '@/components/sub-page-header.vue': slot,
-    '@/components/team/team-art.vue': slot, '@/components/ui/nx-button.vue': button,
+    '@/components/team/team-rule-hero.vue': ruleHero, '@/components/team/team-rule-section.vue': ruleSection,
+    '@/components/team/team-rule-guide-copy': { teamRuleGuideCopy }, '@/components/ui/nx-button.vue': button,
     '@/components/team/v-badge-icon.vue': { default: Vue.defineComponent({ props: ['v', 'size'], setup: props => () => Vue.h('view', { 'data-rank': props.v }) }) },
     '@/i18n/use-t': { useT: () => Vue.ref(dictionaries[language]) }, '@/store/locale': { useLocaleStore: () => ({ code: language }) },
     '@/store/app': { useApp: () => app },
@@ -62,6 +65,13 @@ function page(language: keyof typeof dictionaries = 'en') {
   }); stop.push(p.unmount);
   return { ...p, app, scope, navTo, navBack, published, ladder, show: async () => { shown.forEach(fn => fn()); await flush(); } };
 }
+// Published rules render as expanded sections behind an in-page directory (design system 04.7).
+const guideShown = (p: ReturnType<typeof page>) => all(p.root).filter(n => n.props['data-rank-how'] === 'published');
+const renderedSections = (p: ReturnType<typeof page>) => all(p.root).filter(n => n.props['data-rule-section']).map(n => n.props['data-rule-section']).sort();
+const openAllFaqs = async (p: ReturnType<typeof page>) => {
+  for (const toggle of p.nodes('team-rule-faq__toggle').filter(n => !n.props['aria-expanded'])) toggle.props.onClick();
+  await flush();
+};
 
 it.each([
   ['zh', false], ['en', false], ['vi', false],
@@ -89,26 +99,29 @@ it.each([
     await flush();
     return event;
   };
-  for (const id of ['overview', 'promotion', 'steps', 'rewards', 'faq']) {
-    const toggle = all(p.root).find(n => n.props['aria-controls'] === `rule-${id}`)!;
+  expect(renderedSections(p)).toEqual([...ids].sort());
+  const faqs = p.nodes('team-rule-faq__toggle');
+  expect(faqs.map(n => n.props['aria-expanded'])).toEqual([true, false, false]);
+  for (const toggle of faqs) {
+    const opened = toggle.props['aria-expanded'];
     expect((await press(toggle, 'Enter')).defaultPrevented).toBe(true);
-    expect(toggle.props['aria-expanded']).toBe(true);
-    expect(p.nodes('how-rule__body')).toHaveLength(1);
-    if (id === 'rewards') {
-      expect(text(p.root)).toContain('Published unlock-cultivation');
-      expect(text(p.root)).toContain('Published protection');
-    }
+    expect(toggle.props['aria-expanded']).toBe(!opened);
+    expect(all(p.root).some(n => n.props.id === toggle.props['aria-controls'])).toBe(!opened);
     expect((await press(toggle, ' ')).defaultPrevented).toBe(true);
-    expect(toggle.props['aria-expanded']).toBe(false);
-    expect(p.nodes('how-rule__body')).toHaveLength(0);
+    expect(toggle.props['aria-expanded']).toBe(opened);
   }
-  const expandAll = p.nodes('how-expand-all')[0];
-  expect((await press(expandAll, ' ')).defaultPrevented).toBe(true);
-  expect(expandAll.props['aria-expanded']).toBe(true);
-  expect(all(p.root).filter(n => n.props['data-rule-section']).map(n => n.props['data-rule-section']).sort()).toEqual([...ids].sort());
-  await press(expandAll, 'Enter');
-  expect(expandAll.props['aria-expanded']).toBe(false);
-  expect(p.nodes('how-rule__body')).toHaveLength(0);
+  const chips = p.nodes('team-rule-hero__jump');
+  expect(chips.map(n => n.props.role)).toEqual(Array(6).fill('link'));
+  for (const id of ['ladder', 'overview', 'promotion', 'steps', 'rewards', 'faq']) expect(all(p.root).some(n => n.props.id === `team-rule-${id}`)).toBe(true);
+  // Directory chips declare role + tabindex only; the platform activation layer handles Enter.
+  expect(chips[2].props.onKeydown).toBeUndefined();
+  if (withDocumentActivation) {
+    const scrolled: string[] = [];
+    vi.stubGlobal('document', { addEventListener: () => {}, removeEventListener: () => {},
+      getElementById: (id: string) => ({ scrollIntoView: () => scrolled.push(id) }) });
+    await press(chips[2], 'Enter');
+    expect(scrolled).toEqual(['team-rule-promotion']);
+  }
   const rankLink = p.nodes('how-rank-link')[0];
   expect((await press(rankLink, ' ')).defaultPrevented).toBe(false);
   expect(p.navTo).not.toHaveBeenCalled();
@@ -124,71 +137,49 @@ it('reloads after account rebinding has finished instead of retaining a stale re
   p.scope.epoch++;
   await flush();
   expect(p.nodes('how-state')).toHaveLength(0);
-  expect(p.nodes('how-rules')).toHaveLength(1);
+  expect(guideShown(p)).toHaveLength(1);
 });
 it('keeps loading, failed reads and retry separate from published rules', async () => {
   const p = page();
   expect(p.nodes('how-state')).toHaveLength(1);
-  expect(p.nodes('how-rules')).toHaveLength(0);
+  expect(guideShown(p)).toHaveLength(0);
   expect(text(p.root)).toContain(en.rankHowItWorks.ctaBack);
   p.published.mockRejectedValueOnce(new Error('offline')); await p.show();
-  expect(p.nodes('how-state')).toHaveLength(1); expect(p.nodes('how-rules')).toHaveLength(0);
+  expect(p.nodes('how-state')).toHaveLength(1); expect(guideShown(p)).toHaveLength(0);
   const retry = all(p.root).find(n => n.props.role === 'button' && n.props['aria-label'] === 'Reload')!;
   retry.props.onClick(); await flush();
-  expect(p.nodes('how-state')).toHaveLength(0); expect(p.nodes('how-rules')).toHaveLength(1);
+  expect(p.nodes('how-state')).toHaveLength(0); expect(guideShown(p)).toHaveLength(1);
   expect(p.published).toHaveBeenCalledTimes(2);
 });
 it('does not show incomplete policies or fabricate missing point thresholds', async () => {
   const p = page();
   p.published.mockResolvedValueOnce({ ...policy(), sections: policy().sections.filter(section => section.id !== 'protection') });
-  await p.show(); expect(p.nodes('how-rules')).toHaveLength(0); expect(p.nodes('how-state')).toHaveLength(1);
+  await p.show(); expect(guideShown(p)).toHaveLength(0); expect(p.nodes('how-state')).toHaveLength(1);
   p.ladder.mockResolvedValueOnce({ ranks: ranks.map(rank => ({ ...rank, selfComputePoints: undefined, teamComputePoints: undefined })), capabilities: { peer: false, genesis: false } });
-  await p.show(); expect(p.nodes('how-rules')).toHaveLength(0); expect(text(p.root)).not.toMatch(/987|45678/);
+  await p.show(); expect(guideShown(p)).toHaveLength(0); expect(text(p.root)).not.toMatch(/987|45678/);
 });
 it.each([
   ['zh', '2,000 算力点', '20,000 算力点'],
   ['en', '2,000 compute pts', '20,000 compute pts'],
   ['vi', '2.000 điểm tính toán', '20.000 điểm tính toán'],
-] as const)('renders the %s dynamic ladder, steps, collapsible rules and navigation', async (locale, own, team) => {
+] as const)('renders the %s dynamic ladder, steps, expanded rules and navigation', async (locale, own, team) => {
   const p = page(locale); await p.show();
   expect(p.nodes('how-state')).toHaveLength(0);
   expect(all(p.root).filter(n => n.props['data-rank'] !== undefined).map(n => n.props['data-rank'])).toEqual([0, 1]);
-  expect(p.nodes('how-rule__body')).toHaveLength(0);
-  expect(text(p.nodes('how-hero')[0])).toContain(rankGuideCopy(locale).headline);
-  expect(text(p.root)).not.toContain('Published policy overview');
-  const toggleRule = async (id: string) => {
-    const toggle = all(p.root).find(n => n.props['aria-controls'] === `rule-${id}`)!;
-    expect(all(p.root).some(n => n.props.id === `rule-${id}`)).toBe(true);
-    toggle.props.onClick(); await flush();
-    return toggle;
-  };
-  await toggleRule('steps');
-  expect(p.nodes('how-step')).toHaveLength(3);
+  expect(text(guideShown(p)[0])).toContain(rankGuideCopy(locale).headline);
+  const guide = rankGuideCopy(locale);
+  expect(p.nodes('team-rule-hero__jump').map(text)).toEqual([guide.ladder, guide.overview, guide.conditions, guide.steps, guide.rewards, guide.faq]);
+  expect(text(p.root)).toContain('Published policy overview');
+  expect(p.nodes('team-rule-item__n').map(text)).toEqual(['1', '2', '3']);
   expect(text(p.root)).toContain(own); expect(text(p.root)).toContain(team); expect(text(p.root)).not.toMatch(/45678|987|\$/);
-  await toggleRule('steps');
-  await toggleRule('promotion');
-  expect(text(p.root)).toContain('Published stepwise');
-  await toggleRule('promotion');
-  for (const [id, expected] of [['overview', 'Published policy overview'], ['rewards', 'Published unlock-cultivation'], ['faq', 'Published faq-members']]) {
-    const toggle = await toggleRule(id);
-    expect(toggle.props['aria-expanded']).toBe(true); expect(text(p.root)).toContain(expected);
-    expect(p.nodes('how-rule__body')).toHaveLength(1);
-    if (id === 'rewards') {
-      expect(text(p.root)).toContain('Published protection');
-      expect(text(p.root)).toContain('Published result-cultivation');
-      expect(text(p.root)).toContain(buildRankHowContent(policy(), ranks, { peer: false, genesis: false }, locale, dictionaries[locale].rank.cond).copy.peerUnavailable);
-    }
-    toggle.props.onClick(); await flush(); expect(p.nodes('how-rule__body')).toHaveLength(0);
-  }
-  p.nodes('how-expand-all')[0].props.onClick(); await flush();
-  expect(p.nodes('how-rule__body')).toHaveLength(5);
-  expect(all(p.root).filter(n => n.props['data-rule-section']).map(n => n.props['data-rule-section']).sort()).toEqual([...ids].sort());
+  for (const expected of ['Published stepwise', 'Published unlock-cultivation', 'Published faq-members', 'Published protection', 'Published result-cultivation']) expect(text(p.root)).toContain(expected);
+  expect(text(p.root)).toContain(buildRankHowContent(policy(), ranks, { peer: false, genesis: false }, locale, dictionaries[locale].rank.cond).copy.peerUnavailable);
+  expect(text(p.root)).not.toContain('Published faq-rank');
+  await openAllFaqs(p);
+  expect(renderedSections(p)).toEqual([...ids].sort());
   for (const section of policy().sections.filter(s => !['unlock-peer', 'result-peer'].includes(s.id) && !s.body.startsWith('{'))) {
     expect(text(p.root)).toContain(section.title); expect(text(p.root)).toContain(section.body);
   }
-  expect(p.nodes('how-expand-all')[0].props['aria-expanded']).toBe(true);
-  p.nodes('how-expand-all')[0].props.onClick(); await flush();
-  expect(p.nodes('how-rule__body')).toHaveLength(0);
   p.nodes('how-rank-link')[0].props.onClick(); expect(p.navTo).toHaveBeenCalledWith('/pages/team/rank');
   const back = all(p.root).find(n => n.props.role === 'button' && n.props['aria-label'] === dictionaries[locale].rankHowItWorks.ctaBack)!;
   back.props.onClick(); expect(p.navBack).toHaveBeenCalledWith('/pages/team/rank');
@@ -205,7 +196,6 @@ it.each(['zh', 'en', 'vi'] as const)('R1-R01 renders the real %s guide steps and
   p.published.mockResolvedValueOnce(pointsPolicy);
   p.ladder.mockResolvedValueOnce({ ranks, capabilities: { peer: false, genesis: false } });
   await p.show();
-  p.nodes('how-expand-all')[0].props.onClick(); await flush();
   expect(p.nodes('how-state')).toHaveLength(0);
   for (const [id, points] of [['requirement-direct', 3000], ['requirement-self', 2000], ['example-self', 2000], ['requirement-team', 20000], ['example-team', 20000]] as const) {
     const section = all(p.root).find(node => node.props['data-rule-section'] === id)!;
@@ -215,16 +205,15 @@ it.each(['zh', 'en', 'vi'] as const)('R1-R01 renders the real %s guide steps and
   expect(JSON.stringify({ pointsPolicy, ranks })).toBe(before);
 });
 
-it('keeps additional published rules and authoritative terminology intact in the full guide', async () => {
+it('keeps additional published rules and authoritative terminology intact in the guide', async () => {
   const p = page();
   const extra = { id: 'settlement-scope', order: 30, title: 'Published scope', body: 'L1–L4: published eligibility.\nRefunds still apply.' };
   const published = { ...policy(), sections: [...policy().sections, extra] };
   const before = JSON.stringify(published);
   p.published.mockResolvedValueOnce(published); await p.show();
-  expect(text(p.root)).not.toContain(extra.body);
-  p.nodes('how-expand-all')[0].props.onClick(); await flush();
   expect(text(p.root)).toContain(extra.title); expect(text(p.root)).toContain(extra.body);
-  expect(p.nodes('how-rule__body')).toHaveLength(6);
+  expect(all(p.root).some(n => n.props.id === 'team-rule-more')).toBe(true);
+  expect(p.nodes('team-rule-hero__jump').map(text).at(-1)).toBe(rankGuideCopy('en').more);
   expect(JSON.stringify(published)).toBe(before);
 });
 
@@ -234,9 +223,8 @@ it('does not invent an example when there are no adjacent published rank thresho
   // The non-example rule explanations do not depend on an example rank.
   p.published.mockResolvedValueOnce({ ...policy(), sections: policy().sections.map(s => ({ ...s, body: `Published ${s.id}` })) });
   await p.show();
-  p.nodes('how-expand-all')[0].props.onClick(); await flush();
   expect(p.nodes('how-state')).toHaveLength(0);
-  expect(p.nodes('how-step')).toHaveLength(0);
+  expect(p.nodes('team-rule-item__n')).toHaveLength(0);
   expect(text(p.root)).toContain('No adjacent rank thresholds');
   expect(text(p.root)).toContain('Published protection');
   expect(text(p.root)).not.toMatch(/\{(?:fromRank|toRank)\}/);

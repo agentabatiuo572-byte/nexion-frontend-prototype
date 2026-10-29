@@ -109,7 +109,7 @@ function retry() {
 .service-state { gap: 12px; padding: 16px 0; color: var(--v5-ink-3); font-size: 13px; line-height: 1.6; }
 .service-state:not(.nx-inline-recovery) { display: flex; flex-direction: column; align-items: flex-start; }
 .service-empty { padding: 32px 0; }
-.service-empty-title { color: var(--v5-ink); font-size: var(--ui-type-section); font-weight: 600; }
+.service-empty-title { color: var(--v5-ink); font-size: var(--ui-type-card-title); font-weight: var(--ui-type-card-title-weight); }
 .service-button { position: relative; min-height: 44px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 22px; color: var(--v5-brand); font-size: 13px; cursor: pointer; }
 .service-button > text { position: relative; }
 .service-avatar, .service-button { --v5-liquid-shadow: inset 0 1px 0 var(--v5-border); }

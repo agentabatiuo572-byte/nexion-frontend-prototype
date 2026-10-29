@@ -12,7 +12,7 @@
 <template>
   <view class="nx-earn-market-board nx-glass-card mx-4 p-4">
     <view class="flex items-center justify-between mb-2 px-0">
-      <text style="font-family: var(--font-v5); font-size: var(--ui-type-section); font-weight: 600; color: var(--v5-ink); letter-spacing: -0.012em">{{ t.market.title }}</text>
+      <text style="font-family: var(--font-v5); font-size: var(--ui-type-card-title); font-weight: var(--ui-type-card-title-weight); color: var(--v5-ink); letter-spacing: -0.012em">{{ t.market.title }}</text>
       <view v-if="!remoteApiEnabled || app.homeTruthStatus === 'ready'" class="flex items-center gap-1" style="font-size: 12px; color: var(--v5-ink-3)">
         <view style="width: 6px; height: 6px; border-radius: 50%; background: var(--v5-brand); box-shadow: 0 0 6px color-mix(in srgb, var(--v5-brand) 70%, transparent)" />
         <text>{{ t.market.liveLabel }}</text>

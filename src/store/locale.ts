@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import { DEFAULT_LOCALE, LOCALES, type LocaleCode } from "@/i18n";
 
 // Ported from Nexion-prototype/lib/store/locale.ts (zustand → Pinia).
@@ -62,6 +62,13 @@ export const useLocaleStore = defineStore("locale", () => {
     persist();
   }
 
+  // #ifdef H5
+  // :lang() rules read the document language, e.g. no negative tracking on Chinese (design system 01 §1.2).
+  // Unit tests import this store in Node (sometimes with a bare document stub), where the H5
+  // condition is not compiled away.
+  const root = typeof document === "undefined" ? undefined : document.documentElement;
+  if (root) watch(code, (value) => { root.lang = value; }, { immediate: true });
+  // #endif
   ensureSystemDetected();
   return { code, userSet, explicitRevision, setLocale, applyServerLocale, ensureSystemDetected };
 });

@@ -53,7 +53,7 @@
         </view>
         <view v-if="policyState === 'error'" role="alert">
           <text class="block">{{ t.directReferral.policyError }}</text>
-          <view role="button" tabindex="0" class="nx-unilevel-focus reward-cta" @click="retryRemote" @keydown.enter.prevent="retryRemote" @keydown.space.prevent="retryRemote"><text>{{ t.network.retry }}</text></view>
+          <view role="button" tabindex="0" class="nx-unilevel-focus nx-card-recovery-action" @click="retryRemote" @keydown.enter.prevent="retryRemote" @keydown.space.prevent="retryRemote"><text>{{ t.network.retry }}</text></view>
         </view>
         <view v-else-if="policyState !== 'ready' && !policy" role="status" aria-busy="true"><text>{{ t.network.projectionLoadingTitle }}</text></view>
         <view v-else-if="policy" style="display: flex; flex-direction: column; gap: 8px">

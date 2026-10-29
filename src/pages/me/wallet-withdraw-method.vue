@@ -72,7 +72,7 @@ function openBank() {
 .method { display: flex; align-items: center; gap: 14px; min-height: 80px; padding: 16px 0; border-bottom: 1px solid var(--v5-border); cursor: pointer; }
 .method-icon { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; color: var(--v5-brand); background: color-mix(in srgb, var(--v5-brand) 10%, transparent); font-size: 26px; }
 .method-copy { flex: 1; min-width: 0; }
-.method-title { display: block; font-size: var(--ui-type-section); font-weight: 600; }
+.method-title { display: block; font-size: var(--ui-type-subheading); font-weight: var(--ui-type-subheading-weight); }
 .method-note { display: block; margin-top: 5px; color: var(--v5-ink-3); font-size: var(--ui-type-list-subtitle); line-height: 1.5; }
 .method[aria-disabled="true"] { opacity: .5; cursor: default; }
 .method:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }

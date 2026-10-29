@@ -458,7 +458,7 @@ const rankHeaderStyle: CSSProperties = {
   alignItems: "center",
   justifyContent: "space-between",
 };
-const rankTitleStyle: CSSProperties = { fontSize: "var(--ui-type-section)", fontWeight: 600, color: "var(--v5-tech-cyan-ink)" };
+const rankTitleStyle: CSSProperties = { fontSize: "var(--ui-type-card-title)", fontWeight: 600, color: "var(--v5-tech-cyan-ink)" };
 const rankArrowStyle: CSSProperties = {
   width: "28px",
   height: "28px",
@@ -536,7 +536,7 @@ function quickIconStyle(color: string): CSSProperties {
     color,
   };
 }
-const quickRowTitleStyle: CSSProperties = { fontSize: "var(--ui-type-section)", fontWeight: 600, lineHeight: 1.2, color: "var(--v5-ink)" };
+const quickRowTitleStyle: CSSProperties = { fontSize: "var(--ui-type-subheading)", fontWeight: "var(--ui-type-subheading-weight)", lineHeight: 1.2, color: "var(--v5-ink)" };
 const quickRowMetaStyle: CSSProperties = {
   marginTop: "4px",
   fontSize: "12px",
@@ -576,7 +576,7 @@ function toolIconStyle(_bg: string): CSSProperties {
     placeItems: "center",
   };
 }
-const toolTitleStyle: CSSProperties = { marginTop: "14px", fontSize: "var(--ui-type-section)", fontWeight: 600, lineHeight: 1.4 };
+const toolTitleStyle: CSSProperties = { marginTop: "14px", fontSize: "var(--ui-type-subheading)", fontWeight: "var(--ui-type-subheading-weight)", lineHeight: 1.4 };
 const toolSubStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginTop: "4px", lineHeight: 1.35 };
 const orbDotStyle: CSSProperties = {
   width: "18px",
@@ -614,7 +614,7 @@ const teamSummaryStatus = computed(() => remoteApiEnabled ? network.remoteStatus
 .team-rank:focus-visible, .team-tool:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 .team-rank__emblem { position: relative; display: grid; place-items: center; flex: none; width: 68px; height: 78px; }
 .team-rank__outline { position: absolute; inset: 0; }
-.team-rank__title { display: block; font: 600 var(--ui-type-section)/1.4 var(--font-v5); }
+.team-rank__title { display: block; font: var(--ui-type-card-title-weight) var(--ui-type-card-title)/1.4 var(--font-v5); }
 .team-rank__level { position: relative; display: block; font: 600 24px/1.3 var(--font-v5); color: var(--v5-brand); }
 .team-rank__status { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px; font: 400 12px/1.4 var(--font-v5); color: var(--v5-ink-3); }
 .team-rank__retry { display: flex; align-items: center; min-height: 44px; padding: 0 6px; color: var(--v5-brand); }

@@ -29,7 +29,7 @@ function open(){if(canOpen.value)emit('open');}
 <style scoped>
 .team-summary { container: team-summary / inline-size; display: flex; flex-direction: column; gap: 6px; padding: var(--ui-space-inline); min-width: 0; color: var(--v5-ink); border: 1px solid var(--v5-border); border-radius: 22px; background: var(--v5-surface); }
 .team-summary__header { display: flex; align-items: center; justify-content: space-between; min-height: 32px; gap: 4px; }
-.team-summary__title { min-width: 0; overflow-wrap: anywhere; font: 600 var(--ui-type-section)/1.4 var(--font-v5); }
+.team-summary__title { min-width: 0; overflow-wrap: anywhere; font: var(--ui-type-card-title-weight) var(--ui-type-card-title)/1.4 var(--font-v5); }
 .team-summary__arrow { flex: none; font-size: 26px; color: var(--v5-ink-3); }
 .team-summary__body { --team-art-size: 56px; display: flex; flex-direction: column; align-items: center; min-height: 78px; gap: 6px; }
 .team-summary__metrics { container-type: inline-size; width: 100%; min-width: 0; text-align: center; }

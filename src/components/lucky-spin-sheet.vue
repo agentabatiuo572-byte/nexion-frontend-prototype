@@ -598,7 +598,7 @@ useDialogA11y(computed(() => spin.open), ".lss-root", onBackdrop);
 }
 .lss-title {
   font-family: var(--font-v5);
-  font-size: var(--ui-type-section);
+  font-size: var(--ui-type-hero-title);
   font-weight: 600;
   color: var(--v5-ink);
   margin-top: 2px;
@@ -826,7 +826,7 @@ useDialogA11y(computed(() => spin.open), ".lss-root", onBackdrop);
 .lss-nospin-title {
   display: block;
   font-family: var(--font-v5);
-  font-size: var(--ui-type-section);
+  font-size: var(--ui-type-card-title);
   font-weight: 600;
   color: var(--v5-ink);
 }

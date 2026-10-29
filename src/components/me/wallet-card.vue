@@ -320,7 +320,7 @@ const usdtFitStyle = computed<CSSProperties>(() => ({
 }
 .nx-wallet-heading-link:active, .nx-wallet-bills:active { opacity: .7; }
 .nx-wallet--compact .nx-wallet-summary { padding: var(--v5-space-4); }
-.nx-wallet--compact .nx-wallet-title { font-size: var(--ui-type-section); }
+.nx-wallet--compact .nx-wallet-title { font-size: var(--ui-type-card-title); }
 .nx-wallet-heading-bills { font-size: var(--v5-type-caption); color: var(--v5-ink-3); white-space: nowrap; }
 .nx-wallet--compact .nx-wallet-total { margin: 20px 0; }
 .nx-wallet--compact .nx-wallet-amount { font-size: min(var(--ui-type-wallet-amount), var(--nx-wallet-fit-size)); line-height: var(--ui-type-wallet-amount-lh); }
