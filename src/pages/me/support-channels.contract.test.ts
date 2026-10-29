@@ -16,37 +16,19 @@ describe("support channel actions", () => {
     expect(source).not.toContain("support-tickets");
   });
 
-  it("opens the advisor chat directly: the current advisor's thread, else a new one", async () => {
+  it("opens the advisor chat directly through the shared route, once per tap", async () => {
     const script = source.match(/const openingChat = ref\(false\);[\s\S]*?\nfunction onChannel\(c: Channel\) \{[\s\S]*?\n\}/)![0];
     const code = ts.transpileModule(script, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
-    const mount = (advisorId: number | null, remote = true) => {
-      const convStore = {
-        advisor: advisorId === null ? null : { currentAdvisorId: advisorId },
-        humanThreads: [{ id: "OLD-1", ownerAgentId: "3" }, { id: "CUR-7", ownerAgentId: "7" }],
-        refresh: vi.fn(async () => {}), refreshAdvisor: vi.fn(async () => {}),
-      };
-      const navTo = vi.fn();
-      const ref = <T>(value: T) => ({ value });
-      const onChannel = new Function("ref", "convStore", "remoteApiEnabled", "navTo", "openExternalSupportChannel", "toast",
-        code + ";return onChannel;")(ref, convStore, remote, navTo, vi.fn(), { info: vi.fn() });
-      return { onChannel, convStore, navTo };
-    };
-    const flush = async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); };
+    const ref = <T>(value: T) => ({ value });
+    const convStore = {}, navTo = vi.fn();
+    const advisorChatRoute = vi.fn(async () => "/pages/support/chat?cid=CUR-7");
+    const onChannel = new Function("ref", "convStore", "advisorChatRoute", "navTo", "openExternalSupportChannel", "toast",
+      code + ";return onChannel;")(ref, convStore, advisorChatRoute, navTo, vi.fn(), { info: vi.fn() });
 
-    const ongoing = mount(7);
-    ongoing.onChannel({ id: "lc" }); ongoing.onChannel({ id: "lc" }); await flush();
-    expect(ongoing.convStore.refresh).toHaveBeenCalledOnce();
-    expect(ongoing.convStore.refreshAdvisor).toHaveBeenCalledOnce();
-    expect(ongoing.navTo.mock.calls).toEqual([["/pages/support/chat?cid=CUR-7"]]);
-
-    for (const advisorId of [9, null]) {
-      const fresh = mount(advisorId); fresh.onChannel({ id: "lc" }); await flush();
-      expect(fresh.navTo.mock.calls).toEqual([["/pages/support/chat?start=advisor"]]);
-    }
-
-    const local = mount(7, false); local.onChannel({ id: "lc" }); await flush();
-    expect(local.convStore.refresh).not.toHaveBeenCalled();
-    expect(local.navTo.mock.calls).toEqual([["/pages/support/chat?cid=CUR-7"]]);
+    onChannel({ id: "lc" }); onChannel({ id: "lc" });
+    for (let i = 0; i < 5; i++) await Promise.resolve();
+    expect(advisorChatRoute).toHaveBeenCalledExactlyOnceWith(convStore);
+    expect(navTo.mock.calls).toEqual([["/pages/support/chat?cid=CUR-7"]]);
   });
 
   it("keeps external launch behavior confined to the explicit mock-only branch", () => {

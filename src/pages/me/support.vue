@@ -58,6 +58,7 @@ import { useT } from "@/i18n/use-t";
 import { toast } from "@/store/ui";
 import { navTo } from "@/lib/route";
 import { useConversations } from "@/store/conversations";
+import { advisorChatRoute } from "@/lib/advisor-chat-route";
 import { openExternalSupportChannel, type ExternalSupportChannel } from "@/lib/external-support-channel";
 import { remoteApiEnabled } from "@/api/runtime";
 
@@ -95,15 +96,11 @@ const channels = computed<Channel[]>(() => {
 const pinned = computed(() => [w.value.pinnedItem1, w.value.pinnedItem2, w.value.pinnedItem3, w.value.pinnedItem4]);
 
 const openingChat = ref(false);
-// Same rule as the inbox start button: continue the current advisor's thread, else open a new one.
 async function openLiveChat() {
   if (openingChat.value) return;
   openingChat.value = true;
   try {
-    if (remoteApiEnabled) await Promise.allSettled([convStore.refresh(), convStore.refreshAdvisor()]);
-    const advisorId = convStore.advisor?.currentAdvisorId;
-    const ongoing = advisorId ? convStore.humanThreads.find(row => row.ownerAgentId === String(advisorId)) : undefined;
-    navTo(ongoing ? "/pages/support/chat?cid=" + encodeURIComponent(ongoing.id) : "/pages/support/chat?start=advisor");
+    navTo(await advisorChatRoute(convStore));
   } finally {
     openingChat.value = false;
   }

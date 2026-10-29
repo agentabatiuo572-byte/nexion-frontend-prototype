@@ -85,6 +85,8 @@ async function detail(dataCenter: string | null, copy = en, status: CanonicalOrd
     if (id === "@/store/locale") return {useLocaleStore:()=>({code:Vue.toRaw(copyRef.value)===zh?"zh":Vue.toRaw(copyRef.value)===en?"en":"vi"})};
     if (id === "@/store/orders") return { useOrders: () => orders, timelineFor };
     if (id === "@/store/app") return { useApp: () => ({}) };
+    if (id === "@/store/conversations") return { useConversations: () => ({}) };
+    if (id === "@/lib/advisor-chat-route") return { advisorChatRoute: async () => "/pages/support/chat?start=advisor" };
     if (id === "@/store/auth") return { useAuth: () => ({ isAuthenticated: true, accountId: "user:server-truth" }) };
     if (id === "@/i18n/use-t") return { useT: () => copyRef };
     if (id === "@/i18n/format") return { dateLocale: () => "en-US", fmt };

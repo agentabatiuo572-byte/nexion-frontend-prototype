@@ -77,6 +77,7 @@ function harness(mode: "dev" | "prod" = "prod") {
     uni: { setClipboardData: (args: typeof clipboard[number]) => clipboard.push(args) },
     t: ref(en), asApiError, orderApi: remote.orderApi, uiConfirm: vi.fn().mockResolvedValue(true),
     navTo: vi.fn(), takeNavigationQuery: () => "", detailNow: ref(Date.now()),
+    conversations: {}, advisorChatRoute: vi.fn().mockResolvedValue("/pages/support/chat?cid=ADVISOR-THREAD"),
     captureAccountScope: account.snapshot, isCurrentAccountScope: account.isCurrent,
     captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision,
     onLoad: (fn: typeof hooks.load[number]) => hooks.load.push(fn),
@@ -276,7 +277,8 @@ describe("real order detail after catalogue runtime invalidation", () => {
 describe("order recovery support navigation", () => {
   const expired = { ...original, canonicalStatus: "expired", orderStatus: "EXPIRED", paymentStatus: "EXPIRED", activationStatus: "WAITING_PAYMENT", paidAt: null, activatedAt: null };
   async function recovery() { const h = harness(); h.requests[0].resolve(list([expired])); await settle(); expect(h.orders.orders[0]?.status).toBe("expired"); return h; }
-  it("copies the actual recovery order before opening the unified existing service list", async () => { const h = await recovery(); h.page.contactOrderSupport(); expect(h.clipboard).toHaveLength(1); expect(h.clipboard[0].data).toBe(original.orderNo); expect(h.navTo).not.toHaveBeenCalled(); h.clipboard[0].success(); expect(h.navTo).toHaveBeenCalledExactlyOnceWith('/pages/me/notifications?section=service'); expect(h.payments).toHaveLength(0); });
+  it("copies the actual recovery order before opening the advisor chat directly", async () => { const h = await recovery(); h.page.contactOrderSupport(); expect(h.clipboard).toHaveLength(1); expect(h.clipboard[0].data).toBe(original.orderNo); expect(h.navTo).not.toHaveBeenCalled(); h.clipboard[0].success(); await settle(); expect(h.navTo).toHaveBeenCalledExactlyOnceWith('/pages/support/chat?cid=ADVISOR-THREAD'); expect(h.payments).toHaveLength(0); });
+  it("drops the chat route when the page leaves while it is being resolved", async () => { const h = await recovery(); h.page.contactOrderSupport(); h.clipboard[0].success(); h.hide(); await settle(); expect(h.navTo).not.toHaveBeenCalled(); });
   it("does not navigate when clipboard copy fails", async () => { const h = await recovery(); h.page.contactOrderSupport(); h.clipboard[0].fail?.(); expect(h.navTo).not.toHaveBeenCalled(); });
   it.each(["a", "b"])("rejects old clipboard success after account epoch binds %s", async account => { const h = await recovery(); h.page.contactOrderSupport(); h.account.bind(account); h.auth.accountId = account; h.orders.bindAccount(account); h.clipboard[0].success(); expect(h.navTo).not.toHaveBeenCalled(); });
   it.each(["hide", "unload"] as const)("rejects old clipboard success after page %s", async event => { const h = await recovery(); h.page.contactOrderSupport(); h[event](); h.clipboard[0].success(); expect(h.navTo).not.toHaveBeenCalled(); });

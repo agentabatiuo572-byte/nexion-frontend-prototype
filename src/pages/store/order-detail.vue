@@ -247,6 +247,8 @@ import { confirm as uiConfirm, toast } from "@/store/ui";
 import { useSetPageHeader } from "@/composables/use-page-header";
 import { navTo, takeNavigationQuery } from "@/lib/route";
 import { orderApi, remoteApiEnabled, apiRuntimeConfig } from "@/api/runtime";
+import { advisorChatRoute } from "@/lib/advisor-chat-route";
+import { useConversations } from "@/store/conversations";
 import { asApiError } from "@/api/errors";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
 import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
@@ -254,6 +256,7 @@ import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevis
 const t = useT();
 const locale = useLocaleStore();
 const orders = useOrders();
+const conversations = useConversations();
 const app = useApp();
 const auth = useAuth();
 
@@ -485,8 +488,10 @@ function goStore() { if(canBuyAgain.value)void navTo('/store'); }
 function contactOrderSupport() {
   if(!needsRecovery.value||!order.value)return;
   const scope=captureDetailScope();
-  uni.setClipboardData({data:order.value.id,success:()=>{
-    if(isCurrentDetailScope(scope))void navTo('/pages/me/notifications?section=service');
+  uni.setClipboardData({data:order.value.id,success:async()=>{
+    if(!isCurrentDetailScope(scope))return;
+    const route=await advisorChatRoute(conversations);
+    if(isCurrentDetailScope(scope))void navTo(route);
   }});
 }
 const STATUS_COLORS: Record<OrderStatus, string> = {
