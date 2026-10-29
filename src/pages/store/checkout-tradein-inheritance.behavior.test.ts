@@ -44,6 +44,8 @@ function checkout(active: boolean) {
     remoteTradeinRecoveryRequired: ref(false), retireRemoteOrderKey: vi.fn(), orderId: ref(null), step: ref("confirm"),
     t: ref(en), toast: { warn: vi.fn(), error: vi.fn() },
   };
+  // The settled-result replay starts at "confirmed"; its timers belong to the page watcher.
+  deps.presentSettledPurchase = vi.fn(() => { deps.step.value = "confirmed"; });
   deps.completeRemoteTradein = handler("completeRemoteTradein", deps);
   deps.resumePendingRemoteTradein = handler("resumePendingRemoteTradein", deps);
   return { ...deps, target, order, quote, submit: handler("submitRemoteOrder", deps) } as Record<string, any>;
@@ -52,7 +54,8 @@ function checkout(active: boolean) {
 it.each([true, false])("the actual RETIRE handler verifies the selected source placement active=%s", async active => {
   const h = checkout(active); await h.submit();
   expect(h.deviceE3Api.submit).toHaveBeenCalledWith(11, "stellarbox-pro", "e3-same-key", h.quote);
-  expect(h.orderId.value).toBe("ORD-1"); expect(h.step.value).toBe("live");
+  expect(h.orderId.value).toBe("ORD-1"); expect(h.step.value).toBe("confirmed");
+  expect(h.presentSettledPurchase).toHaveBeenCalledExactlyOnceWith(false);
   expect(h.orderApi.create).not.toHaveBeenCalled(); expect(h.orderApi.pay).not.toHaveBeenCalled();
   expect(h.tradein.clearApplied).toHaveBeenCalledOnce();
   expect(h.finishCheckoutTradein.mock.invocationCallOrder[0]).toBeLessThan(h.tradein.clearApplied.mock.invocationCallOrder[0]);
@@ -105,7 +108,7 @@ it.each(["order", "fleet"])("reload recovers a known RETIRE result after %s fail
   refreshed.appliedTradeinView.value = null; refreshed.tradein.appliedTradein = null;
   refreshed.product.value = null;
   await refreshed.submit();
-  expect(refreshed.orderId.value).toBe("ORD-1"); expect(refreshed.step.value).toBe("live");
+  expect(refreshed.orderId.value).toBe("ORD-1"); expect(refreshed.step.value).toBe("confirmed");
   expect(refreshed.deviceE3Api.submit).not.toHaveBeenCalled();
   expect(refreshed.refreshPurchaseEligibility).not.toHaveBeenCalled(); expect(refreshed.offerWalletTopup).not.toHaveBeenCalled();
   expect(readCheckoutTradein("a", "stellarbox-pro")).toBeNull();

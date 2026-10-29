@@ -29,22 +29,39 @@ function harness() {
     orderId:ref<string|null>(null),remoteOrderFailure:ref<string|null>(null),voucher:{refreshRemote:vi.fn()},
     retireRemoteOrderKey: vi.fn(), navReplace: vi.fn().mockResolvedValue(true), asApiError,
     resumeServerOrder: vi.fn().mockResolvedValue(true),
+    presentSettledPurchase: vi.fn(), isFirstHardwareOrder: vi.fn(() => false),
   };
   const submit = new Function(...Object.keys(deps), compiled)(...Object.values(deps));
   return { ...deps, submit, order };
 }
 
 describe("real checkout handler outcome recovery", () => {
-  it.each([true,false])("successful payment navigates to the original result and keeps recovery until navigation succeeds=%s",async navigated=>{
-    const h=harness();h.navReplace.mockResolvedValue(navigated);
+  it("successful payment replays the settled result and releases recovery only once the result shows",async()=>{
+    const h=harness();
     h.app.adoptCommerceWallet.mockReturnValue(true);
     h.orderApi.pay.mockResolvedValue({orderNo:'ORDER-1',paymentMethod:'WALLET',walletBalanceAfterUsdt:0});
     await h.submit();
-    expect(h.orderId.value).toBe('ORDER-1');expect(h.step.value).toBe('live');
+    expect(h.orderId.value).toBe('ORDER-1');
     expect(h.orderApi.create).toHaveBeenCalledOnce();expect(h.orderApi.pay).toHaveBeenCalledOnce();
-    expect(h.navReplace).toHaveBeenCalledWith('/pages/store/order-detail?id=ORDER-1');
-    expect(h.forgetCheckoutOrder).toHaveBeenCalledTimes(navigated?1:0);
+    expect(h.navReplace).not.toHaveBeenCalled();
+    expect(h.isFirstHardwareOrder).toHaveBeenCalledWith('ORDER-1');
+    expect(h.presentSettledPurchase).toHaveBeenCalledOnce();
+    const [firstHardware,resultShown]=h.presentSettledPurchase.mock.calls[0] as [boolean,()=>void];
+    expect(firstHardware).toBe(false);
+    expect(h.forgetCheckoutOrder).not.toHaveBeenCalled();
+    resultShown();
+    expect(h.forgetCheckoutOrder).toHaveBeenCalledExactlyOnceWith('a','sku','ORDER-1');
     expect(h.rememberCheckoutOrder).toHaveBeenCalledOnce();
+  });
+  it("celebrates only the first paid hardware order",()=>{
+    const start=source.indexOf("// First paid order and the item is hardware");
+    const body=source.slice(start,source.indexOf("\n}\n",start)+3);
+    const js=ts.transpileModule(body+"\nreturn isFirstHardwareOrder;",{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
+    const product=ref({productType:'DEVICE'}),orders={orders:[{id:'NEW',paidAt:2},{id:'UNPAID',paidAt:undefined}]};
+    const first=new Function('product','orders',js)(product,orders);
+    expect(first('NEW')).toBe(true);
+    orders.orders.push({id:'OLD',paidAt:1});expect(first('NEW')).toBe(false);
+    orders.orders.pop();product.value={productType:'SHARE'};expect(first('NEW')).toBe(false);
   });
   it("never coalesces recovery across account generations or products", async () => {
     const body = source.slice(source.indexOf("let serverOrderRecovery:"), source.indexOf("function onKeyboardActivate("));

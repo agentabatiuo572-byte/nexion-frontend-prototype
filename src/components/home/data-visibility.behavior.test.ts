@@ -92,6 +92,7 @@ function fixture(copy = zh) {
     '@/store/free-trial': { useFreeTrial: () => ({ refreshRemote: vi.fn() }) },
     '@/composables/use-capacity-explainer': { useCapacityExplainer: () => ({ open }) },
     '@/composables/use-tab-page-lifecycle': { onShow() {}, onHide() {}, useVisibleInterval() {} },
+    '@/composables/use-intro-motion': { useIntroMotion: () => Vue.ref(false) },
     '@/lib/device-slot-policy': {}, '@/lib/account-scope': {}, '@/lib/day-one-page-observation': {},
     '@/lib/task-progress': progress, '@/lib/server-deadline-clock': deadline, '@/lib/task-result-confirmation': confirmation,
     '@/lib/device-copy': { deviceName: () => 'Device' }, '@/lib/hashpower': { deviceOnlineState: () => 'online' },

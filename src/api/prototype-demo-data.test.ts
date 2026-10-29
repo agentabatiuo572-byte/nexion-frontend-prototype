@@ -3,7 +3,7 @@ import { createStorefrontActivityApi } from './storefront-activity-api';
 import { createEarnConfigApi } from './earn-config-api';
 import { parseAppHomeOverview } from './app-home-api';
 import { createDirectReferralApi } from "./direct-referral-api";
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { ApiClient } from './api-client';
 import { parseProductCatalogPayload } from './product-catalog-contract';
 import { createQuestApi } from './quest-api';
@@ -84,9 +84,22 @@ describe('prototype account readbacks', () => {
   it('provides settled micro-amount examples and a truly empty ledger', () => {
     const d = demo();
     const data = parseAppHomeOverview(d.get('/api/app/home/overview'));
-    expect(data.earningsLedger.map(row => row.rewardUsdt)).toEqual([2.34, .00032, .00005]);
+    expect(data.earningsLedger.slice(-3).map(row => row.rewardUsdt)).toEqual([2.34, .00032, .00005]);
+    expect(data.earningsLedger.slice(0, 6).every(row => row.id.startsWith('DEMO-SETTLE-'))).toBe(true);
     d.state.dataState = 'empty';
     expect(parseAppHomeOverview(d.get('/api/app/home/overview')).earningsLedger).toEqual([]);
+  });
+  it('settles a new earning every 20 seconds for the live feed', () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-10-30T00:00:05Z'));
+      const d = demo(), ids = () => parseAppHomeOverview(d.get('/api/app/home/overview')).earningsLedger.map(row => row.id);
+      const before = ids();
+      vi.advanceTimersByTime(20_000);
+      const after = ids();
+      expect(after.filter(id => !before.includes(id))).toHaveLength(1);
+      expect(after[0]).not.toBe(before[0]);
+    } finally { vi.useRealTimers(); }
   });
   it('keeps the proof streak consistent with the check-in source', async () => {
     for (const patch of [{}, { checkedIn: true }, { streakState: 'broken' }, { streakState: 'broken', saverUsed: true }, { streakState: 'broken', saverUsed: true, checkedIn: true }]) {

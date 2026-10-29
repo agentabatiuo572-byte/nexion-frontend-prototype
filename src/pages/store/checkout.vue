@@ -170,7 +170,8 @@
               </view>
               <text class="block" :style="centerTitleStyle" style="margin-top: 12px">{{ t.store.firstOrderTitle }}</text>
               <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-2); line-height: 1.4">{{ t.store.firstOrderBody }}</text>
-              <view class="inline-flex items-center justify-center" style="margin-top: 8px; gap: 4px; font-size: 12px; color: var(--v5-brand)">
+              <!-- No server grants a first-hardware reward, so the achievement line stays in the local demo only. -->
+              <view v-if="!remoteApiEnabled" class="inline-flex items-center justify-center" style="margin-top: 8px; gap: 4px; font-size: 12px; color: var(--v5-brand)">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.34 12 22l2.06-7.66L22 12l-7.94-2.34L12 2 9.94 9.66 2 12z" /></svg>
                 <text>{{ t.store.firstOrderAchievement }}</text>
               </view>
@@ -1072,6 +1073,23 @@ const remoteTradeinRecoveryBusy = ref(false);
 // Snapshot "was empty before this checkout" BEFORE createOrder increments it.
 const wasEmptyBefore = ref(orders.orders.length === 0);
 const firstOrderCelebrating = ref(false);
+// Remote purchases settle in one server transaction. Once the receipt and order
+// readback prove payment and activation, replay the original confirmed →
+// activating → live presentation (PRD §7.3.1/§7.3.4). Time only paces a result
+// that is already settled; it never decides one.
+const settledResultReplay = ref(false);
+let forgetSettledOrder: (() => void) | null = null;
+function presentSettledPurchase(firstHardwareOrder: boolean, onResultShown: (() => void) | null = null) {
+  firstOrderCelebrating.value = firstHardwareOrder;
+  forgetSettledOrder = onResultShown;
+  settledResultReplay.value = true;
+  step.value = "confirmed";
+}
+// First paid order and the item is hardware (Cloud Share is not a device).
+function isFirstHardwareOrder(orderNo: string): boolean {
+  return product.value?.productType !== "SHARE"
+    && !orders.orders.some((order) => order.id !== orderNo && order.paidAt != null);
+}
 
 function restoreReceiptRecovery() {
   const accountKey = orders.currentAccountKey();
@@ -1666,7 +1684,7 @@ async function completeRemoteTradein(recovery: CheckoutTradeinRecovery, submissi
               && tradein.appliedTradein.canonicalQuote.sourceRowVersion === recovery.tradeinQuote.sourceRowVersion) tradein.clearApplied();
           remoteTradeinRecoveryRequired.value = false;
           remoteTradeinRecoveryError.value = false;
-          step.value = "live";
+          presentSettledPurchase(false);
         },
       });
 }
@@ -1860,13 +1878,10 @@ async function submitRemoteOrder(): Promise<void> {
     // order readback. A temporary projection outage must not re-submit payment.
     void app.refreshRemoteFleet(walletReceiptScope);
     retireRemoteOrderKey();
-    step.value = "live";
-    // Keep the durable original-order pointer until the result route is visible.
-    // If navigation fails, a reload still recovers this purchase before quoting.
+    // Keep the durable original-order pointer until the result card is visible.
+    // A reload during the replay still recovers this purchase before quoting.
     const accountKey = orders.currentAccountKey();
-    if (await navReplace(`/pages/store/order-detail?id=${encodeURIComponent(created.orderNo)}`)) {
-      forgetCheckoutOrder(accountKey, p.id, created.orderNo);
-    }
+    presentSettledPurchase(isFirstHardwareOrder(created.orderNo), () => forgetCheckoutOrder(accountKey, p.id, created.orderNo));
   } catch (error) {
     if (!scopeIsCurrent()) return;
     if (recoveryOrderNo) {
@@ -1967,6 +1982,15 @@ watch(step, async (s) => {
   // 两个地址同时催付、落单后旧票成孤儿继续拉人二次付款(独立审计 P0 族)。单一咽喉,
   // 不在十来处回弹点各写一遍。
   if ((s === "select-payment" || s === "confirm") && activeSession.value) dropActiveSession();
+  if (settledResultReplay.value && (s === "confirmed" || s === "activating")) {
+    advanceTimer = setTimeout(() => { step.value = s === "confirmed" ? "activating" : "live"; }, s === "confirmed" ? 1500 : 3000);
+    return;
+  }
+  if (s === "live" && settledResultReplay.value) {
+    settledResultReplay.value = false;
+    forgetSettledOrder?.();
+    forgetSettledOrder = null;
+  }
   // Remote wallet payment is completed synchronously by the Java transaction;
   // only the local mock keeps the guided timer demonstration below.
   if (remoteApiEnabled && (s === "awaiting" || s === "confirmed" || s === "activating")) return;

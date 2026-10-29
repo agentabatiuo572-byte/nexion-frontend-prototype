@@ -29,7 +29,8 @@
         :key="r.k"
         data-home-live-activity-row="true"
         class="grid items-center gap-2.5 py-2"
-        :style="{ gridTemplateColumns: whoColTemplate, minHeight: '56px', rowGap: '4px', borderBottom: i < displayActivityRows.length - 1 ? '1px solid var(--v5-border)' : 'none', animation: i === 0 ? 'v5-ledger-fade 0.5s ease' : 'none' }"
+        :class="{ 'nx-home-feed-row--entering': r.k === enteringId }"
+        :style="{ gridTemplateColumns: whoColTemplate, minHeight: '56px', rowGap: '4px', borderBottom: i < displayActivityRows.length - 1 ? '1px solid var(--v5-border)' : 'none' }"
       >
         <text data-home-live-time="true" class="tabular-nums" style="grid-column: 1 / -1; min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 18px; font-size: 12px; color: var(--v5-ink-2)">{{ r.ts }}</text>
         <text class="text-center" :style="whoBadgeStyle(r)">{{ whoLabel(r.who) }}</text>
@@ -52,7 +53,8 @@
           :key="it.id"
           data-home-live-earnings-row="true"
           class="px-0.5 py-2 grid items-center gap-2"
-          :style="{ gridTemplateColumns: '5px auto minmax(0, 1fr) auto', minHeight: '56px', rowGap: '4px', fontSize: '12px', borderBottom: i < displayEarningsItems.length - 1 ? '1px solid var(--v5-border)' : 'none', animation: i === 0 ? 'v5-ledger-fade 0.5s ease' : 'none' }"
+          :class="{ 'nx-home-feed-row--entering': it.id === enteringId }"
+          :style="{ gridTemplateColumns: '5px auto minmax(0, 1fr) auto', minHeight: '56px', rowGap: '4px', fontSize: '12px', borderBottom: i < displayEarningsItems.length - 1 ? '1px solid var(--v5-border)' : 'none' }"
         >
           <text data-home-live-earnings-time="true" class="tabular-nums" style="grid-column: 1 / -1; min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 18px; color: var(--v5-ink-2)">{{ it.ts }}</text>
           <view style="width: 5px; height: 5px; border-radius: 50%; background: var(--v5-success); flex-shrink: 0" />
@@ -80,12 +82,14 @@
 <script setup lang="ts">
 import { formatUsd } from "@/lib/usd-display";
 import { navTo } from "@/lib/route";
-import { computed, nextTick, ref, type CSSProperties } from "vue";
+import { computed, nextTick, ref, watch, type CSSProperties } from "vue";
 import GlassSegments from "@/components/glass-segments.vue";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
 import { useApp } from "@/store/app";
 import { useDataVisibility } from "@/store/data-visibility";
+import { useIntroMotion } from "@/composables/use-intro-motion";
+import { useVisibleInterval } from "@/composables/use-tab-page-lifecycle";
 import { buildCanonicalHomeFeed, formatHomeFeedTime } from "./home-live-feed";
 
 interface FeedRow {
@@ -109,7 +113,37 @@ const app = useApp();
 const visibility = useDataVisibility();
 const tab = ref<"activity" | "earnings">("activity");
 
-const canonicalFeed = computed(() => buildCanonicalHomeFeed(app.homeTruth?.earningsLedger ?? []));
+const FEED_ROWS = 6;
+// Read past the visible rows so held new settlements never shorten the list.
+const canonicalFeed = computed(() => buildCanonicalHomeFeed(app.homeTruth?.earningsLedger ?? [], FEED_ROWS * 2));
+
+// New settlements arrive in batches with each ledger refresh. Hold them and
+// reveal one at a time at the original ticker pace, each sliding in at the top
+// and pushing the list down. The first snapshot (or a different account's) and
+// reduced motion show everything at once. Only real ledger rows are shown.
+const REVEAL_INTERVAL_MS = 3200;
+const motionAllowed = useIntroMotion();
+const heldIds = ref<string[]>([]);
+const enteringId = ref<string | null>(null);
+let knownIds = new Set<string>();
+function revealNext() {
+  const next = heldIds.value.at(-1);
+  if (next === undefined) return;
+  heldIds.value = heldIds.value.slice(0, -1);
+  enteringId.value = next;
+}
+useVisibleInterval(revealNext, REVEAL_INTERVAL_MS);
+watch(() => canonicalFeed.value.activityRows.map((row) => row.id), (ids) => {
+  if (ids.length === 0) return;
+  const fresh = ids.filter((id) => !knownIds.has(id));
+  const continuing = ids.length > fresh.length;
+  knownIds = new Set(ids);
+  // Newest first; drop held rows that left the ledger.
+  const held = [...fresh, ...heldIds.value.filter((id) => ids.includes(id) && !fresh.includes(id))];
+  heldIds.value = continuing && motionAllowed.value ? held : [];
+}, { immediate: true });
+const visibleLedgerIds = computed(() => canonicalFeed.value.activityRows
+  .map((row) => row.id).filter((id) => !heldIds.value.includes(id)).slice(0, FEED_ROWS));
 
 const tabOrder = ["activity", "earnings"] as const;
 const feedTabOptions = computed(() => [
@@ -118,7 +152,7 @@ const feedTabOptions = computed(() => [
 ]);
 
 const displayActivityRows = computed<FeedRow[]>(() => {
-  return canonicalFeed.value.activityRows.map((row) => ({
+  return canonicalFeed.value.activityRows.filter((row) => visibleLedgerIds.value.includes(row.id)).map((row) => ({
     k: row.id,
     lvl: "ok",
     who: "You",
@@ -128,7 +162,7 @@ const displayActivityRows = computed<FeedRow[]>(() => {
   }));
 });
 const displayEarningsItems = computed<EarningsItem[]>(() => {
-  return canonicalFeed.value.earningsItems.map((row) => ({
+  return canonicalFeed.value.earningsItems.filter((row) => visibleLedgerIds.value.includes(row.id)).map((row) => ({
     id: row.id,
     name: row.model,
     product: row.client,
@@ -184,6 +218,14 @@ function goEarnings() {
 <style scoped>
 .nx-home-live-feed { padding: 12px 16px 6px; border-radius: var(--ui-radius-surface); background: var(--v5-surface); }
 .nx-home-feed-heading { min-height:44px; }
+/* A newly settled row opens from zero height at the top, pushing older rows down. */
+.nx-home-feed-row--entering { overflow: hidden; animation: nx-home-feed-row-in .6s cubic-bezier(.2,.8,.2,1); }
+@keyframes nx-home-feed-row-in {
+  from { max-height: 0; min-height: 0; padding-top: 0; padding-bottom: 0; opacity: 0; background-color: var(--v5-brand-soft); }
+  60% { opacity: 1; }
+  to { max-height: 80px; opacity: 1; background-color: transparent; }
+}
+@media (prefers-reduced-motion: reduce) { .nx-home-feed-row--entering { animation: none; } }
 .nx-home-feed-mark { display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:color-mix(in srgb,var(--v5-brand) 10%,transparent);color:var(--v5-brand); }
 .nx-home-feed-tabs { flex:0 0 90px;width:90px;height:26px;min-width:0;padding:2px;gap:1px; }
 .nx-home-feed-tabs :deep(.nx-glass-option) { min-height:22px;padding:0; }

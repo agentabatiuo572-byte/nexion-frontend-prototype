@@ -23,7 +23,9 @@ test("home earnings and live feed have a server-backed remote branch", () => {
   assert.match(earnings, /remoteApiEnabled/);
   assert.match(earnings, /app\.homeTruth\?\.earningsLedger/);
   assert.match(earnings, /app\.refreshHomeTruth\(\)/);
-  assert.match(feed, /buildCanonicalHomeFeed\(app\.homeTruth\?\.earningsLedger \?\? \[\]\)/);
+  assert.match(feed, /buildCanonicalHomeFeed\(app\.homeTruth\?\.earningsLedger \?\? \[\][,)]/);
+  // The reveal animation paces real ledger rows; it never invents feed rows.
+  assert.doesNotMatch(feed, /Math\.random|FEED_POOL/);
   assert.match(feed, /app\.refreshHomeTruth\(\)/);
   const app = read("src/store/app.ts");
   assert.match(app, /createRemoteAccountEpoch/);

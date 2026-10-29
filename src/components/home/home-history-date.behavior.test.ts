@@ -40,6 +40,7 @@ function page(source: string, language: keyof typeof dictionaries) {
     "@/i18n/use-t": { useT: () => Vue.computed(() => dictionaries[locale.code]) }, "@/store/locale": { useLocaleStore: () => locale },
     "@/store/app": { useApp: () => app }, "@/api/runtime": { remoteApiEnabled: true },
     "@/lib/route": { navTo: vi.fn() }, "@/components/glass-segments.vue": { default: segments },
+    "@/composables/use-intro-motion": { useIntroMotion: () => Vue.ref(false) },
   };
   const exports = {} as { default: { setup: (props: object, context: object) => any } };
   new Function("require", "exports", code)((id: string) => imports[id], exports);

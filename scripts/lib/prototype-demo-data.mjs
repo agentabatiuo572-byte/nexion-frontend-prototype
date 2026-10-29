@@ -143,7 +143,10 @@ export function demoFixture(url,locale,state,request) {
   const risk=riskDemo(url,locale,state,request);if(risk!==undefined)return risk;
   if(pathname==='/api/app/home/overview') {
     const overview=structuredClone(base());
-    overview.earningsLedger=empty?[]:[['DEMO-EARNING-1','Demo Studio','SDXL',2.34],['DEMO-EARNING-2','Demo Lab','Llama',.00032],['DEMO-EARNING-3','Demo Lab','Whisper',.00005]].map(([id,client,model,rewardUsdt],index)=>({id,client,model,rewardUsdt,completedAt:new Date(now-(index+1)*600000).toISOString(),synthetic:false}));
+    // A settlement lands every 20s, so each Home refresh brings new rows for the live feed to reveal.
+    const settlementPool=[['Pocket Studios','SDXL Turbo',.0031],['Helix Labs','Llama 70B',.0024],['Echo Earbuds','Whisper tiny',.00009],['Mosaic','Flux dev',.0042],['Vector Foundry','MobileBERT',.00007],['Atrium AI','Qwen 7B',.0018]],settlementSlot=Math.floor(now/20000);
+    const recentSettlements=Array.from({length:12},(_,i)=>{const slot=settlementSlot-i,[client,model,rewardUsdt]=settlementPool[slot%settlementPool.length];return {id:'DEMO-SETTLE-'+slot,client,model,rewardUsdt,completedAt:new Date(slot*20000).toISOString(),synthetic:false};});
+    overview.earningsLedger=empty?[]:[...recentSettlements,...[['DEMO-EARNING-1','Demo Studio','SDXL',2.34],['DEMO-EARNING-2','Demo Lab','Llama',.00032],['DEMO-EARNING-3','Demo Lab','Whisper',.00005]].map(([id,client,model,rewardUsdt],index)=>({id,client,model,rewardUsdt,completedAt:new Date(now-(index+1)*600000).toISOString(),synthetic:false}))];
     if(!empty){
       overview.marketBoard={workloads:[
         {code:'IG',name:'SDXL Turbo',unit:null,price:.003,deltaPct:4.2,sparkline:[.4,.5,.42,.55,.6,.7,.72],flagshipDeltaPct:null},
