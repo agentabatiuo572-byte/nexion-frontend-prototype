@@ -109,16 +109,16 @@ describe("store detail canonical read lifecycle", () => {
     const sticky = { show: vi.fn(), hide: vi.fn() };
     new Function(
       "watch", "stickyPageVisible", "catalogStatus", "product", "isShare", "isLocked",
-      "purchaseUnavailable", "stockUnavailable", "priceText", "dailyEarnText", "dailyYieldText", "paybackLabel",
+      "purchaseUnavailable", "stockUnavailable", "priceText", "dailyEarnText", "dailyYieldText",
       "purchaseGate", "eligibility", "purchaseEligibilityMessage", "sticky", "stickyOwner",
-      "remoteApiEnabled", "t", "paybackDays", "fmt", "purchaseEligibilityUnlockHref",
+      "remoteApiEnabled", "t", "fmt", "purchaseEligibilityUnlockHref",
       "activityId", "promotionStatus", "promotionAvailable", "activity", "qty", "voucherContext", "dec", "inc",
       ctaCode,
     )(
       watch, ref(true), catalogStatus, product, ref(false), ref(false), ref(false), ref(false),
-      ref("1199"), ref("13"), ref("13.00"), ref("93"), ref({ blocked: false }), ref({ status: "ready", eligible: true }),
+      ref("1199"), ref("13"), ref("13.00"), ref({ blocked: false }), ref({ status: "ready", eligible: true }),
       ref(""), sticky, Symbol("detail"), true, ref(en),
-      ref(null), vi.fn(), vi.fn(),
+      vi.fn(), vi.fn(),
       ref(""), ref("idle"), ref(false), ref(null), ref(1), ref({}), vi.fn(), vi.fn(),
     );
     expect(sticky.show).toHaveBeenCalledOnce();
@@ -331,7 +331,7 @@ const stickyEnd = page.indexOf("// ─── styles", stickyStart);
 if (stickyStart < 0 || stickyEnd < stickyStart) throw new Error("store detail sticky lifecycle source is required");
 const runSticky = new Function("dependencies", ts.transpileModule(`
   const { ref, watch, useStickyCTA, catalogStatus, product, isShare, isLocked,
-    purchaseUnavailable, stockUnavailable, priceText, dailyEarnText, dailyYieldText, paybackLabel,
+    purchaseUnavailable, stockUnavailable, priceText, dailyEarnText, dailyYieldText,
     purchaseGate, eligibility, purchaseEligibilityMessage, remoteApiEnabled, t,
     purchaseEligibilityUnlockHref, activityId, promotionStatus, promotionAvailable,
     activity, qty, voucherContext, dec, inc, promotionCheckoutHref, onShow, onHide, onUnload, onActivated,
@@ -375,7 +375,6 @@ async function stickyNavigation() {
         priceText: computed(() => catalog.value.price.toLocaleString()),
         dailyEarnText: computed(() => catalog.value.dailyEarn.toFixed(2)),
         dailyYieldText: computed(() => (catalog.value.dailyEarn * qty.value).toFixed(2)),
-        paybackLabel: computed(() => translations.value.store.detPaybackUnavailable),
         purchaseGate: ref({ blocked: false }), eligibility: ref({ status: "ready", eligible: true }),
         purchaseEligibilityMessage: ref(""), remoteApiEnabled: true, t: translations,
         purchaseEligibilityUnlockHref: vi.fn(), activityId, promotionStatus: ref("ready"), promotionAvailable: ref(true),

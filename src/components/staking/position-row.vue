@@ -11,7 +11,7 @@
     <view class="flex items-baseline justify-between flex-wrap" style="gap: 8px">
       <text class="block tabular-nums" :style="principalStyle">${{ amountText }}</text>
       <view class="flex items-center flex-wrap" style="gap: 6px">
-        <text :style="termChipStyle">{{ copy.days(p.termDays) }} · {{ apyPct }}% APY</text>
+        <text :style="termChipStyle">{{ copy.days(p.termDays) }} · {{ apyPct }}%</text>
         <text v-if="isClaimed" :style="statusChipStyle('var(--v5-success)')">{{ t.stakingV3.position.claimed }}</text>
         <text v-if="isEarlyOut" :style="statusChipStyle('var(--v5-brand-2)')">{{ t.stakingV3.position.earlyWithdrew }}</text>
         <text v-if="isMatured && !isClaimed && !isEarlyOut" :style="maturedChipStyle">{{ t.stakingV3.position.matured }}</text>

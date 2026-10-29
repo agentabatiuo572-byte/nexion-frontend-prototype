@@ -519,7 +519,7 @@ async function returnHome() {
 
 const routeLandingContracts = {
   "/pages/staking/staking": { text: /质押方案|我的质押/ },
-  "/pages/genesis/genesis": { text: /创世 OG 席位|持有人权益/ },
+  "/pages/genesis/genesis": { text: /限量创世席位|持有权益/ },
   "/pages/missions/missions": { text: /全部任务|首日任务/ },
   "/pages/daily/daily": { text: /连续天数|每日签到/ },
   "/pages/earn/earn": { text: /算力收益|AI 任务池升级中/ },

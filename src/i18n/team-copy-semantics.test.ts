@@ -57,8 +57,6 @@ describe('team copy distinguishes reward mechanisms', () => {
     expect(messages.promotion.leaveBody).not.toMatch(/限时|limited time|có thời hạn/i);
     expect(messages.promotion.cancelOrder).toMatch(/取消订单|Cancel order|Hủy đơn hàng/);
     expect(messages.store.coCancel).toMatch(/取消|Cancel|Hủy/);
-    expect(messages.store.coEstPayback).toContain('{roi}%');
-    expect(messages.store.coEstPayback).toContain('{days}');
   });
 
   it('provides every approved compact-card label with locale fallback', () => {

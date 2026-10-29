@@ -268,7 +268,7 @@ const config = useConfig();
 onShow(() => { void config.load(); });
 const genesisPoints = useGenesisPoints();
 
-const perkKeys = ["a", "b", "c", "d", "e", "f"] as const;
+const perkKeys = ["a", "c", "f"] as const;
 
 const owned = computed(() => genesis.myOwned);
 const hasNodes = computed(() => (!remoteApiEnabled || genesis.remoteAccountReadState === "ready") && owned.value > 0);

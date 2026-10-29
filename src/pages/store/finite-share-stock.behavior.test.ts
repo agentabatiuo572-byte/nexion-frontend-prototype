@@ -120,7 +120,6 @@ async function mountPair(product: Product,promotion?:PublicPromotion) {
     "@/store/product-availability": { isProductAvailable },
     "@/composables/use-page-header": { useSetPageHeader: () => {} },
     "@/store/sticky-cta-bar": { useStickyCTA: () => ({ activate: () => {}, show: (value: Record<string, unknown>) => { cta.value = value; }, hide: () => { cta.value = null; } }) },
-    "@/lib/product-payback": { estimatePaybackDays: () => null },
     "@/mock/phone-tiers": { getPhoneTierYields: () => [] },
     "@/lib/store-upgrade": { activePhoneDailyRate: () => 0, storeYieldMultiplier: () => 0 },
     "@/store/app": { useApp: () => Vue.reactive({ accountKey: "user:7101", accountBindingEpoch: 0, remoteFleetHasSnapshot: false }) },

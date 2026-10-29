@@ -50,9 +50,9 @@ export function teamGuidesDemo(url, locale, request, read) {
         'When your friends\u2019 devices produce earnings, the platform pays you an extra reward without reducing their earnings.',
         'Khi thiết bị của bạn bè tạo thu nhập, nền tảng chi trả thêm cho bạn một khoản thưởng mà không làm giảm thu nhập của họ.')),
       block('payout', 'text', text('到账', 'Payouts', 'Chi trả'), text(
-        '奖励以 USDT 和 UVT 发放，待到账期结束后可以提现。',
-        'Rewards are paid in USDT and UVT and can be withdrawn after the pending period.',
-        'Thưởng được chi trả bằng USDT và UVT, có thể rút sau thời gian chờ.')),
+        '奖励以 USDT 和 UVT 发放，到账后即可提现。',
+        'Rewards are paid in USDT and UVT and can be withdrawn once credited.',
+        'Thưởng được chi trả bằng USDT và UVT, có thể rút sau khi được ghi nhận.')),
       block('note', 'callout', text('需要了解', 'Good to know', 'Lưu ý'), text(
         '金额以奖励明细为准；规则如有调整，以平台最新公布为准。',
         'Amounts follow your reward history. If the rules change, the latest published rules apply.',
@@ -61,18 +61,18 @@ export function teamGuidesDemo(url, locale, request, read) {
   } else if (key === 'team-binary-how') {
     blocks = [
       block('hero', 'text', text('团队平衡奖励', 'Team Balance Reward', 'Thưởng cân bằng nhóm'), text(
-        '你的团队成员分在 A、B 两组。两组都有订单时，按较小一组的订单额发放奖励——两组越均衡，奖励越多。',
-        'Your team is split into Group A and Group B. When both groups have orders, you earn a reward based on the smaller group\u2019s order volume. The more balanced the groups, the more you earn.',
-        'Thành viên trong nhóm của bạn được chia thành nhóm A và nhóm B. Khi cả hai nhóm đều có đơn hàng, bạn nhận thưởng tính theo doanh số của nhóm nhỏ hơn. Hai nhóm càng cân bằng, thưởng càng nhiều.')),
+        '你的团队成员分在 A、B 两组。两组都有订单时，按较小一组的订单额发放奖励。',
+        'Your team is split into Group A and Group B. When both groups have orders, you earn a reward based on the smaller group\u2019s order volume.',
+        'Thành viên trong nhóm của bạn được chia thành nhóm A và nhóm B. Khi cả hai nhóm đều có đơn hàng, bạn nhận thưởng tính theo doanh số của nhóm nhỏ hơn.')),
       block('how-to-earn', 'list', text('怎么拿到奖励', 'How to earn', 'Cách nhận thưởng'), text('三步拿到奖励：', 'Three steps to earn:', 'Ba bước để nhận thưởng:'), [
         text('邀请好友加入，他们和他们邀请的人会分到 A 组或 B 组。', 'Invite friends. They and the people they invite are placed in Group A or Group B.', 'Mời bạn bè tham gia. Bạn bè và những người họ mời sẽ được xếp vào nhóm A hoặc nhóm B.'),
         text('两组订单额都达到发放条件后开始计算。', 'Rewards start once both groups reach the required order volume.', 'Thưởng bắt đầu được tính khi doanh số của cả hai nhóm đạt mức yêu cầu.'),
         text('比例和发放周期以奖励页显示为准。', 'The current rate and payout schedule are shown on the reward page.', 'Tỷ lệ và kỳ chi trả hiện hành được hiển thị trên trang thưởng.'),
       ]),
       block('earn-more', 'text', text('怎样拿更多', 'Earn more', 'Cách tăng thưởng'), text(
-        '让两组一起成长。较小一组决定奖励，它的订单额增加，奖励随之增加。',
-        'Keep both groups growing. The smaller group sets your reward, so as its volume grows, so does your reward.',
-        'Hãy duy trì đà tăng trưởng của cả hai nhóm. Nhóm nhỏ hơn quyết định mức thưởng, vì vậy khi doanh số nhóm này tăng, thưởng của bạn cũng tăng theo.')),
+        '较小一组的订单额决定奖励，让两组一起成长。',
+        'The smaller group\u2019s order volume sets your reward, so keep both groups growing.',
+        'Doanh số của nhóm nhỏ hơn quyết định mức thưởng, vì vậy hãy giúp cả hai nhóm cùng phát triển.')),
       block('note', 'callout', text('需要了解', 'Good to know', 'Lưu ý'), text(
         '页面显示的是预计金额，实际以发放记录为准。规则如有调整，以平台最新公布为准。',
         'Amounts shown are estimates; actual rewards follow your payout records. If the rules change, the latest published rules apply.',
@@ -105,7 +105,7 @@ export function teamGuidesDemo(url, locale, request, read) {
       slot('example-total', ['合计', 'Total', 'Tổng cộng'], ['不同币种和状态不直接相加。', 'Different currencies and statuses aren\u2019t added together.', 'Không cộng chung các loại tiền và trạng thái khác nhau.']),
       slot('example-note', ['说明', 'Note', 'Lưu ý'], ['算例仅作说明，实际以奖励记录为准。', 'The example is for illustration only; actual amounts follow your reward records.', 'Ví dụ chỉ để minh họa; số tiền thực tế theo lịch sử thưởng.']),
       slot('faq', ['常见问题', 'Common questions', 'Câu hỏi thường gặp'], ['关于奖励到账的常见疑问。', 'Questions about receiving rewards.', 'Các thắc mắc thường gặp về việc nhận thưởng.']),
-      slot('faq-order', ['为什么没看到奖励？', 'Why don\u2019t I see a reward?', 'Vì sao chưa thấy thưởng?'], ['奖励在订单确认后生成，可能还在待到账期，可在奖励明细中查看对应记录。', 'Rewards are created after an order is confirmed and may still be pending. Check the record in your reward history.', 'Thưởng được tạo sau khi đơn hàng được xác nhận và có thể vẫn đang chờ ghi nhận. Vui lòng xem bản ghi trong lịch sử thưởng.']),
+      slot('faq-order', ['为什么没看到奖励？', 'Why don\u2019t I see a reward?', 'Vì sao chưa thấy thưởng?'], ['奖励在订单确认后生成，可能还在待到账状态，可在奖励明细中查看。', 'Rewards are created after an order is confirmed and may still be pending. Check the record in your reward history.', 'Thưởng được tạo sau khi đơn hàng được xác nhận và có thể vẫn đang chờ ghi nhận. Vui lòng xem bản ghi trong lịch sử thưởng.']),
       slot('faq-withdraw', ['什么时候可以提现？', 'When can I withdraw?', 'Khi nào có thể rút?'], ['奖励到账后即可提现，待到账的奖励暂不可提现。', 'Once a reward is credited, you can withdraw it. Pending rewards can\u2019t be withdrawn yet.', 'Thưởng đã ghi nhận có thể rút ngay; thưởng đang chờ chưa thể rút.']),
       slot('faq-reversal', ['退款后奖励会怎样？', 'What happens after a refund?', 'Điều gì xảy ra khi hoàn tiền?'], ['订单退款后，对应的奖励会撤销。', 'If an order is refunded, its reward is reversed.', 'Khi đơn hàng được hoàn tiền, khoản thưởng tương ứng sẽ bị hủy.']),
       slot('faq-cultivation', ['好友升级奖励发给谁？', 'Who gets the friend rank-up reward?', 'Ai nhận thưởng khi bạn bè lên hạng?'], ['发给邀请这位好友的人。', 'The person who invited that friend.', 'Người đã mời người bạn đó.']),

@@ -5,16 +5,14 @@ import { zh } from "@/i18n/messages/zh";
 import { vi } from "@/i18n/messages/vi";
 
 describe("store detail payback and eligibility copy", () => {
-  it("renders an unavailable payback without a day suffix and keeps CTA copy finite", () => {
-    expect(detail).toContain("estimatePaybackDays");
-    expect(detail).toContain("if (days === null)");
-    expect(detail).toContain("t.value.store.detPaybackUnavailable");
+  it("does not compute or show a payback period", () => {
+    expect(detail).not.toMatch(/payback/i);
     expect(detail).not.toContain("Math.round(product.value.price / product.value.dailyEarn)");
   });
 
-  it.each([en, zh, vi])("provides trilingual unavailable-payback copy", (messages) => {
-    expect(messages.store.detPaybackUnavailable).toBeTruthy();
-    expect(messages.store.detPaybackUnavailableNote).toBeTruthy();
+  it.each([en, zh, vi])("ships no payback copy", (messages) => {
+    const values = JSON.stringify(messages.store).match(/:"[^"]*"/g) ?? [];
+    expect(values.join("\n")).not.toMatch(/回本|payback|hoàn vốn/i);
   });
 });
 describe("store detail keeps qualification in its bottom action", () => {

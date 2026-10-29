@@ -140,7 +140,7 @@
         <template v-if="!isShare&&!activityId">
           <view style="padding: 22px 16px 4px"><SectionHeader :title="t.store.detEstReturns" :count="t.store.detEstReturnsMeta" /></view>
           <view class="mx-4 nx-glass-card" :style="roiCardStyle">
-            <!-- Daily and monthly estimates from the current catalog; no hardware payback promise. -->
+            <!-- Daily and monthly estimates from the current catalog; no cost-recovery estimate. -->
             <view class="grid" style="grid-template-columns: 1fr 1fr">
               <view :style="roiCellStyle(0)">
                 <text class="block font-mono-tabular" :style="roiLabelStyle">{{ t.bundle.estimatedDaily }}</text>
@@ -248,7 +248,6 @@ import { isProductAvailable } from "@/store/product-availability";
 import { useSetPageHeader } from "@/composables/use-page-header";
 import { useStickyCTA } from "@/store/sticky-cta-bar";
 import { productCopy, specRow, specText, type SpecRow } from "@/lib/product-copy";
-import { estimatePaybackDays } from "@/lib/product-payback";
 import { getPhoneTierYields } from "@/mock/phone-tiers";
 import { activePhoneDailyRate, storeYieldMultiplier } from "@/lib/store-upgrade";
 import { productCatalogPresentation, productCatalogState, refreshProductCatalog } from "@/store/product-catalog";
@@ -464,16 +463,6 @@ const dailyYield = computed(() => (product.value?.dailyEarn ?? 0) * qty.value);
 const monthlyYield = computed(() => dailyYield.value * 30);
 const annualYield = computed(() => dailyYield.value * 365);
 const totalPrice = computed(() => (product.value?.price ?? 0) * qty.value);
-const paybackDays = computed(() => product.value && !isShare.value
-  ? estimatePaybackDays(totalPrice.value, dailyYield.value)
-  : null);
-const paybackLabel = computed(() => {
-  const days = paybackDays.value;
-  if (days === null) return product.value && !isShare.value ? t.value.store.detPaybackUnavailable : "";
-  return days >= 60
-    ? fmt(t.value.store.detPaybackMonths, { n: (days / 30).toFixed(1) })
-    : fmt(t.value.store.detPaybackDays, { n: days });
-});
 
 // Preserve the prototype's four spec slots while taking values from E1.
 // An operator-authored uptime is displayed as online rate, not an SLA guarantee.
@@ -680,7 +669,7 @@ function publishStickyCTA() {
     }, stickyOwner);
 }
 watch(
-  [stickyPageVisible, catalogStatus, product, isShare, isLocked, purchaseUnavailable, stockUnavailable, priceText, dailyEarnText, paybackLabel, purchaseGate, eligibility, purchaseEligibilityMessage,activityId,promotionStatus,promotionAvailable,activity,qty,voucherContext],
+  [stickyPageVisible, catalogStatus, product, isShare, isLocked, purchaseUnavailable, stockUnavailable, priceText, dailyEarnText, purchaseGate, eligibility, purchaseEligibilityMessage,activityId,promotionStatus,promotionAvailable,activity,qty,voucherContext],
   publishStickyCTA,
   { immediate: true },
 );

@@ -427,7 +427,7 @@ describe('isolated prototype data uses the real read contracts',()=>{
     expect(started.id).toBe(sent.id);
     expect(started.messages.at(-1)?.text).toBe('Demo order question');
     expect((await api.conversations()).items).toHaveLength(1);
-    expect((await createHowContentApi(d.client,'prod').published('genesis-how',locale)).blocks).toHaveLength(3);
+    expect((await createHowContentApi(d.client,'prod').published('genesis-how',locale)).blocks).toHaveLength(4);
   });
   it('keeps fleet identities unique and stable across consecutive multi-unit purchases',async()=>{
     const d=demo(),orders=createOrderApi(d.client),devices=createDeviceE3Api(d.client);

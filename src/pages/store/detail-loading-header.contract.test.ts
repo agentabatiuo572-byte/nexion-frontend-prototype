@@ -80,7 +80,7 @@ function page(copy = en, fallback = "") {
     "@/lib/product-copy": { productCopy: () => ({ tagline: "", badge: "", unlocks: "" }),
       localizedDatacenterValue: (value: string) => value, specText: (_copy: unknown, value: string) => value ?? "",
       specRow: () => null },
-    "@/lib/product-payback": { estimatePaybackDays: () => null }, "@/mock/phone-tiers": { getPhoneTierYields: () => [] },
+    "@/mock/phone-tiers": { getPhoneTierYields: () => [] },
     "@/lib/store-upgrade": { activePhoneDailyRate: () => 0, storeYieldMultiplier: () => 0 },
     "@/store/product-catalog": { productCatalogState: catalog, productCatalogPresentation: presentation, refreshProductCatalog: refresh },
     "@/store/app": { useApp: () => Vue.reactive({ accountKey: "user:3778", accountBindingEpoch: 1, remoteFleetHasSnapshot: false }) },

@@ -20,7 +20,7 @@ describe("staking FAQ availability", () => {
   it.each([en, vi, zh])("keeps historical positions readable in every paused answer", (messages) => {
     const copy = messages.stakingHowItWorks;
     for (const key of ["faqA2BothPaused", "faqA2StakingPaused", "faqA2ExchangePaused"] as const) {
-      expect(copy[key]).toMatch(/position|持仓|vị thế/i);
+      expect(copy[key]).toMatch(/已有的质押|已开始的质押|existing stakes|staking hiện có|đang staking/i);
     }
   });
 });

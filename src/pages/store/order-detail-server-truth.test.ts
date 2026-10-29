@@ -37,9 +37,9 @@ const render = new Function("Vue", compile(descriptor.template!.content, {
 }).code)(Vue);
 const scopes: Vue.EffectScope[] = [];
 const copies = [
-  ["EN", en, "Activated in Cloud-Global · earnings depend on completed tasks and settlement"],
-  ["ZH", zh, "已在 Cloud-Global 激活 · 收益以任务完成及结算结果为准"],
-  ["VI", vietnamese, "Đã kích hoạt tại Cloud-Global · thu nhập phụ thuộc vào nhiệm vụ hoàn tất và quyết toán"],
+  ["EN", en, "Activated in Cloud-Global · earnings follow actual payouts"],
+  ["ZH", zh, "已在 Cloud-Global 激活 · 收益以实际到账为准"],
+  ["VI", vietnamese, "Đã kích hoạt tại Cloud-Global · thu nhập theo số thực nhận"],
 ] as const;
 
 beforeEach(() => {
@@ -189,7 +189,7 @@ describe("BUG 381 canonical order data-center and activation truth", () => {
   it("keeps server region replacement characters literal in the activation explanation", async () => {
     const { view } = await detail("Cloud-$&-region");
     const html = await rendered(view);
-    expect(html).toContain("Activated in Cloud-$&amp;-region · earnings depend on completed tasks and settlement");
+    expect(html).toContain("Activated in Cloud-$&amp;-region · earnings follow actual payouts");
   });
 
   it("updates a known label and the activation explanation when the language changes", async () => {

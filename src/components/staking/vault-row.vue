@@ -12,7 +12,7 @@
     <view style="min-width: 0">
       <view class="flex items-baseline flex-wrap" style="gap: 6px">
         <text class="tabular-nums" :style="apyStyle">{{ apyPct }}%</text>
-        <text :style="apyUnitStyle">APY</text>
+        <text :style="apyUnitStyle">{{ t.stakingV3.apy }}</text>
       </view>
       <text v-if="disabled" class="block" :style="blurbStyle">{{ t.home.quickStakeStopped }}</text>
       <text class="block tabular-nums" :style="metaStyle">{{ fmt(t.stakingV3.vaultMin, { amount: `$${minText}` }) }} · {{ penaltyPct }}% {{ penaltySuffix }}</text>

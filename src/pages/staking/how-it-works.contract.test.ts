@@ -49,7 +49,7 @@ describe("staking rules explanation", () => {
       expect(copy).toMatch(/newStakesUnknown:/);
       expect(copy).toMatch(/faqA4Paused:/);
       expect(copy).toMatch(/faqA4Unknown:/);
-      expect(copy).toMatch(/position|持仓|vị thế/i);
+      expect(copy).toMatch(/已有的质押|已开始的质押|existing stakes|staking hiện có|đang staking/i);
     }
   });
 });

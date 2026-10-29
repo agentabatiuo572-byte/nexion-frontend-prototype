@@ -33,9 +33,9 @@ function fixture() {
 describe("Genesis supply and listing age presentation", () => {
   it("uses the confirmed total and reacts to supply changes, never advertising an unread count", () => {
     const f = fixture();
-    expect(f.value.supplyCaption.value).toBe("限量 1,275 席 · 售完即止");
+    expect(f.value.supplyCaption.value).toBe("共 1,275 席 · 售完即止");
     f.genesis.totalSlots = 2500;
-    expect(f.value.supplyCaption.value).toBe("限量 2,500 席 · 售完即止");
+    expect(f.value.supplyCaption.value).toBe("共 2,500 席 · 售完即止");
     f.genesis.remoteSupplyKnown = false;
     expect(f.value.supplyCaption.value).toBe("");
   });

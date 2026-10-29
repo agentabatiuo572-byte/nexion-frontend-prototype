@@ -13,7 +13,7 @@
       <view><text class="upgrade-comparison__label">{{ comparisonCopy.current }}</text><text class="upgrade-comparison__value">{{ fmtMoney(base.baseRate) }}{{ t.store.cardPerDaySuffix }}</text></view>
       <view><text class="upgrade-comparison__label">{{ comparisonCopy.upgraded }}</text><text class="upgrade-comparison__value upgrade-comparison__value--target">{{ fmtMoney(target.dailyEarn) }}{{ t.store.cardPerDaySuffix }}</text></view>
     </view>
-    <text class="upgrade-note">{{ t.store.cardYouEarn }} · {{ t.store.cardEstimateNote }}</text>
+    <text class="upgrade-note">{{ t.store.cardYouEarn }}</text>
     <NxButton class="upgrade-action" variant="secondary" size="medium" :label="copy.details" @click="open" />
   </view>
 </template>

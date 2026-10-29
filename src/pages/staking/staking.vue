@@ -36,7 +36,6 @@
             <view class="flex items-center justify-between" style="margin-bottom: 8px">
               <text :style="metaLabelStyle">{{ t.stakingV3.totalLocked }}</text>
               <view class="flex items-center" style="gap: 8px">
-                <text v-if="activePositions.length > 0" :style="earningChipStyle">{{ t.stakingV3.earningChip }}</text>
                 <view class="inline-flex items-center shrink-0 active:opacity-80" :style="howPillStyle" role="link" tabindex="0" :aria-label="t.stakingV3.howItWorksEntry" @click="goHowItWorks">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /></svg>
                   <text style="margin: 0 6px">{{ t.stakingV3.howItWorksEntry }}</text>
@@ -510,15 +509,6 @@ const metaLabelStyle: CSSProperties = {
   fontSize: "12px",
   color: "var(--v5-ink-4)",
   letterSpacing: "0.02em",
-};
-const earningChipStyle: CSSProperties = {
-  padding: "2px 8px",
-  borderRadius: "999px",
-  background: "var(--v5-tech-cyan-soft)",
-  color: "var(--v5-tech-cyan)",
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "12px",
-  fontWeight: 500,
 };
 const bigDollarStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",

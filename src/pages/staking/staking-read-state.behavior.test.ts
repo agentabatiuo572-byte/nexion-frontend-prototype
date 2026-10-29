@@ -154,7 +154,7 @@ describe("actual staking templates and real read state", () => {
     expect(html.match(/class="nx-staking-read-retry"/g)).toHaveLength(1);
     expect(html.replace(/<!--[\s\S]*?-->|<[^>]+>/g, "")).not.toContain("0.00");
     expect(html).not.toContain("0 笔进行中");
-    expect(html).not.toContain("暂无质押持仓");
+    expect(html).not.toContain("还没有质押");
     expect(html).not.toContain(zh.empty.stakingTitle);
   });
   it("keeps the previous principal on refresh failure and restores controls after retry", async () => {
@@ -170,7 +170,7 @@ describe("actual staking templates and real read state", () => {
     expect(stale).toContain("100.00");
     expect(stale).toContain(reviewCopy.stakingReviewCopy("zh").stale);
     expect(stale).toContain('aria-disabled="true"');
-    expect(stale).not.toContain("暂无质押持仓");
+    expect(stale).not.toContain("还没有质押");
     await store.syncRemote();
     expect(await render()).not.toContain(reviewCopy.stakingReviewCopy("zh").stale);
   });
@@ -179,14 +179,14 @@ describe("actual staking templates and real read state", () => {
     await storeModule.useStaking().syncRemote();
     const html = await render();
     expect(html).toContain("0.00");
-    expect(html).toContain("暂无质押持仓");
+    expect(html).toContain("还没有质押");
     expect(html).not.toContain("nx-staking-read-retry");
   });
   it.each(["zh", "en", "vi"])("localizes term units and distinguishes plan changes from locked positions: %s", locale => {
     const copy = reviewCopy.stakingReviewCopy(locale);
     expect(copy.days(30)).toMatch(/30 (天|days|ngày)/);
     expect(copy.rateNotice).toMatch(/新方案|new plans|gói mới/);
-    expect(copy.rateNotice).toMatch(/锁定利率|recorded rate|giữ nguyên lãi suất/);
+    expect(copy.rateNotice).toMatch(/原奖励率|recorded rate|giữ nguyên tỷ lệ/);
     if (locale !== "en") expect(JSON.stringify(copy.rules)).not.toMatch(/claim|\d+d\b/i);
   });
 });
