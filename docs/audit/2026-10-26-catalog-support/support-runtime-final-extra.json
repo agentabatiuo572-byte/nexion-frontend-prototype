@@ -1,8 +1,0 @@
-[
-  {
-    "event": "in-app-theme-switch",
-    "from": "me theme sheet",
-    "choice": "light",
-    "readback": "nx-nova-bubble nx-nova-bubble--light"
-  }
-]

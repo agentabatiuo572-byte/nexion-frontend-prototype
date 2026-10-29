@@ -142,7 +142,7 @@ function orderCategory(order: OrderListItem): Exclude<OrderFilter, "all"> {
   if (order.kind === "genesis") return "done";
   if (order.status === "placed" || order.status === "payment_failed") return "pending";
   if (order.status === "paid" || order.status === "provisioning") return "active";
-  return order.status === "activated" ? "done" : "closed";
+  return order.status === "activated" || order.status === "inventory" ? "done" : "closed";
 }
 const filteredOrders = computed(() => statusFilter.value === "all" ? orderList.value : orderList.value.filter(order => orderCategory(order) === statusFilter.value));
 const pendingCount = computed(() => orderList.value.filter(order => orderCategory(order) === "pending").length);

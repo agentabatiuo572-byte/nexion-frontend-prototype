@@ -1,9 +1,0 @@
-{
-  "openedReadyAt": "2026-10-26T16:46:03.5773703+09:00",
-  "runtimeHash": "10fcd9f818749d634caff95426aed450e8b5135e431a5fffe99c333639c309c6",
-  "sourceBase": "d12674c9 + candidate poster watch",
-  "initial": "brand ready, rendered QR",
-  "observedAt": "2026-10-26T16:47:30.7704901+09:00",
-  "elapsedSeconds": 87.193,
-  "result": "ready preview retained; save/link and last Messenger row remain enabled above system gesture area; no external action"
-}

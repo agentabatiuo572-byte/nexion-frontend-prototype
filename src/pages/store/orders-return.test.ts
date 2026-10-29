@@ -28,6 +28,17 @@ function open(options: Record<string, string>, query = "") {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("orders return origin", () => {
+  it("keeps completed warehouse trade-ins in Done rather than Closed", () => {
+    const categoryStart = ordersSource.indexOf("function orderCategory(");
+    const categoryEnd = ordersSource.indexOf("const filteredOrders", categoryStart);
+    const categoryCode = ts.transpileModule(ordersSource.slice(categoryStart, categoryEnd), {
+      compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+    }).outputText;
+    const category = new Function(`${categoryCode}\nreturn orderCategory;`)();
+    expect(category({ kind: "commerce", status: "inventory" })).toBe("done");
+    expect(category({ kind: "commerce", status: "activated" })).toBe("done");
+    expect(category({ kind: "commerce", status: "cancelled" })).toBe("closed");
+  });
   it("keeps My as the refresh fallback even when Uni drops the visible query", () => {
     expect(ordersCardSource).toContain('navTo("/pages/store/orders?from=me")');
     const replaceState = vi.fn();
