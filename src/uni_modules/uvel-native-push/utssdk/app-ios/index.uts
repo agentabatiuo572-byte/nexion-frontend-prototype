@@ -1,0 +1,49 @@
+import { UIApplication } from 'UIKit'
+import { Data, NSError } from 'Foundation'
+
+// Exported UTS hook is discovered by the classic uni-app iOS runtime (3.97+).
+export class UvelNativePushHook implements UTSiOSHookProxy {
+  applicationDidFinishLaunchingWithOptions(application: UIApplication | null, launchOptions: Map<UIApplication.LaunchOptionsKey, any> | null = null): boolean {
+    NativePushBridge.install()
+    if (launchOptions != null) {
+      const info = launchOptions.get(UIApplication.LaunchOptionsKey.remoteNotification)
+      if (info != null) {
+        const id = (info as Map<AnyHashable, any>).get('notificationId')
+        if (id != null) NativePushBridge.launchId(id as string)
+      }
+    }
+    return true
+  }
+  didRegisterForRemoteNotifications(deviceToken: Data): void { NativePushBridge.registered(deviceToken) }
+  didFailToRegisterForRemoteNotifications(error: NSError): void { NativePushBridge.registrationFailed() }
+}
+
+let listeners = new Map<number, (event: UTSJSONObject) => void>()
+let sequence = 0
+export function initializeNativePush(config: UTSJSONObject): void { NativePushBridge.initialize() }
+export function getNativePushToken(callback: (result: UTSJSONObject) => void): void {
+  NativePushBridge.getToken((value: string) => { callback(JSON.parseObject(value)!) })
+}
+export function getNativePushPermission(callback: (result: UTSJSONObject) => void): void {
+  NativePushBridge.permission((value: string) => { callback(JSON.parseObject(value)!) })
+}
+export function requestNativePushPermission(callback: (result: UTSJSONObject) => void): void {
+  NativePushBridge.requestPermission((value: string) => { callback(JSON.parseObject(value)!) })
+}
+export function addNativePushListener(callback: (event: UTSJSONObject) => void): number {
+  sequence += 1
+  listeners.set(sequence, callback)
+  if (listeners.size == 1) NativePushBridge.listen((value: string) => {
+    const event = JSON.parseObject(value)!
+    listeners.forEach((listener: (event: UTSJSONObject) => void) => { listener(event) })
+  })
+  return sequence
+}
+export function removeNativePushListener(id: number): void {
+  listeners.delete(id)
+  if (listeners.size == 0) NativePushBridge.unlisten()
+}
+export function getInitialNotification(callback: (result: UTSJSONObject) => void): void {
+  NativePushBridge.initial((value: string) => { callback(JSON.parseObject(value)!) })
+}
+export function shutdownNativePush(): void { NativePushBridge.shutdown() }

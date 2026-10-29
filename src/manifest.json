@@ -21,7 +21,7 @@
             "delay" : 0
         },
         /* 模块配置 */
-        "modules" : { "Barcode": {}, "Push": {} },
+        "modules" : { "Barcode": {} },
         /* 应用发布信息 */
         "distribute" : {
             "icons": {
@@ -81,9 +81,7 @@
                 ]
             },
             /* ios打包配置 */
-            "ios" : { "urltypes": "uvel", "pushRegisterMode": "manual" },
-            /* SDK配置 */
-            "sdkConfigs" : { "push": { "unipush": { "version": "2", "offline": true } } }
+            "ios" : { "urltypes": "uvel" }
         }
     },
     /* 快应用特有相关 */

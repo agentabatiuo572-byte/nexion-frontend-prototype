@@ -1,0 +1,4 @@
+{
+  "minSdkVersion": 23,
+  "dependencies": ["com.google.firebase:firebase-messaging:24.1.2"]
+}

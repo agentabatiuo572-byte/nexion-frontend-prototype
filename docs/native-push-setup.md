@@ -1,36 +1,59 @@
-# 第一批 Android / iOS 系统推送配置
+# Android FCM / iOS APNs 系统推送配置
 
-2026-10-29。本轮交付客户端代码及配置步骤。UniPush 尚未开通，不代表厂商接受、通知栏送达或双平台实机验收完成。站内消息继续独立可用。
+2026-10-30。用户选定保留 DCloud 国际区 `UVELProduction（__UNI__G77FFD9D）`；Android 直接使用 Firebase Messaging，iOS 直接使用 Apple APNs。国际区应用不要求开通 UniPush 或绑定云桥接。站内消息保持独立可用。
 
-## 开通与打包
+## 应用身份与环境
 
-1. 在 DCloud 开发者中心为真实应用开通 UniPush 2.0，绑定该应用的 uniCloud 服务空间；使用应用真实 DCloud AppID。仓库 `src/manifest.json` 的 AppID 当前为空，必须通过获准的本地打包配置填写，不生成示例 AppID冒充可用。
-2. HBuilderX 的安卓/iOS模块配置保留 Push；UniPush 2.0 勾选离线推送。源码已设 `app-plus.modules.Push`、`distribute.sdkConfigs.push.unipush={version:"2",offline:true}`。只更新 JS 资源不会给既有调试基座补上原生 SDK，需重新制作含 Push 的自定义基座或正式安装包。
-3. Android 对应厂商后台配置真实包名、应用签名与推送参数；海外设备按实际需求配置 FCM，国内厂商分别配置。Android 13+ 保留 POST_NOTIFICATIONS 声明，客户端在登录后首次注册申请一次，返回前台读取系统真实开关。拒绝权限不清空站内消息。
-4. iOS 使用带 Push Notifications 能力的真实 Bundle ID、匹配 provisioning profile 与 APNs 密钥/证书，并在 DCloud 后台配置相同应用及正确开发/生产环境。源码使用 `pushRegisterMode:"manual"`；登录后的 `uni.getPushClientId` 触发首次授权，再从 `uni.getAppAuthorizeSetting().notificationAuthorized` 读取实际状态。CID 成功不等于允许通知。
-5. 按后端仓库 `docs/native-push-setup.md` 配置 uniCloud HTTP 桥接与服务端凭据。密钥仅放云端/获准的安全配置，禁止放前端源码、报告或公共配置。原生 JS 编译通过不代表签名打包或供应商已配置。
+| 环境 | Android applicationId | iOS Bundle ID |
+|---|---|---|
+| TEST | `ai.uvel.app.test` | `ai.uvel.app.test` |
+| 正式 | `ai.uvel.app` | `ai.uvel.app` |
 
-构建链若重写 manifest，应保留上述 Push、UniPush2离线、iOS手动授权及 Android 通知权限字段。本仓库构建使用源 manifest；本轮 `uni build -p app-plus` 的输出 manifest 保留这些字段。工作区外的历史发布脚本不属于此结论，正式打包前再次核对实际使用脚本及最终制品。
+DCloud AppID 与包名/Bundle ID 是不同标识。共享 `src/manifest.json` 的根 AppID 保持为空；实际打包候选按获准的 TEST 身份注入 DCloud AppID、包名、Bundle ID 与签名，检查最终制品。TEST 的 Firebase Android 客户端、Apple identifier、证书/profile 与后端通道应相互匹配；这份步骤不授权生产分发、生产密钥或真实业务发送。
 
-## 会话与点击
+## Android 原生配置
 
-安装 ID 使用现有登录安装标识 `getDeviceId()`，且必须与服务端 APP 会话的 installationId 一致。绑定证明由三个系统密码学随机 UUID 的 SHA256 生成，先读回确认写入应用私有存储，再发送 `X-Push-Binding-Token`；保留至换账号/退出后以支持同安装安全重绑，不写日志。CID 轮换在回前台重新获取；旧 CID 缓存只用于在授权被关闭且 SDK 不再返回 CID 时向后端上报权限。
+1. 在获准 Firebase 项目为 `ai.uvel.app.test` 添加 Android 应用，下载对应的 `google-services.json`。对照项目号、项目 ID 与精确包名；服务端 FCM HTTP v1 的目标项目必须一致。
+2. 使用插件脚本把**公开客户端配置**写入 Android 原生资源：
 
-退出及登录切换先使用旧会话解绑；后续 SDK 回调、目标读取和导航按账号及会话链隔离。断网不能伪造解绑成功，服务端发送端还必须核验原 APP 会话仍有效。被删除/复制的安装数据或 CID 与其他安装冲突时，不绕过绑定证明校验，按后端流程人工重置。
+   ```powershell
+   node src/uni_modules/uvel-native-push/configure-android.mjs <安全配置路径/google-services.json> ai.uvel.app.test
+   ```
 
-推送载荷只读取 notificationId。点击通过当前会话请求 `/api/me/push-notifications/{id}`；服务端检查归属后返回当前可用的只读页面。客户端白名单限制为试用状态、设备详情、账单、安全、客服聊天与站内消息；客服使用实际页面参数 `cid`。客户端不接受推送中的 URL、不执行支付或设备操作。冷启动在恢复登录及业务页面就绪后才处理点击；其他账号旧通知拒绝后丢弃。opened 回执独立于供应商接受，不等同手机送达。
+   脚本只接受精确匹配的单个 Firebase Android 客户端，生成 `utssdk/app-android/res/values/uvel-firebase.xml`。Firebase provider 在冷启动/后台时也需要这些资源，不能只在 JS 登录后传入配置。仓库初始空值会保持不可用，不生成示例 Token。配置文件不包含 Firebase 服务账号私钥；服务账号只供后端使用。
+3. 用 HBuilderX 5.32 配套 UTS 编译器重新制作包含 `src/uni_modules/uvel-native-push` 的自定义基座/原生包。源码保留 `Barcode`、Android `POST_NOTIFICATIONS` 与 `uvel` scheme，删除旧 Push 模块和对应 SDK 配置。只替换 JS 不能添加原生 Firebase SDK。
+4. 设备必须具有可用的 Google Play services，不能仅由品牌/型号或安装了 `com.google.android.gms` 判断可用。先记录插件的实际 GMS 检查、系统版本、包名、签名及 SDK Token 获取结果。Android 13+ 登录后首次请求通知权限；拒绝时撤销安装绑定并停用 SDK，站内消息仍可读取。通知渠道 ID 为 `uvel_notifications`。
 
-## 待配置后的实机步骤
+## iOS 原生配置
 
-- Android 与 iOS 分别安装真实含 Push 模块的新包，复用获准 TEST 账号；核验服务端安装绑定与真实 CID，不在证据中保存完整证明或令牌。
-- 每个平台分别测前台、后台、结束进程三种状态；记录通知栏内容、点击目标、opened 回执。桥接发送使用 `force_notification:true`；如平台 SDK 展示行为不同，以实机证据调整，不以 receive 事件代替通知栏验收。
-- 拒绝通知后站内消息仍可查看；在偏好设置进入系统通知设置，修改后返回应用，应读回真实权限并更新安装绑定。
-- 冷启动点击后恢复原会话；退出再点击、同安装换账号、读取中换账号、旧CID回调、403、断网恢复分别验证不会打开其他账号页面。中文、英文、越南语核验通知与权限设置文案。
+1. 在获准 Apple Developer 团队为 `ai.uvel.app.test` 开启 Push Notifications，使用匹配该 Bundle ID 的签名/profile。后端 APNs topic 必须是该包的实际 Bundle ID；不能填 DCloud AppID。
+2. 明确 profile 的 `aps-environment` 后生成插件 entitlement：
+
+   ```powershell
+   node src/uni_modules/uvel-native-push/configure-ios.mjs development
+   ```
+
+   `development` 对应 APNs sandbox，`production` 对应 APNs production；TEST 包名也可能使用 production profile，以最终签名 entitlement 为准。该脚本选择环境，不创建证书、profile 或私钥。检查签名后的 `.app` 内 entitlement、profile、Bundle ID 与后端 APNs host/topic，不能仅凭源文件确认启用。
+3. 新包必须包含 UTS iOS lifecycle hook、原生 `NativePushBridge.swift`、通知中心 delegate 与 `UTS.entitlements`。初始化只读取状态；首次系统授权使用插件 `requestNativePushPermission`，随后从真实系统状态读回。系统回调提供 原生 APNs device token（按偶数长度十六进制传递，最多 4096 字符，不固定系统 Token 长度），不使用旧 CID。
+4. APNs `.p8` 私钥、Team ID、Key ID 及环境由后端安全配置管理；私钥不进入客户端、报告、截图或长期记忆。
+
+## 账号、绑定与点击
+
+安装 ID 复用 `getDeviceId()`，必须与当前 APP 会话的 installationId 一致。绑定证明沿用系统随机 UUID 的 SHA256，先持久化并读回，再通过 `X-Push-Binding-Token` 发送。注册接口保持 `PUT /api/me/push-installations/{id}`，`clientId` 现为 SDK 原生 Token，并强制发送 `provider: FCM | APNS`；Android 只允许 FCM，iOS 只允许 APNs。Token 或 provider 改变时重绑，服务端更新投递 epoch，旧 CID 不迁为 Token。
+
+登出、换账号及权限关闭会停止原生 SDK 并撤销当前安装绑定；断网不能伪造撤销成功，后端发送端继续核验原会话与 epoch。权限重新开启后回前台重新读取与注册。旧异步 Token、旧账号目标响应及被登录覆盖的刷新结果均不得继续绑定/导航。SDK 未打入、配置缺失、GMS 不可用或 Token 获取失败显示未开启并保留站内消息，不把系统授权当作已完成推送注册。
+
+载荷只读取 `notificationId`，不读取推送 URL。前台消息刷新站内状态；通知点击（含冷启动和 Android newintent）使用当前会话请求 `/api/me/push-notifications/{id}`，后端核验归属后返回客户端白名单页面。冷启动先恢复登录与业务页面；只读入口包括试用、设备详情、账单、安全、客服 `cid` 及站内消息。JWT 过期复用共享刷新/CAS；退出或换账号会丢弃旧点击。opened 回执失败在下次前台重试，不重复导航。
+
+## 验收分层
+
+客户端单元、类型及 H5/App JS 构建只证明相应源码边界。`uni build -p app` 不等于 Kotlin/Swift 原生编译；原生编译也不等于签名打包、供应商接受或设备通知栏送达。完整结果应分别记录这些层级。
+
+获准 TEST 设备分别执行 Android/iOS 的前台、后台及进程退出三种状态；检查通用锁屏文案、点击目标和 opened 回执，不在证据中保存完整 Token/证明。再测拒绝/系统设置恢复、无 SDK/无配置、Token 轮换、登出、同安装换账号、读取/刷新中换账号、403 和断网恢复。三语言沿用现有系统通知面板。真实发送只面向核实配置后的获准 TEST 设备。
 
 ## 官方依据
 
-- [UniPush 2.0 开通、原生离线与客户端](https://uniapp.dcloud.net.cn/unipush-v2.html)
-- [getPushClientId、onPushMessage 与通知API](https://uniapp.dcloud.net.cn/api/plugins/push.html)
-- [iOS pushRegisterMode 手动申请](https://uniapp.dcloud.io/tutorial/app-push-unipush.html)
-- [应用授权状态；notificationAuthorized 的 iOS 支持范围](https://uniapp.dcloud.net.cn/api/system/getappauthorizesetting.html)
-- [Android 13 通知权限](https://developer.android.com/develop/ui/views/notifications/notification-permission)
+- [Firebase Android 客户端与 Google Play services 条件](https://firebase.google.com/docs/cloud-messaging/android/get-started)
+- [Apple APNs 注册与 Token](https://developer.apple.com/documentation/usernotifications/registering-your-app-with-apns)
+- [Android 通知权限](https://developer.android.com/develop/ui/compose/notifications/notification-permission)
+- [uni-app 原生 newintent 事件](https://uniapp.dcloud.net.cn/tutorial/use-html5plus.html)

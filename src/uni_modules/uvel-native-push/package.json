@@ -1,0 +1,12 @@
+{
+  "id": "uvel-native-push",
+  "displayName": "UVEL direct native push",
+  "version": "1.0.0",
+  "description": "Repository-owned Firebase Messaging / Apple APNs UTS bridge",
+  "engines": { "HBuilderX": "^5.32.0" },
+  "uni_modules": {
+    "dependencies": [],
+    "encrypt": [],
+    "platforms": { "client": { "Vue": { "vue2": "n", "vue3": "y" }, "App": { "app-android": "y", "app-ios": "y" } } }
+  }
+}

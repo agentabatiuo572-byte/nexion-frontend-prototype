@@ -3,7 +3,7 @@ import { createSessionVault, type SessionSnapshot } from "@/api/session-vault";
 import { createAuthApi } from "@/api/auth-api";
 import { createApiClient, type ApiClient, type ApiRequest } from "@/api/api-client";
 import { ApiError } from "@/api/errors";
-import { createNativePushController, pushNotificationId, safePushRoute, type NativePushPort } from "./native-push-controller";
+import { createNativePushController, pushNotificationId, safePushRoute, validNativePushToken, type NativePushPort } from "./native-push-controller";
 import pages from "@/pages.json";
 
 const snapshot = (userId = 7): SessionSnapshot => ({ accessToken: `test-access-${userId}`, refreshToken: `test-refresh-${userId}`,
@@ -20,29 +20,65 @@ function harness(loggedIn = true) {
   const client = { request } as unknown as ApiClient;
   const port: NativePushPort = {
     platform: "android", appVersion: "1.0.0", installationId: () => "test-install", bindingToken: vi.fn(() => "a".repeat(64)),
-    permission: vi.fn(async () => "granted" as const), clientId: vi.fn(async () => "test-cid"),
-    listen: cb => { callback = cb; }, navigate: vi.fn(async () => true), canNavigate: () => true, received: vi.fn(),
+    permission: vi.fn(async () => "granted" as const), token: vi.fn(async () => ({ token: "fcm:" + "a".repeat(140), provider: "FCM" as const })),
+    stop: vi.fn(), listen: cb => { callback = cb; }, navigate: vi.fn(async () => true), canNavigate: () => true, received: vi.fn(),
   };
   const push = createNativePushController(client, vault, port);
   vault.subscribe!(push.sessionChanged);
   push.start();
   return { push, vault, request, client, port, click: (data: unknown = { payload: { notificationId: "note-1" } }) => callback({ type: "click", data }),
-    receive: () => callback({ type: "receive", data: { payload: '{"notificationId":"note-1"}' } }) };
+    rotated: () => callback({ type: "token", data: {} }), receive: () => callback({ type: "receive", data: { payload: '{"notificationId":"note-1"}' } }) };
 }
 describe("native push trust and lifecycle", () => {
   it("registers the exact current APP install with proof and actual permission", async () => {
     const h = harness(); await turn();
     expect(h.request).toHaveBeenCalledWith(expect.objectContaining({ path: "/api/me/push-installations/test-install", method: "PUT", authenticated: false,
       headers: { Authorization: "Bearer test-access-7", "X-Push-Binding-Token": "a".repeat(64) },
-      body: { clientId: "test-cid", platform: "android", permission: "granted", appVersion: "1.0.0" } }));
+      body: { clientId: "fcm:" + "a".repeat(140), provider: "FCM", platform: "android", permission: "granted", appVersion: "1.0.0" } }));
   });
-  it("does not infer granted permission from a CID", async () => {
+  it("revokes denied permission without requiring an APNs or FCM token", async () => {
     const h = harness(false); h.port.permission = vi.fn(async () => "denied" as const); h.vault.save(snapshot()); await turn();
-    expect(h.request.mock.calls.find(([r]) => r.method === "PUT")?.[0].body).toMatchObject({ permission: "denied" });
+    expect(h.request).toHaveBeenCalledWith(expect.objectContaining({ method: "DELETE", path: "/api/me/push-installations/test-install" }));
+    expect(h.port.token).not.toHaveBeenCalled(); expect(h.port.stop).toHaveBeenCalledOnce();
+    h.port.permission = vi.fn(async () => "granted" as const); h.push.foreground(); await turn();
+    expect(h.request.mock.calls.some(([r]) => r.method === "PUT")).toBe(true);
   });
-  it("refreshes rotating CIDs on foreground", async () => {
-    const h = harness(); await turn(); h.port.clientId = vi.fn(async () => "rotated-cid"); h.push.foreground(); await turn();
-    expect(h.request.mock.calls.filter(([r]) => r.method === "PUT").map(([r]) => (r.body as { clientId: string }).clientId)).toEqual(["test-cid", "rotated-cid"]);
+  it("refreshes rotating native tokens on foreground", async () => {
+    const h = harness(); await turn(); h.port.token = vi.fn(async () => ({ token: "rotated:" + "b".repeat(140), provider: "FCM" as const })); h.push.foreground(); await turn();
+    expect(h.request.mock.calls.filter(([r]) => r.method === "PUT").map(([r]) => (r.body as { clientId: string }).clientId)).toEqual(["fcm:" + "a".repeat(140), "rotated:" + "b".repeat(140)]);
+  });
+  it("registers actual iOS APNs tokens and makes provider part of the registration cache", async () => {
+    const h = harness(false);
+    h.port.platform = "ios";
+    h.port.token = vi.fn(async () => ({ token: "ab".repeat(32), provider: "APNS" as const }));
+    h.vault.save(snapshot()); await turn();
+    expect(h.request.mock.calls.find(([r]) => r.method === "PUT")?.[0].body).toMatchObject({ provider: "APNS", platform: "ios", clientId: "ab".repeat(32) });
+    h.port.platform = "android";
+    h.port.token = vi.fn(async () => ({ token: "fcmtoken:" + "b".repeat(1024), provider: "FCM" as const }));
+    h.rotated(); await turn();
+    expect(h.request.mock.calls.filter(([r]) => r.method === "PUT").map(([r]) => (r.body as any).provider)).toEqual(["APNS", "FCM"]);
+  });
+  it("resyncs a token rotation received while registration is still in flight", async () => {
+    const h = harness(false), pending = deferred<unknown>();
+    h.request.mockImplementationOnce(() => pending.promise);
+    h.vault.save(snapshot()); await turn();
+    h.port.token = vi.fn(async () => ({ token: "rotated:" + "b".repeat(140), provider: "FCM" as const }));
+    h.rotated(); pending.resolve(null); await turn(); await turn();
+    expect(h.request.mock.calls.filter(([r]) => r.method === "PUT").map(([r]) => (r.body as any).clientId)).toEqual(["fcm:" + "a".repeat(140), "rotated:" + "b".repeat(140)]);
+  });
+  it.each([
+    { token: "local-fake-cid", provider: "FCM" },
+    { token: "a".repeat(64), provider: "APNS" },
+    { token: "x:" + "b".repeat(140), provider: "UNIPUSH" },
+  ])("does not register malformed or platform-mismatched native tokens %j", async native => {
+    const h = harness(false); h.port.token = vi.fn(async () => native as any);
+    h.vault.save(snapshot()); await turn(); expect(h.request).not.toHaveBeenCalled();
+  });
+  it("leaves inbox available and retries SDK/configuration failure only at foreground", async () => {
+    const h = harness(false); h.port.token = vi.fn(async () => { throw new Error("CONFIG_MISSING"); });
+    h.vault.save(snapshot()); await turn(); expect(h.request).not.toHaveBeenCalled();
+    h.port.token = vi.fn(async () => ({ token: "fcm:" + "a".repeat(140), provider: "FCM" as const }));
+    h.push.foreground(); await turn(); expect(h.request).toHaveBeenCalledOnce();
   });
   it("never binds a different or non-APP server installation", async () => {
     const h = harness(false); h.vault.save({ ...snapshot(), installationId: "other" }); await turn(); expect(h.request).not.toHaveBeenCalled();
@@ -67,11 +103,24 @@ describe("native push trust and lifecycle", () => {
     h.vault.clear(); h.vault.save(snapshot(8)); h.port.canNavigate = () => true; await h.push.flush();
     expect(h.port.navigate).not.toHaveBeenCalled();
   });
-  it("fences stale CID callbacks after switching account", async () => {
-    const h = harness(false), cid = deferred<string>(); h.port.clientId = () => cid.promise;
-    h.vault.save(snapshot()); await turn(); h.vault.save(snapshot(8)); cid.resolve("old-cid"); await turn();
+  it("fences stale token callbacks after switching account", async () => {
+    const h = harness(false), cid = deferred<{ token: string; provider: "FCM" }>(); h.port.token = () => cid.promise;
+    h.vault.save(snapshot()); await turn(); h.vault.save(snapshot(8)); cid.resolve({ token: "old:" + "c".repeat(140), provider: "FCM" }); await turn();
     expect(h.request.mock.calls.some(([r]) => r.headers?.Authorization === "Bearer test-access-7")).toBe(false);
     expect(h.request).toHaveBeenCalledWith(expect.objectContaining({ headers: expect.objectContaining({ Authorization: "Bearer test-access-8" }) }));
+  });
+  it("fences an old denied permission callback before stopping SDK or revoking the next account", async () => {
+    const h = harness(false), permission = deferred<"denied">(); h.port.permission = () => permission.promise;
+    h.vault.save(snapshot()); await turn();
+    h.port.permission = vi.fn(async () => "granted" as const); h.vault.save(snapshot(8));
+    permission.resolve("denied"); await turn(); await turn();
+    expect(h.port.stop).not.toHaveBeenCalled();
+    expect(h.request.mock.calls.some(([r]) => r.method === "DELETE" || r.headers?.Authorization === "Bearer test-access-7")).toBe(false);
+    expect(h.request).toHaveBeenCalledWith(expect.objectContaining({ method: "PUT", headers: expect.objectContaining({ Authorization: "Bearer test-access-8" }) }));
+  });
+  it("does not initialize a token or bind an unknown system permission", async () => {
+    const h = harness(false); h.port.permission = vi.fn(async () => "unknown" as const);
+    h.vault.save(snapshot()); await turn(); expect(h.port.token).not.toHaveBeenCalled(); expect(h.request).not.toHaveBeenCalled();
   });
   it("registers after cold native hydration refresh acquires its first access token", async () => {
     const h = harness(false);
@@ -96,6 +145,7 @@ describe("native push trust and lifecycle", () => {
     expect(transport.request.mock.calls.map(([r]) => r.url)).toEqual([
       "https://api.example.test/api/me/push-installations/test-install", "https://api.example.test/api/me/push-notifications/123", "https://api.example.test/api/me/push-notifications/123/opened",
     ]);
+    expect(transport.request.mock.calls[0][0]).toMatchObject({ body: { clientId: "fcm:" + "a".repeat(140), provider: "FCM", platform: "android" } });
     expect(h.port.navigate).toHaveBeenCalledWith("/pages/support/chat?cid=conv-123");
   });
   it("refreshes an expired click Bearer through the real ApiClient then navigates once", async () => {
@@ -149,6 +199,28 @@ describe("native push trust and lifecycle", () => {
     h.click(); await turn(); h.vault.save(snapshot(8)); route.resolve({ notificationId: "note-1", route: "/pages/me/security" }); await turn();
     expect(h.port.navigate).not.toHaveBeenCalled(); expect(h.request.mock.calls.filter(([r]) => r.path.endsWith("/opened"))).toHaveLength(0);
   });
+  it("drains a newer click after the in-flight previous route response without a foreground tick", async () => {
+    const h = harness(); await turn(); const first = deferred<unknown>();
+    h.request.mockImplementationOnce(() => first.promise)
+      .mockResolvedValueOnce({ notificationId: "note-2", route: "/pages/me/security" });
+    h.click({ notificationId: "note-1" }); await turn();
+    h.click({ notificationId: "note-2" }); await turn();
+    first.resolve({ notificationId: "note-1", route: "/pages/me/wallet-bills" }); await turn(); await turn();
+    expect(h.port.navigate).toHaveBeenCalledOnce(); expect(h.port.navigate).toHaveBeenCalledWith("/pages/me/security");
+    expect(h.request.mock.calls.filter(([r]) => r.path.endsWith("/opened")).map(([r]) => r.path)).toEqual(["/api/me/push-notifications/note-2/opened"]);
+  });
+  it.each([401, 403, 404])("preserves a newer pending click when the old click resolves with %s", async status => {
+    const h = harness(); await turn(); const first = deferred<unknown>();
+    h.client.refreshSession = vi.fn(async () => snapshot());
+    h.request.mockImplementation(async input => {
+      if (input.path.endsWith("/note-1")) { await first.promise; throw new ApiError({ kind: "http", status, message: "denied" }); }
+      return input.path.endsWith("/note-2") ? { notificationId: "note-2", route: "/pages/me/security" } : null;
+    });
+    h.click({ notificationId: "note-1" }); await turn(); h.click({ notificationId: "note-2" });
+    first.resolve(null); await turn(); await turn();
+    expect(h.port.navigate).toHaveBeenCalledOnce(); expect(h.port.navigate).toHaveBeenCalledWith("/pages/me/security");
+    expect(h.request.mock.calls.filter(([r]) => r.path.endsWith("/opened")).map(([r]) => r.path)).toEqual(["/api/me/push-notifications/note-2/opened"]);
+  });
   it("does not replace login with a late unauthenticated callback", async () => {
     const h = harness(); await turn(); const route = deferred<unknown>(); h.request.mockImplementationOnce(() => route.promise);
     h.click(); await turn(); h.vault.clear(); route.resolve({ notificationId: "note-1", route: "/pages/me/security" }); await turn();
@@ -196,6 +268,12 @@ describe("native push trust and lifecycle", () => {
   });
 });
 describe("push input boundaries", () => {
+  it.each([32, 64, 128, 4096])("accepts APNs variable-length hexadecimal tokens of %s characters", length => {
+    expect(validNativePushToken({ token: "ab".repeat(length / 2), provider: "APNS" }, "ios")).toBe(true);
+  });
+  it.each(["", "a".repeat(33), "z".repeat(64), "ab".repeat(2049)])("rejects malformed or oversized APNs token %s", token => {
+    expect(validNativePushToken({ token, provider: "APNS" }, "ios")).toBe(false);
+  });
   it.each([null, [], "{", { payload: "bad" }, { payload: { notificationId: "../escape" } }, { notificationId: 3 }, { url: "/pages/me/security" }])("rejects malformed provider data %j", data => expect(pushNotificationId(data)).toBeNull());
   it("accepts supported provider wrappers", () => {
     expect(pushNotificationId('{"notificationId":"note-1"}')).toBe("note-1");

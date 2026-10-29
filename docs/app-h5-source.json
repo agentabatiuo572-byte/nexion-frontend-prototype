@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-polish",
+  "sourcePath": "D:\\workspace\\worktrees\\push-direct-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "866ae335a2c4ebccf8c3637a6851d30e9fc146a2",
-  "sourceRef": "866ae335a2c4ebccf8c3637a6851d30e9fc146a2",
+  "sourceHead": "60cb59b09a3dc3d80c0518ff8f9830f0d98035af",
+  "sourceRef": "60cb59b09a3dc3d80c0518ff8f9830f0d98035af",
   "sourceRefKind": "commit",
-  "sourceTree": "77d20af6e73914059e1cbfde631d9a43e9b1506b",
+  "sourceTree": "cf6b037b84625965a51e9183a53497791a747271",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -12325,11 +12325,18 @@
       "targetSha256": "e55684e8b9e9ad4a4c7c3ea2a6956f067619dfcc391d2f719c9f6b9306ba736b",
       "mode": "100644"
     },
+    "docs/native-push-plugin.md": {
+      "sourceBlob": "163bd2817685fad4791da68b6911b4a5dc41a6bc",
+      "sourceSha256": "e7d4a0a2ae583723bfd75b1e1b8ce564cab7b025c3e73086f0c81a74d3116e82",
+      "targetBlob": "163bd2817685fad4791da68b6911b4a5dc41a6bc",
+      "targetSha256": "e7d4a0a2ae583723bfd75b1e1b8ce564cab7b025c3e73086f0c81a74d3116e82",
+      "mode": "100644"
+    },
     "docs/native-push-setup.md": {
-      "sourceBlob": "dbb891a9bb86f7766e3672b33b2793abcf400ec0",
-      "sourceSha256": "dc7e4d7c19989b7a9c7394a1cda16c14dfa6837520323f2035b8b4ce1ed7ceae",
-      "targetBlob": "dbb891a9bb86f7766e3672b33b2793abcf400ec0",
-      "targetSha256": "dc7e4d7c19989b7a9c7394a1cda16c14dfa6837520323f2035b8b4ce1ed7ceae",
+      "sourceBlob": "e11cbd7d10b47302ae8fc19b6b2616e50c6069fc",
+      "sourceSha256": "a7801da4e88f0ca221f831a22cf316cfd81cf9a459a06900fc90c12968a5d5e6",
+      "targetBlob": "e11cbd7d10b47302ae8fc19b6b2616e50c6069fc",
+      "targetSha256": "a7801da4e88f0ca221f831a22cf316cfd81cf9a459a06900fc90c12968a5d5e6",
       "mode": "100644"
     },
     "docs/phone-calibration-core-plan-r2.json": {
@@ -12536,10 +12543,10 @@
       "mode": "100644"
     },
     "docs/前端产品更新日志.md": {
-      "sourceBlob": "122e1d206c02d23a21e63fa586929546e4d5d18a",
-      "sourceSha256": "754cf37e4f78946d4d8218fe2802ea9a262bb3e121d620d558facd0f51f21ba1",
-      "targetBlob": "122e1d206c02d23a21e63fa586929546e4d5d18a",
-      "targetSha256": "754cf37e4f78946d4d8218fe2802ea9a262bb3e121d620d558facd0f51f21ba1",
+      "sourceBlob": "223d31df17bef7868baae6d33ee3994950b59bb0",
+      "sourceSha256": "e5d7e6c1f4b121810b9f1262f3d0b9b8d1ee797024e6b1f4991467a2862d7d41",
+      "targetBlob": "223d31df17bef7868baae6d33ee3994950b59bb0",
+      "targetSha256": "e5d7e6c1f4b121810b9f1262f3d0b9b8d1ee797024e6b1f4991467a2862d7d41",
       "mode": "100644"
     },
     "index.html": {
@@ -23708,10 +23715,10 @@
       "mode": "100644"
     },
     "src/manifest.json": {
-      "sourceBlob": "126a53f82ff54c69ee07a7042a873a7c73ffe2e6",
-      "sourceSha256": "e3589e22f1de42ecd11620af0ae5fb677fe1e970214c2ec8e5acf85a73383089",
-      "targetBlob": "126a53f82ff54c69ee07a7042a873a7c73ffe2e6",
-      "targetSha256": "e3589e22f1de42ecd11620af0ae5fb677fe1e970214c2ec8e5acf85a73383089",
+      "sourceBlob": "2d83a642e0d45b0d419a9c7ea7f80a26f23060c1",
+      "sourceSha256": "872ccd926adfa2db4df3fa557e7e78bd3d0fc7090539f46e797b031bb1a672b2",
+      "targetBlob": "2d83a642e0d45b0d419a9c7ea7f80a26f23060c1",
+      "targetSha256": "872ccd926adfa2db4df3fa557e7e78bd3d0fc7090539f46e797b031bb1a672b2",
       "mode": "100644"
     },
     "src/mock/achievements.ts": {
@@ -26963,31 +26970,31 @@
       "mode": "100644"
     },
     "src/services/native-push-controller.test.ts": {
-      "sourceBlob": "cd2ed6e04bf4b6ae2e62f2212ffe5b9fc90a0942",
-      "sourceSha256": "b3c0364b9800a0515f3dce81ab12622c49508aa6e3e3319687a74e66bb27a7f4",
-      "targetBlob": "cd2ed6e04bf4b6ae2e62f2212ffe5b9fc90a0942",
-      "targetSha256": "b3c0364b9800a0515f3dce81ab12622c49508aa6e3e3319687a74e66bb27a7f4",
+      "sourceBlob": "be49cb24b893341b62604916af3c24fb52b20238",
+      "sourceSha256": "e6c9cd37bf8141d0d4719e894329bab8285d15694abae522fa0583b90e4a5758",
+      "targetBlob": "be49cb24b893341b62604916af3c24fb52b20238",
+      "targetSha256": "e6c9cd37bf8141d0d4719e894329bab8285d15694abae522fa0583b90e4a5758",
       "mode": "100644"
     },
     "src/services/native-push-controller.ts": {
-      "sourceBlob": "6b8eeadcd2e4f7273342c5cd4f8225380387d64c",
-      "sourceSha256": "f164f0a968958c19bec6ba2be2b09aa84c60b27002d8108df0ee33d818ac8cb0",
-      "targetBlob": "6b8eeadcd2e4f7273342c5cd4f8225380387d64c",
-      "targetSha256": "f164f0a968958c19bec6ba2be2b09aa84c60b27002d8108df0ee33d818ac8cb0",
+      "sourceBlob": "61d593d10f1b8dcc1dc24b3dc7571584f31b6f64",
+      "sourceSha256": "700957393e3bbc45d951a1080e1a03ff3f052515c1fbcd166b5173c9e38e6f00",
+      "targetBlob": "61d593d10f1b8dcc1dc24b3dc7571584f31b6f64",
+      "targetSha256": "700957393e3bbc45d951a1080e1a03ff3f052515c1fbcd166b5173c9e38e6f00",
       "mode": "100644"
     },
     "src/services/native-push-platform.test.ts": {
-      "sourceBlob": "99e9b84fadf472702dc2683b170bbe6be2ebd9a8",
-      "sourceSha256": "9a320225389d90724aab443a9cb24a91b22b7bc4c2006953d8fa86f3d12ce93c",
-      "targetBlob": "99e9b84fadf472702dc2683b170bbe6be2ebd9a8",
-      "targetSha256": "9a320225389d90724aab443a9cb24a91b22b7bc4c2006953d8fa86f3d12ce93c",
+      "sourceBlob": "6b77eb29baec8e4ac29d10613f9f0dceb590f0b7",
+      "sourceSha256": "9d031c0ee76c8afafdb1f1d9a3cb228563614c348871ad0593f8300b6663de36",
+      "targetBlob": "6b77eb29baec8e4ac29d10613f9f0dceb590f0b7",
+      "targetSha256": "9d031c0ee76c8afafdb1f1d9a3cb228563614c348871ad0593f8300b6663de36",
       "mode": "100644"
     },
     "src/services/native-push.ts": {
-      "sourceBlob": "180869f65511d3f5e302954708765f299980fb7e",
-      "sourceSha256": "892588645c7ac77fda28a2307c2404a3c6205f49afb27188647db6d06354938e",
-      "targetBlob": "180869f65511d3f5e302954708765f299980fb7e",
-      "targetSha256": "892588645c7ac77fda28a2307c2404a3c6205f49afb27188647db6d06354938e",
+      "sourceBlob": "5a721ecc3b2ba2375910ba2c1b0945e4f0067dff",
+      "sourceSha256": "2600e5e719c688432cf48c2e021aee0087fbef16a85d7b34662dcc43e20658ac",
+      "targetBlob": "5a721ecc3b2ba2375910ba2c1b0945e4f0067dff",
+      "targetSha256": "2600e5e719c688432cf48c2e021aee0087fbef16a85d7b34662dcc43e20658ac",
       "mode": "100644"
     },
     "src/shime-uni.d.ts": {
@@ -29172,6 +29179,104 @@
       "sourceSha256": "3bb2b77f1cf396680537f8412db2fdb447600af1eca188e5af47b5e677022ef7",
       "targetBlob": "288300d7677b3edbca5885f2326f097fdc56386e",
       "targetSha256": "3bb2b77f1cf396680537f8412db2fdb447600af1eca188e5af47b5e677022ef7",
+      "mode": "100644"
+    },
+    "src/uni_modules/uvel-native-push/configure-android.mjs": {
+      "sourceBlob": "a46ec17f0db2809002b662ceca41debe24f4c1ed",
+      "sourceSha256": "60f845ab400343f86df4a09b48069f3266d0b0fd975a5368d82598cc2108f5fd",
+      "targetBlob": "a46ec17f0db2809002b662ceca41debe24f4c1ed",
+      "targetSha256": "60f845ab400343f86df4a09b48069f3266d0b0fd975a5368d82598cc2108f5fd",
+      "mode": "100644"
+    },
+    "src/uni_modules/uvel-native-push/configure-ios.mjs": {
+      "sourceBlob": "a264aef2947aad450be03b0e54a2d22e9d02b657",
+      "sourceSha256": "0dcfac8ec66f125edfe4e70e4732ba837dfac20c6278d64f4b4cb1e9beab68ef",
+      "targetBlob": "a264aef2947aad450be03b0e54a2d22e9d02b657",
+      "targetSha256": "0dcfac8ec66f125edfe4e70e4732ba837dfac20c6278d64f4b4cb1e9beab68ef",
+      "mode": "100644"
+    },
+    "src/uni_modules/uvel-native-push/index.d.ts": {
+      "sourceBlob": "d2fa36b4df2a2a830aabf08e207c979f6cb6cd19",
+      "sourceSha256": "af35aeb6f768311bf1efb7768ca2be057249e1fd518c9202460d41f0ddcd33a3",
+      "targetBlob": "d2fa36b4df2a2a830aabf08e207c979f6cb6cd19",
+      "targetSha256": "af35aeb6f768311bf1efb7768ca2be057249e1fd518c9202460d41f0ddcd33a3",
+      "mode": "100644"
+    },
+    "src/uni_modules/uvel-native-push/package.json": {
+      "sourceBlob": "c68cf7e96c5dbfc161885c6c4d076d191a438f59",
+      "sourceSha256": "2e1642b997b5a16bbc0578feefb53779f9e1324f92b00187d930a646da080145",
+      "targetBlob": "c68cf7e96c5dbfc161885c6c4d076d191a438f59",
+      "targetSha256": "2e1642b997b5a16bbc0578feefb53779f9e1324f92b00187d930a646da080145",
+      "mode": "100644"
+    },
+    "src/uni_modules/uvel-native-push/tests/NativeGenericBodyCheck.kt": {
+      "sourceBlob": "8fc3f1c608037939960fa61c5b09bdb8afe9b241",
+      "sourceSha256": "795dced6a1f57692daed359a3a23f3647b5cf1c9229641f625f506d2d59c5e5c",
+      "targetBlob": "8fc3f1c608037939960fa61c5b09bdb8afe9b241",
+      "targetSha256": "795dced6a1f57692daed359a3a23f3647b5cf1c9229641f625f506d2d59c5e5c",
+      "mode": "100644"
+    },
+    "src/uni_modules/uvel-native-push/tests/configure-android.test.mjs": {
+      "sourceBlob": "64d0252b89dcd4f14ec3b042b9f248f42d47cb90",
+      "sourceSha256": "e9161139f7487e1588ab097516e7c2c9746ae9dc24693f20a351ec0f8683ace7",
+      "targetBlob": "64d0252b89dcd4f14ec3b042b9f248f42d47cb90",
+      "targetSha256": "e9161139f7487e1588ab097516e7c2c9746ae9dc24693f20a351ec0f8683ace7",
+      "mode": "100644"
+    },
+    "src/uni_modules/uvel-native-push/utssdk/app-android/AndroidManifest.xml": {
+      "sourceBlob": "818f6915187b1bb9708121568dc4b140c1eb500d",
+      "sourceSha256": "ad49f40932086cfdcdc1193b17f06926d08fdcfb673d9d59a02efd2ef36e06ab",
+      "targetBlob": "818f6915187b1bb9708121568dc4b140c1eb500d",
+      "targetSha256": "ad49f40932086cfdcdc1193b17f06926d08fdcfb673d9d59a02efd2ef36e06ab",
+      "mode": "100644"
+    },
+    "src/uni_modules/uvel-native-push/utssdk/app-android/NativePushBridge.kt": {
+      "sourceBlob": "110d347d0a3dc4ac6a1e90f2a54ea9e4c8a1e2df",
+      "sourceSha256": "8b036efb7f184f3125402dc52b36cf6108691f9281d7b597e3d425d581b22a77",
+      "targetBlob": "110d347d0a3dc4ac6a1e90f2a54ea9e4c8a1e2df",
+      "targetSha256": "8b036efb7f184f3125402dc52b36cf6108691f9281d7b597e3d425d581b22a77",
+      "mode": "100644"
+    },
+    "src/uni_modules/uvel-native-push/utssdk/app-android/config.json": {
+      "sourceBlob": "8e8dc4527b06e7e5d052fc781801bf2de71a95be",
+      "sourceSha256": "8cb44e1cbd62f99e4960e4c7552570b25cbf389ea2f416c7dad5a6d22e816701",
+      "targetBlob": "8e8dc4527b06e7e5d052fc781801bf2de71a95be",
+      "targetSha256": "8cb44e1cbd62f99e4960e4c7552570b25cbf389ea2f416c7dad5a6d22e816701",
+      "mode": "100644"
+    },
+    "src/uni_modules/uvel-native-push/utssdk/app-android/index.uts": {
+      "sourceBlob": "dfa3e01a9020d6763dd329b89d305d451216dc2b",
+      "sourceSha256": "2bdddfc8393b6e352bf4764d409ea0bc96ed7aeff51dd3cd2ea0882c69948ade",
+      "targetBlob": "dfa3e01a9020d6763dd329b89d305d451216dc2b",
+      "targetSha256": "2bdddfc8393b6e352bf4764d409ea0bc96ed7aeff51dd3cd2ea0882c69948ade",
+      "mode": "100644"
+    },
+    "src/uni_modules/uvel-native-push/utssdk/app-android/res/values/uvel-firebase.xml": {
+      "sourceBlob": "ca3c4c4f2f09562b2566ac732f5d9367882cc70c",
+      "sourceSha256": "771a6381ac1d6179910879470f3407d7645e841efc84dbcedc86b4b59092a2be",
+      "targetBlob": "ca3c4c4f2f09562b2566ac732f5d9367882cc70c",
+      "targetSha256": "771a6381ac1d6179910879470f3407d7645e841efc84dbcedc86b4b59092a2be",
+      "mode": "100644"
+    },
+    "src/uni_modules/uvel-native-push/utssdk/app-ios/NativePushBridge.swift": {
+      "sourceBlob": "b5428d38f341b09a0725a861b6fbf0fc2e3a8b5e",
+      "sourceSha256": "00ccabe80ff31ebaba70d9602074b4b5d395af9f7af8e171b80a187eae74af2e",
+      "targetBlob": "b5428d38f341b09a0725a861b6fbf0fc2e3a8b5e",
+      "targetSha256": "00ccabe80ff31ebaba70d9602074b4b5d395af9f7af8e171b80a187eae74af2e",
+      "mode": "100644"
+    },
+    "src/uni_modules/uvel-native-push/utssdk/app-ios/config.json": {
+      "sourceBlob": "7fb9686484c75edd5057980377433214a868d7f5",
+      "sourceSha256": "489ac50249911844b6b55359cba150f93bde9bce94e08790ef9693c655cd6ccd",
+      "targetBlob": "7fb9686484c75edd5057980377433214a868d7f5",
+      "targetSha256": "489ac50249911844b6b55359cba150f93bde9bce94e08790ef9693c655cd6ccd",
+      "mode": "100644"
+    },
+    "src/uni_modules/uvel-native-push/utssdk/app-ios/index.uts": {
+      "sourceBlob": "b8b7ae121c4b6b458229f10858aee0ee34e609e8",
+      "sourceSha256": "ece470489d0cde10ce2fcf3a0d3823d29151b5ef72ce5c6dd4fd87da2724d567",
+      "targetBlob": "b8b7ae121c4b6b458229f10858aee0ee34e609e8",
+      "targetSha256": "ece470489d0cde10ce2fcf3a0d3823d29151b5ef72ce5c6dd4fd87da2724d567",
       "mode": "100644"
     },
     "tsconfig.json": {

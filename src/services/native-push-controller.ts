@@ -3,13 +3,21 @@ import type { SessionSnapshot, SessionVault } from "@/api/session-vault";
 import { ApiError } from "@/api/errors";
 
 export type PushPermission = "granted" | "denied" | "unknown";
+export type NativePushToken = { token: string; provider: "FCM" | "APNS" };
+export function validNativePushToken(value: NativePushToken, platform: "android" | "ios"): boolean {
+  if (!value || typeof value.token !== "string") return false;
+  return platform === "ios" ? value.provider === "APNS" && value.token.length <= 4096 && /^(?:[a-fA-F0-9]{2})+$/.test(value.token)
+    : value.provider === "FCM" && value.token.length >= 100 && value.token.length <= 4096
+      && /^[A-Za-z0-9_-]+:[A-Za-z0-9_:-]+$/.test(value.token);
+}
 export interface NativePushPort {
   platform: "android" | "ios";
   appVersion: string;
   installationId(): string;
   bindingToken(): string;
   permission(request: boolean): Promise<PushPermission>;
-  clientId(): Promise<string>;
+  token(): Promise<NativePushToken>;
+  stop(): void;
   listen(callback: (event: { type: string; data: unknown }) => void): void;
   navigate(route: string): Promise<boolean>;
   canNavigate(): boolean;
@@ -56,6 +64,7 @@ export function createNativePushController(client: ApiClient, vault: SessionVaul
   let pending: { id: string; epoch: number; userId?: number | string } | null = null;
   const opened = new Set<string>();
   let registered = "", retryAllowed = true;
+  let tokenRevision = 0;
   const current = (snapshot: SessionSnapshot, captured: number) => !blocked && epoch === captured
     && vault.read()?.user.userId === snapshot.user.userId
     && vault.read()?.sessionChainId === snapshot.sessionChainId;
@@ -103,12 +112,15 @@ export function createNativePushController(client: ApiClient, vault: SessionVaul
         body: { installationId: id } }, snapshot, captured);
       if (current(snapshot, captured) && pending === click) pending = null;
     } catch (error) {
-      if (current(snapshot, captured) && error instanceof ApiError
+      if (current(snapshot, captured) && pending === click && error instanceof ApiError
         && [401, 403, 404].includes(error.status ?? error.code ?? 0)) pending = null;
-    } finally { opening = false; if (epoch !== captured) void flush(); }
+    } finally {
+      opening = false;
+      if (epoch !== captured || (pending !== click && retryAllowed)) void flush();
+    }
   }
   async function sync(requestPermission = false) {
-    const snapshot = vault.read(), captured = epoch;
+    const snapshot = vault.read(), captured = epoch, capturedTokenRevision = tokenRevision;
     if (syncing || blocked || !snapshot?.accessToken) return;
     const id = installation(snapshot);
     if (!id) return;
@@ -116,21 +128,30 @@ export function createNativePushController(client: ApiClient, vault: SessionVaul
     try {
       const permission = await port.permission(requestPermission);
       if (!current(snapshot, captured)) return;
-      const clientId = await port.clientId();
-      if (!clientId || !current(snapshot, captured)) return;
-      const key = JSON.stringify([snapshot.user.userId, snapshot.sessionChainId, id, clientId, permission]);
+      if (permission === "unknown") return;
+      if (permission === "denied") {
+        port.stop(); registered = "";
+        await authenticatedRequest({ path: `/api/me/push-installations/${encodeURIComponent(id)}`, method: "DELETE",
+          headers: { "X-Push-Binding-Token": port.bindingToken() } }, snapshot, captured);
+        return;
+      }
+      const native = await port.token();
+      if (!validNativePushToken(native, port.platform) || !current(snapshot, captured)) return;
+      const clientId = native.token, provider = native.provider;
+      const key = JSON.stringify([snapshot.user.userId, snapshot.sessionChainId, id, provider, clientId, permission]);
       if (key === registered) return;
       // Persist proof before the first request so a lost response can be retried.
       const token = port.bindingToken();
       await authenticatedRequest({ path: `/api/me/push-installations/${encodeURIComponent(id)}`, method: "PUT",
         headers: { "X-Push-Binding-Token": token },
-        body: { clientId, platform: port.platform, permission, appVersion: port.appVersion } }, snapshot, captured);
+        body: { clientId, provider, platform: port.platform, permission, appVersion: port.appVersion } }, snapshot, captured);
       if (current(snapshot, captured)) registered = key;
-    } catch { /* CID/configuration/network failure is retried on foreground; inbox stays available. */ }
+    } catch { /* Native SDK/configuration/network failure is retried on foreground; inbox stays available. */ }
     finally {
       syncing = false;
-      // A new login may arrive while the old CID callback is pending.
+      // A new login may arrive while the old native token callback is pending.
       if (epoch !== captured && !blocked && vault.read()?.accessToken) void sync(true);
+      else if (tokenRevision !== capturedTokenRevision && !blocked) void sync();
     }
   }
   async function revoke(snapshot: SessionSnapshot) {
@@ -157,6 +178,7 @@ export function createNativePushController(client: ApiClient, vault: SessionVaul
       if (started) return;
       started = true;
       port.listen(event => {
+        if (event.type === "token") { tokenRevision += 1; registered = ""; void sync(); return; }
         const id = pushNotificationId(event.data);
         if (!id) return;
         if (event.type === "receive") { port.received(); return; }

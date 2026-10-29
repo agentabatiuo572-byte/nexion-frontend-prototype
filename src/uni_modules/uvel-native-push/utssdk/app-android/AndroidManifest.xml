@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools" package="uts.sdk.modules.uvelNativePush">
+  <uses-permission android:name="android.permission.INTERNET" />
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+  <application>
+    <meta-data android:name="firebase_messaging_auto_init_enabled" android:value="false" tools:replace="android:value" />
+    <meta-data android:name="firebase_analytics_collection_enabled" android:value="false" tools:replace="android:value" />
+    <meta-data android:name="firebase_data_collection_default_enabled" android:value="false" tools:replace="android:value" />
+    <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="uvel_notifications" />
+    <service android:name="uts.sdk.modules.uvelNativePush.UvelMessagingService" android:exported="false">
+      <intent-filter android:priority="100"><action android:name="com.google.firebase.MESSAGING_EVENT" /></intent-filter>
+    </service>
+    <activity android:name="uts.sdk.modules.uvelNativePush.UvelPushClickActivity" android:exported="false" android:excludeFromRecents="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+  </application>
+</manifest>
