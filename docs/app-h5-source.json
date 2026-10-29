@@ -3,10 +3,10 @@
   "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-polish",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "16abfbe191a560100442d884f48089858a252009",
-  "sourceRef": "16abfbe191a560100442d884f48089858a252009",
+  "sourceHead": "3707ef8eee60c99ae082c89a8014f0fa82cd4d55",
+  "sourceRef": "3707ef8eee60c99ae082c89a8014f0fa82cd4d55",
   "sourceRefKind": "commit",
-  "sourceTree": "5a0d40f6698b55107d224cd5ae232af057eb887c",
+  "sourceTree": "332716edee3a9116871cab467c1ce9e5bb8f08e5",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -12515,10 +12515,10 @@
       "mode": "100644"
     },
     "docs/前端产品更新日志.md": {
-      "sourceBlob": "aa4b8a7b397df709408df727375d4045e764c7a5",
-      "sourceSha256": "43d60f9617c231882935c113fd0ebfc79f19cf2629dae35e6dcf3755dc5e9a21",
-      "targetBlob": "aa4b8a7b397df709408df727375d4045e764c7a5",
-      "targetSha256": "43d60f9617c231882935c113fd0ebfc79f19cf2629dae35e6dcf3755dc5e9a21",
+      "sourceBlob": "ce5866cd6acc29bd1ee8424e9218e962d8262da0",
+      "sourceSha256": "cd5bc6dd1db2a2efbe0f7e574a65b1bf909b81d3d224491f70bcf05d580012ab",
+      "targetBlob": "ce5866cd6acc29bd1ee8424e9218e962d8262da0",
+      "targetSha256": "cd5bc6dd1db2a2efbe0f7e574a65b1bf909b81d3d224491f70bcf05d580012ab",
       "mode": "100644"
     },
     "index.html": {
@@ -18548,6 +18548,13 @@
       "targetSha256": "3c425f7f42ed55df7c7d615eb89392849e8262ad9f50ea9b3ada424f9a4c73f9",
       "mode": "100644"
     },
+    "src/components/promotion/promotion-entry-autoplay.behavior.test.ts": {
+      "sourceBlob": "45d7b90d2c084e9d314077863fbdd892dbb07ada",
+      "sourceSha256": "172b34fa1fac9c62ede353d7d1cdcd0f66311ae350610beb290868a093d774c7",
+      "targetBlob": "45d7b90d2c084e9d314077863fbdd892dbb07ada",
+      "targetSha256": "172b34fa1fac9c62ede353d7d1cdcd0f66311ae350610beb290868a093d774c7",
+      "mode": "100644"
+    },
     "src/components/promotion/promotion-entry-stability.behavior.test.ts": {
       "sourceBlob": "5841f530b7ba138a39b358bb38667f57e7815054",
       "sourceSha256": "cf3dea1c29cc872e09fed66fe00109e2415be33bc4da86064e1604e5335e5cd5",
@@ -18556,10 +18563,10 @@
       "mode": "100644"
     },
     "src/components/promotion/promotion-entry.vue": {
-      "sourceBlob": "eb7d5053cb1a78b2a06dc6afde1aa78341d43833",
-      "sourceSha256": "09cb7ef5937778ceff85ab5dd3ad4d5bc520c5c457dd39306ba294153e7822de",
-      "targetBlob": "eb7d5053cb1a78b2a06dc6afde1aa78341d43833",
-      "targetSha256": "09cb7ef5937778ceff85ab5dd3ad4d5bc520c5c457dd39306ba294153e7822de",
+      "sourceBlob": "cd1d17bddf3266e8f56ae88b46923126d95467e6",
+      "sourceSha256": "c2be0da6fb80281d0da9f2e51cf02f6404f3af269534c15294c290b6c354fbf0",
+      "targetBlob": "cd1d17bddf3266e8f56ae88b46923126d95467e6",
+      "targetSha256": "c2be0da6fb80281d0da9f2e51cf02f6404f3af269534c15294c290b6c354fbf0",
       "mode": "100644"
     },
     "src/components/promotion/promotion-leave.behavior.test.ts": {

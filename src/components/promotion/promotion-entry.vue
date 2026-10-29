@@ -129,6 +129,10 @@ function homeRemaining(activity:PublicPromotion) {
   return remaining<86400000?t.value.promotion.endsToday:fmt(t.value.promotion.daysRemaining,{n:Math.ceil(remaining/86400000)});
 }
 function cycleOffer(delta:number){if(items.value.length)activeIndex.value=(activeIndex.value+delta+items.value.length)%items.value.length;}
+// Home offers rotate on their own; any change of offer (auto or tapped) restarts the countdown.
+let autoplayTimer:ReturnType<typeof setInterval>|null=null;
+function stopAutoplay(){if(autoplayTimer!==null){clearInterval(autoplayTimer);autoplayTimer=null;}}
+function startAutoplay(){stopAutoplay();if(props.mode==='home'&&props.active&&visible&&items.value.length>1&&!termsActivity.value)autoplayTimer=setInterval(()=>cycleOffer(1),5000);}
 const termsRules=computed(()=>termsActivity.value?rewardSummaries(termsActivity.value):[]);
 const termsText=computed(()=>termsActivity.value?[localized(termsActivity.value.terms,locale.code),t.value.promotion.deadline+' · '+displayDeadline(termsActivity.value.endsAt,locale.code)].join('\n\n'):'');
 async function load(reset:boolean,preserveImages=false){
@@ -170,9 +174,10 @@ watch([()=>app.accountKey,()=>app.accountBindingEpoch,()=>locale.code],()=>{
 },{flush:'sync'});
 watch(()=>props.activities,(next,previous)=>{if(visible&&(next!==undefined||previous!==undefined))void load(true,true);},{immediate:true});
 watch(()=>theme.resolved,()=>{imageRefresh.value++;loadedBanners.value.clear();});
-onMounted(()=>{void load(true,true);});onShow(()=>{visible=true;void load(true,true);});
-onHide(()=>{visible=false;termsActivity.value=null;});
-onBeforeUnmount(()=>{visible=false;fence.invalidate();clear();});
+watch([()=>items.value.length,()=>props.active,termsActivity,activeIndex],startAutoplay);
+onMounted(()=>{void load(true,true);startAutoplay();});onShow(()=>{visible=true;void load(true,true);startAutoplay();});
+onHide(()=>{visible=false;termsActivity.value=null;stopAutoplay();});
+onBeforeUnmount(()=>{visible=false;stopAutoplay();fence.invalidate();clear();});
 </script>
 <style src="./promotion.css"></style>
 <style scoped>
