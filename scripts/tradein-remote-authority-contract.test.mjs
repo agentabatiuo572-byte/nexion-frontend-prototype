@@ -62,7 +62,7 @@ test("remote keep-and-buy uses the atomic server command and verifies completed 
 });
 
 test("remote device and product cards do not render a locally estimated trade-in credit", () => {
-  const devices = read("src/pages/me/devices.vue");
+  const devices = read("src/composables/use-tradein-strip.ts");
   const product = read("src/components/store/product-card.vue");
   const banner = read("src/components/store/tradein-window-banner.vue");
   assert.match(devices, /if \(remoteApiEnabled\)[\s\S]{0,250}tradeinCtaLabel/);

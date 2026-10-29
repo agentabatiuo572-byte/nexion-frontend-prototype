@@ -24,7 +24,7 @@ describe("remote fleet refresh callsite safety", () => {
       "../components/me/wallet-overview.vue",
       "../pages/me/wallet-withdraw.vue",
       "../pages/onboarding/connect.vue",
-      "../pages/me/devices.vue",
+      "../composables/use-device-deactivation.ts",
       "../pages/store/checkout.vue",
       "../components/tradein-sheets.vue",
       "../components/earn/task-center.vue",

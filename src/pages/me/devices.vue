@@ -192,10 +192,9 @@
 </template>
 
 <script setup lang="ts">
-import { formatAmount } from "@/lib/amount-display";
 import { navReset, navTo, takeNavigationQuery } from "@/lib/route";
 import { onLoad, onUnload } from '@dcloudio/uni-app';
-import { computed, ref, watch, type CSSProperties } from "vue";
+import { computed, ref, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import DeviceInventoryRow from "@/components/me/device-inventory-row.vue";
@@ -204,6 +203,8 @@ import DeviceDeactivateSheet from "@/components/me/device-deactivate-sheet.vue";
 import TradeinLadderSheet from "@/components/me/tradein-ladder-sheet.vue";
 import TrialDeviceRow from "@/components/trial-device-row.vue";
 import { useTrialPresentation } from "@/composables/use-trial-presentation";
+import { useDeviceDeactivation } from "@/composables/use-device-deactivation";
+import { useTradeinStrip } from "@/composables/use-tradein-strip";
 import { useTrialFleetCopy } from "@/i18n/trial-fleet";
 import { useT } from "@/i18n/use-t";
 import { deviceName } from "@/lib/device-copy";
@@ -214,20 +215,11 @@ import { hasNativePhoneRuntime } from "@/lib/native-phone-runtime";
 import { resolvePhoneActivationGuidance } from "@/lib/phone-activation-guidance";
 import { canControlDevice } from "@/lib/device-control-platform";
 import { useFreeTrial } from "@/store/free-trial";
-import { useTradeinSheet } from "@/store/tradein-sheet";
-import { PRODUCTS } from "@/mock/products";
-import { computeTradeInCredit, TRADEIN_LADDER_RULES, DEFAULT_TRADEIN_CONFIG } from "@/mock/tradein-config";
-import { isDeviceTaskBlocked } from "@/mock/eligibility";
-import { getMonthsSince, isTradeInTargetAvailable } from "@/store/product-phase";
-import { useProductPhase } from "@/composables/use-product-phase";
 import type { Device } from "@/store/types";
 import { confirm as uiConfirm, toast } from "@/store/ui";
-import { apiRuntimeConfig, deviceE3Api, remoteApiEnabled } from "@/api/runtime";
-import { isSettledRejection } from "@/api/errors";
+import { apiRuntimeConfig, remoteApiEnabled } from "@/api/runtime";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
-import { acquireDeviceCommandKey, finishDeviceCommand } from "@/lib/device-command-key";
-import { isProductAvailable } from "@/store/product-availability";
-import { productCatalogState, refreshProductCatalog } from "@/store/product-catalog";
+import { productCatalogState } from "@/store/product-catalog";
 import { refreshRemoteFleetAfterCatalog } from "@/lib/e3-fleet-bootstrap";
 import { isActivatableInventoryDevice, occupiesDeviceSlot, requiresActivationConfirmation } from "@/lib/device-slot-policy";
 
@@ -240,7 +232,6 @@ const trial = useFreeTrial();
 const trialPresentation = useTrialPresentation();
 const trialCopy = useTrialFleetCopy();
 const cancelTrialBusy = ref(false);
-const deferredCommandInFlight = ref<Set<string>>(new Set());
 
 // A failed trial read cannot remove the account's previously confirmed devices.
 // Slot counts and mutations have their own stricter readiness below.
@@ -255,15 +246,6 @@ const inventoryStale = computed(() => inventoryReady.value && remoteApiEnabled
 function retryInventory() {
   void refreshRemoteFleetAfterCatalog(app.accountKey).catch(() => undefined);
   void trial.poll(Date.now());
-}
-
-function deferredCommandSlot(device: Device, accountKey: string, version: number): string {
-  return `${accountKey.trim().toLowerCase()}:deactivate-after-task:${device.id}:${version}`;
-}
-
-function deferredCommandBusy(device: Device): boolean {
-  if (!Number.isSafeInteger(device.rowVersion) || Number(device.rowVersion) < 0) return false;
-  return deferredCommandInFlight.value.has(deferredCommandSlot(device, app.accountKey, Number(device.rowVersion)));
 }
 
 const activeDevices = computed(() => app.visibleDevices.filter((d) => d.activatedAt !== null));
@@ -295,7 +277,7 @@ const slotMeterLabel = computed(() =>
 );
 
 // Deactivate sheet (running-task branch) — page-driven (no chassis store).
-const sheetDevice = ref<Device | null>(null);
+const { sheetDevice, handleDeactivate, onSheetWait, onSheetForce, runRemoteDeviceCommand } = useDeviceDeactivation();
 let deactivateRequest = 0;
 onUnload(() => { deactivateRequest += 1; });
 onLoad(async options => {
@@ -310,96 +292,8 @@ onLoad(async options => {
   if (device) await handleDeactivate(device);
 });
 
-// ── FEAT-DEV02 升级置换条 ──────────────────────────────────────────────
-// 总开关关 / 免费设备(paidPriceUsdt=0)/不在 applyTo 白名单 → 返回空对象 =
-// 行内零痕迹;无合规目标 → 只给禁用原因;其余给「可抵 $X」chip + 置换 CTA。
-// 默认规则(promoMult=1)下抵扣额与目标无关,取最低升级价参与计算即为真值;
-// promoMult>≈1.47 时 clamp 才可能绑定,届时各面按各自目标价如实显示。
-const tradeinSheet = useTradeinSheet();
 const ladderDevice = ref<Device | null>(null);
-// 上架节奏门(FEAT-DEV02b):未正式上架且不在抢先购窗口的 SKU 不算升级目标。
-const phase = useProductPhase();
-const monthsSinceJoin = computed(() => getMonthsSince(app.user.joinedAt));
-const remoteEligibleSourceIds = ref<Set<number>>(new Set());
-const remoteEligibilityReady = ref(!remoteApiEnabled);
-let remoteEligibilityRequest = 0;
-
-async function refreshRemoteTradeinEligibility(): Promise<void> {
-  if (!remoteApiEnabled) return;
-  const accountKey = app.accountKey;
-  const scope = captureAccountScope();
-  const request = ++remoteEligibilityRequest;
-  const current = () => request === remoteEligibilityRequest
-    && accountKey === app.accountKey && isCurrentAccountScope(scope);
-  remoteEligibilityReady.value = false;
-  remoteEligibleSourceIds.value = new Set();
-  try {
-    if (!(await refreshProductCatalog(true)) || !current()) return;
-    const targets = PRODUCTS.filter((product) => isProductAvailable(product, phase.value));
-    const snapshots = await Promise.all(targets.map((product) => deviceE3Api.eligibility(product.id)));
-    if (!current()) return;
-    remoteEligibleSourceIds.value = new Set(snapshots.flatMap((snapshot) => snapshot.sources
-      .filter((source) => source.eligible)
-      .map((source) => source.sourceDeviceId)));
-    remoteEligibilityReady.value = true;
-  } catch {
-    if (current()) remoteEligibleSourceIds.value = new Set();
-  }
-}
-
-watch(
-  () => JSON.stringify([app.accountKey, app.devices.map((device) => [
-    device.id, device.activatedAt, device.pendingDeactivate, Boolean(device.currentTask),
-  ])]),
-  (_value, _previous, onCleanup) => {
-    onCleanup(() => { remoteEligibilityRequest++; });
-    void refreshRemoteTradeinEligibility();
-  },
-  { immediate: true },
-);
-
-function tradeinStrip(d: Device): {
-  tradeinCreditText?: string;
-  tradeinCtaLabel?: string;
-  tradeinDisabledText?: string;
-} {
-  if (remoteApiEnabled) {
-    if (!remoteEligibilityReady.value || !remoteEligibleSourceIds.value.has(Number(d.id))) return {};
-    return {
-      tradeinCreditText: t.value.tradein.remoteQuoteCreditLabel,
-      tradeinCtaLabel: t.value.tradein.stripCta,
-    };
-  }
-  if (!DEFAULT_TRADEIN_CONFIG.enabled) return {};
-  const paid = d.paidPriceUsdt ?? 0;
-  if (paid <= 0 || !TRADEIN_LADDER_RULES.applyTo.includes(d.kind)) return {};
-  const targets = PRODUCTS.filter(
-    (p) =>
-      (!TRADEIN_LADDER_RULES.requireHigherPrice || p.price > paid) &&
-      isTradeInTargetAvailable(p.unlocksAtPhase, phase.value, monthsSinceJoin.value),
-  );
-  if (targets.length === 0) return { tradeinDisabledText: t.value.tradein.stripNoTarget };
-  const credit = computeTradeInCredit(
-    paid,
-    Math.max(0, d.cumulativeEarningsUsdt ?? 0),
-    Math.min(...targets.map((p) => p.price)),
-  );
-  return {
-    tradeinCreditText: fmt(t.value.tradein.stripCredit, { credit: formatAmount(credit) }),
-    tradeinCtaLabel: t.value.tradein.stripCta,
-  };
-}
-
-function handleTradein(d: Device) {
-  if (!canControlDevice(d)) return;
-  // 激活中且任务运行:阻断层(完成后可下架,查看任务/知道了),不硬拆(规格
-  // DEV02A 异常2)。库存机的出厂任务不在跑,不阻断——判定单源 isDeviceTaskBlocked。
-  if (!remoteApiEnabled && isDeviceTaskBlocked(d)) {
-    tradeinSheet.showRetireBlock(d.id, deviceName(t.value, d));
-    return;
-  }
-  tradeinSheet.showRetire(d.id);
-}
+const { tradeinStrip, handleTradein } = useTradeinStrip();
 
 async function handleActivate(d: Device) {
   if (!canControlDevice(d)) return;
@@ -432,127 +326,9 @@ async function handleActivate(d: Device) {
   }
 }
 
-async function handleDeactivate(d: Device) {
-  if (!canControlDevice(d)) return;
-  if (remoteApiEnabled && deferredCommandBusy(d)) return;
-  if (remoteApiEnabled && d.pendingDeactivate) {
-    toast.info(fmt(t.value.deactivateSheet.toastScheduled, { name: deviceName(t.value, d) }));
-    return;
-  }
-  // Running task → dedicated sheet offering wait / force / cancel.
-  if (d.currentTask) {
-    sheetDevice.value = d;
-    return;
-  }
-  const ok = await uiConfirm({
-    title: fmt(t.value.myDevices.inventoryConfirmDeactivateTitle, { deviceName: deviceName(t.value, d) }),
-    message: t.value.myDevices.inventoryConfirmDeactivateMsg,
-    confirmLabel: t.value.myDevices.inventoryConfirmDeactivateOk,
-    cancelLabel: t.value.myDevices.inventoryConfirmDeactivateCancel,
-  });
-  if (ok && remoteApiEnabled) await runRemoteDeviceCommand(d, "deactivate");
-  else if (ok) {
-    if (app.deactivateDevice(d.id)) toast.success(fmt(t.value.myDevices.inventoryToastDeactivated, { deviceName: deviceName(t.value, d) }));
-    else toast.error(t.value.errors.txNotSavedTitle, t.value.errors.txNotSavedMsg); // 没落盘 = 没停用,设备还在跑,别宣布已停用
-  }
-}
-
-function onSheetWait() {
-  const d = sheetDevice.value;
-  if (!d || !canControlDevice(d)) return;
-  if (remoteApiEnabled) {
-    void runRemoteDeferredCommand(d);
-    return;
-  }
-  app.scheduleDeactivation(d.id);
-  toast.success(fmt(t.value.deactivateSheet.toastScheduled, { name: deviceName(t.value, d) }));
-  sheetDevice.value = null;
-}
-
 function goPhoneActivation() {
   if (!nativePhoneAvailable) return;
   navTo("/pages/onboarding/connect?mode=recalibrate");
-}
-
-async function runRemoteDeferredCommand(d: Device): Promise<boolean> {
-  if (!canControlDevice(d)) return false;
-  if (!Number.isSafeInteger(d.rowVersion) || Number(d.rowVersion) < 0) {
-    toast.error(t.value.myDevices.inventoryRemoteMutationFailed);
-    return false;
-  }
-  const accountKey = app.accountKey;
-  const scope = captureAccountScope();
-  const version = Number(d.rowVersion);
-  const slot = deferredCommandSlot(d, accountKey, version);
-  if (deferredCommandInFlight.value.has(slot)) return false;
-  deferredCommandInFlight.value.add(slot);
-  sheetDevice.value = null;
-  const key = acquireDeviceCommandKey(accountKey, "deactivate-after-task", d.id, version);
-  const current = () => isCurrentAccountScope(scope) && accountKey === app.accountKey;
-  const confirmed = (status: "PENDING_DEACTIVATE" | "DEACTIVATED") => {
-    if (!current()) return false;
-    const row = app.devices.find((entry) => entry.id === d.id);
-    if (!row) return status === "DEACTIVATED";
-    return status === "DEACTIVATED" ? row.activatedAt === null : row.activatedAt !== null;
-  };
-  const finish = (status: "PENDING_DEACTIVATE" | "DEACTIVATED") => {
-    finishDeviceCommand(accountKey, "deactivate-after-task", d.id, version);
-    toast.success(status === "PENDING_DEACTIVATE"
-      ? fmt(t.value.deactivateSheet.toastScheduled, { name: deviceName(t.value, d) })
-      : fmt(t.value.myDevices.inventoryToastDeactivated, { deviceName: deviceName(t.value, d) }));
-  };
-  try {
-    toast.info(t.value.deactivateSheet.toastSubmitting);
-    const result = await deviceE3Api.deactivateAfterTask(Number(d.id), version, key);
-    if (result.status === "ACTIVE") throw new Error("DEVICE_DEFERRED_RESPONSE_INVALID");
-    if (!current()) return false;
-    if (!await app.refreshRemoteFleet() || !confirmed(result.status)) {
-      throw new Error("DEVICE_DEFERRED_DEACTIVATION_NOT_CONFIRMED");
-    }
-    finish(result.status);
-    return true;
-  } catch (cause) {
-    // A lost response or 409 is retried with the same durable key first. A
-    // successful replay proves the command was accepted without a duplicate.
-    try {
-      const replay = await deviceE3Api.deactivateAfterTask(Number(d.id), version, key);
-      if (replay.status === "ACTIVE") throw new Error("DEVICE_DEFERRED_RESPONSE_INVALID");
-      if (current() && await app.refreshRemoteFleet() && confirmed(replay.status)) {
-        finish(replay.status);
-        return true;
-      }
-    } catch {
-      // Continue to the authoritative fleet readback below.
-    }
-    try {
-      if (current() && await app.refreshRemoteFleet()) {
-        const row = app.devices.find((entry) => entry.id === d.id);
-        if (current() && row?.activatedAt === null) {
-          finish("DEACTIVATED");
-          return true;
-        }
-      }
-    } catch {
-      // Keep the stable key while command and readback remain uncertain.
-    }
-    if (isSettledRejection(cause)) finishDeviceCommand(accountKey, "deactivate-after-task", d.id, version);
-    if (current()) toast.error(t.value.myDevices.inventoryRemoteMutationFailed);
-    return false;
-  } finally {
-    deferredCommandInFlight.value.delete(slot);
-  }
-}
-
-async function onSheetForce() {
-  const d = sheetDevice.value;
-  if (!d || !canControlDevice(d)) return;
-  if (remoteApiEnabled) await runRemoteDeviceCommand(d, "deactivate");
-  else if (app.deactivateDevice(d.id)) {
-    toast.warn(fmt(t.value.deactivateSheet.toastForced, { name: deviceName(t.value, d) }));
-  } else {
-    toast.error(t.value.errors.txNotSavedTitle, t.value.errors.txNotSavedMsg);
-  }
-  sheetDevice.value = null;
 }
 
 async function handleCancelTrial() {
@@ -575,57 +351,6 @@ async function handleCancelTrial() {
     else toast.warn(t.value.trial.cancelError);
   } finally {
     cancelTrialBusy.value = false;
-  }
-}
-
-async function runRemoteDeviceCommand(d: Device, operation: "activate" | "deactivate"): Promise<boolean> {
-  if (!canControlDevice(d)) return false;
-  if (!Number.isSafeInteger(d.rowVersion) || Number(d.rowVersion) < 0) {
-    toast.error(t.value.myDevices.inventoryRemoteMutationFailed);
-    return false;
-  }
-  const accountKey = app.accountKey;
-  const version = Number(d.rowVersion);
-  const key = acquireDeviceCommandKey(accountKey, operation, d.id, version);
-  const expectedActive = operation === "activate";
-  const confirmed = () => {
-    if (accountKey !== app.accountKey) return false;
-    const current = app.devices.find((entry) => entry.id === d.id);
-    return Boolean(current) && (current!.activatedAt !== null) === expectedActive;
-  };
-  try {
-    if (operation === "activate") {
-      await deviceE3Api.activate(Number(d.id), version, app.slotCap, key);
-    } else {
-      await deviceE3Api.deactivate(Number(d.id), version, key);
-    }
-    await app.refreshRemoteFleet();
-    if (!confirmed()) throw new Error(operation === "activate"
-      ? "DEVICE_ACTIVATION_NOT_CONFIRMED"
-      : "DEVICE_DEACTIVATION_NOT_CONFIRMED");
-    finishDeviceCommand(accountKey, operation, d.id, version);
-    const message = operation === "activate"
-      ? fmt(t.value.myDevices.inventoryToastActivated, { deviceName: deviceName(t.value, d) })
-      : fmt(t.value.myDevices.inventoryToastDeactivated, { deviceName: deviceName(t.value, d) });
-    toast.success(message);
-    return true;
-  } catch (cause) {
-    try {
-      await app.refreshRemoteFleet();
-      if (confirmed()) {
-        finishDeviceCommand(accountKey, operation, d.id, version);
-        const message = operation === "activate"
-          ? fmt(t.value.myDevices.inventoryToastActivated, { deviceName: deviceName(t.value, d) })
-          : fmt(t.value.myDevices.inventoryToastDeactivated, { deviceName: deviceName(t.value, d) });
-        toast.success(message);
-        return true;
-      }
-    } catch {
-      // Preserve the original command key while both command and readback remain uncertain.
-    }
-    if (isSettledRejection(cause)) finishDeviceCommand(accountKey, operation, d.id, version);
-    toast.error(t.value.myDevices.inventoryRemoteMutationFailed);
-    return false;
   }
 }
 

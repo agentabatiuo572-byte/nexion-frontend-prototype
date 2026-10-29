@@ -55,6 +55,8 @@ function mount(source: string) {
     "@/lib/device-command-key": {}, "@/store/product-availability": {},
     "@/store/product-catalog": { productCatalogState: { status: "ready" }, refreshProductCatalog: async () => false },
     "@/lib/e3-fleet-bootstrap": { refreshRemoteFleetAfterCatalog: async () => true },
+    "@/composables/use-device-deactivation": { useDeviceDeactivation: () => ({ sheetDevice: Vue.ref(null), handleDeactivate: vi.fn(), onSheetWait: vi.fn(), onSheetForce: vi.fn(), runRemoteDeviceCommand: vi.fn() }) },
+    "@/composables/use-tradein-strip": { useTradeinStrip: () => ({ tradeinStrip: () => ({}), handleTradein: vi.fn() }) },
   };
   const exports: Record<string, any> = {};
   new Function("require", "exports", code)((id: string) => {

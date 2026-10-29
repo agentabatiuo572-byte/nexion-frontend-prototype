@@ -216,6 +216,9 @@ async function setup(name: string) {
     '@/components/ui/nx-button.vue': { __esModule: true, default: blank },
     '@/components/ui/nx-tag.vue': { __esModule: true, default: blank },
     '@/components/liquid-glass.vue': { __esModule: true, default: blank },
+    '@/components/me/device-deactivate-sheet.vue': { __esModule: true, default: blank },
+    '@/composables/use-device-deactivation': { useDeviceDeactivation: () => ({ sheetDevice: Vue.ref(null), handleDeactivate: vi.fn(), onSheetWait: vi.fn(), onSheetForce: vi.fn() }) },
+    '@/composables/use-tradein-strip': { useTradeinStrip: () => ({ tradeinStrip: () => ({}), handleTradein: vi.fn() }) },
   };
   const imports = (id: string) => {
     if (id === '@/composables/use-tab-page-lifecycle') return tabLifecycle;

@@ -46,14 +46,18 @@
             <text class="nx-action-sheet__label">{{ t.earn.quickMenu.stats }}</text>
             <svg class="nx-action-sheet__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
           </view>
-          <view v-if="degradable" class="nx-action-sheet__row" role="button" tabindex="0" @click="goTradeinMenu" @keydown.enter.stop.prevent="goTradeinMenu" @keydown.space.stop.prevent="goTradeinMenu">
+          <view v-if="canControlDevice(device) && (tradeinRow.tradeinCtaLabel || tradeinRow.tradeinDisabledText)" class="nx-device-quick-tradein nx-action-sheet__row" role="button" :tabindex="tradeinRow.tradeinCtaLabel ? 0 : -1" :aria-disabled="!tradeinRow.tradeinCtaLabel" @click="goTradeinMenu" @keydown.enter.stop.prevent="goTradeinMenu" @keydown.space.stop.prevent="goTradeinMenu">
             <view class="nx-action-sheet__icon nx-action-sheet__icon--brand" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4" /><path d="M3 7h18" /><path d="M7 21l-4-4 4-4" /><path d="M21 17H3" /></svg></view>
-            <text class="nx-action-sheet__label">{{ t.earn.quickMenu.tradein }}</text>
-            <svg class="nx-action-sheet__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
+            <view class="nx-action-sheet__copy"><text class="nx-action-sheet__label">{{ t.earn.quickMenu.tradein }}</text><text v-if="tradeinRow.tradeinDisabledText" class="nx-action-sheet__desc">{{ tradeinRow.tradeinDisabledText }}</text></view>
+            <svg v-if="tradeinRow.tradeinCtaLabel" class="nx-action-sheet__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
           </view>
         </view>
         <view class="nx-action-sheet__cancel" role="button" tabindex="0" @click="closeMenu" @keydown="onMenuKeydown"><LiquidGlass :radius="24" tone="control" /><text>{{ t.earn.quickMenu.cancel }}</text></view>
       </view>
+    </view>
+    <!-- 有任务时的取消激活三选一(等完成 / 强制 / 返回),就地弹出;拦截触摸,长按不穿透到卡片。 -->
+    <view v-if="deactivation.sheetDevice.value" @touchstart.stop @touchmove.stop @touchend.stop @touchcancel.stop>
+      <DeviceDeactivateSheet :device="deactivation.sheetDevice.value" @wait="deactivation.onSheetWait" @force="deactivation.onSheetForce" @dismiss="deactivation.sheetDevice.value = null" />
     </view>
 
     <view v-if="detailPage" class="device-management-heading">
@@ -424,6 +428,7 @@ import { canControlDevice } from "@/lib/device-control-platform";
 import NxButton from "@/components/ui/nx-button.vue";
 import NxTag from "@/components/ui/nx-tag.vue";
 import LiquidGlass from "@/components/liquid-glass.vue";
+import DeviceDeactivateSheet from "@/components/me/device-deactivate-sheet.vue";
 import { computed, nextTick, ref, watch, onUnmounted, type CSSProperties } from "vue";
 import { onHide, useVisibleInterval } from "@/composables/use-tab-page-lifecycle";
 import { advanceMonotonicHighWater, deadlineRemainingDays, deadlineRemainingMs, projectServerNow, readMonotonicNowMs } from "@/lib/server-deadline-clock";
@@ -442,6 +447,8 @@ import { getLifecycleSummary, hasServerLifecycleProjection, isDegradable, SUBSID
 import type { LockedTeaser } from "@/mock/tasks";
 import { prepareEarnConfig, useEarnConfig } from "@/store/earn-config";
 import { useCapacityExplainer } from "@/composables/use-capacity-explainer";
+import { useDeviceDeactivation } from "@/composables/use-device-deactivation";
+import { useTradeinStrip } from "@/composables/use-tradein-strip";
 import { navTo } from "@/lib/route";
 import { interruptInfo, INTERRUPT_MAX_RETRIES } from "@/store/interrupt";
 import { canShowLivePhoneHashpower, computeLiveHashpower, isDeviceOnline, deviceOnlineState } from "@/lib/hashpower";
@@ -765,6 +772,9 @@ const flooredCtaLabelStyle: CSSProperties = {
 
 // Long-press quick menu
 const menuOpen = ref(false);
+const deactivation = useDeviceDeactivation();
+const tradein = useTradeinStrip(() => menuOpen.value);
+const tradeinRow = computed(() => tradein.tradeinStrip(props.device));
 const pressFiredMenu = ref(false);
 let navigatingToStatistics = false;
 let longPress: ReturnType<typeof setTimeout> | null = null;
@@ -854,11 +864,12 @@ function goStatsMenu() {
 function goDeactivateMenu() {
   if (!canControlDevice(props.device) || props.device.pendingDeactivate || props.device.activatedAt === null) return;
   closeMenu();
-  navTo(`/pages/me/devices?deactivate=${encodeURIComponent(props.device.id)}`);
+  void deactivation.handleDeactivate(props.device);
 }
 function goTradeinMenu() {
+  if (!tradeinRow.value.tradeinCtaLabel) return;
   closeMenu();
-  navTo("/pages/me/devices");
+  tradein.handleTradein(props.device);
 }
 function goDevices() {
   navTo("/pages/me/devices");
@@ -942,6 +953,8 @@ import DeviceSlot from "@/components/home/device-slot.vue";
 .nx-action-sheet__icon--warning { background: var(--v5-warning-soft); color: var(--v5-warning-ink); }
 .nx-action-sheet__icon--brand { background: var(--v5-brand-soft); color: var(--v5-brand); }
 .nx-action-sheet__icon--info { background: color-mix(in srgb, var(--v5-tech-cyan) 16%, transparent); color: var(--v5-tech-cyan-ink); }
+.nx-action-sheet__copy { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.nx-action-sheet__desc { color: var(--v5-ink-3); font-size: var(--ui-type-note); line-height: var(--ui-type-note-lh); }
 .nx-action-sheet__label { flex: 1; min-width: 0; color: var(--v5-ink); font-size: var(--ui-type-subheading); line-height: var(--ui-type-subheading-lh); font-weight: var(--ui-type-subheading-weight); }
 .nx-action-sheet__chevron { flex: none; color: var(--v5-ink-4); }
 .nx-action-sheet__cancel { position: relative; isolation: isolate; min-height: 48px; display: grid; place-items: center; border-radius: 24px; color: var(--v5-ink); font-size: var(--ui-type-button); line-height: var(--ui-type-button-lh); font-weight: var(--ui-type-button-weight); cursor: pointer; }

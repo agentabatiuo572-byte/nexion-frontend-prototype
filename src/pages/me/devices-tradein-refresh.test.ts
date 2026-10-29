@@ -1,17 +1,23 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { effectScope, nextTick, reactive, ref, watch } from "vue";
 import ts from "typescript";
-import source from "./devices.vue?raw";
+import stripSource from "@/composables/use-tradein-strip.ts?raw";
+import deactivationSource from "@/composables/use-device-deactivation.ts?raw";
 import { createRemoteAccountEpoch } from "@/lib/remote-account-epoch";
 
-const script = source.split('<script setup lang="ts">')[1].split("</script>")[0];
-const ast = ts.createSourceFile("devices.ts", script, ts.ScriptTarget.Latest, true);
-const selected = ast.statements.filter((node) => {
-  const text = node.getText(ast);
+// The warehouse page and the device action sheet share these composables; run
+// their actual bodies with injected dependencies.
+function composableBody(source: string, name: string) {
+  const file = ts.createSourceFile(`${name}.ts`, source, ts.ScriptTarget.Latest, true);
+  const fn = file.statements.find((node): node is ts.FunctionDeclaration => ts.isFunctionDeclaration(node) && node.name?.text === name)!;
+  return fn.body!.statements.map((node) => ({ node, text: node.getText(file) }));
+}
+const statements = [...composableBody(stripSource, "useTradeinStrip"), ...composableBody(deactivationSource, "useDeviceDeactivation")];
+const selected = statements.filter(({ node, text }) => {
   return (ts.isVariableStatement(node) && /remoteEligib/.test(text))
     || (ts.isFunctionDeclaration(node) && ["refreshRemoteTradeinEligibility", "tradeinStrip", "runRemoteDeviceCommand"].includes(node.name?.text ?? ""))
     || (ts.isExpressionStatement(node) && text.startsWith("watch(") && text.includes("refreshRemoteTradeinEligibility"));
-}).map((node) => node.getText(ast)).join("\n");
+}).map(({ text }) => text).join("\n");
 const javascript = ts.transpileModule(selected, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 const scopes: ReturnType<typeof effectScope>[] = [];
 afterEach(() => scopes.splice(0).forEach((scope) => scope.stop()));
@@ -29,7 +35,7 @@ function scenario(active = false) {
     activate: vi.fn(async () => { eligible = true; app.devices[0].activatedAt = 2; app.devices[0].rowVersion++; }),
     deactivate: vi.fn(async () => { eligible = false; app.devices[0].activatedAt = null; app.devices[0].rowVersion++; }),
   };
-  const deps = { ref, watch, app, remoteApiEnabled: true, refreshProductCatalog: vi.fn(async () => true),
+  const deps = { ref, watch, app, enabled: () => true, remoteApiEnabled: true, refreshProductCatalog: vi.fn(async () => true),
     captureAccountScope: accountScope.snapshot, isCurrentAccountScope: accountScope.isCurrent,
     PRODUCTS: [{ id: "stellarbox-pro-v2" }], phase: ref("seed"), isProductAvailable: () => true,
     deviceE3Api: api, canControlDevice: () => true, acquireDeviceCommandKey: () => "original-device-command",

@@ -16,8 +16,10 @@ function compile(file, platform) {
 function functions(source, names) {
   const script = source.includes("<script") ? source.split('<script setup lang="ts">')[1].split("</script>")[0] : source;
   const ast = ts.createSourceFile("actual.ts", script, ts.ScriptTarget.Latest, true);
+  // Shared composables (use-device-deactivation, use-tradein-strip) declare their handlers inside the exported function.
+  const statements = ast.statements.flatMap((node) => [node, ...(ts.isFunctionDeclaration(node) && node.body ? node.body.statements : [])]);
   return names.map((name) => {
-    const fn = ast.statements.find((node) => ts.isFunctionDeclaration(node) && node.name?.text === name);
+    const fn = statements.find((node) => ts.isFunctionDeclaration(node) && node.name?.text === name);
     assert.ok(fn, `actual source function ${name} must exist`);
     return fn.getText(ast).replace(/^export\s+/, "");
   }).join("\n");
@@ -67,7 +69,11 @@ function inventory(platform, kind, remote = true) {
     },
   };
   const guard = functions(compile("src/lib/device-control-platform.ts", platform), ["canControlDevice"]);
-  const handlers = functions(compile("src/pages/me/devices.vue", platform), names);
+  const handlers = [
+    functions(compile("src/pages/me/devices.vue", platform), ["handleActivate"]),
+    functions(compile("src/composables/use-tradein-strip.ts", platform), ["handleTradein"]),
+    functions(compile("src/composables/use-device-deactivation.ts", platform), names.filter((name) => !["handleActivate", "handleTradein"].includes(name))),
+  ].join("\n");
   execute(`${guard}\n${handlers}\nexports.handlers = {${names.join(",")}};`, sandbox);
   return { d, writes, effects, sandbox, handlers: sandbox.exports.handlers };
 }

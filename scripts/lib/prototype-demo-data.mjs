@@ -185,8 +185,28 @@ export function demoFixture(url,locale,state,request) {
   if(pathname==='/api/product/phase') return {phase:'P2',source:'H1_GROWTH_RHYTHM',devOverrideAllowed:false};
   if(pathname==='/api/store/purchase-eligibility') return {...authority,runId:null,productNo:url.searchParams.get('productNo'),eligible:state.catalogState!=='restricted',decisionCode:state.catalogState==='restricted'?'PURCHASE_GATE_NOT_MET':'ELIGIBLE',policies:[{policy:'E1',eligible:state.catalogState!=='restricted',decisionCode:state.catalogState==='restricted'?'PURCHASE_GATE_NOT_MET':'ELIGIBLE',mode:'ALL',conditions:state.catalogState==='restricted'?[{kind:'rank',required:3,current:2,gap:1,met:false}]:[]},{policy:'F4B',eligible:true,decisionCode:'F4B_NOT_CONFIGURED',mode:'ALL',conditions:[]}],evaluatedAt:now,source:'nx_product + nx_admin_device_sku + nx_user'};
   if(pathname==='/api/app/team/quota')return {...authority,source:'server',generatedAt:iso,facts:{rank:state.highestRank?8:2,directRefs:3,directInvites:3,activeDirect:2,teamComputePoints:12800},tiers:products.filter(p=>p.productType==='DEVICE').map(p=>({productId:p.id,quotaCode:p.id.toUpperCase(),name:p.name,price:p.price,monthlyStock:60,soldThisMonth:p.sold,unlockKind:'ALL',conditions:[{kind:'teamComputePoints',required:state.catalogState==='restricted'?20000:6400,current:empty?0:12800},...(state.catalogState==='restricted'?[{kind:'rank',required:3,current:2}]:[])],perks:[],available:p.available&&state.catalogState!=='restricted'}))};
-  if(pathname==='/api/app/trade-in/config')return {enabled:false,eligibility:'NONE',outputRatioCutsPct:[20,40,60,80],creditRatesPct:[80,60,40,20,10],requireHigherPrice:true,maxDevicesPerOrder:1,earlyAccessEnabled:false,earlyAccessLeadDays:7,source:'server'};
-  if(['/api/app/trade-in/eligibility','/api/app/trade-in/capacity-quote'].includes(pathname)){
+  const tradeinCuts=[25,50,75,100],tradeinRates=[75,60,45,30,15];
+  if(pathname==='/api/app/trade-in/config')return {enabled:!empty,eligibility:'OPEN',outputRatioCutsPct:tradeinCuts,creditRatesPct:tradeinRates,requireHigherPrice:true,maxDevicesPerOrder:1,earlyAccessEnabled:false,earlyAccessLeadDays:7,source:'server'};
+  if(pathname==='/api/app/trade-in/eligibility'){
+    // Paid devices may trade up to any higher-priced device SKU (PRD §7.5.1).
+    const input=request.postDataJSON(),product=products.find(p=>p.id===input.targetProductNo)||products[0];
+    const devices=empty||product.productType!=='DEVICE'?[]:demoFixture(new URL('/api/devices/earnings',url.origin),locale,state,request).devices;
+    const sources=devices.filter(d=>d.actualPaidUsdt>0).map(d=>{
+      const reasonCode=d.productCode.toLowerCase()===product.id?'TARGET_MUST_DIFFER':product.price>d.actualPaidUsdt?'OK':'HIGHER_PRICE_REQUIRED';
+      return {sourceDeviceId:d.id,sourceProductName:d.name,eligible:reasonCode==='OK',reasonCode};
+    });
+    const eligible=sources.some(source=>source.eligible);
+    return {enabled:!empty,eligible,decisionCode:eligible?'ELIGIBLE':'NO_ELIGIBLE_SOURCE',targetProductId:products.indexOf(product)+1,targetProductNo:product.id,targetProductName:product.name,targetPriceUsdt:product.price,requireHigherPrice:true,maxDevicesPerOrder:1,sources,decisionSource:'server'};
+  }
+  if(pathname==='/api/app/trade-in/quote'){
+    const input=request.postDataJSON(),product=products.find(p=>p.id===input.targetProductNo)||products[0];
+    const device=demoFixture(new URL('/api/devices/earnings',url.origin),locale,state,request).devices.find(d=>d.id===input.sourceDeviceId);
+    if(!device)throw new Error('Unknown demo trade-in source');
+    const ratio=Math.min(100,Math.round(device.cumulativeOutputUsdt/device.actualPaidUsdt*10000)/100),band=tradeinCuts.filter(cut=>ratio>=cut).length;
+    const discount=Math.min(product.price,Math.round(device.actualPaidUsdt*tradeinRates[band])/100),payable=Math.round((product.price-discount)*100)/100,wallet=state.walletBalance??52800.64;
+    return {sourceDeviceId:device.id,sourceRowVersion:device.rowVersion,targetDeviceStatus:device.activatedAt?'ACTIVE':'INACTIVE',sourceProductName:device.name,targetProductId:products.indexOf(product)+1,targetProductNo:product.id,targetProductName:product.name,sourceActualPaidUsdt:device.actualPaidUsdt,cumulativeOutputUsdt:device.cumulativeOutputUsdt,outputRatioPct:ratio,creditRatePct:tradeinRates[band],discountUsdt:discount,targetPriceUsdt:product.price,payableUsdt:payable,walletBalanceUsdt:wallet,walletShortfallUsdt:Math.max(0,payable-wallet),sufficientFunds:wallet>=payable,discountToWallet:false,pricingSource:'server'};
+  }
+  if(pathname==='/api/app/trade-in/capacity-quote'){
     const input=request.postDataJSON(),product=products.find(p=>p.id===input.targetProductNo)||products[0],data=structuredClone(base());
     Object.assign(data,{targetProductId:products.indexOf(product)+1,targetProductNo:product.id,targetProductName:product.name,targetPriceUsdt:product.price});
     if(pathname.endsWith('capacity-quote'))Object.assign(data,{activeDevices:2,payableUsdt:product.price,walletBalanceUsdt:state.walletBalance??52800.64,sufficientFunds:(state.walletBalance??52800.64)>=product.price});

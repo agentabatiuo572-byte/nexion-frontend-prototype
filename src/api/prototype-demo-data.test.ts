@@ -398,7 +398,10 @@ describe('isolated prototype data uses the real read contracts',()=>{
   it('loads fleet, device-specific checkout capacity, market and release balances',async()=>{
     const d=demo(),devices=createDeviceE3Api(d.client);
     expect((await devices.fleet()).devices).toHaveLength(2);
-    expect((await devices.tradeinConfig()).enabled).toBe(false);
+    expect((await devices.tradeinConfig()).enabled).toBe(true);
+    const eligibility=await devices.eligibility('stellarbox-pro');
+    expect(eligibility.sources.map(source=>[source.sourceDeviceId,source.reasonCode])).toEqual([[41,'OK'],[42,'TARGET_MUST_DIFFER']]);
+    expect(await devices.quote(41,'stellarbox-pro')).toMatchObject({creditRatePct:75,discountUsdt:974.25,payableUsdt:4024.75,targetDeviceStatus:'ACTIVE'});
     expect((await devices.capacityQuote('stellarbox-pro')).targetPriceUsdt).toBe(4999);
     expect((await devices.capacityQuote('stellarbox-pro')).sufficientFunds).toBe(true);
     expect((await createMarketApi(d.client).fetch()).currentPrice).toBe(.128);

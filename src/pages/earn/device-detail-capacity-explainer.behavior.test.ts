@@ -103,6 +103,7 @@ async function mount(copy: Messages, device = serverDevice()) {
   const setPhoneRuntime = vi.fn();
   const request = { accountKey: "render-only", epoch: 0 };
   const refreshRemoteFleet = vi.fn().mockResolvedValue(true);
+  const handleDeactivate = vi.fn();
   const onShow: Array<() => void> = [];
   const app = Vue.reactive({ accountKey: request.accountKey, accountBindingEpoch: request.epoch,
     visibleDevices: [device], remoteFleetStatus: "ready", remotePhoneBindingInvalid: false,
@@ -120,6 +121,9 @@ async function mount(copy: Messages, device = serverDevice()) {
     "@/components/app-chassis.vue": sfc(passthrough), "@/components/empty-state.vue": sfc(blank),
     "@/components/sub-page-header.vue": sfc(blank), "@/components/home/device-slot.vue": sfc(blank),
     "@/components/liquid-glass.vue": sfc(blank), "@/components/ui/nx-tag.vue": sfc(blank),
+    "@/components/me/device-deactivate-sheet.vue": sfc(blank),
+    "@/composables/use-device-deactivation": { useDeviceDeactivation: () => ({ sheetDevice: Vue.ref(null), handleDeactivate, onSheetWait: vi.fn(), onSheetForce: vi.fn() }) },
+    "@/composables/use-tradein-strip": { useTradeinStrip: () => ({ tradeinStrip: () => ({}), handleTradein: vi.fn() }) },
     "@/store/app": { useApp: () => app },
     "@/store/session": { useSession: () => ({ isCurrentDeviceCalibrated: () => true }) },
     "@/store/config": { useConfig: () => ({ config: { onlineBonus: {} } }) },
@@ -150,7 +154,7 @@ async function mount(copy: Messages, device = serverDevice()) {
   expect(refreshRemoteFleet).toHaveBeenCalledExactlyOnceWith(request);
   // The page's initial authority read is required; sheet interactions must not reread it.
   refreshRemoteFleet.mockClear();
-  return { root, device, navTo, setPhoneRuntime, refreshRemoteFleet };
+  return { root, device, navTo, handleDeactivate, setPhoneRuntime, refreshRemoteFleet };
 }
 
 test.each([en, zh, vietnamese])("shows supported device statistics and current status without inventing history", async copy => {
@@ -277,6 +281,7 @@ test('detail has one earnings summary, known totals, an accurate capability note
   await fire(find(view.root, 'nx-device-quick-deactivate')!, 'click');
   await Vue.nextTick();
   expect(find(view.root, 'nx-device-quick-menu')).toBeUndefined();
-  expect(view.navTo).toHaveBeenCalledExactlyOnceWith(`/pages/me/devices?deactivate=${encodeURIComponent(view.device.id)}`);
+  expect(view.handleDeactivate).toHaveBeenCalledExactlyOnceWith(view.device);
+  expect(view.navTo).not.toHaveBeenCalled();
   expect(view.refreshRemoteFleet).not.toHaveBeenCalled();
 });

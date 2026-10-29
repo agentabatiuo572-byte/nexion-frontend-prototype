@@ -69,6 +69,7 @@ async function mount(copy: Messages = zh, device = cloudDevice(), expanded = fal
   const navTo = vi.fn();
   const setPhoneRuntime = vi.fn();
   const toggle = vi.fn();
+  const handleDeactivate = vi.fn(), handleTradein = vi.fn();
   const app = Vue.reactive({ remoteAssignmentStatus: "ready", remoteAssignmentHasSnapshot: true, accountKey: "render-only", visibleDevices: [device], remotePhoneBindingInvalid: false, setPhoneRuntime });
   const blank = Vue.defineComponent({ setup: () => () => Vue.h("view") });
   const dependencies: Record<string, unknown> = { '@/store/data-visibility': { useDataVisibility: () => ({ hidden, mask: (value: unknown) => hidden ? "••••" : String(value) }) },
@@ -81,6 +82,9 @@ async function mount(copy: Messages = zh, device = cloudDevice(), expanded = fal
     "@/components/ui/nx-button.vue": { __esModule: true, default: blank },
     "@/components/ui/nx-tag.vue": { __esModule: true, default: blank },
     "@/components/liquid-glass.vue": { __esModule: true, default: blank },
+    "@/components/me/device-deactivate-sheet.vue": { __esModule: true, default: blank },
+    "@/composables/use-device-deactivation": { useDeviceDeactivation: () => ({ sheetDevice: Vue.ref(null), handleDeactivate, onSheetWait: vi.fn(), onSheetForce: vi.fn() }) },
+    "@/composables/use-tradein-strip": { useTradeinStrip: () => ({ tradeinStrip: (d: Device) => d.kind === "stellarbox-s1" ? { tradeinCtaLabel: "cta" } : {}, handleTradein }) },
     "@/store/app": { useApp: () => app },
     "@/store/session": { useSession: () => ({ isCurrentDeviceCalibrated: () => calibrated }) },
     "@/store/config": { useConfig: () => ({ config: { onlineBonus: {} } }) },
@@ -116,10 +120,10 @@ async function mount(copy: Messages = zh, device = cloudDevice(), expanded = fal
   const unmount = () => { if (mounted) { instance.unmount(); mounted = false; } };
   unmounts.push(unmount);
   await Vue.nextTick();
-  return { root, device, toggle, navTo, setPhoneRuntime, unmount, hide: () => tabVisit.setVisible(false), show: () => tabVisit.setVisible(true) };
+  return { root, device, toggle, navTo, handleDeactivate, handleTradein, setPhoneRuntime, unmount, hide: () => tabVisit.setVisible(false), show: () => tabVisit.setVisible(true) };
 }
 
-test.each([en, zh, vietnamese])('detail management opens the existing deactivation confirmation without changing the device', async copy => {
+test.each([en, zh, vietnamese])('detail management opens the existing deactivation confirmation in place without changing the device', async copy => {
   const device = { ...cloudDevice(), id: 'box / 41', kind: 'stellarbox-s1' } as Device;
   const view = await mount(copy, device, true, true, true, true);
   const before = JSON.stringify(device);
@@ -129,8 +133,26 @@ test.each([en, zh, vietnamese])('detail management opens the existing deactivati
   const action = find(view.root, 'nx-device-quick-deactivate')!;
   expect(text(action)).toBe(copy.myDevices.inventoryRowDeactivate);
   await fire(action, 'onClick');
-  expect(view.navTo).toHaveBeenCalledExactlyOnceWith('/pages/me/devices?deactivate=box%20%2F%2041');
+  expect(view.handleDeactivate).toHaveBeenCalledExactlyOnceWith(device);
+  expect(view.navTo).not.toHaveBeenCalled();
+  expect(find(view.root, 'nx-device-quick-menu')).toBeUndefined();
   expect(JSON.stringify(device)).toBe(before);
+});
+
+test('trade-in opens the retire flow for this device in place and is absent without eligibility', async () => {
+  const device = { ...cloudDevice(), id: 'box-42', kind: 'stellarbox-s1' } as Device;
+  const view = await mount(zh, device, true, true, true, true);
+  await fire(find(view.root, 'nx-device-card')!, 'onTouchstart', touch(50, 50));
+  await vi.advanceTimersByTimeAsync(480);
+  const action = find(view.root, 'nx-device-quick-tradein')!;
+  expect(text(action)).toBe(zh.earn.quickMenu.tradein);
+  await fire(action, 'onClick');
+  expect(view.handleTradein).toHaveBeenCalledExactlyOnceWith(device);
+  expect(view.navTo).not.toHaveBeenCalled();
+  const cloud = await mount(zh, cloudDevice(), true, true, true, true);
+  await fire(find(cloud.root, 'nx-device-card')!, 'onTouchstart', touch(50, 50));
+  await vi.advanceTimersByTimeAsync(480);
+  expect(find(cloud.root, 'nx-device-quick-tradein')).toBeUndefined();
 });
 
 test.each([en, zh, vietnamese])("shows lifecycle Online independently of task execution health", async copy => {

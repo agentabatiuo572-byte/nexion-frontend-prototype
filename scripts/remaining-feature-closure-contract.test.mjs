@@ -56,7 +56,7 @@ test("global search offers Help Center and old AI links return to the inbox", as
 test("remote device activation and deactivation use server CAS and verify the fleet before success", async () => {
   const [api, page, types] = await Promise.all([
     read("src/api/device-e3-api.ts"),
-    read("src/pages/me/devices.vue"),
+    read("src/composables/use-device-deactivation.ts"),
     read("src/store/types.ts"),
   ]);
   assert.match(types, /rowVersion\?:\s*number/);
@@ -75,7 +75,7 @@ test("remote trial conversion and deferred device deactivation are server comman
   const [trialApi, trialStore, checkout, deviceApi, devices] = await Promise.all([
     read("src/api/trial-api.ts"), read("src/store/free-trial.ts"),
     read("src/pages/store/checkout.vue"), read("src/api/device-e3-api.ts"),
-    read("src/pages/me/devices.vue"),
+    read("src/composables/use-device-deactivation.ts"),
   ]);
   assert.match(trialApi, /path: "\/api\/trial\/convert"/);
   assert.match(trialApi, /sourceEnvironment !== "PRODUCTION"|sourceEnvironment: "PRODUCTION"/);
