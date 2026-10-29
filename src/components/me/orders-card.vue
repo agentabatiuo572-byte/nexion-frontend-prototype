@@ -60,6 +60,7 @@ const ORDER_STATUS_STYLE: Record<string, { color: string; bg: string; border: st
   placed: { color: "var(--v5-brand-2-ink)", bg: "var(--v5-brand-2-soft)", border: "var(--v5-brand-2-border)" },
   paid: { color: "var(--v5-brand)", bg: "var(--v5-brand-soft)", border: "var(--v5-brand-border)" },
   provisioning: { color: "var(--v5-success-ink)", bg: "var(--v5-success-soft)", border: "color-mix(in srgb, var(--v5-success) 30%, transparent)" },
+  inventory: { color: "var(--v5-success-ink)", bg: "var(--v5-success-soft)", border: "color-mix(in srgb, var(--v5-success) 30%, transparent)" },
   activated: { color: "var(--v5-success-ink)", bg: "var(--v5-success-soft)", border: "color-mix(in srgb, var(--v5-success) 30%, transparent)" },
   cancelled: { color: "var(--v5-brand-2-ink)", bg: "var(--v5-brand-2-soft)", border: "var(--v5-brand-2-border)" },
 };
@@ -81,6 +82,7 @@ function statusLabel(status: string): string {
     paid: t.value.orders.statusPaid,
     provisioning: t.value.orders.statusProvisioning,
     activated: t.value.orders.statusActivated,
+    inventory: t.value.orders.statusInventory,
     payment_failed: t.value.orders.statusPaymentFailed,
     expired: t.value.orders.statusExpired,
     provisioning_failed: t.value.orders.statusProvisioningFailed,

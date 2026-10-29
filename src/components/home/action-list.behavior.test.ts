@@ -37,7 +37,7 @@ describe('home action priority', () => {
     await worker.refresh();
     const keys = () => worker.shown.value.map((row: { key: string }) => row.key);
     expect(keys()).toEqual(['phone', 'orders', 'quest']);
-    expect(worker.shown.value[1].href).toBe('/pages/store/orders?from=me');
+    expect(worker.shown.value[1].href).toBe('/pages/store/orders?from=me&status=pending');
     worker.expanded.value = true; expect(keys()).toEqual(['phone', 'orders', 'quest', 'voucher', 'trial', 'security']);
     worker.expanded.value = false; app.remotePhoneBindingInvalid = false;
     expect(keys()).toEqual(['orders', 'quest', 'voucher']);

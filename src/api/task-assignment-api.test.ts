@@ -220,14 +220,14 @@ describe("task assignment server receipt projection", () => {
           taskNo: "CTA-PAUSED", deviceId: 811, taskId: "ll-1", taskName: "Inference",
           taskClass: "LL", model: "Model", client: "UVEL App", status: "PAUSED",
           rewardUsdt: 0.25, requiredSeconds: 60, startedAt: "2026-09-26 17:58:00",
-          completableAt: null, completedAt: null, receiptNo: null, proofNonce: null,
+          completableAt: null, pausedAt: "2026-09-26 17:59:00", pausedSeconds: 15, completedAt: null, receiptNo: null, proofNonce: null,
           proofExpiresAt: null, source: "server", sourceEnvironment: "PRODUCTION",
           runId: "", serverCanonical: true,
         },
       }],
     });
     const projection = await createTaskAssignmentApi({ request } as unknown as ApiClient, "dev").state();
-    expect(projection.devices[0]?.currentTask).toMatchObject({ status: "PAUSED", completableAt: null });
+    expect(projection.devices[0]?.currentTask).toMatchObject({ status: "PAUSED", completableAt: null, pausedAt: Date.parse("2026-09-26T17:59:00+08:00"), pausedSeconds: 15 });
   });
 
   it("reports validated native phone observations without using charging as an eligibility input", async () => {

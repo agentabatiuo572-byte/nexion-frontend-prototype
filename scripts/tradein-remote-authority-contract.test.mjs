@@ -48,17 +48,17 @@ test("remote trade-in sheet revalidates eligibility and never previews local cre
   assert.match(source, /remoteApiEnabled \? "—" :/);
 });
 
-test("remote keep-and-buy uses the atomic server command and verifies paid inactive readback", () => {
+test("remote keep-and-buy uses the atomic server command and verifies completed active readback", () => {
   const source = read("src/components/tradein-sheets.vue");
   const start = source.indexOf("async function submitCanonicalKeepBuy");
   const end = source.indexOf("function onKeepBuy", start);
   const keep = source.slice(start, end);
   assert.match(keep, /deviceE3Api\.capacityKeep/);
   assert.doesNotMatch(keep, /orderApi\.create/);
-  assert.match(keep, /canonicalStatus !== "paid"/);
-  assert.match(keep, /activationStatus\.toUpperCase\(\) !== "WAITING_PROVISIONING"/);
+  assert.match(keep, /canonicalStatus !== "activated"/);
+  assert.match(keep, /activationStatus\.toUpperCase\(\) !== "ACTIVATED"/);
   assert.match(keep, /persisted\.targetDeviceId !== submitted\.targetDeviceId/);
-  assert.match(keep, /target\.activatedAt !== null/);
+  assert.match(keep, /target\.activatedAt == null/);
 });
 
 test("remote device and product cards do not render a locally estimated trade-in credit", () => {

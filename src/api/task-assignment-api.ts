@@ -15,6 +15,8 @@ export interface CanonicalTaskAssignment {
   rewardUsdt: number;
   requiredSeconds: number;
   startedAt: number;
+  pausedAt?: number | null;
+  pausedSeconds?: number;
   completableAt: number | null;
   completedAt: number | null;
   receiptNo: string | null;
@@ -190,6 +192,8 @@ function task(value: unknown, mode: ApiEnvironment): CanonicalTaskAssignment {
     rewardUsdt: decimal(source.rewardUsdt),
     requiredSeconds: integer(source.requiredSeconds, 1),
     startedAt,
+    pausedAt: timestamp(source.pausedAt, true),
+    pausedSeconds: source.pausedSeconds == null ? 0 : integer(source.pausedSeconds),
     completableAt,
     completedAt,
     receiptNo: source.receiptNo == null ? null : text(source.receiptNo),

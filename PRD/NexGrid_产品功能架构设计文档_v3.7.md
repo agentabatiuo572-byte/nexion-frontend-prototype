@@ -982,7 +982,7 @@ flowchart TD
 
 设备按行展示：缩略图、名称、真实运行状态、今日收益和详情箭头。异常设备优先，已激活设备均保留可见。试用中及抵扣保留期增加独立试用行，默认沿普通设备行呈现机型并增加试用标记与剩余时间；当前抵扣、预计抵扣进度及详情/购机入口收进展开区或详情。赚取页试用行与正式设备共用互斥展开，管理页展开保留取消确认，不伪装为已购资产。槽位数统一为服务端正式占槽数加一个有效试用预留；转购以真实设备替换预留，结束释放预留。读取失败不把设备当作 0 台；同账号已确认设备快照仍可见，未知槽数显示“-”。添加设备入口继续遵守资格与原生/H5 边界。
 
-设备在线呈现补充（2026-10-27）：确认在线统一使用英文 `Online` 和绿色圆点，中英越一致；暂停、重连、未接单、离线及未知保留各自状态，不因为本地旧 online 标记而覆盖已确认离线。仓库待激活/待确认不显示在线点；试用仅已确认运行态显示 Online，抵扣保留期与未知状态不冒充在线。设备仓库展开后规格在左，激活/停用操作在右侧紧凑呈现，禁用和二次确认规则保持。
+设备在线呈现纠正（2026-10-30）：购买成功自动激活，激活即业务 `Online`（绿色圆点），取消激活直接退出算力队列并回到仓库，中英越一致；不显示 Offline，也不并列四种设备状态。暂停、重连及执行器健康属于任务运行信息，不改写设备激活事实；实际执行权限、回执及收益仍依原真实证明。未确认激活事实保留读取/确认反馈。设备仓库展开后规格在左，激活/停用操作在右侧，禁用和二次确认规则保持。
 
 ### 5.7 活动位
 
@@ -3610,13 +3610,15 @@ flowchart LR
 
 ### 11.1 我的设备 `/me/devices`
 
-**目的**:全 inventory 管理入口 — 购买 ≠ 激活,用户在这里决定哪些设备占用 6 个算力槽位中的一个。
+**目的**:全 inventory 管理入口。购买成功自动激活为 Online，手动停用后退出算力队列、回到仓库并保留归属，可在空闲槽位内重新启用。六槽仍由后端验证，购买失败不产生成功激活。
 
-2026-10-29 明确：算力队列按已激活的设备实例展示，离线不等于未激活；同型号重购保留独立实例和历史订单，当前有效列表与物理槽位占用分别计数。账号已激活手机的只读状态不由当前安装是否已校准决定；本机执行资格仍独立校验。六槽、Cloud Share 免槽与本轮事实见[算力激活队列与六槽](UVEL_算力激活队列与六槽_20261029.md)。
+2026-10-30 纠正：算力队列按已激活 Online 的设备实例展示；同型号重购保留独立实例和历史订单，当前有效列表与物理槽位占用分别计数。账号已激活手机的业务状态不由当前安装是否已校准或技术心跳决定；本机执行资格仍独立校验。首页添加设备先查可选仓库、有则弹窗选择、无才进商城；折叠队列仍展示当前任务与进度条。六槽、Cloud Share 免槽与本轮口径见[算力激活队列与六槽](UVEL_算力激活队列与六槽_20261029.md)。
 
 **两段分组**:
-- **已激活**:`devices.filter(d => d.activatedAt !== null)` — 每行显示设备名 + 日收益 + GPU 型号 + 取消激活按钮
-- **待激活**:`devices.filter(d => d.activatedAt === null)` — 每行同上 + 激活按钮(若槽位已满则 disabled 显示"槽位已满")
+
+抵扣升级（2026-10-30 用户补充）按指定旧实例的位置继承：旧机已激活→先取消旧激活并抵扣→新机原槽激活；旧机仓库未激活→新机仓库。无需按满槽分支，失败回滚设备、任务和付款；真实旧任务只取消、不生成完成奖励。此为抵扣置换规则，普通全价购买仍按正常容量和资格自动激活。
+- **Online**：权威确认已激活的设备，每行显示设备名、收益、规格与停用动作；任务结束后停用的设备在实际停用前仍 Online。
+- **仓库**：权威确认未激活或已停用的设备，不显示 Offline 状态，每行同上并提供激活动作，槽位满时禁用；读取未确认与错误另提供反馈。
 
 **顶部 slot meter**:`activeCount / MAX_DEVICES` 双色进度条(6 格)+ 文字 mono 标识。
 
@@ -4486,7 +4488,7 @@ Events 分两大类:
 
 客户端 store 只 mirror server 推送的 `pausedReason`,不参与 gating 决策。Demo 阶段在 `device-card-pc.tsx` 提供 tap-to-toggle 状态 pill 让 reviewer 模拟拔电 / 断网。
 
-**激活生命周期 (`activatedAt`)** — 购买与激活解耦的核心数据。`useApp.devices[]` 同时承载库存(已购未激活 / `activatedAt=null`)与已激活设备(在槽位中 / `activatedAt=number`)。两类 derived selectors:
+**激活生命周期 (`activatedAt`)** — 购买成功由服务端同步自动激活；已购实例之后可以正常停用、重新启用。`useApp.devices[]` 同时承载可选择库存（权威确认未激活或已停用）与 Online 设备（权威确认激活且未停用），不能用技术心跳替代业务激活状态。两类 derived selectors:
 
 - `selectActiveDevices(s)` / `selectInactiveDevices(s)` — 派生过滤
 - `selectActiveCount(s)` — 槽位占用数
@@ -4494,7 +4496,7 @@ Events 分两大类:
 - `derivePromoUpgrade(devices)` — pure helper,返回 `{ baseKind, baseName, baseDaily, targetKind, targetName, targetDaily, multiplier, targetPayback }`,推广文本(weekly quest / Home upsell / EmptySlotsHint / DoTheMathCard / MissedIncomeBanner)动态接此 helper。**base(`base*` 字段 = 最高日收益活跃真实设备)+ targetPayback(目标设备按其日收益的回本天数)详见 §13.2a**
 
 **Store actions**:
-- `addDevice(kind)` — 新购入库存,**无上限**(`activatedAt=null`)
+- 正式购买流程 — 订单成功由服务端在原支付事务中创建设备并自动激活 Online，返回后刷新权威 fleet；不得调用本地 `addDevice(kind)` 冒充已购或激活。原型本地 action 仅作演示，不作为正式业务依据。
 - `activateDevice(id) → boolean` — 进槽位,**返回 false 当且仅当**:设备不存在 / 已激活 / **(当前激活数 + 试用预留槽 `trialReservesSlotNow() ? 1 : 0`)≥ `MAX_DEVICES`(6)**;成功时清零 `pendingDeactivate`(恢复激活时清除遗留挂起标记)
 - `deactivateDevice(id)` — **立即**出槽位:清零运行态遥测 + `currentTask=null`(放弃任务奖励)+ `pendingDeactivate=false`,保留 `purchasedAt` / `cumulativeEarningsUsdt` / `paidPriceUsdt` / 其他元数据
 - `scheduleDeactivation(id)` — **优雅出槽位**:若 `currentTask !== null` 则只设 `pendingDeactivate=true`(等任务完成);若 `currentTask === null` 则立即执行 `deactivateDevice` 等效行为

@@ -75,7 +75,7 @@ export const useTradeinSheet = defineStore("tradeinSheet", () => {
   const state = ref<TradeinSheetState>({ kind: "none" });
 
   /** FEAT-DEV02 结算抵扣上下文:确认置换后写入,checkout 读它渲染抵扣行并在
-   *  持久块原子执行(移除旧机+净额扣款+新机未激活入库);「移除」清空恢复原价。
+   *  持久块原子执行(移除旧机+净额扣款+新机继承旧机所在位置);「移除」清空恢复原价。
    *  仅内存态(不持久):刷新丢弃=放弃抵扣,旧设备原状,无半执行风险。 */
   const appliedTradein = ref<{ oldDeviceId: string; targetKind: DeviceKind; canonicalQuote?: CanonicalTradeinQuote } | null>(null);
   /**

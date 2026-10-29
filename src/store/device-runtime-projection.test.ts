@@ -100,35 +100,14 @@ function findLabel(node: ts.Node) {
   ts.forEachChild(node, findLabel);
 }
 findLabel(cardAst);
-const labelFactory = new Function("props", "reconnecting", "idleGated", "deviceOnline", "task", "t", "phoneFactsReady", "phoneActivationGuidance", `return (${labelBody})();`);
-const texts = { value: { earn: { runtimeUnknown: "unknown", offline: "offline", online: "online", phoneTaskPaused: "paused" }, myDevices: { inventoryPendingDeactivateChip: "pending", phoneActivationTitle: "activate phone", phoneActivationAppOnlyTitle: "use Android App" } } };
-const withoutTask = (props: unknown, reconnecting: unknown, idleGated: unknown, deviceOnline: unknown, t: unknown) =>
-  labelFactory(props, reconnecting, idleGated, deviceOnline, { value: null }, t, { value: true }, { value: { title: "activate phone" } });
-describe("actual device card runtime label", () => {
+const labelFactory = new Function("onlineState", "t", `return (${labelBody})();`);
+const texts = { value: { earn: { runtimeUnknown: "unknown", offline: "offline", online: "online" } } };
+describe("actual device card business label", () => {
   it("does not expose mock heartbeat controls in the remote phone card", () => {
     expect(cardContent).toContain("v-if=\"device.kind === 'phone' && !remoteApiEnabled\"");
   });
-  it.each([["ONLINE", "online"], ["OFFLINE", "offline"], ["UNKNOWN", "unknown"]])("renders server phone %s as %s", (runtimeStatus, expected) => {
-    expect(withoutTask({ device: { kind: "phone", capacitySource: "server", runtimeStatus } }, {value:false}, {value:false}, {value:false}, texts)).toBe(expected);
-  });
-  it.each([undefined, "UNKNOWN"])("renders unknown rather than offline for %s", runtimeStatus => {
-    expect(withoutTask({ device: { kind: "cloud-share", capacitySource: "server", runtimeStatus } }, {value:false}, {value:false}, {value:false}, texts)).toBe("unknown");
-  });
-  it("keeps pending deactivation above unknown runtime", () => {
-    expect(withoutTask({ device: {kind:"cloud-share", capacitySource:"server", runtimeStatus:"UNKNOWN", pendingDeactivate:true} }, {value:false}, {value:false}, {value:false}, texts)).toBe("pending");
-  });
-  it("renders known offline accurately", () => {
-    expect(withoutTask({ device: {kind:"cloud-share", capacitySource:"server", runtimeStatus:"OFFLINE"} }, {value:false}, {value:false}, {value:false}, texts)).toBe("offline");
-  });
-  it("shows a server-paused phone task as paused even when the last runtime flag was ONLINE", () => {
-    expect(labelFactory({ device: {kind:"phone", capacitySource:"server", runtimeStatus:"ONLINE"} },
-      {value:false}, {value:false}, {value:false}, {value:{status:"PAUSED"}}, texts, {value:true}, {value:{title:"activate phone"}})).toBe("paused");
-  });
-  it("retains activation guidance for an unconfirmed phone without server activation facts", () => {
-    const phone = { device: { kind: "phone", capacitySource: "server", runtimeStatus: "ONLINE" } };
-    for (const title of ["activate phone", "use Android App", "native unavailable"]) {
-      expect(labelFactory(phone, {value:false}, {value:false}, {value:false}, {value:null}, texts, {value:false}, {value:{title}})).toBe(title);
-    }
+  it.each(["online", "offline", "unknown"])("renders business state %s", value => {
+    expect(labelFactory({ value }, texts)).toBe(value === "offline" ? "" : value);
   });
 });
 
@@ -205,11 +184,11 @@ function findSlotBranch(node: ts.Node) {
 }
 findSlotBranch(slotStoreAst);
 if (!openForSlotBody) throw new Error("openForSlot missing");
-function openInventory(visibleDevices: unknown[]) {
+async function openInventory(visibleDevices: unknown[]) {
   const open = { value: false };
   const routes: string[] = [];
-  new Function("useApp", "open", "navTo", "isActivatableInventoryDevice", "requiresActivationConfirmation", `${openForSlotBody}; openForSlot();`)(
-    () => ({ visibleDevices }), open, (route: string) => routes.push(route), isActivatableInventoryDevice, requiresActivationConfirmation,
+  await new Function("useApp", "open", "navTo", "isActivatableInventoryDevice", "requiresActivationConfirmation", "remoteApiEnabled", "checking", `${openForSlotBody}; return openForSlot();`)(
+    () => ({ visibleDevices }), open, (route: string) => routes.push(route), isActivatableInventoryDevice, requiresActivationConfirmation, false, false,
   );
   return { open: open.value, routes };
 }
@@ -218,33 +197,33 @@ describe("purchased inventory excludes historical phones", () => {
   const oldPhone = project({ ...fixture, id: 1144, kind: "phone", status: "DEACTIVATED", activatedAt: null }, 1000, 20);
   const currentPhone = project({ ...fixture, id: 1151, kind: "phone" }, 1000, 20);
 
-  it("does not advertise an old phone as inventory or hide the current active phone", () => {
+  it("does not advertise an old phone as inventory or hide the current active phone", async () => {
     const devices = [oldPhone, currentPhone];
     for (const content of [inventoryContent, slotSheetContent]) {
       expect(inventorySelection(content, "inactiveDevices", devices)).toEqual([]);
     }
     expect(inventorySelection(inventoryContent, "activeDevices", devices).map((device) => device.id)).toEqual(["1151"]);
     expect(devices.filter(isActiveSlotDevice)).toEqual([currentPhone]);
-    expect(openInventory([oldPhone])).toEqual({ open: false, routes: ["/pages/store/store"] });
-    expect(openInventory(devices)).toEqual({ open: false, routes: ["/pages/store/store"] });
+    expect(await openInventory([oldPhone])).toEqual({ open: false, routes: ["/pages/store/store"] });
+    expect(await openInventory(devices)).toEqual({ open: false, routes: ["/pages/store/store"] });
   });
 
-  it("keeps real hardware and Cloud Share inventory in both lists and opens their chooser", () => {
+  it("keeps real hardware and Cloud Share inventory in both lists and opens their chooser", async () => {
     const hardware = project({ ...fixture, id: 1201, kind: "stellarbox-s1", status: "DEACTIVATED" }, 1000, 20);
     const cloud = project({ ...fixture, id: 1202, kind: "cloud-share", status: "INVENTORY", activatedAt: null }, 1000, 20);
     const devices = [oldPhone, currentPhone, hardware, cloud];
     for (const content of [inventoryContent, slotSheetContent]) {
       expect(inventorySelection(content, "inactiveDevices", devices).map((device) => device.id)).toEqual(["1201", "1202"]);
     }
-    expect(openInventory(devices)).toEqual({ open: true, routes: [] });
+    expect(await openInventory(devices)).toEqual({ open: true, routes: [] });
   });
 
-  it.each(["phone", "stellarbox-s1"])("keeps unconfirmed %s visible without an inventory activation promise", (kind) => {
+  it.each(["phone", "stellarbox-s1"])("keeps unconfirmed %s visible without an inventory activation promise", async (kind) => {
     const unconfirmed = project({ ...fixture, id: 1203, kind, activatedAt: null }, 1000, 20);
     for (const content of [inventoryContent, slotSheetContent]) {
       expect(inventorySelection(content, "inactiveDevices", [unconfirmed])).toEqual([]);
       expect(inventorySelection(content, "unconfirmedDevices", [unconfirmed]).map((device) => device.id)).toEqual(["1203"]);
     }
-    expect(openInventory([unconfirmed])).toEqual({ open: true, routes: [] });
+    expect(await openInventory([unconfirmed])).toEqual({ open: true, routes: [] });
   });
 });

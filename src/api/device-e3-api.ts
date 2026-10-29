@@ -95,6 +95,8 @@ export interface CanonicalTradeinEligibility {
 
 export interface CanonicalTradeinQuote {
   sourceDeviceId: number;
+  sourceRowVersion: number;
+  targetDeviceStatus: "ACTIVE" | "INACTIVE";
   sourceProductName: string;
   targetProductId: number;
   targetProductNo: string;
@@ -118,6 +120,7 @@ export interface CanonicalTradeinResult {
   orderNo: string;
   sourceDeviceId: number;
   targetDeviceId: number;
+  targetDeviceStatus?: "ACTIVE" | "INACTIVE";
   applicationStatus: string;
   orderStatus: string;
   discountUsdt: number;
@@ -129,8 +132,8 @@ export interface CanonicalCapacityKeepResult {
   operationNo: string;
   orderNo: string;
   targetDeviceId: number;
-  deviceStatus: "INACTIVE";
-  orderStatus: "PAID";
+  deviceStatus: "ACTIVE";
+  orderStatus: "COMPLETED";
   walletDebitUsdt: number;
   walletBalanceAfterUsdt: number;
 }
@@ -355,10 +358,14 @@ function config(value: unknown): CanonicalTradeinConfig {
 
 function quote(value: unknown): CanonicalTradeinQuote {
   const source = record(value);
+  const targetDeviceStatus = string(source.targetDeviceStatus).toUpperCase();
+  if (targetDeviceStatus !== "ACTIVE" && targetDeviceStatus !== "INACTIVE") return invalid();
   const discountToWallet = boolean(source.discountToWallet);
   if (discountToWallet) return invalid("TRADEIN_WALLET_CREDIT_FORBIDDEN");
   const result: CanonicalTradeinQuote = {
     sourceDeviceId: integer(source.sourceDeviceId, 1),
+    sourceRowVersion: integer(source.sourceRowVersion),
+    targetDeviceStatus,
     sourceProductName: string(source.sourceProductName),
     targetProductId: integer(source.targetProductId, 1),
     targetProductNo: string(source.targetProductNo),
@@ -389,11 +396,14 @@ function quote(value: unknown): CanonicalTradeinQuote {
 
 function result(value: unknown): CanonicalTradeinResult {
   const source = record(value);
+  const targetDeviceStatus = source.targetDeviceStatus == null ? undefined : string(source.targetDeviceStatus).toUpperCase();
+  if (targetDeviceStatus !== undefined && targetDeviceStatus !== "ACTIVE" && targetDeviceStatus !== "INACTIVE") return invalid();
   const parsed = {
     tradeinNo: string(source.tradeinNo),
     orderNo: string(source.orderNo),
     sourceDeviceId: integer(source.sourceDeviceId, 1),
     targetDeviceId: integer(source.targetDeviceId, 1),
+    targetDeviceStatus: targetDeviceStatus as CanonicalTradeinResult["targetDeviceStatus"],
     applicationStatus: string(source.applicationStatus).toUpperCase(),
     orderStatus: string(source.orderStatus).toUpperCase(),
     discountUsdt: number(source.discountUsdt),
@@ -408,13 +418,13 @@ function capacityKeepResult(value: unknown): CanonicalCapacityKeepResult {
   const source = record(value);
   const deviceStatus = string(source.deviceStatus).toUpperCase();
   const orderStatus = string(source.orderStatus).toUpperCase();
-  if (deviceStatus !== "INACTIVE" || orderStatus !== "PAID") return invalid();
+  if (deviceStatus !== "ACTIVE" || orderStatus !== "COMPLETED") return invalid();
   return {
     operationNo: string(source.operationNo),
     orderNo: string(source.orderNo),
     targetDeviceId: integer(source.targetDeviceId, 1),
-    deviceStatus: "INACTIVE",
-    orderStatus: "PAID",
+    deviceStatus: "ACTIVE",
+    orderStatus: "COMPLETED",
     walletDebitUsdt: number(source.walletDebitUsdt),
     walletBalanceAfterUsdt: number(source.walletBalanceAfterUsdt),
   };
@@ -503,9 +513,10 @@ function sameMoney(actual: number, expected: number): boolean {
 
 function assertResultMatchesQuote(
   parsed: CanonicalTradeinResult,
-  expected: { sourceDeviceId: number; discountUsdt: number; payableUsdt: number; walletBalanceUsdt: number },
+  expected: { sourceDeviceId: number; discountUsdt: number; payableUsdt: number; walletBalanceUsdt: number; targetDeviceStatus?: "ACTIVE" | "INACTIVE" },
 ): CanonicalTradeinResult {
   if (parsed.sourceDeviceId !== expected.sourceDeviceId
+      || (expected.targetDeviceStatus != null && parsed.targetDeviceStatus !== expected.targetDeviceStatus)
       || !sameMoney(parsed.discountUsdt, expected.discountUsdt)
       || !sameMoney(parsed.walletDebitUsdt, expected.payableUsdt)
       || !sameMoney(parsed.walletBalanceAfterUsdt, expected.walletBalanceUsdt - expected.payableUsdt)) {
@@ -657,7 +668,8 @@ export function createDeviceE3Api(client: ApiClient, mode: ApiEnvironment = "pro
       const key = idempotencyKey.trim();
       if (!key) throw new ApiError({ kind: "configuration", message: "IDEMPOTENCY_KEY_REQUIRED" });
       if (expectedQuote.sourceDeviceId !== sourceDeviceId
-          || expectedQuote.targetProductNo !== targetProductNo) {
+          || expectedQuote.targetProductNo !== targetProductNo
+          || !["ACTIVE", "INACTIVE"].includes(expectedQuote.targetDeviceStatus)) {
         throw new ApiError({ kind: "configuration", message: "TRADEIN_QUOTE_CONTEXT_INVALID" });
       }
       return assertResultMatchesQuote(result(await client.request<unknown>({
@@ -665,6 +677,7 @@ export function createDeviceE3Api(client: ApiClient, mode: ApiEnvironment = "pro
         path: "/api/app/trade-in/submit",
         body: {
           sourceDeviceId: integer(sourceDeviceId, 1),
+          expectedSourceVersion: integer(expectedQuote.sourceRowVersion),
           targetProductNo: validTargetNo(targetProductNo),
           expectedPayableUsdt: number(expectedQuote.payableUsdt),
           expectedDiscountUsdt: number(expectedQuote.discountUsdt),

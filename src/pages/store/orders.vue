@@ -30,12 +30,16 @@
 
       <!-- Order list — transparent hairline group (row cards flattened; the
            container border-top opens the group, each row keeps a divider). -->
-      <view v-if="orderPanels.mainPresentation === 'list'" class="mx-4" style="padding: 0 2px; border-top: 1px solid var(--v5-border)">
+      <GlassSegments v-if="orderPanels.mainPresentation === 'list'" v-model="statusFilter" :options="filterOptions" layout="equal" selection="flat" semantics="radio" :label="t.orders.filterGroupLabel" class="orders-filters mx-4">
+        <template #option="{ option }"><text class="orders-filter__label">{{ option.label }}</text><text v-if="option.value === 'pending' && pendingCount > 0" class="orders-filter__badge">{{ pendingCount }}</text></template>
+      </GlassSegments>
+      <text v-if="orderPanels.mainPresentation === 'list' && filteredOrders.length === 0" class="orders-filter-empty">{{ t.orders.filterEmpty }}</text>
+      <view v-if="orderPanels.mainPresentation === 'list' && filteredOrders.length > 0" class="mx-4" style="padding: 0 2px; border-top: 1px solid var(--v5-border)">
         <view
-          v-for="(o, i) in orderList"
+          v-for="(o, i) in filteredOrders"
           :key="o.id"
           class="block active:scale-[0.98] transition-transform"
-          :style="orderRowStyle(i === orderList.length - 1)"
+          :style="orderRowStyle(i === filteredOrders.length - 1)"
           role="button"
           tabindex="0"
           :aria-label="`${commerceOrderTitle(o,locale.code)} ${o.id}`"
@@ -89,6 +93,7 @@ import { commerceAmount as formatAmount } from "@/lib/commerce-review";
 import { computed, ref, watch, onUnmounted, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
+import GlassSegments from "@/components/glass-segments.vue";
 import { useT } from "@/i18n/use-t";
 import { formatTrialDate } from "@/lib/trial-date";
 import { useOrders, type Order, type OrderStatus } from "@/store/orders";
@@ -132,6 +137,16 @@ const orderList = computed<OrderListItem[]>(() => [
   ...orders.orders.map((order): CommerceOrderListItem => ({ ...order, kind: "commerce" })),
   ...genesisOrderListItems(genesis.remoteOrders, t.value.me.genesisNode, t.value.orders.quantity),
 ].sort((a, b) => b.placedAt - a.placedAt));
+// Status categories. "To pay" matches the home to-do count (placed or payment failed).
+function orderCategory(order: OrderListItem): Exclude<OrderFilter, "all"> {
+  if (order.kind === "genesis") return "done";
+  if (order.status === "placed" || order.status === "payment_failed") return "pending";
+  if (order.status === "paid" || order.status === "provisioning") return "active";
+  return order.status === "activated" ? "done" : "closed";
+}
+const filteredOrders = computed(() => statusFilter.value === "all" ? orderList.value : orderList.value.filter(order => orderCategory(order) === statusFilter.value));
+const pendingCount = computed(() => orderList.value.filter(order => orderCategory(order) === "pending").length);
+const filterOptions = computed(() => ORDER_FILTERS.map(value => ({ value, label: t.value.orders.filters[value] })));
 const remoteOrderAvailability = ref<OrderSourceAvailability>("ready");
 const remoteOrdersRefreshing = ref(remoteApiEnabled);
 const remoteOrdersResolved = ref(false);
@@ -252,10 +267,16 @@ const unsubscribeRuntimeRevision = subscribeRuntimeRevision(() => {
 });
 
 const ordersBackHref = ref("/store");
+type OrderFilter = "all" | "pending" | "active" | "done" | "closed";
+const ORDER_FILTERS: OrderFilter[] = ["all", "pending", "active", "done", "closed"];
+// The entry may preselect a category (the home to-do opens "pending").
+const statusFilter = ref<OrderFilter>("all");
 onLoad((options) => {
   const query = new URLSearchParams(takeNavigationQuery("/pages/store/orders"));
   const from = options?.from === "me" || options?.from === "store" ? options.from : query.get("from");
   ordersBackHref.value = from === "me" ? "/me" : "/store";
+  const status = options?.status ?? query.get("status");
+  if ((ORDER_FILTERS as string[]).includes(status ?? "")) statusFilter.value = status as OrderFilter;
   preserveOrdersOriginInH5();
 });
 
@@ -301,8 +322,9 @@ function badge(status: OrderStatus): Badge {
       return { label: t.value.orders.statusPaid, color: "var(--v5-brand)", bg: "color-mix(in srgb, var(--v5-brand) 15%, transparent)", icon: ["M22 11.08V12a10 10 0 1 1-5.93-9.14", "m9 11 3 3L22 4"] };
     case "provisioning":
       return { label: t.value.orders.statusProvisioning, color: "var(--v5-warning)", bg: "color-mix(in srgb, var(--v5-warning) 15%, transparent)", icon: ["M5 2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z", "M5 14h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2z", "M6 6h.01", "M6 18h.01"] };
+    case "inventory":
     case "activated":
-      return { label: t.value.orders.statusActivated, color: "var(--v5-brand)", bg: "color-mix(in srgb, var(--v5-brand) 15%, transparent)", icon: ["M12 20v2", "M12 2v2", "M17 20v2", "M17 2v2", "M2 12h2", "M2 17h2", "M2 7h2", "M20 12h2", "M20 17h2", "M20 7h2", "M7 20v2", "M7 2v2", "M4 8h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2z", "M8 12h8"] };
+      return { label: status === "inventory" ? t.value.orders.statusInventory : t.value.orders.statusActivated, color: "var(--v5-brand)", bg: "color-mix(in srgb, var(--v5-brand) 15%, transparent)", icon: ["M12 20v2", "M12 2v2", "M17 20v2", "M17 2v2", "M2 12h2", "M2 17h2", "M2 7h2", "M20 12h2", "M20 17h2", "M20 7h2", "M7 20v2", "M7 2v2", "M4 8h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2z", "M8 12h8"] };
     case "cancelled":
       return { label: t.value.orders.cancelStatus, color: "var(--v5-brand-2)", bg: "color-mix(in srgb, var(--v5-brand-2) 15%, transparent)", icon: ["M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z", "m15 9-6 6", "m9 9 6 6"] };
     case "payment_failed":
@@ -389,5 +411,13 @@ function statusChipStyle(status: OrderStatus): CSSProperties {
 </script>
 
 <style scoped>
+/* Fixed five-way status rail without a sliding selection pill: the selected label is ink 600, others ink-3. */
+.orders-filters { margin-bottom: 12px; padding: 0; gap: 0; background: transparent; box-shadow: none; }
+.orders-filters :deep(.nx-glass-indicator), .orders-filters :deep(.nx-glass-backdrop) { display: none; }
+.orders-filters :deep(.nx-glass-option) { min-height: 44px; padding: 0 2px; background: transparent; color: var(--v5-ink-3); font-weight: 500; }
+.orders-filters :deep(.nx-glass-option--selected) { color: var(--v5-ink); font-weight: 600; background: transparent; }
+.orders-filter__label { white-space: nowrap; font-size: 13.5px; line-height: 18px; font-weight: inherit; color: inherit; }
+.orders-filter__badge { min-width: 18px; height: 18px; box-sizing: border-box; margin-left: 6px; padding: 0 5px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: var(--v5-warning-ink); color: var(--v5-on-brand); font: 600 11px/18px var(--font-v5); }
+.orders-filter-empty { display: block; padding: 32px 16px; text-align: center; color: var(--v5-ink-3); font: 400 var(--ui-type-description)/var(--ui-type-description-lh) var(--font-v5); }
 .order-read-retry-label { font: 600 13px/20px var(--font-v5); }
 </style>

@@ -55,11 +55,11 @@ function canonical(dataCenter: string | null, status: CanonicalOrder["canonicalS
   return {
     orderNo: "ORD-SERVER-TRUTH", productId: 10, productNo: "cloud-share", productName: "Cloud Share ×1",
     quantity: 1, subtotalUsdt: 19.9, unitPriceUsdt: 19.9, discountUsdt: 0, amountUsdt: 19.9,
-    paymentMethod: "WALLET", paymentStatus: "PAID", orderStatus: "COMPLETED", activationStatus: "ACTIVATED",
-    canonicalStatus: status, orderType: "SINGLE", placedAt: 1000, expiresAt: null,
+    paymentMethod: "WALLET", paymentStatus: "PAID", orderStatus: "COMPLETED", activationStatus: status === "inventory" ? "INVENTORY" : "ACTIVATED",
+    canonicalStatus: status, orderType: status === "inventory" ? "TRADE_IN" : "SINGLE", placedAt: 1000, expiresAt: null,
     paidAt: 2000, activatedAt: status === "activated" ? 3000 : null, refundedAt: null,
     refundAmountUsdt: null, refundChannel: null, refundBillNo: null, dataCenter,
-    tradeinNo: null, sourceDeviceId: null, targetDeviceId: null, targetDeviceInstanceNo: null, itemCount: null,
+    tradeinNo: status === "inventory" ? "TI-1" : null, sourceDeviceId: status === "inventory" ? 11 : null, targetDeviceId: status === "inventory" ? 33 : null, targetDeviceInstanceNo: null, itemCount: null,
   };
 }
 
@@ -116,6 +116,7 @@ async function detail(dataCenter: string | null, copy = en, status: CanonicalOrd
 async function rendered(view: Awaited<ReturnType<typeof detail>>["view"]) {
   const app = Vue.createSSRApp({ render, setup: () => Vue.proxyRefs(view) });
   app.component("AppChassis", Vue.defineComponent({ setup: (_, { slots }) => () => Vue.h("main", slots.default?.()) }));
+  app.component("OrderRewards", Vue.defineComponent({ setup: () => () => Vue.h("div") }));
   app.component("DetailRow", Vue.defineComponent({ props: ["label", "value"], setup: (props) => () => Vue.h("div", `${props.label}: ${props.value}`) }));
   return renderToString(app);
 }
@@ -214,4 +215,14 @@ it('keeps static order summary and timeline labels while the first detail read i
  const {view}=await detail('Cloud-Global');
  const html=await rendered({...view,showRemoteOrderLoading:Vue.ref(true),order:Vue.ref(undefined)});
  expect(html).toContain(en.orders.orderSummary);expect(html).toContain(en.orders.timelineTitle);
+});
+
+
+it.each([en, zh, vietnamese])('renders an inherited warehouse order as complete without an Earn claim', async copy => {
+  const { view, orders } = await detail(null, copy, 'inventory');
+  const html = await rendered(view);
+  expect(html).toContain(copy.orders.statusInventory); expect(html).toContain(copy.orders.inventoryToast);
+  expect(html).not.toContain(copy.uiChrome.viewOnEarn);
+  expect(orders.orders[0].status).toBe('inventory'); expect(orders.orders[0].activatedAt).toBeUndefined();
+  expect(orders.orders[0].timeline.map(event => event.status)).toEqual(['placed','paid','inventory']);
 });

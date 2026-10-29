@@ -394,7 +394,7 @@ function handleTradein(d: Device) {
   if (!canControlDevice(d)) return;
   // 激活中且任务运行:阻断层(完成后可下架,查看任务/知道了),不硬拆(规格
   // DEV02A 异常2)。库存机的出厂任务不在跑,不阻断——判定单源 isDeviceTaskBlocked。
-  if (isDeviceTaskBlocked(d)) {
+  if (!remoteApiEnabled && isDeviceTaskBlocked(d)) {
     tradeinSheet.showRetireBlock(d.id, deviceName(t.value, d));
     return;
   }

@@ -1,3 +1,7 @@
+vi.mock("@/services/native-push", () => ({ revokeNativePush: vi.fn(), resumeNativePush: vi.fn() }));
+import * as progress from "@/lib/task-progress";
+import * as deadline from "@/lib/server-deadline-clock";
+import * as confirmation from "@/lib/task-result-confirmation";
 import { formatConversationTime } from '@/components/support/conversation-time';
 import { parseServerTimestamp } from '@/api/server-time';
 import * as Vue from 'vue';
@@ -89,6 +93,7 @@ function fixture(copy = zh) {
     '@/composables/use-capacity-explainer': { useCapacityExplainer: () => ({ open }) },
     '@/composables/use-tab-page-lifecycle': { onShow() {}, onHide() {}, useVisibleInterval() {} },
     '@/lib/device-slot-policy': {}, '@/lib/account-scope': {}, '@/lib/day-one-page-observation': {},
+    '@/lib/task-progress': progress, '@/lib/server-deadline-clock': deadline, '@/lib/task-result-confirmation': confirmation,
     '@/lib/device-copy': { deviceName: () => 'Device' }, '@/lib/hashpower': { deviceOnlineState: () => 'online' },
   };
   dependencies['@/components/ui/data-visibility-toggle.vue'] = { __esModule: true, default: component(toggleRaw, dependencies) };
@@ -166,4 +171,32 @@ it('opens the existing explanation directly by click/Enter/Space and ignores hel
   expect(f.open).toHaveBeenCalledTimes(3);
   invoke(info.props.onKeydown, event('Enter', true)); expect(f.open).toHaveBeenCalledTimes(3);
   expect(all(root).some(n => n.props['aria-expanded'] === false)).toBe(false);
+});
+
+
+it.each([zh, en, vietnamese])('shows the actual Home queue task and progress before navigating, with frozen pause and privacy', async copy => {
+  const f = fixture(copy), snapshotNow = Date.now();
+  const task = Vue.reactive({ id: 'home-job-41', model: 'BGE-M3', totalSec: 120, startedAt: snapshotNow - 60_000,
+    status: 'RUNNING', completableAt: snapshotNow + 60_000, pausedAt: null as number | null, pausedSeconds: 0 });
+  const device = Vue.reactive({ id: 'home-job-device', todayEarnings: 0, taskServerNow: snapshotNow,
+    taskServerNowReceivedAt: Number.MAX_SAFE_INTEGER, currentTask: task as typeof task | null });
+  const root = f.mount(deviceRowRaw, { device, runtimeConfirmed: true });
+  expect(text(root)).toContain('BGE-M3'); expect(text(root)).toContain('#home-job-41');
+  expect(text(root)).toContain('50%');
+  expect(byClass(root, 'hf-device-task__fill').props.style.width).toBe('50%');
+  device.taskServerNow += 60_000; await Vue.nextTick();
+  expect(text(root)).toContain('100%'); expect(text(root)).toContain(copy.earn.taskAwaitingExecutionResultConfirmation);
+  task.status = 'PAUSED'; task.pausedAt = snapshotNow; await Vue.nextTick();
+  expect(text(root)).toContain('50%');
+  device.taskServerNow += 30_000; await Vue.nextTick(); expect(text(root)).toContain('50%');
+  task.status = 'RUNNING'; task.pausedAt = null; task.pausedSeconds = 90;
+  await Vue.nextTick(); expect(text(root)).toContain('50%');
+  f.visibility.toggle(); await Vue.nextTick();
+  expect(text(root)).not.toContain('BGE-M3'); expect(text(root)).not.toContain('home-job-41');
+  expect(all(root).some(node => String(node.props.class ?? '').includes('hf-device-task__fill'))).toBe(false);
+  expect(all(root).find(node => node.props.role === 'progressbar')!.props['aria-valuenow']).toBeUndefined();
+  invoke(byClass(root, 'nx-device-row').props.onClick);
+  expect(f.navTo).toHaveBeenCalledWith('/pages/earn/device-detail?id=home-job-device&from=home');
+  device.currentTask = null; await Vue.nextTick();
+  expect(all(root).some(node => String(node.props.class ?? '').split(/\s+/).includes('hf-device-task'))).toBe(false);
 });

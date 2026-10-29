@@ -47,6 +47,9 @@ export interface CurrentTask {
   status?: "CLAIMED" | "RUNNING" | "PAUSED" | "COMPLETED";
   /** Server-issued estimated completion time; it never certifies settlement. */
   completableAt?: number | null;
+  /** Server pause boundary and elapsed time from completed pause intervals. */
+  pausedAt?: number | null;
+  pausedSeconds?: number;
 }
 
 export interface CompletedTask extends CurrentTask {

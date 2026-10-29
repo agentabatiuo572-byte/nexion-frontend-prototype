@@ -115,4 +115,19 @@ describe("orders return origin", () => {
     expect(replaceState).not.toHaveBeenCalled();
     expect(ordersSource).toContain("backHref: ordersBackHref.value");
   });
+
+  it("opens on the status category named by the entry and ignores unknown ones", () => {
+    const run = (options: Record<string, string>, query = "") => {
+      let load: (options: Record<string, string>) => void = () => {};
+      const result = new Function("ref", "onLoad", "takeNavigationQuery", `${handler}\nreturn { statusFilter };`)(
+        ref, (callback: typeof load) => { load = callback; }, () => query,
+      ) as { statusFilter: { value: string } };
+      load(options);
+      return result.statusFilter.value;
+    };
+    expect(run({ from: "me", status: "pending" })).toBe("pending");
+    expect(run({ from: "me" }, "?from=me&status=closed")).toBe("closed");
+    expect(run({ from: "me", status: "refunded" })).toBe("all");
+    expect(run({})).toBe("all");
+  });
 });

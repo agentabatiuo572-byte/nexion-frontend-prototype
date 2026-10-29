@@ -13,6 +13,7 @@ function harness() {
   const order = { orderNo: "ORDER-1", productNo: "sku", quantity: 1, amountUsdt: 100, discountUsdt: 0,
     paymentStatus: "PENDING", orderStatus: "PENDING_PAYMENT", activationStatus: "WAITING_PAYMENT", canonicalStatus: "placed" };
   const deps = {
+    resumePendingRemoteTradein: async () => false,
     captureAccountScope: () => ({}), isCurrentAccountScope: () => true,
     app: { captureRemoteAccountRequest: () => ({}), user: { usdtBalance: 100 }, adoptCommerceWallet: vi.fn(), refreshRemoteFleet: vi.fn() },
     product: ref({ id: "sku" }), purchaseUnavailable: ref(false), voucherQuote: { id: null }, quotedTotal: 100,
@@ -53,7 +54,7 @@ describe("real checkout handler outcome recovery", () => {
     let resolveA!: (v: boolean) => void;
     const recover = vi.fn().mockReturnValueOnce(new Promise((r) => { resolveA = r; }))
       .mockResolvedValue(false);
-    const deps = { remoteApiEnabled: true, productId,
+    const deps = { resumePendingRemoteTradein: async () => false, remoteApiEnabled: true, productId,
       captureCheckoutRoute: () => ({ accountKey: account.accountKey, accountEpoch: account.epoch, productNo: productId.value, generation: account.epoch }),
       isCurrentCheckoutRoute: (scope: { accountKey: string; accountEpoch: number; productNo: string }) => scope.accountKey === account.accountKey
         && scope.accountEpoch === account.epoch && scope.productNo === productId.value,

@@ -15,17 +15,10 @@
 </template>
 
 <script setup lang="ts">
-import { navTo } from "@/lib/route";
-import { computed } from "vue";
-import { useApp } from "@/store/app";
-import { derivePromoUpgrade } from "@/store/device-types";
-import { resolveAddDeviceRoute } from "./add-device-route";
-
-const app = useApp();
-const promo = computed(() => derivePromoUpgrade(app.visibleDevices));
+import { useSlotActionSheet } from "@/store/slot-action-sheet";
 
 function go() {
-  navTo(resolveAddDeviceRoute(promo.value.targetKind));
+  useSlotActionSheet().openForSlot();
 }
 
 import { useT } from "@/i18n/use-t";

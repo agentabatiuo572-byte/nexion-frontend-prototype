@@ -1,16 +1,22 @@
+import type { CanonicalTradeinQuote, CanonicalTradeinResult } from "@/api/device-e3-api";
 import type { CanonicalOrder, CanonicalOrderList, OrderApi } from "@/api/order-api";
 import { readAccountRow, writeAccountRow, releaseAccountCommandKey } from "@/store/account-scoped-storage";
 
 const KEY = "nexgrid-checkout-server-order-recovery-v1";
 const COMMANDS_KEY = "nexgrid-remote-checkout-commands-v1";
-type Pointer = { productNo: string; orderNo: string; intent: string; commandKey: string };
+type Pointer = { productNo: string; orderNo: string; intent: string; commandKey: string;
+  tradeinQuote?: CanonicalTradeinQuote; tradeinResult?: CanonicalTradeinResult };
+export type CheckoutTradeinRecovery = Pointer & { tradeinQuote: CanonicalTradeinQuote };
 type Row = { orders: Record<string, Pointer> };
-const terminal = new Set(["activated", "cancelled", "expired", "refunded", "chargeback"]);
+const terminal = new Set(["activated", "inventory", "cancelled", "expired", "refunded", "chargeback"]);
 
 export function rememberCheckoutOrder(accountKey: string, pointer: Pointer): void {
-  const row = readAccountRow<Row>(KEY, accountKey);
+  const row = readAccountRow<Row>(KEY, accountKey, true);
+  if (row?.orders?.[pointer.productNo]?.tradeinQuote
+      && row.orders[pointer.productNo].commandKey !== pointer.commandKey) throw new Error("CHECKOUT_RECOVERY_PENDING");
   if (!writeAccountRow(KEY, accountKey, { orders: { ...row?.orders, [pointer.productNo]: pointer } })
-      || readAccountRow<Row>(KEY, accountKey)?.orders?.[pointer.productNo]?.orderNo !== pointer.orderNo) {
+      || readAccountRow<Row>(KEY, accountKey)?.orders?.[pointer.productNo]?.orderNo !== pointer.orderNo
+      || readAccountRow<Row>(KEY, accountKey)?.orders?.[pointer.productNo]?.commandKey !== pointer.commandKey) {
     throw new Error("ACCOUNT_COMMAND_STORAGE_UNAVAILABLE");
   }
 }
@@ -24,11 +30,39 @@ export function forgetCheckoutOrder(accountKey: string, productNo: string, order
   writeAccountRow(KEY, accountKey, { orders });
 }
 
+/** Pending RETIRE requests survive refresh with their original source version and key. */
+export function readCheckoutTradein(accountKey: string, productNo: string): CheckoutTradeinRecovery | null {
+  const pointer = readAccountRow<Row>(KEY, accountKey, true)?.orders?.[productNo];
+  if (!pointer?.tradeinQuote) return null;
+  const quote = pointer.tradeinQuote;
+  if (pointer.productNo !== productNo || quote.targetProductNo !== productNo
+      || !pointer.commandKey || !pointer.intent || !Number.isSafeInteger(quote.sourceRowVersion)
+      || quote.sourceRowVersion < 0 || !["ACTIVE", "INACTIVE"].includes(quote.targetDeviceStatus)) {
+    throw new Error("ACCOUNT_COMMAND_STORAGE_UNAVAILABLE");
+  }
+  return pointer as CheckoutTradeinRecovery;
+}
+
+export function finishCheckoutTradein(accountKey: string, pointer: CheckoutTradeinRecovery): void {
+  const current = readCheckoutTradein(accountKey, pointer.productNo);
+  if (current?.commandKey !== pointer.commandKey) throw new Error("CHECKOUT_RECOVERY_SCOPE_CHANGED");
+  const command = readAccountRow<{ commands: Record<string, string> }>(COMMANDS_KEY, accountKey, true)?.commands?.[pointer.intent];
+  if (command && (command !== pointer.commandKey || !releaseAccountCommandKey(COMMANDS_KEY, accountKey, pointer.intent, pointer.commandKey))) {
+    throw new Error("ACCOUNT_COMMAND_STORAGE_UNAVAILABLE");
+  }
+  forgetCheckoutOrder(accountKey, pointer.productNo, pointer.orderNo);
+  if (readCheckoutTradein(accountKey, pointer.productNo)) throw new Error("ACCOUNT_COMMAND_STORAGE_UNAVAILABLE");
+}
+
 /** Recovery only navigates to the original server order; it never creates or pays. */
 export async function recoverCheckoutOrder(accountKey: string, productNo: string, deps: {
   list: OrderApi["list"]; isCurrent(): boolean; isCurrentAccount(): boolean; navigate(url: string): Promise<boolean>;
 }): Promise<boolean> {
   const pointer = readAccountRow<Row>(KEY, accountKey)?.orders?.[productNo];
+  if (pointer?.tradeinQuote) {
+    if (deps.isCurrent()) await deps.navigate(`/pages/store/checkout?product=${encodeURIComponent(productNo)}`);
+    return true;
+  }
   if (!pointer || pointer.productNo !== productNo || typeof pointer.orderNo !== "string" || !pointer.orderNo.trim()) return false;
   if (!deps.isCurrent()) return true;
   let found: CanonicalOrder | undefined;

@@ -131,6 +131,7 @@
           </view>
         </view>
 
+        <text class="tis-disclaimer">{{ tradeinView.placementHint }}</text>
         <text class="tis-disclaimer">{{ t.tradein.sheetDisclaimer }}</text>
 
         <view class="tis-cta" :style="ctaHalo" role="button" :tabindex="confirming ? -1 : 0" :aria-disabled="confirming" :aria-busy="confirming" @click="onConfirmTradein"  @keydown.enter.prevent="onKeyboardActivate($event, onConfirmTradein)" @keydown.space.prevent="onKeyboardActivate($event, onConfirmTradein)">
@@ -606,6 +607,8 @@ const tradeinView = computed(() => {
       ? fmt(t.value.tradein.sheetBandText, { band: band.band, pct: band.creditPct })
       : "—",
     credit: formatAmount(credit),
+    placementHint: (remoteQuote ? remoteQuote.targetDeviceStatus === "ACTIVE" : oldDevice.activatedAt != null)
+      ? t.value.tradein.inheritActiveHint : t.value.tradein.inheritInventoryHint,
     estNet: formatAmount(estNet),
     ctaText: fmt(t.value.tradein.sheetCta, { amount: formatAmount(estNet) }),
   };
@@ -622,13 +625,13 @@ function onConfirmTradein() {
   }
   // 入口后任务才开始的竞态:退回阻断提示(规格 DEV02A 异常2)。判定单源
   // isDeviceTaskBlocked——库存机的出厂任务不在跑,不阻断。
-  if (isDeviceTaskBlocked(oldDevice)) {
+  if (!remoteApiEnabled && isDeviceTaskBlocked(oldDevice)) {
     sheet.showRetireBlock(oldDevice.id, oldDevice.name);
     return;
   }
   confirming.value = true;
   // FEAT-DEV02:确认 = 写入结算抵扣上下文,原子事务(净额扣款 + 移除旧机 + 新机
-  // 未激活入库)统一发生在结算页持久块——本弹层不再直接动钱/动设备数组。
+  // 新机继承原位置)统一发生在结算页持久块——本弹层不再直接动钱/动设备数组。
   sheet.applyTradein(oldDevice.id, s.newKind, remoteApiEnabled ? canonicalQuote.value ?? undefined : undefined);
   const targetId = s.newKind;
   hide();
@@ -906,10 +909,10 @@ async function submitCanonicalKeepBuy(
         requireCurrentAccount();
         if (!persisted || persisted.productNo !== newKind
             || persisted.orderType.toUpperCase() !== "CAPACITY_KEEP"
-            || persisted.canonicalStatus !== "paid"
+            || persisted.canonicalStatus !== "activated"
             || persisted.paymentStatus.toUpperCase() !== "PAID"
-            || persisted.orderStatus.toUpperCase() !== "PAID"
-            || persisted.activationStatus.toUpperCase() !== "WAITING_PROVISIONING"
+            || persisted.orderStatus.toUpperCase() !== "COMPLETED"
+            || persisted.activationStatus.toUpperCase() !== "ACTIVATED"
             || persisted.targetDeviceId !== submitted.targetDeviceId
             || !persisted.targetDeviceInstanceNo
             || typeof persisted.amountUsdt !== "number"
@@ -931,7 +934,7 @@ async function submitCanonicalKeepBuy(
       verifyFleet(submitted) {
         requireCurrentAccount();
         const target = app.devices.find((device) => device.id === String(submitted.targetDeviceId));
-        if (!target || target.activatedAt !== null) {
+        if (!target || target.activatedAt == null || target.activationUnconfirmed) {
           throw new Error("CAPACITY_KEEP_FLEET_READBACK_MISMATCH");
         }
       },

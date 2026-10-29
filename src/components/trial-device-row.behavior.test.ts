@@ -151,10 +151,10 @@ it.each(["zh", "en", "vi"] as const)("preserves active and grace semantics in %s
   expect(screen.byClass("trial-device-row__status")!.children).toBe("Online");
   expect(screen.byClass("trial-device-row__status--online")).toBeDefined();
   screen.presentation.status.value = "grace";
-  expect(screen.byClass("trial-device-row__status")!.children).toBe(messages[locale].earn.offline);
+  expect(screen.byClass("trial-device-row__status")!.children).toBe(trialFleetCopy[locale].grace);
   expect(screen.byClass("trial-device-row__status--online")).toBeUndefined();
   screen.byClass("trial-device-row__heading")!.props!.onClick();
-  expect(screen.byClass("trial-device-row__state")!.children).toBe(copy.grace);
+  expect(screen.byClass("trial-device-row__state")!.children).toBe(trialFleetCopy[locale].grace);
   expect(screen.byClass("trial-device-row__cancel")).toBeUndefined();
   screen.presentation.productId.value = "unknown-sku";
   expect(screen.byClass("trial-device-row__image")).toBeUndefined();
@@ -173,7 +173,7 @@ it.each(["zh", "en", "vi"] as const)("keeps a confirmed refreshing snapshot read
     screen.presentation.status.value = "grace";
     expect(screen.byClass("trial-device-row__status")!.children).toBe(trialFleetCopy[locale].statusUnknown);
     screen.presentation.presentationReady.value = true;
-    expect(screen.byClass("trial-device-row__status")!.children).toBe(messages[locale].earn.offline);
+    expect(screen.byClass("trial-device-row__status")!.children).toBe(trialFleetCopy[locale].grace);
   }
 });
 

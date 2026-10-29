@@ -1,3 +1,5 @@
+vi.mock("@/services/native-push", () => ({ revokeNativePush: vi.fn(), resumeNativePush: vi.fn() }));
+import * as progress from "@/lib/task-progress";
 import * as Vue from "vue";
 import * as tabLifecycle from "@/composables/use-tab-page-lifecycle";
 import { formatAmount } from "@/lib/amount-display";
@@ -117,7 +119,7 @@ async function mount(copy: Messages, device = serverDevice()) {
       onShow: (callback: () => void) => onShow.push(callback) },
     "@/components/app-chassis.vue": sfc(passthrough), "@/components/empty-state.vue": sfc(blank),
     "@/components/sub-page-header.vue": sfc(blank), "@/components/home/device-slot.vue": sfc(blank),
-    "@/components/liquid-glass.vue": sfc(blank),
+    "@/components/liquid-glass.vue": sfc(blank), "@/components/ui/nx-tag.vue": sfc(blank),
     "@/store/app": { useApp: () => app },
     "@/store/session": { useSession: () => ({ isCurrentDeviceCalibrated: () => true }) },
     "@/store/config": { useConfig: () => ({ config: { onlineBonus: {} } }) },
@@ -128,7 +130,7 @@ async function mount(copy: Messages, device = serverDevice()) {
     "@/composables/use-capacity-explainer": { useCapacityExplainer },
     "@/composables/use-dialog-a11y": { useDialogA11y }, "@/lib/server-deadline-clock": deadline,
     "@/lib/phone-activation-guidance": phoneGuidance, "@/store/device-types": deviceTypes,
-    "@/lib/workload-label": workload, "@/lib/task-result-confirmation": confirmation,
+    "@/lib/workload-label": workload, "@/lib/task-result-confirmation": confirmation, "@/lib/task-progress": progress,
     "@/lib/device-copy": deviceCopy, "@/store/device-lifecycle": lifecycle, "@/store/interrupt": interrupt,
     "@/lib/hashpower": hashpower, "@/lib/device-capability": capability,
     "@/lib/today-completed-tasks": completions, "@/lib/device-detail-navigation": detailNavigation,
@@ -159,8 +161,8 @@ test.each([en, zh, vietnamese])("shows supported device statistics and current s
   expect(text(statistics)).toContain("<$0.01");
   expect(text(statistics)).toContain("$1,234.57");
   expect(text(find(view.root, "device-statistics__scope")!)).toBe(capabilityCopy.scope);
-  expect(text(find(view.root, "device-statistics__status")!)).toContain(copy.earn.offline);
-  expect(find(view.root, "device-status-online")).toBeUndefined();
+  expect(text(find(view.root, "device-statistics__status")!)).toContain(copy.earn.online);
+  expect(find(view.root, "device-status-online")).toBeDefined();
   expect(text(statistics)).not.toContain(copy.coreReview.historyUnavailable);
   expect(text(statistics)).not.toContain(copy.coreReview.onlineRateUnavailable);
   device.runtimeStatus = "ONLINE"; await Vue.nextTick();
@@ -168,11 +170,11 @@ test.each([en, zh, vietnamese])("shows supported device statistics and current s
   expect(find(find(view.root, "device-management-heading")!, "device-status-online")).toBeDefined();
   expect(find(find(view.root, "device-statistics__status")!, "device-status-online")).toBeDefined();
   device.runtimeStatus = "UNKNOWN"; await Vue.nextTick();
-  expect(text(find(view.root, "device-statistics__status")!)).toContain(copy.earn.runtimeUnknown);
-  expect(find(view.root, "device-status-online")).toBeUndefined();
+  expect(text(find(view.root, "device-statistics__status")!)).toContain(copy.earn.online);
+  expect(find(view.root, "device-status-online")).toBeDefined();
   device.runtimeStatus = "ONLINE"; device.currentTask!.status = "PAUSED"; await Vue.nextTick();
-  expect(text(find(view.root, "device-statistics__status")!)).toContain(copy.earn.phoneTaskPaused);
-  expect(find(view.root, "device-status-online")).toBeUndefined();
+  expect(text(find(view.root, "device-statistics__status")!)).toContain(copy.earn.online);
+  expect(find(view.root, "device-status-online")).toBeDefined();
   expect(device.todayEarnings).toBe(0.00032);
   expect(device.cumulativeEarningsUsdt).toBe(1234.56789);
 });

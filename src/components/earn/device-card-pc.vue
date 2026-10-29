@@ -15,7 +15,7 @@
   pointer events). Movement, touchcancel and unmount cancel the pending hold.
 -->
 <template>
-  <view class="nx-device-card select-none" :style="rowStyle" :data-device-id="device.id" :data-online="deviceOnline ? 'true' : 'false'" @touchstart="onPressStart" @touchmove="onPressEnd" @touchend="onPressEnd" @touchcancel="onPressEnd">
+  <view class="nx-device-card select-none" :style="rowStyle" :data-device-id="device.id" :data-online="statusOnline ? 'true' : 'false'" @touchstart="onPressStart" @touchmove="onPressEnd" @touchend="onPressEnd" @touchcancel="onPressEnd">
     <!-- Long-press quick menu (full-viewport bottom sheet).
          🔴 z 790 = 业务半屏带(秩序表单源见 captcha-slider.vue)。原值 200 低于里程碑
          庆祝(780),菜单开着时庆祝盖在上面并吞掉「以旧换新 / 统计」的点击。 -->
@@ -95,6 +95,20 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :style="{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s ease' }"><path d="m6 9 6 6 6-6" /></svg>
         </view>
       </view>
+    </view>
+
+    <view v-if="!expanded && task" class="nx-device-current-task" style="padding: 0 20px 16px">
+      <text class="block" :style="sectionLabelStyle">{{ t.earn.currentTask }}</text>
+      <text class="block truncate" style="margin-top: 6px; font-size: 13px; color: var(--v5-ink-2)">{{ visibility.mask(task.model) }} · {{ workloadLabel(task.category) }}</text>
+      <text class="block truncate font-mono-tabular" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">#{{ visibility.mask(task.id) }}</text>
+      <view class="flex items-center gap-3" style="margin-top: 10px">
+        <view class="flex-1 h-1 rounded-full overflow-hidden" style="background: var(--v5-surface-2)" role="progressbar" :aria-label="t.earn.currentTask" :aria-valuenow="visibility.hidden || progressPct == null ? undefined : progressPct" aria-valuemin="0" aria-valuemax="100">
+          <view v-if="!visibility.hidden && progressPct != null" class="nx-device-task-progress h-full" :style="progressBarStyle" />
+        </view>
+        <text class="font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-2)">{{ progressLabel }}</text>
+      </view>
+      <text v-if="task.status === 'PAUSED' || reconnecting" class="block" style="margin-top: 6px; font-size: 12px; color: var(--v5-warning-ink)">{{ reconnecting ? t.earn.reconnecting : t.earn.phoneTaskPaused }}</text>
+      <text v-else-if="awaitingExecutionResultConfirmation" class="block" style="margin-top: 6px; font-size: 12px; color: var(--v5-ink-3)">{{ t.earn.taskAwaitingExecutionResultConfirmation }}</text>
     </view>
 
     <!-- Detail body (expanded; accordion) -->
@@ -212,7 +226,7 @@
             <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 4px; line-height: 1.35">{{ reconnectHoldText }}</text>
           </view>
         </view>
-        <text v-if="device.currentTask" class="block truncate tabular-nums" style="margin-top: 8px; padding-left: 42px; font-size: 12px; color: var(--v5-ink-4); font-family: var(--font-v5)">#{{ device.currentTask.id }} · {{ device.currentTask.model }}</text>
+        <text v-if="device.currentTask" class="block truncate tabular-nums" style="margin-top: 8px; padding-left: 42px; font-size: 12px; color: var(--v5-ink-4); font-family: var(--font-v5)">#{{ visibility.mask(device.currentTask.id) }} · {{ visibility.mask(device.currentTask.model) }}</text>
       </view>
     </view>
 
@@ -243,21 +257,21 @@
     <!-- Current task (non-reconnecting) -->
     <view v-if="task && !reconnecting" style="padding: 0 20px 16px">
       <text class="block mb-2" :style="sectionLabelStyle">{{ t.earn.currentTask }}</text>
-      <text class="block" style="font-size: var(--ui-type-list-subtitle); font-weight: 500; color: color-mix(in srgb, var(--v5-ink) 95%, transparent); line-height: 1.2">{{ task.model }}<text style="color: var(--v5-ink-4); margin: 0 6px">·</text>{{ workloadLabel(task.category) }}</text>
+      <text class="block" style="font-size: var(--ui-type-list-subtitle); font-weight: 500; color: color-mix(in srgb, var(--v5-ink) 95%, transparent); line-height: 1.2">{{ visibility.mask(task.model) }}<text style="color: var(--v5-ink-4); margin: 0 6px">·</text>{{ workloadLabel(task.category) }}</text>
       <view class="mt-0.5 flex items-center gap-1.5 flex-wrap" style="font-size: 12px; color: var(--v5-ink-3)">
-        <text class="tabular-nums" style="font-family: var(--font-v5); color: var(--v5-brand)">#{{ task.id }}</text>
+        <text class="tabular-nums" style="font-family: var(--font-v5); color: var(--v5-brand)">#{{ visibility.mask(task.id) }}</text>
         <text style="color: var(--v5-ink-4)">·</text>
-        <text style="color: color-mix(in srgb, var(--v5-ink) 80%, transparent)">{{ task.client }}</text>
+        <text style="color: color-mix(in srgb, var(--v5-ink) 80%, transparent)">{{ visibility.mask(task.client) }}</text>
         <text style="color: var(--v5-ink-4)">·</text>
-        <text>{{ task.location }}</text>
+        <text>{{ visibility.mask(task.location) }}</text>
       </view>
       <text v-if="task.status === 'PAUSED'" class="block" style="margin-top: 10px; font-size: 12px; color: var(--v5-warning-ink)">{{ t.earn.phoneTaskPaused }}</text>
       <text v-if="task.status === 'PAUSED'" class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ t.earn.phoneTaskPausedHint }}</text>
-      <view v-if="task.status !== 'PAUSED'" class="mt-3 flex items-center gap-3">
-        <view class="flex-1 h-1 rounded-full overflow-hidden" style="background: var(--v5-surface-2)">
-          <view v-if="!visibility.hidden" class="h-full" :style="progressBarStyle" />
+      <view class="mt-3 flex items-center gap-3">
+        <view class="flex-1 h-1 rounded-full overflow-hidden" style="background: var(--v5-surface-2)" role="progressbar" :aria-label="t.earn.currentTask" :aria-valuenow="visibility.hidden || progressPct == null ? undefined : progressPct" aria-valuemin="0" aria-valuemax="100">
+          <view v-if="!visibility.hidden && progressPct != null" class="nx-device-task-progress h-full" :style="progressBarStyle" />
         </view>
-        <text class="tabular-nums text-right" style="font-family: var(--font-v5); font-size: 12px; color: color-mix(in srgb, var(--v5-ink) 80%, transparent); width: 48px">{{ visibility.mask(progressPct) }}%</text>
+        <text class="tabular-nums text-right" style="font-family: var(--font-v5); font-size: 12px; color: color-mix(in srgb, var(--v5-ink) 80%, transparent); width: 48px">{{ progressLabel }}</text>
       </view>
       <view v-if="task.status !== 'PAUSED'" class="mt-1.5 flex items-center justify-between" style="font-size: 12px; color: var(--v5-ink-3)">
         <text v-if="awaitingExecutionResultConfirmation">{{ t.earn.taskAwaitingExecutionResultConfirmation }}</text>
@@ -418,6 +432,7 @@ import { derivePromoUpgrade } from "@/store/device-types";
 import type { Device, DeviceKind, TaskCategory } from "@/store/types";
 import { workloadLabel as resolveWorkloadLabel } from "@/lib/workload-label";
 import { awaitsExecutionResultConfirmation } from "@/lib/task-result-confirmation";
+import { taskProgressPercent } from "@/lib/task-progress";
 import { deviceName, deviceGpuLabel, deviceLocation } from "@/lib/device-copy";
 import { getLifecycleSummary, hasServerLifecycleProjection, isDegradable, SUBSIDY_DAYS, CAPACITY_FLOOR } from "@/store/device-lifecycle";
 import type { LockedTeaser } from "@/mock/tasks";
@@ -425,7 +440,7 @@ import { prepareEarnConfig, useEarnConfig } from "@/store/earn-config";
 import { useCapacityExplainer } from "@/composables/use-capacity-explainer";
 import { navTo } from "@/lib/route";
 import { interruptInfo, INTERRUPT_MAX_RETRIES } from "@/store/interrupt";
-import { canShowLivePhoneHashpower, computeLiveHashpower, isDeviceOnline } from "@/lib/hashpower";
+import { canShowLivePhoneHashpower, computeLiveHashpower, isDeviceOnline, deviceOnlineState } from "@/lib/hashpower";
 import { fallbackCapability } from "@/lib/device-capability";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -508,56 +523,24 @@ const taskLockRemainingMinutes = computed(() => {
   return lockUntil > liveTaskNow.value ? Math.max(1, Math.ceil((lockUntil - liveTaskNow.value) / 60000)) : 0;
 });
 const reconnecting = computed(() => phoneFactsReady.value && props.device.kind === "phone" && props.device.interruptedAt != null);
-const elapsedRatio = computed(() => {
-  const tk = task.value;
-  if (!tk) return 0;
-  return Math.min(1, Math.max(0, (liveTaskNow.value - tk.startedAt) / 1000 / tk.totalSec));
-});
-const progressPct = computed(() => Math.round(elapsedRatio.value * 100));
+const progressPct = computed(() => taskProgressPercent(task.value, liveTaskNow.value, props.device.interruptedAt));
+const progressLabel = computed(() => visibility.mask(progressPct.value == null ? "-" : `${progressPct.value}%`));
 const awaitingExecutionResultConfirmation = computed(() => {
   const tk = task.value;
   return tk !== null && awaitsExecutionResultConfirmation(tk, liveTaskNow.value);
 });
 
-const idleGated = computed(
-  () => props.device.kind === "phone" && !!props.device.pausedReason && !reconnecting.value && !task.value,
-);
-
-const statusLabel = computed(() => {
-  if (!phoneFactsReady.value) return phoneActivationGuidance.value.title;
-  if (props.device.pendingDeactivate) return t.value.myDevices.inventoryPendingDeactivateChip;
-  if (reconnecting.value) return t.value.earn.reconnecting;
-  if (task.value?.status === "PAUSED") return t.value.earn.phoneTaskPaused;
-  if (idleGated.value) return t.value.earn.idle;
-  if (props.device.capacitySource === "server") {
-    if (props.device.runtimeStatus === "ONLINE") return t.value.earn.online;
-    if (props.device.runtimeStatus === "OFFLINE") return t.value.earn.offline;
-    return t.value.earn.runtimeUnknown;
-  }
-  if (!deviceOnline.value) {
-    return props.device.kind === "phone" ? t.value.earn.hashCarrierH5Mode : t.value.earn.offline;
-  }
-  return t.value.earn.online;
-});
-const statusColor = computed(() => {
-  if (!phoneFactsReady.value) return "var(--v5-warning-ink)";
-  if (props.device.pendingDeactivate) return "var(--v5-warning)";
-  if (reconnecting.value) return "var(--v5-warning)";
-  if (task.value?.status === "PAUSED") return "var(--v5-warning-ink)";
-  if (props.device.capacitySource === "server" && props.device.kind === "phone") {
-    return props.device.runtimeStatus === "ONLINE" ? "var(--v5-brand)" : "var(--v5-ink-3)";
-  }
-  if (idleGated.value || !deviceOnline.value) return "var(--v5-ink-3)";
-  return "var(--v5-brand)";
-});
-const statusOnline = computed(() => phoneFactsReady.value && !props.device.pendingDeactivate && !reconnecting.value
-  && task.value?.status !== "PAUSED" && !idleGated.value
-  && (props.device.capacitySource === "server" ? props.device.runtimeStatus === "ONLINE" : deviceOnline.value));
+const onlineState = computed(() => deviceOnlineState(props.device, now.value,
+  !remoteApiEnabled || app.remoteFleetStatus !== "error"));
+const statusLabel = computed(() => onlineState.value === "unknown" ? t.value.earn.runtimeUnknown
+  : onlineState.value === "online" ? t.value.earn.online : "");
+const statusOnline = computed(() => onlineState.value === "online");
+const statusColor = computed(() => statusOnline.value ? "var(--v5-brand)" : "var(--v5-ink-3)");
 
 const elapsedRemaining = computed(() => {
   const tk = task.value;
   if (!tk) return fmt(t.value.coreReview.minutesSeconds, { minutes: 0, seconds: 0 });
-  const elapsed = Math.floor((liveTaskNow.value - tk.startedAt) / 1000);
+  const elapsed = Math.floor((liveTaskNow.value - tk.startedAt) / 1000 - (tk.pausedSeconds ?? 0));
   const remaining = Math.max(0, tk.totalSec - elapsed);
   const min = Math.floor(remaining / 60);
   const sec = remaining % 60;
@@ -911,7 +894,7 @@ const warnIconStyle: CSSProperties = {
   color: "var(--v5-warning-ink)",
 };
 const progressBarStyle = computed<CSSProperties>(() => ({
-  width: `${progressPct.value}%`,
+  width: `${progressPct.value ?? 0}%`,
   background: "color-mix(in srgb, var(--v5-brand) 40%, transparent)",
   transition: "width 0.6s cubic-bezier(0.16, 1, 0.3, 1)",
 }));

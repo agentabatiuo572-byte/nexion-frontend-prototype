@@ -758,6 +758,8 @@ export const useApp = defineStore("app", () => {
       location,
       totalSec: task.requiredSeconds,
       startedAt: task.startedAt,
+      pausedAt: task.pausedAt,
+      pausedSeconds: task.pausedSeconds,
       reward: task.rewardUsdt,
       status: task.status,
       completableAt: task.completableAt,

@@ -49,7 +49,7 @@ const isExpanded = computed(() => props.expanded ?? localExpanded.value);
 const productMedia = computed(() => getProductMedia(presentation.productId.value));
 const isOnline = computed(() => presentation.presentationReady.value && presentation.status.value === "active");
 const statusText = computed(() => !presentation.presentationReady.value ? copy.value.statusUnknown
-  : isOnline.value ? t.value.earn.online : t.value.earn.offline);
+  : isOnline.value ? t.value.earn.online : copy.value.grace);
 const remainingText = computed(() => presentation.remainingMs.value === null ? "—" : formatTrialRemaining(presentation.remainingMs.value, copy.value.longRemaining));
 function money(value: number | null) {
   const formatted = value === null ? "—" : `$${formatAmount(value)}`;

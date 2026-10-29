@@ -3,6 +3,9 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import { useApp } from "./app";
 import { isActivatableInventoryDevice, requiresActivationConfirmation } from "@/lib/device-slot-policy";
+import { remoteApiEnabled } from "@/api/runtime";
+import { toast } from "./ui";
+import { useT } from "@/i18n/use-t";
 
 /**
  * Slot-action sheet — opened from /earn (empty slot tile / add-device CTA).
@@ -15,6 +18,8 @@ import { isActivatableInventoryDevice, requiresActivationConfirmation } from "@/
  */
 export const useSlotActionSheet = defineStore("slotActionSheet", () => {
   const open = ref(false);
+  const t = useT();
+  let checking = false;
 
   function show() {
     open.value = true;
@@ -28,8 +33,21 @@ export const useSlotActionSheet = defineStore("slotActionSheet", () => {
    * 所有槽位触发点(空槽图标 / 添加设备按钮)统一走这里,分支别写在调用侧:
    * 仓库有未激活设备 → 弹选择弹层;没有 → 直接进商城,不弹只剩一个购买按钮的空壳层。
    */
-  function openForSlot() {
-    const hasInactive = useApp().visibleDevices.some(
+  async function openForSlot() {
+    if (checking) return;
+    const app = useApp();
+    const accountKey = app.accountKey;
+    if (remoteApiEnabled && app.remoteFleetStatus !== "ready") {
+      checking = true;
+      const ready = await app.refreshRemoteFleet();
+      checking = false;
+      if (accountKey !== app.accountKey) return;
+      if (!ready) {
+        toast.error(t.value.myDevices.inventoryStaleWarning);
+        return;
+      }
+    }
+    const hasInactive = app.visibleDevices.some(
       (d) => isActivatableInventoryDevice(d) || requiresActivationConfirmation(d),
     );
     if (hasInactive) {

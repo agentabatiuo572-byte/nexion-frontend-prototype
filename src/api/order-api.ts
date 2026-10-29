@@ -8,6 +8,7 @@ export const ORDER_STATUSES = [
   "paid",
   "provisioning",
   "activated",
+  "inventory",
   "payment_failed",
   "expired",
   "provisioning_failed",
@@ -344,6 +345,11 @@ function canonicalOrder(value: unknown): CanonicalOrder {
       case "activated":
         return paymentStatus === "PAID" && orderStatus === "COMPLETED"
           && activationStatus === "ACTIVATED" && parsed.paidAt !== null && parsed.activatedAt !== null;
+      case "inventory":
+        return parsed.orderType.toUpperCase() === "TRADE_IN" && parsed.tradeinNo !== null
+          && parsed.sourceDeviceId !== null && parsed.targetDeviceId !== null
+          && paymentStatus === "PAID" && orderStatus === "COMPLETED"
+          && activationStatus === "INVENTORY" && parsed.paidAt !== null && parsed.activatedAt === null;
       case "payment_failed":
         return paymentStatus === "FAILED" && orderStatus === "PAYMENT_FAILED"
           && activationStatus === "WAITING_PAYMENT";

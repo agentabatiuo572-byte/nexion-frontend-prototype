@@ -1,3 +1,4 @@
+import * as progress from "@/lib/task-progress";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@dcloudio/uni-app", () => ({ onLoad: vi.fn(), onShow: vi.fn(), onHide: vi.fn(), onUnload: vi.fn() }));
 import source from "./device-card-pc.vue?raw";
@@ -45,7 +46,7 @@ describe("per-device today-completed section", () => {
     expect(source).toContain("deviceTodayCompleted.length");
     expect(source).toContain("const liveTaskNow = computed");
     expect(source).toContain("props.device.taskServerNowReceivedAt");
-    expect(source).toMatch(/elapsedRatio[\s\S]*liveTaskNow\.value/);
+    expect(source).toMatch(/progressPct[\s\S]*liveTaskNow\.value/);
     expect(source).toMatch(/elapsedRemaining[\s\S]*liveTaskNow\.value/);
     expect(source).not.toContain("device.kind === 'phone'\" class=\"nx-phone-today-completed");
     expect(source).not.toContain("今日已完成（5）");
@@ -198,7 +199,7 @@ async function setup(name: string) {
     vue: Vue, '@/store/app': { useApp: () => app }, '@/store/session': { useSession },
     '@/store/config': { useConfig }, '@/lib/native-phone-runtime': native,
     '@/lib/phone-activation-guidance': guidance, '@/store/device-types': deviceTypes,
-    '@/lib/workload-label': workload, '@/lib/task-result-confirmation': confirmation,
+    '@/lib/workload-label': workload, '@/lib/task-result-confirmation': confirmation, '@/lib/task-progress': progress,
     '@/lib/device-copy': deviceCopy, '@/store/device-lifecycle': lifecycle,
     '@/store/interrupt': interrupt, '@/lib/hashpower': hashpower, '@/lib/device-capability': capability,
     '@/lib/today-completed-tasks': completions, '@/lib/device-detail-navigation': navigation,
