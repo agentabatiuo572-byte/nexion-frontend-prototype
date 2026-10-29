@@ -101,6 +101,100 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 
+it.each(["home", "earn"] as const)("reads a six-second task during a visible %s visit without accelerating phone writes", async page => {
+  let now = 1_000_000;
+  vi.spyOn(Date, "now").mockImplementation(() => now);
+  const app = useApp(); app.bindAccount("user:1001");
+  app.devices = [{ id: "811", kind: "phone", activatedAt: 1 } as Device];
+  await app.syncRemoteTaskAssignments();
+  const fleetReads = remote.deviceE3Api.fleet.mock.calls.length;
+  const homeReads = remote.appHomeApi.fetch.mock.calls.length;
+  app.setTaskReadPageVisible(page, true);
+  await app.refreshVisibleTaskAssignments();
+  now += 2_000;
+  const shortTask = phoneAssignments("RUNNING");
+  shortTask.devices[0].currentTask!.requiredSeconds = 6;
+  remote.taskAssignmentApi.state.mockResolvedValue(shortTask);
+  app.tick(2_000);
+  await vi.waitFor(() => expect(app.devices[0]?.currentTask?.id).toBe("CTA-811"));
+  expect(app.devices[0]?.currentTask?.id).toBe("CTA-811");
+  expect(app.remoteAssignmentStatus).toBe("ready");
+  now += 2_000;
+  await app.refreshVisibleTaskAssignments();
+  now += 2_000;
+  remote.taskAssignmentApi.state.mockResolvedValue(assignments);
+  app.tick(2_000);
+  await vi.waitFor(() => expect(app.devices[0]?.currentTask).toBeNull());
+  expect(app.devices[0]?.currentTask).toBeNull();
+  expect(remote.taskAssignmentApi.reportPhoneRuntime).toHaveBeenCalledTimes(1);
+  expect(remote.deviceE3Api.fleet).toHaveBeenCalledTimes(fleetReads);
+  expect(remote.appHomeApi.fetch).toHaveBeenCalledTimes(homeReads);
+  app.setTaskReadPageVisible(page, false);
+  now += 2_000;
+  const reads = remote.taskAssignmentApi.state.mock.calls.length;
+  await app.refreshVisibleTaskAssignments();
+  expect(remote.taskAssignmentApi.state).toHaveBeenCalledTimes(reads);
+});
+
+it("stops visible task reads in background and reads immediately on return", async () => {
+  const app = useApp(); app.bindAccount("user:1001");
+  app.setRemoteTaskForeground(false);
+  app.setTaskReadPageVisible("home", true);
+  await app.refreshVisibleTaskAssignments();
+  expect(remote.taskAssignmentApi.state).not.toHaveBeenCalled();
+  app.setRemoteTaskForeground(true);
+  await vi.waitFor(() => expect(remote.taskAssignmentApi.state).toHaveBeenCalledTimes(1));
+  expect(remote.taskAssignmentApi.reportPhoneRuntime).not.toHaveBeenCalled();
+});
+
+it.each(["account-switch", "same-account-rebind", "background"])("rejects a visible task response after %s", async boundary => {
+  let finish!: (state: CanonicalTaskAssignments) => void;
+  remote.taskAssignmentApi.state.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+  const app = useApp(); app.bindAccount("user:1001");
+  app.setTaskReadPageVisible("home", true);
+  await vi.waitFor(() => expect(remote.taskAssignmentApi.state).toHaveBeenCalledOnce());
+  if (boundary === "background") app.setRemoteTaskForeground(false);
+  else app.bindAccount(boundary === "account-switch" ? "user:1002" : "user:1001");
+  finish(phoneAssignments("RUNNING"));
+  await vi.waitFor(() => expect(app.remoteAssignmentStatus).toBe("idle"));
+  expect(app.remoteAssignmentHasSnapshot).toBe(false);
+  expect(app.devices).toEqual([]);
+});
+
+it("coalesces fast task reads while waiting for the existing phone POST", async () => {
+  let finish!: () => void;
+  remote.taskAssignmentApi.reportPhoneRuntime.mockReturnValueOnce(new Promise<void>(resolve => { finish = resolve; }));
+  const app = useApp(); app.bindAccount("user:1001");
+  const sync = app.syncRemoteTaskAssignments();
+  await vi.waitFor(() => expect(remote.taskAssignmentApi.reportPhoneRuntime).toHaveBeenCalledOnce());
+  app.setTaskReadPageVisible("home", true);
+  await app.refreshVisibleTaskAssignments();
+  expect(remote.taskAssignmentApi.state).not.toHaveBeenCalled();
+  finish(); await sync;
+  expect(remote.taskAssignmentApi.state).toHaveBeenCalledOnce();
+  expect(remote.taskAssignmentApi.reportPhoneRuntime).toHaveBeenCalledOnce();
+});
+
+it("a slow fleet response cannot replace a newer visible task snapshot", async () => {
+  let now = 1_000_000;
+  vi.spyOn(Date, "now").mockImplementation(() => now);
+  let finishFleet!: (fleet: CanonicalE3Fleet) => void;
+  remote.deviceE3Api.fleet.mockReturnValueOnce(new Promise(resolve => { finishFleet = resolve; }));
+  const app = useApp(); app.bindAccount("user:1001");
+  app.devices = [{ id: "811", kind: "phone", activatedAt: 1 } as Device];
+  const pending = app.refreshRemoteFleet();
+  await vi.waitFor(() => expect(remote.taskAssignmentApi.state).toHaveBeenCalledOnce());
+  now += 2_000;
+  const running = { ...phoneAssignments("RUNNING"), serverNow: 2 };
+  remote.taskAssignmentApi.state.mockResolvedValue(running);
+  app.setTaskReadPageVisible("home", true);
+  await vi.waitFor(() => expect(app.devices[0]?.currentTask?.id).toBe("CTA-811"));
+  finishFleet(phoneFleet("ONLINE"));
+  await expect(pending).resolves.toBe(true);
+  expect(app.devices[0]?.currentTask?.id).toBe("CTA-811");
+  expect(app.devices[0]?.taskServerNow).toBe(2);
+});
+
 it("reports the current installation instead of another activated phone in the account", async () => {
   const app = useApp();
   app.bindAccount("user:1001");

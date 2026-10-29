@@ -19,6 +19,8 @@ import { fmt } from '@/i18n/format';
 import { formatAmount } from '@/lib/amount-display';
 import { zh } from '@/i18n/messages/zh';
 
+vi.mock('@/services/native-push', () => ({ revokeNativePush: vi.fn(), resumeNativePush: vi.fn() }));
+
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(100_000); });
 afterEach(() => vi.useRealTimers());
 const flush = async () => { for (let i = 0; i < 24; i++) await Promise.resolve(); await Vue.nextTick(); };
@@ -28,7 +30,7 @@ function evaluate(source: string, deps: Record<string, any>, result: string) {
   return new Function('deps', `const {${Object.keys(deps).join(',')}}=deps;${code};return ${result};`)(deps);
 }
 function fixture() {
-  const app = Vue.reactive({ accountKey: 'user:7', accountBindingEpoch: 1, remotePhoneBindingInvalid: false });
+  const app = Vue.reactive({ accountKey: 'user:7', accountBindingEpoch: 1, remotePhoneBindingInvalid: false, setTaskReadPageVisible: vi.fn() });
   const locale = Vue.reactive({ code: 'zh' });
   let revision = 0, environment = 'dev';
   const window = createPassiveReadWindow();

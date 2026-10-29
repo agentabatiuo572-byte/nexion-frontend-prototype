@@ -190,6 +190,7 @@ let earnObservationEpoch = 0;
 // for the global poll before we know whether the server has made it eligible.
 onShow(() => {
   earnPageVisible = true;
+  app.setTaskReadPageVisible("earn", true);
   if (remoteApiEnabled) {
     void runPassiveTabRead('trial-state', () => freeTrial.refreshRemote());
     void runPassiveTabRead('remote-fleet', () => app.refreshRemoteFleet(undefined, { coalesce: true })).catch(() => undefined);
@@ -200,10 +201,12 @@ onShow(() => {
 
 onHide(() => {
   earnPageVisible = false;
+  app.setTaskReadPageVisible("earn", false);
   earnObservationEpoch += 1;
 });
 onUnmounted(() => {
   earnPageVisible = false;
+  app.setTaskReadPageVisible("earn", false);
   earnObservationEpoch += 1;
 });
 

@@ -66,6 +66,7 @@ function screen() {
   const deps: Record<string, unknown> = {
     '@/lib/passive-tab-read': createPassiveTabReadFixture(() => JSON.stringify([app.accountKey, app.accountBindingEpoch, remote.apiRuntimeConfig.environment, remote.apiRuntimeConfig.baseUrl])),
     vue: Vue, '@/store/app': { useApp: () => app }, '@/api/runtime': remote,
+    '@/store/data-visibility': { useDataVisibility: () => ({ hidden: false, mask: String }) },
     '@/lib/amount-display': { formatAmount }, '@/lib/usd-display': { formatUsdOverviewParts },
     '@/i18n/use-t': { useT: () => Vue.ref(en) }, '@/i18n/format': { fmt },
     '@/i18n/audit-ui': { useAuditUiCopy: () => Vue.ref(auditUiCopy.en) },

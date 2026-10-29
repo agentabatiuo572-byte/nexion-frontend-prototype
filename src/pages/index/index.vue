@@ -75,9 +75,9 @@ async function refresh(passive=false) {
     }
   } finally {if(pendingTicket===ticket)pendingTicket=null;}
 }
-onShow(() => { visible = true; void refresh(true); });
-onHide(() => { visible = false; });
-onUnmounted(() => { visible = false; fence.invalidate(); });
+onShow(() => { visible = true; app.setTaskReadPageVisible("home", true); void refresh(true); });
+onHide(() => { visible = false; app.setTaskReadPageVisible("home", false); });
+onUnmounted(() => { visible = false; app.setTaskReadPageVisible("home", false); fence.invalidate(); });
 onLoad(() => locale.ensureSystemDetected());
 watch(() => [app.accountKey, app.accountBindingEpoch, locale.code], () => { fence.invalidate(); homePromotions.value = []; homePromotionRead.value=false;void refresh(true); },{flush:'sync'});
 </script>

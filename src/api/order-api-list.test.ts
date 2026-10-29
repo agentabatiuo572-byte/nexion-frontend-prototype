@@ -22,6 +22,25 @@ function api(payload: unknown, mode: "prod" | "dev") {
 afterEach(() => advanceRuntimeRevision(null));
 
 describe("order list provenance", () => {
+  it("keeps fulfilled order history readable after its device activation timestamp is cleared", async () => {
+    const fulfilled = { ...order(), orderNo: "LEGACY-S1", paymentStatus: "PAID", orderStatus: "COMPLETED",
+      activationStatus: "ACTIVATED", canonicalStatus: "activated", paidAt: 2_000, activatedAt: null, expiresAt: null };
+    const envelope = { source: "server", sourceEnvironment: "PRODUCTION", runId: null, serverCanonical: true };
+    const snapshot = await api({ ...envelope, orders: [order(), fulfilled, { ...fulfilled, orderNo: "LEGACY-CLOUD" },
+      { ...order(), orderNo: "OLD-EXPIRED", paymentStatus: "EXPIRED", orderStatus: "EXPIRED",
+        canonicalStatus: "expired", expiresAt: null },
+      { ...order(), orderNo: "OLD-REFUND", paymentStatus: "REFUNDED", orderStatus: "REFUNDED",
+        activationStatus: "REFUNDED", canonicalStatus: "refunded", expiresAt: null },
+    ] }, "prod").list();
+    expect(snapshot.orders).toHaveLength(5);
+    expect(snapshot.orders[1]).toMatchObject({ canonicalStatus: "activated", activatedAt: null });
+    for (const invalid of [{ paidAt: null }, { paymentStatus: "PENDING" }, { orderStatus: "PAID" },
+      { activationStatus: "WAITING_PROVISIONING" }]) {
+      await expect(api({ ...envelope, orders: [{ ...fulfilled, ...invalid }] }, "prod").list())
+        .rejects.toMatchObject({ message: "ORDER_RESPONSE_INVALID" });
+    }
+  });
+
   it("preserves promotion decimal strings in ordinary order history without rounding", async () => {
     const row={...order(),promotionQuoteId:'approved-quote',amountUsdt:'999999999999.999999'};
     const envelope={source:'server',sourceEnvironment:'PRODUCTION',runId:null,serverCanonical:true,orders:[row]};

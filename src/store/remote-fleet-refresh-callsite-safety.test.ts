@@ -16,7 +16,7 @@ describe("remote fleet refresh callsite safety", () => {
 
     const earn = source("../pages/earn/earn.vue");
     expect(earn).toContain("app.refreshRemoteFleet(undefined, { coalesce: true })");
-    expect(earn).toContain("function retryFleet() { void app.refreshRemoteFleet()");
+    expect(earn).toContain("function retryFleet() { invalidatePassiveTabRead('remote-fleet'); void app.refreshRemoteFleet()");
   });
 
   it("keeps every existing mutation, recovery, and retry readback fresh by default", () => {

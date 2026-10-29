@@ -12,6 +12,7 @@ import { asApiError } from "@/api/errors";
 import { en } from "@/i18n/messages/en";
 
 const remote = vi.hoisted(() => ({ remoteApiEnabled: true,
+  apiRuntimeConfig: { environment: "prod", baseUrl: "https://test.example" },
   productCatalogApi: { catalog: vi.fn() }, orderApi: { list: vi.fn(), pay: vi.fn() } }));
 vi.mock("@/api/runtime", () => remote);
 const { useOrders } = await import("@/store/orders");

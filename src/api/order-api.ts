@@ -344,7 +344,7 @@ function canonicalOrder(value: unknown): CanonicalOrder {
           && parsed.activatedAt === null;
       case "activated":
         return paymentStatus === "PAID" && orderStatus === "COMPLETED"
-          && activationStatus === "ACTIVATED" && parsed.paidAt !== null && parsed.activatedAt !== null;
+          && activationStatus === "ACTIVATED" && parsed.paidAt !== null;
       case "inventory":
         return parsed.orderType.toUpperCase() === "TRADE_IN" && parsed.tradeinNo !== null
           && parsed.sourceDeviceId !== null && parsed.targetDeviceId !== null

@@ -120,7 +120,7 @@ async function mount(copy: Messages = zh, device = cloudDevice(), expanded = fal
   const unmount = () => { if (mounted) { instance.unmount(); mounted = false; } };
   unmounts.push(unmount);
   await Vue.nextTick();
-  return { root, device, toggle, navTo, handleDeactivate, handleTradein, setPhoneRuntime, unmount, hide: () => tabVisit.setVisible(false), show: () => tabVisit.setVisible(true) };
+  return { root, device, app, toggle, navTo, handleDeactivate, handleTradein, setPhoneRuntime, unmount, hide: () => tabVisit.setVisible(false), show: () => tabVisit.setVisible(true) };
 }
 
 test.each([en, zh, vietnamese])('detail management opens the existing deactivation confirmation in place without changing the device', async copy => {
@@ -193,6 +193,23 @@ test.each([en, zh, vietnamese])("keeps an activated account phone readable witho
     expect(text(card.root)).toContain(formatUsd(1.25));
     expect(card.setPhoneRuntime).not.toHaveBeenCalled();
     expect(JSON.stringify(phone)).toBe(before);
+  }
+});
+
+test.each([en, zh, vietnamese])("expanded phone and detail distinguish unknown task reads from confirmed waiting", async copy => {
+  for (const detailPage of [false, true]) {
+    const card = await mount(copy, { ...cloudDevice(), kind: "phone" }, true, false, false, detailPage);
+    for (const status of ["error", "loading"]) {
+      card.app.remoteAssignmentStatus = status; card.app.remoteAssignmentHasSnapshot = false; await Vue.nextTick();
+      expect(text(card.root)).toContain(copy.earn.runtimeUnknown);
+      expect(text(card.root)).not.toContain(copy.earn.phoneWaitingTask);
+      expect(text(card.root)).not.toContain(copy.earn.phoneWaitingHint);
+      expect(find(card.root, "nx-spin")).toBeUndefined();
+    }
+    card.app.remoteAssignmentStatus = "ready"; await Vue.nextTick();
+    expect(text(card.root)).toContain(copy.earn.phoneWaitingTask);
+    expect(text(card.root)).toContain(copy.earn.phoneWaitingHint);
+    expect(all(card.root).some(node => node.props.role === "progressbar")).toBe(false);
   }
 });
 

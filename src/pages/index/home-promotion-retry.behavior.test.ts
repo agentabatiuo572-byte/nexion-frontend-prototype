@@ -13,7 +13,7 @@ function deferred(){let resolve!:(value:PublicPromotionPage)=>void,reject!:(erro
 const cleanups:Array<()=>void>=[];afterEach(()=>cleanups.splice(0).forEach(fn=>fn()));
 const flush=async()=>{for(let i=0;i<12;i++)await Promise.resolve();await Vue.nextTick();};
 function mount(){
- const app=Vue.reactive({accountKey:'user:7',accountBindingEpoch:1}),locale=Vue.reactive({code:'zh',ensureSystemDetected:()=>{}});
+ const app=Vue.reactive({accountKey:'user:7',accountBindingEpoch:1,setTaskReadPageVisible:vi.fn()}),locale=Vue.reactive({code:'zh',ensureSystemDetected:()=>{}});
  const readWindow=createPassiveTabReadFixture(()=>JSON.stringify([app.accountKey,app.accountBindingEpoch,locale.code]));
  const list=vi.fn<(...args:unknown[])=>Promise<PublicPromotionPage>>().mockResolvedValue(page([]));
  const homeRead:any={};new Function('require','exports',ts.transpileModule(readSource,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText)((name:string)=>name==='@/lib/passive-tab-read'?readWindow:name==='@/api/errors'?{ApiError}:{apiRuntimeConfig:{baseUrl:'https://api.example',environment:'dev'},promotionApi:{list}},homeRead);

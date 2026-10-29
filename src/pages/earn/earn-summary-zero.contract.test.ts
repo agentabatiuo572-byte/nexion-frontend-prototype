@@ -12,7 +12,8 @@ import { compileScript, parse } from "@vue/compiler-sfc";
 import { renderToString } from "@vue/server-renderer";
 import ts from "typescript";
 import * as Vue from "vue";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+vi.mock("@/services/native-push", () => ({ revokeNativePush: vi.fn(), resumeNativePush: vi.fn() }));
 import { fmt } from "@/i18n/format";
 import { en } from "@/i18n/messages/en";
 import { zh } from "@/i18n/messages/zh";
@@ -36,7 +37,7 @@ function hero(range: Range, homeTruth: unknown, realized: { usdt: number; nex: n
   const app = Vue.reactive({ accountKey: "user:3778", homeTruth, homeTruthStatus: status, remoteRealizedToday: realized,
     remoteFleetStatus: "ready", remoteFleetHasSnapshot: true, visibleDevices: [], slotCap: 1,
     earnings: { today: 9, todayNEX: 3, thisWeek: 18, thisMonth: 27, total: 36 },
-    refreshHomeTruth: async () => true, refreshRemoteFleet: async () => true });
+    refreshHomeTruth: async () => true, refreshRemoteFleet: async () => true, setTaskReadPageVisible: () => {} });
   const passiveReads = createPassiveTabReadFixture(() => app.accountKey);
   const load = (id: string) => {
     if (id === "@/lib/passive-tab-read") return passiveReads;

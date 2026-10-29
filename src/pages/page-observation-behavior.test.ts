@@ -49,7 +49,7 @@ function harness(page: Page, options: { remote?: boolean; recorded?: boolean } =
   const deps = {
     ...dayOnePageObservationFixture(reporter),
     remoteApiEnabled: options.remote ?? true,
-    app: { homeTruthStatus: "ready", remoteFleetStatus: "ready", homeTruth: {} as object | null },
+    app: { homeTruthStatus: "ready", remoteFleetStatus: "ready", homeTruth: {} as object | null, setTaskReadPageVisible: vi.fn() },
     catalogStatus: { value: "ready" },
     product: { value: { id: "stellarbox-s1", productType: "HARDWARE", price: 100, dailyEarn: 1 } },
     genesis: { remotePublicReadState: "ready", syncRemote: vi.fn().mockResolvedValue(true) },
@@ -263,3 +263,4 @@ it("actual Genesis sync separates public readiness from account-only success and
   release(publicState); expect(await old).toBe(false);
   expect(actual.remotePublicReadState.value).toBe("ready");
 });
+vi.mock("@/services/native-push", () => ({ revokeNativePush: vi.fn(), resumeNativePush: vi.fn() }));
