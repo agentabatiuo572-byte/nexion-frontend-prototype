@@ -18,7 +18,7 @@ visit(ast);
 if (!body) throw new Error("canonicalDevice missing");
 const compiled = ts.transpileModule(body, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 const project = new Function("canonicalKind", `${compiled}; return canonicalDevice;`)((device: {kind?:string}) => device.kind ?? "cloud-share");
-const fixture = { id: 42, status: "ACTIVE", activatedAt: 123, purchasedAt: 100, pendingDeactivate: false,
+const fixture = { id: 42, productCode: "CLOUD-FINITE-600", status: "ACTIVE", activatedAt: 123, purchasedAt: 100, pendingDeactivate: false,
   capacityPct: 100, dailyUsdt: 2, dailyNex: 3, todayEarningsUsdt: 7, todayEarningsNex: 8,
   cumulativeOutputUsdt: 9, actualPaidUsdt: 10 };
 describe("remote fleet lifecycle and online state are independent", () => {
@@ -27,6 +27,7 @@ describe("remote fleet lifecycle and online state are independent", () => {
     expect(result.status).toBe("offline");
     expect(result.runtimeStatus).toBe(runtimeStatus ?? "UNKNOWN");
     expect(result.activatedAt).toBe(123);
+    expect(result.productCode).toBe("CLOUD-FINITE-600");
     expect(result.todayEarnings).toBe(7);
     expect(result.cumulativeEarningsUsdt).toBe(9);
   });

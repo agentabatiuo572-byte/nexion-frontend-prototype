@@ -180,7 +180,7 @@ it.each([zh, en, vietnamese])('shows the actual Home queue task and progress bef
     status: 'RUNNING', completableAt: snapshotNow + 60_000, pausedAt: null as number | null, pausedSeconds: 0 });
   const device = Vue.reactive({ id: 'home-job-device', todayEarnings: 0, taskServerNow: snapshotNow,
     taskServerNowReceivedAt: Number.MAX_SAFE_INTEGER, currentTask: task as typeof task | null });
-  const root = f.mount(deviceRowRaw, { device, runtimeConfirmed: true });
+  const root = f.mount(deviceRowRaw, { device, runtimeConfirmed: true, tasksConfirmed: true });
   expect(text(root)).toContain('BGE-M3'); expect(text(root)).toContain('#home-job-41');
   expect(text(root)).toContain('50%');
   expect(byClass(root, 'hf-device-task__fill').props.style.width).toBe('50%');
@@ -198,5 +198,15 @@ it.each([zh, en, vietnamese])('shows the actual Home queue task and progress bef
   invoke(byClass(root, 'nx-device-row').props.onClick);
   expect(f.navTo).toHaveBeenCalledWith('/pages/earn/device-detail?id=home-job-device&from=home');
   device.currentTask = null; await Vue.nextTick();
-  expect(all(root).some(node => String(node.props.class ?? '').split(/\s+/).includes('hf-device-task'))).toBe(false);
+  expect(byClass(root, 'hf-device-task--empty')).toBeDefined();
+  expect(text(root)).toContain(copy.earn.noCurrentTask);
+  expect(all(root).some(node => node.props.role === 'progressbar')).toBe(false);
+});
+
+
+it('keeps an unread task state distinct from a confirmed empty queue', () => {
+  const f = fixture();
+  const root = f.mount(deviceRowRaw, { device: { id: 'unknown', todayEarnings: 0, currentTask: null }, runtimeConfirmed: true, tasksConfirmed: false });
+  expect(text(root)).toContain(zh.earn.runtimeUnknown); expect(text(root)).not.toContain(zh.earn.noCurrentTask);
+  expect(all(root).some(node => node.props.role === 'progressbar')).toBe(false);
 });

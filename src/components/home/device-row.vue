@@ -27,6 +27,7 @@
       <text v-if="device.currentTask.status === 'PAUSED' || device.interruptedAt != null" class="hf-device-task__note">{{ device.interruptedAt != null ? t.earn.reconnecting : t.earn.phoneTaskPaused }}</text>
       <text v-else-if="awaitingExecutionResultConfirmation" class="hf-device-task__note">{{ t.earn.taskAwaitingExecutionResultConfirmation }}</text>
     </view>
+    <view v-else class="hf-device-task hf-device-task--empty"><text>{{ !taskFactsReady ? t.earn.runtimeUnknown : t.earn.noCurrentTask }}</text></view>
   </view>
 </template>
 
@@ -47,7 +48,7 @@ import { deviceName } from "@/lib/device-copy";
 import type { Device } from "@/store/types";
 
 const visibility = useDataVisibility();
-const props = defineProps<{ device: Device; divider?: boolean; runtimeConfirmed: boolean }>();
+const props = defineProps<{ device: Device; divider?: boolean; runtimeConfirmed: boolean; tasksConfirmed?: boolean }>();
 const t = useT();
 const copy = useAuditUiCopy();
 // Stored device name is English + persisted → resolve from `kind` at render.
@@ -64,7 +65,8 @@ useVisibleInterval(() => {
 }, 1000);
 const liveTaskNow = computed(() => props.device.taskServerNow != null && props.device.taskServerNowReceivedAt != null
   ? projectServerNow(props.device.taskServerNow, props.device.taskServerNowReceivedAt, monotonicNow.value) : now.value);
-const progressPct = computed(() => props.runtimeConfirmed
+const taskFactsReady = computed(() => props.tasksConfirmed ?? props.runtimeConfirmed);
+const progressPct = computed(() => props.runtimeConfirmed && taskFactsReady.value
   ? taskProgressPercent(props.device.currentTask, liveTaskNow.value, props.device.interruptedAt) : null);
 const awaitingExecutionResultConfirmation = computed(() => props.device.currentTask != null
   && awaitsExecutionResultConfirmation(props.device.currentTask, liveTaskNow.value));

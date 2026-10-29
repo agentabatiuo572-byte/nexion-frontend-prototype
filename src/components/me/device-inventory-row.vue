@@ -5,7 +5,7 @@
       :aria-expanded="expanded" :aria-controls="detailsId" @click="expanded = !expanded">
       <view class="device-inventory-row__main">
         <view class="device-inventory-row__art" :class="{ 'device-inventory-row__art--inactive': !active }">
-          <image v-if="imageSource" class="device-inventory-row__image" :src="imageSource" mode="aspectFit" />
+          <image v-if="imageSrc" class="device-inventory-row__image" :src="imageSrc" mode="aspectFit" @error="imageError" />
           <svg v-else width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 21h8m-4-5v5" /></svg>
           <text v-if="active && onlineState === 'online'" class="device-inventory-row__state device-inventory-row__state--active">{{ t.earn.online }}</text>
         </view>
@@ -50,7 +50,7 @@ import type { Device } from "@/store/types";
 import { useT } from "@/i18n/use-t";
 import { deviceName, deviceGpuLabel } from "@/lib/device-copy";
 import { deviceOnlineState } from "@/lib/hashpower";
-import { getProductMedia } from "@/lib/product-media";
+import { useDeviceProductImage } from "@/composables/use-device-product-image";
 
 const t = useT();
 const props = withDefaults(
@@ -76,9 +76,7 @@ const props = withDefaults(
 const emit = defineEmits<{ (e: "toggle"): void; (e: "tradein"): void; (e: "ladder"): void }>();
 const expanded = ref(false);
 const detailsId = computed(() => `device-inventory-details-${encodeURIComponent(props.device.id)}`);
-const imageSource = computed(() => props.device.kind === "phone"
-  ? "/static/img/home-glass-20260928/phone.webp"
-  : getProductMedia(props.device.kind)?.src);
+const { imageSrc, imageError } = useDeviceProductImage(() => props.device);
 const onlineState = computed(() => deviceOnlineState(props.device, Date.now(), props.runtimeConfirmed));
 const statusText = computed(() => {
   if (props.device.activationUnconfirmed) return t.value.earn.runtimeUnknown;

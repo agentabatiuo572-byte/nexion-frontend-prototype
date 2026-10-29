@@ -4,7 +4,7 @@
     <NxSection :title="t.home.myFleet" :meta="visibility.mask(fleetCountText)" :action="t.home.fleetManage" @action="goManage">
     <view v-if="fleetVisible || trialPresentation.active.value" class="hf-grid">
       <TrialDeviceRow v-if="trialPresentation.active.value" key="trial:current" variant="home" />
-      <DeviceRow v-for="d in devices" :key="d.id" :device="d" :runtime-confirmed="fleetReady" />
+      <DeviceRow v-for="d in devices" :key="d.id" :device="d" :runtime-confirmed="fleetReady" :tasks-confirmed="tasksReady" />
       <AddDeviceRow v-if="countReady && slotsUsed < app.slotCap" />
     </view>
     <view v-if="!fleetVisible && app.remoteFleetStatus !== 'error'" class="hf-grid hf-loading" role="status" aria-live="polite" aria-busy="true"><text class="sr-only">{{ copy.fleetLoading }}</text><view v-for="n in 2" :key="n" class="hf-skeleton-row" aria-hidden="true"><view class="hf-skeleton-art"/><view class="hf-skeleton-copy"><view/><view/></view></view></view>
@@ -41,6 +41,8 @@ const trialPresentation = useTrialPresentation();
 const allDevices = computed(() => app.visibleDevices.filter((d) => d.activatedAt !== null)
   .sort((a,b) => Number(deviceOnlineState(a,Date.now(),fleetReady.value) === 'online') - Number(deviceOnlineState(b,Date.now(),fleetReady.value) === 'online')));
 const devices = computed(() => fleetVisible.value ? allDevices.value : []);
+const tasksReady = computed(() => !remoteApiEnabled || app.remoteAssignmentStatus === "ready"
+  || (app.remoteAssignmentStatus === "loading" && app.remoteAssignmentHasSnapshot));
 // Read-only fleet presentation may retain this account's last confirmed
 // snapshot while a background refresh is pending. Actions remain governed by
 // their existing authoritative checks.

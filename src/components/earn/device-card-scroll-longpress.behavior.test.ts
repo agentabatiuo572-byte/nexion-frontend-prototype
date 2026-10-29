@@ -69,7 +69,7 @@ async function mount(copy: Messages = zh, device = cloudDevice(), expanded = fal
   const navTo = vi.fn();
   const setPhoneRuntime = vi.fn();
   const toggle = vi.fn();
-  const app = Vue.reactive({ accountKey: "render-only", visibleDevices: [device], remotePhoneBindingInvalid: false, setPhoneRuntime });
+  const app = Vue.reactive({ remoteAssignmentStatus: "ready", remoteAssignmentHasSnapshot: true, accountKey: "render-only", visibleDevices: [device], remotePhoneBindingInvalid: false, setPhoneRuntime });
   const blank = Vue.defineComponent({ setup: () => () => Vue.h("view") });
   const dependencies: Record<string, unknown> = { '@/store/data-visibility': { useDataVisibility: () => ({ hidden, mask: (value: unknown) => hidden ? "••••" : String(value) }) },
     '@/lib/device-control-platform': { canControlDevice },
@@ -399,4 +399,6 @@ test.each([en, zh, vietnamese])("collapsed queue exposes each actual task and fr
   expect(text(summary())).not.toContain("50%");
   device.currentTask = null; await Vue.nextTick();
   expect(summary()).toBeUndefined();
+  expect(text(card.root)).toContain(copy.earn.noCurrentTask);
+  expect(all(card.root).some(node => node.props.role === "progressbar")).toBe(false);
 });
