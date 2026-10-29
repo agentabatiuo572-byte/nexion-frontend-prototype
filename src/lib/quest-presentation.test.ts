@@ -36,11 +36,12 @@ describe("weeklyQuestDisplayName", () => {
   const quest = { questCode: "weekly_t2_invite_friend", name: "邀请 1 位朋友注册" };
 
   it("uses the existing three-language title when a known mission falls back to Chinese", () => {
-    expect(weeklyQuestDisplayName(quest, "vi", vi)).toBe("Mời 1 người bạn đăng ký");
-    expect(weeklyQuestDisplayName(quest, "en", en)).toBe("Invite 1 friend who signs up");
+    // Task titles are English in every language (owner, 2026-10-29).
+    expect(weeklyQuestDisplayName(quest, "vi", vi)).toBe("Invite a friend");
+    expect(weeklyQuestDisplayName(quest, "en", en)).toBe("Invite a friend");
     expect(weeklyQuestDisplayName(quest, "zh", zh)).toBe(quest.name);
     expect(weeklyQuestDisplayName({ questCode: "weekly_t2_ai_jobs_50", name: "完成 50 笔 AI 推理任务" }, "vi", vi))
-      .toBe("Hoàn thành 50 tác vụ suy luận AI");
+      .toBe("Complete 50 AI jobs");
   });
 
   it("preserves server-authored titles even when they contain Chinese", () => {
@@ -59,12 +60,12 @@ describe("weeklyQuestDisplayName", () => {
 
 describe("dayOneQuestDisplayName", () => {
   const defaults = [
-    ["bind_bank_card", "绑定银行卡", "Link bank card", "Liên kết thẻ ngân hàng"],
-    ["visit_earn", "访问收益页", "Visit Earn tab", "Vào tab Sinh lời"],
-    ["visit_store", "访问商城", "Visit Store", "Vào Cửa hàng"],
-    ["view_product_roi", "查看 UVELBox S1 ROI", "See UVELBox S1 ROI", "Xem ROI của UVELBox S1"],
-    ["setup_profile", "设置个人资料", "Set up profile", "Thiết lập hồ sơ"],
-    ["invite_friend", "邀请好友", "Invite a friend", "Mời bạn bè"],
+    ["bind_bank_card", "绑定银行卡", "Link bank card", "Link bank card"],
+    ["visit_earn", "访问收益页", "Visit Earn", "Visit Earn"],
+    ["visit_store", "访问商城", "Visit Store", "Visit Store"],
+    ["view_product_roi", "查看 UVELBox S1 ROI", "See S1 earnings", "See S1 earnings"],
+    ["setup_profile", "设置个人资料", "Set up profile", "Set up profile"],
+    ["invite_friend", "邀请好友", "Invite a friend", "Invite a friend"],
   ] as const;
 
   it.each(defaults)("localizes only the known Chinese default for %s", (questCode, name, english, vietnamese) => {
@@ -121,9 +122,9 @@ describe("dayOneQuestDisplayName", () => {
     const locale = ref<"en" | "vi" | "zh">("en");
     const messages = { en, vi, zh };
     const label = computed(() => dayOneQuestDisplayName(quest, locale.value, messages[locale.value]));
-    expect(label.value).toBe("Visit Earn tab");
+    expect(label.value).toBe("Visit Earn");
     locale.value = "vi";
-    expect(label.value).toBe("Vào tab Sinh lời");
+    expect(label.value).toBe("Visit Earn");
     locale.value = "zh";
     expect(label.value).toBe(original.name);
     expect(quest).toEqual(original);

@@ -344,7 +344,7 @@ async function submit() {
     symbol: "USDT",
     amount: -amount.value,
     status: "posted",
-    memo: `Stake open · ${term}d @ ${(STAKING_APY[term] * 100).toFixed(0)}% APY`,
+    memo: `Stake open · ${term}d`,
     ref: billRef,
   });
   // 同 purchase-sheet:拒绝在扣款落地之前,「资金没动」成立。

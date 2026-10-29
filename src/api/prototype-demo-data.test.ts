@@ -245,17 +245,18 @@ describe('isolated prototype data uses the real read contracts',()=>{
     expect((await createSupportApi(d.client).faqPage(locale)).items).toHaveLength(4);
     expect((await createTaskAssignmentApi(d.client,"prod").state()).devices[0].recentTasks[0].receiptNo).toBe('DEMO-RECEIPT-1');
     expect((await createNetworkRegionsApi(d.client).list()).regions).toHaveLength(3);
-    expect((await createDeveloperDocsApi(d.client).published(locale)).endpoints).toHaveLength(1);
+    // The developer docs sample mirrors the backend's shipped default publication.
+    expect((await createDeveloperDocsApi(d.client).published(locale)).endpoints).toHaveLength(6);
     expect((await createDeveloperAccessApi(d.client).latest())?.status).toBe('APPROVED');
     expect(await createDeveloperResourcesApi(d.client).listKeys()).toHaveLength(1);
     expect(await createDeveloperResourcesApi(d.client).listWebhooks()).toHaveLength(1);
     expect((await createAmbassadorApplicationApi(d.client).policy()).buckets).toHaveLength(4);
     expect((await createAmbassadorApplicationApi(d.client).latest()).status).toBe('NONE');
-    expect((await createPrivacyPolicyApi(d.client).current(locale)).sections).toHaveLength(2);
+    expect((await createPrivacyPolicyApi(d.client).current(locale)).sections).toHaveLength(10);
     expect((await createLegalTermsApi(d.client).current(locale,'GLOBAL')).provenance).toBe('prototype-sample');
     expect((await createRiskDisclosureApi(d.client).publicCurrent('GLOBAL')).chapters).toHaveLength(7);
     expect((await createRiskDisclosureApi(d.client).current()).acknowledgmentToken).toBeNull();
-    expect((await createHowContentApi(d.client).published('wallet-exchange-how',locale)).blocks).toHaveLength(4);expect((await createHowContentApi(d.client).published('wallet-repurchase-how',locale)).blocks).toHaveLength(3);
+    expect((await createHowContentApi(d.client).published('wallet-exchange-how',locale)).blocks).toHaveLength(4);expect((await createHowContentApi(d.client).published('wallet-repurchase-how',locale)).blocks).toHaveLength(4);
     expect((await createTaskAssignmentApi(d.client,"prod").receipt('DEMO-RECEIPT-1')).proofHash).toHaveLength(64);
     expect((await createPublicSponsorPreviewApi(d.client).preview('UVELDEMO')).gift.status).toBe('DISABLED');
   });

@@ -53,7 +53,6 @@
             <text class="lss-chip-t lss-chip-t-bonus">{{ bonusChip }}</text>
           </view>
         </view>
-        <text v-if="!remoteApiEnabled" class="lss-social">{{ socialProofText }}</text>
       </view>
 
       <!-- ───────── 转盘 ───────── -->
@@ -192,9 +191,6 @@ const statusCopy = computed(() => eventStatusCopy[locale.code as keyof typeof ev
 const poolOpen = ref(false);
 let accountGeneration = 0;
 
-// social proof — mock 实时数(不必准确,营造真平台氛围)
-const winnersToday = 247;
-
 function polar(angleDeg: number, radius: number): { x: number; y: number } {
   const rad = (angleDeg * Math.PI) / 180;
   return {
@@ -240,7 +236,6 @@ function wheelLabel(sp: Pick<SpinPrize, "kind" | "amount">): string[] {
 }
 
 const bonusChip = computed(() => fmt(t.value.luckySpin.bonusTicketChip, { n: spin.bonusTickets }));
-const socialProofText = computed(() => fmt(t.value.luckySpin.socialProof, { n: winnersToday }));
 const noSpinHintText = computed(() => fmt(t.value.luckySpin.noSpinHint, { time: untilUtcResetLabel() }));
 
 const prizes = computed(() => remoteApiEnabled ? spin.remoteSegments : SPIN_PRIZES);
@@ -676,10 +671,6 @@ useDialogA11y(computed(() => spin.open), ".lss-root", onBackdrop);
 }
 .lss-chip-t-bonus {
   color: var(--v5-ink-2);
-}
-.lss-social {
-  font-size: 12px;
-  color: var(--v5-ink-3);
 }
 
 /* wheel */

@@ -60,12 +60,8 @@
         </view>
       </view>
 
-      <!-- Cumulative ceiling gap + CTA -->
+      <!-- CTA (no cumulative since-signup gap: it summed an imagined loss) -->
       <view class="relative mt-4 flex items-center justify-between gap-3">
-        <view class="min-w-0" style="font-size: 12px; color: var(--v5-ink-3); line-height: 1.35">
-          <text class="block">{{ t.earn.cumulativeMissed }}</text>
-          <text class="block tabular-nums" style="font-family: var(--font-v5); font-size: 15px; font-weight: 600; color: var(--v5-brand-2-ink); margin-top: 2px">${{ visibility.mask(cumulativeCeilingGapRounded) }}<text style="font-size: 12px; color: var(--v5-ink-4); margin-left: 6px; font-weight: 400">· {{ daysSinceJoin }}d</text></text>
-        </view>
         <view class="shrink-0 inline-flex items-center gap-1.5 active:scale-[0.97]" :style="ctaStyle">
           <text :style="ctaLabelStyle">{{ t.earn.capExplainCta }}</text>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
@@ -92,7 +88,6 @@ import { fmt } from "@/i18n/format";
 import { useScrollGrowProgress, PROGRESS_GROW_TRANSITION } from "@/composables/use-scroll-grow-progress";
 
 const visibility = useDataVisibility();
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 const app = useApp();
 const t = useT();
@@ -173,13 +168,6 @@ const dayProgress = computed(() => {
 // pricing comparison the server projection defines, never income actually lost.
 const ceilingGapToday = computed(() => dailyCeilingGap.value * dayProgress.value);
 
-const daysSinceJoin = computed(() => {
-  if (!joinedAtValid.value) return 0;
-  return Math.max(1, Math.floor((authoritativeNow.value - app.user.joinedAt) / ONE_DAY_MS));
-});
-const cumulativeCeilingGapRounded = computed(() =>
-  formatAmount(dailyCeilingGap.value * daysSinceJoin.value),
-);
 
 const phoneWidthPct = computed(() =>
   targetDaily.value > 0 ? (baseDaily.value / targetDaily.value) * 100 : 0,

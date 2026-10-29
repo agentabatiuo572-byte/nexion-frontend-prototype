@@ -53,7 +53,7 @@ describe("newcomerSubtitleKind", () => {
     for (const dict of [zh, en, vi]) {
       expect(dict.register.subtitleHighlight).toContain("{reward}");
       expect(dict.register.subtitleRest).not.toMatch(/即刻到账|moment your device connects|ngay khi thiết bị kết nối/i);
-      expect(dict.register.subtitleRest).toMatch(/结算|settlement|quyết toán/i);
+      expect(dict.register.subtitleRest).toMatch(/结算|settlement|quyết toán|lịch sử thưởng/i);
     }
   });
 });

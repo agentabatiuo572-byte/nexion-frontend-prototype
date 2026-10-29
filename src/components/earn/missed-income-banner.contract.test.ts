@@ -40,9 +40,9 @@ describe("earn missed-income server authority", () => {
     expect(source).not.toMatch(/−/);
     expect(source).not.toMatch(/\{\{\s*missedToday/);
     expect(source).not.toMatch(/\{\{\s*cumulativeMissedRounded/);
+    expect(source).not.toContain("t.earn.cumulativeMissed");
     for (const dict of [en, viDict, zh]) {
       expect(dict.earn.missedToday).not.toMatch(/missed|bỏ lỡ|错过/i);
-      expect(dict.earn.cumulativeMissed).not.toMatch(/missed|bỏ lỡ|错过/i);
     }
   });
 

@@ -10,7 +10,7 @@ const COPY = {
   },
   vi: {
     discardDraft: 'Bỏ bản nháp', unknownConditions: '{n} điều kiện chờ xác nhận', unknownProgress: 'Tiến độ hiện tại chờ xác nhận',
-    posterYieldCap: 'THU NHẬP HÔM NAY', eventAt: 'Thời gian phát sinh', settledAt: 'Thời gian quyết toán', expectedUnlockAt: 'Dự kiến khả dụng', dateUnavailable: 'Chưa cung cấp',
+    posterYieldCap: 'THU NHẬP HÔM NAY', eventAt: 'Thời gian phát sinh', settledAt: 'Thời gian ghi nhận', expectedUnlockAt: 'Dự kiến khả dụng', dateUnavailable: 'Chưa cung cấp',
   },
 };
 export function teamLogicCopy(locale: string) {

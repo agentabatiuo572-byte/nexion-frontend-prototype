@@ -58,7 +58,7 @@ describe("NEX static narrative contract", () => {
   it("describes the exchange-before-withdrawal flow without exposing an internal route", () => {
     for (const contract of contracts) {
       const source = readFileSync(new URL(contract.file, import.meta.url), "utf8");
-      const nexNarrative = source.match(/nexHowItWorks: \{([\s\S]*?)\r?\n  \},\r?\n\r?\n  monthlyChallenge:/)?.[1] ?? "";
+      const nexNarrative = source.match(/nexHowItWorks: \{([\s\S]*?)\r?\n  \},\r?\n\r?\n  [A-Za-z]+:/)?.[1] ?? "";
       expect(nexNarrative).toContain(contract.faqExpected);
       expect(nexNarrative).not.toContain("/me/wallet/exchange");
     }

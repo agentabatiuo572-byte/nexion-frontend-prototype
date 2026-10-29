@@ -42,7 +42,7 @@ describe("presentHomeMarketWorkload", () => {
       sparkline: [3, 3.1, 3.2],
     }), vi)).toEqual({
       tag: "IMG",
-      name: "Tạo ảnh",
+      name: "Image Gen",
       priceText: "$0.0003",
       unitText: "/img",
       deltaText: "+3.2%",
@@ -77,8 +77,9 @@ describe("presentHomeMarketWorkload", () => {
 
   it("ignores server language for known workload codes", () => {
     const row = workload({ code: "FT", name: "模型微调", unit: "/job" });
-    expect(presentHomeMarketWorkload(row, vi)).toMatchObject({ name: "Tinh chỉnh", unitText: "/job" });
-    expect(presentHomeMarketWorkload(row, zh)).toMatchObject({ name: "微调", unitText: "/job" });
+    // Market board labels are English in every language (owner, 2026-10-29: long Vietnamese breaks the table).
+    expect(presentHomeMarketWorkload(row, vi)).toMatchObject({ name: "Fine-tune", unitText: "/job" });
+    expect(presentHomeMarketWorkload(row, zh)).toMatchObject({ name: "Fine-tune", unitText: "/job" });
   });
 
   it("falls back safely for an unknown code", () => {

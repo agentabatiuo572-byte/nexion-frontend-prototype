@@ -47,7 +47,7 @@ export const trialPurchaseCopy = {
   },
   vi: {
     earlyTitle: 'Mua ngay: giữ trọn quyền lợi dùng thử và giảm thêm {discount} USDT',
-    accruedTitle: 'Mua ngay: quyết toán theo thu nhập dùng thử đã tích lũy',
+    accruedTitle: 'Mua ngay: khấu trừ theo thu nhập dùng thử đã tích lũy',
     graceTitle: 'Mua máy vẫn nhận đủ quyền lợi dùng thử',
     earlyDeadline: 'Giảm giá đến {time} (hết thời gian dùng thử)',
     payGroup: 'Số tiền phải trả', unitPrice: 'Đơn giá', amountDue: 'Phải trả', creditGroup: 'Nhận sau khi mua',

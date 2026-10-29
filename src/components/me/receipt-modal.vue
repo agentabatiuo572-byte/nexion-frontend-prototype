@@ -115,7 +115,7 @@ const fieldLabels: Record<string, readonly [string, string, string]> = {
   task_name:["作业名称","Job name","Tên tác vụ"],
   model:["模型","Model","Mô hình"],
   client:["委托方","Client","Khách hàng"],
-  status:["结算状态","Settlement status","Trạng thái quyết toán"],
+  status:["结算状态","Settlement status","Trạng thái ghi nhận"],
   device:["设备","Device","Thiết bị"],
   device_instance:["设备编号","Device number","Mã thiết bị"],
   device_type:["设备型号","Device model","Mẫu thiết bị"],
