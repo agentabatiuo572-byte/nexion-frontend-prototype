@@ -21,19 +21,20 @@ describe('team copy distinguishes reward mechanisms', () => {
     expect(messages.team.summaryDirect).not.toBe(messages.teamV3.extendedLabel);
   });
 
-  it.each(Object.entries({ zh, en, vi }))('%s preserves computed rates, caps and cadence without inventing a payout', (_locale, messages) => {
+  it.each(Object.entries({ zh, en, vi }))('%s preserves computed rates and cadence without caps or an invented payout', (_locale, messages) => {
     const rendered = fmt(messages.binary.formula, { rate: '7.125', cap: '0', freq: messages.binary.settlePeriodLabel.weekly });
     expect(rendered).toContain('7.125%');
-    expect(rendered).toContain('$0');
+    // The daily cap is a payout mechanic and stays out of the user-facing formula.
+    expect(rendered).not.toContain('$0');
     expect(rendered).toContain(messages.binary.settlePeriodLabel.weekly);
     expect(rendered).not.toMatch(/\{\w+\}/);
-    expect(messages.binary.formula).toMatch(/较小一组业绩|smaller group’s volume|doanh số nhóm nhỏ hơn/);
+    expect(messages.binary.formula).toMatch(/较小一组订单额|smaller group's volume|doanh số của nhóm nhỏ hơn/);
     expect(messages.binary.formula).not.toMatch(/算力点|compute points|điểm tính toán/i);
     expect(messages.binary.formula).not.toMatch(/点\s*[×x*]|points\s*[×x*]/i);
     expect(messages.rank.networkDepth).toContain('{n}');
     expect(messages.directReferral.purchaseSplitRule).toContain('{usdt}%');
     expect(messages.directReferral.purchaseSplitRule).toContain('{nex}%');
-    expect(messages.directReferral.platformPays).toMatch(/直接邀请|directly invited|mời trực tiếp/);
+    expect(messages.directReferral.platformPays).toMatch(/你邀请的好友|friends you invited|bạn bè do bạn mời/);
     expect(messages.rank.cultivationRecipient).toMatch(/无推荐人|no sponsor|không có người giới thiệu/);
   });
 
@@ -41,8 +42,8 @@ describe('team copy distinguishes reward mechanisms', () => {
     for (const text of [messages.team.settledToWallet, messages.directReferral.creditedTotal, messages.teamV3.settled]) {
       expect(text).not.toMatch(/预估|预计|estimate|ước tính|dự kiến/i);
     }
-    expect(messages.binary.estimate).toMatch(/预估|estimate|ước tính/i);
-    expect(messages.directReferral.netHint).toMatch(/冲正|冲回|reversed|thu hồi/i);
+    expect(messages.binary.estimate).toMatch(/预计|estimate|dự kiến/i);
+    expect(messages.directReferral.netHint).toMatch(/撤销|扣回|reversed|thu hồi/i);
     expect(Object.keys(messages.commissions.kind)).toEqual(expect.arrayContaining(['direct_purchase', 'direct_device_earning', 'unilevel', 'binary', 'cultivation', 'leadership']));
   });
 

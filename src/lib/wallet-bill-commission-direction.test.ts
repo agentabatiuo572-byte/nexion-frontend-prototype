@@ -20,9 +20,9 @@ function code(source: string, start: string, end: string): string {
 const productionBill = new Function(code(billsSource, "  function productionBill(", "  function refreshServerLedger(")
   + ";return productionBill;")() as (row: WalletBillRow) => Bill;
 const languages = [
-  { locale: "en", messages: en, debit: "Referral commission debited", neutral: "Referral commission" },
-  { locale: "vi", messages: vi, debit: "Hoa hồng giới thiệu đã khấu trừ", neutral: "Hoa hồng giới thiệu" },
-  { locale: "zh", messages: zh, debit: "推荐分成扣减", neutral: "推荐分成" },
+  { locale: "en", messages: en, debit: "Invite reward reversed", neutral: "Invite reward" },
+  { locale: "vi", messages: vi, debit: "Thu hồi thưởng mời bạn", neutral: "Thưởng mời bạn" },
+  { locale: "zh", messages: zh, debit: "邀请奖励扣回", neutral: "邀请奖励" },
 ] as const;
 function row(direction: "IN" | "OUT", asset: "USDT" | "UVT" = "USDT"): WalletBillRow {
   return { id: "WL-commission", bizNo: "PRIVATE-RECOVERY-KEY", bizType: "TEAM_COMMISSION", asset,

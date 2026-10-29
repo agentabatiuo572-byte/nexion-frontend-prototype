@@ -122,7 +122,6 @@
           </view>
 
           <view v-if="draft.touched" class="agent-discard" role="button" :tabindex="submitting || (remoteApiEnabled && pageReadState !== 'ready') ? -1 : 0" :aria-disabled="submitting || (remoteApiEnabled && pageReadState !== 'ready')" @click="discardDraft" @keydown.enter.prevent="discardDraft" @keydown.space.prevent="discardDraft"><text>{{ logicCopy.discardDraft }}</text></view>
-          <text v-if="!unlocked" class="block text-center" :style="previewOnlyStyle">{{ fmt(t.agent.previewOnly, { rank: requiredRankLabel }) }}</text>
         </view>
 
         <!-- approved cases — transparent hairline rows -->
@@ -544,7 +543,6 @@ const budgetInputStyle: CSSProperties = { flex: "1", minWidth: 0, minHeight: "44
 const submitStyle = computed<CSSProperties>(() => ({
   marginTop: "24px", opacity: (pageReadState.value === 'loading' || (!rankReady.value && !vrank.remoteError)) && !submitting.value ? 1 : formReady.value && !submitting.value ? 1 : 0.45,
 }));
-const previewOnlyStyle: CSSProperties = { marginTop: "12px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.5 };
 const casesBlockStyle: CSSProperties = { paddingTop: "8px" };
 const approvedCapStyle: CSSProperties = { marginBottom: "16px" };
 const casesGroupStyle: CSSProperties = { borderTop: "1px solid var(--v5-border)" };

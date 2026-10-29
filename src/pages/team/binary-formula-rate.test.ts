@@ -24,7 +24,8 @@ describe("Binary formula follows the PC projection rate", () => {
     it(`renders updated fractional rates in ${locale}`, () => {
       const rate = ref(0.075);
       const formula = build(computed, fmt, ref(dict), rate, ref(5000), ref("monthly"), () => locale, formatFinanceAmount);
-      expect(formula.value).toContain("5,000.00");
+      // The daily cap is a payout mechanic and is no longer shown (APP-COPY-AUDIT rule 6).
+      expect(formula.value).not.toContain("5,000.00");
       expect(formula.value).toContain(`${(7.5).toLocaleString(locale)}%`);
       expect(formula.value).not.toContain("10%");
       rate.value = 0.123456;
@@ -58,23 +59,23 @@ async function showBasis(weakVol: number, dict = en, locale = "en-US", hidden = 
 describe("visible binary calculation basis", () => {
   it.each([[en, "en-US"], [zh, "zh-CN"], [vi, "vi-VN"]] as const)("renders the authoritative rate, cycle and weaker group volume in USDT (%s)", async (dict, locale) => {
     const html = await showBasis(1480, dict, locale);
-    expect(html).toContain(`${dict.binary.weak} · $${formatFinanceAmount(1480)}`);
+    // The weaker group already carries its badge and amount above; the basis no longer repeats it.
+    expect(html).not.toContain(`${dict.binary.weak} · $${formatFinanceAmount(1480)}`);
     expect(html).toContain(`${(13.75).toLocaleString(locale)}%`);
     expect(html).toContain(dict.binary.settlePeriodLabel.weekly);
-    expect(html).toContain("4,321.00");
+    expect(html).not.toContain("4,321.00");
     expect(html).toContain(dict.binary.gapHint);
     expect(html).not.toContain(formatComputePoints(1480, locale));
     expect(html).not.toContain("10%");
   });
-  it("shows a zero weaker group as zero dollars", async () => {
-    expect(await showBasis(0)).toContain(`${en.binary.weak} · $${formatFinanceAmount(0)}`);
+  it("does not repeat the weaker group amount in the basis", async () => {
+    expect(await showBasis(0)).not.toContain(`${en.binary.weak} · $${formatFinanceAmount(0)}`);
   });
   it.each([[en, "en-US"], [zh, "zh-CN"], [vi, "vi-VN"]] as const)("hides the personal volume but keeps the published rule visible (%s)", async (dict, locale) => {
     const html = await showBasis(1480.25, dict, locale, true);
-    expect(html).toContain(`${dict.binary.weak} · ••••`);
     expect(html).not.toContain("1,480.25");
     expect(html).toContain(`${(13.75).toLocaleString(locale)}%`);
-    expect(html).toContain("4,321.00");
+    expect(html).not.toContain("4,321.00");
     expect(html).toContain(dict.binary.gapHint);
   });
 });
@@ -97,12 +98,12 @@ describe("binary contribution presentation", () => {
     const code = source.slice(source.indexOf("const binaryCopy ="), source.indexOf("const displayEnvironment ="));
     const locale = { code: "zh" };
     const copy = new Function("computed", "locale", code + "; return binaryCopy;");
-    expect(copy(computed, locale).value.rules).toBe("规则");
-    locale.code = "vi"; expect(copy(computed, locale).value.rules).toBe("Quy tắc");
+    expect(copy(computed, locale).value.rules).toBe("玩法说明");
+    locale.code = "vi"; expect(copy(computed, locale).value.rules).toBe("Cách nhận thưởng");
     for (const language of ["en", "ja", "ko", "ru", "es", "fr", "de", "pt", "ar"]) {
       locale.code = language;
-      expect(copy(computed, locale).value.rules).toBe("Rules");
-      expect(copy(computed, locale).value.leadingMembers).toBe("Leading contributors");
+      expect(copy(computed, locale).value.rules).toBe("How it works");
+      expect(copy(computed, locale).value.leadingMembers).toBe("Top members by group");
     }
   });
 });

@@ -17,14 +17,13 @@
   bill rows (postReceiptForAccount, numbers taken from the server receipt), because the
   bills store is still the app's only user-facing ledger.
   Then → withdraw-tracking. <AppChassis active="me">.
-  Header is the shared sticky <SubPageHeader> (back=/pages/me/wallet, title="USDT",
-  subtitle=t.wallet.withdraw — mirrors the prototype's
-  <SetPageHeader title="USDT" subtitle={t.wallet.withdraw} backHref="/pages/me/me"/>).
+  Header is the shared sticky <SubPageHeader> (back=/pages/me/me, title=t.wallet.withdraw,
+  subtitle="USDT").
 -->
 <template>
   <AppChassis active="me">
     <view style="color: var(--v5-ink)">
-      <SubPageHeader back="/pages/me/me" title="USDT" :subtitle="t.wallet.withdraw" />
+      <SubPageHeader back="/pages/me/me" :title="t.wallet.withdraw" subtitle="USDT" />
       <view v-if="pendingAttempt" class="mx-4 mb-3 flex items-start" :style="holdBannerStyle">
         <view class="flex-1 min-w-0">
           <text class="block" style="font-size: 12px; color: var(--v5-warning); font-weight: 600">{{ t.walletV3.withdrawAmbiguousExitTitle }}</text>
@@ -90,20 +89,9 @@
         <!-- SPEC-7 ⑤ 默认态: 折叠展示不可提部分(审核中/锁定不参与最大值) -->
         <text v-if="withdrawalFactsDisplayable && heldLine" class="block tabular-nums" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-4)">{{ heldLine }}</text>
         <text v-if="withdrawalFactsDisplayable && withdrawalRatioLine" class="block tabular-nums" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-4)">{{ withdrawalRatioLine }}</text>
-        <text v-if="withdrawalFactsDisplayable && withdrawalPolicy" class="block tabular-nums" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-4)">{{ perWithdrawalLimitText }}</text>
+        <text v-if="withdrawalFactsDisplayable && withdrawalPolicy && limitFacts.perWithdrawalMaximum < maxWithdrawable" class="block tabular-nums" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-4)">{{ perWithdrawalLimitText }}</text>
       </view>
 
-      <!-- 🔴 小额免审快车道的正向态:免掉闸时**说出来**。走查实测,此前输 $30 页面一个字都没有,
-           用户看不出自己刚享受了免审,只会以为「这平台就是这么快」——功能白做。 -->
-      <view v-if="fastLaneOn" class="mx-4 mt-3 flex items-start" :style="fastLaneBoxStyle">
-        <view class="grid place-items-center shrink-0" :style="fastLaneIconStyle">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13 2-3 7h5l-3 7" /><circle cx="12" cy="12" r="10" /></svg>
-        </view>
-        <view class="flex-1 min-w-0" style="margin-left: 10px">
-          <text class="block" style="font-size: 12px; color: var(--v5-brand); font-weight: 500">{{ t.wallet.fastLaneOnTitle }}</text>
-          <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 2px; line-height: 1.4">{{ fastLaneBody }}</text>
-        </view>
-      </view>
       <view v-if="withdrawalRiskNotice" class="mx-4 mt-3 flex items-start" :style="holdBannerStyle">
         <view class="grid place-items-center shrink-0" :style="holdIconStyle">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4" /><path d="M12 17h.01" /><circle cx="12" cy="12" r="10" /></svg>
@@ -111,25 +99,6 @@
         <view class="flex-1 min-w-0" style="margin-left: 10px">
           <text class="block" style="font-size: 12px; color: var(--v5-warning); font-weight: 500">{{ riskNoticeTitle }}</text>
           <text class="block" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 2px; line-height: 1.4">{{ riskNoticeBody }}</text>
-          <!-- 🔴 反向态:说了「要审」就得给下一步。仅当降到小额线后判定真会免审时才出现,
-               否则(风控闸命中,快车道免不掉)出现就是骗他白改一次金额。 -->
-          <view v-if="fastLaneOverLine" class="active:opacity-70" :style="fastLaneCtaStyle" role="button" tabindex="0" :aria-label="fastLaneCta" @click.stop="useSmallAmountLine"
-             @keydown.enter.prevent="useSmallAmountLine" @keydown.space.prevent="useSmallAmountLine">
-            <text :style="fastLaneCtaTextStyle">{{ fastLaneCta }} →</text>
-          </view>
-          <view
-            v-if="canUndoSmallAmount"
-            class="active:opacity-70"
-            :style="fastLaneCtaStyle"
-            role="button"
-            tabindex="0"
-            :aria-label="t.wallet.fastLaneUndo"
-            @click.stop="undoSmallAmountLine"
-
-            @keydown.enter.prevent="undoSmallAmountLine" @keydown.space.prevent="undoSmallAmountLine"
-          >
-            <text :style="fastLaneUndoTextStyle">{{ t.wallet.fastLaneUndo }}</text>
-          </view>
         </view>
       </view>
 
@@ -261,30 +230,23 @@
 
       </template>
       <!-- Known withdrawal conditions; read failures have one recovery above. -->
-      <view v-if="withdrawalPolicyCurrent && dailyFactsDisplayable" class="mx-4 mt-3 rounded-2xl" :style="warnBoxStyle">
+      <view v-if="withdrawalPolicyCurrent && dailyFactsDisplayable && ((feeConfigUsable && amountNum > 0 && !quoteBlocked) || limitFacts.dailyLimitConfigured)" class="mx-4 mt-3 rounded-2xl" :style="warnBoxStyle">
         <view class="flex items-start" style="gap: 8px; font-size: 12px; color: var(--v5-warning)">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0" style="margin-top: 2px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
           <view class="space-y-1" style="line-height: 1.4">
-            <!-- 🔴 首审提示必须**按这一笔真实的判定**显示,不能常显。走查实证:此前它无条件挂着,
-                 于是小额免审横幅刚说「这笔立即处理」,下一行就说「首次提现审核 24 小时内」,
-                 自相矛盾;已提过现的老用户也照样被吓一次。 -->
-            <text v-if="firstTimeReviewApplies" class="block">{{ firstTimeReviewText }}</text>
-            <!-- 最低额从配置插值(禁写死 —— 运营改成 $75 时这里必须跟着变,
-                 否则同屏出现两个互相矛盾的最低额)。抵扣提示单独挂 feeConfigUsable 门:
+            <!-- 最低额只在金额区显示一次(minAmountLine);这里只留抵扣提示。抵扣提示单独挂 feeConfigUsable 门:
                  费率不可用时上方已换成「费率更新中」,这句再说「上方手续费可抵扣」就是悬空指代。 -->
             <!-- 抵扣半句必须同时满足:费率可用 **且** 已输入金额。
                  少任一个都会变成悬空指代 —— 未输入金额时明细区是「输入金额后显示费用明细」,
                  上方并没有任何手续费可言;而这正是打开提现页的落地首屏,看的人最多。
                  分隔空格用 {{ ' ' }} 显式写,直接写在标签间的前导空格会被编译器吃掉
                  (实测渲染成 `$20.The fee…` 粘在一起)。 -->
-            <text v-if="withdrawalPolicyCurrent" class="block">{{ minWithdrawNoteText }}<text v-if="feeConfigUsable && amountNum > 0 && !quoteBlocked">{{ t.wallet.minWithdrawNoteOffset }}</text></text>
+            <text v-if="feeConfigUsable && amountNum > 0 && !quoteBlocked" class="block">{{ t.wallet.minWithdrawNoteOffset }}</text>
             <!-- 🔴 这句只在**闸真的会拦**时才出现:limitCount ≤0 = 服务端没配 / policy 拉不到,
                  判定层按「不限制」走,这时再说一句「每日限额:0 笔/日」就是当场撒谎
                  (实景实测:后端不可达时它真的渲染成 0 笔/日)。
                  「有没有这句话」与「闸生不生效」从此是同一个条件,不会再各走各的。 -->
             <text v-if="dailyFactsDisplayable && limitFacts.dailyLimitConfigured" class="block">{{ dailyUsageText }}</text>
-            <text v-else-if="dailyFactsDisplayable && withdrawalPolicy" class="block">{{ t.wallet.dailyWithdrawalCountNotSet }}</text>
-            <text v-if="dailyFactsDisplayable && withdrawalPolicy" class="block">{{ t.wallet.dailyWithdrawalAmountNotSet }}</text>
           </view>
         </view>
       </view>
@@ -392,7 +354,7 @@ import { computeWithdrawalMaximum, formatWithdrawalRatioPercent, resolveWithdraw
 import { withdrawalLimitFacts } from "@/lib/withdrawal-limit-facts";
 import { financialFactState, shouldRequestWithdrawalEligibility, withdrawalFactsActionsFresh } from "@/lib/withdrawal-facts-state";
 import { isCurrentWithdrawalFactsRequest } from "@/lib/withdrawal-facts-request-fence";
-import { riskReasonLines, waivedGateLines } from "@/lib/risk-reason-text";
+import { riskReasonLines } from "@/lib/risk-reason-text";
 import { useApp } from "@/store/app";
 import { earningsReleaseHasSnapshot, earningsReleaseSnapshot, earningsReleaseStatus, refreshEarningsReleaseStatus } from "@/store/earning-release";
 // 账单不再直连 useBills:提现的钱由服务端扣,只补收据 —— 走 postReceiptForAccount
@@ -635,8 +597,6 @@ function invalidateWithdrawalFacts(): void {
   remoteEligibilityEpoch += 1;
   remoteEligibility.value = null;
   remoteEligibilityFailed.value = false;
-  remoteSmallLineEligibilityEpoch += 1;
-  remoteSmallLineEligibility.value = null;
   refreshedConflictVersion = "";
 }
 
@@ -717,9 +677,8 @@ const dailyUsageText = computed(() => fmt(t.value.wallet.dailyWithdrawalUsage, {
 const withdrawalChannelStatusText = computed(() => {
   const policy = withdrawalPolicy.value;
   if (!policy) return "";
-  if (!policy.withdrawalEnabled || policy.enabledNetworks.length === 0) return t.value.wallet.withdrawalChannelsClosed;
-  const channels = policy.enabledNetworks.map((item) => item.replace("USDT-", "")).join(" · ");
-  return fmt(t.value.wallet.withdrawalChannelsAvailable, { channels });
+  // Only a closed channel needs a line; the open network is already the selected chip above.
+  return !policy.withdrawalEnabled || policy.enabledNetworks.length === 0 ? t.value.wallet.withdrawalChannelsClosed : "";
 });
 /**
  * 🔴🔴 同一笔提现意图的幂等键(跨重试复用)。
@@ -783,7 +742,6 @@ const dailyLimitReachedText = computed(() => {
 // 重放是「今天不能提了,**而且先前那笔可能已经占掉了额度**」——
 // 只说前半句会让用户以为先前那笔没成功,转头去开新的一笔,那正是要防的事。
 const dailyLimitReachedWithPendingText = computed(() => t.value.walletV3.withdrawDailyLimitWithPending);
-const minWithdrawNoteText = computed(() => fmt(t.value.wallet.minWithdrawNote, { n: formatAmount(minWithdrawable.value) }));
 const minAmountLine = computed(() => fmt(t.value.wallet.minAmountDynamic, { n: formatAmount(minWithdrawable.value) }));
 const devMode = ref(false);
 onLoad((options) => {
@@ -847,7 +805,7 @@ watch([amountNum, network, boundAddress, maxWithdrawable, dailyFacts, withdrawal
   }
 }, { immediate: true });
 
-// 网络也是报价/地址的输入 —— 提交在途一律冻结,与 useMax/useSmallAmountLine/toggleOffset
+// 网络也是报价/地址的输入 —— 提交在途一律冻结,与 useMax/toggleOffset
 // 同一纪律(审计 P2:评估窗口内切网络会让本可成功的提交被确认后校验无谓拒绑)。
 function pickNetwork(id: CryptoNetwork) {
   if (inputsLocked.value) return;
@@ -1089,99 +1047,6 @@ const heldLine = computed(() => {
 // ── 🔴 小额免审快车道的**双向告知**(走查:能力在跑,但一个字都没告诉用户)──
 /** 小额线(后台 D5 可配,禁写死 —— 运营调了这里必须跟着变)。 */
 /**
- * 小额线的**落地值**:向下取到 2 位小数。
- * 金额输入框只接受 2 位小数,所以「点 CTA 会填进去的那个数」必须先按 2 位定死,
- * 再拿它去比较和显示 —— 三处用同一个值。
- * 原来比较用原值、写入 toFixed(2)、显示 toFixed(0),运营配 49.999 时写进去的 50.00 反而**超过**原值,
- * 快车道不生效而 CTA 判据仍成立 → 一个点多少次都没反应、也永不消失的按钮。
- * 向下取整(不是四舍五入)才不会越线。
- */
-// WD01 is a server-owned policy value in remote mode.
-const smallAmountLine = computed(() => withdrawalPolicy.value?.smallAmountThresholdUsd ?? 0);
-const remoteSmallLineEligibility = ref<WithdrawalEligibility | null>(null);
-let remoteSmallLineEligibilityEpoch = 0;
-watch([smallAmountLine, network, boundAddress, maxWithdrawable, dailyFacts, withdrawalActionsFresh, () => app.accountKey, () => withdrawalPolicy.value?.policyVersion], async () => {
-  const epoch = ++remoteSmallLineEligibilityEpoch;
-  const requestedAccountKey = app.accountKey;
-  const requestedAccountBindingEpoch = app.accountBindingEpoch;
-  const runScope = captureRuntimeRevision();
-  remoteSmallLineEligibility.value = null;
-  const policyVersion = withdrawalPolicy.value?.policyVersion;
-  if (!policyVersion || NETWORKS.value.length === 0 || !shouldRequestWithdrawalEligibility({
-    remote: remoteApiEnabled,
-    factsFresh: withdrawalActionsFresh.value,
-    policyVersion,
-    amount: smallAmountLine.value,
-    addressLength: boundAddress.value.length,
-  })) {
-    return;
-  }
-  try {
-    const snapshot = await requestWithdrawalEligibility(requestedAccountKey, network.value, boundAddress.value,
-      maxWithdrawable.value, dailyFacts.value, smallAmountLine.value, policyVersion);
-    if (isCurrentWithdrawalFactsScope(requestedAccountKey, requestedAccountBindingEpoch, runScope.epoch, epoch, remoteSmallLineEligibilityEpoch)) {
-      remoteSmallLineEligibility.value = snapshot;
-    }
-  } catch {
-    if (isCurrentWithdrawalFactsScope(requestedAccountKey, requestedAccountBindingEpoch, runScope.epoch, epoch, remoteSmallLineEligibilityEpoch)) {
-      remoteSmallLineEligibility.value = null;
-    }
-  }
-}, { immediate: true });
-/**
- * 正向态:这笔**真的**免掉了闸,才值得说。
- * 🔴 判据用 waivedGates 而不是 fastLaneApplied —— 后者只表示「金额在小额线内」,
- * 老用户提 $10 也是 true,但一道闸都没免,弹「已免去:」会是句空话。
- */
-const waivedLines = computed(() => waivedGateLines(t.value, eligibility.value.waivedGates));
-/**
- * 🔴 说「这笔可立即处理」的前提有三层,少一层就是假承诺:
- *  ① 真免掉了闸(waivedGates 非空)—— 否则老用户会看到一句空的「已免去:」;
- *  ② 最终路由是放行 —— 共用地址等风控闸快车道免不掉,免了冷启动闸 ≠ 这笔能走;
- *  ③ **这笔现在真的提交得了** —— 判据取页面统一的拦截单源 submitDisabledReason,
- *     它把「低于最低额 / 今日笔数用完 / 超过可提额 / 换绑冻结 / 费率不可用…」全收在一处。
- *     独立验收实测两个默认配置就能复现的对打:输 $5(≤ 小额线但 < 最低额 $20)、
- *     以及当日额度已用完时提 $30 —— 两种情况 route 都是 pass,横幅喊「立即处理」,
- *     同屏提交按钮却灰着说「最低提现 $20」/「今日已达上限」。
- *     ⚠️ 这里不能改挂 core 的 canSubmit:它比的是**余额**与最低额(withdrawableUsdt >=
- *     minWithdrawableUsdt),压根不看用户输了多少,$5 那个场景它照样是 true。
- */
-const fastLaneOn = computed(
-  () => waivedLines.value.length > 0 && eligibility.value.route === "pass" && submitDisabledReason.value === "",
-);
-/**
- * 反向态:降到小额线后,路由**会不会真的**变成免审。
- * 🔴 不用 `amount > line` 这种启发式 —— 那会在换绑冻结 / 共用地址等风控闸命中时
- * 照样劝他「改小就能立刻处理」,而快车道压根免不掉风控闸,等于骗他白改一次金额。
- * 直接把小额线代进同一个判定函数问一次,答案是什么就说什么。
- */
-const smallLineDecision = computed(() =>
-  remoteApiEnabled
-    ? remoteSmallLineEligibility.value ?? {
-      canSubmit: false,
-      maxWithdrawableUsdt: maxWithdrawable.value,
-      route: "manual" as const,
-      riskReasons: [], fastLaneApplied: false, waivedGates: [], dailyLimitReached: false,
-      dailyCountResetAt: Date.now(), configVersion: "remote-pending",
-    }
-    : evaluateWithdrawal(app.accountKey, network.value, boundAddress.value, maxWithdrawable.value, dailyFacts.value, smallAmountLine.value),
-);
-const fastLaneOverLine = computed(
-  () =>
-    smallAmountLine.value > 0 &&
-    amountNum.value !== smallAmountLine.value &&
-    // 🔴 判据 = 「把小额线代进**同一个** disabledReasonFor 后,一个拦截原因都不剩」。
-    //    这一条同时覆盖:路由要不要审、日限用没用完、费率可不可用、小额线本身在不在
-    //    [最低提现额, 可提余额] 区间内 —— 全部由那一个函数负责,CTA 这里不再自己列条件。
-    //    只看 route 的旧写法漏掉了日限与费率两类(它们不并进 route),会给出点了没用的假引导。
-    disabledReasonFor(smallAmountLine.value, smallLineDecision.value) === ""
-);
-const fastLaneBody = computed(() => fmt(t.value.wallet.fastLaneOnBody, { g: waivedLines.value.join(" · ") }));
-/**
- * 首审提示是否适用于**这一笔**。判据取判定结果里的原因码,和横幅同一个源 ——
- * 分开算必然出现「横幅说免了、提示说要审」的对打(走查现场就是这样)。
- */
-/**
  * 🔴 报价是对「你提交后会发生什么」的承诺 —— **提交不了就没有会发生什么**。
  * 判据直接取页面统一的拦截单源,不另起一套:另起必然漂移成「明细区说能提、按钮说不能提」。
  * 覆盖低于最低额 / 超过可提余额 / 今日笔数用完 / 换绑冻结 / 费率不可用等全部原因。
@@ -1199,43 +1064,6 @@ const quoteDisplayBlocked = computed(() =>
 const quoteBlocked = computed(() =>
   quoteDisplayBlocked.value || !withdrawalFactsDisplayable.value || !dailyFactsDisplayable.value,
 );
-const firstTimeReviewApplies = computed(() => eligibility.value.riskReasons.includes("first-withdrawal-review"));
-/**
- * 🔴 这里**不给时间承诺**。
- *
- * 原文写死「24 小时内」;我一度把它换成新配置项 manualReviewSlaHours,以为这样就算「接了单源」——
- * 审计证明那是自欺:后台 D5 参数集里没有这个字段(运营根本改不了)、PRD 零命中,
- * 而且系统对人工复核**没有任何推进机制**(advanceArrival 对非 pass 路由恒不推进,
- * 实测把时间推到十年后仍不动)。等于把写死的 24 从文案挪进配置文件,承诺照样兑现不了。
- *
- * 能诚实说的只有「这一笔要人工确认」本身,以及怎么绕开它 —— 旁边那条降额 CTA 就是出口。
- */
-const firstTimeReviewText = computed(() => t.value.wallet.firstTimeReview);
-// 文案里的数字必须 = 点下去真会填进输入框的那个数。
-// 原来文案 toFixed(0)、落地 toFixed(2):线配成 20.5 时按钮写「改为 $21 提现」而实际填 20.50,
-// 用户照字面手输 21 反而超线、快车道不生效 —— 按钮上的数字自己把用户送出了免审区间。
-const smallAmountLineText = computed(() =>
-  formatAmount(smallAmountLine.value),
-);
-const fastLaneCta = computed(() => fmt(t.value.wallet.fastLaneCta, { n: smallAmountLineText.value }));
-/**
- * 误点降额后的撤销出口。项目不变量要求业务链有取消出口,而这个 CTA 是**藏在警告横幅里的**
- * 下调建议 —— 用户输了 $500 顺手点到,原值不可恢复的话代价不对称(useMax 是用户主动要全提,不同)。
- */
-const previousAmount = ref("");
-const canUndoSmallAmount = computed(() => previousAmount.value !== "" && amount.value !== previousAmount.value);
-function undoSmallAmountLine() {
-  if (submitting.value) return;
-  amount.value = previousAmount.value;
-  previousAmount.value = "";
-}
-/** 一键把金额降到小额线 —— 只说「改小就行」而不让他一键改,等于没给下一步。 */
-function useSmallAmountLine() {
-  // 提交期间禁止改金额:输入框有 :disabled,这两个裸 <view @click> 入口没有。
-  if (inputsLocked.value) return;
-  previousAmount.value = amount.value;   // 记下原值,给撤销用
-  amount.value = smallAmountLine.value.toFixed(2);
-}
 /** reject = 永不建单,和「进入审核队列」是两回事,标题必须分开说。 */
 const riskNoticeTitle = computed(() =>
   eligibility.value.route === "reject" ? t.value.wallet.withdrawRouteRejectTitle : t.value.wallet.withdrawRouteReviewTitle,
@@ -1899,21 +1727,6 @@ const submitBtnStyle = computed<CSSProperties>(() => ({
   fontWeight: 600,
 }));
 
-// 快车道提示 —— 品牌色浅底(正向信息,不用告警色);超线时那条 CTA 独占一行撑 44px 热区
-const fastLaneBoxStyle: CSSProperties = {
-  padding: "12px",
-  borderRadius: "16px",
-  background: "color-mix(in srgb, var(--v5-brand) 8%, transparent)",
-  display: "flex",
-};
-const fastLaneIconStyle: CSSProperties = {
-  width: "24px", height: "24px", borderRadius: "999px",
-  background: "color-mix(in srgb, var(--v5-brand) 15%, transparent)",
-};
-const fastLaneCtaStyle: CSSProperties = { display: "inline-flex", alignItems: "center", minHeight: "44px", marginTop: "2px" };
-const fastLaneCtaTextStyle: CSSProperties = { fontSize: "12px", fontWeight: 500, color: "var(--v5-brand)" };
-// 撤销是次要动作:同样可点,但视觉权重明显弱于那条建议(转化场景 cancel 必须弱于主 CTA)。
-const fastLaneUndoTextStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-4)" };
 
 
 

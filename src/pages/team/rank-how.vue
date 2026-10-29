@@ -29,7 +29,6 @@
               </view>
             </scroll-view>
             <text v-else class="how-caption">{{ content.copy.emptyLadder }}</text>
-            <text v-if="content.ladder.length" class="how-caption how-ladder-hint">{{ guide.ladderHint }}</text>
           </view>
 
           <view class="how-guide-heading">

@@ -21,9 +21,9 @@ function mount(remote: boolean, hasSnapshot: boolean, balance: number, marketRea
   const bills = reactive({ summaryStatus: "error", summary: { todayNexEarn: 0, pendingNex: 0 } });
   const section = { liquid: "liquid", mining: "mining", pending: "pending", costBasis: "basis", totalSpent: "spent", currentValue: "value" };
   const scope = effectScope(); scopes.push(scope);
-  const state = scope.run(() => new Function("formatFinanceAmount", "computed", "app", "market", "remoteApiEnabled", "remoteAuthorityStatus", "bills", "t", "tintIcon", "ICON", "ref", "watch", "useLocaleStore", "apiRuntimeConfig", code + ";return {breakdownRows,pnlSummary,pnlCells,balanceKnown,valuationKnown,nexBalance,usdValue,fmtNum,fmtUSD};")(
+  const state = scope.run(() => new Function("formatFinanceAmount", "computed", "app", "market", "remoteApiEnabled", "remoteAuthorityStatus", "bills", "t", "tintIcon", "ICON", "ref", "watch", "useLocaleStore", "apiRuntimeConfig", code + ";return {breakdownRows,balanceKnown,valuationKnown,nexBalance,usdValue,fmtNum,fmtUSD};")(
     formatFinanceAmount, computed, app, market, remote, remoteAuthorityStatus, bills,
-    { value: { nexWallet: { breakdown: section, pnl: section } } }, () => "", {}, ref, watch, () => locale, apiRuntimeConfig));
+    { value: { nexWallet: { breakdown: section } } }, () => "", {}, ref, watch, () => locale, apiRuntimeConfig));
   const balanceExpression = source.match(/:style="heroNumStyle">\{\{(.*?)\}\}/)?.[1];
   const valueExpression = source.match(/:style="heroUsdStyle">≈ \{\{(.*?)\}\}/)?.[1];
   if (!balanceExpression || !valueExpression) throw new Error("NEX hero bindings missing");
@@ -46,8 +46,6 @@ test("missing wallet authority never displays zero holdings or invented valuatio
   expect(s.renderHero()).toEqual({balance:"—",value:"—"});
   expect(s.breakdownRows.value[0].value).toBe("—");
   expect(s.breakdownRows.value[0].hint).toBe("—");
-  expect(s.pnlSummary.value).toBe("—");
-  expect(s.pnlCells.value.slice(1).map((v: {value: string}) => v.value)).toEqual(["—", "—"]);
 });
 test("confirmed zero remains distinct from unavailable", () => {
   const s = mount(true, true, 0); expect(s.breakdownRows.value[0].value).toBe("0.00 UVT"); expect(s.breakdownRows.value[0].hint).toBe("$0.00");
@@ -55,10 +53,10 @@ test("confirmed zero remains distinct from unavailable", () => {
 test("snapshot arrival and account reset update all holding projections", () => {
   const s = mount(true, false, 50); expect(s.breakdownRows.value[0].value).toBe("—");
   s.app.remoteFleetHasSnapshot = true; expect(s.breakdownRows.value[0].value).toBe("50.00 UVT"); expect(s.breakdownRows.value[0].hint).toBe("$100.00");
-  s.app.remoteFleetHasSnapshot = false; expect(s.breakdownRows.value[0].value).toBe("—"); expect(s.pnlSummary.value).toBe("—");
+  s.app.remoteFleetHasSnapshot = false; expect(s.breakdownRows.value[0].value).toBe("—");
 });
 test("price failure retains known NEX units but hides USD calculations", () => {
-  const s = mount(true, true, 50, false); expect(s.breakdownRows.value[0].value).toBe("50.00 UVT"); expect(s.breakdownRows.value[0].hint).toBe("—"); expect(s.pnlSummary.value).toBe("—");
+  const s = mount(true, true, 50, false); expect(s.breakdownRows.value[0].value).toBe("50.00 UVT"); expect(s.breakdownRows.value[0].hint).toBe("—");
 });
 test("local mode remains readable", () => { expect(mount(false, false, 12).breakdownRows.value[0].value).toBe("12.00 UVT"); });
 

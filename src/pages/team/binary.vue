@@ -40,7 +40,6 @@
                 </view>
               </view>
               <view class="reward-binary-basis">
-                <text class="binary-note">{{ t.binary.weak }} · {{ visibility.mask('$' + formatFinanceAmount(weakVol)) }}</text>
                 <text class="binary-note">{{ formulaText }}</text>
                 <text class="binary-note">{{ gapHintText }}</text>
               </view>
@@ -125,9 +124,9 @@ const app = useApp();
 const locale = useLocaleStore();
 const canonicalReadCoalescer = createScopedReadCoalescer();
 const binaryCopy = computed(() => ({
-  zh: { rules: '规则', contributions: 'A / B 贡献对照', leadingMembers: '各组贡献领先成员' },
-  en: { rules: 'Rules', contributions: 'A / B contributions', leadingMembers: 'Leading contributors' },
-  vi: { rules: 'Quy tắc', contributions: 'Đóng góp nhóm A / B', leadingMembers: 'Thành viên đóng góp nổi bật' },
+  zh: { rules: '玩法说明', contributions: '本月两组订单额', leadingMembers: '各组领先成员' },
+  en: { rules: 'How it works', contributions: 'This month’s group volume', leadingMembers: 'Top members by group' },
+  vi: { rules: 'Cách nhận thưởng', contributions: 'Doanh số hai nhóm tháng này', leadingMembers: 'Thành viên dẫn đầu mỗi nhóm' },
 })[locale.code === 'zh' ? 'zh' : locale.code === 'vi' ? 'vi' : 'en']);
 
 const displayEnvironment = [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const;

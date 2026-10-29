@@ -150,20 +150,6 @@
           </view>
         </view>
 
-        <!-- Platform cap -->
-        <view style="margin-bottom: 12px">
-          <view class="flex items-center justify-between" style="margin-bottom: 4px">
-            <text style="font-size: 12px; color: var(--v5-ink-2)">{{ t.walletV3.exchangePoolToday }}</text>
-            <view class="font-mono-tabular tabular-nums" style="font-size: 12px; color: var(--v5-ink)">
-              <text>{{ remoteApiEnabled && !remoteState ? '-' :`$${formatAmount(displayPlatformUsed / 1000)}K` }} </text>
-              <text v-if="!remoteApiEnabled || remoteState" style="color: var(--v5-ink-3)">/ ${{ formatAmount(displayPlatformCap / 1000) }}K</text>
-            </view>
-          </view>
-          <view :style="barTrackStyle">
-            <view :style="platformBarStyle" />
-          </view>
-        </view>
-
         <!-- Queue -->
         <view v-if="displayQueue.length > 0" :style="queueWrapStyle">
           <view class="flex items-center" :style="queueTitleStyle">
@@ -246,7 +232,7 @@ import { refreshWalletAfterCommittedExchange } from "@/lib/remote-commerce-refre
 import { exchangeApi, remoteApiEnabled } from "@/api/runtime";
 import type { ExchangeOrder, ExchangeSnapshot } from "@/api/exchange-api";
 import { useExchange, type SwapEvent } from "@/store/exchange";
-import { useExchangeV3, USER_DAILY_CAP_USD, PLATFORM_DAILY_CAP_USD, dailyUserPctUsed, dailyPlatformPctUsed } from "@/store/exchange-v3";
+import { useExchangeV3, USER_DAILY_CAP_USD, dailyUserPctUsed } from "@/store/exchange-v3";
 
 const t = useT();
 // 同 staking:生产构建里 import.meta.env.DEV 恒为 false,Mock 横幅被摇掉。
@@ -507,9 +493,7 @@ const history = computed<SwapEvent[]>(() => {
 });
 // remote mode must never render persisted exchange or v3 facts.
 const displayUserUsed = computed(() => remoteApiEnabled ? (remoteState.value?.todayUserUsedUsdt ?? 0) : v3.todayUserUsedUSD);
-const displayPlatformUsed = computed(() => remoteApiEnabled ? (remoteState.value?.todayPlatformUsedUsdt ?? 0) : v3.todayPlatformUsedUSD);
 const displayUserCap = computed(() => remoteApiEnabled ? (remoteState.value?.caps.userDailyCapUsdt ?? 0) : USER_DAILY_CAP_USD);
-const displayPlatformCap = computed(() => remoteApiEnabled ? (remoteState.value?.caps.platformDailyCapUsdt ?? 0) : PLATFORM_DAILY_CAP_USD);
 const displayQueue = computed(() => remoteApiEnabled
   ? visibleQueuedExchangeOrders(remoteState.value?.orders ?? []).map((order) => ({
     id: order.exchangeNo,
@@ -1173,15 +1157,6 @@ const userBarStyle = computed<CSSProperties>(() => {
     transition: "width 600ms cubic-bezier(0.16,1,0.3,1)",
   };
 });
-const platformBarStyle = computed<CSSProperties>(() => ({
-  height: "100%",
-  width: `${remoteApiEnabled
-    ? Math.min(1, displayPlatformUsed.value / Math.max(displayPlatformCap.value, 1)) * 100
-    : dailyPlatformPctUsed(v3.todayPlatformUsedUSD) * 100}%`,
-  borderRadius: "999px",
-  background: "var(--v5-brand-2)",
-  transition: "width 600ms cubic-bezier(0.16,1,0.3,1)",
-}));
 const queueWrapStyle: CSSProperties = {
   marginTop: "12px",
   paddingTop: "12px",

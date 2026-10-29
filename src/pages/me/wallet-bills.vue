@@ -102,7 +102,6 @@
         </view>
       </view>
 
-      <text class="block" :style="footerStyle">{{ t.bills.footer }}</text>
     </view>
   </AppChassis>
 </template>
@@ -511,13 +510,6 @@ function amountStyle(b: Bill): CSSProperties {
   };
 }
 const balanceAfterStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-2)" };
-const footerStyle: CSSProperties = {
-  margin: "12px 24px 24px",
-  textAlign: "center",
-  fontSize: "12px",
-  color: "var(--v5-ink-4)",
-  lineHeight: 1.625,
-};
 
 import GlassSegments from "@/components/glass-segments.vue";
 const tabOptions = computed(() => TABS.map(value => ({ value, label: tabLabel(value) })));

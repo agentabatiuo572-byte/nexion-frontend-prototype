@@ -65,7 +65,6 @@
         </view>
       </view>
 
-      <text class="block mx-4 text-center" :style="footerStyle">{{ w.footer }}</text>
       </template>
     </view>
   </AppChassis>
@@ -291,7 +290,6 @@ const extBtnStyle: CSSProperties = {
   fontSize: "12px",
   color: "var(--v5-ink-2)",
 };
-const footerStyle: CSSProperties = { marginTop: "16px", fontSize: "12px", color: "var(--v5-ink-4)", lineHeight: 1.625 };
 const holdStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", padding: "16px", borderRadius: "var(--nx-glass-radius)", background: "var(--nx-glass-fill)" };
 const holdTitleStyle: CSSProperties = { fontSize: "var(--ui-type-section)", fontWeight: 600, color: "var(--v5-ink)" };
 const holdBodyStyle: CSSProperties = { marginTop: "6px", fontSize: "var(--ui-type-list-subtitle)", lineHeight: "19px", color: "var(--v5-ink-3)" };

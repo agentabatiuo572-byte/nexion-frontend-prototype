@@ -31,9 +31,10 @@ export function commissionPublishedBlocks(snapshot: CommissionsHowSnapshot, loca
     directScope: policy.settlementMode === 'SEVEN_V2' ? copy.deviceScope : copy.directOnly,
     directPrice: policy.nexUsdtPrice === null ? copy.priceUnavailable : `${number(policy.nexUsdtPrice)} USDT / UVT`,
     coolingDays: guide.coolingDays === null ? copy.missing : `${number(guide.coolingDays)} ${copy.days}`,
-    binaryRules: binary ? `${copy.dailyCap} ${money(binary.dailyCap)} · ${copy.settlementPeriod}: ${copy[binary.settlePeriod]} · ${copy.residualHandling}: ${copy[binary.residualPolicy]} · ${binary.paused ? copy.paused : copy.unpaused}` : copy.missing,
+    // Same public wording as the summary: no caps or unmatched-volume handling (APP-COPY-AUDIT rule 6).
+    binaryRules: binary ? `${copy.settlementPeriod}: ${copy[binary.settlePeriod]} · ${binary.paused ? copy.paused : copy.unpaused}` : copy.missing,
     peerRules: copy.records, cultivationRules: copy.cultivation,
-    leadershipRules: leadership ? `${copy.minRank} V${leadership.minRank} · ${copy.monthlyCap} ${money(leadership.monthlyCap)}` : copy.hold,
+    leadershipRules: leadership ? `${copy.minRank} V${leadership.minRank}` : copy.hold,
     leadershipVotes: leadership ? ranks.filter(row => row.v >= leadership.minRank).map(row => `V${row.v}: ${number(row.leadershipVotes)}`).join(' · ') : copy.hold,
     peerStatus: guide.capabilities.peer ? copy.supported : copy.unsupported,
     genesisStatus: guide.capabilities.genesis ? copy.supported : copy.unsupported,

@@ -42,15 +42,15 @@ describe("rank-how published presentation", () => {
     const pool = teamRedesignCopy(locale).teamIncentivePool.toLowerCase();
     expect(held.section('status').body.toLowerCase()).toContain(pool);
     expect(ready.section('status').body.toLowerCase()).toContain(pool);
-    expect(held.section('status').body).toMatch(/暂不可结算|currently unavailable|chưa thể quyết toán/);
+    expect(held.section('status').body).toMatch(/暂未开放发放|aren’t open yet|chưa mở chi trả/);
     expect(held.section('status').body).toMatch(/票数不代表奖励已到账|Votes do not mean rewards have been received|Phiếu bầu không đồng nghĩa với phần thưởng đã nhận/);
-    expect(ready.section('status').body).toMatch(/实际结算|actual settlement|quyết toán thực tế/);
+    expect(ready.section('status').body).toMatch(/实际发放|actual payout|chi trả thực tế/);
     expect(held.section('plain')).toMatchObject({ title: 'Published title', body: 'Leadership pool: published wording' });
   });
   it.each([
     ["zh", "自购算力", "团队算力", "2,000 算力点", "20,000 算力点"],
     ["en", "Own compute", "Team compute", "2,000 compute pts", "20,000 compute pts"],
-    ["vi", "Năng lực tự mua", "Năng lực đội", "2.000 điểm tính toán", "20.000 điểm tính toán"],
+    ["vi", "Điểm cá nhân", "Điểm của nhóm", "2.000 điểm tính toán", "20.000 điểm tính toán"],
   ])("renders published point requirements and examples without legacy dollars in %s", (locale, self, team, ownValue, teamValue) => {
     const pointsPolicy = { ...policy, sections: [
       { id: "requirement-self", title: self, body: "{selfComputePoints}", order: 1 },
@@ -99,9 +99,9 @@ describe("rank-how published presentation", () => {
     expect(content.section("rewards").body).toContain("12.3456%");
     expect(content.section("rewards").body).toContain("2.75%");
     expect(content.section("rewards").body).toContain("321.12 UVT");
-    expect(content.section("rewards").body).toContain("暂不可结算");
+    expect(content.section("rewards").body).toContain("暂未开放发放");
     expect(content.section("requirement-direct").body).toBe("7,891 算力点");
-    expect(content.section("protection").body).toContain("未开启");
+    expect(content.section("protection").body).toContain("可能调整");
   });
   it.each(["zh", "en", "vi"])("renders large point thresholds in %s when native Intl is absent", locale => {
     const expected = formatComputePoints(1234567, locale);
@@ -120,7 +120,7 @@ describe("rank-how published presentation", () => {
     const content = buildRankHowContent({ ...policy, rules: { ...policy.rules!, permanentProtection: true, leadershipConfigured: true } }, changed, enabled, "zh", labels);
     expect(content.section("example").body).toContain("123 算力点");
     expect(content.section("rewards").body).toContain("29");
-    expect(content.section("protection").body).toContain("已开启");
+    expect(content.section("protection").body).toContain("会保留");
   });
   it("distinguishes a configured zero referral minimum from unavailable configuration", () => {
     const content = buildRankHowContent({ ...policy, rules: { ...policy.rules, qualifiedReferralSelfComputePoints: 0 } }, ranks, enabled, "zh", labels);
@@ -162,7 +162,7 @@ describe("rank-how published presentation", () => {
     ] };
     const off = buildRankHowContent(peerPolicy, ranks, unavailable, "zh", labels);
     expect(off.section("unlock-peer").body).toContain("暂未开放");
-    expect(off.section("result-peer").body).toContain("当前不派发");
+    expect(off.section("result-peer").body).toContain("暂未开放");
     expect(`${off.section("unlock-peer").body} ${off.section("result-peer").body}`).not.toContain("2.75%");
 
     const on = buildRankHowContent(peerPolicy, ranks, enabled, "zh", labels);

@@ -8,7 +8,6 @@
         </view>
         <view>
           <text class="head-title">{{ c.type }}</text>
-          <text class="head-note">{{ c.securityNote }}</text>
         </view>
       </view>
 
@@ -44,7 +43,6 @@
             <view class="text-action" role="button" tabindex="0" data-testid="bank-send-otp" :aria-disabled="!canSendOtp" @click="sendOtp" @keydown.enter.prevent="sendOtp" @keydown.space.prevent="sendOtp"><text>{{ resendSeconds > 0 ? c.otpResendIn.replace('{s}', String(resendSeconds)) : t.bankWithdrawal.sendCode }}</text></view>
             <text v-if="state.challengeNo" class="hint" role="status" data-testid="bank-otp-status">{{ state.otpExpiresAt > now ? t.bankWithdrawal.otpSent : c.otpExpired }}</text>
           </view>
-          <text class="hint" data-testid="bank-default-summary">{{ c.singleAccount }}</text>
         </view>
         <view v-if="!review" class="submit" :class="{ ready: canSubmit }" role="button" tabindex="0" data-testid="bank-bind-continue" :aria-disabled="!canSubmit" @click="submitBinding" @keydown.enter.prevent="submitBinding" @keydown.space.prevent="submitBinding">
           <text>{{ state.busy ? t.bankWithdrawal.loading : state.phase === 'uncertain' ? c.retryOriginal : canSubmit ? c.continue : t.cards.formSubmitDisabled }}</text>

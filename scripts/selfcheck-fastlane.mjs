@@ -1150,11 +1150,11 @@ function functionBody(src, opener) {
         && pgCode.includes("dailyLimitCount: dailyFacts.value.limitCount,")
         && pgCode.includes("withdrawals: dailyFacts.value.withdrawals,")
         && pgCode.includes("limit: String(dailyFacts.value.limitCount),")
-        // 🔴 说不说使用量 ⟺ 服务端是否配置了计数闸；未配置时必须明确显示未设，
-        // 不能把 0 伪装成每日额度。
+        // 🔴 说不说使用量 ⟺ 服务端是否配置了计数闸；未配置时不显示这一行，
+        // 不能把 0 伪装成每日额度(2026-10-29 起也不再显示「未设置上限」这类后台配置状态)。
         && pgCode.includes('<text v-if="dailyFactsDisplayable && limitFacts.dailyLimitConfigured" class="block">{{ dailyUsageText }}</text>')
-        && pgCode.includes('<text v-else-if="dailyFactsDisplayable && withdrawalPolicy" class="block">{{ t.wallet.dailyWithdrawalCountNotSet }}</text>'));
-    check("🔴 提现页:显示 / 降额 CTA / 提交前复检均走服务端事实或冻结快照",
+        && !pgCode.includes("dailyWithdrawalCountNotSet"));
+    check("🔴 提现页:显示 / 提交前复检均走服务端事实或冻结快照",
       (() => {
         // mock 轨的纯函数评估必须吃 dailyFacts；remote 轨的显示与降额 CTA 使用
         // 服务端 remoteSmallLineEligibility，不应被旧门强行要求本地再算一遍。
@@ -1186,8 +1186,7 @@ function functionBody(src, opener) {
         // 提交前复检 = 拿冻结账号 snap.account 的那一处;其余都是展示侧。
         const submitRechecks = callArgs.filter((a) => a.includes("snap.account"));
         const liveReads = callArgs.filter((a) => !a.includes("snap.account"));
-        return all >= 2 && all === fed
-          && pgCode.includes("remoteSmallLineEligibility.value")
+        return all >= 1 && all === fed
           && pgCode.includes("daily: dailyFacts.value,")
           // 提交前复检:必须吃同刻冻结的 snap.daily,且**绝不能**掺活值
           && submitRechecks.length >= 1
@@ -1283,28 +1282,10 @@ function functionBody(src, opener) {
   const pgSrc = readSrc("src/pages/me/wallet-withdraw.vue");
   // 判据全用 includes 精确串,不用正则 —— 这几行历史上被 shell 转义吃掉反斜杠后
   // 会退化成「几乎什么都匹配」的假绿正则(同替换串静默损坏那族坑)。
-  check("🔴 正向横幅三层前提齐全:真免了闸 + 路由放行 + **这笔现在提交得了**",
-    pgSrc.includes('waivedLines.value.length > 0 && eligibility.value.route === "pass" && submitDisabledReason.value === ""')
-      && pgSrc.includes("waivedGateLines(t.value, eligibility.value.waivedGates)"));
-  // 🔴 CTA 承诺「改成小额线就能立刻处理」,判据必须和**提交拦截**同一个源。只看 route 不够:
-  // core 把 dailyLimitReached 单独返回、不并进 route,费率不可用更是页面层的事 ——
-  // 日限已达时旧判据照样劝你改成 $50,点完什么都不会发生,还把当天唯一一次机会的金额改小了。
-  check("🔴 降额 CTA 与提交拦截同源(disabledReasonFor),不是只看 route 或 amount > line",
-    (() => {
-      const k = pgSrc.indexOf("const fastLaneOverLine = computed(");
-      if (k < 0) return false;
-      const body = balancedBody(pgSrc, k);
-      if (!body) return false;
-      return body.includes('disabledReasonFor(smallAmountLine.value, smallLineDecision.value) === ""')
-        // 假设金额那次评估必须**连日限事实一起**问 —— 少喂 dailyFacts 就等于拿一份
-        // 「日限恒不触发」的答案去劝用户降额,又回到 z1 P0-1 那个空头承诺。
-        && pgSrc.includes("evaluateWithdrawal(app.accountKey, network.value, boundAddress.value, maxWithdrawable.value, dailyFacts.value, smallAmountLine.value)")
-        // 提交拦截本身必须是「入参为金额」的函数,否则 CTA 没法对假设金额问同一个问题
-        && pgSrc.includes("function disabledReasonFor(amount: number, decision: WithdrawalEligibility): string")
-        && pgSrc.includes("const submitDisabledReason = computed(() => disabledReasonFor(amountNum.value, eligibility.value));");
-    })());
-  check("🔴 CTA 可点(说了「改小就行」必须给一键改,否则等于没下一步)",
-    pgSrc.includes('@click.stop="useSmallAmountLine"') && pgSrc.includes("function useSmallAmountLine()"));
+  // 2026-10-29 文案审查 D1:免审额度属于风控规则,不再告诉用户。页面不再渲染「已免除」横幅、
+  // 「改为 $n 提现」降额按钮和首笔审核提示;小额免审的判定本身(上面各格)照常运行。
+  check("🔴 提现页不暴露免审额度:无降额按钮、无「已免除」横幅、无首笔审核提示",
+    !/useSmallAmountLine|fastLaneOn\b|fastLaneOverLine|firstTimeReview|waivedGateLines|smallAmountThresholdUsd/.test(pgSrc));
   // 🔴 判定必须跨时间边界重算。eligibility 的依赖里原本没有时间(mockServerNow 非响应源),
   // 于是冻结倒计时归零后判定还停在 freeze(横幅换个壳再说一遍冻结原因、提交被无原因兜底挡死),
   // 日限重置时刻到了也照样拦着 —— 页面刚承诺的那个时刻自己打自己脸。
@@ -1356,41 +1337,11 @@ function functionBody(src, opener) {
   //  · 端到端不生效 —— scripts/selfcheck-config-compat.mjs ④ 拿出厂配置跑真判定,断言
   //    fastLaneApplied=false / waivedGates 为空,并带一格阈值 50 的红测(接回来就该亮)。
   // ⚠️ 重新启用时,「向下取到 2 位」的落地值必须一并恢复 —— 那条历史缺陷(配 49.999 写进
-  // 50.00 反而超线 → 点不动也不消失的按钮)的完整说明留在 wallet-withdraw.vue 里
-  // smallAmountLine 定义正上方,别只把那个 computed 改掉。
-  check("🔴 首审提示按判定结果显示,不再常显(否则与免审横幅当场对打)",
-    pgSrc.includes('const firstTimeReviewApplies = computed(() => eligibility.value.riskReasons.includes("first-withdrawal-review"))')
-      && pgSrc.includes('v-if="firstTimeReviewApplies"'));
-  // 🔴 首审提示**不给时间承诺**。系统对人工复核没有任何推进机制(advanceArrival 对非 pass 恒不推进,
-  // 实测把时间推到十年后仍不动),承诺一个没人兑现的时限是硬谎。
-  // 曾试图新建配置项 manualReviewSlaHours 来「接单源」——但后台 D5 参数集里没有它、PRD 零命中,
-  // 那只是把写死的 24 换个地方藏。这条同时守「不许再引入没有后台配置面的假配置项」。
-  check("🔴 首审提示不做时间承诺,也不许再引入没有后台配置面的假配置项",
-    pgSrc.includes("const firstTimeReviewText = computed(() => t.value.wallet.firstTimeReview);")
-      && !readSrc("src/store/config-types.ts").includes("manualReviewSlaHours")
+  // 50.00 反而超线 → 点不动也不消失的按钮)。2026-10-29 起页面不再展示降额按钮(文案审查 D1)。
+  check("🔴 免审与首笔审核话术已从三语删除,也不许引入没有后台配置面的审核时限配置项",
+    !readSrc("src/store/config-types.ts").includes("manualReviewSlaHours")
       && !readSrc("src/mock/platform-config.ts").includes("manualReviewSlaHours")
-      && ["zh", "en", "vi"].every((l) => {
-        const src = readSrc(`src/i18n/messages/${l}.ts`);
-        const m = src.match(/firstTimeReview: "([^"]*)"/);
-        // 判据写成语义:挖掉占位符后不许剩任何数字。不用 \b(只认 ASCII,中文那面完全不设防)、
-        // 也不用「位数」近似(写「3 天」不红、含 $1,000 的正当文案反而假红)。
-        return !!m && !/\d/.test(m[1].replace(/\{\w+\}/g, ""));
-      }));
-  check("🔴 免闸话术三语齐备且占位符是 {g}(写成 ${g} 会漏出一个裸美元符号)",
-    ["zh", "en", "vi"].every((l) => {
-      const src = readSrc(`src/i18n/messages/${l}.ts`);
-      const m = src.match(/fastLaneOnBody: "([^"]*)"/);
-      if (!m || !m[1].includes("{g}") || m[1].includes("${g}")) return false;
-      // 🔴 码表必须在 waivedGates 这个块里查。原本做整文件子串搜索,而同名 code 在
-      //    riskReasons 里也各有一份 —— 把 waivedGates 整块删掉这条照样 PASS,
-      //    而删掉会让 waivedGateLines 对 undefined 取下标、横幅计算直接抛异常。
-      const k = src.indexOf("waivedGates: {");
-      if (k < 0) return false;
-      const block = src.slice(k, src.indexOf("},", k));
-      return block.includes('"new-address-hold":') && block.includes('"first-withdrawal-review":');
-    }));
-  check("🔴 码表缺失时降级为少显示一行,不炸页面",
-    readSrc("src/lib/risk-reason-text.ts").includes("(t.wallet.waivedGates ?? {})"));
+      && ["zh", "en", "vi"].every((l) => !/\b(fastLaneOnBody|fastLaneCta|firstTimeReview|waivedGates):/.test(readSrc(`src/i18n/messages/${l}.ts`))));
   // 🔴 提交在途,**参与建单的每一个输入都必须冻成快照**。
   // 曾经只冻了费用报价与 NEX 余额,唯独漏了报价的分母 —— 金额。而改金额的入口不止输入框:
   // 「全部提现」和降额 CTA 都是裸 <view @click>,提交转圈那 1.2 秒里照样点得动。
@@ -1416,8 +1367,8 @@ function functionBody(src, opener) {
       if (s < 0 || a < 0 || s > a) return false;
       return !code.slice(a).includes("amountNum.value");
     })());
-  check("🔴 提交在途金额冻结:两个改金额的入口都有 inputsLocked 守卫(输入框有 :disabled,它俩没有)",
-    ["function useMax() {", "function useSmallAmountLine() {"].every((sig) => {
+  check("🔴 提交在途金额冻结:「全部提现」入口有 inputsLocked 守卫(输入框有 :disabled,它没有)",
+    ["function useMax() {"].every((sig) => {
       const k = pgSrc.indexOf(sig);
       if (k < 0) return false;
       return pgSrc.slice(k, k + 200).includes("if (inputsLocked.value) return;");

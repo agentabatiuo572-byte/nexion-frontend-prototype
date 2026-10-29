@@ -276,13 +276,16 @@ describe("profile authoritative read lifecycle", () => {
   it.each([
     ["en", "Registered Member", "Rising Star"],
     ["vi", "Thành viên đã đăng ký", "Ngôi sao mới"],
-  ] as const)("renders the published current and next rank in %s", async (localeCode, current, next) => {
+  ] as const)("renders only the V level for the current and next rank in %s", async (localeCode, current, next) => {
     const h = mount(localeCode);
     const read = h.page.refreshVRankForCurrentAccount();
     h.accept(0, 0, true);
     await read;
-    expect(h.page.tierLabel.value).toBe(`V0 · ${current}`);
-    expect(h.page.tierProgressLine.value).toContain(`V1 · ${next}`);
+    // App shows the V level only (APP-COPY-AUDIT D6); configured titles stay internal.
+    expect(h.page.tierLabel.value).toBe("V0");
+    expect(h.page.tierProgressLine.value).toContain("V1");
+    expect(h.page.tierProgressLine.value).not.toContain(next);
+    expect(h.page.tierLabel.value).not.toContain(current);
   });
   it("does not render a locally seeded tier or unset wallet while reads are unconfirmed", () => {
     const h = mount();
@@ -295,8 +298,8 @@ describe("profile authoritative read lifecycle", () => {
     h.reads[0].current.reject(Error("offline")); await first;
     expect(h.rank.remoteError).toBeTruthy(); expect(h.page.tierLabel.value).toBe("—");
     const retry = h.page.refreshVRankForCurrentAccount(); h.accept(1, 4); await retry;
-    expect(h.rank.remoteError).toBeNull(); expect(h.page.tierLabel.value).toBe("V4 · 级别4");
-    expect(h.page.tierProgressLine.value).toContain("V5 · 级别5");
+    expect(h.rank.remoteError).toBeNull(); expect(h.page.tierLabel.value).toBe("V4");
+    expect(h.page.tierProgressLine.value).toContain("V5");
   });
   for (const event of ["runtime", "account", "rebind", "hide-show"]) {
     for (const failed of [false, true]) {
@@ -309,7 +312,7 @@ describe("profile authoritative read lifecycle", () => {
         h.accept(latest, 8); await flush();
         if (failed) h.reads[0].current.reject(Error("late")); else h.accept(0, 2);
         await old;
-        expect(h.page.tierLabel.value).toBe("V8 · 级别8"); expect(h.rank.remoteError).toBeNull();
+        expect(h.page.tierLabel.value).toBe("V8"); expect(h.rank.remoteError).toBeNull();
       });
     }
   }

@@ -350,7 +350,6 @@ async function readDOM(page, target) {
       const attributes = ["aria-label", "aria-valuetext"].filter(name => el.hasAttribute(name)).map(name => ({ text: el.getAttribute(name), source: name, class: String(el.className || ""), selector: el.getAttribute("data-testid") || String(el.className || "") }));
       if (!el.matches("uni-text, .nx-wallet-amount, .promotion-price, .promotion-summary, .nx-mask, .nx-toast, [role=alert], [role=status], [role=dialog]")) return attributes;
       let text = el.textContent.replace(/\s+/g, " ").trim();
-      if (active?.dataset.page === "pages/me/wallet-nex" && /Platform baseline|平台基准价|Giá mốc nền tảng/.test(el.parentElement?.textContent || "")) return attributes;
       if (/^\d[\d,.]*$/.test(text) && el.parentElement?.textContent.length < 120 && /\$|USDT|NEX/.test(el.parentElement.textContent)) text = el.parentElement.textContent.replace(/\s+/g, " ").trim();
       return [...attributes, { text, source: "text", class: String(el.className || ""), selector: el.getAttribute("data-testid") || String(el.className || "") }];
     }).filter(item => item.text && !/loss|gpu|vram|tops|hashrate/i.test(item.class));

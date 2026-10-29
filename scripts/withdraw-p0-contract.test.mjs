@@ -38,7 +38,8 @@ test("risk disclosure consumes I5 authority independently from withdrawal policy
   assert.match(disclosureStore, /await\s+riskDisclosureApi\.acknowledge\(disclosure\)[\s\S]*await\s+riskDisclosureApi\.current\(\)/);
   assert.doesNotMatch(disclosure, /withdrawalApi\.policy\(\)/);
   assert.match(withdraw, /withdrawalApi\.policy\(\)/);
-  assert.match(withdraw, /smallAmountThresholdUsd/);
+  // 2026-10-29 文案审查 D1:免审额度属于风控规则,提现页不再读取或展示它。
+  assert.doesNotMatch(withdraw, /smallAmountThresholdUsd/);
 });
 
 test("risk disclosure keeps the two-step gate usable across H5 and App webviews", () => {

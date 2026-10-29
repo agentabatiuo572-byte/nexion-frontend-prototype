@@ -46,12 +46,11 @@ describe("withdrawal authoritative-facts display", () => {
     expect(source).toContain('!withdrawalActionsFresh.value');
   });
 
-  it("uses the shared account, runtime, and request-sequence fence for policy and both eligibility reads", () => {
+  it("uses the shared account, runtime, and request-sequence fence for policy and eligibility reads", () => {
     expect(source).toContain("const requestedAccountKey = app.accountKey;");
     expect(source).toContain('from "@/lib/withdrawal-facts-request-fence"');
     expect(source).toContain("isCurrentWithdrawalFactsScope(");
     expect(source).toContain("remoteEligibilityEpoch");
-    expect(source).toContain("remoteSmallLineEligibilityEpoch");
     expect(source).toContain("subscribeRuntimeRevision");
     expect(source).toContain("invalidateWithdrawalFacts();");
     expect(source).toContain("watch(() => [app.accountKey, app.accountBindingEpoch] as const");
@@ -59,8 +58,9 @@ describe("withdrawal authoritative-facts display", () => {
   });
 
   it("does not render a zero minimum while the current policy is unknown", () => {
-    expect(source).toContain("const withdrawalPolicyCurrent");
-    expect(source).toContain('v-if="withdrawalPolicyCurrent" class="block"');
+    // The minimum shows once, in the amount area, and only when the policy-backed facts are readable.
+    expect(source).toContain('{ hasSnapshot: withdrawalPolicy.value !== null, status: withdrawalPolicyStatus.value },');
+    expect(source).toContain('<text v-if="withdrawalFactsDisplayable">{{ minAmountLine }}</text>');
   });
 });
 

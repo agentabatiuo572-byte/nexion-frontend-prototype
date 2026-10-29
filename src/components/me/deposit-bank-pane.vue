@@ -100,7 +100,6 @@
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="14" x="3" y="5" rx="2" /><path d="M3 10h18" /><path d="M7 15h.01" /></svg>
             </view>
             <text class="block text-center" style="margin-top: 10px; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2); line-height: 1.55">{{ hostedRejected ? t.bankPane.hostedRejectedNote : hostedCanOpen ? t.bankPane.hostedSecureNote : t.bankPane.hostedPendingNote }}</text>
-            <text v-if="hostedRejected && intent.providerReason" class="block text-center break-all" style="margin-top: 8px; font-size: 12px; color: var(--v5-ink-2); line-height: 1.55">{{ fmt(t.bankPane.providerReason, { reason: intent.providerReason }) }}</text>
           </view>
           <view v-if="hostedCanOpen" class="nx-bank-hosted-continue-cta w-full grid place-items-center active:opacity-90" :style="paidBtnStyle" role="button" tabindex="0" @click="openHostedOrder(intent)">
             <text>{{ t.bankPane.hostedContinueCta }}</text>
@@ -662,7 +661,6 @@ async function completeCreateOrder(usdt: number, expectedAccountKey: string) {
       }
       if (cause instanceof ApiError && cause.message === "HDPAY_ORDER_CREATE_REJECTED") {
         approvedBusinessFailureCopy = t.value.bankPane.hostedRejectedNote;
-        if (cause.providerReason) approvedBusinessFailureCopy += `\n${fmt(t.value.bankPane.providerReason, { reason: cause.providerReason })}`;
       }
       // Another payment can consume the last daily capacity after our preflight.
       // The server remains the final authority; translate this settled 422 into

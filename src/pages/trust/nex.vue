@@ -93,8 +93,6 @@
           <HowFaqRow :q="w.faqQ1" :a="w.faqA1" />
           <HowFaqRow :q="w.faqQ2" :a="w.faqA2" />
           <HowFaqRow :q="w.faqQ3" :a="w.faqA3" />
-          <HowFaqRow :q="w.faqQ4" :a="w.faqA4" />
-          <HowFaqRow :q="w.faqQ5" :a="w.faqA5" />
         </view>
       </HowSection>
 

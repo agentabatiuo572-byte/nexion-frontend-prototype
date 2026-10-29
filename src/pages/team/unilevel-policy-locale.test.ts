@@ -13,5 +13,5 @@ test.each(["en", "zh", "vi"] as const)("renders independent rates, split and wai
 test("price outage keeps historical paired amounts and explains new accrual is pending", async () => {
   const p = { ...policyFixture(), nexUsdtPrice: null };
   const page = await directPage({ api: { policy: vi.fn().mockResolvedValue(p), snapshot: vi.fn().mockResolvedValue(snapshotFixture()) } }); await flush();
-  expect(text(page.root)).toContain("price is temporarily unavailable"); expect(text(page.root)).toContain("4000.00 UVT");
+  expect(text(page.root)).toContain("UVT price is temporarily unavailable"); expect(text(page.root)).toContain("4000.00 UVT");
 });

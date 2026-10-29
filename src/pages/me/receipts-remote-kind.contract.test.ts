@@ -25,10 +25,10 @@ describe("remote receipt category isolation", () => {
     expect(receiptsPageSource).toContain("t.value.receipt.depositEmptyTitle");
   });
 
-  it("names the current HDPay channel in every top-up empty state", () => {
+  it("does not name the payment provider in any top-up empty state", () => {
     expect(receiptsPageSource).toContain("t.value.receipt.depositEmptyHint");
     for (const locale of [zh, en, vi]) {
-      expect(locale.receipt.depositEmptyHint).toContain("HDPay");
+      expect(locale.receipt.depositEmptyHint).not.toContain("HDPay");
       expect(locale.receipt.depositEmptyHint).not.toContain("VietQR");
     }
   });

@@ -164,7 +164,6 @@
            first mount rather than missing it if this tab starts with 0 items. -->
       <view v-if="!remoteReceiptsMode" ref="loadMoreSentinel" style="height: 1px" />
 
-      <text v-if="!remoteReceiptsMode" class="block" :style="footerStyle">{{ t.receipt.footerNote }}</text>
 
       <ReceiptModal :receipt="open" @close="open = null" />
     </view>
@@ -675,13 +674,6 @@ const remoteAmountStyle: CSSProperties = {
   fontSize: "13px",
   fontWeight: 600,
   color: "var(--v5-brand)",
-};
-const footerStyle: CSSProperties = {
-  margin: "16px 24px 24px",
-  textAlign: "center",
-  fontSize: "12px",
-  color: "var(--v5-ink-4)",
-  lineHeight: 1.625,
 };
 
 import GlassSegments from "@/components/glass-segments.vue";

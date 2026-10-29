@@ -206,7 +206,7 @@ test.each(['en','zh','vi'] as const)('Binary %s masks estimate, wings, leaders a
   expect(p.nodes('binary-contribution-fill')).toHaveLength(0);expect(p.nodes('binary-weak')).toHaveLength(0);
   expect(text(p.nodes('reward-binary-basis')[0])).toContain(p.view.formulaText);
   for(const secret of ['240.75','120.25','1720','1480']) expect(accessiblePresentation(p.root)).not.toContain(secret);
-  expect(text(p.root)).toContain('4,321.00');expect(JSON.stringify(p.commission.binarySnapshot)).toBe(raw);
+  expect(text(p.root)).not.toContain('4,321.00');expect(JSON.stringify(p.commission.binarySnapshot)).toBe(raw);
   expect(p.commission.refreshCanonicalBinary).toHaveBeenCalledTimes(calls);
   p.visibility.toggle();await flush();expect(text(p.root)).toBe(before);expect(p.nodes('binary-contribution-fill')).toHaveLength(2);
 });

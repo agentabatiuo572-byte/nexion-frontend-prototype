@@ -2,7 +2,7 @@
 const COPY = {
   zh: { unit: '算力点', self: '自购算力', team: '团队算力', month: '本月算力', lifetime: '累计算力', needSelf: '自购算力还差 {n}', needTeam: '团队算力还差 {n}', conditionsPending: '算力条件待公布', memberSummary: '{n} 名成员 · {points}' },
   en: { unit: 'compute pts', self: 'Own compute', team: 'Team compute', month: 'Monthly compute', lifetime: 'Total compute', needSelf: '{n} more own compute', needTeam: '{n} more team compute', conditionsPending: 'Compute requirements pending', memberSummary: '{n} members · {points}' },
-  vi: { unit: 'điểm tính toán', self: 'Năng lực tự mua', team: 'Năng lực đội', month: 'Năng lực tháng', lifetime: 'Năng lực tích lũy', needSelf: 'Còn thiếu {n} tự mua', needTeam: 'Đội còn thiếu {n}', conditionsPending: 'Chưa công bố điều kiện điểm', memberSummary: '{n} thành viên · {points}' },
+  vi: { unit: 'điểm tính toán', self: 'Điểm cá nhân', team: 'Điểm của nhóm', month: 'Điểm tháng này', lifetime: 'Điểm tích lũy', needSelf: 'Còn thiếu {n} (cá nhân)', needTeam: 'Còn thiếu {n} (nhóm)', conditionsPending: 'Chưa công bố điều kiện điểm', memberSummary: '{n} thành viên · {points}' },
 };
 export function computePointsCopy(locale: string) {
   return COPY[locale.split('-')[0] as keyof typeof COPY] ?? COPY.en;

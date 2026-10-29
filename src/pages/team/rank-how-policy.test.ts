@@ -17,7 +17,7 @@ describe("rank-how server policy boundary", () => {
     expect(formatCanonicalRankConditions({ v: 1, conditions: { selfComputePoints: 2000, teamComputePoints: 20000 } }, labels, "zh"))
       .toEqual(["自购算力 ≥ 2,000 算力点", "团队算力 ≥ 20,000 算力点"]);
     expect(formatCanonicalRankConditions({ v: 1, conditions: { selfComputePoints: 0 } }, labels, "vi"))
-      .toEqual(["Năng lực tự mua ≥ 0 điểm tính toán"]);
+      .toEqual(["Điểm cá nhân ≥ 0 điểm tính toán"]);
   });
   it("uses the canonical ladder in both development and production", () => {
     expect(rankHowPresentation("prod", true)).toBe("canonical-ladder");

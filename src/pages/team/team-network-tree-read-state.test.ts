@@ -74,9 +74,9 @@ describe("team network and tree remote read states", () => {
     expect(mock).toContain(en.tree.emptyDirect);
     expect(mock).toContain(en.tree.emptyExtended);
     expect([en, zh, viMessages].map((messages) => messages.network.projectionLoadingTitle)).toEqual([
-      "Loading team network…",
-      "正在读取团队网络…",
-      "Đang tải mạng lưới đội nhóm…",
+      "Loading your team…",
+      "正在加载团队…",
+      "Đang tải nhóm…",
     ]);
   });
 

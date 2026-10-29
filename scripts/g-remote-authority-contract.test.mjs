@@ -43,7 +43,9 @@ test("G2 remote mode never records a local wallet success", () => {
   // 🔴 判据必须锚**行为**,不能锚注释:原本这里只断言「那句注释还在不在」,红测实测把
   //    displayUserUsed 改成直接渲染本地持久计数、注释原样留着 —— 四道门全绿。
   //    逐个锚住四个展示派生值的 `remoteApiEnabled ? 远端值 : 本地值` 形状。
-  for (const derived of ["displayUserUsed", "displayPlatformUsed", "displayUserCap", "displayPlatformCap"]) {
+  // 2026-10-29 文案审查 D2:平台资金池不再展示,只剩个人额度这两个派生值。
+  assert.doesNotMatch(source, /displayPlatform(?:Used|Cap)|exchangePoolToday/);
+  for (const derived of ["displayUserUsed", "displayUserCap"]) {
     assert.match(
       source,
       new RegExp(`const ${derived} = computed\\(\\(\\) => remoteApiEnabled \\? \\(?remoteState\\.value\\?\\.`),

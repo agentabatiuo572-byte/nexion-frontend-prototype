@@ -61,10 +61,8 @@ for (const l of LOCALES) {
   // s4BodyLargeAmount 仍是插值句,必须带的占位符照旧(缺了 = 数字没接上配置)。
   check(`[${l}] s4BodyLargeAmount 带 {d} 与 {large}`,
     ["{d}", "{large}"].every((m) => String(at(msgs[l], "riskDisclosure.s4BodyLargeAmount") ?? "").includes(m)));
-  // 首审提示改成不给时间承诺后,它自己也不许再出现数字
-  check(`[${l}] wallet.firstTimeReview 不做时间承诺(系统对人工复核无推进机制)`,
-    !hasHardcodedNumber(at(msgs[l], "wallet.firstTimeReview")),
-    String(at(msgs[l], "wallet.firstTimeReview") ?? ""));
+  // 2026-10-29 文案审查 D1:首笔审核提示已删除,不再告诉用户哪些提现会转人工。
+  check(`[${l}] wallet.firstTimeReview 已删除`, at(msgs[l], "wallet.firstTimeReview") === undefined);
 }
 
 // 三语互不相同:整份复制粘贴 = 有值但没翻译,「存在 + 无数字」两道门都看不出来。

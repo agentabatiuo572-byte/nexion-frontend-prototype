@@ -40,7 +40,7 @@ describe("repurchase page names one product", () => {
 
   it.each(LOCALES)("%s keeps token buyback distinct from the re-investment product", ({ messages }) => {
     // Protect the meaning at its actual keys, without pinning an obsolete fee/burn claim.
-    for (const text of [messages.riskDisclosure.s3Body, messages.exchangeHowItWorks.faqA1]) {
+    for (const text of [messages.riskDisclosure.s3Body]) {
       expect(text).toMatch(/回购|buyback|mua lại/i);
       expect(text).not.toMatch(/复投|re-invest|tái đầu tư/i);
     }

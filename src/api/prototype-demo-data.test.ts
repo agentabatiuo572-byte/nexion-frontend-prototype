@@ -117,16 +117,15 @@ describe('restored storefront sales proof', () => {
 
 describe('prototype team-guide publications', () => {
   const keys = ['team-unilevel-how', 'team-binary-how', 'team-commissions-how'] as const;
-  it.each(['zh', 'en', 'vi'])('publishes all three %s documents through the real parser with explicit demo scope', async locale => {
+  it.each(['zh', 'en', 'vi'])('publishes all three %s default documents through the real parser', async locale => {
     const d = demo('en');
     const before = structuredClone(d.state);
     for (const key of keys) {
       const document = await createHowContentApi(d.client).published(key, locale);
       expect(document).toMatchObject({ contentKey: key, locale, status: 'PUBLISHED', versionSource: 'ENTRY' });
       expect(document.blocks[0].id).toBe('hero');
-      expect(document.blocks[0].body).toMatch(/本地原型演示|Local prototype demo|nguyên mẫu cục bộ/);
       expect(new Set(document.blocks.map(block => block.id)).size).toBe(document.blocks.length);
-      expect(document.blocks.length).toBeGreaterThan(5);
+      expect(document.blocks.length).toBeGreaterThanOrEqual(4);
       expect(document.blocks.every(block => block.title.trim() && block.body.trim())).toBe(true);
       const publicText = document.blocks.flatMap(block => [block.title, block.body, ...(block.items ?? [])]).join('\n');
       expect(publicText).not.toMatch(/\bL\d+\b|层级|逐层|(?:奖励|收益|等级)深度|\blevels?\b|\bdepth\b|độ sâu|cấp (?:mời|nguồn|gián tiếp)/i);
@@ -136,36 +135,10 @@ describe('prototype team-guide publications', () => {
       if (key === 'team-unilevel-how') {
         expect(document).toMatchObject({ schemaVersion: 2, templateId: 'unilevel-v2' });
         expect(document.blocks.map(block => block.id)).toEqual(expect.arrayContaining(['direct-referral-scope', 'seven-layer-scope']));
-        const depths = document.blocks.find(block => block.id === 'rank-depths')!;
-        const ranks = (await createVRankApi(d.client).ladder()).ranks.filter(rank => rank.visible);
-        expect(depths.items).toHaveLength(ranks.length);
-        const number = (value: number) => new Intl.NumberFormat(locale, { maximumFractionDigits: 6 }).format(value);
-        ranks.forEach((rank, index) => {
-          const item = depths.items![index];
-          expect(item).toContain(`V${rank.v}:`.replace(':', locale === 'zh' ? '：' : ':'));
-          expect(item).toMatch(/最多 .* 步邀请关系|up to .* steps from you|tối đa .* bước mời tính từ bạn/);
-          expect(item.match(/\d+(?:[.,]\d+)*/g)).toEqual([
-            String(rank.v), ...[rank.unilevelDepth, rank.selfComputePoints, rank.teamComputePoints, rank.directRefs].map(value => number(value!)),
-          ]);
-        });
-        const scope = document.blocks.find(block => block.id === 'seven-layer-scope')!.body;
-        expect(scope).toMatch(/1 步是你直接邀请的成员，2 步是他们直接邀请的成员|1 step means a member you invited directly; 2 steps means a member they invited directly|1 bước là thành viên bạn trực tiếp mời; 2 bước là người do họ trực tiếp mời/);
-        expect(scope).toMatch(/之后依次延伸|each further invitation adds a step|mỗi lời mời tiếp theo thêm một bước/);
-        expect(scope).toMatch(/等级允许的邀请范围、订单资格和结算状态|current rank, order eligibility and settlement status|hạng hiện tại cho phép, điều kiện đơn hàng và trạng thái quyết toán/);
-        const limits = document.blocks.find(block => block.id === 'unknown-network-rates')!.body;
-        expect(limits).toMatch(/未提供|not supplied|Chưa cung cấp/);
-        expect(limits).toMatch(/额外门槛和总封顶|additional eligibility requirements and an overall cap|điều kiện bổ sung và giới hạn tổng/);
-        expect(limits).toMatch(/不能沿用直接邀请比例|Do not reuse the direct invitation rate|Không dùng lại tỷ lệ mời trực tiếp/);
-        expect(limits).toMatch(/到账保证|payment guarantee|bảo đảm nhận tiền/);
-        expect(depths.body).toMatch(/仍须满足该等级其他条件并完成资格核验|still requires the other rank conditions and eligibility verification|vẫn cần đáp ứng điều kiện hạng khác và được xác minh/);
+        // Default copy: purchase and device-earning rewards explained without layers, rates or caps.
         expect(document.blocks.find(block => block.id === 'direct-referral-scope')!.body)
-          .toMatch(/只给直接邀请人，由平台额外支付，成员原设备收益不扣减|only to the direct inviter\. The platform pays extra; the member keeps the original device earnings|chỉ trả cho người mời trực tiếp\. Nền tảng trả thêm, thành viên giữ nguyên thu nhập thiết bị/);
-        const policy = await createDirectReferralApi(d.client).policy();
-        for (const [id, rule] of [['purchase-rule', policy.purchase], ['device-rule', policy.deviceEarning]] as const) {
-          const body = document.blocks.find(block => block.id === id)!.body;
-          expect(body).toContain('USDT'); expect(body).toContain('UVT');
-          expect(body.match(/\d+(?:[.,]\d+)*/g)).toEqual([rule.totalRatePct, rule.usdtSharePct, 100 - rule.usdtSharePct, rule.coolingDays].map(number));
-        }
+          .toMatch(/不影响好友自己的收益|without reducing their earnings|không làm giảm thu nhập của họ/);
+        expect(publicText).not.toMatch(/\d+(?:[.,]\d+)?\s*%/);
       }
     }
     expect(d.state).toEqual(before);
@@ -189,9 +162,9 @@ describe('prototype team-guide publications', () => {
     }
     const network = view.section('network').body;
     for (const rate of ['10%', '60%', '40%', '5%', '70%', '30%']) expect(network).toContain(rate);
-    expect(network).toContain(view.copy.directOnly);
-    expect(view.section('faq-cultivation').body).toMatch(/没有推荐人时由晋升成员本人获得|If there is no referrer, the promoted member receives it|Nếu không có người giới thiệu, thành viên thăng hạng tự nhận/);
-    expect(view.section('overview').body).toMatch(/固定演示值|fixed demo value|giá trị minh họa cố định/);
+    expect(view.section('faq-cultivation').body).toMatch(/邀请这位好友的人|The person who invited that friend|Người đã mời người bạn đó/);
+    // Payout mechanics (caps, unmatched-volume handling) stay out of the public guide.
+    expect(view.section('binary').body).not.toMatch(/上限|清零|cap|reset|giới hạn|xóa/i);
     expect(view.amounts.network).toBe(view.copy.pendingAmount);
     expect(view.amounts.cultivation).toContain('10.00 UVT');
     expect(view.exampleTotal).toBe(view.copy.noTotal);
@@ -209,11 +182,9 @@ describe('prototype team-guide publications', () => {
     expect(guide.leadership).toMatchObject({ rate: pool.injectRate, minRank: pool.unlockRank, monthlyCap: 1000 });
     expect(guide.coolingDays).toBeNull();
     expect(Object.values(guide.network)).toEqual([null, null, null]);
-    const comparison = document.blocks.find(block => block.id === 'point-comparison')!;
-    expect(comparison.body).toMatch(/已确认订单金额|confirmed order amounts|số tiền đơn đã xác nhận/);
-    const amount = document.blocks.find(block => block.id === 'amount-and-rate')!.body;
-    expect(amount).toContain(`${binary.estimatedAmountUsdt} USDT`);
-    expect(comparison.items!.join(' ')).toContain(`${new Intl.NumberFormat(locale).format(binary.trackB)} USDT`);
+    // The default guide explains how to earn; live amounts stay on the reward page.
+    expect(document.blocks.find(block => block.id === 'how-to-earn')!.items).toHaveLength(3);
+    expect(JSON.stringify(document.blocks)).not.toContain(`${binary.estimatedAmountUsdt} USDT`);
   });
 
   it.each(['zh', 'en', 'vi'])('keeps %s empty-account publications readable without creating paid rewards', async locale => {
@@ -226,8 +197,7 @@ describe('prototype team-guide publications', () => {
     expect(view.incomplete).toBe(false);
     expect(directPolicy.configured).toBe(false);
     expect(view.amounts.network).toBe(view.copy.notConfigured);
-    expect((await createHowContentApi(d.client).published('team-binary-how', locale)).blocks.find(block => block.id === 'amount-and-rate')!.body).toContain('0 USDT');
-    expect((await createHowContentApi(d.client).published('team-unilevel-how', locale)).blocks.find(block => block.id === 'purchase-rule')!.body).toMatch(/未开放|unavailable|chưa mở/);
+    expect((await createHowContentApi(d.client).published('team-binary-how', locale)).blocks.length).toBeGreaterThan(0);
   });
 
   it('limits the new module to read-only guide routes and follows changed fixture facts', async () => {
@@ -244,11 +214,8 @@ describe('prototype team-guide publications', () => {
     expect(guide.binary.matchRate).toBe(.07125);
     const doc = teamGuidesDemo(new URL('http://prototype.invalid/api/content/how-it-works/team-binary-how?locale=en'), 'zh', request, read);
     expect(doc.locale).toBe('en');
-    expect(doc.blocks.find((block: { id: string }) => block.id === 'amount-and-rate').body).toContain('3.21 USDT');
-    expect(doc.blocks.find((block: { id: string }) => block.id === 'amount-and-rate').body).toContain('7.125%');
-    const purchase = teamGuidesDemo(new URL('http://prototype.invalid/api/content/how-it-works/team-unilevel-how?locale=en'), 'zh', request, read);
-    expect(purchase.blocks.find((block: { id: string }) => block.id === 'purchase-rule').body).toContain('12.5%');
-    expect(purchase.blocks.find((block: { id: string }) => block.id === 'purchase-rule').body).toContain('11-day');
+    // The default guides defer live rates to the reward pages instead of repeating them.
+    expect(JSON.stringify(doc.blocks)).not.toMatch(/7\.125%|3\.21 USDT/);
     const shouldNotRead = () => { throw new Error('Unrelated route read'); };
     expect(teamGuidesDemo(new URL('http://prototype.invalid/api/content/how-it-works/genesis-how'), 'en', request, shouldNotRead)).toBeUndefined();
     expect(teamGuidesDemo(new URL('http://prototype.invalid/api/config/commission/guide'), 'en', { method: () => 'POST' }, shouldNotRead)).toBeUndefined();
@@ -288,7 +255,7 @@ describe('isolated prototype data uses the real read contracts',()=>{
     expect((await createLegalTermsApi(d.client).current(locale,'GLOBAL')).provenance).toBe('prototype-sample');
     expect((await createRiskDisclosureApi(d.client).publicCurrent('GLOBAL')).chapters).toHaveLength(7);
     expect((await createRiskDisclosureApi(d.client).current()).acknowledgmentToken).toBeNull();
-    for(const key of ['wallet-exchange-how','wallet-repurchase-how'] as const)expect((await createHowContentApi(d.client).published(key,locale)).blocks).toHaveLength(3);
+    expect((await createHowContentApi(d.client).published('wallet-exchange-how',locale)).blocks).toHaveLength(4);expect((await createHowContentApi(d.client).published('wallet-repurchase-how',locale)).blocks).toHaveLength(3);
     expect((await createTaskAssignmentApi(d.client,"prod").receipt('DEMO-RECEIPT-1')).proofHash).toHaveLength(64);
     expect((await createPublicSponsorPreviewApi(d.client).preview('UVELDEMO')).gift.status).toBe('DISABLED');
   });

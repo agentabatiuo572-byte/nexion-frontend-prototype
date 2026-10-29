@@ -106,7 +106,7 @@ async function page(locale: Locale = 'en', initial?: ReturnType<typeof facts>) {
     '@/components/ui/nx-button.vue': { default: { props: ['label'], setup: (props: any) => () => Vue.h('text', props.label) } },
     '@/components/ui/nx-section.vue': { default: slot },
     '@/components/ui/nx-list-group.vue': { default: slot },
-    '@/components/ui/nx-list-row.vue': { default: { props: ['title', 'subtitle'], setup: (props: any) => () => Vue.h('text', { 'data-gap-action': props.subtitle }, props.title) } },
+    '@/components/ui/nx-list-row.vue': { default: { props: ['title', 'subtitle'], setup: (props: any) => () => Vue.h('text', { 'data-gap-action': props.title }, props.title) } },
     '@/i18n/use-t': { useT: () => Vue.ref(dictionaries[locale]) },
     '@/store/locale': { useLocaleStore: () => ({ code: locale }) },
     '@/store/auth': { useAuth: () => auth },
@@ -168,7 +168,8 @@ describe('rank page canonical read and next-rank progress', () => {
     expect(text(nodes('rank-next-heading')[0])).not.toContain(fmt(auditUiCopy[locale].remainingConditions, { n: 4 }));
     expect(text(inherited())).toContain('••••'); expect(inherited().props['aria-expanded']).toBe(true);
     const actions = all(p.root).filter(n => n.props['data-gap-action'] !== undefined);
-    expect(actions).toHaveLength(4); expect(actions.map(n => n.props['data-gap-action'])).toEqual(Array(4).fill('••••'));
+    // Action rows carry only their verb; the gap itself is shown (and masked) in the condition rows above.
+    expect(actions).toHaveLength(4);
     for (const bar of nodes('rank-progress-track')) {
       expect(bar.props['aria-valuenow']).toBeUndefined();
       expect(bar.props['aria-valuetext']).toMatch(/^•••• \/ /);
@@ -270,12 +271,12 @@ describe('rank page canonical read and next-rank progress', () => {
     for (const [label, gap] of [
       ['V1 · Own compute ≥ 2,000 compute pts · 1,280 compute pts / 2,000 compute pts', '720 compute pts more own compute'],
       ['V1 · Team compute ≥ 20,000 compute pts · 12,800 compute pts / 20,000 compute pts', '7,200 compute pts more team compute'],
-      ['V1 · Direct refs ≥ 3 · 2 / 3', '1 more direct referral meeting the self-purchase requirement'],
+      ['V1 · Qualified friends ≥ 3 · 2 / 3', '1 more qualified friend needed'],
     ]) expect(conditionTexts(p.root, label)).toEqual([label, gap]);
     const bars = all(p.root).filter(item => item.props.role === 'progressbar');
     expect(bars.map(bar => bar.props['aria-valuenow'])).toEqual([64, 67, 64]);
     expect(text(p.root)).not.toContain('$'); expect(text(p.root)).not.toContain('90,000');
-    expect(text(p.root)).toContain('When a directly invited member reaches V1, the corresponding reward is 900.00 UVT; payment status follows the reward records.');
+    expect(text(p.root)).toContain('When a friend reaches V1, you can earn 900.00 UVT.');
     expect(text(p.root)).toContain(rankCultivationCopy('en').recipient);
     all(p.root).find(item => item.props.role === 'link')!.props.onClick();
     expect(p.navTo).toHaveBeenLastCalledWith('/pages/team/rank-how');
@@ -295,9 +296,9 @@ describe('rank page canonical read and next-rank progress', () => {
   });
 
   it.each([
-    ['zh', '成员成长奖励', '直接邀请的成员晋升至 V1 时，对应奖励为 900.00 UVT；到账状态以奖励记录为准。', '无推荐人时，由晋升者本人获得'],
-    ['en', 'Member growth reward', 'When a directly invited member reaches V1, the corresponding reward is 900.00 UVT; payment status follows the reward records.', 'If there is no referrer, the promoted member receives it'],
-    ['vi', 'Thưởng phát triển thành viên', 'Khi thành viên được mời trực tiếp đạt V1, phần thưởng tương ứng là 900.00 UVT; trạng thái chi trả theo bản ghi thưởng.', 'Nếu không có người giới thiệu, thành viên thăng hạng tự nhận thưởng'],
+    ['zh', '好友升级奖励', '好友升到 V1 时，你可获得 900.00 UVT。', '邀请这位好友的人'],
+    ['en', 'Friend rank-up reward', 'When a friend reaches V1, you can earn 900.00 UVT.', 'the person who invited that friend'],
+    ['vi', 'Thưởng khi bạn bè lên hạng', 'Khi bạn bè đạt V1, bạn có thể nhận 900.00 UVT.', 'người đã mời người bạn đó'],
   ] as const)('shows the %s trigger and recipient only for confirmed cultivation rewards', async (locale, title, trigger, fallback) => {
     const loaded = facts();
     loaded.ladder[1].cultivationBonus = 7777;
@@ -332,7 +333,7 @@ describe('rank page canonical read and next-rank progress', () => {
   it.each([
     ['en', 'Own compute ≥ 2,000 compute pts', '1,280 compute pts / 2,000 compute pts', '720 compute pts more own compute'],
     ['zh', '自购算力 ≥ 2,000 算力点', '1,280 算力点 / 2,000 算力点', '自购算力还差 720 算力点'],
-    ['vi', 'Năng lực tự mua ≥ 2.000 điểm tính toán', '1.280 điểm tính toán / 2.000 điểm tính toán', 'Còn thiếu 720 điểm tính toán tự mua'],
+    ['vi', 'Điểm cá nhân ≥ 2.000 điểm tính toán', '1.280 điểm tính toán / 2.000 điểm tính toán', 'Còn thiếu 720 điểm tính toán (cá nhân)'],
   ] as const)('renders canonical %s count units in the actual page', async (locale, condition, values, gap) => {
     const loaded = facts(); loaded.ladder[1].conditions = { selfComputePoints: 2000 };
     loaded.selfComputePoints = 1280;
@@ -370,7 +371,7 @@ describe('rank page canonical read and next-rank progress', () => {
     ] as const) {
       p.state.vDownlineCounts = { ...buckets }; await Vue.nextTick();
       const label = `V3 · 2× V2 · ${value}`;
-      const gap = locale === 'zh' ? '再 1 个 公开 2(V2)' : locale === 'vi' ? 'Thêm 1 Published 2 (V2)' : '1 more Published 2 (V2)';
+      const gap = locale === 'zh' ? '还需 1 位好友达到 V2' : locale === 'vi' ? 'Cần thêm 1 bạn bè đạt V2' : '1 more friend(s) at V2 needed';
       expect(conditionTexts(p.root, label)).toEqual([label, met ? copy.rank.done : gap]);
       expect(p.state.myRank).toBe(2);
     }
@@ -435,7 +436,8 @@ describe('rank page canonical read and next-rank progress', () => {
   it.each(['en', 'zh', 'vi'] as const)('keeps a confirmed highest rank free of a fabricated %s next target or zero gaps', async locale => {
     const loaded = facts(); loaded.ladder = loaded.ladder.slice(0, 9); loaded.myRank = 8;
     const p = await page(locale, loaded), copy = dictionaries[locale];
-    expect(text(p.root)).toContain(locale === 'zh' ? 'V8 公开 8' : 'V8 Published 8');
+    // App shows the V level only (APP-COPY-AUDIT D6); configured titles stay internal.
+    expect(text(p.root)).not.toContain(locale === 'zh' ? '公开 8' : 'Published 8');
     expect(all(p.root).filter(item => item.props.class === 'rank-current-level').map(text)).toEqual(['V8']);
     expect(all(p.root).some(item => item.props['data-rank-emblem'] === 8 && item.props['data-size'] === 76)).toBe(true);
     expect(text(p.root)).not.toContain(copy.rank.next); expect(text(p.root)).not.toContain(copy.rank.upgradeCta);
@@ -454,7 +456,6 @@ it.each(['zh', 'en', 'vi'] as const)('TI-F06 counts all active preceding gaps an
   expect(text(p.root)).toContain(fmt(auditUiCopy[locale].remainingConditions, { n: 2 }));
   const actions = () => all(p.root).filter(item => item.props['data-gap-action']);
   expect(actions()).toHaveLength(2);
-  expect(actions().every(item => item.props['data-gap-action'].startsWith('V1 ·'))).toBe(true);
   p.state.selfComputePoints = undefined; await Vue.nextTick();
   expect(text(p.root)).toContain(fmt(auditUiCopy[locale].remainingConditions, { n: 1 }));
   expect(text(p.root)).toContain(fmt(teamLogicCopy(locale).unknownConditions, { n: 1 }));

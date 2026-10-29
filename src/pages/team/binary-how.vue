@@ -23,7 +23,6 @@
           <HowFaqRow :q="w.faqQ1" :a="t.binary.spilloverHint" />
           <HowFaqRow :q="w.faqQ2" :a="t.binary.blockReasons.BINARY_THRESHOLD_NOT_MET" />
           <HowFaqRow :q="w.faqQ3" :a="t.howPublished.unavailableBody" />
-          <HowFaqRow :q="w.faqQ5" :a="t.howPublished.unavailableBody" />
         </HowSection>
 
         <view class="mx-4 mt-6">

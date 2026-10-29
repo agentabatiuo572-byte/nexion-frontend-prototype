@@ -88,7 +88,7 @@ import VBadge from "@/components/team/v-badge.vue";
 import VBadgeIcon from "@/components/team/v-badge-icon.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
-import { useLeadershipPool, V_VOTES, POOL_TOP_N, type LeadershipPayout } from "@/store/leadership-pool";
+import { useLeadershipPool, V_VOTES, type LeadershipPayout } from "@/store/leadership-pool";
 import { useVRank, type VRank } from "@/store/v-rank";
 import { rankLabel, rankTitle } from "@/lib/v-rank-copy";
 import { networkReauditCopy } from "@/i18n/network-reaudit";
@@ -152,11 +152,6 @@ const dist = computed(() => {
   for (const row of remotePool.value?.distribution ?? []) result[row.vRank as VRank] = row.people;
   return result;
 });
-const remoteVotesByRank = computed(() => {
-  const result: Record<number, number> = {};
-  for (const row of remotePool.value?.distribution ?? []) result[row.vRank] = row.votes;
-  return result;
-});
 const configuredVotes = computed(() => new Map((rankPresentation.value ?? []).map((row) => [row.v, row.leadershipVotes])));
 const currentWeekPoolUSDT = computed(() => remoteApiEnabled ? remotePool.value?.currentWeekPoolUSDT ?? 0 : pool.currentWeekPoolUSDT);
 const totalVotes = computed(() => remoteApiEnabled ? remotePool.value?.totalVotes ?? 0 : pool.totalVotes());
@@ -196,19 +191,6 @@ const pathCtaText = computed(() => fmt(t.value.pool.seePathUnlockRank, { rank: p
 const totalPeopleText = computed(() =>
   fmt(t.value.pool.totalPeople, { n: Object.values(dist.value).reduce((a, b) => a + b, 0).toLocaleString() }),
 );
-// 头部集中度:派生真值(顶部 N 名领袖占池比),随 seed/票权变,非硬编码。
-const poolTopN = computed(() => remoteApiEnabled ? remotePool.value?.topN ?? 0 : POOL_TOP_N);
-const topPct = computed(() => {
-  if (!remoteApiEnabled) return Math.round(pool.topConcentrationPct() * 100);
-  if (totalVotes.value <= 0) return 0;
-  let remaining = poolTopN.value; let votes = 0;
-  for (let rank = 12; rank >= poolUnlockRank.value && remaining > 0; rank -= 1) {
-    const count = dist.value[rank as VRank] ?? 0; const take = Math.min(count, remaining);
-    votes += take * (remoteVotesByRank.value[rank] ?? 0); remaining -= take;
-  }
-  return Math.round((votes / totalVotes.value) * 100);
-});
-const concentrationText = computed(() => fmt(t.value.pool.concentrationHint, { n: poolTopN.value, pct: topPct.value }));
 
 const voteRows = computed(() => {
   const ranks = Array.from({ length: 13 - poolUnlockRank.value }, (_, index) =>

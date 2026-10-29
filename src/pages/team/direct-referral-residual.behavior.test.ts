@@ -43,7 +43,7 @@ test("production page reads a real adapter's terminal groups while unconfigured/
   expect(text(page.root)).toContain(dictionaries.en.directReferral.unconfigured);
   await click(page.root,networkReauditCopy("en").recordDetails);
   expect(text(page.root)).toContain("canonical-group");
-  expect(text(page.root)).toContain("1 settlement groups"); expect(text(page.root)).toContain("$2.00 + 3.00 UVT");
+  expect(text(page.root)).toContain("1 record(s)"); expect(text(page.root)).toContain("$2.00 + 3.00 UVT");
   expect(request.mock.calls.map(call => call[0].path)).toEqual(expect.arrayContaining([
     "/api/app/team/insights/direct-referral?period=month&page=1&pageSize=20&snapshotAt=2026-10-05T00%3A00%3A00Z&schemaVersion=2&kind=device_earning", "/api/config/commission/direct-referral?schemaVersion=2"]));
 });

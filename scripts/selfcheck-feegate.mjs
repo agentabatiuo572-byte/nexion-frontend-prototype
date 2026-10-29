@@ -73,7 +73,7 @@ check("费用明细区在不可用时整块换成失败态",
 check("🔴 警告框的抵扣提示同时挂「费率可用」与「已输入金额」两个门",
   (() => {
     // 同上:锚定到抵扣半句**自己**那个 <text> 的 v-if,允许其上再叠别的门。
-    const m = code.match(/<text v-if="([^"]*)">\{\{ t\.wallet\.minWithdrawNoteOffset \}\}<\/text>/);
+    const m = code.match(/<text v-if="([^"]*)"[^>]*>\{\{ t\.wallet\.minWithdrawNoteOffset \}\}<\/text>/);
     return !!m && m[1].includes("feeConfigUsable") && m[1].includes("amountNum > 0");
   })(),
   "少任一个都会变成悬空指代(失败态 / 未输入金额态)");
@@ -83,15 +83,16 @@ check("🔴 警告框的抵扣提示同时挂「费率可用」与「已输入�
 // 这是「改一个语言、漏另一个」的同类第 6 例。分隔符归串自身:en/vi 带前导空格,zh 不带。
 check("模板不硬编码分隔空格(分隔符归各语言串,CJK 才不会多空格)",
   !/\{\{ ' ' \}\}\{\{ t\.wallet\.minWithdrawNoteOffset \}\}/.test(code));
+// 2026-10-29 文案审查:最低额只在金额区显示一次(minAmountLine),警告框不再重复。
 const minimumPolicyDisplay = (source) => norm(source).includes("const minWithdrawable = computed(() => withdrawalPolicy.value?.minAmount ?? 0);")
-  && norm(source).includes("const minWithdrawNoteText = computed(() => fmt(t.value.wallet.minWithdrawNote, { n: formatAmount(minWithdrawable.value) }));")
-  && /<text v-if="withdrawalPolicyCurrent"[^>]*>\{\{ minWithdrawNoteText \}\}/.test(source);
+  && norm(source).includes("const minAmountLine = computed(() => fmt(t.value.wallet.minAmountDynamic, { n: formatAmount(minWithdrawable.value) }));")
+  && /<text v-if="withdrawalFactsDisplayable">\{\{ minAmountLine \}\}/.test(source);
 check("🔴 最低提现额从当前有效政策配置插值并格式化,不写死", minimumPolicyDisplay(code));
 check("最低额配置来源/插值/有效政策门红测均能拒绝改坏的源码",
   [
     code.replace("withdrawalPolicy.value?.minAmount ?? 0", "20"),
     code.replace("{ n: formatAmount(minWithdrawable.value) }", "{ n: formatAmount(20) }"),
-    code.replace('<text v-if="withdrawalPolicyCurrent" class="block">{{ minWithdrawNoteText }}', '<text class="block">{{ minWithdrawNoteText }}'),
+    code.replace('<text v-if="withdrawalFactsDisplayable">{{ minAmountLine }}', '<text>{{ minAmountLine }}'),
   ].every(changed => changed !== code && !minimumPolicyDisplay(changed)));
 // ── ②b z1 B2(2026-08-10):质押劝阻卡禁在空表单渲染 ──────
 // 漏网史:minWithdrawable 回退 0 时 `amountNum >= minWithdrawable` 对空表单(0)恒真,

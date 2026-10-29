@@ -23,21 +23,19 @@ describe("binary blocked guidance page contract", () => {
   });
 
   it("keeps all visible invite guidance conditional and non-guaranteeing", () => {
-    expect(zh).toContain('结算能否恢复以资格确认结果为准');
-    expect(en).toContain('Settlement can resume only if eligibility is confirmed');
-    expect(vi).toContain('Việc khôi phục quyết toán phụ thuộc vào kết quả xác nhận điều kiện');
+    // The invite nudge names an action, never a payout outcome.
+    expect(zh).toContain('邀请好友加入，尽快达标。');
+    expect(en).toContain('Invite friends to get there sooner.');
+    expect(vi).toContain('Mời thêm bạn bè để sớm đạt mức này.');
     expect(zh).not.toContain('本月奖励即可恢复');
     expect(en).not.toContain("lift this month's payout");
     expect(vi).not.toContain('nâng khoản thưởng tháng này');
   });
 
   it("describes group volume from confirmed orders without promising payment", () => {
-    expect(zh).toContain('两组业绩按成员已确认订单金额统计，退款会扣回');
-    expect(en).toContain('Group volume counts members’ confirmed order amounts, with refunds deducted');
-    expect(vi).toContain('Doanh số nhóm tính theo số tiền đơn đã xác nhận của thành viên, trừ phần hoàn tiền');
-    expect(zh).toContain('奖励金额以结算预估为准，实际到账以最终结算为准');
-    expect(en).toContain('Rewards shown are settlement estimates; actual payments depend on final settlement');
-    expect(vi).toContain('Số tiền hiển thị là ước tính quyết toán; khoản thực nhận theo quyết toán cuối cùng');
+    expect(zh).toContain('订单额按已确认订单统计，奖励以实际发放为准。');
+    expect(en).toContain('Volume counts confirmed orders. Rewards are subject to actual payout.');
+    expect(vi).toContain('Doanh số tính theo đơn hàng đã xác nhận. Thưởng thực nhận theo kết quả chi trả.');
     expect(zh).not.toContain('继续邀请较小一轨提升{freq}发放');
     expect(en).not.toContain('Grow the smaller track to lift your {freq} payout');
     expect(vi).not.toContain('Bồi thêm nhánh nhỏ để nâng khoản thưởng {freq} của bạn');

@@ -71,24 +71,9 @@
               </view>
               <view class="flex-1 min-w-0">
                 <text class="block" :style="breakdownLabelStyle">{{ br.label }}</text>
-                <text class="block truncate" :style="breakdownHintStyle">{{ br.hint }}</text>
+                <text v-if="br.hint" class="block truncate" :style="breakdownHintStyle">{{ br.hint }}</text>
               </view>
               <text class="font-mono-tabular tabular-nums" :style="breakdownValueStyle">{{ br.value }}</text>
-            </view>
-          </view>
-        </view>
-
-        <!-- P&L -->
-        <view :style="cardStyle">
-          <view class="flex items-center justify-between">
-            <text :style="cardLabelStyle">{{ t.nexWallet.pnl.label }}</text>
-            <text class="tabular-nums" :style="pnlValueStyle">{{ pnlSummary }}</text>
-          </view>
-          <text class="block" :style="pnlCellLabelStyle" style="margin-top: 8px">{{ t.nexWallet.pnl.note }}</text>
-          <view class="grid grid-cols-3" style="margin-top: 12px; gap: 8px 12px">
-            <view v-for="cell in pnlCells" :key="cell.label">
-              <text class="block" :style="pnlCellLabelStyle">{{ cell.label }}</text>
-              <text class="block tabular-nums" :style="pnlCellValueStyle">{{ cell.value }}</text>
             </view>
           </view>
         </view>
@@ -141,7 +126,6 @@
           </view>
         </view>
 
-        <text class="block" :style="noteStyle">{{ t.nexWallet.note }}</text>
       </view>
     </view>
   </AppChassis>
@@ -225,9 +209,6 @@ const todayNEX = computed<number | null>(() =>
     : app.visibleDevices.filter((d) => d.activatedAt !== null).reduce((s, d) => s + (d.todayEarningsNEX ?? 0), 0),
 );
 
-const totalSpent = computed(() => nexBalance.value * market.costBasis);
-const pnl = computed(() => usdValue.value - totalSpent.value);
-const pnlPct = computed(() => (totalSpent.value > 0 ? (pnl.value / totalSpent.value) * 100 : 0));
 
 const nexLedger = computed(() => {
   if (!remoteApiEnabled || summaryForDisplay.value == null) return [];
@@ -312,16 +293,7 @@ const quickCells = computed(() => [
 const breakdownRows = computed(() => [
   { label: t.value.nexWallet.breakdown.liquid, value: balanceKnown.value ? `${fmtNum(nexBalance.value, 2)} UVT` : "—", hint: valuationKnown.value ? fmtUSD(usdValue.value) : "—", tint: "var(--v5-success)", icon: tintIcon(ICON.up, "var(--v5-success)") },
   { label: t.value.nexWallet.breakdown.mining, value: todayNEX.value === null ? "—" : `${Number.isFinite(todayNEX.value) && todayNEX.value >= 0 ? "+" : ""}${fmtNum(todayNEX.value, 2)} UVT`, hint: todayNEX.value === null ? "—" : t.value.nexWallet.breakdown.miningHint, tint: "var(--v5-brand)", icon: tintIcon(ICON.cpu, "var(--v5-brand)") },
-  { label: t.value.nexWallet.breakdown.pending, value: pendingNex.value === null ? "—" : `${fmtNum(pendingNex.value, 2)} UVT`, hint: pendingNex.value === null ? "—" : t.value.nexWallet.breakdown.pendingHint, tint: "var(--v5-warning)", icon: tintIcon(ICON.hourglass, "var(--v5-warning)") },
-]);
-
-const pnlSummary = computed(() => valuationKnown.value && Number.isFinite(pnl.value) && Number.isFinite(pnlPct.value)
-  ? `${pnl.value >= 0 ? "+" : ""}${fmtUSD(pnl.value)} (${pnl.value >= 0 ? "+" : ""}${pnlPct.value.toFixed(1)}%)`
-  : "—");
-const pnlCells = computed(() => [
-  { label: t.value.nexWallet.pnl.costBasis, value: marketValueKnown.value && Number.isFinite(market.costBasis) && market.costBasis > 0 ? `$${fmtNum(market.costBasis, 3)}` : "—" },
-  { label: t.value.nexWallet.pnl.totalSpent, value: valuationKnown.value ? fmtUSD(totalSpent.value) : "—" },
-  { label: t.value.nexWallet.pnl.currentValue, value: valuationKnown.value ? fmtUSD(usdValue.value) : "—" },
+  { label: t.value.nexWallet.breakdown.pending, value: pendingNex.value === null ? "—" : `${fmtNum(pendingNex.value, 2)} UVT`, hint: "", tint: "var(--v5-warning)", icon: tintIcon(ICON.hourglass, "var(--v5-warning)") },
 ]);
 
 const useTiles = computed(() => [
@@ -453,25 +425,6 @@ function breakdownIconStyle(tint: string): CSSProperties {
 const breakdownLabelStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink)" };
 const breakdownHintStyle: CSSProperties = { marginTop: "2px", fontSize: "12px", color: "var(--v5-ink-3)" };
 const breakdownValueStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink)" };
-const pnlValueStyle = computed<CSSProperties>(() => ({
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "13px",
-  fontWeight: 600,
-  color: pnl.value >= 0 ? "var(--v5-success)" : "var(--v5-brand-2)",
-}));
-const pnlCellLabelStyle: CSSProperties = {
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "12px",
-  fontWeight: 500,
-  letterSpacing: "0.04em",
-  color: "var(--v5-ink-4)",
-};
-const pnlCellValueStyle: CSSProperties = {
-  marginTop: "2px",
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-  fontSize: "13px",
-  color: "var(--v5-ink)",
-};
 // 所在区块已去卡,tile 直接坐在页面底上:原 surface-2 与页面底同色不可辨,改 L1 surface。
 const useTileStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)", padding: "12px", borderRadius: "var(--nx-glass-radius)", background: "var(--nx-glass-fill)" };
 const useTileLabelStyle: CSSProperties = {
@@ -529,13 +482,6 @@ const activityUsdStyle: CSSProperties = {
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
   fontSize: "12px",
   color: "var(--v5-ink-3)",
-};
-const noteStyle: CSSProperties = {
-  paddingTop: "4px",
-  fontSize: "12px",
-  color: "var(--v5-ink-3)",
-  lineHeight: 1.625,
-  textAlign: "center",
 };
 
 

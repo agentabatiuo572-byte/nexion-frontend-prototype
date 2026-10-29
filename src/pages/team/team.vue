@@ -50,7 +50,7 @@
 
         <!-- Unified quick nav -->
         <view class="nx-team-quick-panel" :style="quickPanelStyle">
-          <text class="team-section-title">{{ designCopy.teamRewards }}</text>
+          <text class="team-section-title">{{ designCopy.rewardsSection }}</text>
           <!-- Leaderboard -->
           <view class="nx-team-leaderboard-link active:opacity-95" role="link" tabindex="0" :style="quickRowStyle" @click="go('/pages/team/leaderboard')">
             <view :style="quickRowMainStyle">

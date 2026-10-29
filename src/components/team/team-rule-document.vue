@@ -1,7 +1,6 @@
 <template>
   <view class="team-rule-document">
     <view class="team-rule-document__tools">
-      <text class="team-rule-document__hint">{{ copy.guideHint }}</text>
       <view class="team-rule-document__expand" role="button" tabindex="0" :aria-expanded="allOpen" @click="toggleAll" @keydown.enter.prevent="toggleAll" @keydown.space.prevent="toggleAll"><text>{{ allOpen ? copy.collapseAll : copy.expandAll }}</text></view>
     </view>
     <TeamRuleSection v-for="block in blocks" :key="block.id" :title="block.title" :open="opened.includes(block.id)" @update:open="setOpen(block.id, $event)">
@@ -28,7 +27,6 @@ watch(() => [props.blocks, props.locale], () => { opened.value = []; });
 <style src="./team-rule-type.css"></style>
 <style scoped>
 .team-rule-document__tools { margin: 0 16px 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
-.team-rule-document__hint { flex: 1 1 160px; color: var(--v5-ink-3); font-size: var(--team-guide-caption); line-height: var(--team-guide-caption-lh); }
 .team-rule-document__expand { display: flex; align-items: center; min-height: 44px; margin-left: auto; color: var(--v5-brand); font-size: 13px; font-weight: 600; cursor: pointer; }
 .team-rule-document__expand:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 .team-rule-document__body { display: block; white-space: pre-line; text-wrap: pretty; }

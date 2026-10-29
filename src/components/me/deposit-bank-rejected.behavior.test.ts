@@ -286,17 +286,17 @@ test.each(unavailableReasons)("only the exact HTTP 503 envelope can translate %s
   }
 });
 
-test.each([zh, en, vietnamese])("a bounded CREATE provider reason keeps explicit source and original retry behavior", async messages => {
+test.each([zh, en, vietnamese])("a bounded CREATE provider reason is not shown and keeps the original retry behavior", async messages => {
   const view = pane("rejected", messages), mounted = view.mount();
   const providerReason = "充值金额不正确：请输入整数";
   const flow = creationFlow(view.dep, [422], memoryStorage(), "user:7", undefined, { providerReason });
   view.dep.createRemoteBankIntent.mockImplementation(flow.create);
   click(mounted.retry()!);
   await vi.advanceTimersByTimeAsync(600); await Vue.nextTick();
-  expect(view.state.createError.value).toContain(providerReason);
-  const copy = `${messages.bankPane.hostedRejectedNote}\n${fmt(messages.bankPane.providerReason, { reason: providerReason })}`;
+  // The provider's raw reason is not shown to users; only our own rejection copy is.
+  const copy = messages.bankPane.hostedRejectedNote;
   expect(view.state.createError.value).toBe(copy);
-  expect(await view.html()).toContain(fmt(messages.bankPane.providerReason, { reason: providerReason }));
+  expect(await view.html()).not.toContain(providerReason);
   expect(view.toast.error).toHaveBeenCalledExactlyOnceWith(copy);
   expect(view.state.creating.value).toBe(false); expect(flow.requests).toHaveBeenCalledOnce();
   expect(mounted.retry()?.props["aria-disabled"]).toBe(false);
@@ -306,7 +306,7 @@ test.each([zh, en, vietnamese])("a bounded CREATE provider reason keeps explicit
   expect((flow.storage.read() as { pending: Record<string, unknown> }).pending[scope]).toBeUndefined();
 });
 
-test.each([zh, en, vietnamese])("a fresh pane reads the provider reason through real GET/list parser and store projection", async messages => {
+test.each([zh, en, vietnamese])("a fresh pane parses the provider reason but does not render it", async messages => {
   const view = pane("rejected", messages);
   const original = view.dep.intents[0];
   const snapshot = { intentNo: original.intentId, usdtAmount: original.usdtAmount, fxRate: original.fxRate,
@@ -323,8 +323,7 @@ test.each([zh, en, vietnamese])("a fresh pane reads the provider reason through 
   expect(readback.providerReason).toBe(snapshot.providerReason);
   const project = new Function("snapshot", `${storeScript}; return remoteVietQrIntent(snapshot);`);
   view.dep.intents = rows.map(item => project(item));
-  const copy = fmt(messages.bankPane.providerReason, { reason: snapshot.providerReason });
-  expect(await view.html()).toContain(copy);
+  expect(await view.html()).not.toContain(snapshot.providerReason);
   expect(view.state.createError.value).toBe("");
   expect(request.mock.calls.every(args => args[0].method === "GET")).toBe(true);
   expect(view.dep.createRemoteBankIntent).not.toHaveBeenCalled(); expect(view.open).not.toHaveBeenCalled();

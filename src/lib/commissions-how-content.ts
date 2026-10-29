@@ -10,37 +10,37 @@ export interface CommissionsHowSnapshot { document: HowContentDocument; rates?: 
 // Keep public settlement facts; current direct policy values come from the server.
 const COPY = {
   zh: {
-    purchaseBudget: "直属购买奖励比例", purchaseReplacement: "拆分所得 UVT 替代该笔购买的额外 UVT 奖励，不另行重复发放", purchaseOriginal: "直属购买奖励按当前奖励方案结算；网络购买奖励按对应规则结算", networkPurchase: "网络购买奖励包含额外 UVT 奖励，金额以适用规则及实际结算为准", deviceScope: "设备收益仅奖励直接邀请人；平台额外支付，成员原收益不扣减",
-    loading: "正在读取最新说明与佣金规则…", unavailable: "说明或规则暂不可用，请重新加载。", missing: "规则暂不可用，请以实际记录为准", none: "暂无可展示的奖励", retry: "重新加载",
-    days: "天", dailyCap: "日封顶", settlementPeriod: "结算周期", residualHandling: "剩余贡献处理", minRank: "参与起点", monthlyCap: "月上限",
-    daily: "每日", weekly: "每周", monthly: "每月", monthlyClear: "每月清零", perPairClear: "每次匹配结算后清零", carryForward: "转结", paused: "已暂停", unpaused: "未暂停；仍须满足实际结算资格",
-    hold: "团队激励池当前不开放结算", unsupported: "尚未开放独立佣金派发，请以实际记录为准", supported: "是否触发与到账以实际事件为准",
-    network: "团队奖励的金额和到账状态以实际结算记录及钱包账单为准。", records: "奖励金额和到账状态以实际结算记录及钱包账单为准。", cultivation: "成员成长奖励请按实际奖励记录核对接收人和到账金额。",
-    exampleScope: "以下金额仅作算例，不代表个人收益。假设订单基数：", exampleNetwork: "团队奖励算例", exampleCultivation: "成员成长奖励算例，不代表个人到账金额",
-    noTotal: "非实际收益合计", pendingAmount: "需实际结算", unknownAmount: "—", base: "假设订单基数", configured: "奖励标准", notOpen: "未开放", notConfigured: "暂不可用",
-    purchase: "直属购买", deviceEarning: "直属设备收益", totalRate: "总奖励比例", split: "奖励拆分", directOnly: "仅直接邀请成员；平台额外支付，成员原收益不扣减", priceUnavailable: "UVT 价格暂不可用，等待有效价格后处理",
+    purchaseBudget: "好友购买奖励比例", purchaseReplacement: "奖励中的 UVT 部分已包含该笔购买的额外 UVT 奖励，不重复发放", purchaseOriginal: "好友购买和团队购买奖励按当前规则发放", networkPurchase: "团队购买奖励含额外 UVT 奖励，以实际发放为准", deviceScope: "好友设备收益奖励只发给邀请人，由平台额外发放，不影响好友自己的收益",
+    loading: "正在加载说明…", unavailable: "说明暂时无法加载，请重新加载。", missing: "规则暂时无法加载", none: "暂无可展示的奖励", retry: "重新加载",
+    days: "天", settlementPeriod: "发放周期", minRank: "参与起点",
+    daily: "每日", weekly: "每周", monthly: "每月", paused: "已暂停", unpaused: "正常发放",
+    hold: "团队激励池暂未开放发放", unsupported: "暂未开放", supported: "以实际发放为准",
+    network: "团队奖励以实际发放为准。", records: "奖励以实际发放为准。", cultivation: "好友升级奖励以实际发放为准。",
+    exampleScope: "以下金额仅作算例，不代表个人收益。假设订单基数：", exampleNetwork: "团队奖励算例", exampleCultivation: "好友升级奖励算例，不代表个人到账金额",
+    noTotal: "非实际收益合计", pendingAmount: "待发放", unknownAmount: "—", base: "假设订单基数", configured: "奖励标准", notOpen: "未开放", notConfigured: "暂不可用",
+    purchase: "好友购买", deviceEarning: "好友设备收益", totalRate: "总奖励比例", split: "奖励拆分", directOnly: "仅限你邀请的好友；由平台额外发放，不影响好友自己的收益", priceUnavailable: "UVT 价格暂时无法获取，稍后计入",
   },
   en: {
-    purchaseBudget: "Direct purchase reward rate", purchaseReplacement: "The UVT share replaces the extra UVT reward for this purchase; no separate extra UVT reward is paid", purchaseOriginal: "Direct purchase rewards follow the current reward plan; network purchase rewards follow their applicable rules", networkPurchase: "Network purchase rewards include extra UVT; amounts are subject to the applicable rules and actual settlement", deviceScope: "Device earnings reward only the direct inviter; the platform pays extra and members keep their original earnings",
-    loading: "Loading the latest explanation and commission rules…", unavailable: "Explanation or rules unavailable. Please reload.", missing: "Rules are temporarily unavailable; check the actual records", none: "No rewards to display", retry: "Reload",
-    days: "days", dailyCap: "daily cap", settlementPeriod: "Settlement period", residualHandling: "Remaining contribution handling", minRank: "entry rank", monthlyCap: "monthly cap",
-    daily: "daily", weekly: "weekly", monthly: "monthly", monthlyClear: "monthly reset", perPairClear: "reset after each match settlement", carryForward: "carry forward", paused: "paused", unpaused: "not paused; actual settlement eligibility still applies",
-    hold: "Team incentive pool settlement is not open", unsupported: "Independent commission payouts are not available; check actual records", supported: "Triggering and payment depend on actual events",
-    network: "Check settlement records and wallet statements for team reward amounts and payment status.", records: "Check settlement records and wallet statements for reward amounts and payment status.", cultivation: "Check member growth reward records for the recipient and amount received.",
-    exampleScope: "These amounts are illustrations, not personal earnings. Hypothetical order base:", exampleNetwork: "Team reward illustration", exampleCultivation: "Member growth reward illustration, not a personal payment",
-    noTotal: "Not an earnings total", pendingAmount: "Requires settlement", unknownAmount: "—", base: "Hypothetical order base", configured: "Reward amount under the rules", notOpen: "Not available", notConfigured: "Temporarily unavailable",
-    purchase: "Direct purchase", deviceEarning: "Direct device earnings", totalRate: "Total reward", split: "Reward split", directOnly: "Directly invited members only; the platform pays extra and members keep their original earnings", priceUnavailable: "UVT price unavailable; awaiting a valid price",
+    purchaseBudget: "Friend purchase reward rate", purchaseReplacement: "The UVT share already includes this purchase's extra UVT reward; it isn't paid twice", purchaseOriginal: "Friend and team purchase rewards are paid under the current rules", networkPurchase: "Team purchase rewards include extra UVT and are subject to actual payout", deviceScope: "Friend device earnings rewards go only to the inviter, are paid extra by the platform, and don't reduce your friends' earnings",
+    loading: "Loading…", unavailable: "This guide couldn't load. Please reload.", missing: "Rules couldn't load", none: "No rewards to display", retry: "Reload",
+    days: "days", settlementPeriod: "Payout period", minRank: "entry rank",
+    daily: "daily", weekly: "weekly", monthly: "monthly", paused: "paused", unpaused: "paying normally",
+    hold: "Team incentive pool payouts aren't open yet", unsupported: "Not open yet", supported: "Subject to actual payout",
+    network: "Team rewards are subject to actual payout.", records: "Rewards are subject to actual payout.", cultivation: "Friend rank-up rewards are subject to actual payout.",
+    exampleScope: "These amounts are illustrations, not personal earnings. Hypothetical order base:", exampleNetwork: "Team reward illustration", exampleCultivation: "Friend rank-up reward illustration, not a personal payment",
+    noTotal: "Not an earnings total", pendingAmount: "To be paid", unknownAmount: "—", base: "Hypothetical order base", configured: "Reward amount under the rules", notOpen: "Not available", notConfigured: "Temporarily unavailable",
+    purchase: "Friend purchases", deviceEarning: "Friends' device earnings", totalRate: "Total reward", split: "Reward split", directOnly: "Friends you invited only; paid extra by the platform without reducing your friends' earnings", priceUnavailable: "UVT price unavailable; it will be added later",
   },
   vi: {
-    purchaseBudget: "Tỷ lệ thưởng mua trực tiếp", purchaseReplacement: "Phần UVT được chia thay thế thưởng UVT bổ sung của giao dịch mua này; khoản thưởng bổ sung đó không được trả riêng", purchaseOriginal: "Thưởng mua trực tiếp theo chương trình thưởng hiện tại; thưởng mua trong mạng lưới theo quy tắc tương ứng", networkPurchase: "Thưởng mua trong mạng lưới bao gồm UVT bổ sung; số tiền theo quy tắc áp dụng và kết quả quyết toán thực tế", deviceScope: "Thu nhập thiết bị chỉ thưởng người mời trực tiếp; nền tảng trả thêm và thành viên giữ nguyên thu nhập",
-    loading: "Đang tải hướng dẫn và quy tắc hoa hồng mới nhất…", unavailable: "Chưa có hướng dẫn hoặc quy tắc. Vui lòng tải lại.", missing: "Quy tắc hiện chưa khả dụng; vui lòng xem bản ghi thực tế", none: "Chưa có phần thưởng để hiển thị", retry: "Tải lại",
-    days: "ngày", dailyCap: "giới hạn ngày", settlementPeriod: "Chu kỳ quyết toán", residualHandling: "Xử lý đóng góp còn lại", minRank: "hạng tham gia", monthlyCap: "giới hạn tháng",
-    daily: "hằng ngày", weekly: "hằng tuần", monthly: "hằng tháng", monthlyClear: "xóa theo tháng", perPairClear: "xóa sau mỗi lần quyết toán ghép", carryForward: "chuyển tiếp", paused: "đã tạm dừng", unpaused: "chưa tạm dừng; vẫn cần đáp ứng điều kiện quyết toán",
-    hold: "Quỹ khuyến khích đội nhóm hiện chưa mở quyết toán", unsupported: "Chưa mở trả hoa hồng độc lập; xem bản ghi thực tế", supported: "Phát sinh và chi trả theo sự kiện thực tế",
-    network: "Xem bản ghi quyết toán và sao kê ví để kiểm tra số tiền thưởng đội nhóm và trạng thái chi trả.", records: "Xem bản ghi quyết toán và sao kê ví để kiểm tra số tiền thưởng và trạng thái chi trả.", cultivation: "Xem bản ghi thưởng phát triển thành viên để kiểm tra người nhận và số tiền đã nhận.",
-    exampleScope: "Các số tiền chỉ để minh họa, không phải thu nhập cá nhân. Cơ sở đơn hàng giả định:", exampleNetwork: "Minh họa thưởng đội nhóm", exampleCultivation: "Minh họa thưởng phát triển thành viên, không phải khoản cá nhân đã nhận",
-    noTotal: "Không phải tổng thu nhập", pendingAmount: "Cần quyết toán", unknownAmount: "—", base: "Cơ sở đơn hàng giả định", configured: "Mức thưởng theo quy tắc", notOpen: "Chưa mở", notConfigured: "Tạm thời chưa khả dụng",
-    purchase: "Mua trực tiếp", deviceEarning: "Thu nhập thiết bị trực tiếp", totalRate: "Tổng thưởng", split: "Phân chia thưởng", directOnly: "Chỉ thành viên được mời trực tiếp; nền tảng trả thêm, thành viên giữ nguyên thu nhập", priceUnavailable: "Giá UVT chưa khả dụng; đang chờ giá hợp lệ",
+    purchaseBudget: "Tỷ lệ thưởng bạn bè mua hàng", purchaseReplacement: "Phần UVT đã bao gồm thưởng UVT bổ sung của giao dịch mua này và không được chi trả hai lần", purchaseOriginal: "Thưởng mua hàng của bạn bè và của nhóm được chi trả theo quy tắc hiện hành", networkPurchase: "Thưởng mua hàng của nhóm bao gồm UVT bổ sung, theo kết quả chi trả thực tế", deviceScope: "Thưởng thu nhập thiết bị của bạn bè chỉ dành cho người mời, do nền tảng chi trả thêm và không làm giảm thu nhập của bạn bè",
+    loading: "Đang tải…", unavailable: "Chưa tải được hướng dẫn. Vui lòng tải lại.", missing: "Chưa tải được quy tắc", none: "Chưa có phần thưởng để hiển thị", retry: "Tải lại",
+    days: "ngày", settlementPeriod: "Kỳ chi trả", minRank: "hạng tham gia",
+    daily: "hằng ngày", weekly: "hằng tuần", monthly: "hằng tháng", paused: "đã tạm dừng", unpaused: "chi trả bình thường",
+    hold: "Quỹ thưởng nhóm chưa mở chi trả", unsupported: "Chưa mở", supported: "Theo kết quả chi trả thực tế",
+    network: "Thưởng nhóm theo kết quả chi trả thực tế.", records: "Thưởng theo kết quả chi trả thực tế.", cultivation: "Thưởng khi bạn bè lên hạng theo kết quả chi trả thực tế.",
+    exampleScope: "Các số tiền chỉ để minh họa, không phải thu nhập cá nhân. Cơ sở đơn hàng giả định:", exampleNetwork: "Minh họa thưởng đội nhóm", exampleCultivation: "Minh họa thưởng khi bạn bè lên hạng, không phải khoản cá nhân đã nhận",
+    noTotal: "Không phải tổng thu nhập", pendingAmount: "Chờ chi trả", unknownAmount: "—", base: "Cơ sở đơn hàng giả định", configured: "Mức thưởng theo quy tắc", notOpen: "Chưa mở", notConfigured: "Tạm thời chưa khả dụng",
+    purchase: "Bạn bè mua hàng", deviceEarning: "Thu nhập thiết bị của bạn bè", totalRate: "Tổng thưởng", split: "Phân chia thưởng", directOnly: "Chỉ dành cho bạn bè bạn đã mời; nền tảng chi trả thêm và không làm giảm thu nhập của bạn bè", priceUnavailable: "Chưa lấy được giá UVT; sẽ được ghi nhận sau",
   },
 };
 
@@ -74,10 +74,11 @@ export function buildCommissionsHowContent(snapshot: CommissionsHowSnapshot | nu
     tokens.directScope = directPolicy.settlementMode === "SEVEN_V2" ? copy.deviceScope : copy.directOnly;
     tokens.directPrice = directPolicy.nexUsdtPrice === null ? copy.priceUnavailable : `${number(directPolicy.nexUsdtPrice)} USDT / UVT`;
     tokens.coolingDays = guide.coolingDays === null ? copy.missing : `${number(guide.coolingDays)} ${copy.days}`;
-    tokens.binaryRules = b ? `${copy.dailyCap} ${money(b.dailyCap)} · ${copy.settlementPeriod}: ${copy[b.settlePeriod]} · ${copy.residualHandling}: ${copy[b.residualPolicy]} · ${b.paused ? copy.paused : copy.unpaused}` : copy.missing;
+    // Caps and unmatched-volume handling are payout mechanics, not user guidance (APP-COPY-AUDIT rule 6).
+    tokens.binaryRules = b ? `${copy.settlementPeriod}: ${copy[b.settlePeriod]} · ${b.paused ? copy.paused : copy.unpaused}` : copy.missing;
     tokens.peerRules = copy.records;
     tokens.cultivationRules = copy.cultivation;
-    tokens.leadershipRules = l ? `${copy.minRank} V${l.minRank} · ${copy.monthlyCap} ${money(l.monthlyCap)}` : copy.hold;
+    tokens.leadershipRules = l ? `${copy.minRank} V${l.minRank}` : copy.hold;
     tokens.leadershipVotes = "";
     tokens.peerStatus = guide.capabilities.peer ? copy.supported : copy.unsupported;
     tokens.genesisStatus = guide.capabilities.genesis ? copy.supported : copy.unsupported;
