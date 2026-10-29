@@ -5202,7 +5202,6 @@ openSeaErrorPool: {
     important: "Quan trọng",
     viewAll: "Xem tất cả tin nhắn",
     preferences: "Cài đặt thông báo",
-    serviceFilterLabel: "Lọc tin nhắn hỗ trợ",
     serviceReadHint: "Trạng thái đã đọc cập nhật sau khi mở hội thoại",
     serviceEmpty: "Chưa có tin nhắn hỗ trợ",
     serviceEmptyHint: "Phản hồi từ cố vấn sẽ xuất hiện ở đây.",

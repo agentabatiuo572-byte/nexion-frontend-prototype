@@ -68,15 +68,13 @@ function recoveryBindings(center: any, section: Vue.Ref<string>, conversations: 
 }
 
 describe("message page header content contract", () => {
-  it("fits both short category rails to their content while keeping long rails scrollable", () => {
+  it("fits the notification category rail to its content and leaves the service section without one", () => {
     const filters = all.filter(node => hasClass(node, "message-filters"));
-    expect(filters).toHaveLength(2);
-    expect(filters.map(node => node.tag)).toEqual(["GlassSegments", "GlassSegments"]);
+    expect(filters).toHaveLength(1);
+    expect(filters.map(node => node.tag)).toEqual(["GlassSegments"]);
     expect(filters.map(node => node.props.find(prop => prop.type === 7 && prop.name === "model")))
-      .toEqual(expect.arrayContaining([
-        expect.objectContaining({ exp: expect.objectContaining({ content: "serviceFilter" }) }),
-        expect.objectContaining({ exp: expect.objectContaining({ content: "filter" }) }),
-      ]));
+      .toEqual([expect.objectContaining({ exp: expect.objectContaining({ content: "filter" }) })]);
+    expect(filters[0].props.find(prop => prop.type === 7 && prop.name === "if")).toMatchObject({ exp: { content: "section !== 'service'" } });
     for (const filter of filters) {
       expect(attribute(filter, "layout")).toMatchObject({ value: { content: "scroll" } });
       expect(elements(filter.children).filter(node => hasClass(node, "message-category-dot"))).toHaveLength(1);

@@ -78,7 +78,6 @@ function mount(initial = [
     conversations: initial, get humanThreads() { return groupConversationThreads(this.conversations); },
     deleteConversation: vi.fn(async (_id: string) => {}), stopRealtime: vi.fn(), startRealtime: vi.fn(), categoryEnabled: () => true,
   });
-  const props = Vue.reactive({ filter: "all", hideFilters: true });
   const navTo = vi.fn(), navigate = vi.fn(), refresh = vi.fn(), confirm = vi.fn(async (_options: any) => false);
   const displayLocale = Vue.ref("zh-CN"), displayDateTime = vi.fn(formatDisplayDateTime);
   const toast = { error: vi.fn() }, account = Vue.reactive({ accountBindingEpoch: 1 });
@@ -102,9 +101,9 @@ function mount(initial = [
   modules["@/composables/use-conversation-delete"] = new Function("require", "exports",
     js(deleteSource) + ";return exports;")(require, {});
   const Component = new Function("require", "exports", js(compiled.content) + ";return exports.default;")(require, {});
-  const root = node("root"), app = renderer.createApp({ setup: () => () => Vue.h(Component, { ...props, onNavigate: navigate }) });
+  const root = node("root"), app = renderer.createApp({ setup: () => () => Vue.h(Component, { onNavigate: navigate }) });
   app.mount(root); mounted.push(app);
-  return { root, conversations, props, navTo, navigate, refresh, confirm, toast, displayLocale, displayDateTime,
+  return { root, conversations, navTo, navigate, refresh, confirm, toast, displayLocale, displayDateTime,
     rows: () => byClass(root, "service-row"), swipes: () => flatten(root).filter(n => n.tag === "swipe-row") };
 }
 async function settle() { await Promise.resolve(); await Promise.resolve(); await Vue.nextTick(); }
@@ -184,15 +183,11 @@ describe("rendered service threads and deletion", () => {
     expect(flowContent(h.root)).toBe(before);
     expect(byClass(h.root, "service-messages")[0].props["aria-busy"]).toBe(false);
   });
-  it("cold/cleared selected results keep visible loading and never retain old row content", async () => {
+  it("cleared results keep visible loading and never retain old row content", async () => {
     const h = mount();
-    h.props.filter = "ticket"; h.conversations.loading = true; await Vue.nextTick();
-    expect(h.rows()).toHaveLength(0);
+    h.conversations.loading = true; h.conversations.conversations.splice(0); await Vue.nextTick();
     expect(byClass(h.root, "service-state")[0].props.role).toBe("status");
-    expect(textOf(h.root)).toContain(zh.help.loadingMore);
-    expect(textOf(h.root)).not.toContain("Preview ");
     expect(byClass(h.root, "service-empty-title")).toHaveLength(0);
-    h.props.filter = "all"; h.conversations.conversations.splice(0); await Vue.nextTick();
     expect(h.rows()).toHaveLength(0);
     expect(textOf(h.root)).toContain(zh.help.loadingMore);
     expect(textOf(h.root)).not.toContain("Preview ");
@@ -217,10 +212,10 @@ describe("rendered service threads and deletion", () => {
     const h = mount(); h.conversations.typingIds["a/history"] = true; await Vue.nextTick();
     expect(byClass(h.root, "service-preview").map(textOf)).toEqual([zh.conversations.agentTyping, "Preview b/active"]);
   });
-  it("retains the advisor/support filter aliases and excludes tickets", async () => {
+  it("lists every advisor thread without a category filter", () => {
     const h = mount();
-    for (const filter of ["advisor", "support"]) { h.props.filter = filter; await Vue.nextTick(); expect(h.rows()).toHaveLength(2); }
-    h.props.filter = "ticket"; await Vue.nextTick(); expect(h.rows()).toHaveLength(0);
+    expect(h.rows()).toHaveLength(2);
+    expect(source).not.toContain("GlassSegments");
   });
   it("cancels the real delete confirmation without deleting history or opening chat", async () => {
     const h = mount(), before = JSON.stringify(h.conversations.conversations);

@@ -5208,7 +5208,6 @@ openSeaErrorPool: {
     important: "重要",
     viewAll: "查看全部消息",
     preferences: "通知设置",
-    serviceFilterLabel: "服务分类筛选",
     serviceReadHint: "查看会话后同步已读",
     serviceEmpty: "暂无服务消息",
     serviceEmptyHint: "专属客服的回复会显示在这里。",

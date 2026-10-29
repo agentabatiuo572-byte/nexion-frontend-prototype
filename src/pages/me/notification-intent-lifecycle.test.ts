@@ -77,7 +77,7 @@ function mount(remote = true, realQueue = false, navigationQuery = "", initialAc
   const output = ts.transpileModule(script, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
   const scope = vue.effectScope(); scopes.push(scope);
   const exposed = settings ? "{ confirmClearRead, clearingRead, refreshNotifications }"
-    : "{ confirmClearRead, clearingRead, directNotice, toggle, dateHeading, timeAgo, onTap, onTouchStart, onTouchEnd, section, filter, serviceFilter, expandedId, headerFocused, headerState, onMessageScroll }";
+    : "{ confirmClearRead, clearingRead, directNotice, toggle, dateHeading, timeAgo, onTap, onTouchStart, onTouchEnd, section, filter, expandedId, headerFocused, headerState, onMessageScroll }";
   const worker = scope.run(() => new Function("require", "exports", output + `;return ${exposed};`)((name: string) => {
     if (name.endsWith(".vue")) return {};
     if (!(name in modules)) throw new Error(`Unexpected dependency ${name}`);
@@ -323,7 +323,6 @@ describe("message primary partition route lifecycle", () => {
       await vue.nextTick();
       expect(restored.worker.section.value).toBe(selected);
       expect(primaryQuery(browser.location)).toBe(selected);
-      expect(restored.worker.serviceFilter.value).toBe("all");
     });
   }
   it("keeps explicit onLoad section ahead of a conflicting pending query", async () => {
@@ -363,11 +362,10 @@ describe("message primary partition route lifecycle", () => {
       const browser = h5Entry();
       const h = mount(true, false, "?section=service", "default");
       h.fire("load", {}); h.account.bind("a"); await vue.nextTick();
-      h.worker.serviceFilter.value = "ticket"; h.worker.filter.value = "finance"; h.worker.expandedId.value = "old";
+      h.worker.filter.value = "finance"; h.worker.expandedId.value = "old";
       h.account.bind(key); await vue.nextTick();
       expect(h.worker.section.value).toBe("notifications");
       expect(primaryQuery(browser.location)).toBe("notifications");
-      expect(h.worker.serviceFilter.value).toBe("all");
       expect(h.worker.filter.value).toBe("all");
       expect(h.worker.expandedId.value).toBeNull();
       h.fire("hide"); h.fire("show"); await vue.nextTick();

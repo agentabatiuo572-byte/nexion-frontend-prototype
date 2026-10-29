@@ -1,6 +1,5 @@
 <template>
   <view class="service-messages" :aria-busy="loading">
-    <GlassSegments v-if="!hideFilters" v-model="filter" :options="filters" layout="scroll" semantics="radio" :label="t.notifs.serviceFilterLabel" />
     <view v-if="loading && !rows.length" class="service-state" role="status" aria-live="polite"><text>{{ t.help.loadingMore }}</text></view>
     <view v-if="!loading && !failed && !rows.length" class="service-state service-empty">
       <text class="service-empty-title">{{ t.notifs.serviceEmpty }}</text>
@@ -40,8 +39,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import GlassSegments from "@/components/glass-segments.vue";
+import { computed } from "vue";
 import LiquidGlass from "@/components/liquid-glass.vue";
 import ConversationSwipeRow from './conversation-swipe-row.vue';
 import { useConversationDelete } from '@/composables/use-conversation-delete';
@@ -55,7 +53,6 @@ import { navTo } from "@/lib/route";
 import { localizedIdleClose } from "@/lib/support-idle-message";
 import { formatUnreadBadge } from "@/lib/unread-badge";
 
-const props = withDefaults(defineProps<{ filter?: "all" | "advisor" | "support"; hideFilters?: boolean }>(), { filter: "all", hideFilters: false });
 const emit = defineEmits<{ (event: "navigate"): void }>();
 const conversations = useConversations(), center = useMessageDrawer();
 const t = useT();
@@ -63,16 +60,11 @@ const actions = useConversationDelete();
 type ServiceKind = "advisor" | "support";
 type Row = { key: string; id: string; kind: ServiceKind; title: string; preview: string; ts: number; unread: number };
 function unreadUnavailable(row: Row) { return !Number.isSafeInteger(row.unread) || row.unread < 0 || !!(conversations.error || conversations.categoryAvailabilityStatus === "failed"); }
-const filter = ref<"all" | ServiceKind>("all");
-const filters = computed(() => [
-  { value: "all", label: t.value.notifs.filterAll },
-  { value: "advisor", label: t.value.conversations.typeAdvisor },
-]);
 const loading = computed(() => conversations.loading || conversations.categoryLoading);
 const failed = computed(() => !!(conversations.error || conversations.categoryAvailabilityStatus === "failed"));
 const clean = (text: string) => text.replace(/\*\*/g, "").replace(/\s*\n+\s*/g, " ").trim();
 const rows = computed<Row[]>(() => {
-  const human: Row[] = conversations.humanThreads.map(c => {
+  return conversations.humanThreads.map<Row>(c => {
     const last = c.messages[c.messages.length - 1];
     const useLoaded = !!last && last.ts >= c.lastTs;
     const text = useLoaded ? last.kind === "IMAGE" && !last.text ? t.value.conversations.image.message : last.text : c.lastMessage;
@@ -82,11 +74,7 @@ const rows = computed<Row[]>(() => {
       title: c.ownerAgentId ? c.agentName : t.value.conversations.typeAdvisor,
       preview: c.conversationIds.some(id => conversations.typingIds[id]) ? t.value.conversations.agentTyping : clean(preview) || t.value.conversations[c.roleKey],
       ts: Math.max(c.lastTs, last?.ts ?? 0), unread: c.unread };
-  });
-
-  const selected = props.hideFilters ? props.filter : filter.value;
-  return human.filter(row => selected === "all" || row.kind === (selected === "support" ? "advisor" : selected))
-    .sort((a, b) => b.ts - a.ts || a.key.localeCompare(b.key));
+  }).sort((a, b) => b.ts - a.ts || a.key.localeCompare(b.key));
 });
 function activityTime(ts: number) {
   return formatDisplayDateTime(ts, dateLocale());

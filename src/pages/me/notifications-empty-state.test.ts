@@ -46,7 +46,7 @@ function mountPage() {
     "@/store/ui": { confirm: async () => true, useUI: () => ({ clearConfirmsBy: vi.fn() }) },
     "@/store/app": { useApp: () => ({ accountKey: "fixture", accountBindingEpoch: 0 }) },
   };
-  const page = new Function("require", "exports", output + ";return { t, notifs, filter, filtered, countOf, filterLabel, emptyTitle, visibleFilterIds, serviceFilters };")(
+  const page = new Function("require", "exports", output + ";return { t, notifs, filter, filtered, countOf, filterLabel, emptyTitle, visibleFilterIds };")(
     (name: string) => {
       if (name.endsWith(".vue")) return {};
       if (!(name in modules)) throw new Error(`Unexpected dependency: ${name}`);
@@ -69,9 +69,6 @@ describe("notification empty-state context", () => {
     page.filter.value = 'finance'; expect(page.filtered.value).toHaveLength(0); expect(Boolean(evaluateBinding(loading, context))).toBe(true);
     notifs.items = []; page.filter.value = 'all'; expect(Boolean(evaluateBinding(loading, context))).toBe(true);
     notifs.loading = false; expect(evaluateBinding(busy, context)).toBe(false); expect(Boolean(evaluateBinding(loading, context))).toBe(false);
-  });
-  it("does not offer retired ticket filtering in the service message parent page", () => {
-    expect(mountPage().page.serviceFilters.value.map((item: { value: string }) => item.value)).toEqual(["all", "advisor"]);
   });
   for (const [name, template] of [["page", source]]) {
     it(`${name} never reports all read while the unread snapshot is unavailable`, () => {

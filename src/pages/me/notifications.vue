@@ -22,14 +22,11 @@
           <template #option="{ option }"><text class="message-option-label">{{ option.label }}</text><view v-if="option.hasUnread" class="message-status-dot" aria-hidden="true" /></template>
         </GlassSegments></view>
       </view>
-      <GlassSegments v-if="section === 'service'" v-model="serviceFilter" :options="serviceFilters" layout="scroll" semantics="radio" :label="t.notifs.serviceFilterLabel" class="message-filters">
-        <template #option="{ option }"><text class="message-option-label">{{ option.label }}</text><view v-if="option.count && option.value !== 'all'" class="message-category-dot" aria-hidden="true" /></template>
-      </GlassSegments>
-      <GlassSegments v-else :label="t.notifs.filterGroupLabel" semantics="radio" v-model="filter" :options="filterOptions" layout="scroll" class="message-filters">
+      <GlassSegments v-if="section !== 'service'" :label="t.notifs.filterGroupLabel" semantics="radio" v-model="filter" :options="filterOptions" layout="scroll" class="message-filters">
         <template #option="{ option }"><text class="message-option-label">{{ option.label }}</text><view v-if="option.hasUnread && option.value !== 'all'" class="message-category-dot" aria-hidden="true" /></template>
       </GlassSegments>
       <scroll-view :key="section" scroll-y class="message-scroll" :show-scrollbar="false" @scroll="onMessageScroll" @wheel="onScrollInput" @touchmove="onScrollInput" @keydown.up="onScrollInput" @keydown.down="onScrollInput" @keydown.home="onScrollInput" @keydown.end="onScrollInput" @keydown.page-up="onScrollInput" @keydown.page-down="onScrollInput">
-      <ServiceMessageList v-if="section === 'service'" :filter="serviceFilter" hide-filters />
+      <ServiceMessageList v-if="section === 'service'" />
       <view v-else class="notification-feed" :aria-busy="notifs.loading">
         <view v-if="!notifs.loading && !notifs.error && notifs.nextCursor && filtered.length === 0" role="status" class="message-state"><text>{{ t.notifs.moreToCheck }}</text></view>
         <EmptyState v-if="!notifs.loading && !notifs.error && !notifs.nextCursor && filtered.length === 0" kind="empty-list" :title="emptyTitle" :desc="notifs.items.length === 0 ? t.notifs.emptyBody : undefined" />
@@ -206,7 +203,7 @@ watch(() => [app.accountKey, app.accountBindingEpoch] as const, ([nextKey, nextE
     section.value = "notifications";
   }
   preserveSectionInH5();
-  expandedId.value = null; filter.value = "all"; serviceFilter.value = "all"; resetHeader();
+  expandedId.value = null; filter.value = "all"; resetHeader();
   if (!disposed && pageVisible) void center.refresh();
 });
 
@@ -340,10 +337,6 @@ onResize(measureHeader);
 watch([unreadLabel, sectionOptions, section, () => center.error], measureHeader);
 let lastScrollInputAt = -Infinity;
 function onScrollInput() { lastScrollInputAt = Date.now(); }
-const serviceFilter = ref<"all" | "advisor">("all");
-const serviceFilters = computed(() => [
-  { value: "all", label: t.value.notifs.filterAll, hasUnread: center.serviceUnread > 0 }, { value: "advisor", label: t.value.conversations.typeAdvisor, count: center.humanUnread },
-]);
 function onMessageScroll(event: { detail: { scrollTop: number } }) {
   const now = Date.now();
   headerState.value = advanceMessageHeader(headerState.value, event.detail.scrollTop, headerFocused.value, now, now - lastScrollInputAt < 160);

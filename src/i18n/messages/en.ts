@@ -5309,7 +5309,6 @@ openSeaErrorPool: {
     important: "Important",
     viewAll: "View all messages",
     preferences: "Notification settings",
-    serviceFilterLabel: "Filter service messages",
     serviceReadHint: "Read status syncs after opening a conversation",
     serviceEmpty: "No service messages",
     serviceEmptyHint: "Replies from your advisor will appear here.",
