@@ -10,7 +10,7 @@
       <text class="home-action-title">{{ row.title }}</text>
       <view class="home-action-subtitle">
         <template v-if="row.reward"><text>{{ row.rewardLabel }}</text><text class="home-action-reward">{{ row.reward }} UVT</text></template>
-        <text v-else>{{ row.subtitle }}</text>
+        <text v-else :class="row.tone === 'attention' ? 'home-action-status' : 'home-action-hint'">{{ row.subtitle }}</text>
         <text v-if="row.remaining" class="home-action-countdown"><text class="home-action-separator" aria-hidden="true">·</text>{{ row.remaining }}</text>
       </view>
     </view>
@@ -22,7 +22,9 @@
 import { useDataVisibility } from "@/store/data-visibility";
 import NxButton from '@/components/ui/nx-button.vue';
 export type HomeActionRow = { key: string; title: string; subtitle?: string; action?: string; href: string;
-  progress?: { done: number | null; total: number | null }; progressLabel?: string; reward?: string; rewardLabel?: string; remaining?: string };
+  progress?: { done: number | null; total: number | null }; progressLabel?: string; reward?: string; rewardLabel?: string; remaining?: string;
+  /** attention: something waiting on the user (amber); otherwise the subtitle is a plain hint. */
+  tone?: 'attention' };
 const visibility = useDataVisibility();
 const props = defineProps<{ row: HomeActionRow }>();
 const emit = defineEmits<{ (event: 'open'): void }>();
@@ -40,6 +42,8 @@ function activateRow(event: KeyboardEvent) { if (!props.row.action && !event.rep
 .home-action-copy { flex:1;min-width:0; }
 .home-action-title { display:block;font-size:var(--ui-text-body);font-weight:500;line-height:20px;color:var(--v5-ink);overflow-wrap:anywhere; }
 .home-action-subtitle { display:flex;flex-wrap:wrap;align-items:baseline;column-gap:4px;margin-top:2px;font-size:var(--ui-text-caption);line-height:18px;color:var(--v5-ink-3);overflow-wrap:anywhere; }
+.home-action-hint { color:var(--v5-ink-2); }
+.home-action-status { color:var(--ui-attention);font-weight:500; }
 .home-action-reward { color:var(--v5-quest-violet-ink); }
 .home-action-countdown { color:var(--ui-attention);white-space:nowrap; }
 .home-action-separator { color:var(--v5-ink-3);margin-right:4px; }

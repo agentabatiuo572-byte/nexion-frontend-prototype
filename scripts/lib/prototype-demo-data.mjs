@@ -107,6 +107,13 @@ export function demoFixture(url,locale,state,request) {
   if (pathname === '/api/config/phone-tiers') return { tiers: [1,2,3,4,5].map(tier => ({
     tier, name:`Tier ${tier}`, baseRateUsdt:[.02,.04,.06,.09,.12][tier-1], baseRateNex:tier*.1, effectiveAt:iso,
   })), sources:['Local prototype demo'] };
+  // Published home display feed (intro stats, home on-grid, trust card): one sample per second for two minutes.
+  if (pathname === '/api/config/home-display' && !empty) {
+    const startAt=Math.floor(now/1000)*1000, elapsed=Math.max(0,Math.floor((startAt-demoStartedAt)/1000));
+    const at=offset=>elapsed+offset, seconds=Array.from({length:121},(_,offset)=>at(offset));
+    return { enabled:true, startAt, serverNow:now, validUntil:startAt+120_000, sequence:elapsed,
+      online:seconds.map(t=>2968+Math.floor(t/45)), paidCents:seconds.map(t=>128465050+t*160+Math.floor(t/3)*29) };
+  }
   const socialProduct = pathname.match(/^\/api\/storefront\/products\/([^/]+)\/social-proof$/);
   if (socialProduct) {
     const product = products.find(item => item.id === decodeURIComponent(socialProduct[1]));
