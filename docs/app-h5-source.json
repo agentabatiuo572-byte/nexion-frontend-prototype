@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-polish",
+  "sourcePath": "/Volumes/HD1/Projects/UVEL/rm-claude-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "56936cd7b19225442269181c3b4010fb6259a306",
-  "sourceRef": "56936cd7b19225442269181c3b4010fb6259a306",
+  "sourceHead": "3963b80c7e307dbbef697738346ed995b7d8bb65",
+  "sourceRef": "3963b80c7e307dbbef697738346ed995b7d8bb65",
   "sourceRefKind": "commit",
-  "sourceTree": "1ac49d957e6ac4f5aba87e9755308b621e5f6b05",
+  "sourceTree": "f1c22d38e7331e3fee35e116973391d9c06b182e",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -2890,10 +2890,10 @@
       "mode": "100644"
     },
     "scripts/verify.sh": {
-      "sourceBlob": "fae8993a3bf9d734918bde4a776e4a8ad9c55828",
-      "sourceSha256": "61322885e9698e6212dd2e4a14094a856c80c40dbd13c62bbd7679170217adda",
-      "targetBlob": "fae8993a3bf9d734918bde4a776e4a8ad9c55828",
-      "targetSha256": "61322885e9698e6212dd2e4a14094a856c80c40dbd13c62bbd7679170217adda",
+      "sourceBlob": "fa6de84da7059de287b8e68a80f46a0e9d773fcb",
+      "sourceSha256": "7c04e7001495d8d6610f2bf5359f0acddcbb9aae650a638e24247eb78fcf3b74",
+      "targetBlob": "fa6de84da7059de287b8e68a80f46a0e9d773fcb",
+      "targetSha256": "7c04e7001495d8d6610f2bf5359f0acddcbb9aae650a638e24247eb78fcf3b74",
       "mode": "100644"
     },
     "scripts/vite-watch-anchor-gate.mjs": {

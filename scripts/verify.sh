@@ -2277,12 +2277,15 @@ trial02_doc_fingerprints() {
   [ "$bad_hits" -eq 0 ] && ok "TRIAL02 doc fingerprints: 9 个动作名在无标记文档里 0 命中(扫 $docs_n 份非 changes 文档,其中 $marked_n 份带豁免标记)"
   # 🔴 反向对照(正控):本门的 PASS 形态是「0 命中」—— 那正是假绿最爱的形状:
   #   grep 机制一坏(路径写错 / 通配符失效 / docs 被挪走),同样是 0 命中,同样报绿。
-  #   所以要有一处**必须扫得到**的地方做对照:docs/changes/ 里的变更卡按定义会原样引用这些
-  #   旧动作名(裁决卡 / 红测记录都在讲它们)。那里扫不到 = 扫描机制本身坏了,不是「真干净了」。
-  local control
-  control=$(grep -rlF "redeemEarly" docs/changes --include="*.md" 2>/dev/null | wc -l | tr -d ' ')
-  if [ "$control" -ge 1 ]; then ok "TRIAL02 doc 扫描机制正控:docs/changes 里扫到 $control 份含旧动作名的变更卡(>0 = grep 确实在工作)";
-  else bad "TRIAL02 doc 扫描机制失效 —— 连 docs/changes 里的变更卡都扫不到旧动作名,上面那条「0 命中」是假绿,先修扫描逻辑"; fi
+  #   所以要有一处**必须扫得到**的地方做对照。仓库只保留代码、PRD 和更新日志(2026-10-30),
+  #   原先充当对照的 docs/changes/ 已删除,改为现场写一份含旧动作名的探针文件,用同样的参数扫它。
+  local control probe_dir
+  probe_dir=$(mktemp -d)
+  printf 'redeemEarly\n' > "$probe_dir/probe.md"
+  control=$(grep -rlF "redeemEarly" "$probe_dir" --include="*.md" 2>/dev/null | wc -l | tr -d ' ')
+  rm -rf "$probe_dir"
+  if [ "$control" -ge 1 ]; then ok "TRIAL02 doc 扫描机制正控:探针文件里扫到旧动作名(>0 = grep 确实在工作)";
+  else bad "TRIAL02 doc 扫描机制失效 —— 连探针文件里的旧动作名都扫不到,上面那条「0 命中」是假绿,先修扫描逻辑"; fi
 }
 trial02_doc_fingerprints
 trial02_source_fingerprints
