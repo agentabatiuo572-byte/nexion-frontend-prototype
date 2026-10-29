@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-polish",
+  "sourcePath": "D:\\workspace\\artifacts\\wallet-lifetime-warm-20261029\\app-candidate",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "405674fbe7611abb5ac98e57474d2b18097e3344",
-  "sourceRef": "405674fbe7611abb5ac98e57474d2b18097e3344",
+  "sourceHead": "02e426c9099b88f48d8b2853602ccaa3d47ffbc0",
+  "sourceRef": "02e426c9099b88f48d8b2853602ccaa3d47ffbc0",
   "sourceRefKind": "commit",
-  "sourceTree": "41f86d3b89e33f98f16b052911b22ca0dcb9f5c1",
+  "sourceTree": "0b32ddf3944204624195afaf61902ada26416ddd",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -213,6 +213,13 @@
       "sourceSha256": "25841f5f662adf2e48b07ebbf981a84ee94f808882349032ad523d033869d528",
       "targetBlob": "e73cdb5ef17b5fdc4286510adbee99932e1ae86d",
       "targetSha256": "25841f5f662adf2e48b07ebbf981a84ee94f808882349032ad523d033869d528",
+      "mode": "100644"
+    },
+    "PRD/UVEL_我的累计收益暖刷新_20261029.md": {
+      "sourceBlob": "d77b80d40a7ffe3d898734036879a9842e16a8ce",
+      "sourceSha256": "b703170fd632fc041082d1600402eccfc32182f0a625bfa53837e8c42f87f974",
+      "targetBlob": "d77b80d40a7ffe3d898734036879a9842e16a8ce",
+      "targetSha256": "b703170fd632fc041082d1600402eccfc32182f0a625bfa53837e8c42f87f974",
       "mode": "100644"
     },
     "PRD/UVEL_数据隐私显示_20261028.md": {
@@ -12508,10 +12515,10 @@
       "mode": "100644"
     },
     "docs/前端产品更新日志.md": {
-      "sourceBlob": "1fe6ce64fa6a71ab887bdd85e386f8dd6d5115f2",
-      "sourceSha256": "38dbf6e690af5c3327b295812fe388d3807a4e67417c4222cdb66822137020ca",
-      "targetBlob": "1fe6ce64fa6a71ab887bdd85e386f8dd6d5115f2",
-      "targetSha256": "38dbf6e690af5c3327b295812fe388d3807a4e67417c4222cdb66822137020ca",
+      "sourceBlob": "874db66c13e4e5eb8aed8633cb99e095f5f40894",
+      "sourceSha256": "509b453d88639300c76f93448856d7aca11c7a1997f6e490518593e7c94238a0",
+      "targetBlob": "874db66c13e4e5eb8aed8633cb99e095f5f40894",
+      "targetSha256": "509b453d88639300c76f93448856d7aca11c7a1997f6e490518593e7c94238a0",
       "mode": "100644"
     },
     "index.html": {
@@ -18395,10 +18402,10 @@
       "mode": "100644"
     },
     "src/components/me/wallet-overview.vue": {
-      "sourceBlob": "adc4c376161bc2e921ed0dbdd6e526017ae687aa",
-      "sourceSha256": "6496684105cc6ff89355f10712d449b017792a58f63f21b9403d4e7b6b0af011",
-      "targetBlob": "adc4c376161bc2e921ed0dbdd6e526017ae687aa",
-      "targetSha256": "6496684105cc6ff89355f10712d449b017792a58f63f21b9403d4e7b6b0af011",
+      "sourceBlob": "8839333cc7d0de1e4422d271f69e8b291dfea7d6",
+      "sourceSha256": "0bb0888d9eb519387230fe5a2a439ff2ed9b78419feb32ec4cc6bc66f66b8962",
+      "targetBlob": "8839333cc7d0de1e4422d271f69e8b291dfea7d6",
+      "targetSha256": "0bb0888d9eb519387230fe5a2a439ff2ed9b78419feb32ec4cc6bc66f66b8962",
       "mode": "100644"
     },
     "src/components/me/withdrawal-locked-warning.vue": {
@@ -25290,10 +25297,10 @@
       "mode": "100644"
     },
     "src/pages/me/wallet-held-authority.behavior.test.ts": {
-      "sourceBlob": "4f5c71954599cae430040f9c28cd7ec92a9a7abe",
-      "sourceSha256": "431245c1b10aec04b6d45209e3102a6b86380bfc634dd6592166f375a373b912",
-      "targetBlob": "4f5c71954599cae430040f9c28cd7ec92a9a7abe",
-      "targetSha256": "431245c1b10aec04b6d45209e3102a6b86380bfc634dd6592166f375a373b912",
+      "sourceBlob": "f76fc60ee1df16fbd0dbf2e0d075f0703c1b1e48",
+      "sourceSha256": "427c6750dc4a60571a7383df36e0f4af27d105d817be5796535258a84315dd6a",
+      "targetBlob": "f76fc60ee1df16fbd0dbf2e0d075f0703c1b1e48",
+      "targetSha256": "427c6750dc4a60571a7383df36e0f4af27d105d817be5796535258a84315dd6a",
       "mode": "100644"
     },
     "src/pages/me/wallet-market-return.behavior.test.ts": {
@@ -27837,11 +27844,18 @@
       "targetSha256": "d343d57cd9cbe8e9f43e96bd890d36d2ab9e6aec9e375e926deea48f38394751",
       "mode": "100644"
     },
+    "src/store/commission-wallet-warm.test.ts": {
+      "sourceBlob": "40db3cc3feb0b0bec0acef1f9b1c0d6e3053c047",
+      "sourceSha256": "b2caab99702e7ad6a5c35bb80d4a992688a3dc8b41b9adccb99acff1500a8912",
+      "targetBlob": "40db3cc3feb0b0bec0acef1f9b1c0d6e3053c047",
+      "targetSha256": "b2caab99702e7ad6a5c35bb80d4a992688a3dc8b41b9adccb99acff1500a8912",
+      "mode": "100644"
+    },
     "src/store/commission.ts": {
-      "sourceBlob": "9fadfb0137932ead1e9d536eb1ed84618ad0b2c9",
-      "sourceSha256": "16a5bab8d0cd08f8b7d614cfd13836b77f27dfcf2dd0b9adc396e3ecbce28b15",
-      "targetBlob": "9fadfb0137932ead1e9d536eb1ed84618ad0b2c9",
-      "targetSha256": "16a5bab8d0cd08f8b7d614cfd13836b77f27dfcf2dd0b9adc396e3ecbce28b15",
+      "sourceBlob": "c4cf8be8f791741c58f138023700bacb92798228",
+      "sourceSha256": "898c53f4d23919037a8fe79825b1df53516148e56f87dcf308ed5395ed37f893",
+      "targetBlob": "c4cf8be8f791741c58f138023700bacb92798228",
+      "targetSha256": "898c53f4d23919037a8fe79825b1df53516148e56f87dcf308ed5395ed37f893",
       "mode": "100644"
     },
     "src/store/config-flight.test.ts": {

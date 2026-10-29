@@ -61,7 +61,7 @@
           <text>{{ t.ui.retry }}</text>
         </view>
       </view>
-      <view v-if="remoteApiEnabled && !earningsReadPending && allTimeEarned === null" class="wallet-recovery">
+      <view v-if="earningsRecoveryVisible" class="wallet-recovery">
         <text class="block wallet-recovery-body">{{ t.wallet.earningsUnavailable }}</text>
         <view role="button" tabindex="0" :aria-label="t.ui.retry" class="nx-card-recovery-action active:opacity-70" @click="retryEarningsAuthority" @keydown.enter.prevent="retryEarningsAuthority" @keydown.space.prevent="retryEarningsAuthority">
           <text>{{ t.ui.retry }}</text>
@@ -81,7 +81,7 @@ import { invalidatePassiveTabRead } from "@/lib/passive-tab-read";
 import { formatFinanceAmount as formatAmount } from "@/lib/finance-amount-display";
 import { useDataVisibility } from "@/store/data-visibility";
 import { navTo } from "@/lib/route";
-import { computed, type CSSProperties } from "vue";
+import { computed, ref, watch, type CSSProperties } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt, dateLocale } from "@/i18n/format";
 import { formatDisplayDateTime } from "@/lib/display-date";
@@ -105,6 +105,14 @@ const fundsAuthorityUnavailable = computed(() => remoteApiEnabled && app.remoteF
 const releaseAuthorityUnavailable = computed(() => remoteApiEnabled && earningsReleaseStatus.value === "error");
 const earningsReadPending = computed(() => app.homeTruthStatus === "idle" || app.homeTruthStatus === "loading"
   || commission.eventsStatus === "idle" || commission.eventsStatus === "loading");
+const homeEarningsReadFailed = ref(false);
+watch(() => [app.homeTruthStatus, app.homeTruth] as const, ([status, snapshot]) => {
+  if (status === "error") homeEarningsReadFailed.value = true;
+  else if (status === "ready" || (status === "idle" && !snapshot)) homeEarningsReadFailed.value = false;
+}, { immediate: true, flush: "sync" });
+const earningsRecoveryVisible = computed(() => remoteApiEnabled && (homeEarningsReadFailed.value || commission.eventsReadFailed
+  || app.homeTruthStatus === "error" || commission.eventsStatus === "error"
+  || (!earningsReadPending.value && allTimeEarned.value === null)));
 const bucketsReadable = computed(() => !remoteApiEnabled || (earningsReleaseHasSnapshot.value
   && earningsReleaseSnapshot.value?.serverCanonical === true
   && (earningsReleaseStatus.value === "ready" || earningsReleaseStatus.value === "loading")));
@@ -176,13 +184,17 @@ const todayEarningsText = computed(() => visibility.mask(todayEarnings.value ===
 const pendingReview = computed(() => buckets.value.pendingReviewUsdt);
 const lockedRewards = computed(() => buckets.value.bonusLockedUsdt);
 const miningLifetimeUSD = computed(() => !remoteApiEnabled ? app.earnings.total
-  : app.homeTruthStatus === "ready" || app.homeTruthStatus === "loading" ? app.homeTruth?.earnings.all.usdt ?? null : null);
+  : app.homeTruthStatus === "ready" || app.homeTruthStatus === "loading"
+    || (app.homeTruthStatus === "error" && app.homeTruthTransientFailure) ? app.homeTruth?.earnings.all.usdt ?? null : null);
 const teamLifetimeUSD = computed(() => !remoteApiEnabled ? commission.totalUSDTLifetime()
-  : commission.eventsStatus === "ready" || commission.eventsStatus === "loading" ? commission.eventsEvidence?.aggregate.totalUSDT ?? null : null);
+  : commission.eventsStatus === "ready" ? commission.eventsEvidence?.aggregate.totalUSDT ?? null
+  : commission.eventsStatus === "idle" || commission.eventsStatus === "loading"
+    || (commission.eventsStatus === "error" && commission.eventsTransientFailure)
+      ? commission.eventsLifetimeDisplayUSDT ?? (commission.eventsStatus === "loading" ? commission.eventsEvidence?.aggregate.totalUSDT : null) ?? null : null);
 const allTimeEarned = computed(() => miningLifetimeUSD.value === null || teamLifetimeUSD.value === null
   ? null : miningLifetimeUSD.value + teamLifetimeUSD.value);
 const hasReadRecovery = computed(() => configSyncFailed.value || fundsAuthorityUnavailable.value || releaseAuthorityUnavailable.value
-  || (remoteApiEnabled && !earningsReadPending.value && allTimeEarned.value === null)
+  || earningsRecoveryVisible.value
   || (remoteApiEnabled && app.remoteWithdrawalListStatus === "error"));
 const allTimeAmounts = computed(() => ({
   c: visibility.mask(miningLifetimeUSD.value === null ? "-" : `$${formatAmount(miningLifetimeUSD.value)}`),

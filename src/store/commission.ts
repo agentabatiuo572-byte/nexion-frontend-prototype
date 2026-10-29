@@ -7,6 +7,8 @@ import type { CanonicalBinaryState, CanonicalCommissionConfig } from "@/api/comm
 import { normalizeAccountKey } from "./account-cloud";
 import { readAccountRow, writeAccountRow } from "./account-scoped-storage";
 import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision, type RuntimeRevisionScope } from "@/api/order-api";
+import { isProductCatalogDisplayCurrent, productCatalogDisplayProof } from "./product-catalog";
+import { useLocaleStore } from "./locale";
 
 /**
  * Ported from Nexion-prototype/lib/v3/commission.ts (zustand persist → Pinia + uni storage).
@@ -182,11 +184,14 @@ export const useCommission = defineStore("commission", () => {
   let eventsRefreshGeneration = 0;
   const events = ref<CommissionEvent[]>(remoteApiEnabled ? [] : hydrate(boundKey));
   const eventsEvidence = ref<import("@/api/team-insights-api").TeamCommissionSnapshot | null>(null);
+  // Display only: never used for withdrawals, eligibility or event totals.
+  const eventsLifetimeDisplayUSDT = ref<number | null>(null);
   const config = ref<CanonicalCommissionConfig | null>(null);
   const binarySnapshot = ref<CanonicalBinaryState | null>(null);
   const eventsStatus = ref<"idle" | "loading" | "ready" | "error">(remoteApiEnabled ? "idle" : "ready");
   const eventsRateLimited = ref(false);
   const eventsTransientFailure = ref(false);
+  const eventsReadFailed = ref(false);
 
   let eventsRetryAt = 0;
   let environmentInvalidated = false;
@@ -209,7 +214,7 @@ export const useCommission = defineStore("commission", () => {
   let eventsInFlight: { scope: RequestScope; promise: Promise<void> } | null = null;
   let configInFlight: { scope: RequestScope; promise: Promise<void> } | null = null;
 
-  const unsubscribeCommerceRun = subscribeRuntimeRevision(() => {
+  const unsubscribeCommerceRun = subscribeRuntimeRevision((runtimeScope) => {
     if (!remoteApiEnabled) return;
     // A catalogue environment/RunID change invalidates every remote snapshot;
     // stale requests are also fenced by isCurrentRuntimeRevision().
@@ -219,6 +224,10 @@ export const useCommission = defineStore("commission", () => {
     binarySnapshot.value = null;
     events.value = [];
     eventsEvidence.value = null;
+    if (!isProductCatalogDisplayCurrent(runtimeScope)) {
+      eventsLifetimeDisplayUSDT.value = null;
+      eventsReadFailed.value = false;
+    }
     configStatus.value = "idle";
 
     eventsStatus.value = Date.now() < eventsRetryAt ? "error" : "idle";
@@ -240,6 +249,8 @@ export const useCommission = defineStore("commission", () => {
     ]);
   });
   onScopeDispose(unsubscribeCommerceRun);
+  watch(productCatalogDisplayProof, proof => { if (!proof) eventsLifetimeDisplayUSDT.value = null; }, { flush: "sync" });
+  watch(() => useLocaleStore().code, invalidateReadOwner, { flush: "sync" });
 
   function persist() {
     if (remoteApiEnabled) return;
@@ -250,6 +261,8 @@ export const useCommission = defineStore("commission", () => {
     environmentInvalidated = true; bindingEpoch += 1; eventsRetryAt = 0;
     eventsRateLimited.value = false; eventsTransientFailure.value = false; eventsInFlight = null;
     events.value = []; eventsEvidence.value = null; eventsStatus.value = "idle";
+    eventsLifetimeDisplayUSDT.value = null;
+    eventsReadFailed.value = false;
     config.value = null; binarySnapshot.value = null; configStatus.value = "idle"; binaryStatus.value = "idle";
   }, { flush: "sync" });
 
@@ -261,6 +274,8 @@ export const useCommission = defineStore("commission", () => {
     eventsTransientFailure.value = false;
     bindingEpoch += 1; eventsInFlight = null;
     events.value = []; eventsEvidence.value = null;
+    eventsLifetimeDisplayUSDT.value = null;
+    eventsReadFailed.value = false;
     eventsStatus.value = Date.now() < eventsRetryAt ? "error" : "idle";
     eventsLoadMoreStatus.value = "idle"; eventsPage.value = 0; eventsTotalRows.value = 0;
     config.value = null; binarySnapshot.value = null; configStatus.value = "idle"; binaryStatus.value = "idle";
@@ -278,6 +293,8 @@ export const useCommission = defineStore("commission", () => {
       binarySnapshot.value = null;
       events.value = [];
       eventsEvidence.value = null;
+      eventsLifetimeDisplayUSDT.value = null;
+      eventsReadFailed.value = false;
       configStatus.value = "idle";
       eventsStatus.value = "idle";
       eventsLoadMoreStatus.value = "idle";
@@ -369,10 +386,14 @@ export const useCommission = defineStore("commission", () => {
 
   function refreshCanonicalEvents(scope = requestScope()): Promise<void> {
     invalidateBeforePassiveTabRead("commission-events");
-    if (environmentInvalidated || Date.now() < eventsRetryAt) return Promise.resolve();
-    const promise = readCanonicalEvents(scope);
-    rememberPassiveTabRead("commission-events", promise, scope, undefined, () => eventsStatus.value === "ready");
+    if (environmentInvalidated || !isCurrentScope(scope) || Date.now() < eventsRetryAt) return Promise.resolve();
+    if (eventsInFlight && sameScope(eventsInFlight.scope, scope)) return eventsInFlight.promise;
+    let resolve!: () => void, reject!: (cause: unknown) => void;
+    const promise = new Promise<void>((done, fail) => { resolve = done; reject = fail; });
+    // Synchronous status observers must see this owner before read dispatch.
     eventsInFlight = { scope, promise };
+    rememberPassiveTabRead("commission-events", promise, scope, undefined, () => eventsStatus.value === "ready");
+    void readCanonicalEvents(scope).then(resolve, reject);
     const clear = () => { if (eventsInFlight?.promise === promise) eventsInFlight = null; };
     void promise.then(clear, clear);
     return promise;
@@ -392,6 +413,7 @@ export const useCommission = defineStore("commission", () => {
       const snapshot = await teamInsightsApi.commissions(1, 20);
       if (generation !== eventsRefreshGeneration || !isCurrentScope(scope)) return;
       eventsEvidence.value = snapshot;
+      eventsLifetimeDisplayUSDT.value = snapshot.aggregate?.totalUSDT ?? null;
       events.value = snapshot.events;
       eventsPage.value = snapshot.page;
       eventsTotalRows.value = snapshot.totalRows;
@@ -399,11 +421,14 @@ export const useCommission = defineStore("commission", () => {
       eventsStatus.value = "ready";
       eventsRateLimited.value = false;
       eventsTransientFailure.value = false;
+      eventsReadFailed.value = false;
     } catch (cause) {
       if (generation === eventsRefreshGeneration && isCurrentScope(scope)) {
 
         eventsRateLimited.value = isHttpReadRateLimit(cause);
         eventsTransientFailure.value = isTransientReadFailure(cause);
+        eventsReadFailed.value = true;
+        if (!eventsTransientFailure.value) eventsLifetimeDisplayUSDT.value = null;
         if (isHttpReadRateLimit(cause)) eventsRetryAt = Date.now() + (cause.retryAfterMs ?? 30_000);
         eventsEvidence.value = null;
         eventsStatus.value = "error";
@@ -424,6 +449,7 @@ export const useCommission = defineStore("commission", () => {
       const appended = [...events.value, ...snapshot.events.filter((event) => !seen.has(event.id))];
       events.value = appended;
       eventsEvidence.value = { ...snapshot, events: appended };
+      eventsLifetimeDisplayUSDT.value = snapshot.aggregate?.totalUSDT ?? null;
       eventsPage.value = snapshot.page;
       eventsTotalRows.value = snapshot.totalRows;
       eventsLoadMoreStatus.value = "idle";
@@ -524,7 +550,7 @@ export const useCommission = defineStore("commission", () => {
 
   return {
     events, eventsEvidence, config, configStatus, binarySnapshot, eventsStatus, eventsLoadMoreStatus,
-    eventsPage, eventsTotalRows, binaryStatus, eventsRateLimited, eventsTransientFailure, invalidateReadOwner, bindAccount,
+    eventsPage, eventsTotalRows, binaryStatus, eventsRateLimited, eventsTransientFailure, eventsReadFailed, eventsLifetimeDisplayUSDT, invalidateReadOwner, bindAccount,
     refreshCanonicalConfig, ensureCanonicalConfig, refreshCanonicalBinary, ensureCanonicalBinary, refreshCanonicalEvents, ensureCanonicalEvents, loadMoreCanonicalEvents, unilevelRate,
     addEvent, unlockMatured, withdraw,
     totalUSDTLifetime, totalNEXLifetime, unlockedUSDT, unlockedNEX, coolingUSDT,

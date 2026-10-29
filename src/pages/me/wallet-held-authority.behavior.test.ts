@@ -60,11 +60,11 @@ async function mount(remoteApiEnabled = true, messages = en) {
     remoteFleetHasSnapshot: true, remoteFleetStatus: "ready", remoteWalletReceiptHasSnapshot: false,
     user: { usdtBalance: 42.25, nexBalance: 3, pendingEarnings: 0,
       earningBuckets: { pendingReviewUsdt: 0, bonusLockedUsdt: 0 } },
-    earnings: { today: 2, total: 10 }, homeTruthStatus: "ready",
+    earnings: { today: 2, total: 10 }, homeTruthStatus: "ready", homeTruthTransientFailure: false, homeTruthError: null as string | null,
     homeTruth: { earnings: { today: { usdt: 2 }, all: { usdt: 10 as number | null } } }, primaryWithdrawal: null,
     refreshRemoteFleet: vi.fn(async () => {}), refreshHomeTruth: vi.fn(async () => {}),
   });
-  const commission = Vue.reactive({ eventsStatus: "ready",
+  const commission = Vue.reactive({ eventsStatus: "ready", eventsTransientFailure: false, eventsReadFailed: false, eventsLifetimeDisplayUSDT: null as number | null,
     eventsEvidence: { aggregate: { totalUSDT: 5 } } as { aggregate: { totalUSDT: number } } | null,
     totalUSDTLifetime: () => 5, refreshCanonicalEvents: vi.fn(async () => {}),
   });
@@ -200,6 +200,25 @@ describe("actual wallet held authority", () => {
     expect(s.allTimeSublabel()).toContain("Compute: - · Team: -");
   });
 
+  it("retains confirmed display through warm runtime and transient retries while real feedback stays visible", async () => {
+    const s = await mount();
+    s.commission.eventsLifetimeDisplayUSDT = 5; s.commission.eventsEvidence = null;
+    s.commission.eventsStatus = "idle";
+    await Vue.nextTick(); expect(s.value(en.wallet.allTimeEarnings)).toBe("$15.00");
+    s.commission.eventsStatus = "error"; s.commission.eventsTransientFailure = true; s.commission.eventsReadFailed = true;
+    s.app.homeTruthStatus = "error"; s.app.homeTruthTransientFailure = true; s.app.homeTruthError = "offline";
+    await Vue.nextTick(); expect(s.value(en.wallet.allTimeEarnings)).toBe("$15.00");
+    expect(s.text()).toContain(en.wallet.earningsUnavailable);
+    s.app.homeTruthStatus = "loading"; s.commission.eventsStatus = "loading";
+    await Vue.nextTick(); expect(s.value(en.wallet.allTimeEarnings)).toBe("$15.00");
+    expect(s.text()).toContain(en.wallet.earningsUnavailable);
+    s.app.homeTruthStatus = "ready"; s.app.homeTruthError = null;
+    s.commission.eventsStatus = "ready"; s.commission.eventsReadFailed = false;
+    s.commission.eventsEvidence = { aggregate: { totalUSDT: 0 } };
+    await Vue.nextTick(); expect(s.value(en.wallet.allTimeEarnings)).toBe("$10.00");
+    expect(s.text()).not.toContain(en.wallet.earningsUnavailable);
+  });
+
   it("keeps a confirmed zero through loading but never fills a missing Home snapshot with zero", async () => {
     const s = await mount();
     s.app.homeTruth.earnings.all.usdt = 0;
@@ -215,6 +234,7 @@ describe("actual wallet held authority", () => {
     const s = await mount();
     s.app.homeTruthStatus = "error"; s.app.homeTruth.earnings.all.usdt = null;
     s.commission.eventsStatus = "error"; s.commission.eventsEvidence = null;
+    s.commission.eventsReadFailed = true;
     let mining!: () => void, team!: () => void;
     s.app.refreshHomeTruth.mockImplementation(async () => {
       s.app.homeTruthStatus = "loading";
@@ -225,6 +245,7 @@ describe("actual wallet held authority", () => {
       s.commission.eventsStatus = "loading";
       await new Promise<void>(resolve => { team = resolve; });
       s.commission.eventsEvidence = { aggregate: { totalUSDT: 0 } }; s.commission.eventsStatus = "ready";
+      s.commission.eventsReadFailed = false;
     });
     await Vue.nextTick();
     expect(s.value(en.wallet.allTimeEarnings)).toBe("-");
@@ -232,9 +253,10 @@ describe("actual wallet held authority", () => {
     s.retryEarnings(); s.retryEarnings(); await Vue.nextTick();
     expect(s.app.refreshHomeTruth).toHaveBeenCalledOnce(); expect(s.commission.refreshCanonicalEvents).toHaveBeenCalledOnce();
     expect(s.app.refreshRemoteFleet).not.toHaveBeenCalled();
-    expect(s.text()).not.toContain(en.wallet.earningsUnavailable);
+    expect(s.text()).toContain(en.wallet.earningsUnavailable);
     mining(); await Promise.resolve(); await Vue.nextTick();
     expect(s.value(en.wallet.allTimeEarnings)).toBe("-");
+    expect(s.text()).toContain(en.wallet.earningsUnavailable);
     team(); await Promise.resolve(); await Vue.nextTick();
     expect(s.value(en.wallet.allTimeEarnings)).toBe("$0.00");
     expect(s.allTimeSublabel()).toContain("Compute: $0.00 · Team: $0.00");
