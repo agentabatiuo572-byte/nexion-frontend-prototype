@@ -21,7 +21,7 @@ import type { DeviceKind } from "./types";
 import { normalizeAccountKey } from "./account-cloud";
 import { createAccountRowCommit } from "./account-scoped-storage";
 import { orderApi, remoteApiEnabled } from "@/api/runtime";
-import type { CanonicalOrder, CanonicalOrderStatus, OrderRefundReasonCode } from "@/api/order-api";
+import type { CanonicalOrder, CanonicalOrderStatus, OrderCloseReasonCode, OrderRefundReasonCode } from "@/api/order-api";
 import type { OrderLineItem } from "@/lib/order-line-items";
 import {
   captureRuntimeRevision,
@@ -76,6 +76,7 @@ export interface Order {
   refundChannel?: string;
   refundBillNo?: string;
   refundReasonCode?: OrderRefundReasonCode;
+  closeReasonCode?: OrderCloseReasonCode;
   timeline: OrderTimelineEvent[];
   deviceId?: string;        // the spawned device id once activated
   /** Canonical server data-center; null means the location is not known. */
@@ -249,6 +250,7 @@ export const useOrders = defineStore("orders", () => {
       ...(row.refundChannel != null && { refundChannel: row.refundChannel }),
       ...(row.refundBillNo != null && { refundBillNo: row.refundBillNo }),
       ...(row.refundReasonCode != null && { refundReasonCode: row.refundReasonCode }),
+      ...(row.closeReasonCode != null && { closeReasonCode: row.closeReasonCode }),
       ...(row.targetDeviceId != null && { deviceId: String(row.targetDeviceId) }),
       timeline,
       dataCenter: row.dataCenter,

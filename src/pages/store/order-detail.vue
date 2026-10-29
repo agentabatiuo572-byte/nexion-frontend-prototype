@@ -135,6 +135,7 @@
           <DetailRow v-if="(order.earlyDiscountUSD ?? 0) > 0" :label="trialLifecycle.earlyDiscountLabel" :value="`−${usdt(order.earlyDiscountUSD ?? 0)}`" brand />
           <DetailRow :label="order.trialReward ? purchaseCopy.orderPaid : t.orders.total" :value="usdt(order.total)" big />
           <DetailRow v-if="trialRewardText && order.status !== 'refunded'" :label="purchaseCopy.orderTrialReward" :value="trialRewardText" brand />
+          <DetailRow v-if="order.closeReasonCode && CLOSED_STATUSES.includes(order.status)" :label="t.orders.closeReason" :value="t.orders.closeReasons[order.closeReasonCode]" />
           <template v-if="order.status === 'refunded'">
             <DetailRow v-if="order.refundReasonCode" :label="t.orders.refundReason" :value="t.orders.refundReasons[order.refundReasonCode]" />
             <DetailRow v-if="order.refundAmountUsdt != null" :label="t.orders.refundAmount" :value="usdt(order.refundAmountUsdt)" brand />
@@ -471,6 +472,8 @@ const paymentExpired = computed(() => order.value?.expiresAt != null
 const canPayFromWallet = computed(() => remoteApiEnabled
   && cancellable.value && !walletRefreshing.value && !paymentExpired.value);
 const isProvisioning = computed(() => order.value?.status === "provisioning");
+// Orders that closed without completing; their close reason is shown when the backend sent one.
+const CLOSED_STATUSES: OrderStatus[] = ['cancelled', 'expired', 'payment_failed', 'provisioning_failed', 'chargeback'];
 const needsRecovery = computed(() => !!order.value && ['payment_failed','provisioning_failed','chargeback','expired'].includes(order.value.status));
 const recoveryHint = computed(() => order.value?.status === 'expired' ? t.value.orders.expiredNext : t.value.orders.recoveryNext);
 const canBuyAgain = computed(() => !!order.value && ['activated','cancelled','expired','refunded'].includes(order.value.status)

@@ -139,4 +139,18 @@ describe("order list provenance", () => {
         .resolves.toMatchObject({ orders: [{ refundReasonCode: null }] });
     }
   });
+
+  it("keeps known close reasons and drops unknown or operator text", async () => {
+    const cancelled = {
+      ...order(), paymentStatus: "CANCELLED", orderStatus: "CANCELLED", activationStatus: "WAITING_PAYMENT",
+      canonicalStatus: "cancelled", expiresAt: null,
+    };
+    const envelope = { source: "server", sourceEnvironment: "PRODUCTION", runId: null, serverCanonical: true };
+    await expect(api({ ...envelope, orders: [{ ...cancelled, closeReasonCode: "USER_CANCELLED" }] }, "prod").list())
+      .resolves.toMatchObject({ orders: [{ closeReasonCode: "USER_CANCELLED" }] });
+    for (const closeReasonCode of ["stock ran out", "user_cancelled", null, undefined]) {
+      await expect(api({ ...envelope, orders: [{ ...cancelled, closeReasonCode }] }, "prod").list())
+        .resolves.toMatchObject({ orders: [{ closeReasonCode: null }] });
+    }
+  });
 });

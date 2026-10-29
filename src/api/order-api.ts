@@ -29,6 +29,20 @@ export const ORDER_REFUND_REASON_CODES = [
 
 export type OrderRefundReasonCode = typeof ORDER_REFUND_REASON_CODES[number];
 
+/** Backend OrderCloseReason (E4): why an order closed as cancelled, expired, failed or charged back. */
+export const ORDER_CLOSE_REASON_CODES = [
+  "USER_CANCELLED",
+  "PAYMENT_TIMEOUT",
+  "PAYMENT_NOT_RECEIVED",
+  "PAYMENT_AMOUNT_MISMATCH",
+  "PAYMENT_DISPUTED",
+  "DELIVERY_UNAVAILABLE",
+  "ORDER_EXCEPTION",
+  "OTHER",
+] as const;
+
+export type OrderCloseReasonCode = typeof ORDER_CLOSE_REASON_CODES[number];
+
 export interface OrderTrialSettlement {
   /** FULL_TERM_ON_CONVERSION takes its rewards back on refund; older rules keep them. */
   fullTerm: boolean;
@@ -66,6 +80,7 @@ export interface CanonicalOrder {
   refundBillNo: string | null;
   /** User-visible refund reason; unknown codes are dropped rather than shown raw. */
   refundReasonCode?: OrderRefundReasonCode | null;
+  closeReasonCode?: OrderCloseReasonCode | null;
   /** Trial-conversion orders only: checkout discounts and the trial rewards credited. */
   trialSettlement?: OrderTrialSettlement | null;
   dataCenter: string | null;
@@ -211,6 +226,11 @@ function refundReasonCode(value: unknown): OrderRefundReasonCode | null {
     ? value as OrderRefundReasonCode : null;
 }
 
+function closeReasonCode(value: unknown): OrderCloseReasonCode | null {
+  return typeof value === "string" && (ORDER_CLOSE_REASON_CODES as readonly string[]).includes(value)
+    ? value as OrderCloseReasonCode : null;
+}
+
 function nullableString(value: unknown): string | null {
   if (value === null || value === undefined || value === "") return null;
   return nonEmptyString(value);
@@ -286,6 +306,7 @@ function canonicalOrder(value: unknown): CanonicalOrder {
     refundChannel: nullableString(source.refundChannel),
     refundBillNo: nullableString(source.refundBillNo),
     refundReasonCode: refundReasonCode(source.refundReasonCode),
+    closeReasonCode: closeReasonCode(source.closeReasonCode),
     trialSettlement: trialSettlement(source.trialSettlement),
     dataCenter: nullableString(source.dataCenter),
     tradeinNo: nullableString(source.tradeinNo),
