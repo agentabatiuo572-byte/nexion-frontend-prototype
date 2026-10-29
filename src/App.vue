@@ -2,6 +2,7 @@
 import { runPassiveTabRead } from "@/lib/passive-tab-read";
 import { formatAmount } from "@/lib/amount-display";
 import { acceptNativeOAuthReturn } from "@/auth/oauth-browser-return";
+import { installNativePush, refreshNativePush, flushNativePushClick } from "@/services/native-push";
 import { navReset } from "@/lib/route";
 import { logicalNativePage } from "@/lib/native-tab-navigation";
 import { ApiError } from "@/api/errors";
@@ -11,6 +12,7 @@ import { onLaunch, onShow, onHide } from "@dcloudio/uni-app";
 import { useApp } from "@/store/app";
 import { useConversations } from '@/store/conversations';
 import { useMessageDrawer } from "@/store/message-drawer";
+import { useNotifications } from "@/store/notifications";
 import {
   useFreeTrial,
   liveShadowUSD,
@@ -995,6 +997,9 @@ function questIdForRoute(route: string): QuestTaskId | null {
 }
 
 function checkQuestRoute() {
+  // #ifdef APP-PLUS
+  flushNativePushClick();
+  // #endif
   const route = readCurrentRoute();
   const retiredRoute = resolveRetiredRoute(route);
   if (retiredRoute) {
@@ -1202,6 +1207,13 @@ onLaunch(() => {
   // 同样必须在 early return 之前挂 —— 退役路由 / 静态评审页也有输入框。
   installFieldNaming();
   const auth = useAuth();
+  // #ifdef APP-PLUS
+  installNativePush({ client: apiClient, vault: sessionVault,
+    canNavigate: () => canRefreshRemoteAccount(useAuth()) && useAuth().onboardingComplete
+      && !!readCurrentRoute() && !isAuthWhitelisted(readCurrentRoute()) && !isStaticReviewRoute(readCurrentRoute()),
+    received: () => { if (canRefreshRemoteAccount(useAuth())) void useNotifications().refreshRemote(); },
+  });
+  // #endif
   if (remoteApiEnabled) {
     setRemoteUnauthorizedHandler(() => {
       // Preserve only the non-secret trace long enough to choose the login explanation.
@@ -1267,6 +1279,7 @@ onShow(() => {
   // #ifdef APP-PLUS
   useTheme().refreshSystemTheme();
   acceptNativeOAuthReturn(plus.runtime.arguments || "");
+  refreshNativePush();
   // #endif
   attachSessionWatch();
   if (remoteApiEnabled) {

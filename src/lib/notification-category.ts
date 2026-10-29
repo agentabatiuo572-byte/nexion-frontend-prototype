@@ -7,10 +7,10 @@ export function notificationCategory(notification: Pick<Notification, "kind" | "
   const kind = (notification.rawKind ?? notification.kind).toLowerCase();
   switch (kind) {
     case "wallet": case "payment_method": case "withdrawal": case "order":
-    case "commission": case "staking": case "nova_commission":
+    case "commission": case "staking": case "nova_commission": case "funds_result":
       return "finance";
     case "device": case "dailysummary": case "nova_dailysummary":
-    case "nova_upgrade": case "nova_tradein":
+    case "nova_upgrade": case "nova_tradein": case "device_expiry": case "device_alert":
       return "device";
     case "team": case "nova_team": case "nova_team_event":
       return "team";

@@ -7,9 +7,11 @@ import * as Vue from "vue";
 import { renderToString } from "@vue/server-renderer";
 import { describe, expect, it } from "vitest";
 import { isMandatoryNotifKind } from "@/store/preferences";
+import { initPreContext, preHtml } from "@dcloudio/uni-cli-shared/dist/preprocess";
 
 const template = parse(readFileSync(new URL("./preferences.vue", import.meta.url), "utf8")).descriptor.template!.content;
-const render = new Function("Vue", compile(template, { mode: "function", prefixIdentifiers: true }).code)(Vue);
+initPreContext("h5");
+const render = new Function("Vue", compile(preHtml(template, "preferences.vue"), { mode: "function", prefixIdentifiers: true }).code)(Vue);
 const wrapper = Vue.defineComponent({ setup: (_, { slots }) => () => Vue.h("section", slots.default?.()) });
 const toggleDescriptor = parse(readFileSync(new URL("../../components/me/preference-toggle-row.vue", import.meta.url), "utf8")).descriptor;
 const toggleExports = {} as { default: Vue.Component };

@@ -7,6 +7,15 @@
   <AppChassis active="me">
     <view class="message-family" style="padding-bottom: 24px">
       <SubPageHeader back="/pages/me/me" />
+      <!-- #ifdef APP-PLUS -->
+      <view class="mx-4" style="margin-bottom: 20px" data-testid="system-notifications">
+        <text class="block" :style="headingStyle">{{ pushCopy.title }}</text>
+        <text class="block" :style="footerStyle">{{ pushCopy[nativePushPermission] }}</text>
+        <view class="family-control" role="button" tabindex="0" :aria-label="nativePushPermission === 'unknown' ? pushCopy.enable : pushCopy.settings" @click="managePushPermission" @keydown.enter.prevent="managePushPermission" @keydown.space.prevent="managePushPermission">
+          <text>{{ nativePushPermission === 'unknown' ? pushCopy.enable : pushCopy.settings }}</text>
+        </view>
+      </view>
+      <!-- #endif -->
       <view v-if="prefs.error" class="mx-4 nx-inline-recovery" style="margin-bottom: 12px; color: var(--v5-danger);" data-testid="notification-preferences-error">
         <text class="nx-inline-recovery__copy">{{ preferenceError }}</text>
         <view class="family-control family-control--text nx-inline-recovery__action" role="button" tabindex="0" :aria-label="t.ui.retry" @click="prefs.refreshRemote()">
@@ -58,10 +67,25 @@ import SubPageHeader from "@/components/sub-page-header.vue";
 import ToggleRow from "@/components/me/preference-toggle-row.vue";
 import { useT } from "@/i18n/use-t";
 import { isMandatoryNotifKind, usePreferences, type NotifKind } from "@/store/preferences";
+// #ifdef APP-PLUS
+import { onShow } from "@dcloudio/uni-app";
+import { nativePushPermission, openNativePushSettings, requestNativePushPermission, refreshNativePush } from "@/services/native-push";
+import { nativePushCopy } from "@/i18n/native-push";
+import { useLocaleStore } from "@/store/locale";
+const pushLocale = useLocaleStore();
+const pushCopy = computed(() => nativePushCopy[pushLocale.code === 'zh' || pushLocale.code === 'vi' ? pushLocale.code : 'en']);
+function managePushPermission() {
+  if (nativePushPermission.value === 'unknown') void requestNativePushPermission();
+  else openNativePushSettings();
+}
+// #endif
 
 const t = useT();
 const w = computed(() => t.value.preferences);
 const prefs = usePreferences();
+// #ifdef APP-PLUS
+onShow(() => refreshNativePush());
+// #endif
 const preferenceError = computed(() => {
   const labels = t.value.preferences as typeof t.value.preferences & Record<"updateFailed" | "unavailable", string>;
   return prefs.error === "updateFailed" ? labels.updateFailed : labels.unavailable;

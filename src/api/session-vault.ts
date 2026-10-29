@@ -31,6 +31,7 @@ export interface KeyValueStorage {
 }
 
 export interface SessionVault {
+  subscribe?(listener: (previous: SessionSnapshot | null, next: SessionSnapshot | null, continuation: boolean) => void): () => void;
   /** Deferred native hydration runs only after the platform bridge is ready. */
   hydrate(): void;
   read(): SessionSnapshot | null;
@@ -66,6 +67,10 @@ export function createSessionVault(storage?: KeyValueStorage, options?: { deferH
   let revision = 0;
   let identityRevision = 0;
   let refreshRotationNonce: string | undefined;
+  const listeners = new Set<(previous: SessionSnapshot | null, next: SessionSnapshot | null, continuation: boolean) => void>();
+  const notify = (previous: SessionSnapshot | null, continuation = false) => {
+    for (const listener of listeners) { try { listener(previous, current, continuation); } catch { /* Observers never decide authentication. */ } }
+  };
   let hydrated = !storage;
   function hydrate(): void {
     if (hydrated || revision !== 0 || !storage) return;
@@ -112,6 +117,7 @@ export function createSessionVault(storage?: KeyValueStorage, options?: { deferH
   }
 
   function persistAndCommit(snapshot: SessionSnapshot, refresh = false): void {
+    const previous = current;
     hydrated = true;
     const sameIdentity = current?.user.userId === snapshot.user.userId;
     const next = { ...snapshot, user: { ...snapshot.user } };
@@ -145,19 +151,25 @@ export function createSessionVault(storage?: KeyValueStorage, options?: { deferH
     refreshRotationNonce = undefined;
     revision += 1;
     if (!refresh || !sameIdentity) identityRevision = revision;
+    notify(previous, !!(refresh && sameIdentity && previous?.accessToken
+      && previous.sessionChainId === snapshot.sessionChainId && previous.sessionGroup === snapshot.sessionGroup
+      && previous.installationId === snapshot.installationId && previous.appSessionVersion === snapshot.appSessionVersion));
   }
 
   function clearAndAdvance(): void {
+    const previous = current;
     hydrated = true;
     current = null;
     refreshRotationNonce = undefined;
     revision += 1;
     identityRevision = revision;
+    notify(previous);
     if (!storage) return;
     storage.remove();
   }
 
   return {
+    subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     hydrate,
     read() {
       return current ? { ...current, user: { ...current.user } } : null;

@@ -73,6 +73,7 @@ import type { RefreshCredentialMode } from "./session-vault";
 import { createNativeSessionStorage, type NativeSessionStorage } from "./native-session-storage";
 import { getDeviceId } from "@/lib/device-id";
 import { hasNativePhoneRuntime } from "@/lib/native-phone-runtime";
+import { revokeNativePush, resumeNativePush } from "@/services/native-push";
 
 export const apiRuntimeConfig = readApiRuntimeConfig();
 /** Immutable identity of the client constructed below; mutable UI config cannot rebind it. */
@@ -134,6 +135,8 @@ export const apiClient = createRuntimeApiClient({
 // Authentication is server-backed in both dev and prod; Java active profile
 // selects the development challenge or production provider flow.
 export const authApi = createAuthApi(apiClient, sessionVault, { refreshCredentialMode, clientSurface,
+  beforeSessionEnd: revokeNativePush,
+  sessionEndCancelled: resumeNativePush,
   installationId: () => clientSurface === "APP" ? getDeviceId() : "",
   executionSupported: () => clientSurface === "APP" && hasNativePhoneRuntime(),
   attemptStorage: nativeAttemptStorage ?? (typeof sessionStorage !== "undefined" ? {

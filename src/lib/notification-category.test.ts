@@ -4,11 +4,11 @@ import { notificationCategory, type NotificationCategory } from "./notification-
 describe("notification display groups", () => {
   it("maps actual backend kinds independently of the old preference key", () => {
     const groups: Record<NotificationCategory, string[]> = {
-      finance: ["wallet", "payment_method", "withdrawal", "order", "commission", "staking", "nova_commission"],
-      device: ["device", "dailysummary", "nova_dailysummary", "nova_upgrade", "nova_tradein"],
+      finance: ["wallet", "payment_method", "withdrawal", "order", "commission", "staking", "nova_commission", "funds_result"],
+      device: ["device", "dailysummary", "nova_dailysummary", "nova_upgrade", "nova_tradein", "device_expiry", "device_alert"],
       team: ["team", "nova_team", "nova_team_event"],
       rewards: ["marketing", "market", "nova_market", "nova_staking", "nova_staking_event", "nova_market_event", "genesis", "nova_genesis", "reward", "nova_eventclaim", "nova_quest", "nova_tasklockmonthly"],
-      system: ["security", "system", "nova_welcome", "nova_wrapped", "nova_social", "future_unknown_kind"],
+      system: ["security", "system", "nova_welcome", "nova_wrapped", "nova_social", "future_unknown_kind", "account_security", "support_reply"],
     };
     for (const [group, kinds] of Object.entries(groups)) {
       for (const rawKind of kinds) expect(notificationCategory({ kind: "system", rawKind }), rawKind).toBe(group);

@@ -21,7 +21,7 @@
             "delay" : 0
         },
         /* 模块配置 */
-        "modules" : { "Barcode": {} },
+        "modules" : { "Barcode": {}, "Push": {} },
         /* 应用发布信息 */
         "distribute" : {
             "icons": {
@@ -62,6 +62,7 @@
                 "enableOAID": false,
                 "schemes": "uvel",
                 "permissions" : [
+                    "<uses-permission android:name=\"android.permission.POST_NOTIFICATIONS\"/>",
                     "<uses-permission android:name=\"android.permission.CHANGE_NETWORK_STATE\"/>",
                     "<uses-permission android:name=\"android.permission.MOUNT_UNMOUNT_FILESYSTEMS\"/>",
                     "<uses-permission android:name=\"android.permission.VIBRATE\"/>",
@@ -80,9 +81,9 @@
                 ]
             },
             /* ios打包配置 */
-            "ios" : { "urltypes": "uvel" },
+            "ios" : { "urltypes": "uvel", "pushRegisterMode": "manual" },
             /* SDK配置 */
-            "sdkConfigs" : {}
+            "sdkConfigs" : { "push": { "unipush": { "version": "2", "offline": true } } }
         }
     },
     /* 快应用特有相关 */

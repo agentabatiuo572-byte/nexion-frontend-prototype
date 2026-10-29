@@ -315,7 +315,9 @@ export function createAuthApi(
   client: ApiClient,
   vault: SessionVault,
   options: { refreshCredentialMode?: RefreshCredentialMode; clientSurface?: "APP";
-    installationId?: () => string; executionSupported?: () => boolean; attemptStorage?: KeyValueStorage } = {},
+    installationId?: () => string; executionSupported?: () => boolean; attemptStorage?: KeyValueStorage;
+    beforeSessionEnd?: (snapshot: SessionSnapshot) => Promise<void>;
+    sessionEndCancelled?: (snapshot: SessionSnapshot) => void } = {},
 ): AuthApi {
   const refreshCredentialMode = options.refreshCredentialMode ?? "token";
   let restoreInFlight: Promise<SessionSnapshot | null> | null = null;
@@ -341,15 +343,24 @@ export function createAuthApi(
     }
     const attempt = attempts.begin(method, reference, context, replay);
     const revision = vault.revision();
+    const previous = vault.read();
     try {
+      if (previous?.accessToken && options.beforeSessionEnd) {
+        await options.beforeSessionEnd(previous);
+        if (vault.revision() !== revision) throw new ApiError({ kind: "auth", message: "SESSION_CHANGED_DURING_AUTH" });
+      }
       const data = await client.request<AuthSessionResponse>({ ...request, headers: contextHeaders(attempt) });
       if (data?.sessionEndedReason) { attempts.complete(attempt); throw new ApiError({ kind: "auth", message: data.sessionEndedReason }); }
       const result = oauth ? oauthExchangeFromResponse(data, vault, revision, refreshCredentialMode)
         : consumeLoginResponse(data, vault, revision, refreshCredentialMode);
-      if ("kind" in result && result.kind === "challenge") attempts.challenge(attempt, result.challengeNo);
+      if ("kind" in result && result.kind === "challenge") {
+        attempts.challenge(attempt, result.challengeNo);
+        if (previous?.accessToken && vault.revision() === revision) options.sessionEndCancelled?.(previous);
+      }
       else attempts.complete(attempt);
       return result;
     } catch (cause) {
+      if (previous?.accessToken && vault.revision() === revision) options.sessionEndCancelled?.(previous);
       if (!replay) {
         // A CAPTCHA rejects issuance, but the provider identity/context still belongs
         // to this attempt. Preserve its frozen installation for the challenge retry.
@@ -385,6 +396,7 @@ export function createAuthApi(
     if (vault.revision() !== expectedRevision) return;
     const snapshot = vault.read();
     if (!snapshot) return;
+    void options.beforeSessionEnd?.(snapshot);
     // Clear synchronously before the network request so a rejected completion
     // cannot leave a hidden Bearer token available to background requests.
     if (!vault.clearIfUnchanged(expectedRevision)) return;
@@ -621,8 +633,10 @@ export function createAuthApi(
     },
     async logout() {
       const revision = vault.revision();
-      const refreshToken = vault.read()?.refreshToken;
+      const snapshot = vault.read();
+      const refreshToken = snapshot?.refreshToken;
       try {
+        if (snapshot?.accessToken) await options.beforeSessionEnd?.(snapshot);
         if (refreshCredentialMode === "cookie" || refreshToken) {
           await client.request({
             path: "/auth/users/logout",
