@@ -54,8 +54,8 @@ describe("real checkout handler outcome recovery", () => {
     expect(h.rememberCheckoutOrder).toHaveBeenCalledOnce();
   });
   it("celebrates only the first paid hardware order",()=>{
-    const start=source.indexOf("// First paid order and the item is hardware");
-    const body=source.slice(start,source.indexOf("\n}\n",start)+3);
+    const start=source.indexOf("function isFirstHardwareOrder(");
+    const body=source.slice(start,source.indexOf("function restoreReceiptRecovery(",start));
     const js=ts.transpileModule(body+"\nreturn isFirstHardwareOrder;",{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
     const product=ref({productType:'DEVICE'}),orders={orders:[{id:'NEW',paidAt:2},{id:'UNPAID',paidAt:undefined}]};
     const first=new Function('product','orders',js)(product,orders);

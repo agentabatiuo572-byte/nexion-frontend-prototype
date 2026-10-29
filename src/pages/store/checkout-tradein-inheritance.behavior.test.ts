@@ -74,6 +74,29 @@ it.each([true, false])("does not commit a changed target placement active=%s", a
   expect(h.tradein.clearApplied).not.toHaveBeenCalled();
 });
 
+it.each([true, false])("recovers the original receipt after a later valid target placement change, initially active=%s", async active => {
+  const first = checkout(active); first.orderApi.list.mockRejectedValueOnce(new Error("orders blocked")); await first.submit();
+  const refreshed = checkout(active); refreshed.target.activatedAt = active ? null : 1000;
+  await refreshed.resumePendingRemoteTradein({ ...refreshed.scope }, true);
+  expect(refreshed.orderId.value).toBe("ORD-1");
+  expect(refreshed.remoteTradeinRecoveryError.value).toBe(false);
+  expect(refreshed.deviceE3Api.submit).not.toHaveBeenCalled();
+  expect(readCheckoutTradein("a", "stellarbox-pro")).toBeNull();
+});
+
+it.each(["missing-target", "unconfirmed-target", "active-source"])("keeps historical recovery pending for invalid fleet identity: %s", async invalid => {
+  const first = checkout(false); first.orderApi.list.mockRejectedValueOnce(new Error("orders blocked")); await first.submit();
+  const refreshed = checkout(false);
+  if (invalid === "missing-target") refreshed.app.devices = [];
+  if (invalid === "unconfirmed-target") refreshed.target.activationUnconfirmed = true;
+  if (invalid === "active-source") refreshed.app.devices.push({ id: "11", activatedAt: 1000 });
+  await refreshed.resumePendingRemoteTradein({ ...refreshed.scope }, true);
+  expect(refreshed.orderId.value).toBeNull();
+  expect(refreshed.remoteTradeinRecoveryError.value).toBe(true);
+  expect(refreshed.deviceE3Api.submit).not.toHaveBeenCalled();
+  expect(readCheckoutTradein("a", "stellarbox-pro")).not.toBeNull();
+});
+
 it("rejects an activated order for a warehouse quote before refreshing or committing", async () => {
   const h = checkout(false); h.order.canonicalStatus = "activated"; h.order.activationStatus = "ACTIVATED";
   await h.submit(); expect(h.app.refreshRemoteFleet).not.toHaveBeenCalled();

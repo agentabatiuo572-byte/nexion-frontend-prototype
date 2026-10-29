@@ -513,13 +513,12 @@ function sameMoney(actual: number, expected: number): boolean {
 
 function assertResultMatchesQuote(
   parsed: CanonicalTradeinResult,
-  expected: { sourceDeviceId: number; discountUsdt: number; payableUsdt: number; walletBalanceUsdt: number; targetDeviceStatus?: "ACTIVE" | "INACTIVE" },
+  expected: { sourceDeviceId: number; discountUsdt: number; payableUsdt: number; targetDeviceStatus?: "ACTIVE" | "INACTIVE" },
 ): CanonicalTradeinResult {
   if (parsed.sourceDeviceId !== expected.sourceDeviceId
       || (expected.targetDeviceStatus != null && parsed.targetDeviceStatus !== expected.targetDeviceStatus)
       || !sameMoney(parsed.discountUsdt, expected.discountUsdt)
-      || !sameMoney(parsed.walletDebitUsdt, expected.payableUsdt)
-      || !sameMoney(parsed.walletBalanceAfterUsdt, expected.walletBalanceUsdt - expected.payableUsdt)) {
+      || !sameMoney(parsed.walletDebitUsdt, expected.payableUsdt)) {
     return invalid("E3_TRADEIN_RESULT_QUOTE_MISMATCH");
   }
   return parsed;
@@ -637,7 +636,6 @@ export function createDeviceE3Api(client: ApiClient, mode: ApiEnvironment = "pro
         sourceDeviceId,
         discountUsdt: 0,
         payableUsdt: expectedQuote.payableUsdt,
-        walletBalanceUsdt: expectedQuote.walletBalanceUsdt,
       });
     },
     async capacityKeep(targetProductNo, idempotencyKey, expectedQuote) {
@@ -657,9 +655,7 @@ export function createDeviceE3Api(client: ApiClient, mode: ApiEnvironment = "pro
         },
         idempotencyKey: key,
       }));
-      if (!sameMoney(parsed.walletDebitUsdt, expectedQuote.payableUsdt)
-          || !sameMoney(parsed.walletBalanceAfterUsdt,
-            expectedQuote.walletBalanceUsdt - expectedQuote.payableUsdt)) {
+      if (!sameMoney(parsed.walletDebitUsdt, expectedQuote.payableUsdt)) {
         return invalid("E3_CAPACITY_KEEP_RESULT_QUOTE_MISMATCH");
       }
       return parsed;

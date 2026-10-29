@@ -1675,7 +1675,7 @@ async function completeRemoteTradein(recovery: CheckoutTradeinRecovery, submissi
           if (!scopeIsCurrent()) throw new Error("CHECKOUT_ACCOUNT_CHANGED");
           const target = app.devices.find((device) => device.id === String(submitted.targetDeviceId));
           const source = app.devices.find((device) => device.id === String(submitted.sourceDeviceId));
-          if (!target || target.activationUnconfirmed || (target.activatedAt != null) !== expectedActive
+          if (!target || target.activationUnconfirmed || (newSubmission && (target.activatedAt != null) !== expectedActive)
               || (source && source.activatedAt != null)) {
             throw new Error("E3_TRADEIN_FLEET_READBACK_MISMATCH");
           }
