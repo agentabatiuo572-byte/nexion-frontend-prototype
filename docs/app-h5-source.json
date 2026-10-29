@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-polish",
+  "sourcePath": "D:\\workspace\\artifacts\\device-online-restore-20261030\\app-candidate",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "98e4968f9397165af9503d339ca627a974779fce",
-  "sourceRef": "98e4968f9397165af9503d339ca627a974779fce",
+  "sourceHead": "ff49540f42ea386912a8ff0163f9cdb5b43d7ee9",
+  "sourceRef": "ff49540f42ea386912a8ff0163f9cdb5b43d7ee9",
   "sourceRefKind": "commit",
-  "sourceTree": "5e40545d3b72b9246be3062330d22a8057dae353",
+  "sourceTree": "fb1157590c5febe2d4127b5575de13ed24b08f81",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -125,10 +125,10 @@
       "mode": "100644"
     },
     "PRD/NexGrid_产品功能架构设计文档_v3.7.md": {
-      "sourceBlob": "2a571588a8c3b5b021752210f48d747180f1bd8e",
-      "sourceSha256": "10c8dbec17f802a1ff5e37204f28db7aa0419d36cbb161dcc3e5c2074a968e52",
-      "targetBlob": "2a571588a8c3b5b021752210f48d747180f1bd8e",
-      "targetSha256": "10c8dbec17f802a1ff5e37204f28db7aa0419d36cbb161dcc3e5c2074a968e52",
+      "sourceBlob": "23b900976f279c2cdba2198282b85f30295f692c",
+      "sourceSha256": "f1e84d3f89f4dc029a40c8cdaf276cf0327a1ca42de9fbf32267f4c00a9c56f3",
+      "targetBlob": "23b900976f279c2cdba2198282b85f30295f692c",
+      "targetSha256": "f1e84d3f89f4dc029a40c8cdaf276cf0327a1ca42de9fbf32267f4c00a9c56f3",
       "mode": "100644"
     },
     "PRD/UVEL_Goals绑定返回恢复_20261027.md": {
@@ -8049,10 +8049,10 @@
       "mode": "100644"
     },
     "src/i18n/messages/zh.ts": {
-      "sourceBlob": "389283e2795e8a959a1a7817893f3657a201c77a",
-      "sourceSha256": "92c48c8556f470ba05c36e1d0a14266b84a24d39b1165d8e736916ad175fe844",
-      "targetBlob": "389283e2795e8a959a1a7817893f3657a201c77a",
-      "targetSha256": "92c48c8556f470ba05c36e1d0a14266b84a24d39b1165d8e736916ad175fe844",
+      "sourceBlob": "c7c96b854a4a3f0dce95a82806e4575c905eeed3",
+      "sourceSha256": "a191c8c2370968e96efa10819bac86429b3af2cebf1459c68c17e10a6aeeb088",
+      "targetBlob": "c7c96b854a4a3f0dce95a82806e4575c905eeed3",
+      "targetSha256": "a191c8c2370968e96efa10819bac86429b3af2cebf1459c68c17e10a6aeeb088",
       "mode": "100644"
     },
     "src/i18n/native-push.ts": {

@@ -1086,7 +1086,7 @@ estimateDisclaimer: "预估值，未扣除购买成本，收益会随使用时�
       home: { label: "首页 / 任务中心", sub: "实时收益 · 行情跑马灯 · 总览" },
       earn: { label: "赚币 / 设备群", sub: "设备卡片 · 任务中心 · 任务产能" },
       store: { label: "商城", sub: "UVELBox / Rack / Cloud Share" },
-      tradeIn: { label: "以旧换新", sub: "退役旧机,抵扣升级款" },
+      tradeIn: { label: "升级置换", sub: "退役旧机,抵扣升级款" },
       team: { label: "团队中心", sub: "分成 / V 等级 / 网络" },
       royalty: { label: "团队奖励", sub: "查看你邀请的好友和团队带来的奖励" },
       networkMap: { label: "网络关系图", sub: "直接邀请 / 延伸轨道" },
@@ -1136,7 +1136,7 @@ estimateDisclaimer: "预估值，未扣除购买成本，收益会随使用时�
     recCloudShare: "每日目标较低，Cloud Share 门槛最低。",
     recS1: "一台 S1 的预估日收益可覆盖目标。",
     recPro: "Pro 的预估日收益约为 S1 的两倍。",
-    recRack: "目标较高，可考虑 Rack 或以旧换新升级。",
+    recRack: "目标较高，可考虑 Rack 或升级置换。",
     saveCta: "保存目标",
     // 🔴 天数不带货币符号:此前写成 `${days}`,把 `${amount}` 的 `$` 复制到了天数上,
     //    于是「90 天」显示成「$90 天」(zentao #247)。$ 只属于金额。
