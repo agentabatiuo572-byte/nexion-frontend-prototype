@@ -340,6 +340,7 @@ const LEDGER = {
   "/api/content/learning/courses/:param/complete": "PRD §11.11.2(无题课程的完成动作)",
   "/api/content/trust/sections/current": "TBD-NAME: 信任板块内容下发;PRD 未定义",
   "/api/content/trust/sections/:param/view": "TBD-NAME: 同上(曝光回报)",
+  "/api/content/trust/documents": "TBD-NAME: 信任中心资料文件(白皮书与公司登记);PRD 未定义",
   "/api/config/market/nex": "TBD-NAME: NEX 牌价配置;与 §11.9.3 的 /api/market/tokens 是不同端点",
   "/api/config/referral-rewards": "TBD-NAME: 推荐奖励配置读;PRD §9.11c.1 未列该条",
   "/api/config/repurchase": "TBD-NAME: 复购配置读;PRD §9.11c.1 未列该条",

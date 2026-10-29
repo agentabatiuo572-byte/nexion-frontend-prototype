@@ -67,6 +67,8 @@ const ROUTE_TITLE_KEY: Record<string, HeaderTitleKey> = {
   "pages/genesis/holder": "genesisHolder",
   // Trust subtree
   "pages/trust/nex": "trustNex",
+  "pages/trust/whitepaper": "trustWhitepaper",
+  "pages/trust/document": "trustDocument",
 };
 
 // How-it-works pages append headerTitles.howItWorksSuffix to the PARENT title.

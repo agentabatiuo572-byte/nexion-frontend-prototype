@@ -362,6 +362,14 @@
       "style": { "navigationStyle": "custom" }
     },
     {
+      "path": "pages/trust/whitepaper",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/trust/document",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
       "path": "pages/ref/code",
       "style": { "navigationStyle": "custom" }
     },

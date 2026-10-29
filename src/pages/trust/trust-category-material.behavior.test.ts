@@ -15,6 +15,9 @@ import { createTrustSectionApi, type PublishedTrustSection, type TrustLocale } f
 import { trustResources, type TrustCategoryKey } from "./trust-resources";
 import { trustCategoryMaterial } from "./trust-category-material";
 import { mountChassis } from "@/lib/liquid-glass-view";
+import { trustCenterCopy } from "@/i18n/trust-center";
+import * as openExternal from "@/lib/open-external";
+import { parseTrustDocuments, type TrustDocuments } from "@/api/trust-document-api";
 
 // Execute the real page setup/template and material reader. Only the published
 // read boundary and unrelated presentation children are isolated.
@@ -57,7 +60,8 @@ function section(sectionKey: PublishedTrustSection["sectionKey"], values: Record
 const unmounts: Array<() => void> = [];
 afterEach(() => { unmounts.splice(0).forEach(stop => stop()); vi.unstubAllGlobals(); });
 
-function mount(initial: PublishedTrustSection[], language: TrustLocale = "zh") {
+function mount(initial: PublishedTrustSection[], language: TrustLocale = "zh", initialDocuments: TrustDocuments | null = null) {
+  const documents = Vue.ref(initialDocuments), documentsStatus = Vue.ref(initialDocuments ? "ready" : "loading"), documentsRefresh = vi.fn(async () => true);
   const locale = Vue.reactive({ code: language });
   const sections = Vue.ref(initial);
   const status = Vue.ref("ready"), refresh = vi.fn(async () => true);
@@ -69,6 +73,8 @@ function mount(initial: PublishedTrustSection[], language: TrustLocale = "zh") {
     "@/lib/amount-display": { formatAmount },
     "@/i18n/network-reaudit": { networkReauditCopy },
     "@/i18n/continuity-fixes": { continuityCopy },
+    "@/i18n/trust-center": { trustCenterCopy }, "@/lib/open-external": openExternal,
+    "@/composables/use-trust-documents": { useTrustDocuments: () => ({ documents, status: documentsStatus, refresh: documentsRefresh }) },
     "./trust-resources": { trustResources }, "./trust-category-material": { trustCategoryMaterial },
     "@/lib/trust-fields": trustFields,
     "@/i18n/use-t": { useT: () => Vue.computed(() => dictionaries[locale.code]) },
@@ -95,7 +101,7 @@ function mount(initial: PublishedTrustSection[], language: TrustLocale = "zh") {
   const root = node(), app = renderer.createApp(exports.default);
   app.mount(root); shown.forEach(fn => fn()); unmounts.push(() => app.unmount());
   const body = () => all(root).find(item => item.props.class === "trust-category-body")!;
-  return { root, sections, status, refresh, locale, navTo, error, open, body,
+  return { root, sections, status, refresh, locale, navTo, error, open, body, documents, documentsStatus, documentsRefresh,
     expand: async (key: TrustCategoryKey) => {
       const title = trustResources(locale.code).categories.find(item => item.key === key)!.title;
       all(root).find(item => item.props["aria-expanded"] !== undefined && text(item).includes(title))!.props.onClick();
@@ -105,6 +111,16 @@ function mount(initial: PublishedTrustSection[], language: TrustLocale = "zh") {
   };
 }
 const links = (root: Host) => all(root).filter(item => item.props.role === "link");
+function registrationDocuments(): TrustDocuments {
+  const doc = (slot: string, extra: Record<string, unknown>) => ({ slot, source: "DEFAULT", version: null, language: "English", referenceNo: null,
+    verifyUrl: null, fileName: `${slot}.pdf`, sizeBytes: 524389, pageCount: 3, sha256: "b".repeat(64), fileUrl: slot === "whitepaper" ? null : `/api/content/trust/documents/${slot}/file?v=${"b".repeat(12)}`, ...extra });
+  return parseTrustDocuments({
+    profile: { legalName: "UVEL AI LTD.", jurisdiction: "New York, USA", registeredAddress: "New York, NY 10065",
+      nyDosId: "8040896", nyFilingNumber: "261008000079", authorizedCapitalUsd: "50000000" },
+    documents: [doc("whitepaper", { version: "v1.3" }), doc("incorporation", { referenceNo: "8040896", verifyUrl: "https://apps.dos.ny.gov/publicInquiry/" }),
+      doc("msb", { referenceNo: "31000342955895", verifyUrl: "https://www.fincen.gov/msb-state-selector" }), doc("ein", { referenceNo: "43-2288822" })],
+  }, "https://api.example.test");
+}
 
 it.each(['zh', 'en', 'vi'] as const)('retains readable materials and marks stale refresh failures in %s', async language => {
   const screen = mount([section('nexNarrative', { [`hostingContent.${language}`]: 'Confirmed hosting' })], language);
@@ -205,27 +221,34 @@ describe("Trust categories consume published materials", () => {
       expect(text(security)).not.toContain('已启用');
     }
   });
-  it.each(["zh", "vi", "en"] as const)("renders existing compliance fields and linked metadata in %s", async language => {
-    const view = mount([section("complianceBadges", {
-      [`badge1Label.${language}`]: "Published credential", [`badge1Body.${language}`]: "Published scope",
-      badge1Url: " https://documents.example.test/credential.pdf ", badge1Type: "PDF", badge1Date: "2026-10-25", badge1Size: "120 KB",
-    })], language);
-    const body = await view.expand("compliance");
-    expect(text(body)).toContain("Published credential");
-    expect(text(body)).toContain("Published scope");
-    expect(text(body)).toContain("PDF · 2026-10-25 · 120 KB");
-    expect(text(body)).not.toContain(trustResources(language).pending);
-    links(body)[0].props.onClick();
-    expect(view.open).toHaveBeenCalledWith("https://documents.example.test/credential.pdf", "_blank");
+  it.each(["zh", "vi", "en"] as const)("shows every registration with its number, official lookup and original file in %s", async language => {
+    const view = mount([], language, registrationDocuments());
+    const copy = trustCenterCopy(language);
+    const page = text(view.root);
+    for (const value of [copy.headline, "UVEL AI LTD.", "8040896", "261008000079", "31000342955895", "43-2288822", "US$50,000,000", "New York, NY 10065"]) {
+      expect(page).toContain(value);
+    }
+    expect(page).not.toMatch(/20\d\d-\d\d-\d\d/);
+    expect(page).not.toContain("Madison");
+    links(view.root).find(item => text(item).includes(copy.msbVerify))!.props.onClick();
+    expect(view.open).toHaveBeenLastCalledWith("https://www.fincen.gov/msb-state-selector", "_blank");
+    all(view.root).find(item => item.props.role === "button" && text(item) === copy.msbView)!.props.onClick();
+    expect(view.navTo).toHaveBeenLastCalledWith("/pages/trust/document?slot=msb");
+    links(view.root).find(item => text(item).includes(copy.readWhitepaper))!.props.onClick();
+    expect(view.navTo).toHaveBeenLastCalledWith("/pages/trust/whitepaper");
   });
 
-  it("renders a legacy published badge without inventing an evidence link", async () => {
-    const view = mount([section("complianceBadges", { badge1Label: "Published label", badge1Body: "Published scope", badge1Url: "javascript:alert(1)" })]);
-    const body = await view.expand("compliance");
-    expect(text(body)).toContain("Published label");
-    expect(text(body)).toContain("Published scope");
-    expect(links(body)).toHaveLength(0);
-    expect(view.open).not.toHaveBeenCalled();
+  it("keeps registrations out of the page until the documents load, and retries a failed read", async () => {
+    const view = mount([]);
+    const copy = trustCenterCopy("zh");
+    expect(text(view.root)).toContain(copy.documentsLoading);
+    view.documentsStatus.value = "error"; await Vue.nextTick();
+    expect(text(view.root)).toContain(copy.documentsError);
+    expect(text(view.root)).not.toContain("8040896");
+    expect(all(view.root).some(item => hasClass(item, 'trust-chip') || hasClass(item, 'trust-fact'))).toBe(false);
+    expect(view.documentsRefresh).toHaveBeenCalledOnce();
+    all(view.root).find(item => item.props.onClick && text(item) === zh.ui.retry)!.props.onClick();
+    expect(view.documentsRefresh).toHaveBeenCalledTimes(2);
   });
 
   it.each(["hosting", "warranty", "security"] as const)("renders optional %s content/documents across locale changes", async category => {
@@ -280,7 +303,7 @@ describe("Trust categories consume published materials", () => {
       section("complianceBadges", { badge1Label: "", badge1Body: "No published name", badge2Label: "Legacy badge", "badge2Label.en": "English only" }),
       section("auditsReserves", { hostingContent: "Wrong source", document1Primary: "Audit", document1Url: "https://documents.example.test/audit" }),
     ]);
-    for (const key of ["hosting", "warranty", "security", "compliance"] as const) {
+    for (const key of ["hosting", "warranty", "security"] as const) {
       expect(text(await view.expand(key))).toBe(trustResources("zh").pending + (key === 'warranty' ? networkReauditCopy('zh').afterSales : key === 'security' ? networkReauditCopy('zh').securitySettings : ''));
     }
   });
@@ -302,7 +325,6 @@ describe("Trust categories consume published materials", () => {
     const result = await createTrustSectionApi({ request } as never).current();
     const view = mount(result);
     expect(text(await view.expand("hosting"))).toContain("Published explanation");
-    expect(text(await view.expand("compliance"))).toContain("Published credential");
     expect(request).toHaveBeenCalledOnce();
     expect(request).toHaveBeenCalledWith({ method: "GET", path: "/api/content/trust/sections/current", authenticated: false });
   });

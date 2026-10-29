@@ -13,6 +13,7 @@ const migrationPaths = [
   "20260915_l6_bank_withdrawal_route.sql",
   "20260916_l6_withdrawal_method_route.sql",
   "20261008_l6_promotion_reward_routes.sql",
+  "20261029_l6_trust_document_routes.sql",
 ].map((name) => resolve(backendRoot, "scripts", "migrations", name));
 
 function manifestRoutes() {

@@ -14,17 +14,6 @@ export function trustCategoryMaterial(
   locale: TrustLocale,
   validateHref: (value: string) => string | null,
 ): TrustCategoryMaterial {
-  if (category === "compliance") {
-    const fields = sections.find(section => section.sectionKey === "complianceBadges")?.fields ?? [];
-    const badges = trustNumberedRows(fields, "badge", ["Label", "Body", "Url", "Type", "Date", "Size"] as const, locale);
-    return {
-      content: "",
-      rows: badges.filter(row => row.Label).map(row => ({
-        title: row.Label, body: row.Body, href: validateHref(row.Url),
-        metadata: [row.Type, row.Date, row.Size].filter(Boolean).join(" · "),
-      })),
-    };
-  }
   if (category === "hosting" || category === "warranty" || category === "security") {
     // Optional, namespaced additions to the existing narrative field bag. They
     // neither create new section keys nor depend on an unrelated audit URL.

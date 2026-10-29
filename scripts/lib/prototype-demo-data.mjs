@@ -131,6 +131,9 @@ export function demoFixture(url,locale,state,request) {
     config.featureFlags.homeWeeklyPromoEnabled=true;
     config.share.baseUrl='https://demo.uvel.example/ref/';
     Object.assign(config.publicStats,{registeredUsersBase:12480,registeredUsersAnchorAt:demoStartedAt,registeredUsersTickIntervalSec:60,registeredUsersTickStepMin:3,registeredUsersTickStepMax:10,virtualUserCount:0});
+    // Verified aggregates feed the trust centre's platform figures; the empty fixture has none.
+    const aggregate=(value,kind)=>({value,definition:'Preview figure',kind});
+    config.publicStats.verified=empty?null:{activeAccounts:aggregate(8642,'COUNT'),registeredAccounts:aggregate(12480,'COUNT'),installedDevices:aggregate(3315,'COUNT'),onlineDevices:aggregate(2968,'COUNT'),completedPayoutUsdt:aggregate(1284650.5,'SUM'),capturedAt:new Date(demoStartedAt).toISOString()};
     if(empty){delete config.publicStats.registeredUsersBase;config.publicStats.networkPulse=null;}
     return withDemoShareChannels(config,state);
   }
@@ -263,9 +266,28 @@ export function demoFixture(url,locale,state,request) {
     const activityId=url.searchParams.get('activityId'),placement=url.searchParams.get('placement');
     return {items:items.filter(item=>(!activityId||item.activityId===activityId)&&(!placement||item.placement===placement)),hasMore:false,nextCursor:null};
   }
+  if(pathname==='/api/content/trust/documents') {
+    // Mirrors the backend defaults (resources/trust-documents); the preview server reads the PDFs and pre-rendered pages/<slot>/<n>.jpg from DEMO_TRUST_DOCUMENTS_DIR.
+    const doc=(slot,fileName,sizeBytes,pageCount,sha256,extra)=>({slot,source:'DEFAULT',version:null,language:'English',referenceNo:null,verifyUrl:null,fileName,sizeBytes,pageCount,sha256,fileUrl:slot==='whitepaper'?null:`/api/content/trust/documents/${slot}/file?v=${sha256.slice(0,12)}`,updatedBy:null,updatedAt:null,...extra});
+    return {profile:{legalName:'UVEL AI LTD.',jurisdiction:'New York, USA',registeredAddress:'New York, NY 10065',nyDosId:'8040896',nyFilingNumber:'261008000079',authorizedCapitalUsd:'50000000'},documents:[
+      doc('whitepaper','uvel-whitepaper-v1.3-en.pdf',524389,21,'4640565490b7f057fc8a6b0ff3ed77e72b4e9f0289a4eada0b85d461d9905d20',{version:'v1.3'}),
+      doc('incorporation','uvel-ai-ltd-certificate-of-incorporation.pdf',436231,3,'e10c9338ccf13c56a19ace427b2fcec4aa4033bafc20d312b48d772d3cb83932',{referenceNo:'8040896',verifyUrl:'https://apps.dos.ny.gov/publicInquiry/'}),
+      doc('msb','uvel-ai-ltd-fincen-msb-registration.pdf',29958,1,'ab505be01d126b6bd526e32f78f2defba53a3996300da91c5f5d0c8fd7f29482',{referenceNo:'31000342955895',verifyUrl:'https://www.fincen.gov/msb-state-selector'}),
+      doc('ein','uvel-ai-ltd-irs-ein-notice.pdf',10316,1,'8a629967dcf8333faefa21f3935bdbdd388acc4923bdd826435fa4d1d978f5b7',{referenceNo:'43-2288822'}),
+    ]};
+  }
   if(pathname==='/api/content/trust/sections/current') {
     const example=localized(locale,'原型演示资料，非真实资质或认证。','Prototype sample, not a real credential or certification.','Dữ liệu mẫu, không phải chứng nhận thực tế.');
-    const maps={financials:{overview:example},leadership:{leader1Name:'Alex Chen',leader1Role:localized(locale,'产品负责人（示例）','Product lead (sample)','Trưởng sản phẩm (mẫu)'),leader1Previous:example,leader1Url:'/pages/me/profile'},nexNarrative:{hero:'UVT',subhero:example,hostingContent:localized(locale,'设备托管在专业机房，包含部署、运行监测与日常维护。此处为服务说明演示。','Managed deployment, monitoring and maintenance. Sample service description.','Triển khai, giám sát và bảo trì. Mô tả dịch vụ mẫu.'),warrantyContent:localized(locale,'演示保修期为 36 个月。可通过消息中心联系售后，并查看处理进度。','Sample warranty: 36 months. Contact support in Messages.','Bảo hành mẫu: 36 tháng. Liên hệ hỗ trợ trong Tin nhắn.'),securityContent:localized(locale,'可启用双重验证、管理登录设备并查看账户活动。','Enable two-factor authentication, manage devices and review account activity.','Bật xác thực hai yếu tố, quản lý thiết bị và hoạt động tài khoản.')},complianceBadges:{badge1Label:localized(locale,'合规资料示例','Compliance sample','Mẫu tuân thủ'),badge1Body:example},auditsReserves:{document1Primary:localized(locale,'UVT 介绍（演示）','About UVT (sample)','Giới thiệu UVT (mẫu)'),document1Secondary:localized(locale,'了解 UVT 用途；此资料不是储备证明。','Learn about UVT; this is not proof of reserves.','Tìm hiểu UVT; đây không phải bằng chứng dự trữ.'),document1Url:'/pages/trust/nex',document1Type:'DEMO',document1Date:iso.slice(0,10)},listings:{overview:example}};
+    // Leadership and service notes follow the company records and the white paper; registrations come from /api/content/trust/documents.
+    const maps={financials:{overview:example},
+      leadership:{leader1Name:'Jordan Nicholas Parkhurst',leader1Role:localized(locale,'总裁兼首席执行官 · President & CEO','President & Chief Executive Officer','Chủ tịch kiêm Tổng giám đốc điều hành'),leader1Url:'https://apps.dos.ny.gov/publicInquiry/'},
+      nexNarrative:{hero:'UVT',subhero:example,
+        hostingContent:localized(locale,'Uvel Node 与 Uvel Rack 部署在专业数据中心，运行环境、网络配置和现场维护统一管理，无需寄送实体设备。购买后在 App 中激活和管理设备，订单与设备记录随时可查。','Uvel Node and Uvel Rack run in professional data centres, where the operating environment, network and on-site maintenance are managed for you; nothing is shipped. Activate and manage devices in the App, with order and device records always available.','Uvel Node và Uvel Rack được đặt tại trung tâm dữ liệu chuyên nghiệp; môi trường vận hành, mạng và bảo trì tại chỗ đều được quản lý tập trung, không cần giao thiết bị vật lý. Bạn kích hoạt và quản lý thiết bị trong App, hồ sơ đơn hàng và thiết bị luôn sẵn sàng tra cứu.'),
+        warrantyContent:localized(locale,'设备故障、更换或重新配置、退款均按下单时的服务条款处理。遇到问题时，在 App 内联系专属客服并提供订单号，处理进度全程可查。','Faults, replacements or reconfiguration and refunds follow the service terms agreed when you ordered. Contact your dedicated advisor in the App with the order number and follow progress at every step.','Sự cố thiết bị, thay thế hoặc cấu hình lại và hoàn tiền được xử lý theo điều khoản dịch vụ khi đặt hàng. Khi cần hỗ trợ, hãy liên hệ chuyên viên riêng trong App kèm mã đơn hàng và theo dõi tiến độ xử lý.'),
+        securityContent:localized(locale,'参与算力任务无需提供钱包私钥或助记词。登录、修改收款地址、提现等重要操作都需要身份确认并留有操作记录；处理中、锁定与可用资金分开显示。','Taking part in compute tasks never requires your wallet private key or recovery phrase. Sign-in, receiving-address changes and withdrawals all require identity confirmation and are recorded; funds in progress, locked and available are shown separately.','Tham gia tác vụ điện toán không bao giờ yêu cầu khóa riêng tư hay cụm từ khôi phục ví. Đăng nhập, thay đổi địa chỉ nhận và rút tiền đều cần xác minh danh tính và được ghi nhật ký; số tiền đang xử lý, bị khóa và khả dụng được hiển thị riêng.')},
+      complianceBadges:{badge1Label:localized(locale,'合规资料示例','Compliance sample','Mẫu tuân thủ'),badge1Body:example},
+      auditsReserves:{homepageProof:''},
+      listings:{overview:example}};
     return {...authority,source:'nx_trust_section_version:published',sections:Object.entries(maps).map(([sectionKey,values])=>({sectionKey,version:'v1',description:example,structure:'Published resources',fields:Object.entries(values).map(([key,value])=>({key,label:key,value:empty?'':value}))}))};
   }
   if(pathname==='/api/promotion-rewards'||/^\/api\/promotion-rewards\/demo-reward-\d+$/.test(pathname)){
