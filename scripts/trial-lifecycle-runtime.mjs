@@ -136,12 +136,12 @@ try{
       await setState({reset:true,trialState:scenario});await go('/pages/index/index');
       const status=scenario==='final-day'?'active':scenario;
       await page.locator(`.nx-trial-hero[data-trial-state=${status}]`).waitFor();
-      if(scenario==='final-day')await page.waitForFunction(()=>/^(?:12:00|11:59):/.test(document.querySelector('.trial-countdown')?.textContent||''));
+      if(scenario==='final-day')await page.waitForFunction(()=>/^0d (?:12h:00|11h:59)$/.test(document.querySelector('.trial-header-countdown')?.textContent?.trim()||''));
       await page.locator('[data-home-section=fleet] .nx-device-row').first().waitFor();
       assert.equal(await page.locator('[data-home-section=fleet] .nx-device-row').count(),2,'Existing purchased devices never disappear');
       assert.equal(await page.locator('[data-home-section=fleet] [data-trial-device-row]').count(),['final-day','grace'].includes(scenario)?1:0);
       await page.locator('.home-benefits').scrollIntoViewIfNeeded();const screenshot=await capture(scenario);
-      assert.deepEqual(await bounds('.nx-trial-hero,.trial-cta,.trial-lifecycle-time,.trial-lifecycle-credit'),[]);
+      assert.deepEqual(await bounds('.nx-trial-hero,.trial-cta,.trial-header-countdown,.trial-lifecycle-credit'),[]);
       states.push({scenario,screenshot,count:await page.locator('[data-home-section=fleet] .nx-section__meta').innerText()});
     }
     await setState({reset:true,trialState:'claim-error'});await go('/pages/index/index');await page.locator('.home-benefits .trial-cta').click();await page.locator('.tcs-claim').click();await page.locator('.tcs-error').waitFor();
