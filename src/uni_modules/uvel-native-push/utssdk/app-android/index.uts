@@ -12,6 +12,7 @@ export function getNativePushPermission(callback: (result: UTSJSONObject) => voi
 }
 // Android runtime permission is requested by the existing JS permission adapter.
 export function requestNativePushPermission(callback: (result: UTSJSONObject) => void): void { getNativePushPermission(callback) }
+@UTSJS.keepAlive
 export function addNativePushListener(callback: (event: UTSJSONObject) => void): number {
   sequence += 1
   listeners.set(sequence, callback)

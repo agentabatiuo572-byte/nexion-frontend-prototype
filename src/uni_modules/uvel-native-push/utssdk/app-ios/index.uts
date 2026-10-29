@@ -30,6 +30,7 @@ export function getNativePushPermission(callback: (result: UTSJSONObject) => voi
 export function requestNativePushPermission(callback: (result: UTSJSONObject) => void): void {
   NativePushBridge.requestPermission((value: string) => { callback(JSON.parseObject(value)!) })
 }
+@UTSJS.keepAlive
 export function addNativePushListener(callback: (event: UTSJSONObject) => void): number {
   sequence += 1
   listeners.set(sequence, callback)
