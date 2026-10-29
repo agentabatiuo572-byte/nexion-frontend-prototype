@@ -6,7 +6,6 @@ export const reviewedCopyR2 = [
   {"key":"earn.phonePausedNoNetworkHint","placeholders":[],"consumers":[{"file":"src/components/earn/device-card-pc.vue","expression":"t.value.earn.phonePausedNoNetworkHint"}]},
   {"key":"genesisHolder.pre.serverPointsUnavailable","placeholders":[],"consumers":[{"file":"src/pages/genesis/holder.vue","expression":"t.genesisHolder.pre.serverPointsUnavailable"}]},
   {"key":"genesisHolder.post.noEmissions","placeholders":[],"consumers":[{"file":"src/pages/genesis/holder.vue","expression":"t.genesisHolder.post.noEmissions"}]},
-  {"key":"preferences.hapticsHint","placeholders":[],"consumers":[{"file":"src/pages/me/preferences.vue","expression":"w.hapticsHint"}]},
   {"key":"goals.loading","placeholders":[],"consumers":[{"file":"src/pages/me/goals.vue","expression":"t.goals.loading"}]},
   {"key":"tx.detailUnavailableBody","placeholders":[],"consumers":[{"file":"src/pages/tx/hash.vue","expression":"w.detailUnavailableBody"}]},
   {"key":"tradein.remoteQuoteCreditLabel","placeholders":[],"consumers":[{"file":"src/components/tradein-sheets.vue","expression":"t.value.tradein.remoteQuoteCreditLabel"},{"file":"src/pages/me/devices.vue","expression":"t.value.tradein.remoteQuoteCreditLabel"}]},

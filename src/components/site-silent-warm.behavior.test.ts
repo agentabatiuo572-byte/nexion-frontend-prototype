@@ -75,14 +75,6 @@ describe.each([["zh", zh], ["en", en], ["vi", vi]] as const)("silent retained wa
     expect(await html(path, marker, state)).not.toContain("warm-read");
     expect(await html(path, marker, { ...state, refreshing: false, refreshError: true })).toContain("read-failed");
   });
-  it("keeps notification cold loading, errors and disabled clear action", async () => {
-    const path = "pages/me/preferences.vue", marker = 'class="mx-4 notification-management"';
-    const state = { t, headingStyle: {}, notifs: { loading: true, error: null }, notificationsHasRead: true, clearingRead: false, refreshNotifications() {}, confirmClearRead() {} };
-    const warm = await html(path, marker, state);
-    expect(warm).not.toContain(t.help.loadingMore); expect(warm).toContain('aria-disabled="true"');
-    expect(await html(path, marker, { ...state, notificationsHasRead: false })).toContain(t.help.loadingMore);
-    expect(await html(path, marker, { ...state, notifs: { loading: false, error: "read-failed" } })).toContain(t.notifs.loadFailed);
-  });
   it("keeps raffle old snapshot silent and reports an actual retained-data failure", async () => {
     const path = "pages/events/genesis-raffle.vue", marker = 'class="raffle-status"';
     const copy = { loading: t.help.loadingMore, refreshError: "read-failed" };

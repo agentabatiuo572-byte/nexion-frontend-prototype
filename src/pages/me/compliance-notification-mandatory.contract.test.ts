@@ -33,17 +33,8 @@ describe("mandatory compliance notifications cannot be disabled", () => {
     expect(apply!).toMatch(/if \(!remoteApiEnabled\)\s*\{\s*for \(const kind of MANDATORY_NOTIF_KINDS\) visible\[kind\] = true;/);
   });
 
-  it("locks the row in the UI and explains why", () => {
-    expect(page).toMatch(/:locked="isMandatoryNotifKind\(k\)"/);
-    expect(page).toMatch(/:hint="isMandatoryNotifKind\(k\) \? w\.notifMandatoryHint : undefined"/);
-  });
-
-  it("keeps the three locale strings distinct", () => {
-    const zh = readFileSync(new URL("../../i18n/messages/zh.ts", import.meta.url), "utf8");
-    const en = readFileSync(new URL("../../i18n/messages/en.ts", import.meta.url), "utf8");
-    const vi = readFileSync(new URL("../../i18n/messages/vi.ts", import.meta.url), "utf8");
-    for (const [name, src] of [["zh", zh], ["en", en], ["vi", vi]] as const) {
-      expect(src, `${name} 必须有锁定说明`).toMatch(/notifMandatoryHint:/);
-    }
+  it("does not list a mandatory category on the settings page", () => {
+    expect(page).toMatch(/\.filter\(k => !isMandatoryNotifKind\(k\)\)/);
+    expect(page).not.toContain(":locked=");
   });
 });

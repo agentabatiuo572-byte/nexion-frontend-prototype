@@ -145,7 +145,7 @@ describe("message page header content contract", () => {
     expect(source).not.toContain("revealSections");
   });
 
-  it("keeps mark-all beside the count and bulk cleanup reachable in the feed and settings", async () => {
+  it("keeps mark-all beside the count and bulk cleanup reachable in the feed", async () => {
     const clear = all.find(node => hasClass(node, 'message-mark-all'))!;
     expect(source).not.toContain('message-secondary-actions');
     const management = all.find(node => hasClass(node, 'notification-management'))!;
@@ -153,8 +153,7 @@ describe("message page header content contract", () => {
     expect(management.loc.source).toContain('LiquidGlass');
     expect(elements(heading.children)).not.toContain(management);
     expect(nav.loc.source).toContain("navTo('/pages/me/preferences')");
-    expect(settingsSource).toContain('@click="confirmClearRead"');
-    expect(settingsSource).toContain(':aria-label="t.notifs.clearReadAria"');
+    expect(settingsSource).not.toContain('confirmClearRead');
     expect(elements(heading.children)).toContain(clear);
     expect(clear.loc.source).not.toContain('LiquidGlass');
     expect(clear.loc.source).toContain('@click="markAll"');

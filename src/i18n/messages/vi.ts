@@ -960,9 +960,7 @@ estimateDisclaimer: "Ước tính chưa trừ chi phí mua; thu nhập giảm d�
     navTitle: "Tùy chọn",
     feedbackHeading: "Phản hồi",
     soundLabel: "Hiệu ứng âm thanh giao diện",
-    soundHint: "Âm thanh khi gửi thành công và nhận tin nhắn mới. Mặc định tắt.",
-    hapticsLabel: "Phản hồi rung",
-    hapticsHint: "Rung khi xác nhận thao tác trên thiết bị có hỗ trợ.",
+    soundHint: "Phát âm thanh khi gửi và nhận tin nhắn trò chuyện.",
     notifHeading: "Tùy chọn thông báo",
     notifKinds: {
       commission: "Thưởng",
@@ -973,8 +971,6 @@ estimateDisclaimer: "Ước tính chưa trừ chi phí mua; thu nhập giảm d�
       system: "Hệ thống / tuân thủ / pháp lý",
     },
     notifFooter: "Tắt một nhóm sẽ ẩn các mục tương ứng trong trung tâm thông báo. Thông báo tuân thủ quan trọng không thể tắt.",
-    // zentao #214: mục bắt buộc không thể tắt; nêu lý do dòng này bị khoá.
-    notifMandatoryHint: "Thông báo tuân thủ quan trọng — luôn bật, không thể tắt",
   },
 
   // 三端入口走查页(/pages/entry-surfaces/*)。SPEC-6 语义 token

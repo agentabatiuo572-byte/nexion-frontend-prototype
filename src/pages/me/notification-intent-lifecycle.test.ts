@@ -5,7 +5,6 @@ import ts from "typescript";
 import * as vue from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import pageSource from "./notifications.vue?raw";
-import settingsSource from "./preferences.vue?raw";
 import { createRemoteAccountEpoch } from "@/lib/remote-account-epoch";
 import { zh } from "@/i18n/messages/zh";
 import { fmt } from "@/i18n/format";
@@ -24,7 +23,7 @@ const scopes: vue.EffectScope[] = [];
 afterEach(() => { for (const scope of scopes.splice(0)) scope.stop(); vi.unstubAllGlobals(); });
 
 // Run the actual SFC worker with controlled IO and real Vue watchers.
-function mount(remote = true, realQueue = false, navigationQuery = "", initialAccountKey = "a", settings = false) {
+function mount(remote = true, realQueue = false, navigationQuery = "", initialAccountKey = "a") {
   const epoch = createRemoteAccountEpoch(initialAccountKey);
   const app = vue.reactive({ accountKey: initialAccountKey, accountBindingEpoch: 0 });
   setActivePinia(createPinia());
@@ -72,12 +71,10 @@ function mount(remote = true, realQueue = false, navigationQuery = "", initialAc
     "@/store/ui": { confirm, useUI: () => ui },
     "@/store/app": { useApp: () => app },
   };
-  const source = settings ? settingsSource : pageSource;
-  const script = source.split('<script setup lang="ts">')[1].split("</script>")[0];
+  const script = pageSource.split('<script setup lang="ts">')[1].split("</script>")[0];
   const output = ts.transpileModule(script, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
   const scope = vue.effectScope(); scopes.push(scope);
-  const exposed = settings ? "{ confirmClearRead, clearingRead, refreshNotifications }"
-    : "{ confirmClearRead, clearingRead, directNotice, toggle, dateHeading, timeAgo, onTap, onTouchStart, onTouchEnd, section, filter, expandedId, headerFocused, headerState, onMessageScroll }";
+  const exposed = "{ confirmClearRead, clearingRead, directNotice, toggle, dateHeading, timeAgo, onTap, onTouchStart, onTouchEnd, section, filter, expandedId, headerFocused, headerState, onMessageScroll }";
   const worker = scope.run(() => new Function("require", "exports", output + `;return ${exposed};`)((name: string) => {
     if (name.endsWith(".vue")) return {};
     if (!(name in modules)) throw new Error(`Unexpected dependency ${name}`);
@@ -88,7 +85,6 @@ function mount(remote = true, realQueue = false, navigationQuery = "", initialAc
 }
 const notification = { id: "fixture", ctaHref: "/pages/team/team" };
 const touch = (x: number) => ({ changedTouches: [{ clientX: x, clientY: 20 }] });
-const mountSettings = (realQueue = false) => mount(true, realQueue, "", "a", true);
 
 describe("notification pending intent isolation", () => {
   it('confirms bulk cleanup once with distinct impact/action copy and leaves deletion to the store', async () => {
@@ -167,42 +163,6 @@ describe("notification pending intent isolation", () => {
     expect(h.worker.headerState.value.primary).toBe(true);
     expect(pageSource).toContain('<scroll-view :key="section"');
   });
-  for (const invalidation of ["hide", "unmount", "account", "rebind"]) {
-    it(`settings cancels only its queued confirmation on ${invalidation}`, async () => {
-      const h = mountSettings(true);
-      const pending = h.worker.confirmClearRead();
-      const foreign = h.ui.confirm({ title: "Another page", owner: "foreign" });
-      if (invalidation === "account") h.account.bind("b");
-      else if (invalidation === "rebind") h.account.bind("a");
-      else h.fire(invalidation);
-      expect(h.ui.confirmQueue.map(row => row.owner)).toEqual(["foreign"]);
-      await pending; expect(h.notifs.clearRead).not.toHaveBeenCalled();
-      h.ui.clearConfirmsBy("foreign"); expect(await foreign).toBe(false);
-    });
-  }
-  for (const invalidation of ["account", "rebind", "hide-show", "unmount"]) {
-    it(`settings does not clear notifications when confirmation outlives ${invalidation}`, async () => {
-      const h = mountSettings();
-      const pending = h.worker.confirmClearRead();
-      if (invalidation === "account") h.account.bind("b");
-      if (invalidation === "rebind") h.account.bind("a");
-      if (invalidation === "hide-show") { h.fire("hide"); h.fire("show"); }
-      if (invalidation === "unmount") h.fire("unmount");
-      h.confirmation.resolve(true); await pending;
-      expect(h.notifs.clearRead).not.toHaveBeenCalled();
-    });
-  }
-  for (const accepted of [true, false]) {
-    it(`settings honors a current confirmation (${accepted})`, async () => {
-      const h = mountSettings(); const pending = h.worker.confirmClearRead();
-      expect(h.confirm).toHaveBeenCalledWith(expect.objectContaining({
-        title: zh.notifs.clearReadAria, message: zh.notifs.clearReadMessage,
-        confirmLabel: zh.notifs.clearReadAria, icon: "warn", danger: true,
-      }));
-      h.confirmation.resolve(accepted); await pending;
-      expect(h.notifs.clearRead).toHaveBeenCalledTimes(accepted ? 1 : 0);
-    });
-  }
   for (const action of ["tap", "swipe", "mock-tap"]) {
     it(`allows a current ${action} route`, async () => {
       const h = mount(action !== "mock-tap");
@@ -241,49 +201,6 @@ describe("notification pending intent isolation", () => {
     expect(h.navTo).not.toHaveBeenCalled();
   });
 });
-
-describe("notification management in secondary settings", () => {
-  it("refreshes on return and blocks refresh/confirmation after disposal", async () => {
-    const h = mountSettings(); h.fire("show");
-    expect(h.notifs.refreshRemote).toHaveBeenCalledOnce();
-    h.fire("unmount"); h.fire("show");
-    await h.worker.confirmClearRead();
-    await h.worker.refreshNotifications();
-    expect(h.notifs.refreshRemote).toHaveBeenCalledOnce();
-    expect(h.confirm).not.toHaveBeenCalled();
-  });
-  it("coalesces confirmation and waits for the server before changing the visible items", async () => {
-    const h = mountSettings();
-    h.notifs.items = [{ id: "read", kind: "team", readAt: 1 }, { id: "unread", kind: "system", readAt: null }];
-    const done = deferred<void>();
-    h.notifs.clearRead.mockImplementationOnce(async () => { await done.promise; h.notifs.items = h.notifs.items.filter(n => !n.readAt); });
-    const pending = h.worker.confirmClearRead(); await h.worker.confirmClearRead();
-    expect(h.confirm).toHaveBeenCalledOnce(); expect(h.worker.clearingRead.value).toBe(true);
-    expect(h.notifs.clearRead).not.toHaveBeenCalled();
-    h.confirmation.resolve(true); await Promise.resolve();
-    expect(h.notifs.clearRead).toHaveBeenCalledOnce(); expect(h.notifs.items).toHaveLength(2);
-    await h.worker.confirmClearRead(); expect(h.confirm).toHaveBeenCalledOnce();
-    done.resolve(); await pending;
-    expect(h.notifs.items).toEqual([{ id: "unread", kind: "system", readAt: null }]);
-    expect(h.worker.clearingRead.value).toBe(false);
-  });
-  it("preserves mutation errors, releases the control and offers a fenced refresh retry", async () => {
-    const h = mountSettings();
-    h.notifs.clearRead.mockImplementationOnce(async () => { h.notifs.error = "NOTIFICATION_UPDATE_FAILED"; });
-    const pending = h.worker.confirmClearRead(); h.confirmation.resolve(true); await pending;
-    expect(h.notifs.error).toBe("NOTIFICATION_UPDATE_FAILED"); expect(h.worker.clearingRead.value).toBe(false);
-    h.worker.refreshNotifications();
-    expect(h.notifs.refreshRemote).toHaveBeenCalledWith(undefined, expect.any(Function));
-    const active = (h.notifs.refreshRemote.mock.calls[0] as unknown as [undefined, () => boolean])[1];
-    expect(active()).toBe(true); h.fire("hide"); expect(active()).toBe(false);
-  });
-  it("does not open a destructive confirmation while notifications are loading", async () => {
-    const h = mountSettings(); h.notifs.loading = true;
-    await h.worker.confirmClearRead(); h.worker.refreshNotifications();
-    expect(h.confirm).not.toHaveBeenCalled(); expect(h.notifs.refreshRemote).not.toHaveBeenCalled();
-  });
-});
-
 
 // Platform IO is synthetic; page onLoad/onShow/setter/watchers are the actual SFC.
 function h5Entry(href = "https://fixture.invalid/app/?outer=keep#/pages/me/notifications?section=notifications&from=me") {

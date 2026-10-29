@@ -104,11 +104,11 @@ function component(source: string, name: string, dependencies: Record<string, un
 
 function renderWays(platform: 'h5' | 'app', language: 'zh' | 'en' | 'vi') {
   const f = fixture(platform, true), copy = remainderUiCopy[language], messages = { zh, en, vi: vietnamese }[language];
-  const account = reactive({ activeSlotCount: 0, slotCap: 1 }), trial = Vue.ref(false), preferences = reactive({ hapticsEnabled: true });
+  const account = reactive({ activeSlotCount: 0, slotCap: 1 }), trial = Vue.ref(false);
   const vibrate = vi.fn(); vi.stubGlobal('uni', { vibrateShort: vibrate });
   const button = component(buttonSource, 'nx-button.vue', { '@/components/liquid-glass.vue': { default: Vue.defineComponent({ render: () => Vue.h('view', { class: 'test-liquid-glass' }) }) } });
   const card = component(cardSource, 'earn-way-card.vue', {
-    '@/components/ui/nx-button.vue': { default: button }, '@/store/preferences': { usePreferences: () => preferences },
+    '@/components/ui/nx-button.vue': { default: button },
   });
   const section = component(sectionSource, 'nx-section.vue', { './nx-button.vue': { default: button } });
   const source = f.template.slice(f.template.indexOf('<NxSection class="mx-4 earn-more-ways"'), f.template.indexOf('</NxSection>') + '</NxSection>'.length);
@@ -125,7 +125,7 @@ function renderWays(platform: 'h5' | 'app', language: 'zh' | 'en' | 'vi') {
     const found = nodes(root).find(node => node.props.role === 'button' && node.props['aria-label'] === label);
     expect(found, `button ${label}`).toBeDefined(); return found!;
   }
-  return { ...f, root, copy, messages, account, trial, preferences, vibrate, buttonByLabel };
+  return { ...f, root, copy, messages, account, trial, vibrate, buttonByLabel };
 }
 
 describe('earn cards render the actual entry controls', () => {
@@ -143,14 +143,13 @@ describe('earn cards render the actual entry controls', () => {
     expect(f.vibrate).not.toHaveBeenCalled();
   });
 
-  it('native taps give one light response per action and respect the saved haptics preference', () => {
+  it('native taps give one light response per action', () => {
     const f = renderWays('app', 'zh');
     f.buttonByLabel(f.copy.earnWays.phoneAction).props.onClick();
     expect(f.navTo).toHaveBeenCalledExactlyOnceWith('/pages/onboarding/connect?mode=recalibrate');
     expect(f.vibrate).toHaveBeenCalledExactlyOnceWith({ type: 'light' });
-    f.preferences.hapticsEnabled = false;
     f.buttonByLabel(f.copy.stakingAction).props.onClick();
-    expect(f.navTo).toHaveBeenLastCalledWith('/pages/staking/staking'); expect(f.vibrate).toHaveBeenCalledOnce();
+    expect(f.navTo).toHaveBeenLastCalledWith('/pages/staking/staking'); expect(f.vibrate).toHaveBeenCalledTimes(2);
   });
 
   it('removes only gated cards when config becomes unconfirmed, and restores each feature independently', async () => {

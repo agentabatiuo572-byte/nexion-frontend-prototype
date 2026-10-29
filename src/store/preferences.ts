@@ -7,7 +7,7 @@ import { accountErrorMessageKey, type AccountErrorMessageKey } from "@/lib/accou
 /**
  * User preferences. Ported from Nexion-prototype/lib/store/preferences.ts
  * (zustand persist → Pinia + uni storage). Lightweight toggles persisted
- * across sessions: sound, haptics, and per-kind notification mute flags.
+ * across sessions: sound and per-kind notification mute flags.
  *
  * NotifKind mirrors lib/v3/notifications NotifKind (kept local to avoid a
  * store→store import; backend-replaceable shape).
@@ -42,7 +42,6 @@ function defaultNotifPrefs(): NotifPrefs {
 
 interface PrefsData {
   soundEnabled: boolean;
-  hapticsEnabled: boolean;
   notifPrefs: NotifPrefs;
 }
 
@@ -58,21 +57,19 @@ function hydrate(): PrefsData {
         }
       }
       return {
-        soundEnabled: typeof s.soundEnabled === "boolean" ? s.soundEnabled : false,
-        hapticsEnabled: typeof s.hapticsEnabled === "boolean" ? s.hapticsEnabled : true,
+        soundEnabled: typeof s.soundEnabled === "boolean" ? s.soundEnabled : true,
         notifPrefs: merged,
       };
     }
   } catch {
     // first run
   }
-  return { soundEnabled: false, hapticsEnabled: true, notifPrefs: defaultNotifPrefs() };
+  return { soundEnabled: true, notifPrefs: defaultNotifPrefs() };
 }
 
 export const usePreferences = defineStore("preferences", () => {
   const init = hydrate();
   const soundEnabled = ref<boolean>(init.soundEnabled);
-  const hapticsEnabled = ref<boolean>(init.hapticsEnabled);
   const notifPrefs = ref<NotifPrefs>(init.notifPrefs);
   const loading = ref(false);
   const remoteReady = ref(!remoteApiEnabled);
@@ -99,7 +96,6 @@ export const usePreferences = defineStore("preferences", () => {
     try {
       uni.setStorageSync(STORAGE_KEY, {
         soundEnabled: soundEnabled.value,
-        hapticsEnabled: hapticsEnabled.value,
         ...(remoteApiEnabled ? {} : { notifPrefs: notifPrefs.value }),
       });
     } catch {
@@ -126,11 +122,6 @@ export const usePreferences = defineStore("preferences", () => {
 
   function toggleSound() {
     soundEnabled.value = !soundEnabled.value;
-    persist();
-  }
-
-  function toggleHaptics() {
-    hapticsEnabled.value = !hapticsEnabled.value;
     persist();
   }
 
@@ -222,10 +213,9 @@ export const usePreferences = defineStore("preferences", () => {
     }
     const local = hydrate();
     soundEnabled.value = local.soundEnabled;
-    hapticsEnabled.value = local.hapticsEnabled;
     canonicalNotifPrefs = local.notifPrefs;
     notifPrefs.value = local.notifPrefs;
   }
 
-  return { soundEnabled, hapticsEnabled, notifPrefs, loading, remoteReady, error, toggleSound, toggleHaptics, toggleNotifKind, bindAccount, refreshRemote };
+  return { soundEnabled, notifPrefs, loading, remoteReady, error, toggleSound, toggleNotifKind, bindAccount, refreshRemote };
 });

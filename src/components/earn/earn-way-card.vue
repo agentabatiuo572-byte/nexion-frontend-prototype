@@ -16,16 +16,12 @@
 
 <script setup lang="ts">
 import NxButton from '@/components/ui/nx-button.vue';
-import { usePreferences } from '@/store/preferences';
 
 defineProps<{ eyebrow: string; title: string; body: string; action: string; artwork: 'phone' | 'staking' | 'gpu'; notice?: string }>();
 const emit = defineEmits<{ (event: 'click'): void }>();
-// #ifndef H5
-const preferences = usePreferences();
-// #endif
 function activate() {
   // #ifndef H5
-  if (preferences.hapticsEnabled) uni.vibrateShort({ type: 'light' });
+  uni.vibrateShort({ type: 'light' });
   // #endif
   emit('click');
 }

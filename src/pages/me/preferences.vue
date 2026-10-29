@@ -1,6 +1,6 @@
 <!--
   Preferences (ported from Nexion-prototype/app/(main)/me/preferences/page.tsx).
-  Two toggle blocks: sound + haptics, and per-kind notification mute filters.
+  Two toggle blocks: interface sound, and per-kind notification mute filters.
   State persists via the preferences store. Wrapped in <AppChassis active="me">.
 -->
 <template>
@@ -14,18 +14,13 @@
         </view>
       </view>
 
-      <!-- Sound + haptics -->
+      <!-- Sound -->
       <view class="mx-4">
         <text class="block" :style="headingStyle">{{ w.feedbackHeading }}</text>
         <view class="nx-glass-card" :style="cardStyle">
-          <ToggleRow :label="w.soundLabel" :hint="w.soundHint" :value="prefs.soundEnabled" @toggle="prefs.toggleSound">
+          <ToggleRow :label="w.soundLabel" :hint="w.soundHint" :value="prefs.soundEnabled" last @toggle="prefs.toggleSound">
             <template #icon>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z" /><path d="M16 9a5 5 0 0 1 0 6" /><path d="M19.364 18.364a9 9 0 0 0 0-12.728" /></svg>
-            </template>
-          </ToggleRow>
-          <ToggleRow :label="w.hapticsLabel" :hint="w.hapticsHint" :value="prefs.hapticsEnabled" last @toggle="prefs.toggleHaptics">
-            <template #icon>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 8 2 2-2 2 2 2-2 2" /><path d="m22 8-2 2 2 2-2 2 2 2" /><rect width="8" height="14" x="8" y="5" rx="1" /></svg>
             </template>
           </ToggleRow>
         </view>
@@ -43,8 +38,6 @@
             :value="prefs.remoteReady ? prefs.notifPrefs[k] : null"
             :unknown-label="t.uiChrome.unavailable"
             :last="i === notifKinds.length - 1"
-            :locked="isMandatoryNotifKind(k)"
-            :hint="isMandatoryNotifKind(k) ? w.notifMandatoryHint : undefined"
             @toggle="prefs.toggleNotifKind(k)"
           >
             <template #icon>
@@ -54,113 +47,28 @@
         </view>
         <text class="block mx-1" :style="footerStyle">{{ w.notifFooter }}</text>
       </view>
-
-      <view class="mx-4 notification-management">
-        <text class="block" :style="headingStyle">{{ t.notifs.drawerTitle }}</text>
-        <text v-if="notifs.loading && !notificationsHasRead" class="block" role="status" aria-live="polite">{{ t.help.loadingMore }}</text>
-        <view v-if="notifs.error" class="notification-management-error nx-inline-recovery" role="alert" data-testid="notification-clear-error">
-          <text class="nx-inline-recovery__copy">{{ t.notifs.loadFailed }}</text>
-          <view class="family-control family-control--text nx-inline-recovery__action" role="button" :tabindex="notifs.loading ? -1 : 0" :aria-disabled="notifs.loading" :aria-label="t.ui.retry" @click="refreshNotifications"><text>{{ t.ui.retry }}</text></view>
-        </view>
-        <view class="family-control notification-clear-read" role="button" :tabindex="clearingRead || notifs.loading ? -1 : 0" :aria-disabled="clearingRead || notifs.loading" :style="{ opacity: notifs.loading && !clearingRead ? 1 : undefined }" :aria-label="t.notifs.clearReadAria" @click="confirmClearRead"><LiquidGlass :radius="24" /><text>{{ t.notifs.clearReadAria }}</text></view>
-      </view>
     </view>
   </AppChassis>
 </template>
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
-import { onShow, onHide } from "@dcloudio/uni-app";
-// #ifdef APP-PLUS
-import { onBackPress } from "@dcloudio/uni-app";
-// #endif
+import { computed, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
-import LiquidGlass from "@/components/liquid-glass.vue";
 import ToggleRow from "@/components/me/preference-toggle-row.vue";
 import { useT } from "@/i18n/use-t";
 import { isMandatoryNotifKind, usePreferences, type NotifKind } from "@/store/preferences";
-import { useNotifications } from "@/store/notifications";
-import { useApp } from "@/store/app";
-import { remoteAccountScope } from "@/lib/remote-account-epoch";
-import { confirm as uiConfirm, useUI } from "@/store/ui";
 
 const t = useT();
 const w = computed(() => t.value.preferences);
 const prefs = usePreferences();
-const notifs = useNotifications();
-const app = useApp();
-const ui = useUI();
-const clearingRead = ref(false);
-const notificationsHasRead = ref(false);
-const confirmOwner = `notification-settings:${typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-  ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
-let pageGeneration = 0;
-let pageVisible = true;
-let disposed = false;
-function captureIntent() {
-  return { generation: pageGeneration, account: remoteAccountScope.snapshot() };
-}
-function isCurrentIntent(intent: ReturnType<typeof captureIntent>) {
-  return !disposed && pageVisible && intent.generation === pageGeneration
-    && remoteAccountScope.isCurrent(intent.account);
-}
-async function refreshNotifications() {
-  const intent = captureIntent();
-  if (!isCurrentIntent(intent) || notifs.loading) return;
-  await notifs.refreshRemote(undefined, () => isCurrentIntent(intent));
-  if (isCurrentIntent(intent) && !notifs.loading && !notifs.error) notificationsHasRead.value = true;
-}
-async function confirmClearRead() {
-  const intent = captureIntent();
-  if (!isCurrentIntent(intent) || clearingRead.value || notifs.loading) return;
-  clearingRead.value = true;
-  try {
-    const accepted = await uiConfirm({
-      owner: confirmOwner,
-      title: t.value.notifs.clearReadAria,
-      message: t.value.notifs.clearReadMessage,
-      confirmLabel: t.value.notifs.clearReadAria,
-      icon: "warn",
-      danger: true,
-    });
-    if (accepted && isCurrentIntent(intent)) await notifs.clearRead();
-  } finally {
-    if (isCurrentIntent(intent)) clearingRead.value = false;
-  }
-}
-function invalidatePendingIntents() {
-  pageGeneration += 1;
-  clearingRead.value = false;
-  ui.clearConfirmsBy(confirmOwner);
-}
-watch(() => [app.accountKey, app.accountBindingEpoch], () => {
-  notificationsHasRead.value = false;
-  invalidatePendingIntents();
-}, { flush: "sync" });
-onShow(() => {
-  if (disposed) return;
-  pageVisible = true;
-  void refreshNotifications();
-});
-onHide(() => { pageVisible = false; invalidatePendingIntents(); });
-onUnmounted(() => { disposed = true; pageVisible = false; invalidatePendingIntents(); });
-// #ifdef APP-PLUS
-onBackPress(event => {
-  if (event.from !== "backbutton" || disposed || !pageVisible) return false;
-  const currentConfirm = ui.confirmQueue[ui.confirmQueue.length - 1];
-  if (currentConfirm?.owner !== confirmOwner) return false;
-  // The retry-only global mask renders above confirmation; keep both intact.
-  if (!ui.netError.visible) ui.resolveConfirm(currentConfirm.id, false);
-  return true;
-});
-// #endif
 const preferenceError = computed(() => {
   const labels = t.value.preferences as typeof t.value.preferences & Record<"updateFailed" | "unavailable", string>;
   return prefs.error === "updateFailed" ? labels.updateFailed : labels.unavailable;
 });
 
-const notifKinds: NotifKind[] = ["commission", "team", "staking", "market", "genesis", "system"];
+// Mandatory kinds cannot be switched off, so they are not listed.
+const notifKinds = (["commission", "team", "staking", "market", "genesis", "system"] as NotifKind[]).filter(k => !isMandatoryNotifKind(k));
 const NOTIF_COLOR: Record<NotifKind, string> = {
   commission: "var(--v5-brand)",
   team: "var(--v5-tech-cyan)",
@@ -200,12 +108,5 @@ const footerStyle: CSSProperties = {
 
 
 </script>
-
-<style scoped>
-.notification-management { margin-top: 20px; }
-.notification-clear-read { min-height: 44px; margin-top: 8px; }
-.notification-management-error { color: var(--v5-danger); }
-.notification-management [aria-disabled="true"] { opacity: .5; pointer-events: none; }
-</style>
 
 <style src="@/styles/message-family.css"></style>

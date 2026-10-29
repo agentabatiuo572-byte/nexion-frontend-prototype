@@ -962,9 +962,7 @@ estimateDisclaimer: "Estimate before purchase cost; earnings decrease with time 
     navTitle: "Preferences",
     feedbackHeading: "Feedback",
     soundLabel: "UI sound effects",
-    soundHint: "Sounds for sent and incoming chat messages. Off by default.",
-    hapticsLabel: "Haptic feedback",
-    hapticsHint: "Vibrate when confirming an action, on supported devices.",
+    soundHint: "Play a sound when chat messages are sent or received.",
     notifHeading: "Notification preferences",
     notifKinds: {
       commission: "Rewards",
@@ -975,8 +973,6 @@ estimateDisclaimer: "Estimate before purchase cost; earnings decrease with time 
       system: "System / compliance / regulatory",
     },
     notifFooter: "Disabling a category suppresses its notification center entries. Critical compliance notifications cannot be disabled.",
-    // zentao #214: mandatory categories cannot be switched off; say why the row is locked.
-    notifMandatoryHint: "Critical compliance notice — always on, cannot be disabled",
   },
 
   // 三端入口走查页(/pages/entry-surfaces/*)。SPEC-6 语义 token(zh 的

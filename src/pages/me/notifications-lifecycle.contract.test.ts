@@ -1,7 +1,6 @@
 import segments from "@/components/glass-segments.vue?raw";
 import { describe, expect, it } from "vitest";
 import source from "./notifications.vue?raw";
-import settings from "./preferences.vue?raw";
 // @ts-expect-error Contract test runs in Node.
 import { readFileSync } from "node:fs";
 const styles = readFileSync(new URL("../../styles/message-center.css", import.meta.url), "utf8");
@@ -14,15 +13,11 @@ describe("notification foreground and clear-read accessibility", () => {
     expect(source).toMatch(/onShow\(\(\) => \{\s*if \(disposed\) return;\s*pageVisible = true;\s*preserveSectionInH5\(\);\s*void center.refresh\(\);/);
   });
 
-  it("gives the clear-read action an accessible label, 44px target, and confirmation", () => {
+  it("keeps clear-read on the message page with a confirmation, not in settings", () => {
     expect(source).not.toContain('message-secondary-actions');
     expect(source).toContain("navTo('/pages/me/preferences')");
-    expect(settings).toContain(':aria-label="t.notifs.clearReadAria"');
-    expect(settings).toContain("min-height: 44px");
-    expect(settings).toContain("await uiConfirm({");
-    expect(settings).toContain("notifs.clearRead()");
-    expect(settings).toContain('data-testid="notification-clear-error"');
-    expect(settings).toContain('@click="refreshNotifications"');
+    expect(source).toContain('@click="confirmClearRead"');
+    expect(source).toContain("notifs.clearRead()");
   });
 
   it("keeps mark-all and notification rows keyboard-operable", () => {

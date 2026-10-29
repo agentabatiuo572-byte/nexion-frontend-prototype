@@ -945,9 +945,7 @@ estimateDisclaimer: "预估值，未扣除购买成本，收益会随使用时�
     navTitle: "偏好设置",
     feedbackHeading: "反馈",
     soundLabel: "界面音效",
-    soundHint: "会话发送成功及新消息提示音，默认关闭。",
-    hapticsLabel: "触感反馈",
-    hapticsHint: "操作确认时震动，仅在支持震动的设备上生效。",
+    soundHint: "会话中发送和收到消息时播放提示音。",
     notifHeading: "通知偏好",
     notifKinds: {
       commission: "奖励通知",
@@ -958,8 +956,6 @@ estimateDisclaimer: "预估值，未扣除购买成本，收益会随使用时�
       system: "系统 / 合规 / 监管",
     },
     notifFooter: "禁用某类后,通知中心不再推送对应条目。关键合规通知不可禁用。",
-    // 简报 #214:强制类开关不可操作,行内说明它为何锁定。
-    notifMandatoryHint: "关键合规通知,强制开启,不可禁用",
   },
 
   // 三端入口走查页(/pages/entry-surfaces/*)。SPEC-6 语义 token
