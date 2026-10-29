@@ -10,7 +10,7 @@
       <view v-else class="quota-content">
         <view class="quota-hero">
           <view v-if="heroTier && focusedProductId" class="quota-hero__main"><view class="quota-hero__copy"><text class="quota-headline">{{ heroTier.name }}</text><text v-if="heroTier" class="quota-hero__price">{{ fmt(t.quota.priceLine, { price: formatFinanceAmount(heroTier.price) }) }}</text></view><image v-if="heroImage" :src="heroImage" mode="aspectFit" class="quota-hero__image" :alt="heroTier?.name" /><TeamArt v-else kind="members" :size="112" /></view>
-          <view class="quota-invite-count"><text>{{ t.quota.yourInvites }}</text><view><text class="quota-invite-count__number">{{ visibility.mask(activeDirectText) }}</text><text class="quota-caption">{{ remoteApiEnabled && !remoteSnapshot ? visibility.mask('—') : fmt(t.quota.totalSuffix, { n: visibility.mask(directInvites) }) }}</text></view></view>
+          <view class="quota-invite-count"><text>{{ t.quota.yourInvites }}</text><view><text class="quota-invite-count__number nx-num-metric">{{ visibility.mask(activeDirectText) }}</text><text class="quota-caption">{{ remoteApiEnabled && !remoteSnapshot ? visibility.mask('—') : fmt(t.quota.totalSuffix, { n: visibility.mask(directInvites) }) }}</text></view></view>
           <text class="quota-body">{{ t.quota.heroBody }}</text>
         </view>
 

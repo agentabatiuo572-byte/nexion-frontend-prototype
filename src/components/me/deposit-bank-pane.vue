@@ -91,7 +91,7 @@
     <template v-else-if="paneView === 'order' && intent">
       <view class="nx-step-in" style="margin-top: 14px">
         <view v-if="!hostedRejected"><text class="block text-center tabular-nums" style="font-size: 13px; color: var(--v5-ink-3)">{{ fmt(t.bankPane.countdown, { time: countdownText }) }}</text></view>
-        <view><text class="block text-center tabular-nums" style="margin-top: 8px; font-family: var(--font-v5); font-size: 26px; font-weight: 600; color: var(--v5-ink); white-space: nowrap">{{ fmtVnd(intent.vndAmount) }}</text></view>
+        <view><text class="block text-center tabular-nums" style="margin-top: 8px; font-family: var(--font-amount); font-size: 26px; font-weight: 600; color: var(--v5-ink); white-space: nowrap">{{ fmtVnd(intent.vndAmount) }}</text></view>
         <view><text class="block text-center" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ creditLineText }}</text></view>
 
         <template v-if='intent.paymentMode === "hosted"'>

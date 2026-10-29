@@ -500,7 +500,7 @@ const toggleStyle: CSSProperties = {
 }
 
 .newcomer-task__reward-value {
-  font-family: var(--font-v5);
+  font-family: var(--font-amount);
   font-size: 34px;
   font-weight: 500;
   color: var(--v5-nex);

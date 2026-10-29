@@ -635,8 +635,8 @@ onUnmounted(() => {
 .cn-score__cap { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--v5-brand); }
 .cn-score__cap-t { font-family: var(--font-jet-mono), ui-monospace, monospace; font-size: 12px; letter-spacing: 0.18em; color: var(--v5-brand); }
 .cn-score__num { margin-top: 12px; display: flex; align-items: baseline; justify-content: center; gap: 4px; }
-.cn-score__v { font-family: var(--font-v5); font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -0.025em; color: var(--v5-brand); font-size: 56px; font-weight: 600; }
-.cn-score__d { font-family: var(--font-v5); font-variant-numeric: tabular-nums; color: var(--v5-ink-3); font-size: 20px; font-weight: 500; }
+.cn-score__v { font-family: var(--font-metric); font-variant-numeric: tabular-nums; line-height: 1; letter-spacing: -0.025em; color: var(--v5-brand); font-size: 56px; font-weight: 600; }
+.cn-score__d { font-family: var(--font-metric); font-variant-numeric: tabular-nums; color: var(--v5-ink-3); font-size: 20px; font-weight: 500; }
 .cn-score__tier { display: block; margin-top: 8px; font-size: 13px; font-weight: 600; color: var(--v5-ink); }
 .cn-score__yield { margin: 12px auto 0; display: inline-flex; align-items: baseline; gap: 8px; padding: 6px 12px; border-radius: 9999px; background: color-mix(in oklab, var(--v5-brand) 14%, transparent); }
 .cn-score__yield-cap { font-family: var(--font-jet-mono), ui-monospace, monospace; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--v5-brand); }
@@ -667,7 +667,7 @@ onUnmounted(() => {
 .cn-ios-card { display: flex; flex-direction: column; gap: 6px; padding: 18px; }
 .cn-ios-card__k { display: block; font-size: 12px; color: var(--v5-ink-3); }
 .cn-ios-card__value { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
-.cn-ios-card__v { font-family: var(--font-v5); font-variant-numeric: tabular-nums; font-size: 34px; font-weight: 700; color: var(--v5-ink); }
+.cn-ios-card__v { font-family: var(--font-metric); font-variant-numeric: tabular-nums; font-size: 34px; font-weight: 700; color: var(--v5-ink); }
 .cn-ios-card__u { font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2); }
 .cn-link { min-height: 44px; display: flex; align-items: center; justify-content: center; }
 .cn-link__t { font-size: 13px; color: var(--v5-ink-3); text-decoration: underline; text-underline-offset: 3px; }

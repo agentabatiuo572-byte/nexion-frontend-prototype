@@ -2512,7 +2512,7 @@ button.checkout-policy-link::after { border:0; }
 .checkout-cancel { display:grid; place-items:center; min-height:44px; margin-top:4px; font:400 var(--ui-type-list-subtitle)/18px var(--font-v5); color:var(--v5-ink-3); cursor:pointer; }
 .checkout-sticky { position:absolute; bottom:0; left:0; right:0; z-index:36; display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:100px; padding:12px 16px calc(30px + env(safe-area-inset-bottom)); background:linear-gradient(180deg,color-mix(in srgb,var(--ui-ticket-top) 70%,transparent),color-mix(in srgb,var(--ui-ticket-bottom) 94%,transparent)); border-top:1px solid var(--v5-border-strong); box-shadow:inset 0 1px 0 var(--v5-border); backdrop-filter:blur(18px) saturate(160%); -webkit-backdrop-filter:blur(18px) saturate(160%); }
 .checkout-sticky-copy { min-width:0; }
-.checkout-total { display:block; font:600 20px/24px var(--font-v5); font-variant-numeric:tabular-nums; color:var(--v5-ink); overflow-wrap:anywhere; }
+.checkout-total { display:block; font:600 20px/24px var(--font-amount); font-variant-numeric:tabular-nums; color:var(--v5-ink); overflow-wrap:anywhere; }
 .checkout-sticky :deep(.nx-button) { flex:none; width:164px; max-width:52%; min-height:48px; font-size:var(--ui-type-button); box-shadow:0 8px 22px color-mix(in srgb,var(--v5-brand) 30%,transparent),inset 0 1px 0 var(--v5-liquid-highlight); }
 .checkout-promotion { padding:8px 16px 120px; color:var(--v5-ink); }
 .checkout-promotion :deep(.promotion-flat) { border:1px solid var(--v5-border); border-radius:22px; background:var(--ui-content-surface); padding:16px; }

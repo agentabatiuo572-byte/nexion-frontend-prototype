@@ -113,7 +113,7 @@ function goCommissions() {
 .team-ledger__details > svg { flex: none; }
 .team-ledger__details:active { opacity: .7; }
 .team-ledger__details:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
-.team-ledger__amount { display: flex; align-items: baseline; gap: 3px; flex-wrap: nowrap; min-height: 1.25em; font-family: var(--font-v5); font-size: 52px; line-height: 1.25; font-weight: 600; letter-spacing: -.03em; white-space: nowrap; overflow-x: auto; }
+.team-ledger__amount { display: flex; align-items: baseline; gap: 3px; flex-wrap: nowrap; min-height: 1.25em; font-family: var(--font-amount); font-size: 52px; line-height: 1.25; font-weight: 600; letter-spacing: -.03em; white-space: nowrap; overflow-x: auto; }
 .team-ledger__amount > text { flex: none; }
 .team-ledger__currency { font-size: 24px; color: var(--v5-ink-3); }
 .team-ledger__fraction { font-size: 36px; color: var(--v5-ink-2); }
@@ -146,7 +146,7 @@ function goCommissions() {
 .team-ledger__settlement-icon { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; color: var(--v5-brand); background: var(--v5-brand-soft); }
 .team-ledger__settlement-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; overflow-wrap: anywhere; }
 .team-ledger__settlement > view + view { border-left: 1px solid var(--v5-border); }
-.team-ledger__settlement .tabular-nums { display: block; max-width: 100%; color: var(--v5-ink); font: 600 20px/1.25 var(--font-v5); font-variant-numeric: tabular-nums; white-space: nowrap; overflow-x: auto; min-width: 0; }
+.team-ledger__settlement .tabular-nums { display: block; max-width: 100%; color: var(--v5-ink); font: 600 20px/1.25 var(--font-metric); font-variant-numeric: tabular-nums; white-space: nowrap; overflow-x: auto; min-width: 0; }
 .team-ledger__amount,.team-ledger__nex,.team-ledger__settlement .tabular-nums { overflow-y: hidden; scrollbar-width: none; }
 .team-ledger__amount::-webkit-scrollbar,.team-ledger__nex::-webkit-scrollbar,.team-ledger__settlement .tabular-nums::-webkit-scrollbar { display: none; }
 </style>

@@ -104,7 +104,7 @@
         <text class="block font-mono-tabular" :style="priceEyebrowStyle">{{ t.store.cardPriceLabel }}</text>
         <view class="tabular-nums flex items-baseline" :style="priceRowStyle">
           <text style="font-size: var(--ui-type-list-title); color: var(--v5-ink-3); font-weight: 500">$</text>
-          <text style="font-size: 26px; font-weight: 600">{{ priceText }}</text>
+          <text style="font-family: var(--font-amount); font-size: 26px; font-weight: 600">{{ priceText }}</text>
         </view>
       </view>
       <!-- 品牌填充按钮:opacity 取 85(《08》§2 状态派生公式) -->

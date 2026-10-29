@@ -21,7 +21,7 @@
 
     <view v-else class="mt-1.5 grid gap-3 items-end" style="grid-template-columns: 1fr auto">
       <view>
-        <text class="block tabular-nums" style="font-family: var(--font-v5); font-weight: 600; font-size: 26px; color: var(--v5-ink); letter-spacing: -0.022em; line-height: 1">${{ poolKText }}K</text>
+        <text class="block tabular-nums" style="font-family: var(--font-metric); font-weight: 600; font-size: 26px; color: var(--v5-ink); letter-spacing: -0.022em; line-height: 1">${{ poolKText }}K</text>
         <text class="block mt-1.5" style="font-size: 12px; color: var(--v5-ink-3); font-family: var(--font-v5)">{{ poolThisWeekText }}</text>
       </view>
       <view v-if="unlocked" class="text-right whitespace-nowrap">

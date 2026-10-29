@@ -5,5 +5,5 @@ defineProps<{ label: string; value: number | null; money?: boolean; detail?: str
 </script>
 <style scoped>
 .nx-stat__label, .nx-stat__detail { display: block; font: 400 12px/1.5 var(--font-v5); color: var(--v5-ink-2); }
-.nx-stat__value { display: block; margin: 4px 0; font: 600 24px/1.25 var(--font-v5); font-variant-numeric: tabular-nums; color: var(--v5-ink); }
+.nx-stat__value { display: block; margin: 4px 0; font: 600 24px/1.25 var(--font-metric); font-variant-numeric: tabular-nums; color: var(--v5-ink); }
 </style>

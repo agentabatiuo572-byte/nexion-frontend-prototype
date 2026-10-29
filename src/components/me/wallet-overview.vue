@@ -251,7 +251,7 @@ function amountStyle(value: string, size: number, half = false): CSSProperties {
 .wallet-metric { min-width: 0; }
 .wallet-metric:nth-child(n+3) { padding-top: var(--v5-space-3); border-top: 1px solid var(--v5-border); }
 .wallet-metric-label { display: block; color: var(--v5-ink-3); font-size: var(--v5-type-caption); line-height: 1.5; }
-.wallet-metric-amount { display: block; min-height: 26.4px; margin-top: var(--v5-space-1); font-weight: 500; line-height: 1.2; letter-spacing: -.025em; white-space: nowrap; }
+.wallet-metric-amount { font-family: var(--font-metric); display: block; min-height: 26.4px; margin-top: var(--v5-space-1); font-weight: 500; line-height: 1.2; letter-spacing: -.025em; white-space: nowrap; }
 .wallet-metric--today .wallet-metric-amount { color: var(--v5-brand); }
 .wallet-metric-sub { display: block; margin-top: var(--v5-space-1); font-size: var(--v5-type-caption); color: var(--v5-ink-3); line-height: 1.5; overflow-wrap: anywhere; }
 .wallet-metric-sub--release { font-size: 10px; line-height: 1.4; }

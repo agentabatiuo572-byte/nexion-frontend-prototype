@@ -378,6 +378,7 @@ useDialogA11y(computed(() => m.active !== null), ".ms-overlay", () => m.dismiss(
   line-height: 1;
   color: var(--v5-brand);
   font-variant-numeric: tabular-nums;
+  font-family: var(--font-amount);
 }
 .ms-title {
   margin-top: 6px;

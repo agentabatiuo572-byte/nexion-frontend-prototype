@@ -388,7 +388,7 @@ function onCardAction() {
 }
 
 .weekly-quest__reward-value {
-  font-family: var(--font-v5);
+  font-family: var(--font-amount);
   font-size: 34px;
   font-weight: 500;
   line-height: 1;

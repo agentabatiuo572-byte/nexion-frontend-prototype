@@ -69,7 +69,7 @@ useDialogA11y(computed(() => props.open), '.invite-detail', () => emit('close'))
 .invite-detail__body { min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; padding-top: 16px; font: 400 14px/1.6 var(--font-v5); }
 .invite-detail__paragraph { display: block; margin-bottom: var(--ui-space-section); color: var(--v5-ink-2); }
 .invite-detail__total { display: flex; flex-direction: column; gap: 6px; }
-.invite-detail__total > text:last-child { font-size: 28px; font-weight: 600; overflow-wrap: anywhere; }
+.invite-detail__total > text:last-child { font-family: var(--font-amount); font-size: 28px; font-weight: 600; overflow-wrap: anywhere; }
 .invite-detail__counts { display: flex; flex-wrap: wrap; gap: 18px; margin: 14px 0 24px; color: var(--v5-ink-3); }
 .invite-detail__caption { display: block; font-weight: 600; }
 .invite-detail__record { display: flex; justify-content: space-between; gap: var(--ui-space-inline); padding: var(--ui-space-inset) 0; border-bottom: 1px solid var(--v5-border); }

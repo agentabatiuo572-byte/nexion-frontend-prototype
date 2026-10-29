@@ -541,7 +541,7 @@ async function deferPhoneActivation() {
 }
 .est-phone__rate-v {
   display: block;
-  font-family: var(--font-v5);
+  font-family: var(--font-metric);
   font-variant-numeric: tabular-nums;
   font-size: 20px;
   font-weight: 600;
@@ -601,7 +601,7 @@ async function deferPhoneActivation() {
   margin-top: 2px;
 }
 .cmp__val {
-  font-family: var(--font-v5);
+  font-family: var(--font-metric);
   font-size: 20px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;

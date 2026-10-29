@@ -48,7 +48,7 @@
               <text class="earn-scope">{{ auditCopy.revenueScope }}</text>
             </view>
 
-            <view class="mt-2.5 flex items-baseline gap-1" style="font-family: var(--font-v5); font-weight: 600; letter-spacing: -0.024em; line-height: 1; color: var(--v5-ink)">
+            <view class="mt-2.5 flex items-baseline gap-1" style="font-family: var(--font-amount); font-weight: 600; letter-spacing: -0.024em; line-height: 1; color: var(--v5-ink)">
               <text v-if="totalKnown && !visibility.hidden" style="font-size: 20px; color: var(--v5-ink-3); font-weight: 500">{{ totalPrefix }}</text>
               <text v-if="visibility.hidden" class="tabular-nums" style="font-size: 56px">{{ visibility.mask(totalInt) }}</text>
               <text v-else class="tabular-nums" style="font-size: 56px">{{ totalInt }}<text v-if="totalKnown" style="font-size: 36px; color: var(--v5-ink-3); font-weight: 600">.{{ totalCents }}</text></text>

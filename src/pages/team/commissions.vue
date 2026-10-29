@@ -315,8 +315,8 @@ const filterOptions = computed(() => [
 .commission-overview .reward-income-uvt { padding-right: 48px; }
 .commission-overview__rules { position: absolute; right: 10px; bottom: 2px; display: flex; align-items: center; justify-content: flex-end; box-sizing: border-box; min-width: 44px; min-height: 44px; padding: 0 6px; background: transparent; color: var(--v5-ink-3); font-size: 12px; font-weight: 400; line-height: 16px; cursor: pointer; }
 .reward-income-summary { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 24px; padding: var(--ui-space-inline) 0; border-bottom: 1px solid var(--v5-border); }
-.reward-income-summary__amount { margin: 6px 0 4px; font-size: 23px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.reward-income-uvt { margin-top: 6px; font-size: 16px; font-variant-numeric: tabular-nums; }
+.reward-income-summary__amount { font-family: var(--font-amount); margin: 6px 0 4px; font-size: 23px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.reward-income-uvt { font-family: var(--font-amount); margin-top: 6px; font-size: 16px; font-variant-numeric: tabular-nums; }
 .reward-income-lifetime { display: flex; justify-content: space-between; gap: var(--ui-space-inline); font-size: 12px; color: var(--v5-ink-3); padding-bottom: 8px; }
 .reward-income-lifetime__amounts { display: flex; flex-direction: column; gap: 4px; text-align: right; font-variant-numeric: tabular-nums; }
 .reward-income-icon { width: 32px; height: 32px; color: var(--v5-ink-2); }

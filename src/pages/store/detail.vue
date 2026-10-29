@@ -115,7 +115,7 @@
             <text>{{ t.store.shareReferenceAnnual }}</text>
           </view>
           <view class="flex items-baseline flex-wrap" style="margin-top: 6px; gap: 8px">
-            <text class="tabular-nums" style="font-family: var(--font-v5); font-weight: 600; font-size: 34px; color: var(--v5-brand); letter-spacing: -0.022em; line-height: 1">{{ shareYieldText }}</text>
+            <text class="tabular-nums" style="font-family: var(--font-metric); font-weight: 600; font-size: 34px; color: var(--v5-brand); letter-spacing: -0.022em; line-height: 1">{{ shareYieldText }}</text>
             <text class="font-mono-tabular tabular-nums" style="margin-left: auto; font-size: 13px; color: var(--v5-brand); font-weight: 500">{{ fmt(t.store.cardNexPerDay, { n: product.dailyEarnNEX }) }}{{ t.store.cardPerDaySuffix }}</text>
           </view>
           <text class="block" style="margin-top: 8px; font-size: 12px; line-height: 1.4; color: var(--v5-ink-4)">{{ t.store.shareYieldDisclaimer }}</text>

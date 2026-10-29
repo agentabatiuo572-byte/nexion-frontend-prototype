@@ -197,7 +197,7 @@ function goBack() {
 .commission-guide-status__body { color: var(--v5-ink-2); font: var(--ui-type-guide-body-weight) var(--ui-type-guide-body)/var(--ui-type-guide-body-lh) var(--font-v5); overflow-wrap: anywhere; }
 .commission-guide-example { display: flex; flex-direction: column; gap: 12px; white-space: normal; }
 .commission-guide-example__base { display: flex; flex-direction: column; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid var(--v5-border); }
-.commission-guide-example__base-value { color: var(--v5-ink); font: var(--ui-type-metric-value-weight) var(--ui-type-metric-value)/var(--ui-type-metric-value-lh) var(--font-v5); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.commission-guide-example__base-value { color: var(--v5-ink); font: var(--ui-type-metric-value-weight) var(--ui-type-metric-value)/var(--ui-type-metric-value-lh) var(--font-metric); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .commission-guide-example__row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
 .commission-guide-example__name { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .commission-guide-example__label { color: var(--v5-ink-3); font: var(--ui-type-description-weight) var(--ui-type-description)/var(--ui-type-description-lh) var(--font-v5); overflow-wrap: anywhere; }

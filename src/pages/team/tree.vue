@@ -136,7 +136,7 @@ const metricLabelStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle
 .team-tree-content { display: flex; flex-direction: column; gap: 24px; padding: 12px 20px 24px; }
 .tree-hero { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 8px 0 0; }
 .tree-hero-copy { min-width: 0; flex: 1; overflow-wrap: anywhere; }
-.tree-total { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-top: 8px; font-size: var(--ui-type-wallet-amount); font-weight: 600; line-height: var(--ui-type-wallet-amount-lh); }
+.tree-total { font-family: var(--font-metric); display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-top: 8px; font-size: var(--ui-type-wallet-amount); font-weight: 600; line-height: var(--ui-type-wallet-amount-lh); }
 .tree-total-unit { font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); color: var(--v5-ink-3); font-weight: 400; }
 .tree-volume-summary { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-block: 16px; border-block: 1px solid var(--v5-border); }
 .tree-volume-summary > text:first-child { flex: 1; }

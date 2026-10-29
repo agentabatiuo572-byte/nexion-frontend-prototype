@@ -280,7 +280,7 @@ useDialogA11y(computed(() => sheet.open), ".vcs-root", hide);
   padding-right: 12px;
 }
 .vcs-val {
-  font-family: var(--font-v5);
+  font-family: var(--font-amount);
   font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.02em;

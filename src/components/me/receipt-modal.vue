@@ -35,7 +35,7 @@
       <view class="nx-receipt-body" :style="bodyStyle">
       <view :style="summaryStyle">
         <text class="block" style="font-size:var(--ui-type-list-subtitle);color:var(--v5-ink-2)">{{ copy.result }}</text>
-        <text class="block tabular-nums" style="margin-top:6px;font-size:26px;line-height:1.3;font-weight:600;overflow-wrap:anywhere">{{ summaryAmount }}</text>
+        <text class="block tabular-nums" style="font-family: var(--font-amount); margin-top:6px;font-size:26px;line-height:1.3;font-weight:600;overflow-wrap:anywhere">{{ summaryAmount }}</text>
       </view>
       <!-- Only identifiers and hashes use monospace; raw values remain unchanged. -->
       <view v-for="(sec, si) in visibleSections" :key="si" :style="sectionStyle(si)">

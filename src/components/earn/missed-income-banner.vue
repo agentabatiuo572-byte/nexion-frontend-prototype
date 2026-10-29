@@ -33,7 +33,7 @@
       <view class="relative mt-2 flex items-baseline gap-2">
         <view class="flex items-baseline">
           <text class="tabular-nums" style="font-family: var(--font-v5); line-height: 1; font-size: 15px; font-weight: 500; color: var(--v5-brand-2-ink); opacity: 0.75">$</text>
-          <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 34px; font-weight: 600; line-height: 1; color: var(--v5-brand-2-ink); letter-spacing: -0.014em">{{ visibility.mask(formatAmount(ceilingGapToday)) }}</text>
+          <text class="tabular-nums" style="font-family: var(--font-amount); font-size: 34px; font-weight: 600; line-height: 1; color: var(--v5-brand-2-ink); letter-spacing: -0.014em">{{ visibility.mask(formatAmount(ceilingGapToday)) }}</text>
         </view>
         <text class="text-[12px]" style="color: var(--v5-ink-3); line-height: 1.2">{{ vsCeilingText }}</text>
       </view>

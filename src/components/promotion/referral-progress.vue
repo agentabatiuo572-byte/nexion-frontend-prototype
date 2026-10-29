@@ -120,7 +120,7 @@ onBeforeUnmount(()=>{alive=false;visible=false;stopProgressUpdates();generation+
 .referral-copy { position: relative; z-index: 1; flex: 1; min-width: 0; }
 .referral-title { display: block; font: 600 18px/1.3 var(--font-v5); overflow-wrap: anywhere; }
 .referral-count { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; margin-top: var(--ui-space-inline); }
-.referral-number { color: var(--v5-brand); font: 600 36px/1 var(--font-v5); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.referral-number { color: var(--v5-brand); font: 600 36px/1 var(--font-metric); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .referral-unit { font: 500 14px/1.4 var(--font-v5); }
 .referral-caption { color: var(--v5-ink-2); font: 400 14px/1.45 var(--font-v5); }
 .referral-art { position: relative; flex: 0 0 144px; height: 124px; overflow: hidden; }

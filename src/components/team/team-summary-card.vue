@@ -33,7 +33,7 @@ function open(){if(canOpen.value)emit('open');}
 .team-summary__arrow { flex: none; font-size: 26px; color: var(--v5-ink-3); }
 .team-summary__body { --team-art-size: 56px; display: flex; flex-direction: column; align-items: center; min-height: 78px; gap: 6px; }
 .team-summary__metrics { container-type: inline-size; width: 100%; min-width: 0; text-align: center; }
-.team-summary__number { display: block; max-width: 100%; font: 600 24px/1.3 var(--font-v5); font-size: clamp(18px, calc(100cqi / var(--team-summary-count-units)), 38px); font-variant-numeric: tabular-nums; white-space: nowrap; overflow-x: auto; }
+.team-summary__number { display: block; max-width: 100%; font: 600 24px/1.3 var(--font-metric); font-size: clamp(18px, calc(100cqi / var(--team-summary-count-units)), 38px); font-variant-numeric: tabular-nums; white-space: nowrap; overflow-x: auto; }
 .team-summary__label { display: block; margin-top: 2px; color: var(--v5-ink-3); font: 400 12px/1.5 var(--font-v5); }
 .team-summary__direct { display: flex; flex-wrap: wrap; gap: 0 6px; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--v5-border); color: var(--v5-ink-3); font: 400 12px/1.5 var(--font-v5); }
 .team-summary__direct > text { min-width: 0; overflow-wrap: anywhere; }

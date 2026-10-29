@@ -457,7 +457,7 @@ const heroLabelStyle: CSSProperties = {
   letterSpacing: "0.04em",
 };
 const heroNumStyle: CSSProperties = {
-  fontFamily: "var(--font-v5)",
+  fontFamily: "var(--font-metric)",
   fontWeight: 600,
   fontSize: "56px",
   letterSpacing: "-0.034em",
@@ -490,7 +490,7 @@ const cellLabelStyle: CSSProperties = {
 function cellValStyle(tint: string): CSSProperties {
   return {
     marginTop: "3px",
-    fontFamily: "var(--font-v5)",
+    fontFamily: "var(--font-metric)",
     fontWeight: 600,
     fontSize: "20px",
     letterSpacing: "-0.014em",

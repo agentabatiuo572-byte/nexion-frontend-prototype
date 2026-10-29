@@ -222,7 +222,7 @@ const metrics = computed<Cell[]>(() => {
 .network-compact__cell:first-child {border:0;padding-left:16px;}
 .network-compact__label,.network-compact__retry {display:block;font:400 12.5px/18px var(--font-v5);color:var(--v5-ink-3);}
 .network-compact__label {min-height:36px;}
-.network-compact__value {display:block;margin-top:4px;font:600 18px/24px var(--font-v5);font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+.network-compact__value {display:block;margin-top:4px;font:600 18px/24px var(--font-metric);font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
 .network-compact__retry {font-size:11px;}
 .network-compact__retry[role='button'] {font:600 13px/20px var(--font-v5);}
 </style>

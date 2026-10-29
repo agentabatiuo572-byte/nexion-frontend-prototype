@@ -228,8 +228,10 @@
      numeric symbols ("UVEL Figures", DS-26), Inter draws Latin and Vietnamese (DS-25),
      CJK falls through to the system fonts. */
   --font-v5: var(--font-display);
-  /* Wallet card balances only: Montserrat digits over the UI stack (DS-26). */
-  --font-balance: "UVEL Balance", var(--font-display);
+  /* Two numeric roles (DS-27): main amounts use Montserrat digits over the UI stack,
+     statistic values use JetBrains Mono. */
+  --font-amount: "UVEL Amount", var(--font-display);
+  --font-metric: "JetBrains Mono", var(--font-display);
 
   /* Radius ladder — current authority: uvel-docs/design-system/01-foundations.md.
      主题无关;新代码优先引用,存量迁移随「尺寸迁移工程」分批。
@@ -700,6 +702,9 @@ body {
   font-family: var(--font-jet-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-variant-numeric: tabular-nums;
 }
+/* Numeric roles (design system 01 §1.2, DS-27). */
+.nx-num-amount { font-family: var(--font-amount); font-variant-numeric: tabular-nums; }
+.nx-num-metric { font-family: var(--font-metric); font-variant-numeric: tabular-nums; }
 /* Monospace only for addresses, hashes and codes read character by character. */
 .font-mono-code {
   font-family: var(--font-jet-mono);

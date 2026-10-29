@@ -7,7 +7,7 @@
           <text style="color: var(--v5-ink-4)">{{ t.home.nexPricePair }}</text>
         </view>
         <view class="mt-1 flex items-baseline gap-1.5">
-          <text class="tabular-nums" style="font-family: var(--font-v5); font-weight: 600; font-size: 20px; color: var(--v5-ink); letter-spacing: -0.020em; line-height: 1">{{ priceText }}</text>
+          <text class="tabular-nums" style="font-family: var(--font-metric); font-weight: 600; font-size: 20px; color: var(--v5-ink); letter-spacing: -0.020em; line-height: 1">{{ priceText }}</text>
           <text v-if="ready" class="font-mono-tabular tabular-nums" :style="{ fontSize: '13px', color: tint, fontWeight: 500 }">{{ changeText }}</text>
           <text v-else class="active:opacity-70" :style="retryStyle" role="button" tabindex="0" @click.stop="retry"  @keydown.enter.stop.prevent="retry" @keydown.space.stop.prevent="retry">{{ market.remoteError ? t.ui.retry : t.home.networkStatUpdating }}</text>
         </view>

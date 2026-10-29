@@ -118,7 +118,7 @@ const boxNameStyle = computed<CSSProperties>(() => ({
 const unitStyle: CSSProperties = { fontSize: "var(--ui-type-list-subtitle)", color: "var(--v5-ink-3)" };
 // Grace = stopped: the frozen figure dims to read as "no longer accruing".
 const shadowUsdStyle = computed<CSSProperties>(() => ({
-  fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
+  fontFamily: "var(--font-amount)",
   fontSize: "var(--ui-type-wallet-amount)",
   lineHeight: "var(--ui-type-wallet-amount-lh)",
   fontWeight: 600,

@@ -84,7 +84,7 @@ onMounted(() => {
 .invite-rules__overview { display: flex; align-items: center; gap: 12px; padding: 20px; border-radius: 20px; background: var(--v5-surface-2); }
 .invite-rules__summary { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .invite-rules__label { display: block; color: var(--v5-ink-3); font-size: var(--ui-type-description); line-height: var(--ui-type-description-lh); font-weight: var(--ui-type-description-weight); }
-.invite-rules__amount { display: block; color: var(--v5-brand); font-size: var(--ui-type-hero-title); line-height: var(--ui-type-hero-title-lh); font-weight: var(--ui-type-hero-title-weight); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.invite-rules__amount { font-family: var(--font-amount); display: block; color: var(--v5-brand); font-size: var(--ui-type-hero-title); line-height: var(--ui-type-hero-title-lh); font-weight: var(--ui-type-hero-title-weight); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .invite-rules__note { display: block; margin-top: 4px; color: var(--v5-ink-3); font-size: var(--ui-type-note); line-height: var(--ui-type-note-lh); font-weight: var(--ui-type-note-weight); }
 .invite-rules__art { --team-art-size: 96px; height: 72px; }
 .invite-rules__steps { padding: 4px 20px; border-radius: 20px; background: var(--v5-surface-2); }

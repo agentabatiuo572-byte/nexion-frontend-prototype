@@ -19,7 +19,7 @@
             <view class="leader-hero">
               <view class="leader-hero-copy">
                 <text class="leader-caption">{{ t.leaderboard.myRank.label }}</text>
-                <view class="leader-my-rank"><text class="font-display tabular-nums">{{ visibility.mask(!pointsRankingAvailable || me.rank === null ? '—' : '#' + myRankDisplay) }}</text><text class="leader-total">/ {{ visibility.mask(pointsRankingAvailable ? totalRows.toLocaleString() : '—') }}</text></view>
+                <view class="leader-my-rank"><text class="nx-num-metric">{{ visibility.mask(!pointsRankingAvailable || me.rank === null ? '—' : '#' + myRankDisplay) }}</text><text class="leader-total">/ {{ visibility.mask(pointsRankingAvailable ? totalRows.toLocaleString() : '—') }}</text></view>
                 <text class="leader-gap">{{ visibility.mask(gapText) }}</text>
               </view>
               <TeamArt kind="podium" :size="80" />

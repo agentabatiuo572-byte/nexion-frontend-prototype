@@ -34,14 +34,14 @@
 @font-face { font-family: "UVEL Figures"; src: url("../static/fonts/GeneralSans-400.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; unicode-range: U+0024-0025, U+002B-003A, U+2212; }
 @font-face { font-family: "UVEL Figures"; src: url("../static/fonts/GeneralSans-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; unicode-range: U+0024-0025, U+002B-003A, U+2212; }
 @font-face { font-family: "UVEL Figures"; src: url("../static/fonts/GeneralSans-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; unicode-range: U+0024-0025, U+002B-003A, U+2212; }
-/* Wallet card balances: Montserrat variable latin subset, digits and numeric symbols only (DS-26). */
-@font-face { font-family: "UVEL Balance"; src: url("../static/fonts/Montserrat-latin.woff2") format("woff2"); font-weight: 500 600; font-style: normal; font-display: swap; unicode-range: U+0024-0025, U+002B-003A, U+2212; }
+/* Main amounts: Montserrat variable latin subset, digits and numeric symbols only (DS-27). */
+@font-face { font-family: "UVEL Amount"; src: url("../static/fonts/Montserrat-latin.woff2") format("woff2"); font-weight: 500 600; font-style: normal; font-display: swap; unicode-range: U+0024-0025, U+002B-003A, U+2212; }
 /* Monospace for addresses, hashes and codes read character by character, and the live
    figures that use .font-mono-tabular (01 §1.2). */
 @font-face {
   font-family: "JetBrains Mono";
   src: url("../static/fonts/JetBrainsMono.ttf") format("truetype");
-  font-weight: 400 500;
+  font-weight: 100 800;
   font-style: normal;
   font-display: swap;
 }

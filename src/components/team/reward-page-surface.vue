@@ -24,7 +24,7 @@
 .reward-page :deep(.reward-cta > svg) { display: none; }
 .reward-page :deep(.reward-cta > text) { color: inherit !important; }
 .reward-page :deep(.reward-cta--wide) { display: flex; width: 100%; min-height: 48px; padding: 10px 20px; }
-.reward-page :deep(.reward-amount) { display: block; margin-top: 8px; font-size: clamp(26px, 8vw, 36px); font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums; letter-spacing: -.025em; overflow-wrap: anywhere; }
+.reward-page :deep(.reward-amount) { font-family: var(--font-amount); display: block; margin-top: 8px; font-size: clamp(26px, 8vw, 36px); font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums; letter-spacing: -.025em; overflow-wrap: anywhere; }
 .reward-page :deep(.reward-caption) { color: var(--v5-ink-3); font-size: 12px; line-height: 1.6; }
 .reward-page :deep(.reward-rule-link) { margin-top: var(--ui-space-inline); }
 </style>

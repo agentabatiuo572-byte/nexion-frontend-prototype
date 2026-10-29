@@ -204,7 +204,7 @@ useDialogA11y(computed(() => sheet.open), ".tcs-root", hide);
 .tcs-hero-row,.tcs-hero-num-row { position:relative; }
 .tcs-hero-label { font:500 12px/1.5 var(--font-v5);color:var(--v5-ink-2);overflow-wrap:anywhere; }
 .tcs-hero-num-row { margin-top:8px; }
-.tcs-hero-num { font:600 34px/1.15 var(--font-v5);letter-spacing:-.025em;color:var(--v5-brand);font-variant-numeric:tabular-nums;overflow-wrap:anywhere; }
+.tcs-hero-num { font:600 34px/1.15 var(--font-amount);letter-spacing:-.025em;color:var(--v5-brand);font-variant-numeric:tabular-nums;overflow-wrap:anywhere; }
 .tcs-estimate-note { display:block;position:relative;margin-top:9px;font:400 11px/1.65 var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }
 .tcs-success { margin-top:16px;padding:16px;border-radius:16px;background:color-mix(in srgb,var(--v5-brand) 7%,var(--v5-surface-2));border:1px solid color-mix(in srgb,var(--v5-brand) 25%,transparent); }
 .tcs-success-body { display:block;font:400 var(--ui-type-list-subtitle)/1.65 var(--font-v5);color:var(--v5-ink-2); }

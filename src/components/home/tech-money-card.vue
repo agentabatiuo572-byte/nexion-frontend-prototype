@@ -39,7 +39,7 @@
 
       <view
         class="mt-2.5 flex items-baseline gap-1"
-        style="font-family: var(--font-v5); font-weight: 600; letter-spacing: -0.024em; line-height: 1; color: var(--v5-ink)"
+        style="font-family: var(--font-amount); font-weight: 600; letter-spacing: -0.024em; line-height: 1; color: var(--v5-ink)"
       >
         <text v-if="!visibility.hidden" style="font-size: 20px; color: var(--v5-ink-3); font-weight: 500">$</text>
         <text v-if="visibility.hidden" class="tabular-nums" style="font-size: 56px">{{ visibility.mask(intPart) }}</text>

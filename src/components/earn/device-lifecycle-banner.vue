@@ -23,7 +23,7 @@
       </view>
 
       <view class="relative mt-2 flex items-baseline gap-2">
-        <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 34px; font-weight: 600; line-height: 1; letter-spacing: -0.014em" :style="{ color: accent }">{{ visibility.mask((avgEfficiency * 100).toFixed(1)) }}%</text>
+        <text class="tabular-nums" style="font-family: var(--font-metric); font-size: 34px; font-weight: 600; line-height: 1; letter-spacing: -0.014em" :style="{ color: accent }">{{ visibility.mask((avgEfficiency * 100).toFixed(1)) }}%</text>
         <text class="text-[12px]" style="color: var(--v5-ink-3); line-height: 1.2">{{ subtitleText }}</text>
       </view>
 
