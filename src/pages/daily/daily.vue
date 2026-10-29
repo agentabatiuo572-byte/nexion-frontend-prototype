@@ -121,7 +121,6 @@
           <view class="px-2" style="padding-bottom: 8px">
             <view v-for="(s, i) in (dailyFactsVisible ? leaderRows : [])" :key="s.name" class="flex items-center" style="gap: 10px; padding: 8px">
               <text class="tabular-nums text-center" :style="rankStyle">{{ i + 1 }}</text>
-              <text class="block grid place-items-center" :style="avatarStyle">{{ s.name.charAt(0) }}</text>
               <view class="flex-1 min-w-0 flex items-center" style="gap: 6px">
                 <text class="truncate" :style="streakerNameStyle">{{ s.name }}</text>
                 <text style="font-size: 12px">{{ s.countryCode }}</text>
@@ -129,7 +128,6 @@
               <view class="tabular-nums inline-flex items-center" :style="streakerCountStyle"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3.5 5 5 5 9.5A5 5 0 0 1 7 12.5C7 10 9 8.5 9 6.5 10.5 7.5 11 9 11 9s1-2.5 1-6z"/></svg><text>{{ s.streak }}</text></view>
             </view>
           </view>
-          <text class="block px-4" :style="leaderSubStyle">{{ t.daily.topStreakers.sub }}</text>
         </view>
 
         <!-- Stats grid -->
@@ -168,7 +166,6 @@
             </view>
             <view class="flex-1">
               <text class="block" :style="withdrawTitleStyle">{{ pointsUnlockText }}</text>
-              <text class="block" :style="withdrawRuleStyle">{{ t.daily.pointsRule }}</text>
             </view>
           </view>
         </view>
@@ -879,16 +876,6 @@ const rankStyle: CSSProperties = {
   fontSize: "12px",
   color: "var(--v5-ink-2)",
 };
-const avatarStyle: CSSProperties = {
-  width: "28px",
-  height: "28px",
-  borderRadius: "999px",
-  background: "linear-gradient(135deg, var(--v5-brand-soft), var(--v5-tech-cyan-soft))",
-  color: "var(--v5-brand)",
-  fontFamily: "var(--font-v5)",
-  fontWeight: 600,
-  fontSize: "12px",
-};
 const streakerNameStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
   fontWeight: 600,
@@ -902,7 +889,6 @@ const streakerCountStyle: CSSProperties = {
   fontSize: "12px",
   color: "var(--v5-brand-2)",
 };
-const leaderSubStyle: CSSProperties = { paddingBottom: "12px", fontSize: "12px", color: "var(--v5-ink-3)", lineHeight: 1.5 };
 // Filled stat tiles, no border (single visual difference).
 const statStyle: CSSProperties = {
   padding: "12px",
@@ -940,7 +926,6 @@ const withdrawIconStyle: CSSProperties = {
   background: "color-mix(in srgb, var(--v5-brand-2) 20%, transparent)",
 };
 const withdrawTitleStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink)" };
-const withdrawRuleStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginTop: "2px" };
 const historyLabelStyle: CSSProperties = {
   marginBottom: "8px",
   fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
