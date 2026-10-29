@@ -3440,7 +3440,7 @@ sandboxPayHint: "Demo payments use no real funds. Check the order status after c
     docsEvents: "Events: {events}",
     keysEmpty: "No API keys yet · request access first.",
     apiCapabilityUnavailable: "UVEL OpenAPI is not released: API keys cannot be created or used; existing keys can still be revoked.",
-    capabilityRoadmap: "The capabilities below are planned, not currently available services. Compute controls, earnings billing, market data and event delivery are not released. Access approval does not mean these APIs are live.",
+    capabilityRoadmap: "API access requires an application. Once approved, it is enabled for your account's permissions; see the docs for available endpoints.",
     keysCreate: "Create key",
     webhooksEmpty: "No webhook endpoints configured.",
     webhooksAdd: "Add endpoint",

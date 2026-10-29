@@ -3355,7 +3355,7 @@ sandboxPayHint: "Thanh toán trải nghiệm không dùng tiền thật. Xem tr�
     docsEvents: "Sự kiện: {events}",
     keysEmpty: "Chưa có API key · hãy yêu cầu quyền truy cập trước.",
     apiCapabilityUnavailable: "UVEL OpenAPI chưa ra mắt: không thể tạo hoặc dùng API key; bạn vẫn có thể thu hồi key cũ.",
-    capabilityRoadmap: "Các khả năng dưới đây đang được lên kế hoạch, chưa phải dịch vụ hiện có. Điều khiển điện toán, hóa đơn thu nhập, dữ liệu thị trường và gửi sự kiện chưa được mở. Có quyền truy cập không có nghĩa các API này đã hoạt động.",
+    capabilityRoadmap: "Truy cập API cần đăng ký. Sau khi được duyệt, quyền truy cập được mở theo phân quyền tài khoản; xem tài liệu để biết các API khả dụng.",
     keysCreate: "Tạo key",
     webhooksEmpty: "Chưa cấu hình endpoint webhook nào.",
     webhooksAdd: "Thêm endpoint",

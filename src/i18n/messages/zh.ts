@@ -3382,7 +3382,7 @@ sandboxPayHint: "体验支付不涉及真实资金，完成后可查看订单状
     docsEvents: "事件：{events}",
     keysEmpty: "暂无 API 密钥 · 请先申请访问。",
     apiCapabilityUnavailable: "UVEL OpenAPI 尚未上线：不能创建或使用 API 密钥；可撤销历史密钥。",
-    capabilityRoadmap: "以下为规划中的接口能力，并非当前可用服务。算力启停、收益账单、行情及事件推送尚未开放；申请获批不代表这些接口已经上线。",
+    capabilityRoadmap: "API 访问需申请，获批后按账户权限开通，具体接口以文档为准。",
     keysCreate: "创建密钥",
     webhooksEmpty: "未配置任何 Webhook 端点。",
     webhooksAdd: "新增端点",

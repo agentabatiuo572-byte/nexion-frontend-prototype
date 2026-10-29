@@ -252,7 +252,7 @@ describe('isolated prototype data uses the real read contracts',()=>{
     expect(await createDeveloperResourcesApi(d.client).listWebhooks()).toHaveLength(1);
     expect((await createAmbassadorApplicationApi(d.client).policy()).buckets).toHaveLength(4);
     expect((await createAmbassadorApplicationApi(d.client).latest()).status).toBe('NONE');
-    expect((await createPrivacyPolicyApi(d.client).current(locale)).sections).toHaveLength(10);
+    expect((await createPrivacyPolicyApi(d.client).current(locale)).sections).toHaveLength(9);
     expect((await createLegalTermsApi(d.client).current(locale,'GLOBAL')).provenance).toBe('prototype-sample');
     expect((await createRiskDisclosureApi(d.client).publicCurrent('GLOBAL')).chapters).toHaveLength(7);
     expect((await createRiskDisclosureApi(d.client).current()).acknowledgmentToken).toBeNull();
