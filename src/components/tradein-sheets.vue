@@ -284,6 +284,8 @@ const confirming = ref(false);
 const canonicalQuote = ref<CanonicalTradeinQuote | null>(null);
 const canonicalTradeinConfig = ref<CanonicalTradeinConfig | null>(null);
 const remoteRetireEligibleTargets = ref<Set<string>>(new Set());
+// Server-quoted payable per eligible retire target (PRD §7.5.3: each row shows its post-credit price).
+const remoteRetirePayables = ref<Map<string, number>>(new Map());
 const remoteRetireTargetsReady = ref(!remoteApiEnabled);
 const capacityCommandKey = ref<string | null>(null);
 const CAPACITY_COMMAND_TABLE = "nexgrid-e3-capacity-commands-accounts-v1";
@@ -295,6 +297,7 @@ watch(() => app.accountKey, () => {
   canonicalQuote.value = null;
   canonicalTradeinConfig.value = null;
   remoteRetireEligibleTargets.value = new Set();
+  remoteRetirePayables.value = new Map();
   remoteRetireTargetsReady.value = !remoteApiEnabled;
   remoteRetireRequest += 1;
   capacityCommandKey.value = null;
@@ -509,17 +512,29 @@ async function loadRemoteRetireTargets() {
     remoteRetireTargetsReady.value = false;
     return;
   }
-  remoteRetireEligibleTargets.value = new Set(results.flatMap((result) => {
+  const eligibleTargets = new Set(results.flatMap((result) => {
     if (result.status !== "fulfilled") return [];
     const { id, eligibility } = result.value;
     return eligibility.eligible && eligibility.sources.some((candidate) => candidate.eligible
       && candidate.sourceDeviceId === Number(current.oldDeviceId)) ? [id] : [];
   }));
+  // A failed quote leaves that row's price unknown ("—"); the confirm step quotes again before checkout.
+  const quotes = await Promise.allSettled([...eligibleTargets].map(async (id) => ({
+    id,
+    quote: await deviceE3Api.quote(Number(current.oldDeviceId), id),
+  })));
+  if (request !== remoteRetireRequest || !isCurrentAccountScope(requestScope)
+      || state.value.kind !== "retire" || state.value.oldDeviceId !== current.oldDeviceId) return;
+  remoteRetireEligibleTargets.value = eligibleTargets;
+  remoteRetirePayables.value = new Map(quotes.flatMap((result) => result.status === "fulfilled"
+    && result.value.quote.sourceDeviceId === Number(current.oldDeviceId)
+    && result.value.quote.targetProductNo === result.value.id ? [[result.value.id, result.value.quote.payableUsdt]] : []));
   remoteRetireTargetsReady.value = true;
 }
 
 watch(remoteRetireLoadKey, () => {
   remoteRetireEligibleTargets.value = new Set();
+  remoteRetirePayables.value = new Map();
   remoteRetireTargetsReady.value = !remoteApiEnabled;
   void loadRemoteRetireTargets();
 }, { immediate: true });
@@ -551,7 +566,10 @@ const retireView = computed(() => {
     // 抢先购窗口内的未正式上架目标,行尾加「抢先升级」标(默认关闭时零渲染)。
     const early = !!p.unlocksAtPhase && !isPhaseReached(phase.value, p.unlocksAtPhase)
       && (!remoteApiEnabled || canonicalTradeinConfig.value?.earlyAccessEnabled === true);
-    const net = remoteApiEnabled ? "—" : formatAmount(Math.max(0, p.price - previewCredit(device, p.price)));
+    const remotePayable = remoteRetirePayables.value.get(p.id);
+    const net = remoteApiEnabled
+      ? (remotePayable == null ? "—" : formatAmount(remotePayable))
+      : formatAmount(Math.max(0, p.price - previewCredit(device, p.price)));
     const base = fmt(t.value.tradein.retireTargetOption, {
       name: p.name,
       price: formatAmount(p.price),

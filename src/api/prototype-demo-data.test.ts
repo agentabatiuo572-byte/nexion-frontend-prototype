@@ -402,6 +402,15 @@ describe('isolated prototype data uses the real read contracts',()=>{
     const eligibility=await devices.eligibility('stellarbox-pro');
     expect(eligibility.sources.map(source=>[source.sourceDeviceId,source.reasonCode])).toEqual([[41,'OK'],[42,'TARGET_MUST_DIFFER']]);
     expect(await devices.quote(41,'stellarbox-pro')).toMatchObject({creditRatePct:75,discountUsdt:974.25,payableUsdt:4024.75,targetDeviceStatus:'ACTIVE'});
+    const tradeinQuote=await devices.quote(41,'stellarbox-pro'),orderApi=createOrderApi(d.client);
+    const result=await devices.submit(41,'stellarbox-pro','demo-tradein',tradeinQuote);
+    expect(result).toMatchObject({sourceDeviceId:41,targetDeviceStatus:'ACTIVE',discountUsdt:974.25,walletDebitUsdt:4024.75});
+    expect(await devices.submit(41,'stellarbox-pro','demo-tradein',tradeinQuote)).toEqual(result);
+    const fleetAfter=(await devices.fleet()).devices;
+    expect(fleetAfter.map(device=>device.id)).not.toContain(41);
+    expect(fleetAfter.find(device=>device.id===result.targetDeviceId)).toMatchObject({productCode:'STELLARBOX-PRO',actualPaidUsdt:4024.75});
+    expect((await orderApi.list()).orders.find(order=>order.orderNo===result.orderNo)).toMatchObject({tradeinNo:result.tradeinNo,sourceDeviceId:41,
+      targetDeviceId:result.targetDeviceId,canonicalStatus:'activated',amountUsdt:4024.75,discountUsdt:974.25});
     expect((await devices.capacityQuote('stellarbox-pro')).targetPriceUsdt).toBe(4999);
     expect((await devices.capacityQuote('stellarbox-pro')).sufficientFunds).toBe(true);
     expect((await createMarketApi(d.client).fetch()).currentPrice).toBe(.128);

@@ -42,7 +42,7 @@
           :style="orderRowStyle(i === filteredOrders.length - 1)"
           role="button"
           tabindex="0"
-          :aria-label="`${commerceOrderTitle(o,locale.code)} ${o.id}`"
+          :aria-label="`${commerceOrderTitle(o,locale.code)} ${o.id}${pendingCloseMinutes(o) ? ' · ' + fmt(t.orders.pendingCloseIn, { min: pendingCloseMinutes(o)! }) : ''}`"
           @click.stop="goOrder(o)"
         >
           <view class="flex items-start" style="gap: 12px">
@@ -59,6 +59,11 @@
               <view class="flex items-center justify-between" style="margin-top: 6px">
                 <text style="font-size: 12px; color: var(--v5-ink-4)">{{ dateText(o.placedAt) }}</text>
                 <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 13px; font-weight: 600; color: var(--v5-ink)">${{ formatAmount(o.total) }}</text>
+              </view>
+              <!-- Unpaid order: time left before auto-close, and the way back to payment (the detail page holds the pay action). -->
+              <view v-if="pendingCloseMinutes(o)" class="order-pending-footer" aria-hidden="true">
+                <text class="order-pending-footer__close">{{ fmt(t.orders.pendingCloseIn, { min: pendingCloseMinutes(o)! }) }}</text>
+                <text class="order-pending-footer__pay">{{ t.orders.pendingContinue }} ›</text>
               </view>
             </view>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0" style="margin-top: 8px"><path d="m9 18 6-6-6-6" /></svg>
@@ -86,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { dateLocale } from "@/i18n/format";
+import { dateLocale, fmt } from "@/i18n/format";
 import { commerceOrderTitle } from "@/lib/commerce-review";
 import { useLocaleStore } from "@/store/locale";
 import { commerceAmount as formatAmount } from "@/lib/commerce-review";
@@ -100,6 +105,7 @@ import { useOrders, type Order, type OrderStatus } from "@/store/orders";
 import { useGenesis } from "@/store/genesis";
 import { genesisOrderListItems, type GenesisOrderListItem } from "@/lib/genesis-order-list";
 import { useSetPageHeader } from "@/composables/use-page-header";
+import { useNow } from "@/composables/use-now";
 import { navTo, takeNavigationQuery } from "@/lib/route";
 import { onHide, onLoad, onShow } from "@dcloudio/uni-app";
 import { remoteApiEnabled, sessionVault } from "@/api/runtime";
@@ -146,6 +152,13 @@ function orderCategory(order: OrderListItem): Exclude<OrderFilter, "all"> {
 }
 const filteredOrders = computed(() => statusFilter.value === "all" ? orderList.value : orderList.value.filter(order => orderCategory(order) === statusFilter.value));
 const pendingCount = computed(() => orderList.value.filter(order => orderCategory(order) === "pending").length);
+// Minutes left on an unpaid order's server deadline; null once it lapses or when unknown.
+const nowSeconds = useNow();
+function pendingCloseMinutes(order: OrderListItem): number | null {
+  if (order.kind === "genesis" || order.status !== "placed" || order.expiresAt == null) return null;
+  const left = order.expiresAt - nowSeconds.value * 1000;
+  return left > 0 ? Math.ceil(left / 60000) : null;
+}
 const filterOptions = computed(() => ORDER_FILTERS.map(value => ({ value, label: t.value.orders.filters[value] })));
 const remoteOrderAvailability = ref<OrderSourceAvailability>("ready");
 const remoteOrdersRefreshing = ref(remoteApiEnabled);
@@ -418,6 +431,9 @@ function statusChipStyle(status: OrderStatus): CSSProperties {
 .orders-filters :deep(.nx-glass-option--selected) { color: var(--v5-ink); font-weight: 600; background: transparent; }
 .orders-filter__label { white-space: nowrap; font-size: 13.5px; line-height: 18px; font-weight: inherit; color: inherit; }
 .orders-filter__badge { min-width: 18px; height: 18px; box-sizing: border-box; margin-left: 6px; padding: 0 5px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: var(--v5-warning-ink); color: var(--v5-on-brand); font: 600 11px/18px var(--font-v5); }
+.order-pending-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--v5-border); }
+.order-pending-footer__close { min-width: 0; color: var(--v5-warning-ink); font: 400 12px/16px var(--font-v5); overflow-wrap: anywhere; }
+.order-pending-footer__pay { flex: none; color: var(--v5-brand); font: 500 13px/18px var(--font-v5); }
 .orders-filter-empty { display: block; padding: 32px 16px; text-align: center; color: var(--v5-ink-3); font: 400 var(--ui-type-description)/var(--ui-type-description-lh) var(--font-v5); }
 .order-read-retry-label { font: 600 13px/20px var(--font-v5); }
 </style>

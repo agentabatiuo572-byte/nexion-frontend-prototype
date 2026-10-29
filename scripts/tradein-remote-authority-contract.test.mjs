@@ -45,7 +45,9 @@ test("remote trade-in sheet revalidates eligibility and never previews local cre
   assert.match(source, /remoteRetireEligibleTargets\.value\.has\(p\.id\)/);
   assert.match(source, /eligibility\.sources\.some\(\(candidate\) => candidate\.eligible/);
   assert.doesNotMatch(source, /remoteApiEnabled\s*\?\s*isProductAvailable\(p, phase\.value\)/);
-  assert.match(source, /remoteApiEnabled \? "—" :/);
+  // Remote rows show only the server quote's payable, never a locally computed credit.
+  assert.match(source, /remoteApiEnabled\s*\?\s*\(remotePayable == null \? "—" : formatAmount\(remotePayable\)\)/);
+  assert.match(source, /deviceE3Api\.quote\(Number\(current\.oldDeviceId\), id\)/);
 });
 
 test("remote keep-and-buy uses the atomic server command and verifies completed active readback", () => {

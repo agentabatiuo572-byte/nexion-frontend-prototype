@@ -39,6 +39,22 @@ describe("orders return origin", () => {
     expect(category({ kind: "commerce", status: "activated" })).toBe("done");
     expect(category({ kind: "commerce", status: "cancelled" })).toBe("closed");
   });
+  it("counts down only an unpaid order's live server deadline", () => {
+    const fnStart = ordersSource.indexOf("const nowSeconds = useNow();");
+    const fnEnd = ordersSource.indexOf("\n}\n", fnStart) + 3;
+    const code = ts.transpileModule(ordersSource.slice(fnStart, fnEnd), {
+      compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
+    }).outputText;
+    const now = { value: 1_000 };
+    const minutes = new Function("useNow", `${code}\nreturn pendingCloseMinutes;`)(() => now);
+    const placed = { kind: "commerce", status: "placed", expiresAt: 1_000_000 + 11 * 60_000 + 1 };
+    expect(minutes(placed)).toBe(12);
+    expect(minutes({ ...placed, expiresAt: 1_000_000 + 30_000 })).toBe(1);
+    expect(minutes({ ...placed, expiresAt: 1_000_000 })).toBeNull();
+    expect(minutes({ ...placed, expiresAt: undefined })).toBeNull();
+    expect(minutes({ ...placed, status: "payment_failed" })).toBeNull();
+    expect(minutes({ kind: "genesis", status: "placed", expiresAt: 2_000_000 })).toBeNull();
+  });
   it("keeps My as the refresh fallback even when Uni drops the visible query", () => {
     expect(ordersCardSource).toContain('navTo("/pages/store/orders?from=me")');
     const replaceState = vi.fn();

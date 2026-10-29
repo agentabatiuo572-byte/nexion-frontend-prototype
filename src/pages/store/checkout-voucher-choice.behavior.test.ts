@@ -51,3 +51,12 @@ it('blocks edits while a confirmation or original receipt is active and refuses 
   page.orderId.value=null;page.writeAccountRow.mockReturnValue(false);
   await page.selectAutomaticVoucher(false);expect(page.voucherAutomatic.value).toBe(true);
 });
+it('names the empty automatic state instead of claiming vouchers were declined',()=>{
+  const expression=source.match(/<text class="checkout-row-description">\{\{ (remoteApiEnabled && trialConversionMode[^}]*?) \}\}<\/text>/)![1];
+  const subtitle=(state:Record<string,boolean>)=>new Function('scope',`with(scope){return ${expression};}`)({remoteApiEnabled:true,trialConversionMode:false,
+    trialCopy:{voucherUnavailable:'trial'},auditCopy:{autoApplyVoucher:'auto'},t:zh,...state});
+  expect(subtitle({hasVoucher:false,voucherAutomatic:true,expiredVoucherForSku:false})).toBe(zh.voucher.noneAvailable);
+  expect(subtitle({hasVoucher:false,voucherAutomatic:false,expiredVoucherForSku:false})).toBe(zh.promotion.noVoucher);
+  expect(subtitle({hasVoucher:false,voucherAutomatic:true,expiredVoucherForSku:true})).toBe(zh.voucher.expiredNote);
+  expect(subtitle({hasVoucher:true,voucherAutomatic:true,expiredVoucherForSku:false})).toBe('auto');
+});
