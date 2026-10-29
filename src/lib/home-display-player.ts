@@ -24,16 +24,22 @@ export function parseHomeDisplayBatch(value: unknown): HomeDisplayBatch {
 }
 
 export function homeDisplayAt(batch: HomeDisplayBatch, serverNow: number) {
+  if (!Number.isFinite(serverNow) || serverNow >= batch.validUntil) return null;
   const i = batch.enabled ? Math.max(0, Math.floor((serverNow - batch.startAt) / 1000)) : 0;
   if (i >= batch.online.length) return null;
-  return { online: batch.online[i], paid: batch.paidCents[i] / 100 };
+  // The first second uses the next published sample; later seconds use the preceding one.
+  const paidPerSec = !batch.enabled ? 0 : i === 0
+    ? (batch.paidCents[1] - batch.paidCents[0]) / 100
+    : (batch.paidCents[i] - batch.paidCents[i - 1]) / 100;
+  return { online: batch.online[i], paid: batch.paidCents[i] / 100, paidPerSec };
 }
 
 /** One small visible-page clock; the only network operation is the minute refresh. */
 export function createHomeDisplayPlayer(deps: {
   fetch(): Promise<HomeDisplayBatch>;
   now(): number;
-  render(value: { online: number; paid: number } | null): void;
+  render(value: ReturnType<typeof homeDisplayAt>): void;
+  onLoading?(loading: boolean): void;
 }) {
   let lastClock = deps.now();
   let elapsed = 0;
@@ -54,6 +60,7 @@ export function createHomeDisplayPlayer(deps: {
   async function refresh() {
     if (pending || !active) return;
     pending = true;
+    deps.onLoading?.(true);
     const request = epoch;
     nextFetch = now() + 60_000;
     const started = now();
@@ -66,18 +73,20 @@ export function createHomeDisplayPlayer(deps: {
       paint();
     } catch {
       if (request === epoch && active) { batch = null; paint(); }
-    } finally { if (request === epoch) pending = false; }
+    } finally { if (request === epoch) { pending = false; deps.onLoading?.(false); } }
   }
   function tick() {
     paint();
     if (now() >= nextFetch) void refresh();
   }
   return {
+    refresh,
     start() {
       if (active) return;
       active = true;
       epoch++;
       pending = false;
+      if (batch) paint();
       void refresh();
       timer = setInterval(tick, 1000);
     },
@@ -85,6 +94,7 @@ export function createHomeDisplayPlayer(deps: {
       active = false;
       epoch++;
       pending = false;
+      deps.onLoading?.(false);
       if (timer !== undefined) clearInterval(timer);
       timer = undefined;
     },

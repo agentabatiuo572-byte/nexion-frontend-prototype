@@ -9,10 +9,20 @@ afterEach(() => vi.useRealTimers());
 
 describe("shared home display batches", () => {
   it("reopening uses the same timestamped server values, with cent precision", () => {
-    expect(homeDisplayAt(parseHomeDisplayBatch(batch()), startAt + 42_000)).toEqual({ online: 28516, paid: 130670.6 });
+    expect(homeDisplayAt(parseHomeDisplayBatch(batch()), startAt + 42_000)).toEqual({ online: 28516, paid: 130670.6, paidPerSec: 3.3 });
     expect(homeDisplayAt(batch(), startAt + 121_000)).toBeNull();
-    expect(homeDisplayAt({ ...batch(), enabled: false, online: [28516], paidCents: [13067060] }, startAt + 900_000))
-      .toEqual({ online: 28516, paid: 130670.6 });
+    expect(homeDisplayAt({ ...batch(), enabled: false, online: [28516], paidCents: [13067060] }, startAt + 42_000))
+      .toEqual({ online: 28516, paid: 130670.6, paidPerSec: 0 });
+    expect(homeDisplayAt({ ...batch(), enabled: false, online: [28516], paidCents: [13067060] }, startAt + 60_000)).toBeNull();
+  });
+  it('uses adjacent published cents for first, later and final seconds without reading past the batch', () => {
+    const plan = { ...batch(), validUntil: startAt + 121_000 };
+    plan.paidCents = [10000, 10125, ...Array.from({ length: 119 }, (_, i) => 10475 + i * 350)];
+    expect(homeDisplayAt(plan, startAt)?.paidPerSec).toBe(1.25);
+    expect(homeDisplayAt(plan, startAt + 1000)?.paidPerSec).toBe(1.25);
+    expect(homeDisplayAt(plan, startAt + 2000)?.paidPerSec).toBe(3.5);
+    expect(homeDisplayAt(plan, startAt + 120_000)?.paidPerSec).toBe(3.5);
+    expect(homeDisplayAt(plan, startAt + 121_000)).toBeNull();
   });
   it("rejects malformed, mismatched and decreasing plans", () => {
     for (const value of [{ ...batch(), online: [] }, { ...batch(), paidCents: [1] },
@@ -27,7 +37,7 @@ describe("shared home display batches", () => {
     player.start(); player.start();
     await vi.advanceTimersByTimeAsync(59_000);
     expect(fetch).toHaveBeenCalledTimes(1);
-    expect(render).toHaveBeenLastCalledWith({ online: 28550, paid: 130726.7 });
+    expect(render).toHaveBeenLastCalledWith({ online: 28550, paid: 130726.7, paidPerSec: 3.3 });
     await vi.advanceTimersByTimeAsync(1000);
     expect(fetch).toHaveBeenCalledTimes(2);
     player.stop();
@@ -79,5 +89,32 @@ describe("shared home display batches", () => {
       fetch: () => new Promise(r => { resolve = r; }) });
     player.start(); player.stop(); resolve(batch()); await Promise.resolve();
     expect(render).not.toHaveBeenCalled();
+  });
+  it('coalesces explicit retry, recovers a failed batch and ignores responses from a hidden visit', async () => {
+    vi.useFakeTimers(); vi.setSystemTime(startAt);
+    let oldResolve!: (v: HomeDisplayBatch) => void;
+    let retryResolve!: (v: HomeDisplayBatch) => void;
+    const fetch = vi.fn().mockImplementationOnce(() => new Promise(r => { oldResolve = r; }))
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockImplementationOnce(() => new Promise(r => { retryResolve = r; }));
+    const render = vi.fn(), onLoading = vi.fn();
+    const player = createHomeDisplayPlayer({ fetch, render, onLoading, now: () => Date.now() });
+    player.start(); player.stop(); player.start(); await vi.advanceTimersByTimeAsync(0);
+    expect(render).toHaveBeenLastCalledWith(null);
+    const retry = player.refresh(); void player.refresh(); expect(fetch).toHaveBeenCalledTimes(3);
+    oldResolve({ ...batch(), paidCents: batch().paidCents.map(n => n + 900000) }); await Promise.resolve();
+    expect(render).toHaveBeenLastCalledWith(null); expect(onLoading).toHaveBeenLastCalledWith(true);
+    retryResolve(batch()); await retry;
+    expect(render).toHaveBeenLastCalledWith({ online: 28432, paid: 130532, paidPerSec: 3.3 });
+    expect(onLoading).toHaveBeenLastCalledWith(false);
+    player.stop(); await player.refresh(); expect(fetch).toHaveBeenCalledTimes(3);
+  });
+  it('clears expired data synchronously on return while the next batch is still pending', async () => {
+    vi.useFakeTimers(); vi.setSystemTime(startAt);
+    const fetch = vi.fn().mockResolvedValueOnce(batch()).mockImplementationOnce(() => new Promise(() => {}));
+    const render = vi.fn(); const player = createHomeDisplayPlayer({ fetch, render, now: () => Date.now() });
+    player.start(); await vi.advanceTimersByTimeAsync(0); player.stop();
+    await vi.advanceTimersByTimeAsync(60_000); player.start();
+    expect(render).toHaveBeenLastCalledWith(null); player.stop();
   });
 });

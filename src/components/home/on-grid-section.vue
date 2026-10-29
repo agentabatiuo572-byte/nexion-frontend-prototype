@@ -2,7 +2,7 @@
   OnGridSection — ZONE 2 "what the network is computing now" (ported from
   mission-control.tsx OnGridSection). Header (On UVEL grid · now · Map) + 3
   client rows (company badge · company · model·city · GPUs) + live footer. The formal
-  App reads every row from the Java Home projection; Mock rows live only in 5174.
+  App reads client rows from Java Home and display metrics from H9.
 -->
 <template>
   <view data-home-section="on-grid">
@@ -27,27 +27,23 @@
         </view>
         <text class="font-mono-tabular tabular-nums text-right whitespace-nowrap" style="font-size: 12px; color: var(--v5-success-ink); font-weight: 500">{{ gpusText(i) }}</text>
       </view>
-      <!-- 页脚活数字与脉搏三格同判据降级(主人 2026-08-06 拍板包 G P2#3 选项 a):
-           此前配置坏时这里回种子锚,与隔壁「更新中」占位同屏自相矛盾;现口径一致。
-           单项坏降单侧(规格异常3「单项非法只坏本格」);双坏切单条占位 + 点按重试。
-           上方客户内容只来自 Home canonical 投影。 -->
+      <!-- H9 在线数与已发放批次独立降级、独立重读；客户仍读 Home canonical 投影。 -->
       <view
         v-if="devicesBad && fleetBad"
         class="nx-glass-inset px-4 py-2 flex items-center justify-center font-mono-tabular active:opacity-70"
         style="border-top: 1px solid var(--v5-border); font-size: 12px; color: var(--v5-ink-3); min-height: 44px"
-        :role="app.homeTruthStatus === 'error' ? 'button' : undefined"
-        :tabindex="app.homeTruthStatus === 'error' ? 0 : undefined"
+        role="button"
+        tabindex="0"
         data-home-action="on-grid-status"
-        @click="app.homeTruthStatus === 'error' && retryConfig()"
-
-        @keydown.enter.stop.prevent="app.homeTruthStatus === 'error' && retryConfig()" @keydown.space.stop.prevent="app.homeTruthStatus === 'error' && retryConfig()"
+        @click="retryConfig"
+        @keydown.enter.stop.prevent="retryConfig" @keydown.space.stop.prevent="retryConfig"
       >
-        <text>{{ gridStatusText }}<text v-if="app.homeTruthStatus === 'error'"> · <text style="color: var(--v5-tech-cyan-ink)">{{ t.home.networkStatRetry }}</text></text></text>
+        <text>{{ gridStatusText }} · <text style="color: var(--v5-tech-cyan-ink)">{{ t.home.networkStatRetry }}</text></text>
       </view>
       <view v-else class="nx-glass-inset px-4 py-2 flex items-center justify-between font-mono-tabular" style="border-top: 1px solid var(--v5-border); font-size: 12px; color: var(--v5-ink-3)">
-          <text v-if="devicesBad">-</text>
+        <text v-if="devicesBad" class="on-grid-retry" role="button" tabindex="0" :aria-label="t.home.networkStatRetry" data-home-action="on-grid-online-retry" @click="retryDevices" @keydown.enter.stop.prevent="retryDevices" @keydown.space.stop.prevent="retryDevices">-</text>
         <text v-else><text style="color: var(--v5-ink); font-weight: 500">{{ activeDevicesText }}</text> {{ t.home.onGridOnline }}</text>
-          <text v-if="fleetBad">-</text>
+        <text v-if="fleetBad" class="on-grid-retry on-grid-retry--paid" role="button" tabindex="0" :aria-label="t.home.networkStatRetry" data-home-action="on-grid-paid-retry" @click="retryFleet" @keydown.enter.stop.prevent="retryFleet" @keydown.space.stop.prevent="retryFleet">-</text>
         <text v-else style="color: var(--v5-success-ink); font-weight: 500">{{ perSecText }}</text>
       </view>
     </view>
@@ -61,29 +57,56 @@ import { navTo } from "@/lib/route";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { useApp } from "@/store/app";
-import { computed } from "vue";
+import { useConfig } from "@/store/config";
+import { apiClient } from "@/api/runtime";
+import { createHomeDisplayPlayer, parseHomeDisplayBatch, type homeDisplayAt } from "@/lib/home-display-player";
+import { onShow, onHide } from "@/composables/use-tab-page-lifecycle";
+import { computed, ref, onMounted, onUnmounted } from "vue";
 
 const t = useT();
 const app = useApp();
-const devicesBad = computed(() => app.homeTruth?.onGrid.activeDevices == null);
-const fleetBad = computed(() => app.homeTruth?.onGrid.perSecUsdt == null);
-const gridStatusText = computed(() => app.homeTruthStatus === "idle" || app.homeTruthStatus === "loading"
+const cfg = useConfig();
+const displayValue = ref<ReturnType<typeof homeDisplayAt>>(null);
+const batchLoading = ref(false);
+const player = createHomeDisplayPlayer({
+  fetch: async () => parseHomeDisplayBatch(await apiClient.request({ path: "/api/config/home-display", authenticated: false })),
+  now: () => typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now(),
+  render: next => { displayValue.value = next; },
+  onLoading: loading => { batchLoading.value = loading; },
+});
+let visible = false;
+function syncVisibility() {
+  if (visible && (typeof document === "undefined" || !document.hidden)) player.start();
+  else player.stop();
+}
+onShow(() => { visible = true; syncVisibility(); });
+onHide(() => { visible = false; syncVisibility(); });
+onMounted(() => { if (typeof document !== "undefined") document.addEventListener("visibilitychange", syncVisibility); });
+onUnmounted(() => {
+  player.stop();
+  if (typeof document !== "undefined") document.removeEventListener("visibilitychange", syncVisibility);
+});
+const devicesBad = computed(() => cfg.syncFailed || !Number.isSafeInteger(cfg.config.networkPulse?.onlineDevices) || cfg.config.networkPulse!.onlineDevices! < 0);
+const fleetBad = computed(() => displayValue.value === null);
+const gridStatusText = computed(() => cfg.loading || batchLoading.value
   ? t.value.home.networkStatUpdating
   : t.value.uiChrome.unavailable);
 const perSecText = computed(() => {
-  const value = app.homeTruth?.onGrid.perSecUsdt;
+  const value = displayValue.value?.paidPerSec;
   if (value == null) return "";
   return `+${formatAmount(value)}/sec`;
 });
 function retryConfig() {
-  void app.refreshHomeTruth();
+  if (devicesBad.value) retryDevices();
+  if (fleetBad.value) retryFleet();
 }
+function retryDevices() { if (!cfg.loading) void cfg.load(); }
+function retryFleet() { void player.refresh(); }
 
 const gridClients = computed(() => (app.homeTruth?.onGrid.clients ?? [])
   .map((client) => ({ ...client, color: "var(--v5-brand)" })));
 const activeDevicesText = computed(() => {
-  const value = app.homeTruth?.onGrid.activeDevices;
-  return value === null || value === undefined ? "—" : networkPopulationBand(value);
+  return devicesBad.value ? "-" : networkPopulationBand(cfg.config.networkPulse!.onlineDevices!);
 });
 
 function gpusText(i: number) {
@@ -99,3 +122,7 @@ function goGlobe() {
 
 
 </script>
+<style scoped>
+.on-grid-retry { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; }
+.on-grid-retry--paid { justify-content: flex-end; }
+</style>

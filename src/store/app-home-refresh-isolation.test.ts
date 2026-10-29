@@ -50,10 +50,22 @@ describe("App Home authority refresh isolation", () => {
     expect(appSource).toContain("invalidateRemoteFleet(fleetRequest);");
   });
 
-  it("gives every Home retry action the narrow Home-only refresh", () => {
-    for (const source of [ledgerSource, gridSource, marketSource]) {
+  it("gives business Home retry actions the narrow Home-only refresh", () => {
+    for (const source of [ledgerSource, marketSource]) {
       expect(source).toContain("app.refreshHomeTruth()");
     }
+  });
+
+  it('keeps on-grid display retries on their H9 sources', () => {
+    expect(gridSource).toContain('cfg.config.networkPulse?.onlineDevices');
+    expect(gridSource).toContain('cfg.load()');
+    expect(gridSource).toContain('"/api/config/home-display"');
+    expect(gridSource).toContain('parseHomeDisplayBatch');
+    expect(gridSource).toContain('displayValue.value?.paidPerSec');
+    expect(gridSource).toContain('player.refresh()');
+    expect(gridSource).not.toContain('app.refreshHomeTruth()');
+    expect(gridSource).not.toContain('onGrid.activeDevices');
+    expect(gridSource).not.toContain('onGrid.perSecUsdt');
   });
 
   it("renders assignment failures as retryable unavailable state instead of an empty history", () => {

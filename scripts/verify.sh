@@ -2672,11 +2672,15 @@ platform_stats_anchor() {
     || grep -Fq 'onlineDevicesOf(cfg.config.publicStats)' src/pages/onboarding/intro.vue; then
     bad "platform-anchor: 引导页在线设备必须读服务端 verifiedStats,不能由 H9 配置派生"; fails=1
   fi
-  # 正式 App 的 On Grid 数字来自 Java Home canonical projection，不再从编译期平台锚派生。
-  # 同时钉字段消费与刷新入口，避免换成另一本地常量后假绿。
-  if ! grep -q 'app\.homeTruth?.onGrid\.perSecUsdt' src/components/home/on-grid-section.vue 2>/dev/null \
-    || ! grep -q 'app\.refreshHomeTruth()' src/components/home/on-grid-section.vue 2>/dev/null; then
-    bad "platform-anchor: on-grid 未消费 Java Home 投影 perSecUsdt 或缺少失败重读入口"; fails=1
+  # 2026-10-30：On Grid 展示在线数读 H9，/sec 读已发布 paidCents 相邻秒差；客户仍读 Java Home。
+  # 分别钉 H9 数据源与重读入口，并禁止回退真实业务指标。
+  if ! grep -Fq 'cfg.config.networkPulse?.onlineDevices' src/components/home/on-grid-section.vue \
+    || ! grep -Fq 'cfg.load()' src/components/home/on-grid-section.vue \
+    || ! grep -Fq '"/api/config/home-display"' src/components/home/on-grid-section.vue \
+    || ! grep -Fq 'displayValue.value?.paidPerSec' src/components/home/on-grid-section.vue \
+    || ! grep -Fq 'player.refresh()' src/components/home/on-grid-section.vue \
+    || grep -Eq 'onGrid\.(activeDevices|perSecUsdt)|app\.refreshHomeTruth\(' src/components/home/on-grid-section.vue; then
+    bad "platform-anchor: on-grid H9 展示源/独立重读入口缺失，或回退真实业务指标"; fails=1
   fi
   # 🔴 R2 C5 定案:累计支付是时间积分,禁配置派生版(调低舰队=历史回退)。
   #   这里不能再把字段名本身当成违规:服务端 publicStats 新投影可以合法携带
