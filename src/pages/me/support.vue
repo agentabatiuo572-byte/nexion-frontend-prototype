@@ -1,6 +1,6 @@
 <!--
   Support hub (ported from Nexion-prototype/app/(main)/me/support/page.tsx).
-  Remote support uses App chat. Mock-only external demos
+  Live chat opens the advisor thread directly. Mock-only external demos
   are retained for local presentation. Wrapped in <AppChassis active="me">.
 -->
 <template>
@@ -51,18 +51,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, type CSSProperties } from "vue";
+import { computed, ref, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import { useT } from "@/i18n/use-t";
 import { toast } from "@/store/ui";
 import { navTo } from "@/lib/route";
-import { useMessageDrawer } from "@/store/message-drawer";
+import { useConversations } from "@/store/conversations";
 import { openExternalSupportChannel, type ExternalSupportChannel } from "@/lib/external-support-channel";
 import { remoteApiEnabled } from "@/api/runtime";
 
 const t = useT();
-const messageCenter = useMessageDrawer();
+const convStore = useConversations();
 const w = computed(() => t.value.support);
 
 interface Channel {
@@ -94,9 +94,24 @@ const channels = computed<Channel[]>(() => {
 
 const pinned = computed(() => [w.value.pinnedItem1, w.value.pinnedItem2, w.value.pinnedItem3, w.value.pinnedItem4]);
 
+const openingChat = ref(false);
+// Same rule as the inbox start button: continue the current advisor's thread, else open a new one.
+async function openLiveChat() {
+  if (openingChat.value) return;
+  openingChat.value = true;
+  try {
+    if (remoteApiEnabled) await Promise.allSettled([convStore.refresh(), convStore.refreshAdvisor()]);
+    const advisorId = convStore.advisor?.currentAdvisorId;
+    const ongoing = advisorId ? convStore.humanThreads.find(row => row.ownerAgentId === String(advisorId)) : undefined;
+    navTo(ongoing ? "/pages/support/chat?cid=" + encodeURIComponent(ongoing.id) : "/pages/support/chat?start=advisor");
+  } finally {
+    openingChat.value = false;
+  }
+}
+
 function onChannel(c: Channel) {
   if (c.id === "lc") {
-    messageCenter.show("service");
+    void openLiveChat();
     return;
   }
   if (c.href) {

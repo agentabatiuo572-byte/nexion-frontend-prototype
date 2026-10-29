@@ -1,7 +1,7 @@
 <!--
   Help Center (ported from Nexion-prototype/app/(main)/me/help/page.tsx).
   FAQ search + category chips + accordion, an inline UVELBot chat (keyword
-  match over the FAQ corpus), and a contact card. Wrapped in <AppChassis active="me">.
+  match over the FAQ corpus). The header link opens support. Wrapped in <AppChassis active="me">.
 -->
 <template>
   <AppChassis active="me">
@@ -136,22 +136,6 @@
             <text>{{ w.botRetry }}</text>
           </view>
           <view class="shrink-0 inline-flex items-center justify-center active:opacity-80" :style="botFallbackContactStyle" data-help-action="bot-contact" role="button" tabindex="0" :aria-label="w.contactCta" @click="goContactSupport"  @keydown.enter.prevent="goContactSupport" @keydown.space.prevent="goContactSupport">
-            <text>{{ w.contactCta }}</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- Contact -->
-      <view class="mx-4" :style="contactRowStyle">
-        <view class="flex items-center" style="gap: 12px">
-          <view class="grid place-items-center" :style="mailBoxStyle">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg>
-          </view>
-          <view class="min-w-0" style="flex: 1">
-            <text class="block" :style="contactTitleStyle">{{ w.contactSupport }}</text>
-            <text class="block" :style="contactHintStyle">{{ w.contactHint }}</text>
-          </view>
-          <view class="active:opacity-90 transition-opacity" :style="contactCtaStyle" role="button" tabindex="0" :aria-label="w.contactCta" @click="goContactSupport"  @keydown.enter.prevent="goContactSupport" @keydown.space.prevent="goContactSupport">
             <text>{{ w.contactCta }}</text>
           </view>
         </view>
@@ -632,26 +616,6 @@ const botFallbackContactStyle: CSSProperties = { minHeight: "32px", padding: "0 
 function sendBtnStyle(active: boolean): CSSProperties {
   return { width: "32px", height: "32px", borderRadius: "8px", background: active ? "var(--v5-brand-2)" : "var(--v5-surface-2)" };
 }
-// Contact — trailing action row on the floor; hairline opens it under the bot.
-const contactRowStyle: CSSProperties = {
-  padding: "16px 2px 0",
-  borderTop: "1px solid var(--v5-border)",
-};
-const mailBoxStyle: CSSProperties = { width: "40px", height: "40px", borderRadius: "12px", background: "var(--v5-surface-2)" };
-const contactTitleStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink)" };
-const contactHintStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginTop: "2px" };
-const contactCtaStyle: CSSProperties = {
-  // 《07》tap≥44:原 32px
-  height: "44px",
-  padding: "0 12px",
-  display: "flex",
-  alignItems: "center",
-  borderRadius: "8px",
-  background: "var(--v5-brand)",
-  color: "var(--v5-on-brand)",
-  fontSize: "12px",
-  fontWeight: 600,
-};
 
 import GlassSegments from "@/components/glass-segments.vue";
 const categoryOptions = computed(() => [{ value: "all", label: t.value.receipt.tabAll }, ...catOrder.map(value => ({ value, label: categoryLabel(value) }))]);

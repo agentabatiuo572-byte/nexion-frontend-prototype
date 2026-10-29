@@ -9,8 +9,6 @@ import chassisSource from "@/components/app-chassis.vue?raw";
 import headerSource from "@/components/sub-page-header.vue?raw";
 import meSource from "@/pages/me/me.vue?raw";
 import bubbleSource from "@/components/nova/nova-bubble.vue?raw";
-import supportSource from "@/pages/me/support.vue?raw";
-import ts from "typescript";
 
 installSupportStorage();
 const runtime = vi.hoisted(() => ({ remoteApiEnabled: true,
@@ -200,18 +198,13 @@ describe("shared message center", () => {
     expect(navigate).toHaveBeenCalledTimes(2); expect(pages).toHaveLength(2);
   });
 
-  it("routes the floating shortcut and live-chat channel through the shared Service entry without reading replies", async () => {
+  it("routes the floating shortcut through the shared Service entry without reading replies", async () => {
     const center = useMessageDrawer();
     const floatingBody = bubbleSource.match(/function open\(\) \{([\s\S]*?)\n\}/)![1];
     const floating = new Function("messageCenter", floatingBody);
-    const channelFunction = supportSource.match(/function onChannel\(c: Channel\) \{[\s\S]*?\n\}/)![0];
-    const compiled = ts.transpileModule(channelFunction, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
-    const channel = new Function("messageCenter", "navTo", compiled + ";return onChannel;")(center, navTo);
     expect(bubbleSource).toContain('@click="open"');
-    expect(supportSource).toContain('@click="onChannel(c)"');
     for (const [origin, open] of [
       ["pages/index/index", () => floating(center)],
-      ["pages/me/support", () => channel({ id: "lc" })],
     ] as const) {
       pages = [{ route: origin }]; navigate.mockClear(); center.section = "notifications";
       open(); await flush();
@@ -224,7 +217,6 @@ describe("shared message center", () => {
       navBack("/pages/me/me"); expect(pages).toEqual([{ route: origin }]);
     }
     expect(runtime.notificationApi.markRead).not.toHaveBeenCalled();
-    expect(supportSource).not.toContain('href: "/pages/me/support-tickets?mode=create"');
   });
 });
 
