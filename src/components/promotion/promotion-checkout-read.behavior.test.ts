@@ -591,6 +591,56 @@ it('loads the authoritative balance on entry and hides stale money until a faile
   page.app.refreshRemoteFleet.mockImplementation(async()=>{page.app.user.usdtBalance=150;return true;});
   await page.view.refreshWallet();expect(page.view.canPay.value).toBe(true);expect(await page.html()).toContain('150.00 USDT');
 });
+it('returning from top-up restores the rendered quote, wallet and create action after the hidden page rendered',async()=>{
+  const page=screen(undefined,{activityId:''});await page.start();
+  expect(page.exposed.footer.value).toMatchObject({amount:'120.00 USDT',disabled:false});
+  expect(await page.html()).toContain('data-testid="checkout-payment"');
+  page.exposed.hide();await flush();
+  expect(page.view.displayQuote.value).toBeNull();expect(page.view.canCreate.value).toBe(false);
+  expect(await page.html()).not.toContain('data-testid="checkout-payment"');
+  page.api.quote.mockResolvedValue({...quote('returned'),amountUsdt:'119',subtotalUsdt:'119'});
+  page.app.refreshRemoteFleet.mockImplementation(async()=>{page.app.user.usdtBalance=20;return true;});
+  page.exposed.show();await flush();
+  expect(page.view.displayQuote.value?.quoteId).toBe('returned');
+  expect(page.exposed.footer.value).toMatchObject({amount:'119.00 USDT',disabled:false});
+  const html=await page.html();expect(html).toContain('data-testid="checkout-payment"');expect(html).toContain('20.00 USDT');expect(html).toContain('data-testid="checkout-fees"');
+  expect(page.api.quote).toHaveBeenCalledTimes(2);expect(page.api.create).not.toHaveBeenCalled();expect(page.api.pay).not.toHaveBeenCalled();expect(page.key).not.toHaveBeenCalled();
+});
+it.each(['hidden','returned'] as const)('top-up return recovers after an old quote finishes while %s',async boundary=>{
+  const page=screen(undefined,{activityId:''});await page.start();
+  const late=deferred<Quote>();page.api.quote.mockReturnValueOnce(late.promise);
+  const read=page.view.loadQuote();await flush();page.exposed.hide();await flush();
+  expect(page.view.displayQuote.value).toBeNull();expect(page.view.canCreate.value).toBe(false);await page.html();
+  page.api.quote.mockResolvedValue({...quote('returned'),amountUsdt:'119'});
+  if(boundary==='returned')page.exposed.show();
+  late.resolve(quote('hidden-read'));await read;await flush();
+  if(boundary==='hidden')page.exposed.show();await flush();
+  expect(page.view.loading.value).toBe(false);expect(page.view.busy.value).toBe(false);
+  expect(page.view.displayQuote.value?.quoteId).toBe('returned');
+  expect(page.exposed.footer.value).toMatchObject({amount:'119.00 USDT',disabled:false});
+  expect(page.api.quote).toHaveBeenCalledTimes(3);expect(page.api.create).not.toHaveBeenCalled();expect(page.key).not.toHaveBeenCalled();
+});
+it('a failed top-up return offers retry and restores only the newly read quote',async()=>{
+  const page=screen(undefined,{activityId:''});await page.start();page.exposed.hide();await page.html();
+  page.api.quote.mockRejectedValueOnce(new ApiError({kind:'network',message:'offline'}));
+  page.exposed.show();await flush();
+  expect(page.view.displayQuote.value).toBeNull();expect(page.view.canCreate.value).toBe(false);
+  expect(await page.html()).toContain(zh.empty.errorCta);
+  page.api.quote.mockResolvedValue(quote('retry'));await page.view.loadQuote();
+  expect(page.view.displayQuote.value?.quoteId).toBe('retry');expect(page.exposed.footer.value.disabled).toBe(false);
+  expect(page.api.create).not.toHaveBeenCalled();expect(page.key).not.toHaveBeenCalled();
+});
+it('returning after an account change cannot revive the hidden account checkout',async()=>{
+  const page=screen(undefined,{activityId:''});await page.start();
+  const late=deferred<Quote>();page.api.quote.mockReturnValueOnce(late.promise);
+  const read=page.view.loadQuote();page.exposed.hide();await page.html();
+  page.app.accountKey='user:8';page.app.accountBindingEpoch++;
+  late.resolve(quote('old-account'));await read;page.exposed.show();await flush();
+  expect(page.view.displayQuote.value).toBeNull();expect(page.view.canCreate.value).toBe(false);
+  await page.view.createOrder();expect(page.api.create).not.toHaveBeenCalled();expect(page.key).not.toHaveBeenCalled();
+  expect(page.api.quote).toHaveBeenCalledTimes(2);expect(page.app.refreshRemoteFleet).toHaveBeenCalledOnce();
+  expect(await page.html()).not.toContain('data-testid="checkout-payment"');
+});
 it('refreshes the post-payment balance and keeps a wallet read failure separate from the paid receipt',async()=>{
   const page=screen();await page.start();await page.view.createOrder();page.confirm.mockResolvedValue(true);
   page.app.refreshRemoteFleet.mockResolvedValueOnce(false);await page.view.pay();
