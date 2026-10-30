@@ -156,7 +156,7 @@ export interface OrderApi {
   list(beforeOrderNo?: string | null, pageSize?: number): Promise<CanonicalOrderList>;
   create(request: CreateOrderRequest): Promise<CreatedOrder>;
   cancel(orderNo: string, idempotencyKey: string): Promise<CancelledOrder>;
-  pay(orderNo: string, idempotencyKey: string): Promise<PaidOrderReceipt>;
+  pay(orderNo: string, idempotencyKey: string, authorization?: import('./payment-password-api').PaymentPasswordAuthorization): Promise<PaidOrderReceipt>;
 }
 
 const STATUS_SET = new Set<string>(ORDER_STATUSES);
@@ -431,7 +431,7 @@ function cancelledOrder(value: unknown): CancelledOrder {
     idempotent: source.idempotent };
 }
 
-function paidOrderReceipt(value: unknown): PaidOrderReceipt {
+export function paidOrderReceipt(value: unknown): PaidOrderReceipt {
   const source = record(value);
   if (source.paymentStatus !== "PAID" || source.orderStatus !== "COMPLETED"
       || source.activationStatus !== "ACTIVATED" || source.canonicalStatus !== "activated"
@@ -522,13 +522,15 @@ export function createOrderApi(client: ApiClient, mode: ApiEnvironment = "prod")
       }));
     },
 
-    async pay(orderNo, idempotencyKey): Promise<PaidOrderReceipt> {
+    async pay(orderNo, idempotencyKey, authorization): Promise<PaidOrderReceipt> {
       const normalized = orderNo.trim();
       if (!normalized || !idempotencyKey.trim()) return invalid();
       const parsed = paidOrderReceipt(await client.request<unknown>({
         method: "POST",
         path: `/api/orders/${encodeURIComponent(normalized)}/pay`,
         idempotencyKey,
+        body: authorization,
+        retryAfterAuth: false,
       }));
       if (parsed.orderNo !== normalized) return invalid();
       return parsed;

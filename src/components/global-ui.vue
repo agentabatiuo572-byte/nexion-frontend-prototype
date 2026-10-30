@@ -74,6 +74,7 @@
   <!-- Earnings milestone celebration (driven by useMilestones().active; App.vue
        polls + fires via store.show()) -->
   <MilestoneCelebration v-if="showBusinessOverlays" />
+  <PaymentPasswordDialog v-if="showBusinessOverlays" />
 </template>
 
 <script setup lang="ts">
@@ -82,6 +83,7 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useUI } from "@/store/ui";
 import { useT } from "@/i18n/use-t";
 import MilestoneCelebration from "@/components/milestone-celebration.vue";
+import PaymentPasswordDialog from "@/components/payment-password-dialog.vue";
 import { isStaticReviewRoute } from "@/lib/static-review-routes";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
 

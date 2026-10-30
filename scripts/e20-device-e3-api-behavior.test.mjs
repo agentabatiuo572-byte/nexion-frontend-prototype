@@ -54,6 +54,7 @@ const validCapacityQuote = {
   sufficientFunds: true,
   decisionSource: "server",
 };
+const availableKeepQuote={...validCapacityQuote,decision:'CAPACITY_AVAILABLE',activeDevices:5,sourceDeviceId:null,sourceDeviceName:null};
 
 const validResult = {
   tradeinNo: "TIO-1",
@@ -228,11 +229,12 @@ test("E20 keep-and-buy uses the atomic capacity endpoint and validates the quote
     return structuredClone(validKeepResult);
   } });
 
-  const accepted = await api.capacityKeep("stellarbox-pro-v2", "keep-key", validCapacityQuote);
+  const accepted = await api.capacityKeep("stellarbox-pro-v2", "keep-key", availableKeepQuote);
 
   assert.equal(request.path, "/api/app/trade-in/capacity-keep");
   assert.deepEqual(request.body, { targetProductNo: "stellarbox-pro-v2", expectedPayableUsdt: 1000 });
   assert.equal(request.idempotencyKey, "keep-key");
+  assert.equal(request.retryAfterAuth,false);
   assert.equal(accepted.deviceStatus, "ACTIVE");
   assert.equal(accepted.targetDeviceId, 44);
 });
@@ -240,22 +242,22 @@ test("E20 keep-and-buy uses the atomic capacity endpoint and validates the quote
 test("E20 keep-and-buy rejects inactive or pending results and debit drift", async () => {
   await assert.rejects(
     apiReturning({ ...validKeepResult, deviceStatus: "INACTIVE", orderStatus: "PAID" })
-      .capacityKeep("stellarbox-pro-v2", "keep-key", validCapacityQuote),
+      .capacityKeep("stellarbox-pro-v2", "keep-key", availableKeepQuote),
     /E3_CANONICAL_RESPONSE_INVALID/,
   );
   await assert.rejects(
     apiReturning({ ...validKeepResult, orderStatus: "PENDING_PAYMENT" })
-      .capacityKeep("stellarbox-pro-v2", "keep-key", validCapacityQuote),
+      .capacityKeep("stellarbox-pro-v2", "keep-key", availableKeepQuote),
     /E3_CANONICAL_RESPONSE_INVALID/,
   );
   await assert.rejects(
     apiReturning({ ...validKeepResult, walletDebitUsdt: 999 })
-      .capacityKeep("stellarbox-pro-v2", "keep-key", validCapacityQuote),
+      .capacityKeep("stellarbox-pro-v2", "keep-key", availableKeepQuote),
     /E3_CAPACITY_KEEP_RESULT_QUOTE_MISMATCH/,
   );
 });
 
-test("E20 rejects terminal replacement results with source or balance drift", async () => {
+test("E20 rejects source drift and invalid balances while accepting authoritative wallet changes", async () => {
   await assert.rejects(
     apiReturning({ ...validResult, sourceDeviceId: 12 }).capacityReplace(
       11, "stellarbox-pro-v2", "replace-key", validCapacityQuote,
@@ -263,11 +265,13 @@ test("E20 rejects terminal replacement results with source or balance drift", as
     /E3_TRADEIN_RESULT_QUOTE_MISMATCH/,
   );
   await assert.rejects(
-    apiReturning({ ...validResult, walletBalanceAfterUsdt: 501 }).capacityReplace(
+    apiReturning({ ...validResult, walletBalanceAfterUsdt: -1 }).capacityReplace(
       11, "stellarbox-pro-v2", "replace-key", validCapacityQuote,
     ),
-    /E3_TRADEIN_RESULT_QUOTE_MISMATCH/,
+    /E3_CANONICAL_RESPONSE_INVALID/,
   );
+  assert.equal((await apiReturning({...validResult,walletBalanceAfterUsdt:501}).capacityReplace(
+    11,'stellarbox-pro-v2','replace-key',validCapacityQuote)).walletBalanceAfterUsdt,501);
 });
 
 test("E20 rejects a non-terminal application even when its order says completed", async () => {

@@ -162,6 +162,7 @@ import { readTrustedMonotonicNowMs,projectServerNow } from '@/lib/server-deadlin
 import { useDialogA11y } from '@/composables/use-dialog-a11y';
 import { displayDeadline,localized,rewardSummary } from '@/lib/promotion-display';
 import { promotionCheckoutHref } from '@/lib/promotion-entry';
+import { executePaymentWithPassword } from '@/lib/authorized-payment';
 import RewardRows from './reward-rows.vue';import PromotionTerms from './promotion-terms.vue';
 const props=defineProps<{activityId:string;items:PromotionItem[];orderNo?:string;voucherId?:string;upgradeActivityId?:string}>();
 function formatAmount(value: Parameters<typeof formatPlainAmount>[0]): string {
@@ -415,6 +416,7 @@ async function pay(){
   const expectedOrder=order.value,generation=readGeneration;
   if(!expectedOrder)return;
   const {orderNo,amountUsdt}=expectedOrder;
+  if(amountUsdt===undefined||!Number.isFinite(Number(amountUsdt)))return;
   paymentConfirming=true;
   try{
     const accepted=await confirm({
@@ -425,7 +427,12 @@ async function pay(){
     updateClock();
     if(!accepted||!readCurrent(generation)||!canPay.value||order.value?.orderNo!==orderNo||order.value?.amountUsdt!==amountUsdt)return;
     walletState.value='loading';
-    await run(()=>session.pay());
+    await run(async()=>{
+      await executePaymentWithPassword({amount:amountUsdt,currency:'USDT',summary:expectedOrder.items?.map(item=>item.productName).join(', ')||t.value.store.coConfirmPurchase,
+        details:expectedOrder.items?.map(item=>({name:item.productName,quantity:item.quantity}))},
+        authorization=>session.pay(authorization),
+        ()=>readCurrent(generation)&&order.value?.orderNo===orderNo&&order.value?.amountUsdt===amountUsdt&&order.value?.paymentStatus==='PENDING'&&payWindow.value===true&&!session.unknown);
+    });
     await refreshWallet();
   }finally{paymentConfirming=false;}
 }

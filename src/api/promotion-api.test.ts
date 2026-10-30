@@ -9,6 +9,11 @@ const spec={rewardRuleId:'r1',beneficiaryRole:'BUYER' as const,type:'USDT' as co
 const quote:Quote={quoteId:'quote-1',quoteHash:'hash',expiresAt:'2026-10-09T00:00:00Z',serverTime:'2026-10-08T00:00:00Z',itemCount:1,quantity:3,items:[{lineId:'l1',productNo:'sku-a',quantity:3,unitPriceUsdt:'0.000001',subtotalUsdt:'0.000003',discountUsdt:'0.000000',payableUsdt:'0.000003'}],subtotalUsdt:'0.000003',discountUsdt:'0.000000',amountUsdt:'0.000003',bundlePolicyVersion:1,activityId:'a1',activityVersion:1,eligibility:'ELIGIBLE',expectedRewards:[{lineId:'l1',activityId:'a1',version:1,ruleId:'rule',rewardRuleId:'r1',beneficiaryRole:'BUYER',groups:3,reward:spec,eligibility:'ELIGIBLE',message:null,disclosure}],warnings:[],reserved:false};
 const receipt={orderNo:'o1',paymentStatus:'PENDING',orderStatus:'PENDING_PAYMENT',promotionQuoteId:'quote-1',quantity:3,payBy:'2026-10-09T00:00:00Z',rewards:quote.expectedRewards,amountUsdt:'0.000003',items:[{lineId:'l1',productNo:'sku-a',productName:'Frozen Alpha',quantity:3}]};
 function setup(){const request=vi.fn();return{request,api:createPromotionApi({request}as unknown as ApiClient)};}
+it('reads a payment result through the five-state purchase API without executing payment',async()=>{
+  const {request,api}=setup();request.mockResolvedValue({kind:'order-pay',commandKey:'original-pay',status:'SUCCEEDED',canResumeSameKey:false,receipt:{...receipt,paymentStatus:'PAID',orderStatus:'COMPLETED'}});
+  expect((await api.paymentCommand('original-pay')).order?.orderNo).toBe('o1');
+  expect(request).toHaveBeenCalledExactlyOnceWith({path:'/api/app/payment-commands/order-pay/original-pay'});
+});
 const activity:PublicPromotion={activityId:'a1',version:2,template:'SKU_GIFT',state:'ACTIVE',startsAt:'2026-10-07T00:00:00Z',endsAt:'2026-10-30T00:00:00Z',serverTime:'2026-10-08T00:00:00Z',title:text,terms:text,placement:'home.purchase-promotion',target:'STORE',productNos:['sku-a'],minimumClientCapabilities:PROMOTION_CAPABILITIES,eligibility:'ESTIMATE_ELIGIBLE',eligibilityMessage:null,rewardRules:[]};
 describe('promotion transport',()=>{
   it('accepts buyer order discounts in public terms, exact quotes and immutable order receipts',async()=>{

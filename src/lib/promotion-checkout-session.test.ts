@@ -4,12 +4,47 @@ import type { Quote, OrderReceipt } from '../api/promotion-contracts';
 const quote = { quoteId:'q1', eligibility:'ELIGIBLE', amountUsdt:'120.000000', quantity:3, items:[{lineId:'sku-a',productNo:'sku-a',quantity:3}], expectedRewards:[] } as unknown as Quote;
 const order = {orderNo:'o1',promotionQuoteId:'q1',quantity:3,amountUsdt:'120',paymentStatus:'PENDING',orderStatus:'PENDING_PAYMENT',payBy:'2026-10-31T00:00:00Z',rewards:[],items:[{lineId:'canonical-line-756',productNo:'sku-a',productName:'Frozen Alpha',quantity:3}]} as OrderReceipt;
 function setup() {
-  const api={create:vi.fn().mockResolvedValue(order),pay:vi.fn().mockResolvedValue({...order,paymentStatus:'PAID'}),cancel:vi.fn(),command:vi.fn(),findOrder:vi.fn().mockResolvedValue(order)};
+  const api={create:vi.fn().mockResolvedValue(order),pay:vi.fn().mockResolvedValue({...order,paymentStatus:'PAID'}),cancel:vi.fn(),command:vi.fn(),paymentCommand:vi.fn(),findOrder:vi.fn().mockResolvedValue(order)};
   const save=vi.fn(); const key=vi.fn().mockReturnValue('durable-original-key'); const current=vi.fn().mockReturnValue(true);
   const session=new PromotionCheckoutSession({api,save,key,current});session.setQuote(quote);
   return {session,api,save,key,current};
 }
 describe('promotion checkout original-command safety',()=>{
+  it.each([
+    ['PROCESSING',false],['INDETERMINATE',false],['NOT_SEEN',false],
+  ] as const)('payment %s never uses legacy NOT_FOUND to unlock another payment/cancellation',async(status,canResumeSameKey)=>{
+    const {session,api}=setup();await session.create();api.pay.mockRejectedValueOnce(new Error('timeout'));
+    await expect(session.pay()).rejects.toThrow('timeout');
+    api.command.mockResolvedValue({status:'NOT_FOUND'});
+    api.paymentCommand.mockResolvedValue({status,canResumeSameKey});
+    await session.recover();
+    expect(api.paymentCommand).toHaveBeenCalledWith('durable-original-key');
+    expect(api.command).not.toHaveBeenCalled();expect(session.unknown).toBe(true);
+    expect(session.canExecute('payOrder')).toBe(false);expect(session.canExecute('cancelOrder')).toBe(false);
+  });
+  it('a paid command receipt recovers without a PIN or another POST',async()=>{
+    const {session,api}=setup();await session.create();api.pay.mockRejectedValueOnce(new Error('timeout'));
+    await expect(session.pay()).rejects.toThrow();
+    api.paymentCommand.mockResolvedValue({status:'SUCCEEDED',canResumeSameKey:false,order:{...order,paymentStatus:'PAID'}});
+    await session.recover();expect(session.record.order?.paymentStatus).toBe('PAID');
+    expect(api.pay).toHaveBeenCalledOnce();expect(api.command).not.toHaveBeenCalled();
+  });
+  it('only NOT_SEEN with permission enables an explicit same-key payment retry',async()=>{
+    const {session,api}=setup();await session.create();api.pay.mockRejectedValueOnce(new Error('timeout'));
+    await expect(session.pay()).rejects.toThrow();
+    api.paymentCommand.mockResolvedValue({status:'NOT_SEEN',canResumeSameKey:true});await session.recover();
+    expect(session.canExecute('payOrder')).toBe(true);expect(session.canExecute('cancelOrder')).toBe(false);
+    expect(api.pay).toHaveBeenCalledOnce();await session.pay();
+    expect(api.pay.mock.calls.map(call=>call[1])).toEqual(['durable-original-key','durable-original-key']);
+  });
+  it('a definitive payment rejection retires the original key only after a readable original order',async()=>{
+    const {session,api,key}=setup();key.mockImplementation(intent=>intent.includes(':payment-intent:1')?'reviewed-next-key':'durable-original-key');
+    await session.create();api.pay.mockRejectedValueOnce(new Error('timeout'));await expect(session.pay()).rejects.toThrow();
+    api.paymentCommand.mockResolvedValue({status:'REJECTED',canResumeSameKey:false});await session.recover();
+    expect(api.pay).toHaveBeenCalledOnce();await session.pay();
+    expect(api.pay.mock.calls.map(call=>call[1])).toEqual(['durable-original-key','reviewed-next-key']);
+    expect(session.record.paymentIntentRevision).toBe(1);
+  });
   it('durably keeps one leave reminder through reload, requote, creation and original-order recovery',async()=>{
     const {session,api,save,key,current}=setup();let saved:PromotionCheckoutRecord=session.record;
     save.mockImplementation(record=>{saved=JSON.parse(JSON.stringify(record));});
@@ -149,6 +184,7 @@ describe('promotion checkout original-command safety',()=>{
     await expect(session.create()).rejects.toThrow();api.command.mockResolvedValue({status:'FAILED',order:null});
     await session.recover();expect(session.record).toEqual({quote:null,order:null,pending:null});
     session.setQuote(quote);await session.create();api.pay.mockRejectedValueOnce(new Error('timeout'));
+    api.paymentCommand.mockResolvedValue({status:'REJECTED',canResumeSameKey:false});
     await expect(session.pay()).rejects.toThrow();await session.recover();
     expect(api.findOrder).toHaveBeenCalledWith('o1');expect(session.confirmed).toBe(true);expect(api.pay).toHaveBeenCalledOnce();
   });

@@ -65,7 +65,7 @@ function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items
   let keepHistory:unknown;
   const tradein={showKeepRecovery:vi.fn()};
   const save=vi.fn((_table:string,_account:string,value:Record<string,PromotionCheckoutRecord>)=>{if(!writable)return false;rows=structuredClone(value);return true;});
-  const api={quote:vi.fn().mockResolvedValue(quote()),get:vi.fn().mockResolvedValue(activity()),create:vi.fn().mockResolvedValue(receipt()),pay:vi.fn().mockResolvedValue({...receipt(),paymentStatus:'PAID',orderStatus:'COMPLETED'}),cancel:vi.fn(),command:vi.fn().mockResolvedValue({status:'PROCESSING',order:null}),findOrder:vi.fn().mockResolvedValue(receipt())};
+  const api={quote:vi.fn().mockResolvedValue(quote()),get:vi.fn().mockResolvedValue(activity()),create:vi.fn().mockResolvedValue(receipt()),pay:vi.fn().mockResolvedValue({...receipt(),paymentStatus:'PAID',orderStatus:'COMPLETED'}),cancel:vi.fn(),command:vi.fn().mockResolvedValue({status:'PROCESSING',order:null}),paymentCommand:vi.fn().mockResolvedValue({status:'PROCESSING',canResumeSameKey:false,order:null}),findOrder:vi.fn().mockResolvedValue(receipt())};
   const app=Vue.reactive({accountKey:'user:7',accountBindingEpoch:1,remoteFleetHasSnapshot:true,remoteSlotsUsed:null as number|null,slotCap:6,user:{usdtBalance:150},captureRemoteAccountRequest:vi.fn(()=>({accountKey:'user:7',epoch:1})),refreshRemoteFleet:vi.fn().mockResolvedValue(true)});
   const mounted:Array<()=>Promise<void>>=[],unmounted:Array<()=>void>=[],guardDisposal=vi.fn(),guardRegistration=vi.fn(()=>guardDisposal);
   const key=vi.fn(()=> 'original-key'),fleet=vi.fn().mockResolvedValue({serverNow:Date.parse(serverTime)});
@@ -75,6 +75,8 @@ function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items
   const confirm=vi.fn().mockResolvedValue(false),clearConfirmsBy=vi.fn();
   const vouchers={remoteStatus:'ready',catalog:[] as {id:string;name:string}[],claimedUnused:[] as VoucherDef[],claimableVouchers:[] as {id:string;name:string;claimSurfaces:string[]}[],refreshRemote:vi.fn().mockResolvedValue(true),claimRemote:vi.fn().mockResolvedValue(true)};
   const modules:Record<string,unknown>={
+    '@/lib/authorized-payment': { executePaymentWithPassword: vi.fn(async (_context, command, current) =>
+      current() ? command({ paymentPassword: '039417', credentialVersion: 1, attemptNo: 'fixture-attempt' }) : null) },
     '@/lib/amount-display':{formatAmount},
     '@/lib/brand-copy':{nexGridBrandText},
     '@/lib/commerce-review':{commerceCopy},
@@ -284,7 +286,7 @@ it('payment confirmation cancels without a command, then an explicit acceptance 
   const decision=deferred<boolean>();page.confirm.mockReturnValueOnce(decision.promise);
   const pending=page.view.pay();await page.view.pay();expect(page.confirm).toHaveBeenCalledTimes(2);
   decision.resolve(true);await pending;expect(page.api.pay).toHaveBeenCalledOnce();
-  expect(page.api.pay).toHaveBeenCalledWith('o1','original-key');expect(page.saved().order?.paymentStatus).toBe('PAID');
+  expect(page.api.pay).toHaveBeenCalledWith('o1','original-key',{paymentPassword:'039417',credentialVersion:1,attemptNo:'fixture-attempt'});expect(page.saved().order?.paymentStatus).toBe('PAID');
 });
 it.each(['hide','account','expired'] as const)('a delayed payment confirmation after %s does not pay',async change=>{
   const page=screen({quote:quote(),order:receipt(),pending:null});await page.start();
@@ -354,10 +356,13 @@ it('a confirmed original order remains intact on hide and show reads the same re
 });
 it.each(['createOrder','payOrder','cancelOrder'] as const)('hide/show preserves the original %s body/key and NOT_FOUND recovery path',async operation=>{
   const q=quote(),order=operation==='createOrder'?null:receipt(q),pending={operation,key:'original-key',targetId:order?.orderNo??q.quoteId};
-  const page=screen({quote:q,order,pending});page.api.command.mockResolvedValue({status:'NOT_FOUND',order:null});await page.start();
+  const page=screen({quote:q,order,pending});page.api.command.mockResolvedValue({status:'NOT_FOUND',order:null});
+  page.api.paymentCommand.mockResolvedValue({status:'NOT_SEEN',canResumeSameKey:true,order:null});await page.start();
   expect(page.view.session.retryOriginal).toBe(true);const before=structuredClone(page.view.session.record);page.exposed.hide();
   expect(page.view.session.record).toEqual(before);expect(page.saved()).toEqual(before);
-  page.exposed.show();await flush();expect(page.api.command).toHaveBeenLastCalledWith('original-key',operation,pending.targetId);
+  page.exposed.show();await flush();
+  if(operation==='payOrder')expect(page.api.paymentCommand).toHaveBeenLastCalledWith('original-key');
+  else expect(page.api.command).toHaveBeenLastCalledWith('original-key',operation,pending.targetId);
   expect(page.view.session.record.pending).toEqual(pending);expect(page.view.session.record.quote).toEqual(q);expect(page.view.session.retryOriginal).toBe(true);
   expect(page.api.quote).not.toHaveBeenCalled();expect(page.api.create).not.toHaveBeenCalled();expect(page.api.pay).not.toHaveBeenCalled();expect(page.api.cancel).not.toHaveBeenCalled();
   if(operation==='createOrder'){await page.view.createOrder();expect(page.api.create).toHaveBeenCalledWith(q,'original-key',null);expect(page.key).not.toHaveBeenCalled();}
@@ -570,7 +575,7 @@ it('a canonical BF20-only S1 quote creates and pays 80 USDT without any promotio
   page.api.quote.mockResolvedValue(q);page.api.create.mockResolvedValue(order);page.api.pay.mockResolvedValue({...order,paymentStatus:'PAID',orderStatus:'COMPLETED'});
   await page.start();expect(page.exposed.footer.value).toMatchObject({amount:'80.00 USDT',disabled:false});
   await page.view.createOrder();expect(page.api.create).toHaveBeenCalledWith(q,'original-key','BF20');
-  page.confirm.mockResolvedValue(true);await page.view.pay();expect(page.api.pay).toHaveBeenCalledWith('o1','original-key');
+  page.confirm.mockResolvedValue(true);await page.view.pay();expect(page.api.pay).toHaveBeenCalledWith('o1','original-key',{paymentPassword:'039417',credentialVersion:1,attemptNo:'fixture-attempt'});
   expect(page.saved().order).toMatchObject({amountUsdt:'80.000000',paymentStatus:'PAID',rewards:[]});
 });
 it.each(['INELIGIBLE','UNKNOWN'] as const)('BF20 must never override a selected promotion whose quote is %s',async eligibility=>{
@@ -671,7 +676,7 @@ it('a server-confirmed zero-pay voucher order remains executable without inventi
   page.api.pay.mockResolvedValue({...order,paymentStatus:'PAID',orderStatus:'COMPLETED'});
   page.app.refreshRemoteFleet.mockResolvedValue(false);await page.start();await page.view.createOrder();
   expect(page.view.canPay.value).toBe(true);page.confirm.mockResolvedValue(true);await page.view.pay();
-  expect(page.api.pay).toHaveBeenCalledWith('o1','original-key');expect(page.saved().order?.paymentStatus).toBe('PAID');
+  expect(page.api.pay).toHaveBeenCalledWith('o1','original-key',{paymentPassword:'039417',credentialVersion:1,attemptNo:'fixture-attempt'});expect(page.saved().order?.paymentStatus).toBe('PAID');
   expect(page.view.walletState.value).toBe('error');
 });
 
@@ -785,7 +790,7 @@ it.each([
   await page.view.pay();expect(page.api.pay).not.toHaveBeenCalled();
   expect(page.confirm).toHaveBeenLastCalledWith(expect.objectContaining({message:fmt(zh.store.coConfirmPurchaseMessage,{amount:display})}));
   page.confirm.mockResolvedValueOnce(true);await page.view.pay();
-  expect(page.api.pay).toHaveBeenCalledWith(original.orderNo,'original-key');
+  expect(page.api.pay).toHaveBeenCalledWith(original.orderNo,'original-key',{paymentPassword:'039417',credentialVersion:1,attemptNo:'fixture-attempt'});
   expect(page.api.create.mock.calls[0][0].amountUsdt).toBe(amount);
   expect(page.saved().order).toMatchObject({amountUsdt:amount,paymentStatus:'PAID'});expect(page.view.unknown.value).toBe(false);
 });

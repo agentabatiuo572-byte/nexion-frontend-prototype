@@ -1,10 +1,12 @@
 import { promotionZH } from "./promotion";
 import { coreReviewCopy } from "../core-review";
 import type { Messages } from "./en";
+import { paymentPinZH } from "./payment-password";
 
 // Simplified Chinese — natural Mandarin phrasing. Keys mirror en.ts exactly.
 
 export const zh: Messages = {
+  paymentPin: paymentPinZH,
   coreReview: coreReviewCopy.zh,
   thirdParty: {
     signInTitle: "其他登录方式",

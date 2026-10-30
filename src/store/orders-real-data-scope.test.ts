@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { nextTick, watch } from "vue";
 import type { CanonicalOrder, CanonicalOrderList } from "@/api/order-api";
@@ -36,11 +36,15 @@ function list(label: string): CanonicalOrderList {
 }
 
 beforeEach(() => {
+  const disk: Record<string, unknown> = {};
+  vi.stubGlobal("uni", { getStorageSync: (key: string) => disk[key],
+    setStorageSync: (key: string, value: unknown) => { disk[key] = structuredClone(value); } });
   setActivePinia(createPinia());
   advanceRuntimeRevision(null);
   remote.orderApi.list.mockReset();
   remote.orderApi.cancel.mockReset();
 });
+afterEach(() => vi.unstubAllGlobals());
 
 describe("orders consume only the current request scope", () => {
   it("reactively publishes a completed cold-start account rebind", async () => {
@@ -118,6 +122,7 @@ describe("orders consume only the current request scope", () => {
     const store = useOrders();
     store.bindAccount("A");
     const pending = store.cancelOrderRemote("ORD-A");
+    expect(remote.orderApi.cancel).toHaveBeenCalledExactlyOnceWith("ORD-A", "order-cancel:ORD-A");
     store.bindAccount("B");
     stale.resolve({});
     await expect(pending).resolves.toBe(false);

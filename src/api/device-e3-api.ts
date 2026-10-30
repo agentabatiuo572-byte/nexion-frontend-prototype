@@ -179,19 +179,23 @@ export interface DeviceE3Api {
     targetProductNo: string,
     idempotencyKey: string,
     expectedQuote: CanonicalCapacityReplaceQuote,
+    authorization?: import('./payment-password-api').PaymentPasswordAuthorization,
   ): Promise<CanonicalTradeinResult>;
   capacityKeep(
     targetProductNo: string,
     idempotencyKey: string,
     expectedQuote: CanonicalCapacityReplaceQuote,
+    authorization?: import('./payment-password-api').PaymentPasswordAuthorization,
   ): Promise<CanonicalCapacityKeepResult>;
   /** Replay only an existing durable command with its original payable and key. */
-  replayCapacityKeep(targetProductNo: string, idempotencyKey: string, expectedPayableUsdt: number): Promise<CanonicalCapacityKeepResult>;
+  replayCapacityKeep(targetProductNo: string, idempotencyKey: string, expectedPayableUsdt: number,
+    authorization?: import('./payment-password-api').PaymentPasswordAuthorization): Promise<CanonicalCapacityKeepResult>;
   submit(
     sourceDeviceId: number,
     targetProductNo: string,
     idempotencyKey: string,
     expectedQuote: CanonicalTradeinQuote,
+    authorization?: import('./payment-password-api').PaymentPasswordAuthorization,
   ): Promise<CanonicalTradeinResult>;
   activate(deviceId: number, expectedVersion: number, clientMaxDevices: number, idempotencyKey: string): Promise<CanonicalDeviceCommandResult>;
   deactivate(deviceId: number, expectedVersion: number, idempotencyKey: string): Promise<CanonicalDeviceCommandResult>;
@@ -403,7 +407,7 @@ function quote(value: unknown): CanonicalTradeinQuote {
   return result;
 }
 
-function result(value: unknown): CanonicalTradeinResult {
+export function parseCanonicalTradeinResult(value: unknown): CanonicalTradeinResult {
   const source = record(value);
   const targetDeviceStatus = source.targetDeviceStatus == null ? undefined : string(source.targetDeviceStatus).toUpperCase();
   if (targetDeviceStatus !== undefined && targetDeviceStatus !== "ACTIVE" && targetDeviceStatus !== "INACTIVE") return invalid();
@@ -423,7 +427,7 @@ function result(value: unknown): CanonicalTradeinResult {
   return parsed;
 }
 
-function capacityKeepResult(value: unknown): CanonicalCapacityKeepResult {
+export function parseCanonicalCapacityKeepResult(value: unknown): CanonicalCapacityKeepResult {
   const source = record(value);
   const deviceStatus = string(source.deviceStatus).toUpperCase();
   const orderStatus = string(source.orderStatus).toUpperCase();
@@ -594,13 +598,15 @@ function validTargetNo(value: string): string {
   return normalized;
 }
 
-async function sendCapacityKeep(client: ApiClient, targetProductNo: string, idempotencyKey: string, expectedPayableUsdt: number): Promise<CanonicalCapacityKeepResult> {
+async function sendCapacityKeep(client: ApiClient, targetProductNo: string, idempotencyKey: string, expectedPayableUsdt: number,
+  authorization?: import('./payment-password-api').PaymentPasswordAuthorization): Promise<CanonicalCapacityKeepResult> {
   const key = idempotencyKey.trim();
   if (!key) throw new ApiError({ kind: "configuration", message: "IDEMPOTENCY_KEY_REQUIRED" });
   const payable = number(expectedPayableUsdt);
-  const parsed = capacityKeepResult(await client.request<unknown>({
+  const parsed = parseCanonicalCapacityKeepResult(await client.request<unknown>({
     method: "POST", path: "/api/app/trade-in/capacity-keep",
-    body: { targetProductNo: validTargetNo(targetProductNo), expectedPayableUsdt: payable }, idempotencyKey: key,
+    retryAfterAuth: false,
+    body: { ...authorization, targetProductNo: validTargetNo(targetProductNo), expectedPayableUsdt: payable }, idempotencyKey: key,
   }));
   if (!sameMoney(parsed.walletDebitUsdt, payable)) return invalid("E3_CAPACITY_KEEP_RESULT_QUOTE_MISMATCH");
   return parsed;
@@ -635,7 +641,7 @@ export function createDeviceE3Api(client: ApiClient, mode: ApiEnvironment = "pro
         body: { targetProductNo: validTargetNo(targetProductNo) },
       }));
     },
-    async capacityReplace(sourceDeviceId, targetProductNo, idempotencyKey, expectedQuote) {
+    async capacityReplace(sourceDeviceId, targetProductNo, idempotencyKey, expectedQuote, authorization) {
       const key = idempotencyKey.trim();
       if (!key) throw new ApiError({ kind: "configuration", message: "IDEMPOTENCY_KEY_REQUIRED" });
       if (expectedQuote.decision !== "REPLACE_REQUIRED"
@@ -644,10 +650,12 @@ export function createDeviceE3Api(client: ApiClient, mode: ApiEnvironment = "pro
           || expectedQuote.decisionSource !== "server") {
         throw new ApiError({ kind: "configuration", message: "CAPACITY_REPLACEMENT_QUOTE_CONTEXT_INVALID" });
       }
-      return assertResultMatchesQuote(result(await client.request<unknown>({
+      return assertResultMatchesQuote(parseCanonicalTradeinResult(await client.request<unknown>({
         method: "POST",
         path: "/api/app/trade-in/capacity-replace",
+        retryAfterAuth: false,
         body: {
+          ...authorization,
           sourceDeviceId: integer(sourceDeviceId, 1),
           targetProductNo: validTargetNo(targetProductNo),
           expectedPayableUsdt: number(expectedQuote.payableUsdt),
@@ -659,18 +667,18 @@ export function createDeviceE3Api(client: ApiClient, mode: ApiEnvironment = "pro
         payableUsdt: expectedQuote.payableUsdt,
       });
     },
-    async capacityKeep(targetProductNo, idempotencyKey, expectedQuote) {
+    async capacityKeep(targetProductNo, idempotencyKey, expectedQuote, authorization) {
       if (expectedQuote.decision !== "CAPACITY_AVAILABLE"
           || expectedQuote.targetProductNo !== targetProductNo
           || expectedQuote.decisionSource !== "server") {
         throw new ApiError({ kind: "configuration", message: "CAPACITY_KEEP_QUOTE_CONTEXT_INVALID" });
       }
-      return sendCapacityKeep(client, targetProductNo, idempotencyKey, expectedQuote.payableUsdt);
+      return sendCapacityKeep(client, targetProductNo, idempotencyKey, expectedQuote.payableUsdt, authorization);
     },
-    async replayCapacityKeep(targetProductNo, idempotencyKey, expectedPayableUsdt) {
-      return sendCapacityKeep(client, targetProductNo, idempotencyKey, expectedPayableUsdt);
+    async replayCapacityKeep(targetProductNo, idempotencyKey, expectedPayableUsdt, authorization) {
+      return sendCapacityKeep(client, targetProductNo, idempotencyKey, expectedPayableUsdt, authorization);
     },
-    async submit(sourceDeviceId, targetProductNo, idempotencyKey, expectedQuote) {
+    async submit(sourceDeviceId, targetProductNo, idempotencyKey, expectedQuote, authorization) {
       const key = idempotencyKey.trim();
       if (!key) throw new ApiError({ kind: "configuration", message: "IDEMPOTENCY_KEY_REQUIRED" });
       if (expectedQuote.sourceDeviceId !== sourceDeviceId
@@ -678,10 +686,12 @@ export function createDeviceE3Api(client: ApiClient, mode: ApiEnvironment = "pro
           || !["ACTIVE", "INACTIVE"].includes(expectedQuote.targetDeviceStatus)) {
         throw new ApiError({ kind: "configuration", message: "TRADEIN_QUOTE_CONTEXT_INVALID" });
       }
-      return assertResultMatchesQuote(result(await client.request<unknown>({
+      return assertResultMatchesQuote(parseCanonicalTradeinResult(await client.request<unknown>({
         method: "POST",
         path: "/api/app/trade-in/submit",
+        retryAfterAuth: false,
         body: {
+          ...authorization,
           sourceDeviceId: integer(sourceDeviceId, 1),
           expectedSourceVersion: integer(expectedQuote.sourceRowVersion),
           targetProductNo: validTargetNo(targetProductNo),

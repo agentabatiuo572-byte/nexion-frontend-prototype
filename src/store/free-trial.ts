@@ -5,7 +5,10 @@ import { useTrialConfig, computeDiscountedPrice, computeTrialOffset, resolveTria
 import { mockServerNow, ONE_DAY_MS } from "./server-time";
 import { normalizeAccountKey } from "./account-cloud";
 import { acquireAccountCommandKey, readAccountRow, releaseAccountCommandKey, writeAccountRow } from "./account-scoped-storage";
-import { remoteApiEnabled, trialApi } from "@/api/runtime";
+import { remoteApiEnabled, trialApi, apiClient } from "@/api/runtime";
+import { parseTrialConvertReceipt, type TrialConvertReceipt } from "@/api/trial-api";
+import { readPaymentCommand } from "@/api/payment-command-api";
+import type { PaymentPasswordAuthorization } from "@/api/payment-password-api";
 import type { TrialAuthorityState, TrialConversionOutcome, TrialConversionQuote } from "@/api/trial-api";
 import { asApiError, isAmbiguousOutcome } from "@/api/errors";
 import {
@@ -55,7 +58,7 @@ export type { TrialStatus } from "./trial-boundary";
  *  无触发路径;生产由后端 GET /api/trial/eligibility 下发该 reason。 */
 export type TrialIneligibleReason = "in-progress" | "converted" | "used" | "phase-closed" | "quota-exhausted" | "risk" | "product-unavailable" | "capacity-full" | "unknown";
 export type TrialStartFailure = TrialIneligibleReason | "onboarding-required" | "terms-required";
-type TrialConversionFailure = TrialIneligibleReason | "insufficient-funds" | "quote-changed" | "rejected" | "storage-unavailable";
+type TrialConversionFailure = TrialIneligibleReason | "insufficient-funds" | "quote-changed" | "rejected" | "storage-unavailable" | "payment-required";
 const CONVERT_COMMANDS_KEY = "nexgrid-trial-convert-accounts-v1";
 type ConversionCommands = { commands: Record<string, string> };
 
@@ -577,7 +580,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
   // 🔴 P0 防线:convert 内部自己取 mockServerNow() 并先 resolveTrialAt 推进边界,
   // 绝不信任调用方(结算页)缓存的 now 或内存里的旧 status —— 用户离线跨过宽限期
   // 后趁 poll 未跑下单,这里按真实时点判到 ended 即拒绝(边界推进结果已落盘)。
-  async function convert(productNo?: string, expectedAmountUsdt?: number, quoteVersion?: string | null): Promise<{
+  async function convert(productNo?: string, expectedAmountUsdt?: number, quoteVersion?: string | null, authorization?: PaymentPasswordAuthorization): Promise<{
     ok: boolean; reason?: TrialConversionFailure; orderNo?: string;
   }> {
     const requestedProductNo = productNo ?? useTrialConfig().config.trialProductId;
@@ -615,7 +618,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
         }
         originalAmount = original[2];
         originalQuoteVersion = original.length === 4 ? original[3] : null;
-        key = acquireAccountCommandKey(CONVERT_COMMANDS_KEY, requestedAccount, intent, "h2-convert");
+        key = pending.length ? commands[intent]! : "";
       } catch {
         return { ok: false, reason: "storage-unavailable" };
       }
@@ -634,7 +637,27 @@ export const useFreeTrial = defineStore("freeTrial", () => {
       };
       try {
         const sequence = ++authorityRequestSequence;
-        const receipt = await trialApi.convert(requestedProductNo, originalAmount, originalQuoteVersion, key);
+        let receipt: TrialConvertReceipt | null = null;
+        if (originalOutcomeUnknown) {
+          const command = await readPaymentCommand(apiClient, 'trial-convert', key);
+          if (command.status === 'SUCCEEDED') receipt = parseTrialConvertReceipt(command.receipt);
+          else if (command.status === 'REJECTED') {
+            releaseAccountCommandKey(CONVERT_COMMANDS_KEY, requestedAccount, intent, key);
+            return {ok:false,reason:'rejected'};
+          } else if (command.status !== 'NOT_SEEN' || !command.canResumeSameKey) return {ok:false,reason:'unknown'};
+        }
+        if (!receipt) {
+          if (originalAmount === null) return {ok:false,reason:'unknown'};
+          if (!authorization) return {ok:false,reason:'payment-required'};
+          if (originalAmount !== expectedAmountUsdt || originalQuoteVersion !== (quoteVersion ?? null)) return {ok:false,reason:'quote-changed'};
+          if (requestedEpoch !== accountBindingEpoch) return {ok:false,reason:'unknown'};
+          // A cancelled PIN prompt has never sent a purchase and must not freeze a stale quote.
+          if (!key) {
+            try { key = acquireAccountCommandKey(CONVERT_COMMANDS_KEY, requestedAccount, intent, "h2-convert"); }
+            catch { return {ok:false,reason:'storage-unavailable'}; }
+          }
+          receipt = await trialApi.convert(requestedProductNo,originalAmount,originalQuoteVersion,key,authorization);
+        }
         if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
         const confirmed = await refreshRemote(true);
         if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
@@ -647,6 +670,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
         return { ok: true, orderNo: receipt.orderNo };
       } catch (error) {
         if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
+        if (/^PAYMENT_PASSWORD_/.test(asApiError(error).message)) throw error;
         authorityError.value = asApiError(error).message;
         const rejection = refused(error);
         if (rejection) return rejection;
@@ -655,11 +679,11 @@ export const useFreeTrial = defineStore("freeTrial", () => {
         if (failure.kind === "auth" || (!isAmbiguousOutcome(error) && !failure.message.startsWith("IDEMPOTENCY_"))) {
           return { ok: false, reason: "unknown" };
         }
-        // A lost HTTP response is reconciled with the same key first. The
-        // idempotency record can replay the original order receipt without a
-        // second stock reservation; only then do we fall back to state readback.
+        // Recover only the receipt; a lost response never resends a PIN or executes another purchase.
         try {
-          const replay = await trialApi.convert(requestedProductNo, originalAmount, originalQuoteVersion, key);
+          const command = await readPaymentCommand(apiClient, 'trial-convert', key);
+          if (command.status !== 'SUCCEEDED') return {ok:false,reason:'unknown'};
+          const replay = parseTrialConvertReceipt(command.receipt);
           if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };
           const reconciled = await refreshRemote(true);
           if (requestedEpoch !== accountBindingEpoch) return { ok: false, reason: "unknown" };

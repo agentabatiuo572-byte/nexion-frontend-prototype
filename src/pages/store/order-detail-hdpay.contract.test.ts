@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 import detailSource from "./order-detail.vue?raw";
+import commandFenceSource from "@/lib/order-command-fence.ts?raw";
 import ts from "typescript";
 
 describe("wallet payment for a pending commerce order", () => {
   it("lets a placed remote order retry the idempotent wallet debit", () => {
     expect(detailSource).toContain("canPayFromWallet");
     expect(detailSource).toContain("orderApi.pay(");
-    expect(detailSource).toContain("`wallet-pay:${requestOrderNo}`");
+    expect(detailSource).toContain("beginOrderAction(orders.currentAccountKey(),'pay',requestOrderNo,requestAmountUsdt)");
+    expect(detailSource).toContain("orderApi.pay(requestOrderNo,action.key,authorization)");
+    expect(commandFenceSource).toContain("`wallet-pay:${orderNo}`");
     expect(detailSource).toContain("adoptCommerceWallet");
   });
 

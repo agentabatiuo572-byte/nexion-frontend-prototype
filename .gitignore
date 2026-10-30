@@ -21,6 +21,9 @@ dist
 
 # tooling / temp artifacts
 .cache/vite/
+
+# Payment PIN browser evidence is regenerated locally and shared through uvel-docs.
+/output/payment-pin-20261030/
 .trash/
 .playwright-mcp/
 .playwright-cli/

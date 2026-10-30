@@ -7,11 +7,24 @@ import { ApiError, asApiError, isSettledRejection } from "@/api/errors";
 import { rememberCheckoutOrder, readCheckoutTradein, finishCheckoutTradein, recoverCheckoutOrder } from "@/lib/checkout-order-recovery";
 import { createOrderApi } from "@/api/order-api";
 import type { ApiClient } from "@/api/api-client";
+import { readPaymentCommand } from "@/api/payment-command-api";
+import { parseCanonicalTradeinResult } from "@/api/device-e3-api";
+import { executePaymentWithPassword } from "@/lib/authorized-payment";
+import { purchaseRecoveryCopy } from "@/lib/purchase-recovery-copy";
+import { acquireAccountCommandKey, readAccountRow } from "@/store/account-scoped-storage";
 import { en } from "@/i18n/messages/en";
 
+const pin = vi.hoisted(() => ({ request: vi.fn(), report: vi.fn(), cancel: vi.fn(), warning: vi.fn() }));
+vi.mock("@/store/payment-password", () => ({ requestPaymentPassword: pin.request, reportPaymentPasswordError: pin.report,
+  cancelPaymentPassword: pin.cancel }));
+vi.mock("@/store/ui", () => ({ toast: { warn: pin.warning } }));
+vi.mock("@/store/locale", () => ({ useLocaleStore: () => ({ code: "en" }) }));
 let disk: Record<string, unknown>;
 beforeEach(() => {
   disk = {};
+  let attempt = 0;
+  pin.request.mockReset().mockImplementation(async () => ({ paymentPassword: "246802", credentialVersion: 3, attemptNo: `pin-attempt-${++attempt}` }));
+  pin.report.mockReset(); pin.cancel.mockReset(); pin.warning.mockReset();
   vi.stubGlobal("uni", { getStorageSync: (key: string) => disk[key], setStorageSync: (key: string, value: unknown) => { disk[key] = structuredClone(value); } });
 });
 
@@ -22,15 +35,20 @@ function handler(name: string, deps: Record<string, unknown>) {
   return new Function(...Object.keys(deps), code)(...Object.values(deps));
 }
 function checkout(active: boolean) {
-  const quote = { sourceDeviceId: 11, sourceRowVersion: 9, targetProductNo: "stellarbox-pro", targetDeviceStatus: active ? "ACTIVE" : "INACTIVE" };
+  const quote = { sourceDeviceId: 11, sourceRowVersion: 9, targetProductNo: "stellarbox-pro", targetDeviceStatus: active ? "ACTIVE" : "INACTIVE",
+    payableUsdt: 80, discountUsdt: 20 };
   const submitted = { tradeinNo: "TI-1", orderNo: "ORD-1", sourceDeviceId: 11, targetDeviceId: 33,
-    targetDeviceStatus: quote.targetDeviceStatus, walletDebitUsdt: 80, discountUsdt: 20 };
+    targetDeviceStatus: quote.targetDeviceStatus, walletDebitUsdt: 80, discountUsdt: 20,
+    applicationStatus: "COMPLETED", orderStatus: "COMPLETED", walletBalanceAfterUsdt: 20 };
   const order = { ...submitted, canonicalStatus: active ? "activated" : "inventory", paymentStatus: "PAID",
     orderStatus: "COMPLETED", activationStatus: active ? "ACTIVATED" : "INVENTORY", amountUsdt: 80 };
   const target = { id: "33", activatedAt: active ? 1000 : null, activationUnconfirmed: false };
   const scope = { accountKey: "a", accountEpoch: 1, productNo: "stellarbox-pro", generation: 1 };
   const deps: Record<string, any> = {
     remoteApiEnabled: true, completeVerifiedMutation, asApiError, isSettledRejection, scope, isCurrentAccountScope: () => true,
+    executePaymentWithPassword, readPaymentCommand, parseCanonicalTradeinResult, purchaseRecoveryCopy, locale: { code: "en" },
+    apiClient: { request: vi.fn().mockImplementation(async (request: { path: string }) => ({ kind: "trade-in",
+      commandKey: decodeURIComponent(request.path.split("/").at(-1)!), status: "NOT_SEEN", canResumeSameKey: false })) },
     readCheckoutTradein, rememberCheckoutOrder: vi.fn(rememberCheckoutOrder), finishCheckoutTradein: vi.fn(finishCheckoutTradein),
     captureCheckoutRoute: () => ({ ...scope }), isCurrentCheckoutRoute: (snapshot: typeof scope) => snapshot.accountKey === scope.accountKey
       && snapshot.accountEpoch === scope.accountEpoch && snapshot.generation === scope.generation,
@@ -40,11 +58,13 @@ function checkout(active: boolean) {
     quotedTotal: 80, confirming: true, offerWalletTopup: vi.fn(), refreshPurchaseEligibility: vi.fn().mockResolvedValue("eligible"),
     netPrice:ref(80),cardFee:ref(0),trialView:ref({applied:false,quoteVersion:null}),trialQuoteScreenUnavailable:ref(false),
     freeTrial:{hasPendingConversion:()=>false},
-    tradein: { appliedTradein: { canonicalQuote: quote }, clearApplied: vi.fn() },
+    tradein: { appliedTradein: { canonicalQuote: quote }, clearApplied: vi.fn() }, retryCheckoutCapacity: vi.fn().mockResolvedValue(undefined),
     appliedTradeinView: ref({ device: { id: "11" }, canonicalQuote: quote }),
     deviceE3Api: { submit: vi.fn().mockResolvedValue(submitted) },
     orderApi: { list: vi.fn().mockResolvedValue({ orders: [order] }), create: vi.fn(), pay: vi.fn() },
-    orders: { refreshRemote: vi.fn().mockResolvedValue(true) }, remoteOrderIntent: () => "stellarbox-pro||wallet|11|9", remoteOrderKey: () => "e3-same-key",
+    orders: { refreshRemote: vi.fn().mockResolvedValue(true) }, remoteOrderIntent: () => "stellarbox-pro||wallet|11|9",
+    remoteOrderKey: () => acquireAccountCommandKey("nexgrid-remote-checkout-commands-v1", scope.accountKey,
+      "stellarbox-pro||wallet|11|9", "h7-order", () => "same-key"),
     remoteTradeinRecoveryError: ref(false), remoteTradeinRecoveryBusy: ref(false), navReplace: vi.fn().mockResolvedValue(true),
     remoteTradeinRecoveryRequired: ref(false), retireRemoteOrderKey: vi.fn(), orderId: ref(null), step: ref("confirm"),
     t: ref(en), toast: { warn: vi.fn(), error: vi.fn() },
@@ -60,7 +80,9 @@ function checkout(active: boolean) {
 
 it.each([true, false])("the actual RETIRE handler verifies the selected source placement active=%s", async active => {
   const h = checkout(active); await h.submit();
-  expect(h.deviceE3Api.submit).toHaveBeenCalledWith(11, "stellarbox-pro", "e3-same-key", h.quote);
+  expect(h.deviceE3Api.submit).toHaveBeenCalledWith(11, "stellarbox-pro", "e3-tradein:same-key", h.quote,
+    expect.objectContaining({ credentialVersion: 3, attemptNo: "pin-attempt-1" }));
+  expect(pin.request).toHaveBeenCalledWith(expect.objectContaining({ amount: 80, currency: "USDT" }));
   expect(h.orderId.value).toBe("ORD-1"); expect(h.step.value).toBe("confirmed");
   expect(h.presentSettledPurchase).toHaveBeenCalledExactlyOnceWith(false);
   expect(h.orderApi.create).not.toHaveBeenCalled(); expect(h.orderApi.pay).not.toHaveBeenCalled();
@@ -159,7 +181,7 @@ it.each(["order", "fleet"])("reload recovers a known RETIRE result after %s fail
   expect(readCheckoutTradein("a", "stellarbox-pro")).toBeNull();
 });
 
-it("reload replays an outcome-unknown RETIRE with exactly the same key and source quote", async () => {
+it("reload first queries an outcome-unknown RETIRE and resumes only explicitly with fresh PIN and the original key/quote", async () => {
   const first = checkout(false);
   first.deviceE3Api.submit.mockRejectedValueOnce(new Error("response lost after commit"));
   await first.submit();
@@ -169,9 +191,123 @@ it("reload replays an outcome-unknown RETIRE with exactly the same key and sourc
   refreshed.app.user.usdtBalance = 0; refreshed.refreshPurchaseEligibility.mockResolvedValue("ineligible");
   refreshed.appliedTradeinView.value = null; refreshed.tradein.appliedTradein = null;
   await refreshed.submit();
-  expect(refreshed.deviceE3Api.submit).toHaveBeenCalledExactlyOnceWith(...original);
+  expect(refreshed.apiClient.request).toHaveBeenCalledExactlyOnceWith({ path: "/api/app/payment-commands/trade-in/e3-tradein%3Asame-key" });
+  expect(refreshed.deviceE3Api.submit).not.toHaveBeenCalled();
+  expect(pin.request).toHaveBeenCalledOnce();
+  refreshed.apiClient.request.mockResolvedValue({ kind: "trade-in", commandKey: original[2], status: "NOT_SEEN", canResumeSameKey: true });
+  await refreshed.resumePendingRemoteTradein({ ...refreshed.scope }, true, true);
+  expect(refreshed.deviceE3Api.submit).toHaveBeenCalledExactlyOnceWith(original[0], original[1], original[2], original[3],
+    expect.objectContaining({ credentialVersion: 3, attemptNo: "pin-attempt-2" }));
+  expect(pin.request).toHaveBeenCalledTimes(2);
   expect(refreshed.orderId.value).toBe("ORD-1"); expect(refreshed.orderApi.create).not.toHaveBeenCalled();
   expect(refreshed.refreshPurchaseEligibility).not.toHaveBeenCalled();
+});
+
+it.each(["en", "zh-CN", "vi"])("an authoritative REJECTED result releases only the original intent and returns to review without another POST (%s)", async language => {
+  const first = checkout(false);
+  first.deviceE3Api.submit.mockRejectedValueOnce(new Error("response lost"));
+  await first.submit();
+  const original = readCheckoutTradein("a", "stellarbox-pro")!;
+  const otherKey = acquireAccountCommandKey("nexgrid-remote-checkout-commands-v1", "a", "other-intent", "h7-order", () => "unrelated");
+  const refreshed = checkout(false); refreshed.locale.code = language;
+  refreshed.remoteTradeinRecoveryError.value = true;
+  refreshed.apiClient.request.mockResolvedValue({ kind: "trade-in", commandKey: original.commandKey.replace("h7-order:", "e3-tradein:"), status: "REJECTED", canResumeSameKey: false });
+  await refreshed.resumePendingRemoteTradein({ ...refreshed.scope }, true, true);
+  expect(readCheckoutTradein("a", "stellarbox-pro")).toBeNull();
+  const commands = readAccountRow<{ commands: Record<string, string> }>("nexgrid-remote-checkout-commands-v1", "a")!.commands;
+  expect(commands[original.intent]).toBeUndefined(); expect(commands["other-intent"]).toBe(otherKey);
+  expect(refreshed.remoteTradeinRecoveryRequired.value).toBe(false);
+  expect(refreshed.remoteTradeinRecoveryError.value).toBe(false);
+  expect(refreshed.step.value).toBe("select-payment");
+  expect(refreshed.tradein.clearApplied).toHaveBeenCalledOnce();
+  expect(refreshed.retryCheckoutCapacity).toHaveBeenCalledOnce();
+  expect(refreshed.toast.warn).toHaveBeenCalledWith(purchaseRecoveryCopy(language).rejected);
+  expect(refreshed.deviceE3Api.submit).not.toHaveBeenCalled();
+  expect(refreshed.orderApi.create).not.toHaveBeenCalled(); expect(refreshed.orderApi.pay).not.toHaveBeenCalled();
+  expect(refreshed.orderApi.list).not.toHaveBeenCalled(); expect(refreshed.navReplace).not.toHaveBeenCalled();
+  expect(refreshed.retireRemoteOrderKey).not.toHaveBeenCalled(); expect(pin.request).toHaveBeenCalledOnce();
+  await refreshed.resumePendingRemoteTradein({ ...refreshed.scope }, true);
+  expect(refreshed.deviceE3Api.submit).not.toHaveBeenCalled();
+});
+
+it.each([
+  ["PROCESSING", true, true], ["INDETERMINATE", true, true], ["NOT_SEEN", false, true], ["NOT_SEEN", true, false],
+])("keeps %s read-only when canResume=%s and explicitResume=%s", async (status, canResumeSameKey, explicitResume) => {
+  const first = checkout(false); first.deviceE3Api.submit.mockRejectedValueOnce(new Error("response lost")); await first.submit();
+  const original = readCheckoutTradein("a", "stellarbox-pro")!;
+  const refreshed = checkout(false);
+  refreshed.apiClient.request.mockResolvedValue({ kind: "trade-in", commandKey: original.commandKey.replace("h7-order:", "e3-tradein:"), status, canResumeSameKey });
+  await refreshed.resumePendingRemoteTradein({ ...refreshed.scope }, true, explicitResume as boolean);
+  expect(readCheckoutTradein("a", "stellarbox-pro")!.commandKey).toBe(original.commandKey);
+  expect(refreshed.remoteTradeinRecoveryRequired.value).toBe(true); expect(refreshed.remoteTradeinRecoveryError.value).toBe(true);
+  expect(refreshed.deviceE3Api.submit).not.toHaveBeenCalled(); expect(refreshed.tradein.clearApplied).not.toHaveBeenCalled();
+  expect(refreshed.retryCheckoutCapacity).not.toHaveBeenCalled(); expect(pin.request).toHaveBeenCalledOnce();
+});
+
+it("recovers a succeeded payment command through the real receipt parser without another PIN or POST", async () => {
+  const first = checkout(false); first.deviceE3Api.submit.mockRejectedValueOnce(new Error("response lost")); await first.submit();
+  const original = readCheckoutTradein("a", "stellarbox-pro")!;
+  const refreshed = checkout(false);
+  refreshed.apiClient.request.mockResolvedValue({ kind: "trade-in", commandKey: original.commandKey.replace("h7-order:", "e3-tradein:"), status: "SUCCEEDED", canResumeSameKey: false,
+    receipt: { ...refreshed.order, applicationStatus: "COMPLETED", walletBalanceAfterUsdt: 20 } });
+  await refreshed.resumePendingRemoteTradein({ ...refreshed.scope }, true);
+  expect(refreshed.orderId.value).toBe("ORD-1"); expect(readCheckoutTradein("a", "stellarbox-pro")).toBeNull();
+  expect(refreshed.deviceE3Api.submit).not.toHaveBeenCalled(); expect(pin.request).toHaveBeenCalledOnce();
+});
+
+it("does not retire the old account's pointer when a REJECTED read arrives after account change", async () => {
+  const first = checkout(false); first.deviceE3Api.submit.mockRejectedValueOnce(new Error("response lost")); await first.submit();
+  const original = readCheckoutTradein("a", "stellarbox-pro")!;
+  const refreshed = checkout(false);
+  refreshed.apiClient.request.mockImplementationOnce(async () => {
+    refreshed.scope.accountKey = "b"; refreshed.scope.accountEpoch++;
+    return { kind: "trade-in", commandKey: original.commandKey.replace("h7-order:", "e3-tradein:"), status: "REJECTED", canResumeSameKey: false };
+  });
+  await refreshed.resumePendingRemoteTradein({ ...refreshed.scope }, true);
+  expect(readCheckoutTradein("a", "stellarbox-pro")!.commandKey).toBe(original.commandKey);
+  expect(refreshed.finishCheckoutTradein).not.toHaveBeenCalled(); expect(refreshed.tradein.clearApplied).not.toHaveBeenCalled();
+  expect(refreshed.toast.warn).not.toHaveBeenCalled(); expect(refreshed.retryCheckoutCapacity).not.toHaveBeenCalled();
+});
+
+it.each(["wrong-kind", "wrong-key", "invalid-receipt"])("retains recovery when the command response has %s", async invalid => {
+  const first = checkout(false); first.deviceE3Api.submit.mockRejectedValueOnce(new Error("response lost")); await first.submit();
+  const original = readCheckoutTradein("a", "stellarbox-pro")!;
+  const refreshed = checkout(false);
+  refreshed.apiClient.request.mockResolvedValue({ kind: invalid === "wrong-kind" ? "order-pay" : "trade-in",
+    commandKey: invalid === "wrong-key" ? "another-key" : original.commandKey.replace("h7-order:", "e3-tradein:"),
+    status: invalid === "invalid-receipt" ? "SUCCEEDED" : "REJECTED", canResumeSameKey: false, receipt: {} });
+  await refreshed.resumePendingRemoteTradein({ ...refreshed.scope }, true, true);
+  expect(readCheckoutTradein("a", "stellarbox-pro")!.commandKey).toBe(original.commandKey);
+  expect(refreshed.remoteTradeinRecoveryError.value).toBe(true);
+  expect(refreshed.finishCheckoutTradein).not.toHaveBeenCalled(); expect(refreshed.tradein.clearApplied).not.toHaveBeenCalled();
+  expect(refreshed.deviceE3Api.submit).not.toHaveBeenCalled(); expect(pin.request).toHaveBeenCalledOnce();
+});
+
+it.each(["missing", "sourceDeviceId", "sourceRowVersion", "targetProductNo", "targetDeviceStatus", "payableUsdt", "discountUsdt"])("does not submit when the reviewed trade-in %s changes during PIN entry", async field => {
+  const h = checkout(false);
+  pin.request.mockImplementationOnce(async () => {
+    const changed = { ...h.quote };
+    if (field === "targetProductNo") changed.targetProductNo = "another-product";
+    else if (field === "targetDeviceStatus") changed.targetDeviceStatus = "ACTIVE";
+    else if (field !== "missing") changed[field as "sourceDeviceId" | "sourceRowVersion" | "payableUsdt" | "discountUsdt"]++;
+    h.appliedTradeinView.value = field === "missing" ? null : { canonicalQuote: changed };
+    return { paymentPassword: "246802", credentialVersion: 3, attemptNo: "new-pin" };
+  });
+  await h.submit();
+  expect(h.deviceE3Api.submit).not.toHaveBeenCalled(); expect(h.orderApi.create).not.toHaveBeenCalled();
+  expect(h.orderId.value).toBeNull(); expect(readCheckoutTradein("a", "stellarbox-pro")).toBeNull();
+  expect(pin.cancel).toHaveBeenCalledOnce(); expect(pin.warning).toHaveBeenCalledWith(purchaseRecoveryCopy("en").changed);
+});
+
+it("keeps the reviewed trade-in valid when only wallet display refreshes during PIN entry", async () => {
+  const h = checkout(false);
+  pin.request.mockImplementationOnce(async () => {
+    h.app.user.usdtBalance = 99;
+    return { paymentPassword: "246802", credentialVersion: 3, attemptNo: "new-pin" };
+  });
+  await h.submit();
+  expect(h.deviceE3Api.submit).toHaveBeenCalledOnce(); expect(h.orderId.value).toBe("ORD-1");
+  expect(pin.cancel).not.toHaveBeenCalled();
 });
 
 it("a stale account response cannot apply or clear another account's pending request", async () => {
@@ -216,7 +352,7 @@ it("retains the original command when the server explicitly reports an unknown i
   const first = checkout(true);
   first.deviceE3Api.submit.mockRejectedValueOnce(new ApiError({ kind: "business", message: "IDEMPOTENCY_RESULT_UNKNOWN" }));
   await first.submit();
-  expect(readCheckoutTradein("a", "stellarbox-pro")!.commandKey).toBe("e3-same-key");
+  expect(readCheckoutTradein("a", "stellarbox-pro")!.commandKey).toBe("h7-order:same-key");
   expect(first.remoteTradeinRecoveryError.value).toBe(true);
 });
 

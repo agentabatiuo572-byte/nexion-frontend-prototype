@@ -1,7 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach,beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import type { CanonicalOrder, CanonicalOrderList } from "@/api/order-api";
 import { advanceRuntimeRevision } from "@/api/order-api";
+import {beginOrderAction,readOrderAction} from '@/lib/order-command-fence';
+import {ApiError} from '@/api/errors';
 
 const remote = vi.hoisted(() => ({
   remoteApiEnabled: true,
@@ -84,13 +86,40 @@ function cancelledList(account: string): CanonicalOrderList {
 }
 
 beforeEach(() => {
+  const storage=new Map<string,unknown>();
+  vi.stubGlobal('uni',{getStorageSync:(key:string)=>storage.get(key),setStorageSync:(key:string,value:unknown)=>storage.set(key,structuredClone(value))});
   setActivePinia(createPinia());
   advanceRuntimeRevision(null);
   remote.orderApi.list.mockReset();
   remote.orderApi.cancel.mockReset();
 });
+afterEach(()=>vi.unstubAllGlobals());
 
 describe("orders remote account and commerce run scope", () => {
+  it('an unresolved payment prevents cancellation at the shared store boundary',async()=>{
+    const store=useOrders();store.bindAccount('A');beginOrderAction('A','pay','ORD-A',100);
+    expect(await store.cancelOrderRemote('ORD-A')).toBe(false);expect(remote.orderApi.cancel).not.toHaveBeenCalled();
+    expect(readOrderAction('A','ORD-A')?.kind).toBe('pay');
+  });
+  it('an unknown cancellation stays fenced after reloading and only its original key can be explicitly retried',async()=>{
+    remote.orderApi.cancel.mockRejectedValueOnce(new ApiError({kind:'network',message:'REQUEST_TIMEOUT'}));
+    remote.orderApi.list.mockResolvedValue(list('A'));
+    let store=useOrders();store.bindAccount('A');expect(await store.cancelOrderRemote('ORD-A')).toBe(false);
+    expect(readOrderAction('A','ORD-A')?.kind).toBe('cancel');
+    setActivePinia(createPinia());store=useOrders();store.bindAccount('A');
+    expect(()=>beginOrderAction('A','pay','ORD-A',100)).toThrow('ORIGINAL_ORDER_COMMAND_UNRESOLVED');
+    remote.orderApi.cancel.mockResolvedValueOnce({});remote.orderApi.list.mockResolvedValue(cancelledList('A'));
+    expect(await store.cancelOrderRemote('ORD-A')).toBe(true);
+    expect(remote.orderApi.cancel.mock.calls.map(call=>call[1])).toEqual(['order-cancel:ORD-A','order-cancel:ORD-A']);
+    expect(readOrderAction('A','ORD-A')).toBeNull();
+  });
+  it('a definitive cancellation rejection unlocks payment only after a readable original order',async()=>{
+    const store=useOrders();store.bindAccount('A');
+    remote.orderApi.cancel.mockRejectedValueOnce(new ApiError({kind:'business',code:422,message:'ORDER_CANCEL_REJECTED'}));
+    remote.orderApi.list.mockResolvedValue(list('A'));
+    expect(await store.cancelOrderRemote('ORD-A')).toBe(false);expect(readOrderAction('A','ORD-A')).toBeNull();
+    expect(beginOrderAction('A','pay','ORD-A',100).kind).toBe('pay');
+  });
   it("drops a late list success after switching accounts", async () => {
     const listA = deferred<CanonicalOrderList>();
     const listB = deferred<CanonicalOrderList>();

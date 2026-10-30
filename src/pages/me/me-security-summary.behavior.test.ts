@@ -35,6 +35,7 @@ function page(language: keyof typeof dictionaries = 'zh') {
   const epoch = createRemoteAccountEpoch('user:1'), api = { securityOverview: vi.fn() };
   const hooks = { show: [] as Array<() => void>, hide: [] as Array<() => void>, dispose: [] as Array<() => void> };
   const bindings = { ref: Vue.ref, computed: Vue.computed, watch: Vue.watch, app, auth, remoteApiEnabled: true, accountApi: api,
+    paymentPasswordSummary: Vue.ref('—'), refreshPaymentPassword: vi.fn().mockResolvedValue(undefined),
     security: { twoFactorEnabled: false }, t: Vue.ref(dictionaries[language]), captureAccountScope: () => epoch.snapshot(), isCurrentAccountScope: epoch.isCurrent,
     runPassiveTabRead: (_resource: string, read: () => Promise<unknown>) => read(),
     passiveTabReadScope: () => JSON.stringify([app.accountKey, app.accountBindingEpoch, auth.accountId, auth.isAuthenticated]),

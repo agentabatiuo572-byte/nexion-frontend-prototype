@@ -67,6 +67,8 @@ export interface ApiRequest {
     code: number;
     message: string;
   }>;
+  /** A rejected secret-bearing command must ask the user again after authentication. */
+  retryAfterAuth?: boolean;
 }
 
 export interface ApiClient {
@@ -435,6 +437,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       if (terminalAuthFailure(apiError.status ?? 0, apiError.code, apiError.message)) {
         return terminateSession(sessionRevision, apiError.message, apiError.status ?? 403, apiError.code ?? 403);
       }
+      if (apiRequest.retryAfterAuth === false) throw apiError;
       const latest = options.vault.read();
       if (!session || !latest || latest.user.userId !== session.user.userId
           || (options.vault.revision() !== sessionRevision && !options.vault.isRefreshContinuation(sessionRevision))) {

@@ -93,6 +93,7 @@ import { useOrders } from "@/store/orders";
 import { useLocaleStore } from "@/store/locale";
 import { trialReservesSlotNow, useFreeTrial } from "@/store/free-trial";
 import { useSecurity } from "@/store/security";
+import { usePaymentPassword } from "@/store/payment-password";
 import { captureAccountScope, isCurrentAccountScope, rebindAccountScopedStores } from "@/lib/account-scope";
 import { useNotifications } from "@/store/notifications";
 import { useConversations } from "@/store/conversations";
@@ -146,6 +147,10 @@ const orders = useOrders();
 const locale = useLocaleStore();
 const trial = useFreeTrial();
 const security = useSecurity();
+const paymentPassword = usePaymentPassword();
+const paymentPasswordLoading = ref(true);
+const paymentPasswordSummary = computed(() => paymentPasswordLoading.value ? "…" : !paymentPassword.ui.state ? t.value.paymentPin.unavailable : paymentPassword.ui.state.configured ? t.value.paymentPin.configured + (paymentPassword.locked() ? ` · ${t.value.paymentPin.lockedLabel}` : "") : t.value.paymentPin.notConfigured);
+async function refreshPaymentPassword() { paymentPasswordLoading.value = true; await paymentPassword.refreshStatus(); paymentPasswordLoading.value = false; }
 const notifications = useNotifications();
 const conversations = useConversations();
 const messageCenter = useMessageDrawer();
@@ -308,6 +313,7 @@ const quickSections = computed<QuickSection[]>(() => [
       { key: "cards", label: t.value.me.walletCardsRow, href: "/me/wallet-cards", icon: "card", meta: t.value.me.walletCardsMeta, tone: "muted" },
       { key: "profile", label: t.value.me.profile, href: "/me/profile", icon: "user", meta: profileName.value, tone: "muted" },
       { key: "security", label: t.value.me.security, href: "/me/security", icon: "lock", meta: twoFactorSummary.value, tone: twoFactorEnabled.value === null ? "muted" : twoFactorEnabled.value ? "muted" : "orange" },
+      { key: "payment-password", label: t.value.paymentPin.title, href: "/me/payment-password", icon: "lock", meta: paymentPasswordSummary.value, tone: "muted" },
     ],
   },
   {
@@ -428,6 +434,7 @@ watch(() => [app.accountKey, app.accountBindingEpoch] as const, () => {
 });
 onShow(() => {
   remoteMeActive = true;
+  void refreshPaymentPassword();
   if (remoteApiEnabled) void refreshRemoteMe();
 });
 onHide(() => {
@@ -458,6 +465,7 @@ onUnmounted(() => {
 });
 
 function handleQuickItem(item: QuickItem) {
+  if (item.key === "payment-password" && !paymentPassword.ui.state) { void refreshPaymentPassword(); return; }
   if (item.key === "theme") {
     themePickerOpen.value = true;
     return;

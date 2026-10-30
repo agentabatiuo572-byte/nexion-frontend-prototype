@@ -234,6 +234,8 @@ import { useVRank } from "@/store/v-rank";
 import { useNetwork } from "@/store/network";
 import { acquireAccountCommandKey, readAccountRow, writeAccountRow } from "@/store/account-scoped-storage";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
+import { executePaymentWithPassword } from "@/lib/authorized-payment";
+import { beginOrderAction, readOrderAction, clearOrderAction, markOrderActionPaid } from "@/lib/order-command-fence";
 
 const t = useT();
 const cart = useCart();
@@ -600,12 +602,37 @@ async function onCheckout() {
         if (!matchesBundleQuote(created, command.productNos, command.expectedAmountUsdt)) {
           throw new ApiError({ kind: "protocol", message: "BUNDLE_QUOTE_RECEIPT_MISMATCH" });
         }
-        const paid = await orderApi.pay(created.orderNo, `wallet-pay:${created.orderNo}`);
+        if (readOrderAction(accountKey,created.orderNo)) {
+          navTo(`/pages/store/order-detail?id=${encodeURIComponent(created.orderNo)}`);
+          return;
+        }
+        const persisted=await orders.ensureRemoteOrder(created.orderNo);
         if (!scopeIsCurrent()) return;
-        if (paid.orderNo !== created.orderNo
-            || (paid.paymentMethod === "WALLET"
+        if (!persisted || persisted.total!==created.amountUsdt) throw new Error('BUNDLE_WALLET_PAYMENT_READBACK_MISMATCH');
+        if (persisted.status!=='placed') {
+          navTo(`/pages/store/order-detail?id=${encodeURIComponent(created.orderNo)}`);
+          return;
+        }
+        let paymentKey:string|null=null;
+        const paid = await executePaymentWithPassword({amount:command.expectedAmountUsdt,currency:'USDT',summary:list.map(product=>product.name).join(', ')},
+          async authorization=>{
+            const action=beginOrderAction(accountKey,'pay',created.orderNo,command.expectedAmountUsdt);paymentKey=action.key;
+            try{return await orderApi.pay(created.orderNo,action.key,authorization);}
+            catch(error){
+              if (/^PAYMENT_PASSWORD_(INCORRECT|LOCKED|VERSION_CONFLICT|NOT_CONFIGURED|REQUIRED)$/.test(asApiError(error).message))
+                clearOrderAction(accountKey,created.orderNo,action.key);
+              throw error;
+            }
+          },()=>scopeIsCurrent()&&bundleFingerprint(products.value)===bundleFingerprint(list)
+            &&normalizeBundleExpectedAmountUsdt(total.value)===command.expectedAmountUsdt
+            &&policy.value?.policyVersion===latestPolicy.policyVersion);
+        if (!paid) return;
+        if (!scopeIsCurrent()) return;
+        if (paid.orderNo !== created.orderNo) throw new Error("BUNDLE_WALLET_PAYMENT_RECEIPT_INVALID");
+        markOrderActionPaid(accountKey,created.orderNo);
+        if (paid.paymentMethod === "WALLET"
               && (paid.walletBalanceAfterUsdt === null
-                || !app.adoptCommerceWallet(paid.walletBalanceAfterUsdt, walletReceiptScope)))) {
+                || !app.adoptCommerceWallet(paid.walletBalanceAfterUsdt, walletReceiptScope))) {
           throw new Error("BUNDLE_WALLET_PAYMENT_RECEIPT_INVALID");
         }
         paymentConfirmed = true;
@@ -618,6 +645,7 @@ async function onCheckout() {
         if (!settled || settled.status !== "activated") {
           throw new Error("BUNDLE_WALLET_PAYMENT_READBACK_MISMATCH");
         }
+        if(paymentKey)clearOrderAction(accountKey,created.orderNo,paymentKey);
         // Order + wallet receipt are already canonical. Fleet projection is
         // best effort and must never cause a second payment submission.
         void app.refreshRemoteFleet(walletReceiptScope);

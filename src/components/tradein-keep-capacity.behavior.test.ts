@@ -1,4 +1,4 @@
-import { computed, ref } from "vue";
+import { ref } from "vue";
 import { parse } from "@vue/compiler-sfc";
 import { expect, it, vi } from "vitest";
 import ts from "typescript";
@@ -8,6 +8,8 @@ import { completeVerifiedMutation } from "@/domain/e20-capacity-coordinator";
 import { createDeviceE3Api } from "@/api/device-e3-api";
 import type { ApiClient } from "@/api/api-client";
 import { parsePendingKeepCommand } from "@/lib/keep-command-recovery";
+import { readPaymentCommand } from "@/api/payment-command-api";
+import { parseCanonicalCapacityKeepResult } from "@/api/device-e3-api";
 
 const script = parse(source).descriptor.scriptSetup!.content;
 const ast = ts.createSourceFile("tradein.ts", script, ts.ScriptTarget.Latest, true);
@@ -19,6 +21,7 @@ it.each(["REPLACE_REQUIRED", "CAPACITY_AVAILABLE"])("keeps the remote KEEP comma
   const state = ref({ kind: "replace", newKind: "stellarbox-s1", canonicalCapacityQuote: quote });
   const confirming = ref(false), submitCanonicalKeepBuy = vi.fn(), toast = { warn: vi.fn() };
   const deps = { state, confirming, remoteApiEnabled: true, replaceView: ref({ insufficient: false }),
+    capacityRecovery:ref(null),capacityRecoveryUnavailable:ref(false),recoverCapacityPurchase:vi.fn(),
     t: ref(zh), submitCanonicalKeepBuy, toast, refreshKeepRecovery: vi.fn(), keepRecovery: ref(null), keepRecoveryError: ref(false), onRecoverKeep: vi.fn() };
   new Function(...Object.keys(deps), `${code}; onKeepBuy();`)(...Object.values(deps));
   expect(confirming.value).toBe(decision === "CAPACITY_AVAILABLE");
@@ -29,6 +32,7 @@ it.each(["REPLACE_REQUIRED", "CAPACITY_AVAILABLE"])("keeps the remote KEEP comma
 it("restores a persisted legacy KEEP before a new quote or the current insufficient-balance guard", () => {
   const onRecoverKeep = vi.fn(), submitCanonicalKeepBuy = vi.fn();
   const deps = { state: ref({ kind: "replace", newKind: "stellarbox-s1", canonicalCapacityQuote: { decision: "REPLACE_REQUIRED" } }),
+    capacityRecovery:ref(null),capacityRecoveryUnavailable:ref(false),recoverCapacityPurchase:vi.fn(),
     confirming: ref(false), remoteApiEnabled: true, replaceView: ref({ insufficient: true }),
     refreshKeepRecovery: vi.fn(), keepRecovery: ref({ key: "legacy-key" }), keepRecoveryError: ref(false), onRecoverKeep,
     t: ref(zh), submitCanonicalKeepBuy, toast: { warn: vi.fn() } };
@@ -42,15 +46,20 @@ it("recovers a pre-upgrade KEEP after a lost response using the stored key and p
   const commands: Record<string, string> = { [legacyIntent]: "legacy-keep-key" };
   const receipt = { operationNo: "KEEP-OLD", orderNo: "ORD-OLD", targetDeviceId: 1204,
     deviceStatus: "ACTIVE", orderStatus: "COMPLETED", walletDebitUsdt: 2639, walletBalanceAfterUsdt: 0 };
-  const transport = { request: vi.fn().mockRejectedValueOnce(new Error("response lost")).mockResolvedValueOnce(receipt) };
+  const transport = { request: vi.fn().mockResolvedValueOnce({kind:'capacity-keep',commandKey:'legacy-keep-key',status:'INDETERMINATE',canResumeSameKey:false})
+    .mockResolvedValueOnce({kind:'capacity-keep',commandKey:'legacy-keep-key',status:'SUCCEEDED',canResumeSameKey:false,receipt}) };
+  let pending:unknown=null;
   const canonicalCapacityKey = vi.fn(), releaseAccountCommandKey = vi.fn((_table, _account, intent, key) => {
     expect(commands[intent]).toBe(key); delete commands[intent]; return true;
   });
   const deps = { app: { accountKey: "user:7", devices: [{ id: "1204", activatedAt: 1 }], refreshRemoteFleet: vi.fn(async () => true) },
-    CAPACITY_COMMAND_TABLE: "nexgrid-e3-capacity-commands-accounts-v1",
-    readPendingKeepCommand: (account: string, target: string) => parsePendingKeepCommand({ "user:7": { commands } }, account, target),
+    CAPACITY_COMMAND_TABLE: "nexgrid-e3-capacity-commands-accounts-v1",CAPACITY_RECOVERY_TABLE:'capacity-payment',
+    readPendingKeepCommand: (account: string, target?: string) => parsePendingKeepCommand({ "user:7": { commands } }, account, target),
+    readAccountRow: vi.fn(table => table==='capacity-payment'?{pending}:{commands}),writeAccountRow:vi.fn((_table,_account,value)=>{pending=value.pending;return true;}),
     captureAccountScope: () => ({ accountKey: "user:7" }), isCurrentAccountScope: () => true,
     canonicalCapacityKey, deviceE3Api: createDeviceE3Api(transport as unknown as ApiClient), completeVerifiedMutation,
+    apiClient:transport,readPaymentCommand,parseCanonicalCapacityKeepResult,executePaymentWithPassword:vi.fn(),
+    capacityRecovery:ref(null),capacityRecoveryBusy:ref(false),capacityResumeAllowed:ref(false),capacityRecoveryUnavailable:ref(false),recoveryCopy:ref({paymentPending:'Confirming'}),
     orderApi: { list: async () => ({ orders: [{ orderNo: "ORD-OLD", productNo: "stellarbox-pro-v2", orderType: "CAPACITY_KEEP",
       canonicalStatus: "activated", paymentStatus: "PAID", orderStatus: "COMPLETED", activationStatus: "ACTIVATED",
       targetDeviceId: 1204, targetDeviceInstanceNo: "DEV-OLD", amountUsdt: 2639, discountUsdt: 0 }] }) },
@@ -58,7 +67,7 @@ it("recovers a pre-upgrade KEEP after a lost response using the stored key and p
     toast: { success: vi.fn(), warn: vi.fn() }, t: ref(zh), fmt: () => "recovered", kindLabel: String,
     hide: vi.fn(), goDevices: vi.fn(), confirming: ref(true), refreshKeepRecovery: vi.fn() };
   const functions = ast.statements.filter(node => ts.isFunctionDeclaration(node)
-    && ["readPendingKeep", "capacityIntent", "submitCanonicalKeepBuy"].includes(node.name?.text ?? ""));
+    && ["readPendingKeep", "capacityIntent", "submitCanonicalKeepBuy","readCapacityPending","writeCapacityPending","runCanonicalCapacityPurchase"].includes(node.name?.text ?? ""));
   const compiled = ts.transpileModule(functions.map(node => node.getText(ast)).join("\n"),
     { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
   const submit = new Function(...Object.keys(deps), `${compiled};return submitCanonicalKeepBuy;`)(...Object.values(deps));
@@ -69,8 +78,8 @@ it("recovers a pre-upgrade KEEP after a lost response using the stored key and p
   expect(releaseAccountCommandKey).not.toHaveBeenCalled();
   await submit("stellarbox-pro-v2", changed);
   expect(transport.request).toHaveBeenCalledTimes(2);
-  for (const [request] of transport.request.mock.calls) expect(request).toEqual({ method: "POST", path: "/api/app/trade-in/capacity-keep",
-    body: { targetProductNo: "stellarbox-pro-v2", expectedPayableUsdt: 2639 }, idempotencyKey: "legacy-keep-key" });
+  for (const [request] of transport.request.mock.calls) expect(request).toEqual({ path:'/api/app/payment-commands/capacity-keep/legacy-keep-key' });
+  expect(deps.executePaymentWithPassword).not.toHaveBeenCalled();
   expect(canonicalCapacityKey).not.toHaveBeenCalled();
   expect(releaseAccountCommandKey).toHaveBeenCalledExactlyOnceWith(deps.CAPACITY_COMMAND_TABLE, "user:7", legacyIntent, "legacy-keep-key");
   expect(deps.toast.success).toHaveBeenCalledOnce();
@@ -78,13 +87,15 @@ it("recovers a pre-upgrade KEEP after a lost response using the stored key and p
 });
 
 it.each(["malformed", []])("does not treat an invalid commands container as a missing legacy KEEP: %s", async commands => {
-  const deps = { app: { accountKey: "user:7" }, CAPACITY_COMMAND_TABLE: "keep-commands",
+  const deps = { app: { accountKey: "user:7" }, CAPACITY_COMMAND_TABLE: "keep-commands", CAPACITY_RECOVERY_TABLE: 'capacity-payment',
     readPendingKeepCommand: (account: string, target: string) => parsePendingKeepCommand({ "user:7": { commands } }, account, target),
+    readAccountRow: () => null, capacityRecovery: ref(null), capacityRecoveryBusy: ref(false), capacityRecoveryUnavailable: ref(false), capacityResumeAllowed: ref(false),
+    recoveryCopy: ref({ paymentPending: zh.tradein.keepRecoveryReadError }),
     captureAccountScope: () => ({}), isCurrentAccountScope: () => true, canonicalCapacityKey: vi.fn(),
     deviceE3Api: { capacityKeep: vi.fn(), replayCapacityKeep: vi.fn() },
     refreshKeepRecovery: vi.fn(), toast: { warn: vi.fn() }, t: ref(zh), confirming: ref(true) };
   const functions = ast.statements.filter(node => ts.isFunctionDeclaration(node)
-    && ["readPendingKeep", "capacityIntent", "submitCanonicalKeepBuy"].includes(node.name?.text ?? ""));
+    && ["readPendingKeep", "capacityIntent", "submitCanonicalKeepBuy", "readCapacityPending", "runCanonicalCapacityPurchase"].includes(node.name?.text ?? ""));
   const compiled = ts.transpileModule(functions.map(node => node.getText(ast)).join("\n"),
     { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
   const submit = new Function(...Object.keys(deps), `${compiled};return submitCanonicalKeepBuy;`)(...Object.values(deps));
@@ -92,7 +103,7 @@ it.each(["malformed", []])("does not treat an invalid commands container as a mi
   expect(deps.canonicalCapacityKey).not.toHaveBeenCalled();
   expect(deps.deviceE3Api.capacityKeep).not.toHaveBeenCalled();
   expect(deps.deviceE3Api.replayCapacityKeep).not.toHaveBeenCalled();
-  expect(deps.toast.warn).toHaveBeenCalledWith(zh.tradein.errPleaseRetry);
+  expect(deps.toast.warn).toHaveBeenCalledWith(zh.tradein.keepRecoveryReadError);
 });
 
 it("distinguishes missing history from malformed rows and rejects two matching KEEP keys in either order", () => {
@@ -130,7 +141,7 @@ it("checks the original KEEP before obtaining a new full-price capacity quote", 
 });
 
 it("hides remote KEEP in the full-capacity replacement surface", () => {
-  const condition = source.match(/v-if="([^"]+)"\s+class="tis-secondary"/)![1];
+  const condition = source.match(/v-if="([^"]*CAPACITY_AVAILABLE[^"]*)"\s+class="tis-secondary"/)![1];
   const renderAction = new Function("remoteApiEnabled", "state", `return ${condition};`);
   expect(renderAction(true, { kind: "replace", canonicalCapacityQuote: { decision: "REPLACE_REQUIRED" } })).toBe(false);
   expect(renderAction(true, { kind: "replace", canonicalCapacityQuote: { decision: "CAPACITY_AVAILABLE" } })).toBe(true);

@@ -1,10 +1,12 @@
 import { promotionVI } from "./promotion";
 import { coreReviewCopy } from "../core-review";
 import type { Messages } from "./en";
+import { paymentPinVI } from "./payment-password";
 
 // Vietnamese (Tiếng Việt) — professional yet friendly register (bạn). Keys mirror en.ts exactly.
 
 export const vi: Messages = {
+  paymentPin: paymentPinVI,
   coreReview: coreReviewCopy.vi,
   thirdParty: {
     signInTitle: "Đăng nhập bằng",

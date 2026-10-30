@@ -8,7 +8,11 @@ import ts from "typescript";
 import * as Vue from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CanonicalOrder, CanonicalOrderList } from "@/api/order-api";
-import { advanceRuntimeRevision, captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
+import { advanceRuntimeRevision, captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision, paidOrderReceipt } from "@/api/order-api";
+import { beginOrderAction, readOrderAction, markOrderActionPaid, clearOrderAction } from "@/lib/order-command-fence";
+import { purchaseRecoveryCopy } from "@/lib/purchase-recovery-copy";
+import { readPaymentCommand } from "@/api/payment-command-api";
+import type { PaymentPasswordAuthorization } from "@/api/payment-password-api";
 import { nexGridBrandText } from "@/lib/brand-copy";
 import { formatTrialDateTime } from "@/lib/trial-date";
 import { en } from "@/i18n/messages/en";
@@ -43,13 +47,16 @@ const copies = [
 ] as const;
 
 beforeEach(() => {
+  const disk: Record<string, unknown> = {};
+  vi.stubGlobal("uni", { getStorageSync: (key: string) => disk[key],
+    setStorageSync: (key: string, value: unknown) => { disk[key] = structuredClone(value); } });
   setActivePinia(createPinia());
   advanceRuntimeRevision(null);
   remote.orderApi.list.mockReset();
   remote.orderApi.cancel.mockReset();
   remote.orderApi.pay.mockReset();
 });
-afterEach(() => { for (const scope of scopes.splice(0)) scope.stop(); });
+afterEach(() => { for (const scope of scopes.splice(0)) scope.stop(); vi.unstubAllGlobals(); });
 
 function canonical(dataCenter: string | null, status: CanonicalOrder["canonicalStatus"] = "activated"): CanonicalOrder {
   return {
@@ -82,6 +89,11 @@ async function detail(dataCenter: string | null, copy = en, status: CanonicalOrd
       onLoad: (callback: typeof onLoad) => { onLoad = callback; }, onShow: () => {}, onHide: () => {}, onUnload: () => {},
     };
     if (id === "@/lib/commerce-review") return {commerceOrderTitle,commerceCopy};
+    if (id === "@/lib/authorized-payment") return { executePaymentWithPassword: vi.fn(async (_context: unknown, command: (authorization: PaymentPasswordAuthorization) => Promise<unknown>, current: () => boolean) =>
+      current() ? command({ paymentPassword: "039417", credentialVersion: 1, attemptNo: "fixture-attempt" }) : null) };
+    if (id === "@/api/payment-command-api") return { readPaymentCommand };
+    if (id === "@/lib/order-command-fence") return { beginOrderAction, readOrderAction, markOrderActionPaid, clearOrderAction };
+    if (id === "@/lib/purchase-recovery-copy") return { purchaseRecoveryCopy };
     if (id === "@/store/locale") return {useLocaleStore:()=>({code:Vue.toRaw(copyRef.value)===zh?"zh":Vue.toRaw(copyRef.value)===en?"en":"vi"})};
     if (id === "@/store/orders") return { useOrders: () => orders, timelineFor };
     if (id === "@/store/app") return { useApp: () => ({}) };
@@ -99,7 +111,7 @@ async function detail(dataCenter: string | null, copy = en, status: CanonicalOrd
     if (id === "@/composables/use-page-header") return { useSetPageHeader: () => {} };
     if (id === "@/lib/route") return { navTo, takeNavigationQuery: () => "" };
     if (id === "@/api/runtime") return remote;
-    if (id === "@/api/order-api") return { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision };
+    if (id === "@/api/order-api") return { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision, paidOrderReceipt };
     if (id.endsWith(".vue")) return { __esModule: true, default: {} };
     throw new Error(`Unexpected order-detail script import: ${id}`);
   };

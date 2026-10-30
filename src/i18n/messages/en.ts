@@ -1,9 +1,11 @@
 import { promotionEN } from "./promotion";
 import { coreReviewCopy } from "../core-review";
+import { paymentPinEN } from "./payment-password";
 // English message dictionary — the source of truth for all keys.
 // Messages type is exported so other locales must match its shape.
 
 export const en = {
+  paymentPin: paymentPinEN,
   coreReview: coreReviewCopy.en,
   thirdParty: {
     signInTitle: "Sign in with",

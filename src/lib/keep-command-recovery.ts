@@ -1,7 +1,7 @@
 export const CAPACITY_COMMAND_TABLE = "nexgrid-e3-capacity-commands-accounts-v1";
 export type PendingKeepCommand = { intent: string; key: string; targetProductNo: string; payableUsdt: number };
 
-export function parsePendingKeepCommand(table: unknown, accountKey: string, targetProductNo: string): PendingKeepCommand | null {
+export function parsePendingKeepCommand(table: unknown, accountKey: string, targetProductNo?: string): PendingKeepCommand | null {
   const isRecord = (value: unknown): value is Record<string, unknown> => Object.prototype.toString.call(value) === "[object Object]";
   if (table === "" || table === null || table === undefined) return null;
   if (!isRecord(table)) throw new Error("CAPACITY_KEEP_COMMAND_STORAGE_INVALID");
@@ -12,16 +12,16 @@ export function parsePendingKeepCommand(table: unknown, accountKey: string, targ
   for (const [intent, key] of Object.entries(row.commands)) {
     if (!intent.trim() || typeof key !== "string" || !key.trim()) throw new Error("CAPACITY_KEEP_COMMAND_STORAGE_INVALID");
     const fields = intent.split("|");
-    if (fields[0] !== "keep" || fields[2] !== targetProductNo) continue;
+    if (fields[0] !== "keep" || targetProductNo && fields[2] !== targetProductNo) continue;
     const payableUsdt = Number(fields[5]);
-    if (fields.length !== 7 || !fields[5]?.trim() || !Number.isFinite(payableUsdt) || payableUsdt < 0) throw new Error("CAPACITY_KEEP_ORIGINAL_COMMAND_INVALID");
+    if (fields.length !== 7 || !fields[2]?.trim() || !fields[5]?.trim() || !Number.isFinite(payableUsdt) || payableUsdt < 0) throw new Error("CAPACITY_KEEP_ORIGINAL_COMMAND_INVALID");
     if (original) throw new Error("CAPACITY_KEEP_ORIGINAL_COMMAND_AMBIGUOUS");
-    original = { intent, key, targetProductNo, payableUsdt };
+    original = { intent, key, targetProductNo: fields[2], payableUsdt };
   }
   return original;
 }
 
-export function readPendingKeepCommand(accountKey: string, targetProductNo: string): PendingKeepCommand | null {
+export function readPendingKeepCommand(accountKey: string, targetProductNo?: string): PendingKeepCommand | null {
   return parsePendingKeepCommand(uni.getStorageSync(CAPACITY_COMMAND_TABLE), accountKey, targetProductNo);
 }
 import { normalizeAccountKey } from "@/store/account-cloud";

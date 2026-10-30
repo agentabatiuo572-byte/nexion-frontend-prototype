@@ -134,6 +134,10 @@
       "style": { "navigationStyle": "custom" }
     },
     {
+      "path": "pages/me/payment-password",
+      "style": { "navigationStyle": "custom" }
+    },
+    {
       "path": "pages/me/phone-binding",
       "style": { "navigationStyle": "custom" }
     },

@@ -49,7 +49,13 @@ describe("settled trade-in wallet receipt", () => {
     await expect(createDeviceE3Api(transport, "dev").replayCapacityKeep(quote.targetProductNo, "legacy-keep-key", 2639))
       .resolves.toEqual(keepReceipt);
     expect(transport.request).toHaveBeenCalledExactlyOnceWith({ method: "POST", path: "/api/app/trade-in/capacity-keep",
-      body: { targetProductNo: quote.targetProductNo, expectedPayableUsdt: 2639 }, idempotencyKey: "legacy-keep-key" });
+      retryAfterAuth: false, body: { targetProductNo: quote.targetProductNo, expectedPayableUsdt: 2639 }, idempotencyKey: "legacy-keep-key" });
+  });
+  it("sends fresh PIN authorization once with the frozen legacy KEEP payload", async () => {
+    const transport=client(keepReceipt),authorization={paymentPassword:'039417',credentialVersion:2,attemptNo:'fresh-attempt'};
+    await createDeviceE3Api(transport,'dev').replayCapacityKeep(quote.targetProductNo,'legacy-keep-key',2639,authorization);
+    expect(transport.request).toHaveBeenCalledExactlyOnceWith({method:'POST',path:'/api/app/trade-in/capacity-keep',
+      retryAfterAuth:false,body:{...authorization,targetProductNo:quote.targetProductNo,expectedPayableUsdt:2639},idempotencyKey:'legacy-keep-key'});
   });
   it("accepts an authoritative replacement balance while retaining the quoted debit and zero discount", async () => {
     const response = { ...receipt, targetDeviceStatus: "ACTIVE", discountUsdt: 0, walletDebitUsdt: keepQuote.payableUsdt };

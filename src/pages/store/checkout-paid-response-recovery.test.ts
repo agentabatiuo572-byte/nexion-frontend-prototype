@@ -1,13 +1,20 @@
 import { ref } from "vue";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import ts from "typescript";
 import source from "./checkout.vue?raw";
-import { asApiError } from "@/api/errors";
+import { ApiError, asApiError } from "@/api/errors";
+import { beginOrderAction, clearOrderAction, markOrderActionPaid, readOrderAction } from "@/lib/order-command-fence";
 import { en } from "@/i18n/messages/en";
 
 const compiled = ts.transpileModule(source.slice(source.indexOf("async function submitRemoteOrder()"),
   source.indexOf("// ── 抵扣上下文")) + "\nreturn submitRemoteOrder;",
   { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+
+beforeEach(() => {
+  const disk: Record<string, unknown> = {};
+  vi.stubGlobal("uni", { getStorageSync: (key: string) => disk[key],
+    setStorageSync: (key: string, value: unknown) => { disk[key] = structuredClone(value); } });
+});
 
 function harness() {
   const order = { orderNo: "ORDER-1", productNo: "sku", quantity: 1, amountUsdt: 100, discountUsdt: 0,
@@ -30,6 +37,10 @@ function harness() {
     forgetCheckoutOrder: vi.fn(), orders: { currentAccountKey: () => "a", refreshRemote:vi.fn().mockResolvedValue(true), orders:[{id:'ORDER-1',status:'activated'}] },
     orderId:ref<string|null>(null),remoteOrderFailure:ref<string|null>(null),voucher:{refreshRemote:vi.fn()},
     retireRemoteOrderKey: vi.fn(), navReplace: vi.fn().mockResolvedValue(true), asApiError,
+    beginOrderAction, clearOrderAction, markOrderActionPaid,
+    executePaymentWithPassword: async (_context: unknown, command: (authorization: unknown) => Promise<unknown>, current: () => boolean) =>
+      current() ? command({ paymentPassword: "039417", credentialVersion: 1, attemptNo: "ATTEMPT-1" }) : null,
+    remoteTradeinRecoveryRequired: ref(false), remoteTradeinRecoveryError: ref(false),
     resumeServerOrder: vi.fn().mockResolvedValue(true),
     presentSettledPurchase: vi.fn(), isFirstHardwareOrder: vi.fn(() => false),
   };
@@ -54,6 +65,7 @@ describe("real checkout handler outcome recovery", () => {
     resultShown();
     expect(h.forgetCheckoutOrder).toHaveBeenCalledExactlyOnceWith('a','sku','ORDER-1');
     expect(h.rememberCheckoutOrder).toHaveBeenCalledOnce();
+    expect(readOrderAction('a','ORDER-1')).toBeNull();
   });
   it("celebrates only the first paid hardware order",()=>{
     const start=source.indexOf("function isFirstHardwareOrder(");
@@ -96,6 +108,7 @@ describe("real checkout handler outcome recovery", () => {
     const h = harness();
     h.orderApi.pay.mockImplementation(async () => {
       expect(h.rememberCheckoutOrder).toHaveBeenCalledOnce();
+      expect(readOrderAction('a','ORDER-1')).toMatchObject({kind:'pay',key:'wallet-pay:ORDER-1',phase:'pending',amount:100});
       h.order.paymentStatus = "PAID";
       h.app.user.usdtBalance = 0;
       throw new Error("response lost after commit");
@@ -106,6 +119,22 @@ describe("real checkout handler outcome recovery", () => {
     expect(h.navReplace).toHaveBeenCalledWith("/pages/store/order-detail?id=ORDER-1");
     expect(h.step.value).toBe("awaiting");
     expect(h.app.adoptCommerceWallet).not.toHaveBeenCalled();
+    expect(readOrderAction('a','ORDER-1')).toMatchObject({kind:'pay',key:'wallet-pay:ORDER-1',phase:'pending'});
+    expect(() => beginOrderAction('a','cancel','ORDER-1',null)).toThrow('ORIGINAL_ORDER_COMMAND_UNRESOLVED');
+  });
+  it("keeps a confirmed payment fenced when activation readback fails",async()=>{
+    const h=harness();h.app.adoptCommerceWallet.mockReturnValue(true);
+    h.orderApi.pay.mockResolvedValue({orderNo:'ORDER-1',paymentMethod:'WALLET',walletBalanceAfterUsdt:0});
+    h.orders.refreshRemote.mockRejectedValue(new Error('readback offline'));
+    await h.submit();
+    expect(readOrderAction('a','ORDER-1')).toMatchObject({kind:'pay',phase:'paid',key:'wallet-pay:ORDER-1'});
+    expect(h.navReplace).toHaveBeenCalledWith('/pages/store/order-detail?id=ORDER-1');
+    expect(() => beginOrderAction('a','pay','ORDER-1',100)).toThrow('ORIGINAL_ORDER_COMMAND_UNRESOLVED');
+  });
+  it("releases only an explicit rejected PIN before returning to input",async()=>{
+    const h=harness();h.orderApi.pay.mockRejectedValue(new ApiError({kind:'business',message:'PAYMENT_PASSWORD_INCORRECT'}));
+    await h.submit();
+    expect(h.orderApi.pay).toHaveBeenCalledOnce();expect(readOrderAction('a','ORDER-1')).toBeNull();
   });
   it("does not pay when recovery storage fails, but still offers the known server order", async () => {
     const h = harness();
@@ -133,7 +162,8 @@ describe("real checkout handler outcome recovery", () => {
   });
   it("checks durable recovery before changing the quote or running new-purchase gates", () => {
     const handler = source.slice(source.indexOf("async function onConfirmPay()"), source.indexOf("// $0 due"));
-    expect(handler.indexOf("await resumeServerOrder()")).toBeLessThan(handler.indexOf("trialQuote ="));
+    expect(handler.indexOf("await resumeServerOrder(recoveryScope)")).toBeGreaterThan(-1);
+    expect(handler.indexOf("await resumeServerOrder(recoveryScope)")).toBeLessThan(handler.indexOf("trialQuote ="));
     expect(source.slice(source.indexOf("onShow(() => {"))).toContain("void resumeServerOrder()");
   });
 });

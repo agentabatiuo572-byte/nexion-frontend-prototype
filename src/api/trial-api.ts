@@ -123,7 +123,7 @@ export interface TrialApi {
   eligibility(): Promise<TrialAuthorityState>;
   start(idempotencyKey: string, deviceName: string): Promise<TrialAuthorityState>;
   convert(productNo: string, expectedAmountUsdt: number | null, quoteVersion: string | null,
-    idempotencyKey: string): Promise<TrialConvertReceipt>;
+    idempotencyKey: string, authorization?: import('./payment-password-api').PaymentPasswordAuthorization): Promise<TrialConvertReceipt>;
   cancel(reason: "explicit" | "unbind", idempotencyKey: string): Promise<TrialAuthorityState>;
 }
 
@@ -341,12 +341,13 @@ export function createTrialApi(client: ApiClient): TrialApi {
       body: { deviceName },
       idempotencyKey,
     }),
-    convert: async (productNo, expectedAmountUsdt, quoteVersion, idempotencyKey) => parseTrialConvertReceipt(await client.request({
+    convert: async (productNo, expectedAmountUsdt, quoteVersion, idempotencyKey, authorization) => parseTrialConvertReceipt(await client.request({
       method: "POST",
       path: "/api/trial/convert",
       // Older intents carry no version; omitting it keeps their idempotent replay byte-identical.
-      body: quoteVersion ? { productNo, expectedAmountUsdt, quoteVersion } : { productNo, expectedAmountUsdt },
+      body: { productNo, expectedAmountUsdt, ...(quoteVersion ? { quoteVersion } : {}), ...authorization },
       idempotencyKey,
+      retryAfterAuth: false,
     })),
     cancel: (reason, idempotencyKey) => parse({
       method: "POST",

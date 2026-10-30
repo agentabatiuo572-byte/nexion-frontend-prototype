@@ -53,7 +53,7 @@ const activeState = {
     sourceEnvironment: "PRODUCTION",
     runId: "",
   },
-  paymentRail: "NEXION_USDT_WALLET",
+  paymentRail: "UVEL_USDT_WALLET",
   config: {
     trialDays: "3", graceDays: "7", extensionDays: "3", discountRate: "0.15",
     discountCapUSD: "20", trialOffsetCapUSD: "50", autoChargeAtEnd: "true",
@@ -135,6 +135,7 @@ test("trial conversion posts the product and stable idempotency key and validate
     method: "POST", path: "/api/trial/convert",
     body: { productNo: "stellarbox-s1", expectedAmountUsdt: 1200 },
     idempotencyKey: "h2-convert-TRIAL-1",
+    retryAfterAuth: false,
   });
   // FEAT-TRIAL05: the confirmed server quote version travels with the amount.
   await createTrialApi(client).convert("stellarbox-s1", 1239, "FULL_TERM_ON_CONVERSION:0123456789abcdef", "h2-convert-TRIAL-2");
@@ -152,26 +153,19 @@ test("trial start sends the device mapped from the authoritative product config"
   assert.deepEqual(client.requests[0].body, { deviceName: "NexGridBox S1" });
 });
 
-test("eligible first-time users retain a visible H2 claim entry which opens the real claim flow", () => {
-  const earn = read("src/pages/earn/earn.vue");
-  const hero = read("src/components/trial-hero-banner.vue");
+test("the current trial page only opens the claim sheet when canonical eligibility permits", () => {
+  const page = read("src/pages/me/trial.vue");
   const sheet = read("src/components/trial-claim-sheet.vue");
-  assert.match(earn, /<TrialHeroBanner class="w-full"/);
-  // Display retains the bound account's confirmed offer during a refresh;
-  // opening the sheet still requires the current detailed eligibility result.
-  // The store's product-unavailable offer discloses stock without permitting a claim.
-  assert.match(hero, /const eligibility = computed\(\(\) => trial\.eligibility\(\)\);/);
-  // BUG 173:已确认可领取的快照在后台重拉期间保持可点 —— 此前只看 eligibility.value.ok,
-  // 于是每次刷新都会把已展示的卡片短暂禁用(报告里 7.0s 那一段)。
-  // 首帧(无确认快照)仍不可点,领取本身仍由 start() 走权威校验。
-  assert.match(hero, /const canClaim = computed\(\(\) => trial\.status === "none"\s+&& \(eligibility\.value\.ok \|\| trial\.confirmedOfferState\(\) === "claimable"\)\);/);
-  assert.match(hero, /const visible = computed\(\(\) => trial\.status === "none"\s+&& trialCfg\.config\.seatsLeftToday > 0\s+&& trial\.showHeroPromo\(\)\);/);
-  const trialStore = read("src/store/free-trial.ts");
-  assert.match(trialStore, /confirmedHeroVisible\.value = next\.status === "none"\s+&& \(next\.canStart \|\| next\.eligibilityReason === "product-unavailable"\)/);
-  assert.match(trialStore, /confirmedHeroVisible\.value = false/);
-  assert.match(trialStore, /authorityStatus\.value !== "ready"\) return \{ ok: false, reason: "unknown" \}/);
-  assert.match(hero, /@click="onClick"/);
-  assert.match(hero, /function onClick\(\) \{\s+if \(!canClaim\.value\) return;\s+claimSheet\.show\(\);/);
+  assert.match(page, /:aria-disabled="canStartNow \? 'false' : 'true'"/);
+  assert.match(page, /@click="claim"/);
+  assert.match(page, /return freeTrial\.canStart\(\);/);
+  const body = page.match(/function claim\(\) \{([\s\S]*?)\n\}/)?.[1];
+  assert.ok(body, 'the displayed CTA must have an owning action');
+  const canStartNow = {value:false}; let opened=0;
+  const claim = new Function('canStartNow','useTrialClaimSheet',body);
+  const claimSheet = () => ({show(){opened++;}});
+  claim(canStartNow,claimSheet);assert.equal(opened,0,'ineligible/unknown must not open a claim');
+  canStartNow.value=true;claim(canStartNow,claimSheet);assert.equal(opened,1,'eligible CTA opens the real claim sheet');
   assert.match(sheet, /await freeTrial\.start\(\)/);
 });
 

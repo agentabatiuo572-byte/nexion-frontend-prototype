@@ -17,7 +17,7 @@
       </view>
       <view v-else-if="remoteTradeinRecoveryError" class="text-center" role="status" style="padding:20px">
         <text class="block" style="font-size:13px;color:var(--v5-ink-2);margin-bottom:12px">{{ t.tradein.recoveryPending }}</text>
-        <NxButton :label="t.store.catalogRetry" :busy="remoteTradeinRecoveryBusy" @click="resumeServerOrder()" />
+        <NxButton :label="t.store.catalogRetry" :busy="remoteTradeinRecoveryBusy" @click="resumePendingRemoteTradein(captureCheckoutRoute(), true, true)" />
       </view>
       <view v-else-if="catalogStatus === 'loading'" class="text-center" style="padding: 20px">
         <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); margin-bottom: 12px">{{ t.store.catalogLoadingTitle }}</text>
@@ -271,6 +271,7 @@ import ChainPayment from "@/components/store/chain-payment.vue";
 import CardPayment from "@/components/store/card-payment.vue";
 import { useT } from "@/i18n/use-t";
 import { commerceCopy } from '@/lib/commerce-review';
+import { purchaseRecoveryCopy } from '@/lib/purchase-recovery-copy';
 import { useLocaleStore } from "@/store/locale";
 import { deviceName } from "@/lib/device-copy";
 import { fmt } from "@/i18n/format";
@@ -306,6 +307,11 @@ import type { DeviceKind } from "@/store/types";
 import { confirm, toast, useUI } from "@/store/ui";
 import { deviceE3Api, orderApi, purchaseEligibilityApi, remoteApiEnabled } from "@/api/runtime";
 import { asApiError, isSettledRejection } from "@/api/errors";
+import { executePaymentWithPassword } from "@/lib/authorized-payment";
+import { beginOrderAction, clearOrderAction, markOrderActionPaid } from "@/lib/order-command-fence";
+import { readPaymentCommand } from "@/api/payment-command-api";
+import { apiClient } from "@/api/runtime";
+import { parseCanonicalTradeinResult } from "@/api/device-e3-api";
 import type { CanonicalTradeinEligibility, CanonicalTradeinResult } from "@/api/device-e3-api";
 import { resolvePurchaseEligibilityMessage } from "@/lib/purchase-eligibility-copy";
 import { completeVerifiedMutation, handleNoActiveDeviceDecision, RemoteCapacityGate, StableCommandKey } from "@/domain/e20-capacity-coordinator";
@@ -1412,7 +1418,16 @@ async function onConfirmPay() {
         step.value = "select-payment";
         return;
       }
-      const conversion = await freeTrial.convert(p.id, quotedTotal, trialQuote.quoteVersion);
+      let conversion = await freeTrial.convert(p.id, quotedTotal, trialQuote.quoteVersion);
+      if (conversion.reason === 'payment-required') {
+        const authorized = await executePaymentWithPassword({amount:quotedTotal,currency:'USDT',summary:p.name},
+          authorization=>freeTrial.convert(p.id,quotedTotal,trialQuote.quoteVersion,authorization),
+          ()=>isCurrentCheckoutRoute(confirmationScope)&&!trialQuoteScreenUnavailable.value
+            &&confirmedAmount===netPrice.value+cardFee.value&&confirmedTrialApplied===trialView.value.applied
+            &&confirmedTrialQuoteVersion===trialView.value.quoteVersion);
+        if (!authorized) { confirming=false; return; }
+        conversion = authorized;
+      }
       if (!isCurrentCheckoutRoute(confirmationScope)) { confirming = false; return; }
       confirming = false;
       if (!conversion.ok || !conversion.orderNo) {
@@ -1696,18 +1711,51 @@ function retireRemoteOrderKey(): void {
   remoteOrderCommandKey.clear();
 }
 
-async function completeRemoteTradein(recovery: CheckoutTradeinRecovery, submissionScope: CheckoutRouteScope, newSubmission = false, retainRecovery = false): Promise<CanonicalTradeinResult> {
+async function completeRemoteTradein(recovery: CheckoutTradeinRecovery, submissionScope: CheckoutRouteScope, newSubmission = false, retainRecovery = false, allowResume = false): Promise<CanonicalTradeinResult | null> {
   const scopeIsCurrent = () => isCurrentCheckoutRoute(submissionScope);
+  const reviewedQuote = { ...recovery.tradeinQuote };
+  const authorizationIsCurrent = () => {
+    if (!scopeIsCurrent()) return false;
+    if (!newSubmission) return true;
+    const current = appliedTradeinView.value?.canonicalQuote;
+    return !!current && current.sourceDeviceId === reviewedQuote.sourceDeviceId
+      && current.sourceRowVersion === reviewedQuote.sourceRowVersion
+      && current.targetProductNo === reviewedQuote.targetProductNo
+      && current.targetDeviceStatus === reviewedQuote.targetDeviceStatus
+      && current.payableUsdt === reviewedQuote.payableUsdt
+      && current.discountUsdt === reviewedQuote.discountUsdt;
+  };
   const expectedActive = recovery.tradeinQuote.targetDeviceStatus === "ACTIVE";
+  let recoveredResult = recovery.tradeinResult;
+  if (!newSubmission && !recoveredResult) {
+    if (!scopeIsCurrent()) throw new Error("CHECKOUT_ACCOUNT_CHANGED");
+    const key = recovery.commandKey.replace("h7-order:", "e3-tradein:");
+    const result = await readPaymentCommand(apiClient, 'trade-in', key);
+    if (!scopeIsCurrent()) throw new Error("CHECKOUT_ACCOUNT_CHANGED");
+    if (result.status === 'REJECTED') return null;
+    if (result.status === 'SUCCEEDED') recoveredResult = parseCanonicalTradeinResult(result.receipt);
+    else if (!(allowResume && result.status === 'NOT_SEEN' && result.canResumeSameKey)) throw new Error('PAYMENT_RESULT_UNRESOLVED');
+  }
   return completeVerifiedMutation({
         submit: async () => {
           if (!scopeIsCurrent()) throw new Error("CHECKOUT_ACCOUNT_CHANGED");
           remoteTradeinRecoveryRequired.value = true;
-          if (recovery.tradeinResult) return recovery.tradeinResult;
-          let submitted: CanonicalTradeinResult;
+          if (recoveredResult) return recoveredResult;
+          let submitted: CanonicalTradeinResult | null = null;
           try {
-            submitted = await deviceE3Api.submit(recovery.tradeinQuote.sourceDeviceId, recovery.productNo,
-              recovery.commandKey.replace("h7-order:", "e3-tradein:"), recovery.tradeinQuote);
+            const key = recovery.commandKey.replace("h7-order:", "e3-tradein:");
+            if (!submitted) {
+              const paid = await executePaymentWithPassword({amount:recovery.tradeinQuote.payableUsdt,currency:'USDT',summary:product.value?.name??t.value.store.coConfirmPurchase},
+                authorization=>deviceE3Api.submit(recovery.tradeinQuote.sourceDeviceId,recovery.productNo,key,recovery.tradeinQuote,authorization),authorizationIsCurrent);
+              if (!paid) {
+                if (newSubmission) {
+                  finishCheckoutTradein(submissionScope.accountKey, recovery);
+                  remoteTradeinRecoveryRequired.value = false;
+                }
+                throw new Error('PAYMENT_CANCELLED');
+              }
+              submitted = paid;
+            }
           } catch (cause) {
             if (newSubmission && scopeIsCurrent() && isSettledRejection(cause)
                 && asApiError(cause).message !== "IDEMPOTENCY_RESULT_UNKNOWN") {
@@ -1776,7 +1824,7 @@ async function completeRemoteTradein(recovery: CheckoutTradeinRecovery, submissi
       });
 }
 
-async function resumePendingRemoteTradein(scope: CheckoutRouteScope, navigate = false): Promise<boolean> {
+async function resumePendingRemoteTradein(scope: CheckoutRouteScope, navigate = false, allowResume = false): Promise<boolean> {
   if (!remoteApiEnabled || !isCurrentCheckoutRoute(scope)) return false;
   let recovery: CheckoutTradeinRecovery | null;
   try { recovery = readCheckoutTradein(scope.accountKey, scope.productNo); }
@@ -1790,7 +1838,19 @@ async function resumePendingRemoteTradein(scope: CheckoutRouteScope, navigate = 
   if (remoteTradeinRecoveryBusy.value) return true;
   remoteTradeinRecoveryBusy.value = true;
   try {
-    const result = await completeRemoteTradein(recovery, scope, false, navigate);
+    const result = await completeRemoteTradein(recovery, scope, false, navigate, allowResume);
+    if (!result) {
+      if (!isCurrentCheckoutRoute(scope)) return true;
+      finishCheckoutTradein(scope.accountKey, recovery);
+      remoteTradeinRecoveryRequired.value = false;
+      remoteTradeinRecoveryError.value = false;
+      step.value = "select-payment";
+      if (tradein.appliedTradein?.canonicalQuote?.sourceDeviceId === recovery.tradeinQuote.sourceDeviceId
+          && tradein.appliedTradein.canonicalQuote.sourceRowVersion === recovery.tradeinQuote.sourceRowVersion) tradein.clearApplied();
+      toast.warn(purchaseRecoveryCopy(locale.code).rejected);
+      await retryCheckoutCapacity();
+      return true;
+    }
     if (navigate && isCurrentCheckoutRoute(scope)) {
       const navigated = await navReplace(`/pages/store/order-detail?id=${encodeURIComponent(result.orderNo)}`);
       if (navigated && isCurrentAccountScope({ accountKey: scope.accountKey, epoch: scope.accountEpoch })) {
@@ -1892,6 +1952,7 @@ async function submitRemoteOrder(): Promise<void> {
   }
   let canonicalOrderCommitted = false;
   let recoveryOrderNo: string | null = null;
+  let paymentKey: string | null = null;
   try {
     const tradeinContext = appliedTradeinView.value;
     if (tradein.appliedTradein && !tradeinContext) {
@@ -1951,11 +2012,25 @@ async function submitRemoteOrder(): Promise<void> {
     }
     if (alreadySettled) { await resumeServerOrder(submissionScope); return; }
     canonicalOrderCommitted = true;
-    const paid = await orderApi.pay(created.orderNo, `wallet-pay:${created.orderNo}`);
+    const paid = await executePaymentWithPassword({amount:created.amountUsdt,currency:'USDT',summary:p.name},
+      async authorization=>{
+        const action=beginOrderAction(submissionScope.accountKey,'pay',created.orderNo,created.amountUsdt);
+        paymentKey=action.key;
+        try {return await orderApi.pay(created.orderNo,action.key,authorization);}
+        catch(error){
+          if (/^PAYMENT_PASSWORD_(INCORRECT|LOCKED|VERSION_CONFLICT|NOT_CONFIGURED|REQUIRED)$/.test(asApiError(error).message))
+            clearOrderAction(submissionScope.accountKey,created.orderNo,action.key);
+          throw error;
+        }
+      },
+      ()=>scopeIsCurrent()&&!trialQuoteScreenUnavailable.value&&reviewedTotal===netPrice.value+cardFee.value
+        &&!trialView.value.applied&&reviewedTrialVersion===trialView.value.quoteVersion);
+    if (!paid) { step.value='confirm'; return; }
     if (!scopeIsCurrent()) return;
     if (paid.orderNo !== created.orderNo) {
       throw new Error("WALLET_PAYMENT_RECEIPT_ORDER_MISMATCH");
     }
+    markOrderActionPaid(submissionScope.accountKey,created.orderNo);
     if (paid.paymentMethod === "WALLET"
         && (paid.walletBalanceAfterUsdt === null
           || !app.adoptCommerceWallet(paid.walletBalanceAfterUsdt, walletReceiptScope))) {
@@ -1971,6 +2046,7 @@ async function submitRemoteOrder(): Promise<void> {
     if (!settled || settled.status !== "activated") {
       throw new Error("WALLET_PAYMENT_ORDER_READBACK_MISMATCH");
     }
+    if (paymentKey) clearOrderAction(submissionScope.accountKey,created.orderNo,paymentKey);
     // Fleet refresh is best effort after the authoritative paid receipt and
     // order readback. A temporary projection outage must not re-submit payment.
     void app.refreshRemoteFleet(walletReceiptScope);
@@ -1981,9 +2057,10 @@ async function submitRemoteOrder(): Promise<void> {
     presentSettledPurchase(isFirstHardwareOrder(created.orderNo), () => forgetCheckoutOrder(accountKey, p.id, created.orderNo));
   } catch (error) {
     if (!scopeIsCurrent()) return;
+    if (error instanceof Error && error.message === 'PAYMENT_CANCELLED') { step.value='confirm'; return; }
     if (recoveryOrderNo) {
       // A timeout is not a failed purchase. The canonical order page reads the
-      // current status and reuses wallet-pay:<orderNo> only if payment is pending.
+      // current status and the persisted original command before allowing another action.
       toast.warn(t.value.store.coRecoverOriginalOrder);
       step.value = "awaiting";
       if (!(await navReplace(`/pages/store/order-detail?id=${encodeURIComponent(recoveryOrderNo)}`)) && scopeIsCurrent()) {

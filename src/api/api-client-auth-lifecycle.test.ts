@@ -5,6 +5,15 @@ import { createSessionVault } from "./session-vault";
 afterEach(() => vi.unstubAllGlobals());
 
 describe("API client session lifecycle", () => {
+  it("does not refresh and replay a secret-bearing command after authentication rejection", async () => {
+    const vault = createSessionVault();
+    vault.save({accessToken:'expired',refreshToken:'refresh',tokenType:'Bearer',user:{userId:7,countryCode:'+86',phone:'13800000007',nickname:'Fixture',onboardingComplete:true}});
+    const request = vi.fn().mockResolvedValue({status:401,data:{code:401,message:'TOKEN_EXPIRED',data:null},headers:{}});
+    const api = createApiClient({baseUrl:'https://example.test',vault,transport:{request}});
+    await expect(api.request({path:'/api/orders/O1/pay',method:'POST',body:{paymentPassword:'024680'},retryAfterAuth:false})).rejects.toThrow('TOKEN_EXPIRED');
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request.mock.calls[0][0].url).toBe('https://example.test/api/orders/O1/pay');
+  });
   it("preserves APP_REPLACED from the protected request retry after refresh", async () => {
     const vault = createSessionVault();
     const user = { userId: 7, countryCode: "+86", phone: "13800000007", nickname: "Fixture", onboardingComplete: true };

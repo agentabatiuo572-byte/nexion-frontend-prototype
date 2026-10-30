@@ -38,7 +38,7 @@ function detail(options: Record<string, string> = {}, query = "") {
     useSetPageHeader: (callback: typeof header) => { header = callback; }, navTo,
     remoteOrderAttempted: ref(false), remoteOrderError: ref(false), showRemoteOrderLoading: ref(false),
     order: ref(null), t: ref({ orders: { title: "Orders", notFound: "Not found" } }),
-    refreshOrder: () => {}, refreshOrderWallet: () => {} };
+    refreshOrder: () => {}, refreshOrderWallet: () => {}, restoreOrderAction: vi.fn(), recoverOrderAction: vi.fn().mockResolvedValue(undefined) };
   const page = new Function(...Object.keys(deps), `${transpile(body)}\nreturn { id, goOrders };`)(...Object.values(deps));
   load(options);
   return { page, navTo, header, show: () => shows.forEach(callback => callback()) };

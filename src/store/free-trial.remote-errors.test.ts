@@ -6,6 +6,9 @@ import { ApiError } from "@/api/errors";
 import { createApiClient } from "@/api/api-client";
 import { createSessionVault } from "@/api/session-vault";
 import { createTrialApi } from "@/api/trial-api";
+import type { PaymentPasswordAuthorization } from "@/api/payment-password-api";
+
+const authorization: PaymentPasswordAuthorization = { paymentPassword: "039417", credentialVersion: 1, attemptNo: "fixture-attempt" };
 
 const remote = vi.hoisted(() => ({
   eligibility: vi.fn(),
@@ -13,6 +16,7 @@ const remote = vi.hoisted(() => ({
   state: vi.fn(),
   cancel: vi.fn(),
   convert: vi.fn(),
+  command: vi.fn(),
 }));
 
 vi.mock("@/api/runtime", () => ({
@@ -20,6 +24,7 @@ vi.mock("@/api/runtime", () => ({
   remoteApiEnabled: true,
   developmentFundsEnabled: false,
   trialApi: remote,
+  apiClient: { request: remote.command },
   orderApi: {},
   accountApi: {},
   walletApi: {},
@@ -209,14 +214,78 @@ describe("remote trial conversion refusal and original-intent recovery", () => {
   let storage: Map<string, unknown>;
   const converted = () => ({ ...activeAuthority(), serverState: "REDEEMED" as const,
     status: "converted" as const, eligibilityReason: "converted" as const, version: 6 });
-  const receipt = { orderNo: "ORIGINAL-ORDER" };
+  const receipt = { orderNo: "TRC-ORIGINAL", productNo: "stellarbox-s1", amountUsdt: 1247.73, discountUsdt: 51.27,
+    paymentStatus: "PAID", orderStatus: "PAID", source: "nx_trial_claim + nx_order + nx_order_item", serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "",
+    provenance: { source: "nx_trial_claim + nx_order + nx_order_item", serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "" } };
+  const commandResult = (path: string, status = "PROCESSING", canResumeSameKey = false) => ({ kind: "trial-convert", commandKey: decodeURIComponent(path.split("/").at(-1)!), status, canResumeSameKey, ...(status === "SUCCEEDED" ? { receipt } : {}) });
   beforeEach(() => {
     setActivePinia(createPinia()); remote.state.mockReset(); remote.convert.mockReset();
+    remote.command.mockReset(); remote.command.mockImplementation(async ({ path }: { path: string }) => commandResult(path));
     storage = new Map();
     vi.stubGlobal("uni", { getStorageSync: (key: string) => storage.get(key),
       setStorageSync: (key: string, value: unknown) => storage.set(key, structuredClone(value)) });
   });
   afterEach(() => vi.unstubAllGlobals());
+
+  it("requires a newly entered payment PIN and never submits without authorization", async () => {
+    const store = useFreeTrial(); await bindActive(store);
+    expect(await store.convert("stellarbox-s1", 1247.73)).toEqual({ ok: false, reason: "payment-required" });
+    expect(remote.convert).not.toHaveBeenCalled(); expect(store.hasPendingConversion()).toBe(false);
+    expect(remote.command).not.toHaveBeenCalled();
+    remote.command.mockImplementation(async ({ path }: { path: string }) => commandResult(path, "NOT_SEEN", true));
+    remote.convert.mockImplementation(async () => { remote.state.mockResolvedValue(converted()); return receipt; });
+    expect(await store.convert("stellarbox-s1", 1247.73, null, authorization)).toEqual({ ok: true, orderNo: receipt.orderNo });
+    expect(remote.convert).toHaveBeenCalledOnce(); expect(remote.convert.mock.calls[0][4]).toEqual(authorization);
+  });
+  it('a cancelled PIN precheck cannot freeze an unsubmitted old amount/version',async()=>{
+    const store=useFreeTrial();await bindActive(store);
+    expect((await store.convert('stellarbox-s1',1247.73,'old-quote')).reason).toBe('payment-required');
+    expect(store.hasPendingConversion()).toBe(false);
+    remote.convert.mockImplementationOnce(async()=>{remote.state.mockResolvedValue(converted());return {...receipt,amountUsdt:1200};});
+    expect(await store.convert('stellarbox-s1',1200,'new-quote',authorization)).toEqual({ok:true,orderNo:receipt.orderNo});
+    expect(remote.command).not.toHaveBeenCalled();expect(remote.convert.mock.calls[0].slice(0,3)).toEqual(['stellarbox-s1',1200,'new-quote']);
+  });
+
+  it("propagates a rejected PIN for checkout re-entry and reuses the same business key with a fresh attempt", async () => {
+    const store = useFreeTrial(); await bindActive(store);
+    const denied = new ApiError({ kind: "business", status: 422, message: "PAYMENT_PASSWORD_INCORRECT" });
+    remote.convert.mockRejectedValueOnce(denied);
+    await expect(store.convert("stellarbox-s1", 1247.73, null, authorization)).rejects.toBe(denied);
+    expect(remote.convert).toHaveBeenCalledOnce(); expect(remote.command).not.toHaveBeenCalled();
+    const originalKey = remote.convert.mock.calls[0][3];
+    remote.command.mockImplementation(async ({ path }: { path: string }) => commandResult(path, "NOT_SEEN", true));
+    remote.convert.mockImplementationOnce(async () => { remote.state.mockResolvedValue(converted()); return receipt; });
+    const nextAuthorization = { ...authorization, paymentPassword: "493017", attemptNo: "fixture-next-attempt" };
+    expect(await store.convert("stellarbox-s1", 1247.73, null, nextAuthorization)).toEqual({ ok: true, orderNo: receipt.orderNo });
+    expect(remote.convert.mock.calls[1][3]).toBe(originalKey); expect(remote.convert.mock.calls[1][4]).toEqual(nextAuthorization);
+  });
+
+  it("does not resume a missing command until the server allows the original key", async () => {
+    const store = useFreeTrial(); await bindActive(store);
+    remote.convert.mockRejectedValueOnce(new ApiError({kind:'network',message:'REQUEST_TIMEOUT'}));
+    await store.convert("stellarbox-s1",1247.73,null,authorization);remote.convert.mockClear();
+    remote.command.mockImplementation(async ({ path }: { path: string }) => commandResult(path, "NOT_SEEN", false));
+    expect(await store.convert("stellarbox-s1", 1247.73, null, authorization)).toEqual({ ok: false, reason: "unknown" });
+    expect(remote.convert).not.toHaveBeenCalled(); expect(store.hasPendingConversion()).toBe(true);
+  });
+
+  it("refuses a changed amount when safely resuming an original intent", async () => {
+    const store = useFreeTrial(); await bindActive(store);
+    remote.convert.mockRejectedValueOnce(new ApiError({kind:'network',message:'REQUEST_TIMEOUT'}));
+    await store.convert("stellarbox-s1",1247.73,null,authorization);remote.convert.mockClear();
+    remote.command.mockImplementation(async ({ path }: { path: string }) => commandResult(path, "NOT_SEEN", true));
+    expect(await store.convert("stellarbox-s1", 1200, null, authorization)).toEqual({ ok: false, reason: "quote-changed" });
+    expect(remote.convert).not.toHaveBeenCalled(); expect(store.hasPendingConversion()).toBe(true);
+  });
+
+  it("retires a definitive rejection returned by the original command query", async () => {
+    const store = useFreeTrial(); await bindActive(store);
+    remote.convert.mockRejectedValueOnce(new ApiError({kind:'network',message:'REQUEST_TIMEOUT'}));
+    await store.convert("stellarbox-s1",1247.73,null,authorization);remote.convert.mockClear();
+    remote.command.mockImplementation(async ({ path }: { path: string }) => commandResult(path, "REJECTED"));
+    expect(await store.convert("stellarbox-s1", 1247.73, null, authorization)).toEqual({ ok: false, reason: "rejected" });
+    expect(remote.convert).not.toHaveBeenCalled(); expect(store.hasPendingConversion()).toBe(false);
+  });
 
   it.each([200, 409])("sends one POST for an explicit balance refusal (HTTP %s), preserving ACTIVE v0", async (status) => {
     const state = { ...activeAuthority(), version: 0 };
@@ -230,7 +299,7 @@ describe("remote trial conversion refusal and original-intent recovery", () => {
     const api = createTrialApi(createApiClient({ baseUrl: "http://127.0.0.1:8110", vault, transport: { request } }));
     remote.convert.mockImplementation(api.convert);
     const reads = remote.state.mock.calls.length;
-    expect(await store.convert("stellarbox-s1", 1247.73)).toEqual({ ok: false, reason: "insufficient-funds" });
+    expect(await store.convert("stellarbox-s1", 1247.73, null, authorization)).toEqual({ ok: false, reason: "insufficient-funds" });
     expect(request).toHaveBeenCalledOnce(); expect(remote.state).toHaveBeenCalledTimes(reads);
     expect(store.status).toBe("active"); expect(store.authorityClaimNo).toBe("FIXTURE-A");
     expect(store.authorityVersion).toBe(0); expect(store.authoritativeShadowUSD).toBe(state.shadowUSD);
@@ -241,8 +310,8 @@ describe("remote trial conversion refusal and original-intent recovery", () => {
     const store = useFreeTrial(); await bindActive(store);
     remote.convert.mockRejectedValueOnce(new ApiError({ kind: "http", status: 409, code: 409, message: "TRIAL_WALLET_INSUFFICIENT" }))
       .mockImplementationOnce(async () => { remote.state.mockResolvedValue(converted()); return receipt; });
-    expect((await store.convert("stellarbox-s1", 1247.73)).reason).toBe("insufficient-funds");
-    expect(await store.convert("stellarbox-s1", 1247.73)).toEqual({ ok: true, orderNo: receipt.orderNo });
+    expect((await store.convert("stellarbox-s1", 1247.73, null, authorization)).reason).toBe("insufficient-funds");
+    expect(await store.convert("stellarbox-s1", 1247.73, null, authorization)).toEqual({ ok: true, orderNo: receipt.orderNo });
     expect(remote.convert).toHaveBeenCalledTimes(2);
     // Arguments: productNo, expectedAmountUsdt, quoteVersion, idempotencyKey.
     expect(remote.convert.mock.calls[0][3]).not.toBe(remote.convert.mock.calls[1][3]);
@@ -251,7 +320,7 @@ describe("remote trial conversion refusal and original-intent recovery", () => {
   it.each(["TRIAL_AMOUNT_MISMATCH", "TRIAL_AMOUNT_INVALID"])("returns the genuine quote refusal without replay: %s", async (message) => {
     const store = useFreeTrial(); await bindActive(store);
     remote.convert.mockRejectedValue(new ApiError({ kind: "http", status: 409, code: 409, message }));
-    expect(await store.convert("stellarbox-s1", 1247.73)).toEqual({ ok: false, reason: "quote-changed" });
+    expect(await store.convert("stellarbox-s1", 1247.73, null, authorization)).toEqual({ ok: false, reason: "quote-changed" });
     expect(remote.convert).toHaveBeenCalledOnce(); expect(store.hasPendingConversion()).toBe(false);
   });
 
@@ -260,75 +329,75 @@ describe("remote trial conversion refusal and original-intent recovery", () => {
     new ApiError({ kind: "protocol", message: "TRIAL_RESPONSE_INVALID" }),
     new ApiError({ kind: "http", status: 504, message: "HTTP_504" }),
     new ApiError({ kind: "business", status: 200, code: 409, message: "IDEMPOTENCY_RESULT_UNKNOWN" }),
-  ])("recovers a lost result by the same key and original payload, with authoritative readback (%s)", async (error) => {
+  ])("recovers a lost result through a read-only command receipt with authoritative readback (%s)", async (error) => {
     const store = useFreeTrial(); await bindActive(store);
-    remote.convert.mockRejectedValueOnce(error).mockImplementationOnce(async () => {
-      remote.state.mockResolvedValue(converted()); return receipt;
+    remote.convert.mockRejectedValueOnce(error);
+    remote.command.mockImplementation(async ({ path }: { path: string }) => {
+      remote.state.mockResolvedValue(converted()); return commandResult(path, "SUCCEEDED");
     });
-    expect(await store.convert("stellarbox-s1", 1247.73)).toEqual({ ok: true, orderNo: receipt.orderNo });
-    expect(remote.convert.mock.calls[1]).toEqual(remote.convert.mock.calls[0]);
+    expect(await store.convert("stellarbox-s1", 1247.73, null, authorization)).toEqual({ ok: true, orderNo: receipt.orderNo });
+    expect(remote.convert).toHaveBeenCalledOnce();
+    expect(remote.command.mock.calls[0][0].path).toBe(`/api/app/payment-commands/trial-convert/${encodeURIComponent(remote.convert.mock.calls[0][3])}`);
     expect(store.status).toBe("converted"); expect(store.hasPendingConversion()).toBe(false);
   });
 
   it("retains the quote/key across restart and a changed quote after unresolved readback", async () => {
     let store = useFreeTrial(); await bindActive(store);
     remote.convert.mockRejectedValue(new ApiError({ kind: "network", message: "REQUEST_TIMEOUT" }));
-    expect(await store.convert("stellarbox-s1", 1247.73)).toEqual({ ok: false, reason: "unknown" });
+    expect(await store.convert("stellarbox-s1", 1247.73, null, authorization)).toEqual({ ok: false, reason: "unknown" });
     const original = remote.convert.mock.calls[0]; expect(store.hasPendingConversion()).toBe(true);
     setActivePinia(createPinia()); store = useFreeTrial(); await bindActive(store);
-    remote.convert.mockImplementation(async () => { remote.state.mockResolvedValue(converted()); return receipt; });
-    expect(await store.convert("stellarbox-s1", 1200)).toEqual({ ok: true, orderNo: receipt.orderNo });
-    expect(remote.convert.mock.calls[2]).toEqual(original);
+    remote.command.mockImplementation(async ({ path }: { path: string }) => { remote.state.mockResolvedValue(converted()); return commandResult(path, "SUCCEEDED"); });
+    expect(await store.convert("stellarbox-s1", 1200, null, authorization)).toEqual({ ok: true, orderNo: receipt.orderNo });
+    expect(remote.convert).toHaveBeenCalledOnce(); expect(remote.command.mock.lastCall![0].path).toContain(encodeURIComponent(original[3]));
   });
 
   it("keeps the original intent when terminal readback lacks the original order receipt", async () => {
     const store = useFreeTrial(); await bindActive(store);
     remote.convert.mockRejectedValue(new ApiError({ kind: "network", message: "REQUEST_TIMEOUT" }));
     remote.state.mockResolvedValue(converted());
-    expect(await store.convert("stellarbox-s1", 1247.73)).toEqual({ ok: false, reason: "unknown" });
+    expect(await store.convert("stellarbox-s1", 1247.73, null, authorization)).toEqual({ ok: false, reason: "unknown" });
+    await store.refreshRemote(true);
     expect(store.status).toBe("converted"); expect(store.hasPendingConversion()).toBe(true);
-    const original = remote.convert.mock.calls[0]; remote.convert.mockResolvedValue(receipt);
-    expect(await store.convert("stellarbox-s1", 1200)).toEqual({ ok: true, orderNo: receipt.orderNo });
-    expect(remote.convert.mock.calls[2]).toEqual(original);
+    const original = remote.convert.mock.calls[0]; remote.command.mockImplementation(async ({ path }: { path: string }) => commandResult(path, "SUCCEEDED"));
+    expect(await store.convert("stellarbox-s1", 1200, null, authorization)).toEqual({ ok: true, orderNo: receipt.orderNo });
+    expect(remote.convert).toHaveBeenCalledOnce(); expect(remote.command.mock.lastCall![0].path).toContain(encodeURIComponent(original[3]));
   });
 
-  it("keeps the restored unknown intent after an expired receipt is replaced by NOT_CONVERTIBLE", async () => {
+  it("keeps the restored unknown intent while the original command remains indeterminate", async () => {
     let store = useFreeTrial(); await bindActive(store);
     remote.convert.mockRejectedValue(new ApiError({ kind: "network", message: "REQUEST_TIMEOUT" }));
     remote.state.mockResolvedValue(converted());
-    expect(await store.convert("stellarbox-s1", 1247.73)).toEqual({ ok: false, reason: "unknown" });
+    expect(await store.convert("stellarbox-s1", 1247.73, null, authorization)).toEqual({ ok: false, reason: "unknown" });
     const original = remote.convert.mock.calls[0];
     const originalPending = structuredClone(storage.get("nexgrid-trial-convert-accounts-v1"));
     setActivePinia(createPinia()); store = useFreeTrial();
     store.bindAccount("fixture-a"); await store.refreshRemote();
     expect(store.status).toBe("converted"); expect(store.hasPendingConversion()).toBe(true);
-    // Ordinary backend idempotency TTL can expire a successful receipt. The
-    // original claim is terminal, so re-executing now only rejects conversion;
-    // that response cannot prove the original purchase never committed.
-    remote.convert.mockRejectedValue(new ApiError({ kind: "http", status: 409, code: 409, message: "TRIAL_NOT_CONVERTIBLE" }));
+    remote.command.mockImplementation(async ({ path }: { path: string }) => commandResult(path, "INDETERMINATE"));
     for (let retry = 0; retry < 2; retry++) {
-      expect(await store.convert("stellarbox-s1", 1200)).toEqual({ ok: false, reason: "unknown" });
+      expect(await store.convert("stellarbox-s1", 1200, null, authorization)).toEqual({ ok: false, reason: "unknown" });
       expect(remote.convert.mock.lastCall).toEqual(original);
+      expect(remote.convert).toHaveBeenCalledOnce();
       expect(store.hasPendingConversion()).toBe(true); expect(store.status).toBe("converted");
       expect(storage.get("nexgrid-trial-convert-accounts-v1")).toEqual(originalPending);
     }
   });
 
-  it("does not let an immediate replay refusal discard the first request's unknown outcome", async () => {
+  it("does not automatically execute a second POST after the first request's unknown outcome", async () => {
     const store = useFreeTrial(); await bindActive(store);
-    remote.convert.mockRejectedValueOnce(new ApiError({ kind: "network", message: "REQUEST_TIMEOUT" }))
-      .mockRejectedValueOnce(new ApiError({ kind: "http", status: 409, code: 409, message: "TRIAL_NOT_CONVERTIBLE" }));
+    remote.convert.mockRejectedValueOnce(new ApiError({ kind: "network", message: "REQUEST_TIMEOUT" }));
     remote.state.mockResolvedValue(converted());
-    expect(await store.convert("stellarbox-s1", 1247.73)).toEqual({ ok: false, reason: "unknown" });
-    expect(remote.convert.mock.calls[1]).toEqual(remote.convert.mock.calls[0]);
+    expect(await store.convert("stellarbox-s1", 1247.73, null, authorization)).toEqual({ ok: false, reason: "unknown" });
+    expect(remote.convert).toHaveBeenCalledOnce(); expect(remote.command).toHaveBeenCalledOnce();
     expect(store.hasPendingConversion()).toBe(true);
   });
 
   it("retains a contradictory 5xx response instead of treating its body as a definitive refusal", async () => {
     const store = useFreeTrial(); await bindActive(store);
     remote.convert.mockRejectedValue(new ApiError({ kind: "http", status: 504, code: 409, message: "TRIAL_WALLET_INSUFFICIENT" }));
-    expect(await store.convert("stellarbox-s1", 1247.73)).toEqual({ ok: false, reason: "unknown" });
-    expect(remote.convert.mock.calls[1]).toEqual(remote.convert.mock.calls[0]); expect(store.hasPendingConversion()).toBe(true);
+    expect(await store.convert("stellarbox-s1", 1247.73, null, authorization)).toEqual({ ok: false, reason: "unknown" });
+    expect(remote.convert).toHaveBeenCalledOnce(); expect(remote.command).toHaveBeenCalledOnce(); expect(store.hasPendingConversion()).toBe(true);
   });
 
   it.each([
@@ -337,22 +406,22 @@ describe("remote trial conversion refusal and original-intent recovery", () => {
     new ApiError({ kind: "http", status: 400, code: 400, message: "HTTP_400" }),
   ])("does not retire or immediately replay an unqualified/auth refusal (%s)", async (error) => {
     const store = useFreeTrial(); await bindActive(store); remote.convert.mockRejectedValue(error);
-    expect(await store.convert("stellarbox-s1", 1247.73)).toEqual({ ok: false, reason: "unknown" });
+    expect(await store.convert("stellarbox-s1", 1247.73, null, authorization)).toEqual({ ok: false, reason: "unknown" });
     expect(remote.convert).toHaveBeenCalledOnce(); expect(store.hasPendingConversion()).toBe(true);
   });
 
   it("will not create a second SKU intent while an original conversion is unknown", async () => {
     const store = useFreeTrial(); await bindActive(store);
     remote.convert.mockRejectedValue(new ApiError({ kind: "network", message: "REQUEST_TIMEOUT" }));
-    await store.convert("stellarbox-s1", 1247.73); const count = remote.convert.mock.calls.length;
-    expect(await store.convert("other-sku", 999)).toEqual({ ok: false, reason: "unknown" });
+    await store.convert("stellarbox-s1", 1247.73, null, authorization); const count = remote.convert.mock.calls.length;
+    expect(await store.convert("other-sku", 999, null, authorization)).toEqual({ ok: false, reason: "unknown" });
     expect(remote.convert).toHaveBeenCalledTimes(count);
   });
 
   it.each(rebindings)("ignores a late rejection without replay/retiring or clearing a newer binding %j", async ({ keys }) => {
     const store = useFreeTrial(); await bindActive(store);
     const pending = deferred<typeof receipt>(); remote.convert.mockReturnValue(pending.promise);
-    const command = store.convert("stellarbox-s1", 1247.73); await rebindActive(store, keys);
+    const command = store.convert("stellarbox-s1", 1247.73, null, authorization); await rebindActive(store, keys);
     const reads = remote.state.mock.calls.length;
     pending.reject(new ApiError({ kind: "http", status: 409, code: 409, message: "TRIAL_WALLET_INSUFFICIENT" }));
     expect(await command).toEqual({ ok: false, reason: "unknown" });
@@ -364,14 +433,14 @@ describe("remote trial conversion refusal and original-intent recovery", () => {
     const store = useFreeTrial(); await bindActive(store);
     const readback = deferred<TrialAuthorityState>();
     remote.convert.mockResolvedValue(receipt); remote.state.mockReturnValueOnce(readback.promise);
-    const command = store.convert("stellarbox-s1", 1247.73); await Promise.resolve();
+    const command = store.convert("stellarbox-s1", 1247.73, null, authorization); await Promise.resolve();
     await rebindActive(store, keys); readback.resolve(converted());
     expect(await command).toEqual({ ok: false, reason: "unknown" }); expectNewAuthority(store);
   });
 
   it("does not submit on a binding change during the initial authority refresh", async () => {
     const store = useFreeTrial(); const pending = deferred<TrialAuthorityState>();
-    remote.state.mockReturnValueOnce(pending.promise); const command = store.convert("stellarbox-s1", 1247.73);
+    remote.state.mockReturnValueOnce(pending.promise); const command = store.convert("stellarbox-s1", 1247.73, null, authorization);
     await rebindActive(store, ["fixture-b"]); pending.resolve(activeAuthority());
     expect(await command).toEqual({ ok: false, reason: "unknown" });
     expect(remote.convert).not.toHaveBeenCalled(); expectNewAuthority(store);
@@ -380,7 +449,7 @@ describe("remote trial conversion refusal and original-intent recovery", () => {
   it("fails closed before POST if the persisted original intent cannot be read", async () => {
     const store = useFreeTrial(); await bindActive(store);
     vi.stubGlobal("uni", { getStorageSync: () => { throw new Error("disk failure"); } });
-    expect(await store.convert("stellarbox-s1", 1247.73)).toEqual({ ok: false, reason: "storage-unavailable" });
+    expect(await store.convert("stellarbox-s1", 1247.73, null, authorization)).toEqual({ ok: false, reason: "storage-unavailable" });
     expect(remote.convert).not.toHaveBeenCalled(); expect(store.hasPendingConversion()).toBe(true);
   });
 
@@ -389,12 +458,12 @@ describe("remote trial conversion refusal and original-intent recovery", () => {
     storage.set("nexgrid-trial-convert-accounts-v1", { "fixture-a": { commands: {
       '["FIXTURE-A","stellarbox-s1",1247.73]': "",
     } } });
-    expect(await store.convert("stellarbox-s1", 1247.73)).toEqual({ ok: false, reason: "unknown" });
+    expect(await store.convert("stellarbox-s1", 1247.73, null, authorization)).toEqual({ ok: false, reason: "unknown" });
     expect(remote.convert).not.toHaveBeenCalled();
     storage.clear();
     vi.stubGlobal("uni", { getStorageSync: (key: string) => storage.get(key),
       setStorageSync: () => { throw new Error("disk full"); } });
-    expect(await store.convert("stellarbox-s1", 1247.73)).toEqual({ ok: false, reason: "storage-unavailable" });
+    expect(await store.convert("stellarbox-s1", 1247.73, null, authorization)).toEqual({ ok: false, reason: "storage-unavailable" });
     expect(remote.convert).not.toHaveBeenCalled();
   });
 });

@@ -16,6 +16,7 @@ import { deviceName } from '@/lib/device-copy';
 import { computeTradeInCredit, ladderBandFor } from '@/mock/tradein-config';
 import { resolvePurchaseEligibilityMessage } from '@/lib/purchase-eligibility-copy';
 import { PURCHASE_ELIGIBILITY_SOURCE, type PurchaseEligibilitySnapshot } from '@/api/purchase-eligibility-api';
+import { purchaseRecoveryCopy } from '@/lib/purchase-recovery-copy';
 
 const descriptor = parse(source).descriptor;
 const ast = ts.createSourceFile('tradein.ts', descriptor.scriptSetup!.content, ts.ScriptTarget.Latest, true);
@@ -40,6 +41,7 @@ function page(copy = en, remoteApiEnabled = true, purchaseBlocked = false) {
   const purchaseStatus = ref<'idle' | 'loading' | 'ready' | 'error'>('ready');
   const purchaseRecovery = ref('none');
   const keepRecovery = ref<{ key: string } | null>(null), keepRecoveryError = ref(false);
+  const capacityRecovery=ref<unknown>(null),recoveryCopy=purchaseRecoveryCopy(copy===zh?'zh':copy===vietnamese?'vi':'en');
   const purchaseSnapshot = ref<PurchaseEligibilitySnapshot | null>({ productNo: 'stellarbox-pro', eligible: !purchaseBlocked,
     decisionCode: purchaseBlocked ? 'PURCHASE_GATE_NOT_MET' : 'ELIGIBLE', evaluatedAt: 1, source: PURCHASE_ELIGIBILITY_SOURCE,
     sourceEnvironment: 'PRODUCTION', runId: null, serverCanonical: true,
@@ -47,22 +49,25 @@ function page(copy = en, remoteApiEnabled = true, purchaseBlocked = false) {
       mode: 'ALL', conditions: purchaseBlocked ? [{ kind: 'rank', current: 1, required: 2, gap: 1, met: false }] : [] },
     { policy: 'F4B', eligible: true, decisionCode: 'F4B_NOT_CONFIGURED', mode: 'ALL', conditions: [] }] });
   const deps = { computed, state, app: { devices: [device] }, t: ref(copy), remoteApiEnabled,
-    canonicalQuote, purchaseStatus, purchaseRecovery, keepRecovery, keepRecoveryError, purchaseSnapshot, confirming: ref(false), props: { active: true },
+    canonicalQuote, purchaseStatus, purchaseRecovery, keepRecovery, keepRecoveryError, capacityRecovery,
+    capacityRecoveryUnavailable:false,capacityRecoveryBusy:false,capacityResumeAllowed:false,recoveryCopy,purchaseSnapshot, confirming: ref(false), props: { active: true },
     resolvePurchaseEligibilityMessage, fmt, formatAmount, deviceName, computeTradeInCredit, ladderBandFor, kindLabel: (kind: string) => kind };
   const actual = new Function('deps', `const {${Object.keys(deps).join(',')}} = deps; ${code}; return {choiceSources, tradeinView,
     purchaseMessage,purchaseBlocked,purchaseConfirmed,purchaseActionBusy,purchaseActionDisabled,purchaseActionText};`)(deps);
   const setup = { ...deps, ...actual, active: true, quoteLoading: false, ctaHalo: {},
-    hide: () => {}, onKeyboardActivate: () => {}, onChooseTradein: () => {}, onChooseFullPrice: () => {}, onConfirmTradein: () => {}, onRecoverKeep: () => {} };
+    hide: () => {}, onKeyboardActivate: () => {}, onChooseTradein: () => {}, onChooseFullPrice: () => {}, onConfirmTradein: () => {}, onRecoverKeep: () => {},recoverCapacityPurchase:()=>{} };
   const show = () => renderToString(Vue.createSSRApp({ render,
     components: { PurchaseEligibilityPanel: { render: () => null } }, setup: () => Vue.proxyRefs(setup) }));
-  return { state, canonicalQuote, purchaseStatus, purchaseRecovery, keepRecovery, keepRecoveryError, purchaseSnapshot, actual, show };
+  return { state, canonicalQuote, purchaseStatus, purchaseRecovery, keepRecovery, keepRecoveryError, capacityRecovery,recoveryCopy,purchaseSnapshot, actual, show };
 }
 
 it.each([zh, en, vietnamese])('presents the original KEEP recovery before new purchase choices', async copy => {
-  const p = page(copy); p.keepRecovery.value = { key: 'legacy-key' };
+  const p = page(copy); p.capacityRecovery.value = {operation:'keep',key:'legacy-key',quote:null,targetProductNo:'stellarbox-pro',payableUsdt:2639};
   const html = await p.show();
   expect(html).toContain(copy.tradein.keepRecoveryPending);
-  expect(html).toContain(copy.tradein.keepRecoveryAction);
+  expect(html).toContain(p.recoveryCopy.query);
+  expect(html).toContain(`${formatAmount(2639)} USDT`);
+  expect(html).not.toContain(p.recoveryCopy.resume);
   expect(html).not.toContain(copy.tradein.choiceFullPriceOption);
 });
 

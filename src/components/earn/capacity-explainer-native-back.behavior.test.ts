@@ -45,7 +45,8 @@ function mount(options: { hosted?: boolean; hidden?: boolean; global?: boolean; 
   const modules: Record<string, unknown> = { vue: Vue, "@/i18n/use-t": { useT: () => Vue.ref(zh) },
     "@/composables/use-capacity-explainer": { useCapacityExplainer }, "@/composables/use-dialog-a11y": { useDialogA11y: dialog }, "@/lib/route": { navTo },
     "@/store/ui": { useUI: () => ui }, "@/lib/native-tab-navigation": { logicalNativePage: () => ({ route: "pages/tabs/tabs" }) },
-    "@/lib/static-review-routes": { isStaticReviewRoute: () => false }, "@/components/milestone-celebration.vue": { default: { render: () => null } } };
+    "@/lib/static-review-routes": { isStaticReviewRoute: () => false }, "@/components/milestone-celebration.vue": { default: { render: () => null } },
+    "@/components/payment-password-dialog.vue": { default: { render: () => null } } };
   const sheet = component(sheetSource, modules), global = options.global ? component(globalSource, modules) : null;
   const tab = lifecycle.createTabLifecycle({}, !options.hidden);
   const extraComponent = Vue.defineComponent({ setup() { dialog(extra, () => null, extraClose); return () => Vue.h("view"); } });

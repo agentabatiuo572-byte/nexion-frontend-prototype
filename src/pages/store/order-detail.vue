@@ -193,6 +193,14 @@
         </view>
 
         <!-- Pending remote orders can retry only the idempotent UVEL wallet debit. -->
+        <view v-if="orderAction || orderCommandUnavailable" class="nx-glass-card mx-4 rounded-2xl" style="padding:var(--v5-space-4);margin-top:var(--v5-space-3)" role="status">
+          <text class="block">{{ orderAction?.kind==='cancel' ? recoveryCopy.cancelPending : recoveryCopy.paymentPending }}</text>
+          <view class="flex flex-wrap gap-2 mt-3">
+            <NxButton variant="secondary" size="small" :label="recoveryCopy.query" :busy="orderCommandQuerying" :disabled="payingFromWallet || cancellingOrder" @click="recoverOrderAction(false)" />
+            <NxButton v-if="orderAction?.kind==='cancel'" variant="secondary" size="small" :label="recoveryCopy.retryCancel" :disabled="orderCommandQuerying || cancellingOrder" @click="recoverOrderAction(true)" />
+            <NxButton v-if="orderAction?.kind==='pay' && resumePaymentAllowed" size="small" :label="recoveryCopy.resume" :disabled="orderCommandQuerying || payingFromWallet" @click="handleWalletPayment" />
+          </view>
+        </view>
         <view v-if="pendingOrderActionsVisible" class="mx-4" style="margin-top: 12px; margin-bottom: 24px">
           <view
             v-if="remoteApiEnabled && !paymentExpired"
@@ -237,6 +245,7 @@ import OrderRewards from '@/components/promotion/order-rewards.vue';
 import { ref, computed, watch, onUnmounted, type CSSProperties } from "vue";
 import { onLoad, onShow, onHide, onUnload } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
+import NxButton from "@/components/ui/nx-button.vue";
 import DetailRow from "@/components/store/order-detail-row.vue";
 import { useT } from "@/i18n/use-t";
 import { useTrialPurchaseCopy } from "@/i18n/trial-purchase";
@@ -250,10 +259,15 @@ import { trialReservesSlotNow } from "@/store/free-trial";
 import { confirm as uiConfirm, toast } from "@/store/ui";
 import { useSetPageHeader } from "@/composables/use-page-header";
 import { navTo, takeNavigationQuery } from "@/lib/route";
-import { orderApi, remoteApiEnabled, apiRuntimeConfig } from "@/api/runtime";
+import { apiClient,orderApi, remoteApiEnabled, apiRuntimeConfig } from "@/api/runtime";
 import { advisorChatRoute } from "@/lib/advisor-chat-route";
 import { useConversations } from "@/store/conversations";
 import { asApiError } from "@/api/errors";
+import { executePaymentWithPassword } from "@/lib/authorized-payment";
+import { readPaymentCommand } from '@/api/payment-command-api';
+import { paidOrderReceipt } from '@/api/order-api';
+import { beginOrderAction,readOrderAction,markOrderActionPaid,clearOrderAction,type PendingOrderAction } from '@/lib/order-command-fence';
+import { purchaseRecoveryCopy } from '@/lib/purchase-recovery-copy';
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
 import { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 
@@ -371,6 +385,8 @@ onShow(() => {
   detailMounted = true;
   detailVisible = true;
   detailEpoch += 1;
+  restoreOrderAction();
+  void recoverOrderAction(false);
   preserveOrderOriginInH5();
   void refreshOrder();
   void refreshOrderWallet();
@@ -464,13 +480,77 @@ const currentIdx = computed(() => (order.value ? stages.value.indexOf(order.valu
 const walletPaymentConfirmed = ref(false);
 const payingFromWallet = ref(false);
 const cancellingOrder = ref(false);
+const orderAction = ref<PendingOrderAction|null>(null);
+const orderCommandUnavailable = ref(false);
+const orderCommandQuerying = ref(false);
+const resumePaymentAllowed = ref(false);
+const recoveryCopy = computed(()=>purchaseRecoveryCopy(locale.code));
 let cancelAttemptSequence = 0;
-function canCancelCurrentOrder(): boolean {
+function currentOrderPayable(): boolean {
   return !orderEnvironmentInvalidated.value && liveOrder.value?.status === "placed"
     && !liveOrder.value.promotionQuoteId
     && !remoteOrderRefreshing.value && !remoteOrderError.value
     && !walletPaymentConfirmed.value
     && !payingFromWallet.value;
+}
+function canCancelCurrentOrder():boolean {return currentOrderPayable()&&!orderAction.value&&!orderCommandUnavailable.value;}
+function restoreOrderAction():void {
+  resumePaymentAllowed.value=false;
+  try {
+    orderAction.value=remoteApiEnabled?readOrderAction(orders.currentAccountKey(),id.value):null;
+    walletPaymentConfirmed.value=orderAction.value?.phase==='paid';
+    orderCommandUnavailable.value=false;
+  } catch { orderCommandUnavailable.value=true; }
+}
+watch(()=>[auth.accountId,id.value],restoreOrderAction,{flush:'sync'});
+async function recoverOrderAction(retryCancel=false):Promise<void> {
+  if (!remoteApiEnabled||orderCommandQuerying.value||payingFromWallet.value||cancellingOrder.value) return;
+  const scope=captureDetailScope(),accountKey=orders.currentAccountKey();
+  const receiptScope=app.captureRemoteAccountRequest();
+  orderCommandQuerying.value=true;resumePaymentAllowed.value=false;
+  try {
+    const action=readOrderAction(accountKey,id.value);orderAction.value=action;orderCommandUnavailable.value=false;
+    if (!action) return;
+    if (action.kind==='cancel') {
+      if (retryCancel) await orders.cancelOrderRemote(action.orderNo);
+      if (!isCurrentDetailScope(scope)) return;
+      await refreshOrder();
+      if (!isCurrentDetailScope(scope)) return;
+      if (!remoteOrderError.value&&liveOrder.value&&liveOrder.value.status!=='placed') clearOrderAction(accountKey,action.orderNo,action.key);
+      orderAction.value=readOrderAction(accountKey,action.orderNo);return;
+    }
+    if (action.phase!=='paid') {
+      const result=await readPaymentCommand(apiClient,'order-pay',action.key);
+      if (!isCurrentDetailScope(scope)) return;
+      if (result.status==='SUCCEEDED') {
+        const receipt=paidOrderReceipt(result.receipt);
+        if (receipt.orderNo!==action.orderNo||receipt.amountUsdt!==action.amount) throw new Error('PAYMENT_COMMAND_RECEIPT_MISMATCH');
+        markOrderActionPaid(accountKey,action.orderNo);walletPaymentConfirmed.value=true;
+        orderAction.value=readOrderAction(accountKey,action.orderNo);
+        if (receipt.paymentMethod==='WALLET'&&(receipt.walletBalanceAfterUsdt===null
+            || !app.adoptCommerceWallet(receipt.walletBalanceAfterUsdt,receiptScope))) throw new Error('PAYMENT_COMMAND_WALLET_UNAVAILABLE');
+      } else if (result.status==='REJECTED') {
+        await refreshOrder();
+        if (isCurrentDetailScope(scope)&&!remoteOrderError.value&&!remoteOrderRefreshing.value&&liveOrder.value)
+          clearOrderAction(accountKey,action.orderNo,action.key,true);
+        if (isCurrentDetailScope(scope)) orderAction.value=readOrderAction(accountKey,action.orderNo);
+        return;
+      } else if (result.status==='NOT_SEEN'&&result.canResumeSameKey) {
+        await refreshOrder();
+        if (isCurrentDetailScope(scope)) resumePaymentAllowed.value=!remoteOrderError.value&&!remoteOrderRefreshing.value
+          &&liveOrder.value?.status==='placed'&&liveOrder.value.total===action.amount;
+        return;
+      } else return;
+    }
+    walletPaymentConfirmed.value=true;
+    await refreshOrder();
+    if (isCurrentDetailScope(scope)&&!remoteOrderError.value&&liveOrder.value?.status==='activated') {
+      clearOrderAction(accountKey,action.orderNo,action.key);orderAction.value=null;
+      void app.refreshRemoteFleet(receiptScope);
+    }
+  } catch {
+    if (isCurrentDetailScope(scope)) {orderCommandUnavailable.value=true;toast.warn(recoveryCopy.value.paymentPending);}
+  } finally { orderCommandQuerying.value=false; }
 }
 const pendingOrderActionsVisible = computed(() => order.value?.status === "placed" && !order.value.promotionQuoteId && !walletPaymentConfirmed.value);
 const cancellable = computed(() => canCancelCurrentOrder()
@@ -478,7 +558,9 @@ const cancellable = computed(() => canCancelCurrentOrder()
 const paymentExpired = computed(() => order.value?.expiresAt != null
   && order.value.expiresAt <= detailNow.value);
 const canPayFromWallet = computed(() => remoteApiEnabled
-  && cancellable.value && !walletRefreshing.value && !paymentExpired.value);
+  && currentOrderPayable()&&!cancellingOrder.value&&!orderCommandQuerying.value&&!orderCommandUnavailable.value
+  && (!orderAction.value || (orderAction.value.kind==='pay'&&resumePaymentAllowed.value))
+  && !walletRefreshing.value && !paymentExpired.value);
 const isProvisioning = computed(() => order.value?.status === "provisioning");
 // Orders that closed without completing; their close reason is shown when the backend sent one.
 const CLOSED_STATUSES: OrderStatus[] = ['cancelled', 'expired', 'payment_failed', 'provisioning_failed', 'chargeback'];
@@ -603,11 +685,14 @@ async function handleCancel() {
       ? await orders.cancelOrderRemote(orderNo)
       : orders.cancelOrder(orderNo);
     if (!isCurrentDetailScope(scope)) return;
+    restoreOrderAction();
     if (cancelled) {
       toast.warn(t.value.orders.cancelDoneToast);
     } else {
       toast.warn(t.value.orders.cancelPendingServer);
     }
+  } catch {
+    restoreOrderAction();toast.warn(recoveryCopy.value.cancelPending);
   } finally {
     if (cancelAttempt === cancelAttemptSequence) cancellingOrder.value = false;
   }
@@ -639,23 +724,45 @@ async function handleWalletPayment() {
   payingFromWallet.value = true;
   let paymentConfirmed = false;
   try {
-    const receipt = await orderApi.pay(requestOrderNo, `wallet-pay:${requestOrderNo}`);
+      const accepted = await uiConfirm({title:t.value.store.coConfirmPurchase,
+        message:fmt(t.value.store.coConfirmPurchaseMessage,{amount:formatAmount(requestAmountUsdt)}),
+        confirmLabel:t.value.store.coConfirmPayment,cancelLabel:t.value.store.coCancel});
+      if (!accepted || !isCurrentDetailScope(scope)) return;
+      const receipt = await executePaymentWithPassword({amount:requestAmountUsdt,currency:'USDT',summary:liveOrder.value?.productName??t.value.store.coConfirmPurchase},
+        async authorization=>{
+          const action=beginOrderAction(orders.currentAccountKey(),'pay',requestOrderNo,requestAmountUsdt);
+          orderAction.value=action;resumePaymentAllowed.value=false;
+          try {return await orderApi.pay(requestOrderNo,action.key,authorization);}
+          catch(error){
+            if (/^PAYMENT_PASSWORD_(INCORRECT|LOCKED|VERSION_CONFLICT|NOT_CONFIGURED|REQUIRED)$/.test(asApiError(error).message)) {
+              clearOrderAction(scope.accountScope.accountKey,requestOrderNo,action.key);
+              if (isCurrentDetailScope(scope)) orderAction.value=null;
+            }
+            throw error;
+          }
+        },
+        ()=>isCurrentDetailScope(scope)&&liveOrder.value?.id===requestOrderNo&&liveOrder.value?.total===requestAmountUsdt
+          &&liveOrder.value?.status==='placed'&&!paymentExpired.value);
+      if (!receipt) return;
     if (!isCurrentDetailScope(scope)) return;
     if (receipt.orderNo !== requestOrderNo) {
       throw new Error("WALLET_PAYMENT_RECEIPT_ORDER_MISMATCH");
     }
+    paymentConfirmed = true;
+    markOrderActionPaid(scope.accountScope.accountKey,requestOrderNo);
+    orderAction.value=readOrderAction(scope.accountScope.accountKey,requestOrderNo);
+    walletPaymentConfirmed.value = true;
     if (receipt.paymentMethod === "WALLET"
         && (receipt.walletBalanceAfterUsdt === null
           || !app.adoptCommerceWallet(receipt.walletBalanceAfterUsdt, receiptScope))) {
       throw new Error("WALLET_PAYMENT_RECEIPT_ACCOUNT_MISMATCH");
     }
-    paymentConfirmed = true;
-    walletPaymentConfirmed.value = true;
     await orders.ensureRemoteOrder(requestOrderNo);
     if (!isCurrentDetailScope(scope)) return;
     if (liveOrder.value?.status !== "activated") {
       throw new Error("WALLET_PAYMENT_ORDER_READBACK_MISMATCH");
     }
+    clearOrderAction(scope.accountScope.accountKey,requestOrderNo,orderAction.value!.key);orderAction.value=null;
     void app.refreshRemoteFleet(receiptScope);
   } catch (error) {
     if (!isCurrentDetailScope(scope)) return;
@@ -670,7 +777,7 @@ async function handleWalletPayment() {
       toast.warn(t.value.orders.statusExpired);
       await orders.ensureRemoteOrder(requestOrderNo);
     } else {
-      toast.warn(t.value.tradein.errPurchaseFailed);
+      restoreOrderAction();toast.warn(recoveryCopy.value.paymentPending);
     }
   } finally {
     // This handler owns the private lock; stale results still finish its attempt.

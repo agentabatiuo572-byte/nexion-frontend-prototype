@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "test:payment-password": "node --test scripts/lib/payment-pin-flow-fixture.test.mjs && vitest run src/api/payment-password-api.test.ts src/api/payment-command-api.test.ts src/store/payment-password.test.ts src/lib/authorized-payment.test.ts",
+    "test:payment-password-ui": "node scripts/payment-password-ui.h5.e2e.mjs && node scripts/payment-pin-checkout.h5.e2e.mjs",
     "preview:prototype": "node scripts/prototype-preview-server.mjs",
     "dev:custom": "uni -p",
     "dev:h5": "uni",

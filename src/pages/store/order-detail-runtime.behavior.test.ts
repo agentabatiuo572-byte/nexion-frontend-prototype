@@ -10,6 +10,9 @@ import type { ApiClient } from "@/api/api-client";
 import { createRemoteAccountEpoch } from "@/lib/remote-account-epoch";
 import { asApiError } from "@/api/errors";
 import { en } from "@/i18n/messages/en";
+import { beginOrderAction,readOrderAction,markOrderActionPaid,clearOrderAction } from '@/lib/order-command-fence';
+import { purchaseRecoveryCopy } from '@/lib/purchase-recovery-copy';
+import { paidOrderReceipt } from '@/api/order-api';
 
 const remote = vi.hoisted(() => ({ remoteApiEnabled: true,
   apiRuntimeConfig: { environment: "prod", baseUrl: "https://test.example" },
@@ -50,7 +53,7 @@ const body = source.slice(source.indexOf('const id = ref("");'), source.indexOf(
   + source.slice(source.indexOf("const needsRecovery"), source.indexOf("const STATUS_COLORS"))
   + source.slice(source.indexOf("async function offerWalletTopup"), source.indexOf("function goOrders"))
   + source.slice(source.indexOf("function cleanup()"), source.indexOf("// ─── styles"));
-const js = ts.transpileModule(body + "\nreturn { order, refundChannelLabel, showRemoteOrderLoading, showOrderNotFound, remoteOrderError, refreshOrder, handleWalletPayment, payingFromWallet, canPayFromWallet, cancellable, contactOrderSupport };",
+const js = ts.transpileModule(body + "\nreturn { order, refundChannelLabel, showRemoteOrderLoading, showOrderNotFound, remoteOrderError, refreshOrder, handleWalletPayment, payingFromWallet, canPayFromWallet, cancellable, contactOrderSupport, recoverOrderAction, orderAction, resumePaymentAllowed };",
   { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 const disposals: (() => void)[] = [];
 async function settle() { for (let i = 0; i < 12; i++) await Promise.resolve(); await nextTick(); }
@@ -74,9 +77,13 @@ function harness(mode: "dev" | "prod" = "prod") {
     adoptCommerceWallet: vi.fn().mockReturnValue(true), refreshRemoteFleet: vi.fn().mockResolvedValue(true) };
   const toast = { warn: vi.fn() };
   const clipboard: Array<{ data: string; success: () => void; fail?: () => void }> = [];
+  const readPaymentCommand=vi.fn().mockResolvedValue({status:'PROCESSING',canResumeSameKey:false});
   const deps = { ref, computed, watch, orders, auth, remoteApiEnabled: true, app, toast, apiRuntimeConfig: reactive({ environment: mode }), locale: reactive({ code: "en" }),
     uni: { setClipboardData: (args: typeof clipboard[number]) => clipboard.push(args) },
     t: ref(en), asApiError, orderApi: remote.orderApi, uiConfirm: vi.fn().mockResolvedValue(true),
+    fmt:(message:string,values:Record<string,unknown>)=>message.replace(/\{(\w+)\}/g,(_,key)=>String(values[key])),formatPlainAmount:(value:unknown)=>String(value),
+    executePaymentWithPassword:async(_context:unknown,command:(authorization:unknown)=>Promise<unknown>,current:()=>boolean)=>current()?command({paymentPassword:'039417',credentialVersion:1,attemptNo:'fixture-attempt'}):null,
+    beginOrderAction,readOrderAction,markOrderActionPaid,clearOrderAction,purchaseRecoveryCopy,paidOrderReceipt,readPaymentCommand,apiClient:{},
     navTo: vi.fn(), takeNavigationQuery: () => "", detailNow: ref(Date.now()),
     conversations: {}, advisorChatRoute: vi.fn().mockResolvedValue("/pages/support/chat?cid=ADVISOR-THREAD"),
     captureAccountScope: account.snapshot, isCurrentAccountScope: account.isCurrent,
@@ -89,6 +96,7 @@ function harness(mode: "dev" | "prod" = "prod") {
     order: ComputedRef<unknown>; refundChannelLabel: ComputedRef<string>; showRemoteOrderLoading: ComputedRef<boolean>;
     showOrderNotFound: ComputedRef<boolean>; remoteOrderError: Ref<boolean>;
     refreshOrder(): Promise<void>; handleWalletPayment(): Promise<void>; contactOrderSupport(): void;
+    recoverOrderAction(retry?:boolean):Promise<void>;orderAction:Ref<unknown>;resumePaymentAllowed:Ref<boolean>;
     payingFromWallet: Ref<boolean>; canPayFromWallet: ComputedRef<boolean>; cancellable: ComputedRef<boolean>;
   };
   hooks.load.forEach(fn => fn({ id: original.orderNo }));
@@ -97,18 +105,59 @@ function harness(mode: "dev" | "prod" = "prod") {
   const unload = () => hooks.unload.forEach(fn => fn());
   disposals.push(() => { unload(); scope.stop(); orders.$dispose(); });
   show();
-  return { page, requests, payments, request, orders, account, auth, app, toast, show, hide, unload, clipboard, navTo: deps.navTo,
+  return { page, requests, payments, request, orders, account, auth, app, toast, show, hide, unload, clipboard, readPaymentCommand,navTo: deps.navTo,
     load: (id: string) => hooks.load.forEach(fn => fn({ id })) };
 }
 beforeEach(() => {
+  const storage=new Map<string,unknown>();
+  vi.stubGlobal('uni',{getStorageSync:(key:string)=>storage.get(key),setStorageSync:(key:string,value:unknown)=>storage.set(key,structuredClone(value))});
   remote.orderApi.list.mockReset();
   remote.orderApi.pay.mockReset();
   remote.productCatalogApi.catalog.mockReset();
   prepareProductCatalog();
 });
-afterEach(() => { disposals.splice(0).forEach(dispose => dispose()); });
+afterEach(() => { disposals.splice(0).forEach(dispose => dispose());vi.unstubAllGlobals(); });
 
 describe("real order detail after catalogue runtime invalidation", () => {
+  it('restores an unresolved payment fence across hide/show and only queries the original command',async()=>{
+    const h=harness();h.requests[0].resolve(list([placed]));await settle();
+    const paying=h.page.handleWalletPayment();await settle();h.payments[0].reject(new Error('timeout'));await paying;
+    h.hide();h.show();await settle();
+    expect(h.readPaymentCommand).toHaveBeenCalledWith({},'order-pay',`wallet-pay:${original.orderNo}`);
+    expect(h.page.cancellable.value).toBe(false);expect(h.page.canPayFromWallet.value).toBe(false);
+    expect(h.payments).toHaveLength(1);h.requests.at(-1)!.resolve(list([placed]));await settle();
+  });
+  it('recovers an already paid receipt without another PIN or payment and waits for activation readback',async()=>{
+    const h=harness();h.requests[0].resolve(list([placed]));await settle();
+    const paying=h.page.handleWalletPayment();await settle();h.payments[0].reject(new Error('timeout'));await paying;
+    h.readPaymentCommand.mockResolvedValue({status:'SUCCEEDED',canResumeSameKey:false,receipt});
+    const recovering=h.page.recoverOrderAction();await settle();
+    expect(h.page.cancellable.value).toBe(false);expect(h.page.canPayFromWallet.value).toBe(false);
+    h.requests.at(-1)!.resolve(list([original]));await recovering;
+    expect(h.payments).toHaveLength(1);expect(h.page.orderAction.value).toBeNull();
+  });
+  it('NOT_SEEN allows only explicit original-key payment recovery and continues to block cancellation',async()=>{
+    const h=harness();h.requests[0].resolve(list([placed]));await settle();
+    const paying=h.page.handleWalletPayment();await settle();h.payments[0].reject(new Error('timeout'));await paying;
+    h.readPaymentCommand.mockResolvedValue({status:'NOT_SEEN',canResumeSameKey:true});
+    const recovering=h.page.recoverOrderAction();await settle();h.requests.at(-1)!.resolve(list([placed]));await recovering;
+    expect(h.page.canPayFromWallet.value).toBe(true);expect(h.page.cancellable.value).toBe(false);expect(h.payments).toHaveLength(1);
+    const resumed=h.page.handleWalletPayment();await settle();expect(h.payments).toHaveLength(2);
+    h.payments[1].reject(new Error('timeout'));await resumed;
+    expect(h.request.mock.calls.filter(([args])=>(args as {method:string}).method==='POST').map(([args])=>(args as {idempotencyKey:string}).idempotencyKey))
+      .toEqual([`wallet-pay:${original.orderNo}`,`wallet-pay:${original.orderNo}`]);
+  });
+  it('only a terminal REJECTED result retires the old payment intent before a reviewed new payment',async()=>{
+    const h=harness();h.requests[0].resolve(list([placed]));await settle();
+    const paying=h.page.handleWalletPayment();await settle();h.payments[0].reject(new Error('timeout'));await paying;
+    h.readPaymentCommand.mockResolvedValue({status:'REJECTED',canResumeSameKey:false});
+    const recovering=h.page.recoverOrderAction();await settle();h.requests.at(-1)!.resolve(list([placed]));await recovering;
+    expect(h.page.orderAction.value).toBeNull();expect(h.payments).toHaveLength(1);
+    const next=h.page.handleWalletPayment();await settle();expect(h.payments).toHaveLength(2);
+    const keys=h.request.mock.calls.filter(([args])=>(args as {method:string}).method==='POST').map(([args])=>(args as {idempotencyKey:string}).idempotencyKey);
+    expect(keys[0]).toBe(`wallet-pay:${original.orderNo}`);expect(keys[1]).not.toBe(keys[0]);
+    h.payments[1].reject(new Error('timeout'));await next;
+  });
   it.each(["WALLET", "FUTURE_CHANNEL"])("shows a customer label for refund channel %s", async channel => {
     const h = harness();
     h.requests.at(-1)!.resolve(list([{ ...original, refundChannel: channel, paymentStatus: "REFUNDED",
@@ -214,11 +263,12 @@ describe("real order detail after catalogue runtime invalidation", () => {
     await refreshProductCatalog(true); await settle();
     expect(h.requests).toHaveLength(2);
   });
-  it("releases the private payment lock after catalogue reread stays placed and the one payment rejects", async () => {
+  it("keeps payment/cancellation mutually blocked after an unknown payment even when the latest order is placed", async () => {
     const h = harness();
     h.requests[0].resolve(list([placed])); await settle();
     expect(h.page.canPayFromWallet.value).toBe(true);
     const payment = h.page.handleWalletPayment();
+    await settle();
     await h.page.handleWalletPayment();
     expect(h.payments).toHaveLength(1);
     remote.productCatalogApi.catalog.mockResolvedValueOnce(catalog);
@@ -226,8 +276,8 @@ describe("real order detail after catalogue runtime invalidation", () => {
     h.requests[1].resolve(list([placed])); await settle();
     h.payments[0].reject(new Error("payment rejected")); await payment; await settle();
     expect(h.page.payingFromWallet.value).toBe(false);
-    expect(h.page.canPayFromWallet.value).toBe(true);
-    expect(h.page.cancellable.value).toBe(true);
+    expect(h.page.canPayFromWallet.value).toBe(false);
+    expect(h.page.cancellable.value).toBe(false);
     expect(h.page.remoteOrderError.value).toBe(false);
     expect(h.app.adoptCommerceWallet).not.toHaveBeenCalled();
     expect(h.payments).toHaveLength(1);
@@ -258,6 +308,7 @@ describe("real order detail after catalogue runtime invalidation", () => {
     const h = harness();
     h.requests[0].resolve(list([placed])); await settle();
     const payment = h.page.handleWalletPayment();
+    await settle();
     h.account.bind(nextAccount); h.auth.accountId = nextAccount; h.orders.bindAccount(nextAccount);
     await settle();
     h.requests[1].resolve(list(nextAccount === "a" ? [placed] : [])); await settle();
