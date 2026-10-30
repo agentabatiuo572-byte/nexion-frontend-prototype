@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-polish",
+  "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-polish-base",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "04a0b40a2decc5e8993a75ef1a47113257ff4664",
-  "sourceRef": "04a0b40a2decc5e8993a75ef1a47113257ff4664",
+  "sourceHead": "f54861dde2c2e1b5ee0f704a698c19b8dc1fa9b7",
+  "sourceRef": "f54861dde2c2e1b5ee0f704a698c19b8dc1fa9b7",
   "sourceRefKind": "commit",
-  "sourceTree": "24239aa103fc98181b2f5509449c79c61aa05aae",
+  "sourceTree": "516689c9f874ce171a01df4efe9275bc2cce628a",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -6866,10 +6866,10 @@
       "mode": "100644"
     },
     "src/components/store/tradein-window-banner.vue": {
-      "sourceBlob": "2e6051a7029082b8f7ee6f0c07cf4419d9de467d",
-      "sourceSha256": "a47b78f69e02498ce46a6fdf0fc30a36b54f7d5414aca65713dd2318f3c99a48",
-      "targetBlob": "2e6051a7029082b8f7ee6f0c07cf4419d9de467d",
-      "targetSha256": "a47b78f69e02498ce46a6fdf0fc30a36b54f7d5414aca65713dd2318f3c99a48",
+      "sourceBlob": "481c91338decd274eb92b98e1de8c8695ec89175",
+      "sourceSha256": "460acfd7131877cf1f8457d4b799d83a162580f055f85005897c1b45132406f7",
+      "targetBlob": "481c91338decd274eb92b98e1de8c8695ec89175",
+      "targetSha256": "460acfd7131877cf1f8457d4b799d83a162580f055f85005897c1b45132406f7",
       "mode": "100644"
     },
     "src/components/store/upgrade-image-renewal.behavior.test.ts": {

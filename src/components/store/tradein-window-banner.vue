@@ -20,7 +20,7 @@
       <view class="relative mt-3 flex items-center justify-end">
         <view class="inline-flex items-center gap-1.5" :style="ctaStyle">
           <text>{{ w.cta }}</text>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-on-brand-2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
         </view>
       </view>
     </view>
@@ -153,12 +153,10 @@ const labelStyle: CSSProperties = {
   color: "var(--v5-brand-2-ink)",
 };
 
+// Text action in the card's accent (user 2026-10-30: no button fill); keeps the 44px target.
 const ctaStyle: CSSProperties = {
-  height: "44px",
-  padding: "0 16px",
-  borderRadius: "999px",
-  background: "var(--v5-brand-2)",
-  color: "var(--v5-on-brand-2)",
+  minHeight: "44px",
+  color: "var(--v5-brand-2-ink)",
   fontSize: "13px",
   fontWeight: 600,
 };
