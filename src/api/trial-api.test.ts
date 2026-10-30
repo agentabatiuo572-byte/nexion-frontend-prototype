@@ -35,6 +35,18 @@ const base = {
 };
 
 describe("trial conversion contract", () => {
+  it("reads explicit expiry evidence and keeps older responses compatible", () => {
+    const parsed = parseTrialAuthorityState({ ...base, state: "CANCELLED", eligibilityReason: "used",
+      endReason: "expired", finishedAtEpochMs: 1_724_259_201_000 });
+    expect(parsed).toMatchObject({ status: "ended", endReason: "expired",
+      finishedAt: 1_724_259_201_000 });
+    expect(parseTrialAuthorityState({ ...base, endReason: "cancelled" })).toMatchObject({ endReason: "cancelled" });
+    expect(parseTrialAuthorityState(base)).not.toHaveProperty("endReason");
+  });
+  it.each([{ endReason: "auto_end" }, { finishedAtEpochMs: "invalid" }, { finishedAtEpochMs: 0 }])
+    ("rejects malformed expiry authority %j", patch => {
+      expect(() => parseTrialAuthorityState({ ...base, ...patch })).toThrow("TRIAL_RESPONSE_INVALID");
+    });
   it.each(["NEXION_USDT_WALLET", "OTHER_WALLET"])("rejects a retired or unknown payment rail %s", paymentRail => {
     expect(() => parseTrialAuthorityState({ ...base, paymentRail })).toThrow("TRIAL_RESPONSE_INVALID");
   });

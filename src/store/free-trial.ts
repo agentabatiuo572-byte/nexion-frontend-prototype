@@ -208,6 +208,20 @@ export const useFreeTrial = defineStore("freeTrial", () => {
   let authorityRequestSequence = 0;
   let lastAppliedSequence = 0;
   let accountBindingEpoch = 0;
+  // Presentation evidence only. A failed read still clears every live permission below.
+  let confirmedLifecycle: Pick<TrialAuthorityState, "claimNo" | "version" | "status"> | null = null;
+  let pendingExpiryClaim: string | null = null;
+  const announcedExpiryClaims = new Set<string>();
+
+  function getBindingEpoch(): number { return accountBindingEpoch; }
+
+  function takeExpiryNotice(expectedEpoch: number): boolean {
+    if (expectedEpoch !== accountBindingEpoch || authorityStatus.value !== "ready"
+        || !pendingExpiryClaim || pendingExpiryClaim !== authorityClaimNo.value) return false;
+    announcedExpiryClaims.add(pendingExpiryClaim);
+    pendingExpiryClaim = null;
+    return true;
+  }
 
   /** Current row as a plain snapshot — resolver 的唯一输入形态(生产 = GET /api/trial/state 行)。 */
   function snapshot(): FreeTrialState {
@@ -276,15 +290,34 @@ export const useFreeTrial = defineStore("freeTrial", () => {
     const newerCurrentReceipt = receiptEpoch === accountBindingEpoch && next.claimNo !== null
       && next.claimNo === authorityClaimNo.value && next.version > authorityVersion.value;
     if (sequence < lastAppliedSequence && !newerCurrentReceipt) return false;
-    if (authorityClaimNo.value === next.claimNo && next.version < authorityVersion.value) {
+    if (confirmedLifecycle?.claimNo === next.claimNo && next.version === confirmedLifecycle.version
+        && next.status === "ended" && (confirmedLifecycle.status === "active" || confirmedLifecycle.status === "grace")) {
+      lastAppliedSequence = Math.max(lastAppliedSequence, sequence);
+      clearRemoteFacts("error", "TRIAL_RESPONSE_STALE");
+      return false;
+    }
+    if (confirmedLifecycle?.claimNo === next.claimNo && next.version < confirmedLifecycle.version) {
       // Retain the newer canonical receipt even while a read is loading.
       lastAppliedSequence = Math.max(lastAppliedSequence, sequence);
+      // A failed read cleared live authority. Old data cannot restore its permissions.
+      if (authorityClaimNo.value !== next.claimNo || authorityVersion.value !== confirmedLifecycle.version) {
+        clearRemoteFacts("error", "TRIAL_RESPONSE_STALE");
+        return false;
+      }
       authorityStatus.value = "ready";
       authorityError.value = null;
       return true;
     }
     // Validate the whole policy before committing snapshot or promotion presentation.
     useTrialConfig().applyAuthoritative(next.config);
+    const confirmedExpiry = next.status === "ended" && next.endReason === "expired";
+    if (pendingExpiryClaim !== next.claimNo || !confirmedExpiry) pendingExpiryClaim = null;
+    if (confirmedExpiry && next.claimNo && confirmedLifecycle?.claimNo === next.claimNo
+        && (confirmedLifecycle.status === "active" || confirmedLifecycle.status === "grace")
+        && next.version > confirmedLifecycle.version && !announcedExpiryClaims.has(next.claimNo)) {
+      pendingExpiryClaim = next.claimNo;
+    }
+    confirmedLifecycle = { claimNo: next.claimNo, version: next.version, status: next.status };
     lastAppliedSequence = Math.max(lastAppliedSequence, sequence);
     load({
       status: next.status,
@@ -378,6 +411,9 @@ export const useFreeTrial = defineStore("freeTrial", () => {
       confirmedPromoVisible.value = false;
       confirmedPromoKnown.value = false;
       confirmedHeroVisible.value = false;
+      confirmedLifecycle = null;
+      pendingExpiryClaim = null;
+      announcedExpiryClaims.clear();
       clearRemoteFacts();
       // A rebind invalidates even same-key responses. Start this generation's
       // own read instead of deduplicating onto the request we just invalidated.
@@ -763,7 +799,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
     authorityClaimNo, authorityVersion, authorityServerState,
     eligibility, canStart, showPromo, showHeroPromo, confirmedOfferState,
     promoSlot,
-    start, convert, cancel, poll, bindAccount, snapshot,
+    start, convert, cancel, poll, bindAccount, snapshot, getBindingEpoch, takeExpiryNotice,
     refreshRemote, refreshEligibilityRemote,
   };
 });

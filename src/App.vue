@@ -305,15 +305,22 @@ async function pollTrial() {
   if (!ensureBusinessLoopsAllowed() || trialPollRunning) return;
   trialPollRunning = true;
   const freeTrial = useFreeTrial();
+  const trialBindingEpoch = freeTrial.getBindingEpoch();
   const before = freeTrial.status;
   const nowMs = Date.now();
+  let confirmed = false;
   try {
-    await freeTrial.poll(nowMs);
+    confirmed = await freeTrial.poll(nowMs);
   } finally {
     trialPollRunning = false;
   }
+  if (!confirmed || !ensureBusinessLoopsAllowed()) return;
   const after = freeTrial.status;
   const t = useT().value;
+  if (remoteApiEnabled ? freeTrial.takeExpiryNotice(trialBindingEpoch)
+    : (before === "active" || before === "grace") && after === "ended") {
+    toast.info(t.trial.endedToast);
+  }
 
   if (before !== after) {
     if (after === "grace") {
@@ -323,8 +330,6 @@ async function pollTrial() {
       toast.info(fmt(t.trial.graceStartToast, { time: until }));
       urgencyFired.grace24h = false;
       urgencyFired.grace1h = false;
-    } else if (after === "ended") {
-      toast.info(t.trial.endedToast);
     } else if (after === "active") {
       urgencyFired.active24h = false;
       urgencyFired.grace24h = false;
