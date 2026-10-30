@@ -39,6 +39,12 @@ describe("parseAppHomeOverview", () => {
     expect(parseAppHomeOverview(valid).doTheMath?.target.productNo).toBe("stellarbox-s1");
     expect(parseAppHomeOverview(valid).doTheMath?.paybackDays).toBe(1299);
   });
+  it("preserves server slot totals and reservations without clamping to capacity", () => {
+    const onboarding = { ...valid.onboarding, slotsUsed: 8, slotCap: 6, reservedSlotCount: 3, trialSlotCount: 1 };
+    expect(parseAppHomeOverview({ ...valid, onboarding }).onboarding).toMatchObject(onboarding);
+    expect(parseAppHomeOverview(valid).onboarding.slotsUsed).toBeNull();
+    expect(() => parseAppHomeOverview({ ...valid, onboarding: { ...onboarding, slotsUsed: -1 } })).toThrow();
+  });
   it("keeps unavailable facts explicit instead of inventing zero", () => {
     const parsed = parseAppHomeOverview({ ...valid, onboarding: { cumulativePaidUsdt: null, activeDevices: null }, onGrid: { ...valid.onGrid, activeJobs: null }, weeklyPromo: null });
     expect(parsed.onboarding.cumulativePaidUsdt).toBeNull();

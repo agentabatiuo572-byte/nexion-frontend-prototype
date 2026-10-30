@@ -30,6 +30,8 @@ import voucherOnlyFixture from './fixtures/black-friday-voucher-quote.json';
 
 const walletRemote=vi.hoisted(()=>({
   remoteApiEnabled:true,fundsServerEnabled:true,expectedApiEnvironment:'dev',
+  apiRuntimeConfig:{environment:'dev',baseUrl:'http://127.0.0.1:8110'},
+  apiRuntimeClientOrigin:{environment:'dev',baseUrl:'http://127.0.0.1:8110'},
   sessionVault:{read:vi.fn()},deviceE3Api:{fleet:vi.fn()},taskAssignmentApi:{state:vi.fn()},
   productCatalogApi:{catalog:vi.fn()},withdrawalApi:{list:vi.fn()},
 }));
@@ -61,7 +63,7 @@ function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items
   let writable=true;
   const save=vi.fn((_table:string,_account:string,value:Record<string,PromotionCheckoutRecord>)=>{if(!writable)return false;rows=structuredClone(value);return true;});
   const api={quote:vi.fn().mockResolvedValue(quote()),get:vi.fn().mockResolvedValue(activity()),create:vi.fn().mockResolvedValue(receipt()),pay:vi.fn().mockResolvedValue({...receipt(),paymentStatus:'PAID',orderStatus:'COMPLETED'}),cancel:vi.fn(),command:vi.fn().mockResolvedValue({status:'PROCESSING',order:null}),findOrder:vi.fn().mockResolvedValue(receipt())};
-  const app=Vue.reactive({accountKey:'user:7',accountBindingEpoch:1,remoteFleetHasSnapshot:true,user:{usdtBalance:150},captureRemoteAccountRequest:vi.fn(()=>({accountKey:'user:7',epoch:1})),refreshRemoteFleet:vi.fn().mockResolvedValue(true)});
+  const app=Vue.reactive({accountKey:'user:7',accountBindingEpoch:1,remoteFleetHasSnapshot:true,remoteSlotsUsed:null as number|null,slotCap:6,user:{usdtBalance:150},captureRemoteAccountRequest:vi.fn(()=>({accountKey:'user:7',epoch:1})),refreshRemoteFleet:vi.fn().mockResolvedValue(true)});
   const mounted:Array<()=>Promise<void>>=[],unmounted:Array<()=>void>=[],guardDisposal=vi.fn(),guardRegistration=vi.fn(()=>guardDisposal);
   const key=vi.fn(()=> 'original-key'),fleet=vi.fn().mockResolvedValue({serverNow:Date.parse(serverTime)});
   const getProduct=vi.fn().mockReturnValue({name:'Selected device'}),catalog=Vue.reactive({status:'ready'}),presentation=Vue.ref<{products:{id:string;name:string}[]}|null>({products:[{id:'sku',name:'Selected device'}]});
@@ -114,17 +116,71 @@ it('order creation, recovery and payment keep the UVEL display name without rewr
   }
 });
 
+it('new checkout quantities respect authoritative remaining slots and remain removable when over capacity',async()=>{
+  const page=screen();await page.start();page.app.remoteSlotsUsed=5;
+  expect(page.view.canChangeQuantity('sku',1)).toBe(false);
+  page.app.remoteSlotsUsed=4;expect(page.view.canChangeQuantity('sku',1)).toBe(true);
+  await page.view.changeQuantity('sku',1);page.app.remoteSlotsUsed=6;
+  expect(page.view.canChangeQuantity('sku',-1)).toBe(true);
+  expect(page.view.canChangeQuantity('sku',1)).toBe(false);
+});
+
+it('refreshes wallet and quote automatically while visible without manual refresh controls',async()=>{
+  const page=screen();await page.start();
+  const automatic=vi.mocked(setInterval).mock.calls.find(([,delay])=>delay===30000)![0] as ()=>void;
+  const html=await page.html();
+  expect(html).not.toContain(commerceCopy('zh').walletRefresh);
+  expect(html).not.toContain(zh.promotion.quote);
+  expect(html).toContain('checkout-wallet-topup');
+  const reads=page.app.refreshRemoteFleet.mock.calls.length,quotes=page.api.quote.mock.calls.length;
+  page.app.refreshRemoteFleet.mockImplementation(async()=>{page.app.user.usdtBalance=200;return true;});
+  automatic();await flush();
+  expect(page.app.refreshRemoteFleet).toHaveBeenCalledTimes(reads+1);
+  expect(page.api.quote).toHaveBeenCalledTimes(quotes+1);
+  expect(await page.html()).toContain('200.00 USDT');
+  page.exposed.hide();automatic();await flush();
+  expect(page.app.refreshRemoteFleet).toHaveBeenCalledTimes(reads+1);
+  expect(page.api.quote).toHaveBeenCalledTimes(quotes+1);
+  page.exposed.show();await flush();
+  expect(page.app.refreshRemoteFleet).toHaveBeenCalledTimes(reads+2);
+  expect(page.api.quote).toHaveBeenCalledTimes(quotes+2);
+});
+
+it('automatic refresh recovers failed wallet reads and preserves open checkout dialogs',async()=>{
+  const page=screen();page.app.refreshRemoteFleet.mockResolvedValueOnce(false);await page.start();
+  const automatic=vi.mocked(setInterval).mock.calls.find(([,delay])=>delay===30000)![0] as ()=>void;
+  expect(page.view.walletState.value).toBe('error');
+  page.view.termsOpen.value=true;const reads=page.app.refreshRemoteFleet.mock.calls.length;
+  automatic();await flush();expect(page.app.refreshRemoteFleet).toHaveBeenCalledTimes(reads);
+  page.view.termsOpen.value=false;automatic();await flush();
+  expect(page.view.walletState.value).toBe('ready');
+  expect(await page.html()).not.toContain('checkout-wallet-recovery');
+});
+
 it('retains wallet text silently during a read without making old balance payment authority',async()=>{
   const page=screen();await page.start();await page.view.createOrder();
   const pending=deferred<boolean>();page.app.refreshRemoteFleet.mockReturnValueOnce(pending.promise);
   const reading=page.view.refreshWallet();await flush();
   expect(await page.html()).toContain('150.00 USDT');
   expect(await page.html()).not.toContain(commerceCopy('zh').walletLoading);
-  expect(await page.html()).toMatch(/class="promotion-link"[^>]*aria-disabled="true"[^>]*style="opacity:1;"/);
+  expect(await page.html()).not.toContain(commerceCopy('zh').walletRefresh);
   expect(page.view.walletState.value).toBe('loading');expect(page.view.canPay.value).toBe(false);
   await page.view.pay();expect(page.api.pay).not.toHaveBeenCalled();
   pending.resolve(false);await reading;
   expect(await page.html()).toContain(commerceCopy('zh').walletError);expect(page.view.canPay.value).toBe(false);
+});
+
+it('does not replace the quote while the selected voucher list is still loading',async()=>{
+  const page=screen();await page.start();const pending=deferred<boolean>();
+  page.vouchers.refreshRemote.mockReturnValueOnce(pending.promise);
+  const opening=page.view.chooseVoucher();await flush();
+  expect(page.view.voucherLoading.value).toBe(true);
+  const automatic=vi.mocked(setInterval).mock.calls.find(([,delay])=>delay===30000)![0] as ()=>void;
+  const quotes=page.api.quote.mock.calls.length;automatic();await flush();
+  expect(page.api.quote).toHaveBeenCalledTimes(quotes);
+  pending.resolve(true);await opening;
+  expect(page.view.voucherLoading.value).toBe(false);
+  expect(page.view.voucherOpen.value).toBe(true);
 });
 
 it('summarizes one eligible buyer device gift and retains its published rules entry',async()=>{
@@ -197,7 +253,7 @@ it('a closed campaign quote failure after returning never restores previous gift
   page.exposed.show();await flush();
   expect(page.view.quote.value).toBeNull();expect(page.view.rewards.value).toEqual([]);expect(page.view.promotion.value).toBeNull();
   expect(page.view.error.value).toBe(zh.promotion.disabledNote);expect(page.view.canCreate.value).toBe(false);
-  const html=await page.html();expect(html).not.toContain(zh.promotion.expected);expect(html).not.toContain('旧活动标题');expect(html).not.toContain(zh.promotion.rulesLink);expect(html).toContain(zh.promotion.quote);
+  const html=await page.html();expect(html).not.toContain(zh.promotion.expected);expect(html).not.toContain('旧活动标题');expect(html).not.toContain(zh.promotion.rulesLink);expect(html).toContain(zh.empty.errorCta);
 });
 it.each([true,false])('a failed catalog read keeps only a confirmed selected name when its presentation contains the SKU=%s',async known=>{
   const page=screen();await page.start();expect(await page.html()).toContain('Selected device');page.exposed.hide();
@@ -471,7 +527,8 @@ it('loads the authoritative balance on entry and hides stale money until a faile
   const initial=page.start();await flush();expect(page.view.walletState.value).toBe('loading');
   read.resolve(false);await initial;
   expect(page.view.walletState.value).toBe('error');expect(await page.html()).not.toContain('999.00 USDT');
-  expect(await page.html()).toContain(commerceCopy('zh').walletRefresh);
+  expect(await page.html()).toContain(zh.empty.errorCta);
+  expect(await page.html()).not.toContain(commerceCopy('zh').walletRefresh);
   await page.view.createOrder();expect(page.view.canPay.value).toBe(false);
   page.app.refreshRemoteFleet.mockImplementation(async()=>{page.app.user.usdtBalance=150;return true;});
   await page.view.refreshWallet();expect(page.view.canPay.value).toBe(true);expect(await page.html()).toContain('150.00 USDT');
@@ -717,7 +774,7 @@ it.each([1,2])('same-selection quantity %s refresh retains all read-only fees wh
 });
 it('same-input network failure keeps fees visible with retry but never restores create/payment authority',async()=>{
   const page=await ordinaryCheckout();page.api.quote.mockRejectedValueOnce(new ApiError({kind:'network',message:'REQUEST_TIMEOUT'}));await page.view.loadQuote();
-  const html=await page.html();expect(html).toContain('data-testid="checkout-fees"');expect(html).toContain('31.84 USDT');expect(html).toContain(zh.promotion.errorNote);expect(html).toContain(zh.promotion.quote);
+  const html=await page.html();expect(html).toContain('data-testid="checkout-fees"');expect(html).toContain('31.84 USDT');expect(html).toContain(zh.promotion.errorNote);expect(html).toContain(zh.empty.errorCta);
   expect(page.saved().quote).toBeNull();expect(page.view.canCreate.value).toBe(false);expect(page.exposed.footer.value.disabled).toBe(true);await page.view.createOrder();await page.view.pay();expect(page.api.create).not.toHaveBeenCalled();expect(page.api.pay).not.toHaveBeenCalled();
 });
 it.each([new ApiError({kind:'business',message:'PROMOTION_NOT_ELIGIBLE_OR_UNAVAILABLE'}),new ApiError({kind:'auth',message:'AUTH_REQUIRED'}),new ApiError({kind:'protocol',message:'INVALID_QUOTE'}),new Error('QUOTE_INPUT_CHANGED')])('strict refresh rejection removes prior fee snapshot: %s',async failure=>{

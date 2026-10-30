@@ -1195,7 +1195,7 @@ getNetworkMonthlyLoss(devices)      → { totalMonthlyLossUSD, degradableCount }
 | **Active**(还有空槽位)| `selectActiveCount(s) < MAX_DEVICES (6)` | hero-tier 完整 CTA |
 | **Capped**(满槽位)| `selectActiveCount(s) === MAX_DEVICES` | Lock icon + `Slot limit reached` 文案,不再可点 |
 
-**槽位口径**(Sprint #146-1):槽位占用 = `activatedAt !== null` 的设备数,**不**等于 `devices.length`(库存)。已购未激活设备不消耗槽位。
+**槽位口径（2026-10-30 更新）**:全部设备共用最多 6 个激活槽位，Cloud Share、手机、PC 算力、Box、Rack 每个有效激活实例各占一槽，同款重购不合并。未激活、取消激活或已回收设备不占槽；原有试用与订单预留规则保持。首页、赚取、设备仓库和选择弹窗统一计数，满槽不能新增激活任何型号。此规则取代 2026-08-25 的 Cloud Share 免槽规定，不改变购买资格、收益和抵扣置换规则。
 
 **Active UI 规格**(自上而下):
 
@@ -3662,7 +3662,7 @@ flowchart LR
 
 **目的**:全 inventory 管理入口。购买成功自动激活为 Online，手动停用后退出算力队列、回到仓库并保留归属，可在空闲槽位内重新启用。六槽仍由后端验证，购买失败不产生成功激活。
 
-2026-10-30 纠正：算力队列按已激活 Online 的设备实例展示；同型号重购保留独立实例和历史订单，当前有效列表与物理槽位占用分别计数。账号已激活手机的业务状态不由当前安装是否已校准或技术心跳决定；本机执行资格仍独立校验。首页添加设备先查可选仓库、有则弹窗选择、无才进商城；折叠队列仍展示当前任务与进度条。六槽、Cloud Share 免槽与本轮口径见[算力激活队列与六槽](UVEL_算力激活队列与六槽_20261029.md)。
+2026-10-30 纠正：算力队列按已激活 Online 的设备实例展示；同型号重购保留独立实例和历史订单。全部类型含 Cloud Share 共用六个激活槽位，每实例各占一槽，取消 Cloud Share 免槽。账号已激活手机的业务状态不由当前安装是否已校准或技术心跳决定；本机执行资格仍独立校验。首页添加设备先查可选仓库、有则弹窗选择、无才进商城；折叠队列仍展示当前任务与进度条。六槽与本轮口径见[算力激活队列与六槽](UVEL_算力激活队列与六槽_20261029.md)。
 
 **两段分组**:
 
@@ -4549,7 +4549,7 @@ Events 分两大类:
 - 正式购买流程 — 订单成功由服务端在原支付事务中创建设备并自动激活 Online，返回后刷新权威 fleet；不得调用本地 `addDevice(kind)` 冒充已购或激活。原型本地 action 仅作演示，不作为正式业务依据。
 - `activateDevice(id) → boolean` — 进槽位,**返回 false 当且仅当**:设备不存在 / 已激活 / **(当前激活数 + 试用预留槽 `trialReservesSlotNow() ? 1 : 0`)≥ `MAX_DEVICES`(6)**;成功时清零 `pendingDeactivate`(恢复激活时清除遗留挂起标记)
 - `deactivateDevice(id)` — **立即**出槽位:清零运行态遥测 + `currentTask=null`(放弃任务奖励)+ `pendingDeactivate=false`,保留 `purchasedAt` / `cumulativeEarningsUsdt` / `paidPriceUsdt` / 其他元数据
-- `scheduleDeactivation(id)` — **优雅出槽位**:若 `currentTask !== null` 则只设 `pendingDeactivate=true`(等任务完成);若 `currentTask === null` 则立即执行 `deactivateDevice` 等效行为
+- `scheduleDeactivation(id)` — **排期停用**:若 `currentTask !== null` 则只设 `pendingDeactivate=true`(等任务完成)，实际停用前仍是已激活 Online、仍占六槽之一，不得提前释放容量允许第七台；若 `currentTask === null` 则立即执行 `deactivateDevice` 等效行为。2026-10-30 明确以实际激活事实而非排期标记统计容量。
 - `tick()` 守卫:`activatedAt === null` 的设备不参与 earnings / task 累计;任务完成处理时检查 `pendingDeactivate=true` → 自动执行 deactivate(清零 telemetry + `activatedAt=null`,不再 pickRandomTask)
 
 **初始设备**:注册与普通 onboarding 完成均不生成本地 phone seed。只有 `POST /api/onboarding/calibrate/activate` 返回 canonical `ACTIVE` 后，服务端才创建/更新并绑定 phone `nx_user_device`；检测或绑定失败可选 `DEFERRED` 完成注册，设备仓库保留重新激活入口，未激活期间不发手机相关奖励。

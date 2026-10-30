@@ -76,7 +76,8 @@ export interface AppHomeOverview {
     endAt: string | null;
     product: { kind: string | null; name: string | null; dailyUsdt: number | null; priceUsdt: number | null };
   } | null;
-  onboarding: { cumulativePaidUsdt: number | null; activeDevices: number | null };
+  onboarding: { cumulativePaidUsdt: number | null; activeDevices: number | null;
+    slotsUsed?: number | null; slotCap?: number | null; reservedSlotCount?: number | null; trialSlotCount?: number | null };
   onGrid: { clients: AppHomeOnGridClient[]; activeDevices: number | null; activeJobs: number | null; perSecUsdt: number | null };
   source: string;
 }
@@ -216,6 +217,11 @@ export function parseAppHomeOverview(value: unknown, mode: ApiEnvironment = "pro
   }
   const onboardingPaid = onboarding.cumulativePaidUsdt == null ? null : nonNegative(onboarding.cumulativePaidUsdt);
   const onboardingDevices = onboarding.activeDevices == null ? null : integer(onboarding.activeDevices);
+  const capacity = Object.fromEntries(["slotsUsed", "slotCap", "reservedSlotCount", "trialSlotCount"]
+    .map(key => [key, onboarding[key] == null ? null : integer(onboarding[key])])) as {
+      slotsUsed: number | null; slotCap: number | null; reservedSlotCount: number | null; trialSlotCount: number | null };
+  if (Object.entries(capacity).some(([key, value]) => onboarding[key] != null && value === null)
+    || capacity.slotCap === 0) return invalid();
   const activeDevices = grid.activeDevices == null ? null : integer(grid.activeDevices);
   const activeJobs = grid.activeJobs == null ? null : integer(grid.activeJobs);
   const perSecUsdt = grid.perSecUsdt == null ? null : nonNegative(grid.perSecUsdt);
@@ -233,7 +239,7 @@ export function parseAppHomeOverview(value: unknown, mode: ApiEnvironment = "pro
     earningsLedgerMode: ledgerMode as AppHomeOverview["earningsLedgerMode"], earningsLedger,
     marketBoard: { workloads: market.workloads.map(workload), deviceRankings: market.deviceRankings.map(ranking) },
     doTheMath: calculator,
-    weeklyPromo, onboarding: { cumulativePaidUsdt: onboardingPaid, activeDevices: onboardingDevices },
+    weeklyPromo, onboarding: { cumulativePaidUsdt: onboardingPaid, activeDevices: onboardingDevices, ...capacity },
     onGrid: { clients: grid.clients.map(client), activeDevices, activeJobs, perSecUsdt }, source,
   };
 }

@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 describe("device slot policy consumers", () => {
-  it("uses the shared physical-slot predicate in every count and activation surface", () => {
+  it("uses one all-device slot count in every activation surface", () => {
     const app = readFileSync(new URL("../store/app.ts", import.meta.url), "utf8");
     const earn = readFileSync(new URL("../pages/earn/earn.vue", import.meta.url), "utf8");
     const slots = readFileSync(new URL("../components/earn/empty-slots-hint.vue", import.meta.url), "utf8");
@@ -12,14 +12,15 @@ describe("device slot policy consumers", () => {
     const deviceInventory = readFileSync(new URL("../pages/me/devices.vue", import.meta.url), "utf8");
 
     expect(app).toContain("isActiveSlotDevice");
-    expect(app).toContain("occupiesDeviceSlot(device.kind)");
+    expect(app).toContain("if (activeSlotCount.value + reservedSlots >= slotCap.value) return false;");
     expect(earn).toContain("isActiveSlotDevice");
     expect(slots).toContain("isActiveSlotDevice");
     expect(poster).toContain("app.visibleDevices.filter(isActiveSlotDevice).length");
     expect(poster).not.toContain("app.devices.length");
-    expect(checkout).toContain('product.value?.productType !== "SHARE"');
-    expect(checkout).toContain("targetOccupiesPhysicalSlot.value &&");
-    expect(deviceInventory).toContain(':disabled="slotsFull && occupiesDeviceSlot(d.kind)"');
-    expect(deviceInventory).toContain("if (occupiesDeviceSlot(d.kind) && slotsFull.value)");
+    expect(checkout).not.toContain("targetOccupiesPhysicalSlot");
+    expect(deviceInventory).toContain(':disabled="slotsFull || !activationReady"');
+    expect(deviceInventory).toContain("if (slotsFull.value)");
+    expect(slots).toContain('v-if="slotsUsed < app.slotCap"');
+    expect(slots).toContain('app.remoteSlotsUsed ?? app.activeSlotCount + trialSlot.value');
   });
 });

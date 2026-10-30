@@ -1,7 +1,7 @@
 <template>
   <view class="device-inventory-row" :data-device-key="`device:${device.id}`">
     <view class="device-inventory-row__heading" role="button" tabindex="0"
-      :aria-label="`${t.earn.deviceDetailTitle}: ${deviceName(t, device)}${onlineState === 'online' ? ' · ' + t.earn.online : ''}${statusText ? ' · ' + statusText : ''}`"
+      :aria-label="`${t.earn.deviceDetailTitle}: ${deviceName(t, device)}${onlineState === 'online' ? ' · ' + t.earn.online : ''} · ${t.myDevices.inventoryEarnedLabel} ${earnedText} · ${t.myDevices.inventoryTodayLabel} ${todayText}${statusText ? ' · ' + statusText : ''}`"
       :aria-expanded="expanded" :aria-controls="detailsId" @click="expanded = !expanded">
       <view class="device-inventory-row__main">
         <view class="device-inventory-row__art" :class="{ 'device-inventory-row__art--inactive': !active }">
@@ -11,6 +11,10 @@
         </view>
         <view class="device-inventory-row__identity">
           <text class="device-inventory-row__name">{{ deviceName(t, device) }}</text>
+          <view class="device-inventory-row__earnings">
+            <text class="device-inventory-row__total">{{ t.myDevices.inventoryEarnedLabel }}<text class="device-inventory-row__earned font-mono-tabular">{{ earnedText }}</text></text>
+            <text class="device-inventory-row__today">{{ t.myDevices.inventoryTodayLabel }} <text class="font-mono-tabular">{{ todayText }}</text></text>
+          </view>
           <text v-if="statusText" class="device-inventory-row__status">{{ statusText }}</text>
         </view>
       </view>
@@ -19,25 +23,36 @@
       </view>
     </view>
     <view v-if="expanded" :id="detailsId" class="device-inventory-row__body">
-      <view class="device-inventory-row__summary">
-        <text class="device-inventory-row__spec">{{ t.myDevices.inventoryEarnedLabel }} <text class="device-inventory-row__earned font-mono-tabular">{{ visibility.mask(runtimeConfirmed ? fmtMoney(device.cumulativeEarningsUsdt) : "-") }}</text></text>
-        <view v-if="showAction" class="device-inventory-row__action" :class="{ 'device-inventory-row__action--active': active }"
-          role="button" :tabindex="actionDisabled ? -1 : 0" :aria-disabled="actionDisabled" @click="onAction">
-          <text>{{ actionLabel }}</text>
-        </view>
-      </view>
       <view v-if="device.pendingDeactivate" class="device-inventory-row__pending">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
         <text>{{ pendingChipLabel }}</text>
       </view>
-      <view v-if="tradeinCreditText || tradeinDisabledText" class="device-inventory-row__tradein">
-        <view v-if="tradeinCreditText" class="device-inventory-row__credit" role="button" tabindex="0" @click.stop="emit('ladder')">
-          <text>{{ tradeinCreditText }} ›</text>
+      <view class="device-inventory-row__controls">
+        <view v-if="tradeinCreditText || tradeinDisabledText" :id="`${quoteInfoId}-trigger`" class="device-inventory-row__quote device-inventory-row__info"
+          :class="{ 'device-inventory-row__info--open': quoteInfoOpen }" role="button" tabindex="0"
+          :aria-label="`${t.tradein.quoteInfoLabel} · ${tradeinQuoteAmount !== undefined ? t.tradein.inventoryCreditLabel + ' ' + visibility.mask(fmtMoney(tradeinQuoteAmount)) : tradeinDisabledText || t.tradein.quoteUnavailable}`"
+          :aria-expanded="quoteInfoOpen" :aria-controls="quoteInfoId"
+          @click.stop="emit('quote-info', !quoteInfoOpen)" @keydown.enter.stop.prevent="emit('quote-info', !quoteInfoOpen)" @keydown.space.stop.prevent="emit('quote-info', !quoteInfoOpen)" @keydown.tab="emit('quote-info', false)" @keydown.esc.stop="emit('quote-info', false)">
+          <view class="device-inventory-row__quote-label">
+            <text v-if="tradeinQuoteAmount !== undefined">{{ t.tradein.inventoryCreditLabel }}</text>
+            <text v-if="tradeinQuoteAmount !== undefined" class="device-inventory-row__credit font-mono-tabular">{{ visibility.mask(fmtMoney(tradeinQuoteAmount).replace('$', '$ ')) }}</text>
+            <text v-else class="device-inventory-row__tradein-disabled">{{ tradeinDisabledText || t.tradein.quoteUnavailable }}</text>
+          </view>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 11v5m0-9h.01" /></svg>
         </view>
-        <text v-else class="device-inventory-row__tradein-disabled">{{ tradeinDisabledText }}</text>
-        <view v-if="tradeinCtaLabel" class="device-inventory-row__tradein-cta" role="button" tabindex="0" @click.stop="emit('tradein')">
-          <text>{{ tradeinCtaLabel }}</text>
+        <view v-if="showAction" class="device-inventory-row__actions" :class="{ 'device-inventory-row__actions--pair': tradeinCtaLabel }">
+          <view class="device-inventory-row__action" :class="{ 'device-inventory-row__action--active': active }"
+            role="button" :tabindex="actionDisabled ? -1 : 0" :aria-disabled="actionDisabled" @click="onAction">
+            <text>{{ actionLabel }}</text>
+          </view>
+          <view v-if="tradeinCtaLabel" class="device-inventory-row__tradein-cta" role="button" tabindex="0" @click.stop="emit('quote-info', false); emit('tradein')">
+            <text>{{ tradeinCtaLabel }}</text>
+          </view>
         </view>
+      </view>
+      <view v-if="quoteInfoOpen && (tradeinCreditText || tradeinDisabledText)" :id="quoteInfoId" class="device-inventory-row__popover" role="note" @click.stop>
+        <text class="device-inventory-row__popover-copy">{{ t.tradein.ladderIntro }}</text>
+        <text class="device-inventory-row__popover-footnote">{{ t.tradein.ladderFootnote }}</text>
       </view>
     </view>
   </view>
@@ -70,14 +85,19 @@ const props = withDefaults(
     slotsFullLabel: string;
     pendingChipLabel: string;
     tradeinCreditText?: string;
+    tradeinQuoteAmount?: number;
+    quoteInfoOpen?: boolean;
     tradeinCtaLabel?: string;
     tradeinDisabledText?: string;
   }>(),
-  { disabled: false, actionDisabled: false, showAction: true, runtimeConfirmed: true },
+  { disabled: false, actionDisabled: false, showAction: true, runtimeConfirmed: true, quoteInfoOpen: false },
 );
-const emit = defineEmits<{ (e: "toggle"): void; (e: "tradein"): void; (e: "ladder"): void }>();
+const emit = defineEmits<{ (e: "toggle"): void; (e: "tradein"): void; (e: "quote-info", open: boolean): void }>();
 const expanded = ref(false);
 const detailsId = computed(() => `device-inventory-details-${encodeURIComponent(props.device.id)}`);
+const quoteInfoId = computed(() => `${detailsId.value}-quote-info`);
+const earnedText = computed(() => visibility.mask(props.runtimeConfirmed ? fmtMoney(props.device.cumulativeEarningsUsdt) : "—"));
+const todayText = computed(() => visibility.mask(props.runtimeConfirmed ? `+${fmtMoney(props.device.todayEarnings)}` : "—"));
 const { imageSrc, imageError } = useDeviceProductImage(() => props.device);
 const onlineState = computed(() => deviceOnlineState(props.device, Date.now(), props.runtimeConfirmed));
 const statusText = computed(() => {
@@ -110,22 +130,28 @@ function onAction() {
 .device-inventory-row__status { display: block; margin-top: 4px; color: var(--v5-ink-3); font: 400 clamp(11px,3.08vw,12px)/18px var(--font-v5); overflow-wrap: anywhere; }
 .device-inventory-row__chevron { display: grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: var(--v5-radius-full); background: var(--v5-surface-2); color: var(--v5-ink-3); }
 .device-inventory-row__chevron svg { transition: transform .25s ease; }
-.device-inventory-row__body { padding: 0 16px 12px; }
-.device-inventory-row__summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.device-inventory-row__spec { display: block; flex: 1; min-width: 0; color: var(--v5-ink-3); font: 400 12px/18px var(--font-v5); overflow-wrap: anywhere; }
-.device-inventory-row__earned { color: var(--v5-ink); }
+.device-inventory-row__body { padding: 0 var(--ui-space-inset) var(--v5-space-4); }
+.device-inventory-row__earnings { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin-top: 6px; }
+.device-inventory-row__total { color: var(--v5-ink-2); font: 500 12px/18px var(--font-v5); overflow-wrap: anywhere; }
+.device-inventory-row__earned { margin-left: var(--v5-space-1); color: var(--v5-ink); font-size: var(--ui-type-list-title); font-weight: 600; }
+.device-inventory-row__today { color: var(--v5-success); font: 400 11px/16px var(--font-v5); overflow-wrap: anywhere; }
 .device-inventory-row__pending { display: flex; align-items: flex-start; gap: 6px; margin-top: 8px; padding: 8px; border-radius: 8px; background: color-mix(in srgb, var(--v5-warning) 12%, transparent); color: var(--v5-warning-ink); font: 400 12px/18px var(--font-v5); }
 .device-inventory-row__pending svg { flex: none; margin-top: 3px; }
-.device-inventory-row__tradein { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 12px; margin-top: 8px; font: 500 12px/18px var(--font-v5); }
-.device-inventory-row__credit, .device-inventory-row__tradein-cta { display: flex; align-items: center; min-height: 44px; padding: 8px 0; box-sizing: border-box; overflow-wrap: anywhere; }
-.device-inventory-row__credit { color: var(--v5-success); }
-.device-inventory-row__tradein-cta { color: var(--v5-brand); }
-.device-inventory-row__tradein-disabled { padding: 8px 0; color: var(--v5-ink-3); overflow-wrap: anywhere; }
-.device-inventory-row__action { position: relative; display: inline-flex; flex: none; align-items: center; justify-content: center; min-height: 44px; min-width: 64px; max-width: 45%; box-sizing: border-box; padding: 8px 14px; border-radius: var(--v5-radius-full); color: var(--v5-brand); font: 500 13px/18px var(--font-v5); text-align: center; overflow-wrap: anywhere; }
-.device-inventory-row__action::before { content: ""; position: absolute; inset: 6px 0; border-radius: inherit; background: var(--v5-brand-soft); pointer-events: none; }
-.device-inventory-row__action > text { position: relative; }
-.device-inventory-row__action--active { color: var(--v5-ink-3); }
-.device-inventory-row__action--active::before { border: 1px solid var(--v5-border); background: transparent; }
+.device-inventory-row__controls { display: flex; align-items: center; justify-content: flex-end; gap: var(--ui-space-inline); }
+.device-inventory-row__quote { display: flex; align-items: center; gap: var(--v5-space-1); flex: 1.2; min-width: 0; min-height: 44px; color: var(--v5-ink-3); }
+.device-inventory-row__quote-label { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--v5-space-1); min-width: 0; font: 400 11px/16px var(--font-v5); overflow-wrap: anywhere; }
+.device-inventory-row__quote > svg { flex: none; }
+.device-inventory-row__credit { color: var(--v5-ink); font-size: var(--v5-type-caption); font-weight: 600; line-height: 20px; overflow-wrap: anywhere; }
+.device-inventory-row__actions { display: grid; grid-template-columns: 1fr; min-width: 88px; gap: var(--v5-space-2); }
+.device-inventory-row__actions--pair { flex: 1.8; grid-template-columns: repeat(2, minmax(0, 1fr)); min-width: 136px; }
+.device-inventory-row__info--open { color: var(--v5-brand); }
+.device-inventory-row__popover { position: relative; grid-column: 1 / -1; margin-top: var(--v5-space-2); padding: var(--v5-space-3) var(--v5-space-4); border-radius: var(--v5-radius-s); background: var(--v5-surface-2); color: var(--v5-ink-2); font: 400 12px/18px var(--font-v5); }
+.device-inventory-row__popover::before { content: ""; position: absolute; top: -6px; left: 24px; width: 12px; height: 12px; background: inherit; transform: rotate(45deg); }
+.device-inventory-row__popover-copy, .device-inventory-row__popover-footnote { display: block; }
+.device-inventory-row__popover-footnote { margin-top: var(--v5-space-2); color: var(--v5-ink-3); }
+.device-inventory-row__action, .device-inventory-row__tradein-cta { display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 44px; box-sizing: border-box; padding: var(--v5-space-2); border-radius: var(--v5-radius-full); font: 500 12px/18px var(--font-v5); text-align: center; overflow-wrap: anywhere; }
+.device-inventory-row__action { background: var(--v5-surface-2); color: var(--v5-ink-2); }
+.device-inventory-row__tradein-cta { background: var(--v5-brand); color: var(--v5-on-brand); }
 .device-inventory-row__action[aria-disabled="true"] { opacity: .5; }
 [role="button"] { cursor: pointer; }
 [role="button"]:active { opacity: .7; }

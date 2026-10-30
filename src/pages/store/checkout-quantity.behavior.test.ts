@@ -18,6 +18,7 @@ function screen(overrides:Record<string,unknown>={}) {
   let current=true;
   const scope={accountKey:'user:7',accountEpoch:1,productNo:'real-sku',generation:1};
   const deps={pageAlive:true,pageVisible:true,quantityReady:ref(true),checkoutRouteInitialized:true,activeCheckoutLoad:null,
+    app:{remoteSlotsUsed:null as number|null,slotCap:6},
     promotionRoute:ref(null),product:ref({id:'real-sku'}),purchaseUnavailable:ref(false),step:ref('select-payment'),
     quantitySwitching:ref(false),voucherSelecting:ref(false),confirming:false,purchaseConfirmationOpen:false,dialogsOpen:0,
     trialCheckoutSource:false,trialConversionMode:ref(false),trialQuoteUnavailable:ref(false),appliedTradeinView:ref(null),reAddingTradein:ref(false),
@@ -33,6 +34,11 @@ function screen(overrides:Record<string,unknown>={}) {
 }
 
 describe('single-item checkout to canonical quantities',()=>{
+  it('does not offer two new units when server reservations leave only one slot',async()=>{
+    const page=screen({app:{remoteSlotsUsed:5,slotCap:6}});
+    expect(page.canIncreaseCheckoutQuantity()).toBe(false);await page.increaseCheckoutQuantity();
+    expect(page.navReplace).not.toHaveBeenCalled();
+  });
   it('opens the same checkout with items=2 and prevents a simultaneous payment or duplicate edit',async()=>{
     const page=screen();let finish!:(value:boolean)=>void;
     page.resumeServerOrder.mockImplementationOnce(()=>new Promise<boolean>(resolve=>{finish=resolve;}));
@@ -74,11 +80,31 @@ describe('single-item checkout to canonical quantities',()=>{
 
 const loadNode=ast.statements.find(node=>ts.isExpressionStatement(node)&&ts.isCallExpression(node.expression)&&node.expression.expression.getText(ast)==='onLoad') as ts.ExpressionStatement;
 const loadSource=(loadNode.expression as ts.CallExpression).arguments[0].getText(ast);
-function routeScreen() {
-  const deps={takeNavigationQuery:()=>'',voucherEntryContext,promotionRoute:ref(null),validatePromotionItems,t:ref(zh),toast:{warn:vi.fn()},navTo:vi.fn(),URLSearchParams};
+function routeScreen(overrides:Record<string,unknown>={}) {
+  const scope={accountKey:'user:7',generation:1,productNo:'cloud-share'};
+  const deps={takeNavigationQuery:()=>'',voucherEntryContext,promotionRoute:ref(null),validatePromotionItems,t:ref(zh),toast:{warn:vi.fn()},navTo:vi.fn(),URLSearchParams,
+    trialCheckoutSource:false,productId:ref('cloud-share'),resolveTrialCheckoutProductId:(id:string)=>id,resumeSessionId:null,
+    beginCheckoutRoute:()=>scope,checkoutRouteInitialized:false,activeCheckoutLoad:null,remoteApiEnabled:true,
+    resumeServerOrder:vi.fn(async()=>false),isCurrentCheckoutRoute:()=>true,refreshProductCatalog:vi.fn(async()=>true),
+    refreshServerProductPhase:vi.fn(async()=>true),getProduct:()=>({id:'cloud-share',productType:'SHARE',inventoryMode:'UNLIMITED'}),
+    trialQuoteAt:()=>({applied:false}),mockServerNow:()=>0,isProductAvailable:()=>true,phase:ref('P1'),
+    refreshPurchaseEligibility:vi.fn(async()=>'eligible'),resumePendingSession:vi.fn(),fireTradeinIntercept:vi.fn(),
+    quantityReady:ref(false),...overrides};
   const code=ts.transpileModule('const load='+loadSource,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
   return {...deps,load:new Function('deps',`with(deps){${code};return load;}`)(deps)};
 }
+it('routes a new single Share through the canonical ordinary quote after recovery checks',async()=>{
+  const page=routeScreen();await page.load({product:'cloud-share'});
+  expect(page.resumeServerOrder).toHaveBeenCalledOnce();
+  expect(page.promotionRoute.value).toEqual({activityId:'',items:[{productNo:'cloud-share',quantity:1}]});
+  expect(page.fireTradeinIntercept).not.toHaveBeenCalled();
+});
+it('keeps an existing Share order on its recovery path before catalog, quantity or new quote routing',async()=>{
+  const recover=vi.fn(async()=>true),page=routeScreen({resumeServerOrder:recover});
+  await page.load({product:'cloud-share'});
+  expect(page.promotionRoute.value).toBeNull();expect(page.refreshProductCatalog).not.toHaveBeenCalled();
+  expect(page.fireTradeinIntercept).not.toHaveBeenCalled();expect(recover).toHaveBeenCalledOnce();
+});
 it.each([[{productNo:'sku',quantity:2}],[{productNo:'sku',quantity:1},{productNo:'sku2',quantity:3}]])('loads activity-free items without falling into legacy single-item checkout: %j',async(...items)=>{
   const page=routeScreen();await page.load({items:JSON.stringify(items)});
   expect(page.promotionRoute.value).toEqual({activityId:'',items,orderNo:undefined});expect(page.navTo).not.toHaveBeenCalled();

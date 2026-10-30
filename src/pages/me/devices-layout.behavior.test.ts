@@ -21,8 +21,8 @@ function mount(locale: keyof typeof messages = "en") {
     app: { slotCap: 6, remoteFleetStatus: "ready" }, slotMeterLabel: "3/6", slotsUsed: 3, segStyle: () => ({}),
     activeDevices: [paid], inactiveDevices: [pending], unconfirmedDevices: [unconfirmed], inventoryEmpty: false,
     trialPresentation: { active: { value: true } }, cancelTrialBusy: false, handleCancelTrial: vi.fn(),
-    remoteApiEnabled: true, canControlDevice: () => true, tradeinStrip: () => ({}), occupiesDeviceSlot: () => true,
-    handleActivate: vi.fn(), handleDeactivate: vi.fn(), handleTradein: vi.fn(), ladderDevice: null,
+    remoteApiEnabled: true, canControlDevice: () => true, tradeinStrip: () => ({}),
+    handleActivate: vi.fn(), handleDeactivate: vi.fn(), handleTradein: vi.fn(), quoteInfoDeviceId: null as string | null,
     slotsFull: false, activationReady: true, phoneNeedsActivation: true, nativePhoneAvailable: false,
     phoneActivationGuidance: { title: "Phone", body: "Connect in the Android app" }, goPhoneActivation: vi.fn(),
     goStore: vi.fn(), sheetDevice: null, onSheetWait: vi.fn(), onSheetForce: vi.fn(),
@@ -51,7 +51,9 @@ it("keeps original paid and trial action handlers and the native phone gate", ()
   rows[0].props!.onToggle(); expect(screen.context.handleDeactivate).toHaveBeenCalledExactlyOnceWith(screen.paid);
   rows[1].props!.onToggle(); expect(screen.context.handleActivate).toHaveBeenCalledExactlyOnceWith(screen.pending);
   rows[0].props!.onTradein(); expect(screen.context.handleTradein).toHaveBeenCalledExactlyOnceWith(screen.paid);
-  rows[0].props!.onLadder(); expect(screen.context.ladderDevice).toBe(screen.paid);
+  expect(tree.some(node => node.type === "TradeinLadderSheet")).toBe(false);
+  rows[0].props!.onQuoteInfo(true); expect(screen.context.quoteInfoDeviceId).toBe(screen.paid.id);
+  tree.find(node => node.type === "AppChassis")!.props!.onClick(); expect(screen.context.quoteInfoDeviceId).toBeNull();
   tree.find(node => node.type === "TrialDeviceRow")!.props!.onCancel(); expect(screen.context.handleCancelTrial).toHaveBeenCalledTimes(1);
   const phoneCta = () => nodes(screen.node()).find(node => Array.isArray(node.children)
     && node.children.some(child => Vue.isVNode(child) && child.children === en.myDevices.phoneActivationCta));

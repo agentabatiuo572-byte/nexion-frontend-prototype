@@ -52,6 +52,10 @@ export interface CanonicalE3Fleet {
   serverNow: number;
   timezone: string;
   slotCap: number;
+  /** Server total includes active instances, trial and unfulfilled order reservations. */
+  slotsUsed?: number;
+  reservedSlotCount?: number;
+  trialSlotCount?: number;
   devices: CanonicalE3Device[];
   capacitySchedule: Record<string, string>;
   source: string;
@@ -326,6 +330,9 @@ function fleet(value: unknown, mode: ApiEnvironment): CanonicalE3Fleet {
     serverNow,
     timezone: string(source.timezone),
     slotCap: integer(source.slotCap, 1),
+    slotsUsed: source.slotsUsed == null ? undefined : integer(source.slotsUsed),
+    reservedSlotCount: source.reservedSlotCount == null ? undefined : integer(source.reservedSlotCount),
+    trialSlotCount: source.trialSlotCount == null ? undefined : integer(source.trialSlotCount),
     devices,
     capacitySchedule: stringMap(source.capacitySchedule),
     source: string(source.source),

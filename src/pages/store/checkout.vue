@@ -615,6 +615,12 @@ onLoad(async (options) => {
     // the server-order recovery branch above.
     if (resumeSessionId && resumePendingSession(resumeSessionId)) return;
     if (!isCurrentCheckoutRoute(routeScope)) return;
+    // New Share purchases use the ordinary server quote. Recovery above keeps
+    // its original order/session rather than migrating a committed intent.
+    if (remoteApiEnabled && pp.productType === 'SHARE' && !trialConversion) {
+      promotionRoute.value = { activityId: '', items: [{ productNo: pp.id, quantity: 1 }] };
+      return;
+    }
     fireTradeinIntercept();
   } finally {
     if (activeCheckoutLoad?.generation === routeScope.generation
@@ -928,8 +934,8 @@ const expiredVoucherForSku = computed(() => {
 
 // ─── Trade-in intercept (one-shot) ───────────────────────────────────────
 // FEAT-DEV02: physical catalog SKUs (v2/P2 included) use the device trade-in
-// capacity preflight. SHARE products are services, not device slots, and must
-// never call the physical-device capacity APIs. Fire on first mount only: skip when a retire
+// capacity preflight. SHARE products do not support physical-device trade-in;
+// their ordinary purchase still obeys the shared activation cap. Fire on first mount only: skip when a retire
 // context already targets this SKU (arrived from the devices-page flow) →
 // choice (owns ≥1 retirable device) → slot-full replace → normal payment.
 const KNOWN_KINDS: DeviceKind[] = [
@@ -1167,10 +1173,9 @@ function retryReceiptWrite() {
 
 const isCard = computed(() => payment.value === "card");
 const reservedSlots = computed(() => (trialReservesSlotNow() ? 1 : 0));
-const cappedRaw = computed(() => app.activeSlotCount + reservedSlots.value >= app.slotCap);
-const targetOccupiesPhysicalSlot = computed(() => product.value?.productType !== "SHARE");
+const cappedRaw = computed(() => (app.remoteSlotsUsed ?? app.activeSlotCount + reservedSlots.value) >= app.slotCap);
 const checkoutCapacityRequired = computed(() => remoteApiEnabled && !trialConversionMode.value
-  && !freeTrial.hasPendingConversion() && targetOccupiesPhysicalSlot.value
+  && !freeTrial.hasPendingConversion() && product.value?.productType !== "SHARE"
   && KNOWN_KINDS.includes(productId.value as DeviceKind));
 const checkoutCapacityMessage = computed(() => remoteCapacityGate.pending ? t.value.store.coCapacityChecking
   : remoteCapacityGate.decision === "REPLACE_REQUIRED" ? slotsFullText.value
@@ -1179,7 +1184,7 @@ const checkoutCapacityMessage = computed(() => remoteCapacityGate.pending ? t.va
 // Conversion order = the trial's own reserved slot converts into the real
 // device (slot exchange) — don't scare the user with a slots-full warning that
 // counts the very slot this purchase frees (only warn when real actives cap).
-const capped = computed(() => !hasTradein.value && targetOccupiesPhysicalSlot.value && (
+const capped = computed(() => !hasTradein.value && (
   trialConversionMode.value ? app.activeSlotCount >= app.slotCap : cappedRaw.value
 ));
 
@@ -1608,6 +1613,7 @@ function cancelCheckout() {
 
 function canIncreaseCheckoutQuantity(): boolean {
   if(voucherSelecting.value)return false;
+  if(app.remoteSlotsUsed != null && app.slotCap - app.remoteSlotsUsed < 2)return false;
   return pageAlive && pageVisible && quantityReady.value && checkoutRouteInitialized && !activeCheckoutLoad
     && !promotionRoute.value && !!product.value && !purchaseUnavailable.value
     && (step.value === 'select-payment' || step.value === 'confirm')

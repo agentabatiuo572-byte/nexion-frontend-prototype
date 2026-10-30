@@ -50,8 +50,8 @@ const fleetReady = computed(() => !remoteApiEnabled
   || app.remoteFleetStatus === "ready"
   || (app.remoteFleetStatus === "loading" && app.remoteFleetHasSnapshot));
 const fleetVisible = computed(() => !remoteApiEnabled || app.remoteFleetHasSnapshot);
-const countReady = computed(() => fleetReady.value && trialPresentation.reservedSlots.value !== null);
-const slotsUsed = computed(() => app.activeSlotCount + (trialPresentation.reservedSlots.value ?? 0));
+const countReady = computed(() => fleetReady.value && (app.remoteSlotsUsed != null || trialPresentation.reservedSlots.value !== null));
+const slotsUsed = computed(() => app.remoteSlotsUsed ?? app.activeSlotCount + (trialPresentation.reservedSlots.value ?? 0));
 const fleetCountText = computed(() => countReady.value ? fmt(t.value.home.fleetOfMax, {
   n: slotsUsed.value,
   max: app.slotCap,

@@ -134,10 +134,10 @@ const nexMarketLabel = computed(() => {
 
 const trialReady = computed(() => !remoteApiEnabled || trial.authorityStatus === "ready"
   || (trial.authorityStatus === "loading" && trial.authorityServerState !== null));
-const slotsReadable = computed(() => !remoteApiEnabled || (app.remoteFleetHasSnapshot && trialReady.value));
+const slotsReadable = computed(() => !remoteApiEnabled || (app.remoteFleetHasSnapshot && (app.remoteSlotsUsed != null || trialReady.value)));
 const activeCount = computed(() => app.visibleDevices.filter((d) => d.activatedAt !== null).length);
 const trialSlot = computed(() => (trialReservesSlotNow() ? 1 : 0));
-const emptySlots = computed(() => Math.max(0, app.slotCap - app.activeSlotCount - trialSlot.value));
+const emptySlots = computed(() => Math.max(0, app.slotCap - (app.remoteSlotsUsed ?? app.activeSlotCount + trialSlot.value)));
 const slotsLine = computed(() => fmt(openSlotsTemplate(t.value.me.walletSlotsLine, emptySlots.value), { active: visibility.mask(activeCount.value), open: visibility.mask(emptySlots.value) }));
 
 const billsThisMonth = computed(() => {

@@ -79,20 +79,25 @@
             <LiveSocialProof :product="product" />
           </view>
 
-          <view class="relative" style="padding: 20px">
-            <!-- name + tagline + mult-badge -->
-            <view class="flex items-start justify-between" style="gap: 12px">
-              <view class="min-w-0">
-                <text class="block truncate" :style="nameStyle">{{ (product.name) }}</text>
-                <text class="block" style="margin-top: 4px; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3)">{{ copy.tagline }}</text>
-              </view>
-            </view>
+          <view class="detail-summary relative">
+            <text class="detail-summary__name" :style="nameStyle">{{ product.name }}</text>
+            <text class="detail-summary__tagline">{{ copy.tagline }}</text>
 
-            <!-- trust chips -->
-            <view class="flex flex-wrap" style="margin-top: 14px; gap: 8px">
-              <text class="font-mono-tabular" :style="codeChip('success')">✓ {{ soldText }} {{ t.store.liveProof.cumulativeSalesLabel }}</text>
-              <text v-if="stockUnavailable" class="font-mono-tabular" :style="codeChip('amber')">{{ t.store.temporarilyOutOfStock }}</text>
-              <text v-if="!isShare && product.stock != null && product.stock > 0" class="font-mono-tabular" :style="codeChip('amber')">{{ product.stock }} {{ t.store.onlyXLeft }}</text>
+            <view class="detail-sales-proof">
+              <view class="detail-sales-stat detail-sales-stat--sold">
+                <view class="detail-sales-stat__value-row">
+                  <text class="detail-sales-stat__value font-mono-tabular">{{ soldText }}</text>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg>
+                </view>
+                <text class="detail-sales-stat__label">{{ t.store.liveProof.cumulativeSalesLabel }}</text>
+              </view>
+              <view v-if="stockUnavailable || (!isShare && product.stock != null && product.stock > 0)" class="detail-sales-stat detail-sales-stat--stock">
+                <text v-if="stockUnavailable" class="detail-sales-stat__status">{{ t.store.temporarilyOutOfStock }}</text>
+                <template v-else>
+                  <text class="detail-sales-stat__value font-mono-tabular">{{ product.stock }}</text>
+                  <text class="detail-sales-stat__label">{{ t.store.weeklyStockLabel }}</text>
+                </template>
+              </view>
             </view>
           </view>
         </view>
@@ -108,17 +113,29 @@
           <view class="promotion-link" role="button" tabindex="0" @click="navTo(promotionDetailHref(id))"><text>{{ t.promotion.ordinary }}</text></view>
         </view>
 
-        <!-- === Cloud Share E1 annual reference and NEX allocation === -->
-        <view v-if="isShare" class="mx-4 mt-3 nx-glass-card" style="padding: 16px 18px">
-          <view class="font-mono-tabular inline-flex items-center" style="gap: 6px; font-size: 12px; font-weight: 500; letter-spacing: 0.08em; color: var(--v5-brand)">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6" /><path d="m22 7-8.5 8.5-5-5L2 17" /></svg>
+        <!-- Cloud Share daily estimates follow the selected quantity. -->
+        <view v-if="isShare" class="mx-4 mt-3 nx-glass-card share-returns">
+          <text class="share-returns__title">{{ t.bundle.estimatedDaily }}</text>
+          <text class="share-returns__description">{{ t.store.shareFlexibleDescription }}</text>
+          <view class="share-returns__metrics">
+            <view class="share-returns__row">
+              <text class="share-returns__currency">USDT</text>
+              <view v-if="shareDailyUsdt" class="share-returns__value font-mono-tabular">
+                <text>{{ shareDailyUsdt.min }}</text>
+                <text v-if="shareDailyUsdt.min !== shareDailyUsdt.max">– {{ shareDailyUsdt.max }}</text>
+              </view>
+              <text v-else class="share-returns__unavailable">{{ t.store.specValueUnavailable }}</text>
+            </view>
+            <view class="share-returns__row">
+              <text class="share-returns__currency">UVT</text>
+              <text class="share-returns__value font-mono-tabular">{{ shareDailyUvtText }}</text>
+            </view>
+          </view>
+          <view class="share-returns__reference">
             <text>{{ t.store.shareReferenceAnnual }}</text>
+            <text class="font-mono-tabular">{{ shareYieldText }}</text>
           </view>
-          <view class="flex items-baseline flex-wrap" style="margin-top: 6px; gap: 8px">
-            <text class="tabular-nums" style="font-family: var(--font-metric); font-weight: 600; font-size: 34px; color: var(--v5-brand); letter-spacing: -0.022em; line-height: 1">{{ shareYieldText }}</text>
-            <text class="font-mono-tabular tabular-nums" style="margin-left: auto; font-size: 13px; color: var(--v5-brand); font-weight: 500">{{ fmt(t.store.cardNexPerDay, { n: product.dailyEarnNEX }) }}{{ t.store.cardPerDaySuffix }}</text>
-          </view>
-          <text class="block" style="margin-top: 8px; font-size: 12px; line-height: 1.4; color: var(--v5-ink-4)">{{ t.store.shareYieldDisclaimer }}</text>
+          <text class="share-returns__note">{{ t.store.shareDailyEstimateNote }}</text>
         </view>
 
         <!-- === Section 2: Vs phone strip === -->
@@ -302,6 +319,7 @@ async function refreshDetailFacts(): Promise<void> {
     void retryEligibility();
   }
   await Promise.all([
+    remoteApiEnabled ? app.refreshRemoteFleet(app.captureRemoteAccountRequest(), { coalesce: true }) : Promise.resolve(true),
     earnConfig.refresh(),
     refreshServerProductPhase(true),
     remoteApiEnabled ? refreshTrust(true) : Promise.resolve(true),
@@ -445,6 +463,9 @@ useSetPageHeader(() => ({
 
 // ── derived ROI math (mirrors page.tsx + _client.tsx) ──
 const qty = ref(1);
+const maxQuantity = computed(() => Math.min(activityId.value ? 100 : 6,
+  remoteApiEnabled && app.remoteSlotsUsed != null ? Math.max(0, app.slotCap - app.remoteSlotsUsed) : Infinity));
+watch(maxQuantity, max => { if (max > 0 && qty.value > max) qty.value = max; });
 const openFaq = ref(0);
 
 // "Your phone" uses the same activated fleet rate as the Store overview.
@@ -554,6 +575,16 @@ const dailyEarnText = computed(() => formatAmount(product.value?.dailyEarn ?? 0)
 const shareYieldText = computed(() => product.value?.shareYieldMin != null && product.value?.shareYieldMax != null
   ? `${product.value.shareYieldMin}%–${product.value.shareYieldMax}%`
   : t.value.store.shareAnnualUnavailable);
+const shareDailyUsdt = computed(() => {
+  const current = product.value;
+  if (!current || current.shareYieldMin == null || current.shareYieldMax == null) return null;
+  const dailyBase = current.price * qty.value / 100 / 365;
+  return {
+    min: formatPlainAmount(dailyBase * current.shareYieldMin, 6),
+    max: formatPlainAmount(dailyBase * current.shareYieldMax, 6),
+  };
+});
+const shareDailyUvtText = computed(() => formatPlainAmount((product.value?.dailyEarnNEX ?? 0) * qty.value, 6));
 const dailyYieldText = computed(() => formatAmount(dailyYield.value));
 const monthlyYieldText = computed(() => formatAmount(monthlyYield.value));
 const annualYieldText = computed(() => formatAmount(annualYield.value));
@@ -569,7 +600,7 @@ function dec() {
   if (qty.value > 1) qty.value -= 1;
 }
 function inc() {
-  if (qty.value < (activityId.value?100:6)) qty.value += 1;
+  if (qty.value < maxQuantity.value) qty.value += 1;
 }
 function toggleFaq(i: number) {
   openFaq.value = openFaq.value === i ? -1 : i;
@@ -659,9 +690,14 @@ function publishStickyCTA() {
       }, stickyOwner);
       return;
     }
+    if (maxQuantity.value === 0) {
+      sticky.show({ href: '/pages/me/devices', amount: priceText.value,
+        amountSubtext: t.value.promotion.capacityUnavailable, buttonLabel: t.value.home.fleetManage, showTabBar: false }, stickyOwner);
+      return;
+    }
     sticky.show({
-      href: activityId.value || voucherContext.value.voucherId || qty.value > 1 ? promotionCheckoutHref([{productNo:product.value.id,quantity:qty.value}],activityId.value,voucherContext.value) : `/pages/store/checkout?product=${product.value.id}`,
-      quantity: { value:qty.value,min:1,max:activityId.value?100:6,decrease:dec,increase:inc },
+      href: isShare.value || activityId.value || voucherContext.value.voucherId || qty.value > 1 ? promotionCheckoutHref([{productNo:product.value.id,quantity:qty.value}],activityId.value,voucherContext.value) : `/pages/store/checkout?product=${product.value.id}`,
+      quantity: { value:qty.value,min:1,max:maxQuantity.value,decrease:dec,increase:inc },
       amount: `${priceText.value}`,
       amountSubtext: isShare.value ? undefined : `${t.value.bundle.estimatedDaily}: $${dailyYieldText.value}`,
       buttonLabel: t.value.store.cardBuyNow,
@@ -669,7 +705,7 @@ function publishStickyCTA() {
     }, stickyOwner);
 }
 watch(
-  [stickyPageVisible, catalogStatus, product, isShare, isLocked, purchaseUnavailable, stockUnavailable, priceText, dailyEarnText, purchaseGate, eligibility, purchaseEligibilityMessage,activityId,promotionStatus,promotionAvailable,activity,qty,voucherContext],
+  [stickyPageVisible, catalogStatus, product, isShare, isLocked, purchaseUnavailable, stockUnavailable, priceText, dailyEarnText, purchaseGate, eligibility, purchaseEligibilityMessage,activityId,promotionStatus,promotionAvailable,activity,qty,maxQuantity,voucherContext],
   publishStickyCTA,
   { immediate: true },
 );
@@ -754,20 +790,6 @@ const multBadgeStyle: CSSProperties = {
   color: "var(--v5-brand-2)",
   whiteSpace: "nowrap",
 };
-function codeChip(tone: "success" | "amber"): CSSProperties {
-  const palette =
-    tone === "success"
-      ? { bg: "var(--v5-success-soft)", color: "var(--v5-success)" }
-      : { bg: "var(--v5-brand-2-soft)", color: "var(--v5-brand-2)" };
-  return {
-    padding: "0",
-    color: palette.color,
-    fontFamily: "var(--font-jet-mono), ui-monospace, monospace",
-    fontSize: "12px",
-    fontWeight: 500,
-    letterSpacing: "-0.005em",
-  };
-}
 // De-carded to a filled tile (no border) — keeps the phone-vs-device commercial
 // comparison punch without the boxed weight.
 const vsStripStyle: CSSProperties = {
@@ -882,6 +904,30 @@ const faqQStyle: CSSProperties = {
 </script>
 <style src="@/components/promotion/promotion.css"></style>
 <style scoped>
+.detail-summary { padding: var(--v5-space-5); }
+.detail-summary__name { display: block; overflow-wrap: anywhere; }
+.detail-summary__tagline { display: block; margin-top: var(--v5-space-1); font-size: var(--ui-type-list-subtitle); line-height: var(--v5-type-body-s-lh); color: var(--v5-ink-3); }
+.detail-sales-proof { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: var(--v5-space-6); margin-top: var(--v5-space-5); }
+.detail-sales-stat { display: flex; flex-direction: column; gap: var(--v5-space-1); min-width: 0; }
+.detail-sales-stat--sold { color: var(--v5-success); }
+.detail-sales-stat--stock { align-items: flex-end; color: var(--v5-brand-2); text-align: right; }
+.detail-sales-stat__value-row { display: flex; align-items: center; gap: var(--v5-space-2); min-width: 0; }
+.detail-sales-stat__value-row svg { flex: none; }
+.detail-sales-stat__value { font-size: var(--v5-type-h3); font-weight: 600; line-height: var(--v5-type-h3-lh); overflow-wrap: anywhere; }
+.detail-sales-stat__label { color: var(--v5-ink-3); font: 400 var(--ui-type-list-subtitle)/var(--v5-type-body-s-lh) var(--font-v5); overflow-wrap: anywhere; }
+.detail-sales-stat__status { font: 500 var(--ui-type-list-subtitle)/var(--v5-type-h3-lh) var(--font-v5); overflow-wrap: anywhere; }
+.detail-sales-stat:only-child { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: space-between; }
+.share-returns { padding: var(--v5-space-5); }
+.share-returns__title { display: block; font: 600 var(--ui-type-subheading)/var(--ui-type-subheading-lh) var(--font-v5); color: var(--v5-ink); }
+.share-returns__description { display: block; margin-top: var(--v5-space-1); font: 400 var(--v5-type-body-s)/var(--v5-type-body-s-lh) var(--font-v5); color: var(--v5-ink-3); }
+.share-returns__metrics { display: flex; flex-direction: column; gap: var(--v5-space-3); margin: var(--v5-space-5) 0; }
+.share-returns__row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--v5-space-3); }
+.share-returns__currency { flex: none; font: 500 var(--v5-type-body-s)/var(--v5-type-body-s-lh) var(--font-v5); color: var(--v5-ink-2); }
+.share-returns__value { display: flex; flex-wrap: wrap; justify-content: flex-end; column-gap: var(--v5-space-1); min-width: 0; font-size: var(--v5-type-card-title); font-weight: 600; line-height: var(--v5-type-card-title-lh); color: var(--v5-brand); text-align: right; }
+.share-returns__value text { white-space: nowrap; }
+.share-returns__unavailable { font: 400 var(--v5-type-body-s)/var(--v5-type-body-s-lh) var(--font-v5); color: var(--v5-ink-3); }
+.share-returns__reference { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--v5-space-2); padding-top: var(--v5-space-3); border-top: 1px solid var(--v5-border); font: 400 var(--v5-type-caption)/var(--v5-type-caption-lh) var(--font-v5); color: var(--v5-ink-3); }
+.share-returns__note { display: block; margin-top: var(--v5-space-1); font: 400 var(--v5-type-caption)/var(--v5-type-caption-lh) var(--font-v5); color: var(--v5-ink-3); }
 /* One outer corner clip; the catalog image and its pedestal keep their full size. */
 .detail-hero :deep(.detail-product-render) { border-radius:0 !important; }
 .detail-hero :deep(.detail-product-render > [aria-hidden]:not(:first-child)) {

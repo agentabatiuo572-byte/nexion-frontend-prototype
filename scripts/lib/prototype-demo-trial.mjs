@@ -2,7 +2,7 @@
 import { fixture } from './design-review-fixture.mjs';
 const day=86400000,proof={sourceEnvironment:'PRODUCTION',runId:'',serverCanonical:true};
 const refuse=message=>{const error=new Error(message);error.status=409;throw error;};
-export function trialDemo(url,locale,state,request){
+export function trialDemo(url,locale,state,request,capacityFull){
   if(!url.pathname.startsWith('/api/trial/'))return undefined;
   const now=Date.now(),mode=state.trialState||'follow';
   const data=structuredClone(fixture(new URL('/api/trial/state',url.origin),locale,{offers:true},request));
@@ -24,10 +24,12 @@ export function trialDemo(url,locale,state,request){
     const claimed=row.state!=='ELIGIBLE',live=['ACTIVE','GRACE'].includes(row.state);
     const elapsed=Math.min(duration,Math.max(0,now-row.startedAt))/day;
     const shadow=claimed?Number((elapsed*Number(cfg.shadowDailyUSD)).toFixed(2)):0,offset=live?Math.min(shadow,Number(cfg.trialOffsetCapUSD)):0;
-    const canStart=!claimed||(mode==='eligible-again'&&row.state==='FAILED');
+    const eligible=!claimed||(mode==='eligible-again'&&row.state==='FAILED');
+    const full=capacityFull||mode==='capacity-full';
+    const canStart=eligible&&!full;
     const quote=live?quoteFor(shadow,claimed?Number((elapsed*Number(cfg.shadowDailyNEX)).toFixed(2)):0,row.state==='ACTIVE'&&now<row.startedAt+duration):undefined;
     const conversion=row.state==='REDEEMED'?conversionFacts():null;
-    return {...data,state:row.state,canStart,eligibilityReason:!canStart?(row.state==='REDEEMED'?'converted':live?'in-progress':'used'):undefined,
+    return {...data,state:row.state,canStart,eligibilityReason:eligible&&full?'capacity-full':!canStart?(row.state==='REDEEMED'?'converted':live?'in-progress':'used'):undefined,
       claimNo:claimed?'DEMO-TRIAL':null,version:row.version||1,serverNowEpochMs:now,
       claimedAtEpochMs:claimed?row.startedAt:null,expiresAtEpochMs:claimed?row.startedAt+duration:null,graceEndsAtEpochMs:claimed?row.startedAt+duration+grace:null,
       finishedAtEpochMs:['FAILED','CANCELLED','REDEEMED'].includes(row.state)?row.finishedAt||row.startedAt+duration+grace:null,
@@ -71,7 +73,7 @@ export function trialDemo(url,locale,state,request){
   const remember=value=>{if(key){state.trialCommands??={};state.trialCommands[key]=structuredClone(value);}return value;};
   if(url.pathname==='/api/trial/start'){
     if(mode==='claim-error'&&!state.trialStartFailed){state.trialStartFailed=true;refuse('TRIAL_SERVICE_UNAVAILABLE');}
-    if(mode==='capacity-full')refuse('TRIAL_CAPACITY_FULL');
+    if(snapshot().eligibilityReason==='capacity-full')refuse('TRIAL_CAPACITY_FULL');
     if(snapshot().canStart)Object.assign(row,{state:'ACTIVE',startedAt:now,version:(row.version||1)+1});
     return remember(snapshot());
   }
@@ -97,6 +99,6 @@ export function trialDemo(url,locale,state,request){
       earlyRewardUsdt:quote.earlyRewardUsdt,earlyRewardNex:quote.earlyRewardNex,earlyDiscountUsdt:quote.earlyDiscountUsdt,source,provenance:{...proof,source}});
   }
   if(['/api/trial/state','/api/trial/eligibility'].includes(url.pathname)){
-    const result=snapshot();if(mode==='capacity-full'&&row.state==='ELIGIBLE')Object.assign(result,{canStart:false,eligibilityReason:'capacity-full'});return result;
+    return snapshot();
   }
 }

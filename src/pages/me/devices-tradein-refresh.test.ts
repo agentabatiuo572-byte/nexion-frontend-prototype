@@ -31,7 +31,8 @@ function scenario(active = false) {
   let eligible = active;
   const accountScope = createRemoteAccountEpoch(app.accountKey);
   const api = {
-    eligibility: vi.fn(async () => ({ sources: [{ sourceDeviceId: 1157, eligible }] })),
+    eligibility: vi.fn(async (targetProductNo = "stellarbox-pro-v2") => ({ ...result(eligible), targetProductNo })),
+    quote: vi.fn(async (sourceDeviceId = 1157, targetProductNo = "stellarbox-pro-v2") => ({ sourceDeviceId, targetProductNo, discountUsdt: 240 })),
     activate: vi.fn(async () => { eligible = true; app.devices[0].activatedAt = 2; app.devices[0].rowVersion++; }),
     deactivate: vi.fn(async () => { eligible = false; app.devices[0].activatedAt = null; app.devices[0].rowVersion++; }),
   };
@@ -53,9 +54,46 @@ function deferred<T>() {
   const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no; });
   return { promise, resolve, reject };
 }
-const result = (eligible: boolean) => ({ sources: [{ sourceDeviceId: 1157, eligible }] });
+const result = (eligible: boolean) => ({ enabled: true, eligible, targetProductNo: "stellarbox-pro-v2", targetPriceUsdt: 1200,
+  sources: [{ sourceDeviceId: 1157, eligible }] });
 
 describe("warehouse authoritative trade-in eligibility refresh", () => {
+  it("previews the lowest-priced eligible target rather than catalog order", async () => {
+    const s = scenario(true); await settle();
+    s.deps.PRODUCTS.push({ id: "lower-price" });
+    s.api.eligibility.mockImplementation(async targetProductNo => ({ ...result(true), targetProductNo: targetProductNo!,
+      targetPriceUsdt: targetProductNo === "lower-price" ? 1000 : 1200 }));
+    await s.page.refreshRemoteTradeinEligibility();
+    expect(s.api.quote).toHaveBeenLastCalledWith(1157, "lower-price");
+  });
+  it("does not restore a stale quote after a newer read or accept a mismatched source", async () => {
+    const s = scenario(true); await settle();
+    const old = deferred<{ sourceDeviceId: number; targetProductNo: string; discountUsdt: number }>();
+    s.api.quote.mockReturnValueOnce(old.promise);
+    const stale = s.page.refreshRemoteTradeinEligibility(); await settle();
+    await s.page.refreshRemoteTradeinEligibility();
+    old.resolve({ sourceDeviceId: 1157, targetProductNo: "stellarbox-pro-v2", discountUsdt: 999 }); await stale;
+    expect(s.page.tradeinStrip(s.app.devices[0]).tradeinQuoteAmount).toBe(240);
+    s.api.quote.mockResolvedValueOnce({ sourceDeviceId: 9999, targetProductNo: "stellarbox-pro-v2", discountUsdt: 999 });
+    await s.page.refreshRemoteTradeinEligibility();
+    expect(s.page.tradeinStrip(s.app.devices[0]).tradeinQuoteAmount).toBeUndefined();
+  });
+  it("shows an authoritative quote and keeps the upgrade available when only quoting fails", async () => {
+    const s = scenario(true); await settle();
+    expect(s.page.tradeinStrip(s.app.devices[0]).tradeinQuoteAmount).toBe(240);
+    s.api.quote.mockRejectedValueOnce(new Error("quote unavailable"));
+    await s.page.refreshRemoteTradeinEligibility();
+    expect(s.page.tradeinStrip(s.app.devices[0]).tradeinQuoteAmount).toBeUndefined();
+    expect(s.page.tradeinStrip(s.app.devices[0]).tradeinCtaLabel).toBe("Trade in");
+  });
+  it.each(["disabled", "no-target", "no-source"])("hides upgrade and does not quote when eligibility is %s", async (state) => {
+    const s = scenario(true); await settle(); const quotes = s.api.quote.mock.calls.length;
+    s.api.eligibility.mockResolvedValueOnce({ ...result(true), enabled: state !== "disabled", eligible: state !== "no-target",
+      sources: [{ sourceDeviceId: 1157, eligible: state !== "no-source" }] });
+    await s.page.refreshRemoteTradeinEligibility();
+    expect(s.page.tradeinStrip(s.app.devices[0])).toEqual({});
+    expect(s.api.quote).toHaveBeenCalledTimes(quotes);
+  });
   it("reveals the quote action after successful activation without reopening or changing account", async () => {
     const s = scenario(); await settle();
     expect(s.page.tradeinStrip(s.app.devices[0])).toEqual({});
@@ -75,10 +113,13 @@ describe("warehouse authoritative trade-in eligibility refresh", () => {
     s.eligible(true); s.app.devices[0].currentTask = null; await settle();
     expect(s.page.tradeinStrip(s.app.devices[0]).tradeinCtaLabel).toBe("Trade in");
   });
-  it("does not refetch for an equivalent fleet snapshot or earnings tick", async () => {
+  it("keeps equivalent fleet snapshots cached and refreshes the quote when cumulative earnings change", async () => {
     const s = scenario(true); await settle(); const reads = s.api.eligibility.mock.calls.length;
-    s.app.devices = s.app.devices.map((device) => ({ ...device, rowVersion: 2, cumulativeEarningsUsdt: 3 })); await settle();
+    s.app.devices = s.app.devices.map((device) => ({ ...device, rowVersion: 2 })); await settle();
     expect(s.api.eligibility).toHaveBeenCalledTimes(reads);
+    s.api.quote.mockResolvedValueOnce({ sourceDeviceId: 1157, targetProductNo: "stellarbox-pro-v2", discountUsdt: 180 });
+    s.app.devices[0].cumulativeEarningsUsdt = 300; await settle();
+    expect(s.page.tradeinStrip(s.app.devices[0]).tradeinQuoteAmount).toBe(180);
   });
   it("invalidates immediately on a pending deactivation or a newly running task", async () => {
     const s = scenario(true); await settle();

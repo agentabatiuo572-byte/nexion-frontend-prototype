@@ -76,7 +76,7 @@ async function fixture(page: Page, raw: string, language: "zh" | "en" | "vi", th
   const markup = hero(baseParse(descriptor.template!.content));
   if (!markup) throw new Error("Missing actual product hero");
   const script = ts.createSourceFile("detail.ts", descriptor.scriptSetup!.content, ts.ScriptTarget.Latest, true);
-  const names = ["auroraStyle", "ribbonStyle", "nameStyle", "codeChip"];
+  const names = ["auroraStyle", "ribbonStyle", "nameStyle"];
   const declarations = script.statements.filter(statement => ts.isVariableStatement(statement)
     ? statement.declarationList.declarations.some(d => names.includes(d.name.getText(script)))
     : ts.isFunctionDeclaration(statement) && names.includes(statement.name?.text ?? "")).map(statement => statement.getText(script)).join("\n");
@@ -87,10 +87,10 @@ async function fixture(page: Page, raw: string, language: "zh" | "en" | "vi", th
     isCustomElement: tag => ["view", "text"].includes(tag),
   }).code)(Vue);
   const heroApp = Vue.createSSRApp({ __scopeId: scope, render: heroRender, setup: () => ({ ...styleValues, t,
-    product: { id: "stellarbox-pro-v2", tier: "Pro", name: "UVELBox Pro v2", imageUrl: media === "missing" ? undefined : photo,
+    product: { id: "stellarbox-pro-v2", tier: "Pro", name: "UVELBox Pro v2", stock: 60, imageUrl: media === "missing" ? undefined : photo,
       videoUrl: media === "video" ? "data:video/mp4;base64," : undefined },
     copy: t.store.catalog["stellarbox-pro-v2"], nexGridBrandText: (name: string) => name,
-    soldText: "1,234", stockUnavailable: false, stockLow: false,
+    soldText: "1,234", stockUnavailable: false, stockLow: false, isShare: false,
   }) });
   heroApp.component("ProductRender", product.default);
   const cta = { amount: "$1,299.00", amountSubtext: `${t.bundle.estimatedDaily}: $13.00`, buttonLabel: t.store.cardBuyNow,

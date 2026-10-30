@@ -10,7 +10,7 @@
     <view v-else-if="loading" class="promotion-flat" role="status" aria-live="polite"><text>{{ p.loading }}</text></view>
     <template v-else>
       <view v-if="unknown" class="promotion-flat" role="status"><text class="promotion-title">{{ session.record.pending?.operation==='payOrder'?p.unknownTitle:p.orderUnknownTitle }}</text><text class="promotion-copy">{{ p.unknownBody }}</text><PromotionAction class="promotion-action primary" role="button" tabindex="0" :aria-disabled="busy" @click="recover"><text>{{ p.query }}</text></PromotionAction></view>
-      <view v-if="error" class="promotion-notice" role="alert"><text>{{ error }}</text></view>
+      <view v-if="error" class="promotion-notice" role="alert"><text>{{ error }}</text><view v-if="!order&&!openedOriginal&&!session.record.pending&&!freshQuoteReady&&!busy" class="promotion-link" role="button" tabindex="0" @click="loadQuote"><text>{{ t.empty.errorCta }}</text></view></view>
       <view v-if="openedOriginal" class="promotion-notice" role="status"><text>{{ p.openedOriginal }}</text></view>
       <view v-if="items.length" class="checkout-group checkout-products" :aria-label="p.selected">
         <view v-for="item in items" :key="item.productNo" class="promotion-row checkout-product-line">
@@ -36,9 +36,9 @@
             </view>
             <text v-if="voucherOnlyDiscount!==undefined" class="checkout-discount-value">{{ formatDiscount(voucherOnlyDiscount) }} USDT</text>
           </view>
-          <view v-if="!order&&items.length===1&&!openedOriginal&&!eventVoucherId" class="checkout-discount-row promotion-link checkout-voucher-row" role="button" :tabindex="busy||session.record.pending?-1:0" :aria-disabled="busy||!!session.record.pending" @click="chooseVoucher" @keydown.enter.prevent="chooseVoucher" @keydown.space.prevent="chooseVoucher">
+          <view v-if="!order&&items.length===1&&!openedOriginal&&!eventVoucherId" class="checkout-discount-row promotion-link checkout-voucher-row" role="button" :tabindex="busy||voucherLoading||session.record.pending?-1:0" :aria-disabled="busy||voucherLoading||!!session.record.pending" @click="chooseVoucher" @keydown.enter.prevent="chooseVoucher" @keydown.space.prevent="chooseVoucher">
             <view class="checkout-discount-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a2 2 0 0 0 0 6v3a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-3a2 2 0 0 0 0-6V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1z" /><path d="M14 6v2m0 3v2m0 3v2" /></svg></view>
-            <view class="promotion-grow"><text class="checkout-discount-title">{{ p.voucher }}</text><text class="checkout-discount-description">{{ selectedVoucherName }}</text></view>
+            <view class="promotion-grow"><text class="checkout-discount-title">{{ p.voucher }}</text><text class="checkout-discount-description">{{ voucherLoading ? p.loading : selectedVoucherName }}</text></view>
             <text v-if="voucherOnlyDiscount!==undefined" class="checkout-discount-value">{{ formatDiscount(voucherOnlyDiscount) }} USDT</text>
             <svg class="checkout-discount-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
           </view>
@@ -66,13 +66,18 @@
         <view class="checkout-group">
           <view class="checkout-wallet">
             <view class="checkout-wallet-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4M3 5v14a2 2 0 0 0 2 2h16v-5M16 12h6v4h-6z" /></svg></view>
-            <view class="promotion-grow"><text class="checkout-item-name">{{ p.wallet }}</text>
-              <text class="promotion-copy">{{ t.wallet.usdtBalance }} · {{ (walletState==='ready' || (walletState==='loading' && app.remoteFleetHasSnapshot)) ? formatAmount(app.user.usdtBalance)+' USDT' : walletState==='loading' ? reviewCopy.walletLoading : reviewCopy.walletError }}</text>
+            <view class="promotion-grow checkout-wallet-details"><text class="checkout-item-name">{{ p.wallet }}</text>
+              <view class="checkout-wallet-balance" aria-live="polite" :aria-busy="walletState==='loading'">
+                <text class="checkout-wallet-label">{{ t.wallet.usdtBalance }}</text>
+                <text v-if="walletState==='ready' || (walletState==='loading' && app.remoteFleetHasSnapshot)" class="checkout-wallet-amount font-mono-tabular">{{ formatAmount(app.user.usdtBalance) }} USDT</text>
+                <text v-else class="checkout-wallet-state">{{ walletState==='loading' ? reviewCopy.walletLoading : '—' }}</text>
+              </view>
             </view>
+            <view class="checkout-wallet-topup" role="link" tabindex="0" @click="navTo('/pages/me/wallet-topup')" @keydown.enter.prevent="navTo('/pages/me/wallet-topup')" @keydown.space.prevent="navTo('/pages/me/wallet-topup')"><text>{{ p.topup }}</text><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg></view>
           </view>
-          <view class="checkout-wallet-actions">
-            <PromotionAction class="promotion-link" role="button" :tabindex="walletState==='loading'?-1:0" :aria-disabled="walletState==='loading'" :style="{ opacity: walletState==='loading' && app.remoteFleetHasSnapshot && !busy ? 1 : undefined }" @click="walletState!=='loading'&&refreshWallet()" @keydown.enter.prevent="walletState!=='loading'&&refreshWallet()" @keydown.space.prevent="walletState!=='loading'&&refreshWallet()"><text>{{ reviewCopy.walletRefresh }}</text></PromotionAction>
-            <view class="promotion-link" role="link" tabindex="0" @click="navTo('/pages/me/wallet-topup')" @keydown.enter.prevent="navTo('/pages/me/wallet-topup')"><text>{{ p.topup }}</text></view>
+          <view v-if="walletState==='error'" class="checkout-wallet-recovery" role="status">
+            <text>{{ reviewCopy.walletError }}</text>
+            <view class="promotion-link" role="button" tabindex="0" @click="refreshWallet(true)"><text>{{ t.empty.errorCta }}</text></view>
           </view>
         </view>
       </view>
@@ -103,7 +108,6 @@
           <text v-if="quote && !completeTerms" class="promotion-notice">{{ p.termsMissing }}</text>
           <text v-if="quote&&quote.eligibility!=='ELIGIBLE'" class="promotion-notice">{{ p.disabledNote }}</text>
 
-          <PromotionAction v-if="!openedOriginal" class="promotion-action" role="button" tabindex="0" :aria-disabled="busy||!!session.record.pending" @click="loadQuote"><text>{{ p.quote }}</text></PromotionAction>
         </template>
       </template>
     </template>
@@ -176,6 +180,7 @@ function selectedItemName(item:{productNo:string;productName?:string}){return (i
 const reviewCopy=computed(()=>commerceCopy(locale.code));
 const walletState=ref<'idle'|'loading'|'ready'|'error'>('idle');
 let walletGeneration=0;
+let walletTimer:ReturnType<typeof setInterval>|undefined;
 let catalogRefresh:Promise<boolean>|null=null;
 async function refreshWallet(coalesce=false){
   if(!current()||!visible||!auth.isAuthenticated)return;
@@ -226,7 +231,7 @@ const voucherOnlyDiscount=computed(()=>!order.value&&!openedOriginal&&!!voucherI
   &&items.value.length===1&&!(eventVoucherId&&session.record.pending)
   &&displayQuote.value?.promotionDiscountUsdt!==undefined&&formatAmount(displayQuote.value.promotionDiscountUsdt)==='0.00'
   ?displayQuote.value.discountUsdt:undefined);
-const voucherOpen=ref(false);
+const voucherOpen=ref(false),voucherLoading=ref(false);
 const manualVoucher=()=>session.record.voucherMode==='manual'||(session.record.voucherMode===undefined&&session.record.voucherId!==undefined);
 function eligibleVouchers(subtotal:number) {
   if(selection.value.length!==1||!Number.isFinite(subtotal))return [];
@@ -247,7 +252,8 @@ function canChangeQuantity(productNo:string,delta:-1|1):boolean {
   const item=selection.value.find(item=>item.productNo===productNo);
   return current()&&visible&&auth.isAuthenticated&&!loading.value&&!busy.value
     &&!openedOriginal&&!props.orderNo&&!session.record.pending&&!order.value&&!unknown.value
-    &&!!item&&item.quantity+delta>=1&&selection.value.reduce((sum,item)=>sum+item.quantity,0)+delta<=100;
+    &&!!item&&item.quantity+delta>=1&&selection.value.reduce((sum,item)=>sum+item.quantity,0)+delta<=100
+    &&(delta<0||app.remoteSlotsUsed==null||selection.value.reduce((sum,item)=>sum+item.quantity,0)+delta<=app.slotCap-app.remoteSlotsUsed);
 }
 async function changeQuantity(productNo:string,delta:-1|1,event?:KeyboardEvent):Promise<void> {
   if(event?.repeat||!canChangeQuantity(productNo,delta))return;
@@ -364,11 +370,14 @@ async function claimEventVoucher(){
   if((claimed||voucher.remoteStatus==='ready')&&readCurrent(generation))await loadQuote();
 }
 async function chooseVoucher(){
-  if(eventVoucherId||openedOriginal||props.orderNo||busy.value||session.record.pending||order.value||items.value.length!==1)return;
+  if(eventVoucherId||openedOriginal||props.orderNo||busy.value||voucherLoading.value||session.record.pending||order.value||items.value.length!==1)return;
   const generation=readGeneration;
   const selectable=()=>readCurrent(generation)&&!busy.value&&!session.record.pending&&!order.value;
-  if(!await voucher.refreshRemote()){if(selectable())error.value=p.value.errorNote;return;}
-  if(selectable())voucherOpen.value=true;
+  voucherLoading.value=true;
+  try{
+    if(!await voucher.refreshRemote()){if(selectable())error.value=p.value.errorNote;return;}
+    if(selectable())voucherOpen.value=true;
+  }finally{voucherLoading.value=false;}
 }
 async function selectVoucher(id:string|null){
   if(!voucherOpen.value||!current()||!visible||openedOriginal||props.orderNo||busy.value||session.record.pending||order.value||unknown.value)return;
@@ -422,6 +431,7 @@ onBeforeRouteLeave(()=>requestCheckoutLeave());
 let nativeBackApproved=false;
 function back():boolean{if(nativeBackApproved){nativeBackApproved=false;return false;}void requestLeave().then(ok=>{if(ok&&current()){nativeBackApproved=true;navBack('/store');}});return true;}
 function hide(){
+  if(walletTimer){clearInterval(walletTimer);walletTimer=undefined;}
   visible=false;quotePresentation.value=null;readGeneration++;walletGeneration++;walletState.value='idle';refreshOnIdle=false;termsOpen.value=false;voucherOpen.value=false;promotion.value=null;promotionReceivedAt=null;
   useUI().clearConfirmsBy(paymentDialogOwner);
   if(current()&&!session.record.pending&&!session.record.order){
@@ -433,6 +443,7 @@ function hide(){
 }
 function show(){
   visible=true;if(!current())return;
+  startWalletTimer();
   if(!disposeGuard)disposeGuard=registerCheckoutLeaveGuard(requestLeave);
   if(busy.value){refreshOnIdle=true;return;}
   if(session.record.pending||session.record.order)void recover();else if(!props.orderNo){void refreshWallet(true);void loadQuote();}
@@ -447,8 +458,17 @@ const footer = computed(() => {
   return null;
 });
 defineExpose({back,hide,show,footer,hasDevicePolicy,hasRewardTerms});
+function startWalletTimer(){
+  if(walletTimer)return;
+  walletTimer=setInterval(()=>{
+    if(!visible||!current()||loading.value||busy.value||paymentConfirming||termsOpen.value||voucherOpen.value||voucherLoading.value||leaveOpen.value)return;
+    if(walletState.value!=='loading')void refreshWallet(true);
+    if(!session.record.order&&!session.record.pending)void loadQuote();
+  },30000);
+}
 onMounted(async()=>{
   disposeGuard=registerCheckoutLeaveGuard(requestLeave);timer=setInterval(updateClock,1000);
+  startWalletTimer();
   // Catalog and current campaign visibility cannot block an original order or
   // command receipt. Historical rewards always come from that receipt.
   if(auth.isAuthenticated)catalogRefresh=refreshProductCatalog(true).catch(()=>false);
@@ -463,7 +483,7 @@ onMounted(async()=>{
     }
   }catch{if(current())error.value=p.value.error;}finally{if(current())loading.value=false;}
 });
-onBeforeUnmount(()=>{hide();alive=false;if(timer)clearInterval(timer);});
+onBeforeUnmount(()=>{hide();alive=false;if(timer)clearInterval(timer);if(walletTimer)clearInterval(walletTimer);});
 </script>
 <style src="./promotion.css"></style>
 
@@ -503,9 +523,16 @@ onBeforeUnmount(()=>{hide();alive=false;if(timer)clearInterval(timer);});
 .checkout-reward-terms { margin:0 16px 0 64px; }
 .checkout-discount-value { color:var(--v5-brand); font-variant-numeric:tabular-nums; }
 .checkout-discount-row .checkout-discount-value { flex-shrink:0; max-width:45%; overflow-wrap:anywhere; text-align:right; font:600 15px/20px var(--font-v5); }
-.checkout-wallet { display:flex; align-items:center; gap:12px; padding:14px 16px; background:linear-gradient(90deg,color-mix(in srgb,var(--v5-brand) 12%,transparent),color-mix(in srgb,var(--v5-brand) 2%,transparent)); box-shadow:inset 3px 0 0 var(--v5-brand); }
-.checkout-wallet-icon { display:grid; place-items:center; flex:none; width:36px; height:36px; border-radius:12px; color:var(--v5-brand); background:var(--ui-content-surface-2); }
-.checkout-wallet-actions { display:flex; flex-wrap:wrap; gap:4px 16px; padding:0 16px; }
+.checkout-wallet { display:grid; grid-template-columns:36px minmax(0,1fr) auto; align-items:center; gap:var(--ui-space-inline); padding:var(--ui-space-inset); }
+.checkout-wallet-icon { display:grid; place-items:center; width:36px; height:36px; border-radius:var(--ui-radius-icon); color:var(--v5-brand); background:var(--ui-content-surface-2); }
+.checkout-wallet-details { min-width:0; }
+.checkout-wallet-balance { display:flex; flex-wrap:wrap; align-items:baseline; gap:var(--v5-space-1) var(--v5-space-2); margin-top:var(--v5-space-1); }
+.checkout-wallet-label,.checkout-wallet-state { font:400 var(--ui-type-list-subtitle)/18px var(--font-v5); color:var(--v5-ink-3); overflow-wrap:anywhere; }
+.checkout-wallet-amount { font-size:var(--ui-type-list-title); font-weight:600; line-height:1.5; color:var(--v5-ink); overflow-wrap:anywhere; }
+.checkout-wallet-topup { display:flex; align-items:center; justify-content:flex-end; gap:var(--v5-space-1); min-width:44px; min-height:44px; color:var(--v5-brand); font:500 var(--ui-type-list-subtitle)/18px var(--font-v5); cursor:pointer; }
+.checkout-wallet-topup svg { flex:none; }
+.checkout-wallet-topup:focus-visible { outline:2px solid var(--v5-brand); outline-offset:2px; }
+.checkout-wallet-recovery { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--v5-space-2); margin:0 var(--ui-space-inset); border-top:1px solid var(--v5-border); color:var(--v5-ink-3); font:400 var(--ui-type-list-subtitle)/18px var(--font-v5); }
 .checkout-fees { padding:6px 16px; }
 .checkout-fees .promotion-summary { box-sizing:border-box; align-items:center; font-variant-numeric:tabular-nums; }
 .checkout-fees .promotion-summary > :last-child { max-width:65%; }

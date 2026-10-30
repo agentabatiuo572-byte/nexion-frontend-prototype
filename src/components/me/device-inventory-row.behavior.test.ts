@@ -28,13 +28,14 @@ function mount(locale: keyof typeof messages = "en") {
   const visibility = Vue.reactive({ hidden: false, mask: (value: string) => visibility.hidden ? "••••" : value });
   const device = Vue.reactive({ id: "paid-1", productCode: "stellarbox-pro-v2", kind: "stellarbox-pro-v2", name: "UVELBox Pro v2", gpu: "RTX 4090",
     activatedAt: 1, capacitySource: "server", runtimeStatus: "ONLINE", status: "online", baseRate: 2, baseRateNEX: 3,
-    cumulativeEarningsUsdt: 1234.5,
+    cumulativeEarningsUsdt: 1234.5, todayEarnings: 12.34,
   } as Device);
   const props = Vue.reactive({ device, active: true, runtimeConfirmed: true, showAction: true, disabled: false, actionDisabled: false,
     disabledLabel: undefined as string | undefined, activateLabel: t.myDevices.inventoryRowActivate, deactivateLabel: t.myDevices.inventoryRowDeactivate,
     slotsFullLabel: t.myDevices.inventoryRowSlotsFull, pendingChipLabel: t.myDevices.inventoryPendingDeactivateChip,
-    tradeinCreditText: "Credit $200", tradeinCtaLabel: t.tradein.stripCta, tradeinDisabledText: undefined as string | undefined });
-  const emit = vi.fn();
+    tradeinCreditText: "Credit $200", tradeinQuoteAmount: 200 as number | undefined, quoteInfoOpen: false,
+    tradeinCtaLabel: t.tradein.stripCta as string | undefined, tradeinDisabledText: undefined as string | undefined });
+  const emit = vi.fn((event: string, open?: boolean) => { if (event === "quote-info") props.quoteInfoOpen = !!open; });
   const modules: Record<string, unknown> = { vue: Vue, "@/i18n/use-t": { useT: () => Vue.ref(t) },
     "@/lib/device-copy": { deviceName }, "@/lib/hashpower": { deviceOnlineState },
     "@/i18n/format": { fmtMoney }, "@/store/data-visibility": { useDataVisibility: () => visibility },
@@ -58,18 +59,20 @@ it.each(["zh", "en", "vi"] as const)("keeps the %s purchased row compact and rev
   expect(nodes(screen.node()).filter(node => node.children === "Online")).toHaveLength(1);
   expect(screen.byClass("device-inventory-row__state--active")).toBeDefined();
   expect(screen.byClass("device-inventory-row__body")).toBeUndefined();
+  expect(screen.byClass("device-inventory-row__earned")!.children).toBe("$1,234.50");
+  expect(nodes(screen.byClass("device-inventory-row__today")!).some(node => node.children === "+$12.34")).toBe(true);
   const heading = screen.byClass("device-inventory-row__heading")!;
   expect(heading.props).toMatchObject({ role: "button", tabindex: "0", "aria-expanded": false });
   heading.props!.onClick();
   expect(screen.emit).not.toHaveBeenCalled();
   expect(screen.byClass("device-inventory-row__body")!.props!.id).toBe(heading.props!["aria-controls"]);
-  const spec = screen.byClass("device-inventory-row__spec")!;
-  expect(String((spec.children as Vue.VNode[])[0].children).trim()).toBe(screen.t.myDevices.inventoryEarnedLabel);
   expect(screen.byClass("device-inventory-row__earned")!.children).toBe("$1,234.50");
-  screen.byClass("device-inventory-row__credit")!.props!.onClick({ stopPropagation() {} });
+  expect(screen.byClass("device-inventory-row__credit")!.props!.role).toBeUndefined();
+  expect(nodes(screen.byClass("device-inventory-row__quote-label")!).some(node => node.children === screen.t.tradein.inventoryCreditLabel)).toBe(true);
+  expect(nodes(screen.byClass("device-inventory-row__credit")!).some(node => node.children === "$ 200.00")).toBe(true);
   screen.byClass("device-inventory-row__tradein-cta")!.props!.onClick({ stopPropagation() {} });
   screen.byClass("device-inventory-row__action")!.props!.onClick();
-  expect(screen.emit.mock.calls).toEqual([["ladder"], ["tradein"], ["toggle"]]);
+  expect(screen.emit.mock.calls).toEqual([["quote-info", false], ["tradein"], ["toggle"]]);
   screen.byClass("device-inventory-row__heading")!.props!.onClick();
   expect(screen.byClass("device-inventory-row__body")).toBeUndefined();
 });
@@ -86,6 +89,7 @@ it("preserves disabled activation, remote pending-deactivation, and read-only co
   expect(screen.byClass("device-inventory-row__pending")).toBeDefined();
   screen.byClass("device-inventory-row__action")!.props!.onClick(); expect(screen.emit).not.toHaveBeenCalled();
   screen.props.showAction = false; expect(screen.byClass("device-inventory-row__action")).toBeUndefined();
+  expect(screen.byClass("device-inventory-row__tradein-cta")).toBeUndefined();
 });
 
 it("keeps a confirmed pending-deactivation visible before opening the row", () => {
@@ -125,6 +129,40 @@ it("masks hidden earnings and does not claim an amount before the fleet read is 
   const screen = mount("zh"); screen.byClass("device-inventory-row__heading")!.props!.onClick();
   screen.visibility.hidden = true;
   expect(screen.byClass("device-inventory-row__earned")!.children).toBe("••••");
+  expect(nodes(screen.byClass("device-inventory-row__today")!).some(node => node.children === "••••")).toBe(true);
+  expect(screen.byClass("device-inventory-row__info")!.props!["aria-label"]).not.toContain("200.00");
   screen.visibility.hidden = false; screen.props.runtimeConfirmed = false;
-  expect(screen.byClass("device-inventory-row__earned")!.children).toBe("-");
+  expect(screen.byClass("device-inventory-row__earned")!.children).toBe("—");
+  expect(nodes(screen.byClass("device-inventory-row__today")!).some(node => node.children === "—")).toBe(true);
+});
+
+it("opens quote help with the keyboard and closes it on Escape or Tab without moving focus", () => {
+  const screen = mount("zh"); screen.byClass("device-inventory-row__heading")!.props!.onClick();
+  const key = (value: string) => {
+    const handlers = screen.byClass("device-inventory-row__info")!.props!.onKeydown;
+    for (const handler of [handlers].flat()) handler({ key: value, stopPropagation() {}, preventDefault() {} });
+  };
+  key("Enter"); expect(screen.props.quoteInfoOpen).toBe(true);
+  key("Escape"); expect(screen.props.quoteInfoOpen).toBe(false);
+  key(" "); expect(screen.props.quoteInfoOpen).toBe(true);
+  key("Tab"); expect(screen.props.quoteInfoOpen).toBe(false);
+});
+
+it("shows quote help in a dismissible bubble, including when the quote is unavailable", () => {
+  const screen = mount("zh"); screen.byClass("device-inventory-row__heading")!.props!.onClick();
+  screen.props.tradeinQuoteAmount = undefined;
+  expect(screen.byClass("device-inventory-row__tradein-disabled")!.children).toBe(screen.t.tradein.quoteUnavailable);
+  expect(screen.byClass("device-inventory-row__info")!.props!["aria-label"]).toContain(screen.t.tradein.quoteUnavailable);
+  expect(screen.byClass("device-inventory-row__popover")).toBeUndefined();
+  screen.byClass("device-inventory-row__info")!.props!.onClick({ stopPropagation() {} });
+  expect(screen.byClass("device-inventory-row__popover-copy")!.children).toBe(screen.t.tradein.ladderIntro);
+  expect(screen.byClass("device-inventory-row__popover-footnote")!.children).toBe(screen.t.tradein.ladderFootnote);
+  screen.byClass("device-inventory-row__info")!.props!.onClick({ stopPropagation() {} });
+  expect(screen.byClass("device-inventory-row__popover")).toBeUndefined();
+  expect(screen.emit.mock.calls).toEqual([["quote-info", true], ["quote-info", false]]);
+  screen.props.tradeinCtaLabel = undefined;
+  screen.props.tradeinDisabledText = screen.t.tradein.stripNoTarget;
+  expect(screen.byClass("device-inventory-row__tradein-cta")).toBeUndefined();
+  expect(screen.byClass("device-inventory-row__tradein-disabled")!.children).toBe(screen.t.tradein.stripNoTarget);
+  expect(screen.byClass("device-inventory-row__info")!.props!["aria-label"]).toContain(screen.t.tradein.stripNoTarget);
 });

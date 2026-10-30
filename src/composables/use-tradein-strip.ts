@@ -20,9 +20,8 @@ import { refreshProductCatalog } from "@/store/product-catalog";
 // ── FEAT-DEV02 升级置换条 ──────────────────────────────────────────────
 // 设备仓库行与赚取页设备操作面板共用同一资格判定与 retire 入口。
 // 总开关关 / 免费设备(paidPriceUsdt=0)/不在 applyTo 白名单 → 返回空对象 =
-// 零痕迹;无合规目标 → 只给禁用原因;其余给「可抵 $X」chip + 置换 CTA。
-// 默认规则(promoMult=1)下抵扣额与目标无关,取最低升级价参与计算即为真值;
-// promoMult>≈1.47 时 clamp 才可能绑定,届时各面按各自目标价如实显示。
+// 零痕迹；无合规目标也不显示入口，其余给「可抵 $X」chip + 置换 CTA。
+// 预览采用最低价合资格目标的实际报价；进入结算后重新确认最终报价。
 // `enabled` 为 false 时不读远端资格(操作面板只在打开时读取)。
 export function useTradeinStrip(enabled: () => boolean = () => true) {
   const t = useT();
@@ -33,6 +32,7 @@ export function useTradeinStrip(enabled: () => boolean = () => true) {
   const monthsSinceJoin = computed(() => getMonthsSince(app.user.joinedAt));
   const remoteEligibleSourceIds = ref<Set<number>>(new Set());
   const remoteEligibilityReady = ref(!remoteApiEnabled);
+  const remoteEligibilityQuotes = ref<Map<number, number>>(new Map());
   let remoteEligibilityRequest = 0;
 
   async function refreshRemoteTradeinEligibility(): Promise<void> {
@@ -44,15 +44,32 @@ export function useTradeinStrip(enabled: () => boolean = () => true) {
       && accountKey === app.accountKey && isCurrentAccountScope(scope);
     remoteEligibilityReady.value = false;
     remoteEligibleSourceIds.value = new Set();
+    remoteEligibilityQuotes.value = new Map();
     try {
       if (!(await refreshProductCatalog(true)) || !current()) return;
       const targets = PRODUCTS.filter((product) => isProductAvailable(product, phase.value));
       const snapshots = await Promise.all(targets.map((product) => deviceE3Api.eligibility(product.id)));
       if (!current()) return;
-      remoteEligibleSourceIds.value = new Set(snapshots.flatMap((snapshot) => snapshot.sources
-        .filter((source) => source.eligible)
-        .map((source) => source.sourceDeviceId)));
+      // Preview the lowest-priced eligible upgrade; checkout still obtains its own final quote.
+      const sourceTargets = new Map<number, string>();
+      for (const snapshot of snapshots.filter((item) => item.enabled && item.eligible)
+        .sort((a, b) => (a.targetPriceUsdt ?? Infinity) - (b.targetPriceUsdt ?? Infinity))) {
+        for (const source of snapshot.sources) {
+          if (source.eligible && !sourceTargets.has(source.sourceDeviceId)) {
+            sourceTargets.set(source.sourceDeviceId, snapshot.targetProductNo);
+          }
+        }
+      }
+      remoteEligibleSourceIds.value = new Set(sourceTargets.keys());
       remoteEligibilityReady.value = true;
+      const quotes = await Promise.allSettled([...sourceTargets].map(async ([sourceId, target]) => ({
+        sourceId, quote: await deviceE3Api.quote(sourceId, target),
+      })));
+      if (!current()) return;
+      remoteEligibilityQuotes.value = new Map(quotes.flatMap((result) => result.status === "fulfilled"
+        && result.value.quote.sourceDeviceId === result.value.sourceId
+        && result.value.quote.targetProductNo === sourceTargets.get(result.value.sourceId)
+        ? [[result.value.sourceId, result.value.quote.discountUsdt] as const] : []));
     } catch {
       if (current()) remoteEligibleSourceIds.value = new Set();
     }
@@ -61,6 +78,7 @@ export function useTradeinStrip(enabled: () => boolean = () => true) {
   watch(
     () => enabled() && JSON.stringify([app.accountKey, app.devices.map((device) => [
       device.id, device.activatedAt, device.pendingDeactivate, Boolean(device.currentTask),
+      device.cumulativeEarningsUsdt,
     ])]),
     (value, _previous, onCleanup) => {
       onCleanup(() => { remoteEligibilityRequest++; });
@@ -71,14 +89,16 @@ export function useTradeinStrip(enabled: () => boolean = () => true) {
 
   function tradeinStrip(d: Device): {
     tradeinCreditText?: string;
+    tradeinQuoteAmount?: number;
     tradeinCtaLabel?: string;
     tradeinDisabledText?: string;
   } {
     if (remoteApiEnabled) {
       if (!remoteEligibilityReady.value || !remoteEligibleSourceIds.value.has(Number(d.id))) return {};
       return {
-        tradeinCreditText: t.value.tradein.remoteQuoteCreditLabel,
         tradeinCtaLabel: t.value.tradein.stripCta,
+        tradeinCreditText: t.value.tradein.remoteQuoteCreditLabel,
+        tradeinQuoteAmount: remoteEligibilityQuotes.value.get(Number(d.id)),
       };
     }
     if (!DEFAULT_TRADEIN_CONFIG.enabled) return {};
@@ -89,7 +109,7 @@ export function useTradeinStrip(enabled: () => boolean = () => true) {
         (!TRADEIN_LADDER_RULES.requireHigherPrice || p.price > paid) &&
         isTradeInTargetAvailable(p.unlocksAtPhase, phase.value, monthsSinceJoin.value),
     );
-    if (targets.length === 0) return { tradeinDisabledText: t.value.tradein.stripNoTarget };
+    if (targets.length === 0) return {};
     const credit = computeTradeInCredit(
       paid,
       Math.max(0, d.cumulativeEarningsUsdt ?? 0),
@@ -97,6 +117,7 @@ export function useTradeinStrip(enabled: () => boolean = () => true) {
     );
     return {
       tradeinCreditText: fmt(t.value.tradein.stripCredit, { credit: formatAmount(credit) }),
+      tradeinQuoteAmount: credit,
       tradeinCtaLabel: t.value.tradein.stripCta,
     };
   }

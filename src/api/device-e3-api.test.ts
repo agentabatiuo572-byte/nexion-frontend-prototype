@@ -98,6 +98,17 @@ describe("device E3 eligibility API", () => {
     },
   );
 
+  it("retains authoritative reservations and over-capacity totals while older servers stay unspecified", async () => {
+    const payload = { ...fleetPayload(100), slotsUsed: 8, reservedSlotCount: 3, trialSlotCount: 1 };
+    await expect(createDeviceE3Api(client(payload), "dev").fleet()).resolves.toMatchObject({
+      slotCap: 6, slotsUsed: 8, reservedSlotCount: 3, trialSlotCount: 1,
+    });
+    expect((await createDeviceE3Api(client(fleetPayload(100)), "dev").fleet()).slotsUsed).toBeUndefined();
+    for (const value of [-1, 1.5, "6", Infinity]) {
+      await expect(createDeviceE3Api(client({ ...payload, slotsUsed: value }), "dev").fleet()).rejects.toBeDefined();
+    }
+  });
+
   it("accepts the Java canonical fleet in development mode", async () => {
     const api = createDeviceE3Api(client(fleetPayload(66.5)), "dev");
 

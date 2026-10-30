@@ -52,7 +52,7 @@ const app = useApp();
 
 const activeCount = computed(() => app.activeSlotCount);
 const trialSlot = computed(() => (trialReservesSlotNow() ? 1 : 0));
-const slotsUsed = computed(() => activeCount.value + trialSlot.value);
+const slotsUsed = computed(() => app.remoteSlotsUsed ?? activeCount.value + trialSlot.value);
 const emptySlots = computed(() => Math.max(0, app.slotCap - slotsUsed.value));
 const sectionCount = computed(() => fmt(t.value.myDevices.sectionCount, { n: slotsUsed.value, total: app.slotCap }));
 const activatedLabel = computed(() => fmt(t.value.myDevices.activatedLabel, { n: activeCount.value }));

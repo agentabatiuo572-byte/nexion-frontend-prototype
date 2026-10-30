@@ -21,7 +21,7 @@
       <view class="sas-head">
         <view class="sas-head-meta">
           <text class="sas-title">{{ t.slotSheet.title }}</text>
-          <text class="sas-desc">{{ t.slotSheet.desc }}</text>
+          <text class="sas-desc">{{ fmt(t.slotSheet.desc, { max: app.slotCap }) }}</text>
         </view>
         <view class="sas-close" role="button" tabindex="0" :aria-label="closeAria" @click="hide"  @keydown.enter.prevent="hide" @keydown.space.prevent="hide">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
@@ -46,10 +46,10 @@
             v-for="d in inactiveDevices"
             :key="d.id"
             class="sas-device"
-            :class="{ 'is-pending': activationInFlight.has(d.id) }"
+            :class="{ 'is-pending': activationInFlight.has(d.id), 'is-full': slotsFull }"
             role="button"
-            :tabindex="activationInFlight.has(d.id) ? -1 : 0"
-            :aria-disabled="activationInFlight.has(d.id) ? 'true' : 'false'"
+            :tabindex="activationInFlight.has(d.id) || slotsFull ? -1 : 0"
+            :aria-disabled="activationInFlight.has(d.id) || slotsFull ? 'true' : 'false'"
             @click="onActivate(d)"
 
             @keydown.enter.prevent="onActivate(d)" @keydown.space.prevent="onActivate(d)"
@@ -67,6 +67,10 @@
             </view>
           </view>
         </view>
+      </view>
+
+      <view v-if="slotsFull" class="sas-unconfirmed" role="status">
+        <text>{{ fmt(t.slotSheet.toastSlotsFull, { max: app.slotCap }) }}</text>
       </view>
 
       <view v-if="unconfirmedDevices.length > 0" class="sas-unconfirmed" role="status">
@@ -89,7 +93,7 @@ import { deviceName } from "@/lib/device-copy";
 import { fmt } from "@/i18n/format";
 import type { Device } from "@/store/types";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
-import { isActivatableInventoryDevice, occupiesDeviceSlot, requiresActivationConfirmation } from "@/lib/device-slot-policy";
+import { isActivatableInventoryDevice, requiresActivationConfirmation } from "@/lib/device-slot-policy";
 import { deviceE3Api, remoteApiEnabled } from "@/api/runtime";
 import { isSettledRejection } from "@/api/errors";
 import { acquireDeviceCommandKey, finishDeviceCommand } from "@/lib/device-command-key";
@@ -112,7 +116,8 @@ const inactiveDevices = computed(() => app.visibleDevices.filter(isActivatableIn
 const unconfirmedDevices = computed(() => app.visibleDevices.filter(requiresActivationConfirmation));
 const activeCount = computed(() => app.activeSlotCount);
 const reservedSlots = computed(() => (trialReservesSlotNow() ? 1 : 0));
-const slotsUsed = computed(() => activeCount.value + reservedSlots.value);
+const slotsUsed = computed(() => app.remoteSlotsUsed ?? activeCount.value + reservedSlots.value);
+const slotsFull = computed(() => slotsUsed.value >= app.slotCap);
 
 const activateRowText = computed(() =>
   fmt(t.value.slotSheet.activateRow, { n: inactiveDevices.value.length }),
@@ -135,7 +140,7 @@ async function onActivate(d: Device) {
     navTo("/pages/onboarding/connect?mode=recalibrate");
     return;
   }
-  if (occupiesDeviceSlot(d.kind) && slotsUsed.value >= app.slotCap) {
+  if (slotsFull.value) {
     toast.warn(fmt(t.value.slotSheet.toastSlotsFull, { max: app.slotCap }));
     return;
   }
@@ -361,6 +366,7 @@ useDialogA11y(computed(() => sheet.open), ".sas-root", hide);
   opacity: 0.58;
   pointer-events: none;
 }
+.sas-device.is-full { opacity: 0.58; }
 .sas-device-ico {
   width: 40px;
   height: 40px;

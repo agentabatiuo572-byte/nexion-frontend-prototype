@@ -26,7 +26,7 @@ function mount(source: string) {
     isCustomElement: () => true }).code)(Vue);
   const paid = { id: "paid-1", kind: "stellarbox-s1", activatedAt: 1, rowVersion: 1 };
   const app = Vue.reactive({ accountKey: "user:1", accountBindingEpoch: 1, remoteFleetHasSnapshot: true, remoteFleetStatus: "ready", remotePhoneBindingInvalid: false,
-    slotCap: 6, activeSlotCount: 5, visibleDevices: [paid], devices: [paid], user: { joinedAt: 1 } });
+    slotCap: 6, remoteSlotsUsed: null as number | null, activeSlotCount: 5, visibleDevices: [paid], devices: [paid], user: { joinedAt: 1 } });
   const trial = Vue.reactive({ authorityStatus: "ready", status: "active", poll: vi.fn(async () => true), cancel: vi.fn(async () => ({ ok: true })) });
   const presentation = { active: Vue.ref(true), reservedSlots: Vue.ref<number | null>(1), actionsReady: Vue.ref(true) };
   const navTo = vi.fn(), confirm = vi.fn(async () => true), toast = { warn: vi.fn(), info: vi.fn(), error: vi.fn(), success: vi.fn() };
@@ -68,6 +68,20 @@ function mount(source: string) {
   const node = () => render(Vue.proxyRefs(view), []) as Vue.VNode;
   return { app, trial, presentation, view, node, navTo, confirm, toast };
 }
+
+it.each([["Home", homeSource], ["management", inventorySource]])("uses server reservations without adding the trial twice on %s", (_label, source) => {
+  const screen = mount(source);
+  screen.app.activeSlotCount = 1;
+  screen.app.remoteSlotsUsed = 7;
+  screen.presentation.reservedSlots.value = 1;
+  expect(screen.view.slotsUsed.value).toBe(7);
+  expect(tree(screen.node()).filter(node => node.type === "DeviceRow" || node.type === "DeviceInventoryRow")).toHaveLength(1);
+  expect(tree(screen.node()).filter(node => node.type === "AddDeviceRow")).toHaveLength(0);
+  screen.presentation.reservedSlots.value = null;
+  expect(screen.view.slotsUsed.value).toBe(7);
+  screen.app.remoteSlotsUsed = 0;
+  expect(screen.view.slotsUsed.value).toBe(0);
+});
 
 it.each([["Home", homeSource], ["management", inventorySource]])("counts a trial once with the full paid capacity on %s", (_label, source) => {
   const screen = mount(source); expect(screen.view.slotsUsed.value).toBe(6);

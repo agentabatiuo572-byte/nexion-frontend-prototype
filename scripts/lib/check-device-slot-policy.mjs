@@ -11,7 +11,7 @@ assert.ok(kinds.length >= 8, "device slot matrix lost its authoritative kind set
 for (const kind of kinds) {
   for (const activatedAt of [null, 123]) for (const pendingDeactivate of [undefined, false, true]) {
     const device = { kind, activatedAt, pendingDeactivate };
-    assert.equal(module.exports.isActiveSlotDevice(device), kind !== "cloud-share" && activatedAt !== null && !pendingDeactivate, JSON.stringify(device));
+    assert.equal(module.exports.isActiveSlotDevice(device), activatedAt !== null, JSON.stringify(device));
   }
 }
 console.log(`device slot policy: ${kinds.length * 6} behavioral cases passed`);

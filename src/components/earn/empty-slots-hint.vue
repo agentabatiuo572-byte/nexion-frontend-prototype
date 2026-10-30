@@ -5,7 +5,7 @@
     <view class="earn-fleet-content">
       <TrialDeviceRow variant="earn" :expanded="trialExpanded" @toggle="emit('toggleTrial')" />
       <slot />
-      <view class="earn-add-wrap">
+      <view v-if="slotsUsed < app.slotCap" class="earn-add-wrap">
         <view class="earn-add-device" role="button" tabindex="0"
           @click="openAddDevice"  @keydown.enter.stop.prevent="openAddDevice" @keydown.space.stop.prevent="openAddDevice">
           <view class="earn-add-device__slot" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg></view>
@@ -34,6 +34,7 @@ const emit = defineEmits<{ (event: "toggleTrial"): void }>();
 
 const activeDevices = computed(() => app.visibleDevices.filter(isActiveSlotDevice));
 const trialSlot = computed(() => (trialReservesSlotNow() ? 1 : 0));
+const slotsUsed = computed(() => app.remoteSlotsUsed ?? app.activeSlotCount + trialSlot.value);
 const realCount = computed(() => activeDevices.value.length);
 
 type SlotCell =

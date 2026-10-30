@@ -32,6 +32,7 @@ function mount(remoteApiEnabled = true, locale?: "en" | "zh" | "vi") {
   });
   const inputs = { computed, app, trial, market, earningsReleaseSnapshot, earningsReleaseHasSnapshot, earningsReleaseStatus, t, remoteApiEnabled,
     remoteAuthorityStatus, fmt, openSlotsTemplate,
+    visibility: { hidden: false, mask: String }, auditCopy: ref({ confirming: "Review", locked: "Locked" }), fmtMoney: formatAmount,
     trialReservesSlotNow: () => ["active", "grace"].includes(trial.status),
   };
   function projections<T = string | number | boolean>(source: string, names: string[]) {
@@ -58,7 +59,7 @@ function mount(remoteApiEnabled = true, locale?: "en" | "zh" | "vi") {
   const inventory = projections<typeof devices>(devicesSource, ["activeDevices"]);
   const slotCondition = walletSource.match(/v-if="([^"]+)" class="grid items-center nx-wallet-slot-block"/)?.[1];
   if (!slotCondition) throw new Error("Wallet slot promotion binding missing");
-  const showsSlotPromotion = () => new Function("formatAmount", ...Object.keys(wallet), `return ${slotCondition};`)(formatAmount, ...Object.values(wallet).map(v => v.value));
+  const showsSlotPromotion = () => new Function("formatAmount", ...Object.keys(wallet), `const compact = false; return ${slotCondition};`)(formatAmount, ...Object.values(wallet).map(v => v.value));
   const read = () => ({
     usdt: wallet.usdtLabel.value, nex: wallet.nexLabel.value, pending: wallet.pendingLine.value,
     valuation: wallet.nexMarketLabel.value, count: me.deviceSectionCount.value,
@@ -134,35 +135,35 @@ describe("Me wallet and device authority", () => {
     expect(s.read()).toMatchObject({ usdt: "0.00", nex: "0.00", count: "—", open: "—", promotion: false });
   });
 
-  it("counts two physical slots plus one reserved trial while Cloud Share remains virtual capacity", () => {
-    const s = mount(); s.confirmFleetAndTrial(); s.app.slotCap = 3;
+  it("counts Cloud Share and physical devices together with the original trial reservation", () => {
+    const s = mount(); s.confirmFleetAndTrial(); s.app.slotCap = 6;
     s.devices.push({ kind: "phone", activatedAt: 1 }, { kind: "stellarbox-s1", activatedAt: 1 },
       ...Array.from({ length: 3 }, () => ({ kind: "cloud-share" as const, activatedAt: 1 })));
-    expect(s.read()).toMatchObject({ count: "2 / 3", active: "5 active", open: "1 slot open", promotion: true });
+    expect(s.read()).toMatchObject({ count: "5 / 6", active: "5 active", open: "1 slot open", promotion: true });
     expect(s.readDevices()).toMatchObject({ walletSummary: "5 active · 1 slot open", warehouseActive: 5 });
     s.trial.status = "grace"; s.trial.authorityServerState = "EXTENDED";
-    expect(s.read()).toMatchObject({ count: "3 / 3", active: "5 active", open: "0 slots open", promotion: false });
+    expect(s.read()).toMatchObject({ count: "6 / 6", active: "5 active", open: "0 slots open", promotion: false });
   });
 
   it.each([
-    ["en", "2 of 3", "2 activated", "1 slot open", "2 activated · 1 slot open"],
-    ["zh", "2 / 3", "2 已激活", "1 空闲槽位", "2 台已激活 · 1 个空位"],
-    ["vi", "2/3", "2 đã kích hoạt", "còn 1 khe trống", "2 đã kích hoạt · 1 chỗ trống"],
+    ["en", "3 of 6", "2 Online", "3 slots open", "2 Online · 3 slots open"],
+    ["zh", "3 / 6", "2 Online", "3 空闲槽位", "2 台 Online · 3 个空位"],
+    ["vi", "3/6", "2 Online", "còn 3 khe trống", "2 Online · 3 chỗ trống"],
   ] as const)("keeps the observed Cloud Share plus box and trial counts distinct in %s", (locale, count, active, open, walletSummary) => {
-    const s = mount(true, locale); s.confirmFleetAndTrial(); s.app.slotCap = 3;
+    const s = mount(true, locale); s.confirmFleetAndTrial(); s.app.slotCap = 6;
     s.devices.push({ kind: "cloud-share", activatedAt: 1 }, { kind: "stellarbox-s1", activatedAt: 1 });
     s.trial.status = "active"; s.trial.authorityServerState = "ACTIVE";
     expect(s.readDevices()).toEqual({ count, active, open, walletSummary, warehouseActive: 2 });
   });
 
-  it("counts an all-Cloud-Share fleet without spending physical slots and retains the capacity floor", () => {
-    const s = mount(); s.confirmFleetAndTrial(); s.app.slotCap = 3;
+  it("counts an all-Cloud-Share fleet in the shared cap and retains the capacity floor", () => {
+    const s = mount(); s.confirmFleetAndTrial(); s.app.slotCap = 6;
     s.devices.push(...Array.from({ length: 5 }, () => ({ kind: "cloud-share" as const, activatedAt: 1 })));
-    expect(s.readDevices()).toEqual({ count: "0 / 3", active: "5 active", open: "3 slots open", walletSummary: "5 active · 3 slots open", warehouseActive: 5 });
+    expect(s.readDevices()).toEqual({ count: "5 / 6", active: "5 active", open: "1 slot open", walletSummary: "5 active · 1 slot open", warehouseActive: 5 });
     s.trial.status = "active";
-    expect(s.readDevices()).toMatchObject({ count: "1 / 3", active: "5 active", open: "2 slots open", walletSummary: "5 active · 2 slots open" });
+    expect(s.readDevices()).toMatchObject({ count: "6 / 6", active: "5 active", open: "0 slots open", walletSummary: null });
     s.app.slotCap = 0;
-    expect(s.readDevices()).toMatchObject({ count: "1 / 0", active: "5 active", open: "0 slots open", walletSummary: null });
+    expect(s.readDevices()).toMatchObject({ count: "6 / 0", active: "5 active", open: "0 slots open", walletSummary: null });
   });
 
   it("matches the warehouse for active phones and pending deactivation, excludes inactive or unconfirmed activation, and updates after cancellation", () => {
@@ -170,20 +171,20 @@ describe("Me wallet and device authority", () => {
     s.devices.push({ kind: "phone", activatedAt: 1 }, { kind: "stellarbox-s1", activatedAt: 1, pendingDeactivate: true },
       { kind: "cloud-share", activatedAt: 1, pendingDeactivate: true }, { kind: "stellarbox-s1", activatedAt: null },
       { kind: "cloud-share", activatedAt: null, activationUnconfirmed: true });
-    expect(s.readDevices()).toEqual({ count: "1 / 3", active: "3 active", open: "2 slots open", walletSummary: "3 active · 2 slots open", warehouseActive: 3 });
+    expect(s.readDevices()).toEqual({ count: "3 / 3", active: "3 active", open: "0 slots open", walletSummary: null, warehouseActive: 3 });
     s.devices[1].pendingDeactivate = false;
-    expect(s.readDevices()).toMatchObject({ count: "2 / 3", active: "3 active", open: "1 slot open", walletSummary: "3 active · 1 slot open" });
+    expect(s.readDevices()).toMatchObject({ count: "3 / 3", active: "3 active", open: "0 slots open", walletSummary: null });
     s.devices[1].activatedAt = null;
-    expect(s.readDevices()).toMatchObject({ count: "1 / 3", active: "2 active", open: "2 slots open", walletSummary: "2 active · 2 slots open", warehouseActive: 2 });
+    expect(s.readDevices()).toMatchObject({ count: "2 / 3", active: "2 active", open: "1 slot open", walletSummary: "2 active · 1 slot open", warehouseActive: 2 });
   });
 
   it("keeps hidden PC share occupancy while counting only the visible activated fleet", () => {
     const s = mount(); s.confirmFleetAndTrial(); s.app.slotCap = 3;
     s.devices.push({ kind: "pc-gpu", activatedAt: 1 }, { kind: "cloud-share", activatedAt: 1 });
     s.computeShareEnabled.value = false;
-    expect(s.readDevices()).toEqual({ count: "1 / 3", active: "1 active", open: "2 slots open", walletSummary: "1 active · 2 slots open", warehouseActive: 1 });
+    expect(s.readDevices()).toEqual({ count: "2 / 3", active: "1 active", open: "1 slot open", walletSummary: "1 active · 1 slot open", warehouseActive: 1 });
     s.computeShareEnabled.value = true;
-    expect(s.readDevices()).toMatchObject({ count: "1 / 3", active: "2 active", walletSummary: "2 active · 2 slots open", warehouseActive: 2 });
+    expect(s.readDevices()).toMatchObject({ count: "2 / 3", active: "2 active", walletSummary: "2 active · 1 slot open", warehouseActive: 2 });
   });
 
   it("keeps both activated consumers unknown until fleet and trial authority, preserves snapshots while loading, and resets on lost authority", () => {

@@ -61,6 +61,8 @@ function page(copy = en, fallback = "") {
     show: (value: Record<string, unknown>) => { cta.value = value; } };
   let header!: Vue.ComputedRef<{ title: string; subtitle?: string; backHref: string }>;
   const getProduct = vi.fn(() => { throw new Error("Remote detail must not borrow a mock product"); });
+  const app = Vue.reactive({ accountKey: "user:3778", accountBindingEpoch: 1, remoteFleetHasSnapshot: false,
+    remoteSlotsUsed: null as number | null, slotCap: 6, captureRemoteAccountRequest: () => ({}), refreshRemoteFleet: vi.fn(async () => true) });
   const dependencies: Record<string, unknown> = {
     "@/lib/amount-display": { formatAmount },
     "@/lib/day-one-page-observation": dayOnePageObservationFixture(),
@@ -83,7 +85,7 @@ function page(copy = en, fallback = "") {
     "@/mock/phone-tiers": { getPhoneTierYields: () => [] },
     "@/lib/store-upgrade": { activePhoneDailyRate: () => 0, storeYieldMultiplier: () => 0 },
     "@/store/product-catalog": { productCatalogState: catalog, productCatalogPresentation: presentation, refreshProductCatalog: refresh },
-    "@/store/app": { useApp: () => Vue.reactive({ accountKey: "user:3778", accountBindingEpoch: 1, remoteFleetHasSnapshot: false }) },
+    "@/store/app": { useApp: () => app },
     "@/store/server-product-phase": { refreshServerProductPhase: async () => true },
     "@/api/runtime": { remoteApiEnabled: true, sessionVault: { read: () => ({ user: { userId: 3778 } }) } }, "@/store/ui": { toast: { error: vi.fn() } },
     "@/lib/account-scope": { captureAccountScope: () => ({}), isCurrentAccountScope: () => true },
@@ -122,7 +124,7 @@ function page(copy = en, fallback = "") {
     for (const name of ["SectionHeader", "ProductRender", "LiveSocialProof", "SpecTable", "LockedProductCard", "PromotionProduct"]) app.component(name, blank);
     return renderToString(app);
   }
-  return { catalog, presentation, translations, loads, reads, refresh, eligibility, cta, header, view, body, getProduct };
+  return { app, catalog, presentation, translations, loads, reads, refresh, eligibility, cta, header, view, body, getProduct };
 }
 
 describe("BUG 400 detail header distinguishes pending/failed reads from a missing product", () => {
@@ -155,9 +157,10 @@ describe("BUG 400 detail header distinguishes pending/failed reads from a missin
     p.eligibility.value = { status: "ready", eligible: true, snapshot: {
       productNo: cloud.id, eligible: true, decisionCode: "ELIGIBLE", evaluatedAt: 1,
       source: PURCHASE_ELIGIBILITY_SOURCE, sourceEnvironment: "PRODUCTION", runId: null, serverCanonical: true,
-      policies: [{ policy: "E1", eligible: true, decisionCode: "ELIGIBLE", mode: "ALL", conditions: [] }],
+      policies: [{ policy: "E1", eligible: true, decisionCode: "ELIGIBLE", mode: "ALL", conditions: [] },
+        { policy: "F4B", eligible: true, decisionCode: "F4B_NOT_CONFIGURED", mode: "ALL", conditions: [] }],
     } }; await Vue.nextTick();
-    expect(p.cta.value?.href).toBe("/pages/store/checkout?product=cloud-share");
+    expect(p.cta.value?.href).toBe(promotionEntry.promotionCheckoutHref([{ productNo: cloud.id, quantity: 1 }]));
     p.catalog.status = "loading"; await Vue.nextTick();
     expect(p.header.value.title).toBe(copy.store.catalogLoadingTitle); expect(p.cta.value).toBeNull();
     p.catalog.status = "error"; await Vue.nextTick();
@@ -165,7 +168,7 @@ describe("BUG 400 detail header distinguishes pending/failed reads from a missin
     expect(p.header.value.subtitle).toBeUndefined();
     expect(p.getProduct).not.toHaveBeenCalled();
     p.catalog.status = "ready"; await Vue.nextTick();
-    expect(p.cta.value?.href).toBe("/pages/store/checkout?product=cloud-share");
+    expect(p.cta.value?.href).toBe(promotionEntry.promotionCheckoutHref([{ productNo: cloud.id, quantity: 1 }]));
   });
 
   it.each(copies)("%s reports not-found only after a successful directory lacks the target", async (_language, copy) => {
@@ -197,5 +200,64 @@ describe("BUG 400 detail header distinguishes pending/failed reads from a missin
     p.translations.value = zh; await Vue.nextTick(); expect(p.header.value.title).toBe(zh.store.catalogErrorTitle);
     p.catalog.status = "loading"; p.translations.value = vietnamese; await Vue.nextTick();
     expect(p.header.value.title).toBe(vietnamese.store.catalogLoadingTitle);
+  });
+});
+
+describe("Cloud Share estimates use the catalog price, annual range and selected quantity", () => {
+  it("limits new Share quantities to authoritative remaining slots and offers management when full", async () => {
+    const p = page(); const loaded = p.loads[0]({ id: cloud.id });
+    p.reads[0](true); await loaded;
+    p.eligibility.value = { status: "ready", eligible: true, snapshot: {
+      productNo: cloud.id, eligible: true, decisionCode: "ELIGIBLE", evaluatedAt: 1,
+      source: PURCHASE_ELIGIBILITY_SOURCE, sourceEnvironment: "PRODUCTION", runId: null, serverCanonical: true,
+      policies: [{ policy: "E1", eligible: true, decisionCode: "ELIGIBLE", mode: "ALL", conditions: [] },
+        { policy: "F4B", eligible: true, decisionCode: "F4B_NOT_CONFIGURED", mode: "ALL", conditions: [] }],
+    } };
+    p.app.remoteSlotsUsed = 5; await Vue.nextTick();
+    p.view.inc(); expect(p.view.qty.value).toBe(1);
+    expect(p.cta.value?.quantity).toMatchObject({ min: 1, max: 1, value: 1 });
+    p.app.remoteSlotsUsed = 6; await Vue.nextTick();
+    expect(p.cta.value?.href).toBe("/pages/me/devices");
+    expect(p.cta.value?.quantity).toBeUndefined();
+    p.app.remoteSlotsUsed = 4; await Vue.nextTick(); p.view.inc(); await Vue.nextTick();
+    expect(p.view.qty.value).toBe(2);
+    expect(p.cta.value?.href).toBe(promotionEntry.promotionCheckoutHref([{ productNo: cloud.id, quantity: 2 }]));
+  });
+  it("keeps sub-cent USDT precision and scales both currencies with quantity", async () => {
+    const p = page(zh); const loaded = p.loads[0]({ id: "cloud-share" });
+    p.reads[0](true); await loaded; await Vue.nextTick();
+    expect(p.view.shareDailyUsdt.value).toEqual({ min: "0.004362", max: "0.006542" });
+    expect(p.view.shareDailyUvtText.value).toBe("3.00");
+    expect(await p.body()).toContain("直接购买算力份额，更加灵活。");
+    p.view.inc(); p.view.inc(); await Vue.nextTick();
+    expect(p.view.qty.value).toBe(3);
+    expect(p.view.shareDailyUsdt.value).toEqual({ min: "0.013085", max: "0.019627" });
+    expect(p.view.shareDailyUvtText.value).toBe("9.00");
+    expect(await p.body()).toContain("0.019627");
+    p.view.dec(); await Vue.nextTick();
+    expect(p.view.shareDailyUsdt.value).toEqual({ min: "0.008723", max: "0.013085" });
+    expect(p.view.shareDailyUvtText.value).toBe("6.00");
+  });
+
+  it("updates with catalog price/rates and retains a genuine zero UVT allocation", async () => {
+    const p = page(); const loaded = p.loads[0]({ id: "cloud-share" });
+    p.reads[0](true, [{ ...cloud, price: 39.8, dailyEarnNEX: 0 }]); await loaded;
+    expect(p.view.shareDailyUsdt.value).toEqual({ min: "0.008723", max: "0.013085" });
+    expect(p.view.shareDailyUvtText.value).toBe("0.00");
+    p.presentation.value = { products: [{ ...cloud, shareYieldMin: 10, shareYieldMax: 10 }] };
+    await Vue.nextTick();
+    expect(p.view.shareDailyUsdt.value).toEqual({ min: "0.005452", max: "0.005452" });
+    const body = await p.body();
+    expect(body.match(/0\.005452/g)).toHaveLength(1);
+  });
+
+  it.each(copies)("%s does not invent a USDT estimate when the annual range is unavailable", async (_language, copy) => {
+    const p = page(copy); const loaded = p.loads[0]({ id: "cloud-share" });
+    p.reads[0](true, [{ ...cloud, shareYieldMin: undefined, shareYieldMax: undefined }]);
+    await loaded; await Vue.nextTick();
+    expect(p.view.shareDailyUsdt.value).toBeNull();
+    expect(p.view.shareDailyUvtText.value).toBe("3.00");
+    expect(await p.body()).toContain(copy.store.specValueUnavailable);
+    expect(await p.body()).toContain(copy.store.shareFlexibleDescription);
   });
 });

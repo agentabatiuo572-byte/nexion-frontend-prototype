@@ -30,6 +30,7 @@ import segmentSource from "../glass-segments.vue?raw";
 
 const remote = vi.hoisted(() => ({
   remoteApiEnabled: true, apiRuntimeConfig: { environment: "dev", baseUrl: "https://test.invalid" }, fundsServerEnabled: true, expectedApiEnvironment: "dev",
+  apiRuntimeClientOrigin: { environment: "dev", baseUrl: "https://test.invalid" },
   sessionVault: { read: vi.fn() }, deviceE3Api: { fleet: vi.fn() }, appHomeApi: { fetch: vi.fn() },
   taskAssignmentApi: { state: vi.fn() }, withdrawalApi: { list: vi.fn(), submit: vi.fn(), get: vi.fn() },
   purchaseEligibilityApi: { snapshot: vi.fn() },
@@ -305,7 +306,7 @@ describe("mounted poster template during real authority refresh", () => {
   it.each(["home", "fleet", "both"])("keeps My yield selected through %s polling but exports only current confirmed data", async kind => {
     const s = await mount(); await s.selectYield();
     expect(s.canvas.at(-1)!.texts).toContain("+0.00");
-    expect(s.canvas.at(-1)!.texts).toContain(fmt(en.share.posterYieldUnit, { n: 1 }));
+    expect(s.canvas.at(-1)!.texts).toContain(fmt(en.share.posterYieldUnit, { n: 2 }));
     const pendingHome = kind !== "fleet" ? s.hold(homePath) : null, pendingFleet = kind !== "home" ? s.hold(fleetPath) : null;
     const reads = [pendingHome ? s.app.refreshHomeTruth() : Promise.resolve(true), pendingFleet ? s.app.refreshRemoteFleet() : Promise.resolve(true)];
     await flush();
@@ -331,9 +332,16 @@ describe("mounted poster template during real authority refresh", () => {
     await s.generate(); await s.finish(); expect(s.canvas.at(-1)!.texts).toContain("+1.23"); expect(s.selected()).toBe(en.share.tplYield);
   });
 
-  it("falls back after a canonical current fleet confirms no active physical slot", async () => {
+  it("keeps the yield poster available for an active Cloud Share without a physical device", async () => {
     const s = await mount(); await s.selectYield(); const pending = s.hold(fleetPath), request = s.app.refreshRemoteFleet();
     pending.resolve(response(fleet(false))); await request; await s.generate(); await s.finish();
+    expect(s.selected()).toBe(en.share.tplYield); expect(s.tab(en.share.tplYield)).toBeDefined();
+  });
+
+  it("falls back after a canonical current fleet confirms no active device slot", async () => {
+    const s = await mount(); await s.selectYield(); const pending = s.hold(fleetPath), request = s.app.refreshRemoteFleet();
+    const inactive = fleet(false); inactive.devices = inactive.devices.map(row => ({ ...row, status: "DEACTIVATED", activatedAt: null }));
+    pending.resolve(response(inactive)); await request; await s.generate(); await s.finish();
     expect(s.selected()).toBe(en.share.tplBrand); expect(s.tab(en.share.tplYield)).toBeUndefined();
     expect(s.canvas.at(-1)!.texts).not.toContain(en.share.posterYieldCap);
   });

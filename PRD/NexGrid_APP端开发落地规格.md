@@ -378,7 +378,7 @@ selectors:`selectActiveDevices/InactiveDevices/ActiveCount/ActivePhone`、`deriv
 - **首日 6 任务单项**:bind_bank_card +50/visit_earn +30/visit_store +50/...(§5.15.4)。
 - **Quest 层最大奖**:L1 Daily 100 NEX(streak +500)/L2 Weekly 3,000/L3 Monthly 10,000+勋章。
 - **Lucky Spin**:每日免费 1 次(UTC 日桶,`eventId×userId×spinDate` 计次)+Day-30 里程碑券;8 档 server RNG,概率和 100%;真实奖三护栏+兑付红线自动降级。
-- **设备激活槽位守卫**:`activateDevice()` 守卫 `激活数 < MAX_DEVICES=6`(试用预留计入)。
+- **设备激活槽位守卫（2026-10-30 更新）**:`activateDevice()` 守卫 `激活数 + 原有有效预留 < MAX_DEVICES=6`。Cloud Share、手机、PC 算力、Box、Rack 全部按实例各占一槽，同款多台分别计数；未激活、取消激活或已回收设备不占槽。取消 Cloud Share 免槽，取代 2026-08-25 相关规则；不改购买资格、收益与原有试用/订单预留规则。首页、赚取、仓库及选择弹窗共用该口径，满槽时所有型号均不能新增激活。
 - **任务中断宽限**:`INTERRUPT_GRACE_MS=30,000`(30s)、`INTERRUPT_MAX_RETRIES=5`(每 6s);窗口内续跑原任务,超时取消派新。
 
 ### 3.N 礼包/常量 — §13.3/§8.1.1
@@ -524,7 +524,7 @@ selectors:`selectActiveDevices/InactiveDevices/ActiveCount/ActivePhone`、`deriv
 转移:`active→matured`(unlockTs 到期,4s tick 累息)/ `matured→claimed`/ `active→early-withdrawn`(罚款 5/15/30/50% 本金+forfeit 利息)。资金锁定整期,无手动暂停;APY 浮动但已质押按原利率。
 
 ### 5.7 Device 激活/库存(§11.1/§12.2)
-`activatedAt: null`(库存)↔`number`(在槽);辅 `pendingDeactivate`。actions:`addDevice`(入库无上限)/`activateDevice`(守卫 `(active+trialReserves?1:0)<MAX_DEVICES=6` 返 bool)/`deactivateDevice`(清遥测+currentTask)/`scheduleDeactivation`(有任务则置 pendingDeactivate,等完成 tick 自动出槽)。取消激活 UI 分支:无任务→confirm;有任务→3 选 sheet(等完成/强制/返回)。
+`activatedAt: null`(库存)↔`number`(在槽);辅 `pendingDeactivate`。actions:`addDevice`(入库无上限)/`activateDevice`(守卫 `(active+trialReserves?1:0)<MAX_DEVICES=6` 返 bool)/`deactivateDevice`(清遥测+currentTask)/`scheduleDeactivation`(有任务则置 pendingDeactivate,等完成 tick 自动出槽)。2026-10-30 容量纠正：`pendingDeactivate=true` 仅表示等待停用，实际停用前仍为已激活 Online 且占一槽；必须在任务完成或合法强制停用后，权威激活事实变为未激活才释放，不得提前允许第七台。取消激活 UI 分支:无任务→confirm;有任务→3 选 sheet(等完成/强制/返回)。
 
 ### 5.8 Device 衰减曲线(§6.8,平滑非离散)
 按 `getMonthsOwned` 浮点月:月1-3 −4%/月4-8 −6%/月9-12+ **−23.7%**→22% floor(`MIN_EFFICIENCY=0.22`);豁免 phone/cloud-share;client 60s 重算(展示用非权威)。

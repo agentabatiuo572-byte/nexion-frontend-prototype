@@ -36,7 +36,7 @@ describe("remote fleet lifecycle and online state are independent", () => {
     expect(result.activatedAt).toBe(123);
     expect(result.status).toBe("offline");
     expect(isActiveSlotDevice(result)).toBe(true);
-    expect(isActiveSlotDevice({...result, pendingDeactivate:true})).toBe(false);
+    expect(isActiveSlotDevice({...result, pendingDeactivate:true})).toBe(true);
   });
   it.each([null, undefined])("does not invent activation time when the server returns %s", activatedAt => {
     const result = project({...fixture, kind:"stellarbox-s1", activatedAt, runtimeStatus:"ONLINE"},1000,20);
@@ -172,7 +172,7 @@ describe("activation queue preserves device instances", () => {
       project({ ...fixture, id: 1203, kind: "cloud-share", status: "EXPIRED" }, 1000, 20),
     ];
     expect(inventorySelection(content, selector, devices).map(device => device.id)).toEqual(["1151", "1152", "1156", "1202"]);
-    expect(devices.filter(isActiveSlotDevice).map(device => device.id)).toEqual(["1151", "1156"]);
+    expect(devices.filter(isActiveSlotDevice).map(device => device.id)).toEqual(["1151", "1152", "1156", "1202"]);
     expect(devices).toHaveLength(6);
   });
 });

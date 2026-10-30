@@ -13,7 +13,7 @@ import { phoneRuntimePauseReason } from "@/lib/phone-runtime";
 import { collectNativePhoneRuntime, hasNativePhoneRuntime } from "@/lib/native-phone-runtime";
 import { getDeviceId } from "@/lib/device-id";
 import { accountTotalHashrate } from "@/lib/account-hashrate";
-import { isActiveSlotDevice, occupiesDeviceSlot } from "@/lib/device-slot-policy";
+import { isActiveSlotDevice } from "@/lib/device-slot-policy";
 import { getCarrier, type Carrier } from "@/lib/carrier";
 import { getEntrySurface, type EntrySurface } from "@/lib/entry-surface";
 import { matchGpuTier } from "@/lib/gpu-tiers";
@@ -396,6 +396,7 @@ export const useApp = defineStore("app", () => {
   } : bootSnapshot.user);
   const devices = ref<Device[]>(remoteApiEnabled ? [] : bootSnapshot.devices);
   const slotCap = ref(MAX_DEVICES);
+  const remoteSlotsUsed = ref<number | null>(null);
   const earnings = ref<EarningsState>(remoteApiEnabled
     ? { today: 0, todayNEX: 0, thisWeek: 0, thisMonth: 0, total: 0, history: [] }
     : bootSnapshot.earnings);
@@ -1115,6 +1116,7 @@ export const useApp = defineStore("app", () => {
         if (fleetResult.status === "rejected") throw fleetResult.reason;
         const fleet = fleetResult.value;
         slotCap.value = fleet.slotCap;
+        remoteSlotsUsed.value = fleet.slotsUsed ?? null;
         installCanonicalLifecycleConfig(fleet.capacitySchedule);
         const capacitySnapshotReceivedAt = readMonotonicNowMs();
         const canonicalDevices = fleet.devices.map((device) => canonicalDevice(
@@ -1178,6 +1180,7 @@ export const useApp = defineStore("app", () => {
       remoteFleetHasSnapshot.value = false;
       remoteRealizedToday.value = null;
       slotCap.value = MAX_DEVICES;
+      remoteSlotsUsed.value = null;
       remoteWalletReceiptHasSnapshot.value = false;
       remoteAssignmentStatus.value = "idle";
       remotePhoneBindingInvalid.value = false;
@@ -1618,7 +1621,7 @@ export const useApp = defineStore("app", () => {
     const device = devices.value.find((d) => d.id === id);
     if (!device || device.activatedAt !== null) return false;
     if (device.kind === "pc-gpu" && !computeShareEnabled.value) return false;
-    if (occupiesDeviceSlot(device.kind) && activeSlotCount.value + reservedSlots >= slotCap.value) return false;
+    if (activeSlotCount.value + reservedSlots >= slotCap.value) return false;
     devices.value = devices.value.map((d) =>
       d.id === id
         ? { ...d, activatedAt: Date.now(), lastSettledAt: Date.now(), onlineHeartbeatAt: null, pendingDeactivate: false }
@@ -2544,7 +2547,7 @@ export const useApp = defineStore("app", () => {
 
   return {
     accountKey, accountBindingEpoch, entrySurface, accountCloudUpdatedAt,
-    user, devices, visibleDevices, slotDevices, activeSlotCount, slotCap, myTotalHashrateAt, earnings, global,
+    user, devices, visibleDevices, slotDevices, activeSlotCount, slotCap, remoteSlotsUsed, myTotalHashrateAt, earnings, global,
     homeTruth, homeTruthStatus, homeTruthError, homeTruthRateLimited, homeTruthTransientFailure,
     remoteFleetStatus, remoteFleetError, remoteFleetHasSnapshot, remoteRealizedToday, remoteWithdrawalListStatus, remoteWithdrawalListHasSnapshot, remoteWalletReceiptHasSnapshot, remoteAssignmentStatus, remoteAssignmentError, remoteAssignmentHasSnapshot, remotePhoneBindingInvalid,
     withdrawals, latestWithdrawal, inFlightWithdrawals, primaryWithdrawal, miningPaused,

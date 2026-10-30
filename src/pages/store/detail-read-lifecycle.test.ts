@@ -33,7 +33,8 @@ function setup() {
   const trust = vi.fn<() => Promise<boolean>>().mockResolvedValue(true);
   const observe = vi.fn<() => Promise<void>>().mockResolvedValue(undefined);
   const productCatalogState = { status: "loading" };
-  const app = reactive({ accountKey: "default", accountBindingEpoch: 1 });
+  const app = reactive({ accountKey: "default", accountBindingEpoch: 1,
+    captureRemoteAccountRequest: () => ({}), refreshRemoteFleet: vi.fn(async () => true) });
   let currentAccountScope = { accountKey: "user:1", epoch: 1 };
   const value = new Function(
     "ref", "computed", "watch", "app", "Promise", "refreshProductCatalog", "refreshServerProductPhase", "remoteApiEnabled", "refreshTrust", "onLoad", "onShow", "captureAccountScope", "isCurrentAccountScope", "productCatalogState", "observeCanonicalProductDetail", "takeNavigationQuery", "sessionVault", "usePromotionContext", "nextTick", "eligibility", "purchaseEligibilityMessage", "retryEligibility", "voucherEntryContext", "earnConfig",
@@ -112,14 +113,14 @@ describe("store detail canonical read lifecycle", () => {
       "purchaseUnavailable", "stockUnavailable", "priceText", "dailyEarnText", "dailyYieldText",
       "purchaseGate", "eligibility", "purchaseEligibilityMessage", "sticky", "stickyOwner",
       "remoteApiEnabled", "t", "fmt", "purchaseEligibilityUnlockHref",
-      "activityId", "promotionStatus", "promotionAvailable", "activity", "qty", "voucherContext", "dec", "inc",
+      "activityId", "promotionStatus", "promotionAvailable", "activity", "qty", "maxQuantity", "voucherContext", "dec", "inc",
       ctaCode,
     )(
       watch, ref(true), catalogStatus, product, ref(false), ref(false), ref(false), ref(false),
       ref("1199"), ref("13"), ref("13.00"), ref({ blocked: false }), ref({ status: "ready", eligible: true }),
       ref(""), sticky, Symbol("detail"), true, ref(en),
       vi.fn(), vi.fn(),
-      ref(""), ref("idle"), ref(false), ref(null), ref(1), ref({}), vi.fn(), vi.fn(),
+      ref(""), ref("idle"), ref(false), ref(null), ref(1), ref(6), ref({}), vi.fn(), vi.fn(),
     );
     expect(sticky.show).toHaveBeenCalledOnce();
     expect(sticky.show.mock.calls[0][0].amountSubtext).toBe(`${en.bundle.estimatedDaily}: $13.00`);
@@ -334,7 +335,7 @@ const runSticky = new Function("dependencies", ts.transpileModule(`
     purchaseUnavailable, stockUnavailable, priceText, dailyEarnText, dailyYieldText,
     purchaseGate, eligibility, purchaseEligibilityMessage, remoteApiEnabled, t,
     purchaseEligibilityUnlockHref, activityId, promotionStatus, promotionAvailable,
-    activity, qty, voucherContext, dec, inc, promotionCheckoutHref, onShow, onHide, onUnload, onActivated,
+    activity, qty, maxQuantity, voucherContext, dec, inc, promotionCheckoutHref, onShow, onHide, onUnload, onActivated,
     onDeactivated, onUnmounted, invalidateDetailFacts } = dependencies;
   let detailPageVisible = true;
   let detailObservationEpoch = 0;
@@ -378,7 +379,7 @@ async function stickyNavigation() {
         purchaseGate: ref({ blocked: false }), eligibility: ref({ status: "ready", eligible: true }),
         purchaseEligibilityMessage: ref(""), remoteApiEnabled: true, t: translations,
         purchaseEligibilityUnlockHref: vi.fn(), activityId, promotionStatus: ref("ready"), promotionAvailable: ref(true),
-        activity: ref({ productNos: [catalog.value.id], eligibility: "ESTIMATE_ELIGIBLE" }), qty, voucherContext, dec:vi.fn(), inc:vi.fn(), promotionCheckoutHref,
+        activity: ref({ productNos: [catalog.value.id], eligibility: "ESTIMATE_ELIGIBLE" }), qty, maxQuantity: ref(100), voucherContext, dec:vi.fn(), inc:vi.fn(), promotionCheckoutHref,
         onShow: (callback: () => void) => hooks.onShow.push(callback),
         onHide: (callback: () => void) => hooks.onHide.push(callback),
         onUnload: (callback: () => void) => hooks.onUnload.push(callback),
