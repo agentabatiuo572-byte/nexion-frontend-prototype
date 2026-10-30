@@ -3,10 +3,10 @@
   "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-polish",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "1587c8dd327c46eeb7fc2652869a395402f53f85",
-  "sourceRef": "1587c8dd327c46eeb7fc2652869a395402f53f85",
+  "sourceHead": "0cc39704d525ec0637de1bd9d49265b1810e7759",
+  "sourceRef": "0cc39704d525ec0637de1bd9d49265b1810e7759",
   "sourceRefKind": "commit",
-  "sourceTree": "c2b0afd135458edaa9462c352752914df1bd6bed",
+  "sourceTree": "e1ef266762af21ce0e3b1fc378cc587c4f16f978",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -17162,6 +17162,13 @@
       "targetSha256": "32d8cee1010f746f208b46a3e5796b06680dbc5a8b4d212472088a33f1e55190",
       "mode": "100644"
     },
+    "src/test/uvel-native-push.ts": {
+      "sourceBlob": "0cacda7a59aa78e358d582ff70eb2ac266d89549",
+      "sourceSha256": "097cf228d53b64262c773d0d99bfd850eab1107482aa577609ba1763758178b1",
+      "targetBlob": "0cacda7a59aa78e358d582ff70eb2ac266d89549",
+      "targetSha256": "097cf228d53b64262c773d0d99bfd850eab1107482aa577609ba1763758178b1",
+      "mode": "100644"
+    },
     "src/types/liquid-glass.d.ts": {
       "sourceBlob": "f9f238e8025c44216e80e712bd4ff2260f5175e8",
       "sourceSha256": "1b1f293de9943ae200b981dfcbd0e24e6a6d45a4146dc9e23c1d5aaf2c9327d2",
@@ -17310,10 +17317,10 @@
       "mode": "100644"
     },
     "vitest.config.ts": {
-      "sourceBlob": "d93f08c410ec18efb0cc9f78dac5d89bf8376539",
-      "sourceSha256": "f8a0981790cec767e18c8b48a9df3ee7d30e21d621cfc959ee230324c23f1916",
-      "targetBlob": "d93f08c410ec18efb0cc9f78dac5d89bf8376539",
-      "targetSha256": "f8a0981790cec767e18c8b48a9df3ee7d30e21d621cfc959ee230324c23f1916",
+      "sourceBlob": "77afaa817789e433e19214142bbb6559b62df8ac",
+      "sourceSha256": "5b68f2014f5fbf70e9c20dc3345ecaa82a03ad273bb28e29e24b522de62ba46c",
+      "targetBlob": "77afaa817789e433e19214142bbb6559b62df8ac",
+      "targetSha256": "5b68f2014f5fbf70e9c20dc3345ecaa82a03ad273bb28e29e24b522de62ba46c",
       "mode": "100644"
     }
   }

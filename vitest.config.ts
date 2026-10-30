@@ -3,9 +3,11 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   resolve: {
-    alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
-    },
+    // The native push uni_module has no JS entry; tests get a stub that reports push unavailable.
+    alias: [
+      { find: "@/uni_modules/uvel-native-push", replacement: fileURLToPath(new URL("./src/test/uvel-native-push.ts", import.meta.url)) },
+      { find: "@", replacement: fileURLToPath(new URL("./src", import.meta.url)) },
+    ],
   },
   test: {
     environment: "node",
