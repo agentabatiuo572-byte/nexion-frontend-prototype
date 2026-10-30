@@ -2,6 +2,8 @@
   VsPhoneHero — phone-vs-S1 yield contrast (ported from store/page.tsx
   VsPhoneHeroV5). $0.06/d ↔ 117× more ↔ $7.00/d, with NEX/d sublines. Brand +
   brand-2 radial ambient. Drives the core "117× your phone" conversion hook.
+  Both sides are estimate comparisons, so figures use the metric font (DS-27);
+  device names and "/d" stay in the interface font.
 -->
 <template>
   <view class="nx-glass-card relative overflow-hidden" :style="rootStyle">
@@ -11,25 +13,25 @@
            the stored name is English ("Your phone") and would freeze that locale into
            the card, while the same device reads 「你的手机」 on Home / Earn / inventory. -->
       <view>
-        <text class="block font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-2)">{{ baseName }}</text>
+        <text class="block" :style="deviceStyle">{{ baseName }}</text>
         <view class="mt-1 tabular-nums whitespace-nowrap overflow-hidden" :aria-label="storefrontUsdFull(authority.phone)" :style="phoneNumStyle">
-          <text>{{ storefrontUsd(authority.phone) }}</text><text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2); font-weight: 500">{{ t.store.vsPerDay }}</text>
+          <text>{{ storefrontUsd(authority.phone) }}</text><text :style="unitStyle">{{ t.store.vsPerDay }}</text>
         </view>
         <!-- 「/天」后缀恒用弱化色(与本卡美元侧同档 ink-4),不跟数字的强调色走 -->
-        <view class="block mt-1 min-w-0 overflow-hidden font-mono-tabular whitespace-nowrap" :aria-label="phoneNexFullText" style="font-size: 12px; color: var(--v5-brand); font-weight: 500"><text>{{ phoneNexText }}</text><text style="color: var(--v5-ink-2)">{{ t.store.vsPerDay }}</text></view>
+        <view class="block mt-1 min-w-0 overflow-hidden nx-num-metric whitespace-nowrap" :aria-label="phoneNexFullText" style="font-size: 12px; color: var(--v5-brand); font-weight: 500"><text>{{ phoneNexText }}</text><text :style="subUnitStyle">{{ t.store.vsPerDay }}</text></view>
       </view>
       <!-- Arrow + 117× chip -->
-      <view class="flex flex-col items-center gap-1 px-1">
-        <text class="font-mono-tabular" style="font-size: 15px; color: var(--v5-ink-3); line-height: 1">→</text>
-        <text class="whitespace-nowrap tabular-nums" :style="chipStyle">{{ multiplierText }}</text>
+      <view class="flex flex-col items-center px-1" style="gap: 6px">
+        <text style="font-size: 15px; color: var(--v5-ink-4); line-height: 1" aria-hidden="true">→</text>
+        <text class="whitespace-nowrap nx-num-metric" :style="chipStyle">{{ multiplierText }}</text>
       </view>
       <!-- S1 -->
       <view class="text-right">
-        <text class="block font-mono-tabular" style="font-size: 12px; color: var(--v5-ink-2)">{{ t.store.ladderS1 }}</text>
+        <text class="block" :style="deviceStyle">{{ t.store.ladderS1 }}</text>
         <view class="mt-1 tabular-nums whitespace-nowrap overflow-hidden" :aria-label="storefrontUsdFull(authority.entry)" :style="s1NumStyle">
-          <text>{{ storefrontUsd(authority.entry) }}</text><text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2); font-weight: 500">{{ t.store.vsPerDay }}</text>
+          <text>{{ storefrontUsd(authority.entry) }}</text><text :style="unitStyle">{{ t.store.vsPerDay }}</text>
         </view>
-        <view class="block mt-1 min-w-0 overflow-hidden font-mono-tabular whitespace-nowrap" :aria-label="entryNexFullText" style="font-size: 12px; color: var(--v5-brand); font-weight: 500"><text>{{ entryNexText }}</text><text style="color: var(--v5-ink-2)">{{ t.store.vsPerDay }}</text></view>
+        <view class="block mt-1 min-w-0 overflow-hidden nx-num-metric whitespace-nowrap" :aria-label="entryNexFullText" style="font-size: 12px; color: var(--v5-brand); font-weight: 500"><text>{{ entryNexText }}</text><text :style="subUnitStyle">{{ t.store.vsPerDay }}</text></view>
       </view>
     </view>
   </view>
@@ -53,8 +55,12 @@ const entryNexFullText = computed(() => `+${storefrontNexFull(authority.value.en
 const rootStyle: CSSProperties = { boxShadow: "var(--nx-glass-edge)",
   background: "var(--nx-glass-fill)",
   borderRadius: "var(--nx-glass-radius)",
-  padding: "14px 16px",
+  padding: "16px",
 };
+
+const deviceStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "var(--ui-type-meta)", lineHeight: "var(--ui-type-meta-lh)", color: "var(--v5-ink-3)" };
+const unitStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontSize: "var(--ui-type-list-subtitle)", fontWeight: 400, color: "var(--v5-ink-3)" };
+const subUnitStyle: CSSProperties = { fontFamily: "var(--font-v5)", fontWeight: 400, color: "var(--v5-ink-3)" };
 
 const auroraStyle: CSSProperties = {
   position: "absolute",
@@ -68,32 +74,36 @@ const auroraStyle: CSSProperties = {
 };
 
 const phoneNumStyle: CSSProperties = {
-  fontFamily: "var(--font-v5)",
-  fontWeight: 600,
+  fontFamily: "var(--font-metric)",
+  fontVariantNumeric: "tabular-nums",
+  fontWeight: 500,
   fontSize: "20px",
+  lineHeight: "28px",
   color: "var(--v5-ink-2)",
-  letterSpacing: "-0.020em",
-  lineHeight: 1,
 };
 
 const s1NumStyle: CSSProperties = {
-  fontFamily: "var(--font-v5)",
-  fontWeight: 600,
+  fontFamily: "var(--font-metric)",
+  fontVariantNumeric: "tabular-nums",
+  fontWeight: 500,
   fontSize: "20px",
+  lineHeight: "28px",
   color: "var(--v5-success-ink)",
-  letterSpacing: "-0.020em",
-  lineHeight: 1,
 };
 
 const chipStyle: CSSProperties = {
-  padding: "4px 10px",
-  background: "color-mix(in srgb, var(--v5-brand-2) 12%, transparent)",
+  display: "inline-flex",
+  alignItems: "center",
+  height: "28px",
+  padding: "0 12px",
+  boxSizing: "border-box",
+  background: "color-mix(in srgb, var(--v5-brand-2) 16%, transparent)",
   color: "var(--v5-brand-2-ink)",
   borderRadius: "999px",
-  fontFamily: "var(--font-v5)",
+  fontFamily: "var(--font-metric)",
   fontWeight: 500,
   fontSize: "13px",
-  letterSpacing: "-0.005em",
+  lineHeight: "18px",
 };
 
 

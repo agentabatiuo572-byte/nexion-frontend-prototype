@@ -35,6 +35,7 @@ async function view(component: ReturnType<typeof compiled>, copy: typeof en, pro
     "@/i18n/use-t": { useT: () => Vue.ref(copy) }, "@/lib/brand-copy": { nexGridBrandText },
     "./section-header.vue": { default: { render: () => null } },
     "@/lib/store-yield-authority": yieldAuthority,
+    "@/composables/use-scroll-grow-progress": { useScrollGrowProgress: () => ({ elRef: Vue.ref(null), inView: Vue.ref(true) }), PROGRESS_GROW_TRANSITION: "none" },
     "@/lib/remote-account-epoch": { createRemoteAccountEpoch },
     "@/api/runtime": { remoteApiEnabled: remote, storefrontActivityApi: { activity } },
     "@/store/app": { useApp: () => Vue.reactive({ accountKey: "store-user" }) },
