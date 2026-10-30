@@ -53,7 +53,7 @@ function page(recovery: unknown = null) {
     isDeviceTaskBlocked: () => false, onUnmounted: (fn: () => void) => cleanup.push(fn) };
   const scope = effectScope();
   const actual = scope.run(() => new Function(...Object.keys(deps), code +
-    "return {purchaseStatus,purchaseSnapshot,purchaseRecovery,purchaseActionText,purchaseActionDisabled,refreshTradeinPurchaseEligibility,onConfirmTradein,hide,restoreTradeinAfterConditions};")(...Object.values(deps)));
+    "return {purchaseStatus,purchaseSnapshot,purchaseRecovery,purchaseBlocked,purchaseActionText,purchaseActionDisabled,refreshTradeinPurchaseEligibility,onConfirmTradein,hide,restoreTradeinAfterConditions};")(...Object.values(deps)));
   cleanup.push(() => scope.stop());
   sheet.showTradein();
   return { ...deps, actual, request };
@@ -64,6 +64,7 @@ describe("actual trade-in confirmation purchase authorization", () => {
     const p = page(); await settle();
     expect(p.request.mock.calls[0][0].path).toContain("productNo=stellarrack-p1");
     expect(p.actual.purchaseActionText.value).toBe(zh.tradein.purchaseViewConditions);
+    expect(p.actual.purchaseBlocked.value).toBe(true);
     await p.actual.onConfirmTradein();
     expect(p.navTo).toHaveBeenCalledExactlyOnceWith("/pages/team/quota?product=stellarrack-p1&intent=tradein-conditions");
     expect(p.sheet.applyTradein).not.toHaveBeenCalled();
@@ -75,6 +76,7 @@ describe("actual trade-in confirmation purchase authorization", () => {
     const p = page(); await settle();
     p.request.mockResolvedValueOnce(allowed()); await p.actual.refreshTradeinPurchaseEligibility();
     expect(p.actual.purchaseActionText.value).toBe("Confirm · checkout");
+    expect(p.actual.purchaseBlocked.value).toBe(false);
     await p.actual.onConfirmTradein();
     expect(p.request).toHaveBeenCalledTimes(3);
     expect(p.sheet.applyTradein).not.toHaveBeenCalled(); expect(p.navTo).not.toHaveBeenCalled();
@@ -116,6 +118,7 @@ describe("actual trade-in confirmation purchase authorization", () => {
     const exhausted = { ...rackPurchaseEligibility, decisionCode: "F4B_MONTHLY_QUOTA_EXHAUSTED" };
     p.request.mockResolvedValue(exhausted); await p.actual.onConfirmTradein();
     expect(p.actual.purchaseActionDisabled.value).toBe(true);
+    expect(p.actual.purchaseBlocked.value).toBe(true);
     await p.actual.onConfirmTradein(); expect(p.navTo).not.toHaveBeenCalled(); expect(p.sheet.applyTradein).not.toHaveBeenCalled();
   });
   it("rejects a response naming another SKU", async () => {

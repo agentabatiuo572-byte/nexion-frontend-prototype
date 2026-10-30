@@ -29,7 +29,7 @@ const render = new Function('Vue', compile(descriptor.template!.content, {
   mode: 'function', prefixIdentifiers: true, isCustomElement: tag => ['view', 'text'].includes(tag),
 }).code)(Vue);
 
-function page(copy = en, remoteApiEnabled = true) {
+function page(copy = en, remoteApiEnabled = true, purchaseBlocked = false) {
   const state = ref({ kind: 'choice', tradeInSources: ['42'], newPrice: 500, oldDeviceId: '42', newKind: 'stellarbox-pro' });
   const device = { id: '42', kind: 'stellarbox-s1', name: 'UVEL S1', paidPriceUsdt: 200, cumulativeEarningsUsdt: 50 };
   const canonicalQuote = ref({ sourceDeviceId: 42, sourceRowVersion: 1, targetDeviceStatus: "ACTIVE", targetProductNo: 'stellarbox-pro', sourceActualPaidUsdt: 200,
@@ -38,8 +38,8 @@ function page(copy = en, remoteApiEnabled = true) {
     canonicalQuote, fmt, formatAmount, deviceName, computeTradeInCredit, ladderBandFor, kindLabel: (kind: string) => kind };
   const actual = new Function('deps', `const {${Object.keys(deps).join(',')}} = deps; ${code}; return {choiceSources, tradeinView};`)(deps);
   const setup = { ...deps, ...actual, active: true, purchaseStatus: 'loading', purchaseSnapshot: null,
-    purchaseMessage: 'error', purchaseRecovery: 'none', purchaseActionDisabled: false, purchaseActionBusy: false,
-    purchaseActionText: copy.store.purchaseEligibilityLoading, quoteLoading: false, confirming: false, ctaHalo: {},
+    purchaseMessage: 'error', purchaseRecovery: 'none', purchaseBlocked, purchaseActionDisabled: false, purchaseActionBusy: false,
+    purchaseActionText: purchaseBlocked ? copy.tradein.purchaseViewConditions : copy.store.purchaseEligibilityLoading, quoteLoading: false, confirming: false, ctaHalo: {},
     hide: () => {}, onKeyboardActivate: () => {}, onChooseTradein: () => {}, onChooseFullPrice: () => {}, onConfirmTradein: () => {} };
   const show = () => renderToString(Vue.createSSRApp({ render,
     components: { PurchaseEligibilityPanel: { render: () => null } }, setup: () => Vue.proxyRefs(setup) }));
@@ -88,4 +88,15 @@ it.each([zh, en, vietnamese])('explains the inherited source placement in the ac
   p.canonicalQuote.value.targetDeviceStatus = 'INACTIVE';
   const inventory = await p.show(); expect(inventory).toContain(copy.tradein.inheritInventoryHint);
   expect(inventory).not.toContain(copy.tradein.inheritActiveHint);
+});
+
+it.each([zh, en, vietnamese])('keeps a blocked confirmation short without a quote, source identity or payment explanations', async copy => {
+  const p = page(copy, true, true); p.state.value.kind = 'tradein';
+  p.canonicalQuote.value.sufficientFunds = false;
+  const html = (await p.show()).replace(/<!--[\s\S]*?-->/g, '');
+  expect(html).toContain(copy.tradein.purchaseBlockedTitle);
+  expect(html).toContain(copy.tradein.purchaseViewConditions); expect(html).toContain(copy.tradein.sheetCancel);
+  for (const removed of [copy.tradein.sheetOldDeviceLabel, copy.tradein.sheetEarnedLabel, copy.tradein.sheetCreditLabel,
+    copy.tradein.sheetNetCostLabel, copy.tradein.inheritActiveHint, copy.tradein.inheritInventoryHint,
+    copy.tradein.sheetDisclaimer, '$123.45', '$376.55', 'UVEL S1']) expect(html).not.toContain(removed);
 });

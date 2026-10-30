@@ -1,19 +1,19 @@
 <template>
-  <view class="purchase-panel" aria-live="polite" :aria-busy="status === 'loading'">
-    <text class="purchase-panel__title">{{ t.store.purchaseEligibilityProductPolicy }}</text>
-    <text class="purchase-panel__note" :role="message === 'error' ? 'alert' : 'status'">{{ statusText }}</text>
+  <view class="purchase-panel" :class="{ 'purchase-panel--blocking': blockingOnly }" aria-live="polite" :aria-busy="status === 'loading'">
+    <text v-if="!blockingOnly" class="purchase-panel__title">{{ t.store.purchaseEligibilityProductPolicy }}</text>
+    <text v-if="!blockingOnly || message !== 'ineligible'" class="purchase-panel__note" :role="message === 'error' ? 'alert' : 'status'">{{ statusText }}</text>
     <template v-if="status === 'ready' && snapshot && message !== 'error'">
-      <text v-if="snapshot.policies.length > 1" class="purchase-panel__note">{{ t.tradein.purchasePoliciesAll }}</text>
-      <view v-for="(policy, index) in snapshot.policies" :key="`${policy.policy}-${index}`" class="purchase-panel__policy">
-        <view class="purchase-panel__row"><text class="purchase-panel__title">{{ policy.policy === 'E1' ? t.tradein.purchaseProductPolicy : t.tradein.purchaseHardwarePolicy }}</text><text>{{ policy.eligible ? t.tradein.purchaseMet : policy.conditions.length ? t.tradein.purchaseUnmet : t.store.purchaseEligibilityError }}</text></view>
-        <text v-if="policy.conditions.some(condition => !isQuota(condition))" class="purchase-panel__note">{{ policy.mode === 'EITHER' ? t.quota.unlockEither : t.quota.unlockAll }}</text>
+      <text v-if="(!blockingOnly && snapshot.policies.length > 1) || blockingOnly && visiblePolicies.length > 1" class="purchase-panel__note">{{ t.tradein.purchasePoliciesAll }}</text>
+      <view v-for="(policy, index) in visiblePolicies" :key="`${policy.policy}-${index}`" class="purchase-panel__policy">
+        <view v-if="!blockingOnly" class="purchase-panel__row"><text class="purchase-panel__title">{{ policy.policy === 'E1' ? t.tradein.purchaseProductPolicy : t.tradein.purchaseHardwarePolicy }}</text><text>{{ policy.eligible ? t.tradein.purchaseMet : policy.conditions.length ? t.tradein.purchaseUnmet : t.store.purchaseEligibilityError }}</text></view>
+        <text v-if="policy.conditions.filter(condition => !isQuota(condition)).length > (blockingOnly ? 1 : 0)" class="purchase-panel__note">{{ policy.mode === 'EITHER' ? t.quota.unlockEither : t.quota.unlockAll }}</text>
         <view v-for="condition in policy.conditions.filter(condition => !isQuota(condition))" :key="condition.kind" class="purchase-panel__condition">
           <view class="purchase-panel__row"><text>{{ conditionLabel(condition) }}</text><text class="purchase-panel__values">{{ conditionValues(condition) }}</text></view>
           <QuotaConditionBar v-if="!visibility.hidden" :pct="conditionRatio(condition)" :met="condition.met" tint="var(--v5-brand)" :label="conditionLabel(condition)" :value-text="conditionValues(condition)" />
           <text class="purchase-panel__note">{{ condition.met ? t.tradein.purchaseMet : fmt(t.tradein.purchaseGap, { amount: condition.kind === 'rank' ? visibility.mask(fmt(t.tradein.purchaseRanks, { n: condition.gap })) : conditionAmount(condition, condition.gap, true) }) }}</text>
         </view>
         <!-- Quota is an independent remaining-capacity check, never part of EITHER unlock conditions. -->
-        <text v-if="policy.conditions.some(isQuota)" class="purchase-panel__note">{{ t.tradein.purchaseQuotaRequired }}</text>
+        <text v-if="!blockingOnly && policy.conditions.some(isQuota)" class="purchase-panel__note">{{ t.tradein.purchaseQuotaRequired }}</text>
         <view v-for="condition in policy.conditions.filter(isQuota)" :key="condition.kind" class="purchase-panel__condition">
           <view class="purchase-panel__row"><text>{{ conditionLabel(condition) }}</text><text class="purchase-panel__values">{{ conditionValues(condition) }}</text></view>
           <QuotaConditionBar v-if="!visibility.hidden" :pct="conditionRatio(condition)" :met="condition.met" tint="var(--v5-brand)" :label="conditionLabel(condition)" :value-text="conditionValues(condition)" />
@@ -33,11 +33,16 @@ import { fmt } from "@/i18n/format";
 import { useLocaleStore } from "@/store/locale";
 import { useDataVisibility } from "@/store/data-visibility";
 import QuotaConditionBar from "@/components/team/quota-condition-bar.vue";
-const props = defineProps<{ status: PurchaseEligibilityRequestStatus; snapshot: PurchaseEligibilitySnapshot | null }>();
+const props = defineProps<{ status: PurchaseEligibilityRequestStatus; snapshot: PurchaseEligibilitySnapshot | null; blockingOnly?: boolean }>();
 const t = useT();
 const locale = useLocaleStore();
 const visibility = useDataVisibility();
 const message = computed(() => resolvePurchaseEligibilityMessage(props.status, props.snapshot));
+const visiblePolicies = computed(() => !props.blockingOnly ? props.snapshot?.policies ?? []
+  : (props.snapshot?.policies ?? []).filter(policy => !policy.eligible).map(policy => {
+    const eitherMet = policy.mode === "EITHER" && policy.conditions.some(condition => !isQuota(condition) && condition.met);
+    return { ...policy, conditions: policy.conditions.filter(condition => !condition.met && (isQuota(condition) || !eitherMet)) };
+  }).filter(policy => policy.conditions.length > 0));
 const statusText = computed(() => props.status === "idle" || props.status === "loading" ? t.value.store.purchaseEligibilityLoading
   : message.value === "eligible" ? t.value.tradein.purchaseEligible
   : message.value === "ineligible" ? t.value.store.purchaseEligibilityIneligible
@@ -69,4 +74,6 @@ function conditionRatio(condition: PurchaseEligibilityCondition): number {
 .purchase-panel__row { display:flex; justify-content:space-between; align-items:baseline; gap:8px 16px; flex-wrap:wrap; }
 .purchase-panel__condition { margin-top:12px; }
 .purchase-panel__values { margin-left:auto; color:var(--v5-ink); font-variant-numeric:tabular-nums; text-align:right; }
+.purchase-panel--blocking .purchase-panel__policy:first-child,
+.purchase-panel--blocking .purchase-panel__condition:first-child { margin-top:0; }
 </style>

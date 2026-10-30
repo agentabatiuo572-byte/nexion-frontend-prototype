@@ -18,7 +18,7 @@ const descriptor = parse(source).descriptor;
 const ast = ts.createSourceFile("panel.ts", descriptor.scriptSetup!.content, ts.ScriptTarget.Latest, true);
 const selected = ast.statements.filter(node => ts.isFunctionDeclaration(node)
   || ts.isVariableStatement(node) && node.declarationList.declarations.some(declaration =>
-    ["message", "statusText"].includes(declaration.name.getText(ast))));
+    ["message", "statusText", "visiblePolicies"].includes(declaration.name.getText(ast))));
 const code = ts.transpileModule(selected.map(node => node.getText(ast)).join("\n"), {
   compilerOptions: { target: ts.ScriptTarget.ES2022 },
 }).outputText;
@@ -26,13 +26,13 @@ const render = new Function("Vue", compile(descriptor.template!.content, {
   mode: "function", prefixIdentifiers: true, isCustomElement: tag => ["view", "text"].includes(tag),
 }).code)(Vue);
 async function show(snapshot: PurchaseEligibilitySnapshot | null = rackPurchaseEligibility,
-  locale: "zh" | "en" | "vi" = "zh", hidden = false, status = "ready") {
-  const props = { snapshot, status };
+  locale: "zh" | "en" | "vi" = "zh", hidden = false, status = "ready", blockingOnly = false) {
+  const props = { snapshot, status, blockingOnly };
   const copy = { zh, en, vi }[locale];
   const deps = { props, computed: Vue.computed, t: Vue.ref(copy), locale: { code: locale },
     visibility: { hidden, mask: (value: unknown) => hidden ? "•••" : String(value) },
     resolvePurchaseEligibilityMessage, fmt, formatComputePoints };
-  const bindings = new Function(...Object.keys(deps), `${code}; return {message,statusText,isQuota,conditionLabel,conditionAmount,conditionValues,conditionRatio};`)(...Object.values(deps));
+  const bindings = new Function(...Object.keys(deps), `${code}; return {message,statusText,visiblePolicies,isQuota,conditionLabel,conditionAmount,conditionValues,conditionRatio};`)(...Object.values(deps));
   return renderToString(Vue.createSSRApp({ render, components: {
     QuotaConditionBar: { props: ["label", "valueText"], render() { return Vue.h("span", { role: "progressbar", "aria-label": this.label, "aria-valuetext": this.valueText }); } },
   }, setup: () => Vue.proxyRefs({ ...deps, ...props, ...bindings }) }));
@@ -89,4 +89,46 @@ it("suppresses policy facts when a combined grant contradicts or cannot confirm 
   expect(html).toContain(zh.store.purchaseEligibilityError);
   expect(html).not.toContain("118,526"); expect(html).not.toContain("progressbar");
   expect(html).not.toContain(zh.tradein.purchaseMet);
+});
+
+it("keeps only the live Rack blocker in compact mode, without completed policies or optional quota", async () => {
+  const html = await show(rackPurchaseEligibility, "zh", false, "ready", true);
+  expect(html).toContain("118,526 算力点 / 800,000 算力点");
+  expect(html).toContain("还差 681,474 算力点");
+  for (const removed of ["10 人", "8 人", "79 台", zh.tradein.purchaseProductPolicy,
+    zh.tradein.purchaseHardwarePolicy, zh.tradein.purchaseMet, zh.quota.unlockAll]) expect(html).not.toContain(removed);
+});
+it("omits an eligible EITHER policy's remaining unmet threshold when another policy blocks", async () => {
+  const snapshot = structuredClone(rackPurchaseEligibility) as PurchaseEligibilitySnapshot;
+  snapshot.decisionCode = "PURCHASE_GATE_NOT_MET";
+  snapshot.policies[0] = { policy: "E1", eligible: false, decisionCode: "PURCHASE_GATE_NOT_MET", mode: "ALL",
+    conditions: [{ kind: "rank", required: 4, current: 1, gap: 3, met: false }] };
+  snapshot.policies[1].eligible = true; snapshot.policies[1].mode = "EITHER"; snapshot.policies[1].decisionCode = "ELIGIBLE";
+  const html = await show(snapshot, "zh", false, "ready", true);
+  expect(html).toContain("V1 / V4"); expect(html).toContain("还差 3 级");
+  expect(html).not.toContain("118,526"); expect(html).not.toContain("681,474"); expect(html).not.toContain("79 台");
+});
+it("shows only exhausted quota when EITHER thresholds have already been satisfied", async () => {
+  const snapshot = structuredClone(rackPurchaseEligibility) as PurchaseEligibilitySnapshot;
+  snapshot.decisionCode = "F4B_MONTHLY_QUOTA_EXHAUSTED";
+  snapshot.policies[1].mode = "EITHER"; snapshot.policies[1].decisionCode = "F4B_MONTHLY_QUOTA_EXHAUSTED";
+  snapshot.policies[1].conditions[2] = { kind: "monthlyQuota", required: 80, current: 80, gap: 0, met: false };
+  const html = await show(snapshot, "zh", false, "ready", true);
+  expect(html).toContain(zh.tradein.purchaseQuotaDepleted); expect(html).toContain("80 台 / 80 台");
+  expect(html).toContain("剩余 0 台");
+  expect(html).not.toContain("118,526"); expect(html).not.toContain("10 人"); expect(html).not.toContain(zh.quota.unlockEither);
+});
+it.each(["ALL", "EITHER"] as const)("retains the %s relationship only when multiple unmet thresholds remain", async mode => {
+  const snapshot = structuredClone(rackPurchaseEligibility) as PurchaseEligibilitySnapshot;
+  snapshot.policies[1].mode = mode;
+  snapshot.policies[1].conditions[0] = { kind: "activeDirect", required: 8, current: 2, gap: 6, met: false };
+  const html = await show(snapshot, "zh", false, "ready", true);
+  expect(html).toContain(mode === "ALL" ? zh.quota.unlockAll : zh.quota.unlockEither);
+  expect(html).toContain("2 人 / 8 人"); expect(html).toContain("118,526 算力点"); expect(html).not.toContain("79 台");
+});
+it("keeps unknown conditions out of compact mode and masks private blocker values", async () => {
+  const unknown = await show(null, "zh", false, "error", true);
+  expect(unknown).toContain(zh.store.purchaseEligibilityError); expect(unknown).not.toContain("progressbar");
+  const hidden = await show(rackPurchaseEligibility, "zh", true, "ready", true);
+  expect(hidden).not.toContain("118,526"); expect(hidden).not.toContain("681,474"); expect(hidden).not.toContain("progressbar");
 });
