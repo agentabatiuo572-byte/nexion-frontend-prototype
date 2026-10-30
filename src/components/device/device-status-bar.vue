@@ -67,14 +67,14 @@ onUnmounted(() => {
   z-index: 110;
   pointer-events: none;
 }
-/* The material continues below the safe area behind navigation (z100).
+/* The material continues below the safe area behind navigation (z50/z100).
    Four successively shorter blur bands avoid a uniform blur ending at 54px. */
 .nx-statusbar-material {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 90;
+  z-index: 40;
   pointer-events: none;
 }
 .nx-statusbar-material > view,

@@ -3,10 +3,10 @@
   "sourcePath": "D:\\WORKS\\PLAN\\.wt\\p41-codex-app",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "6ecc0c54397350452fa85afad6d1dab3ab1b23fb",
-  "sourceRef": "6ecc0c54397350452fa85afad6d1dab3ab1b23fb",
+  "sourceHead": "11cec4763d4b943649f5debca8affad4eae5a191",
+  "sourceRef": "11cec4763d4b943649f5debca8affad4eae5a191",
   "sourceRefKind": "commit",
-  "sourceTree": "ce142935a939b64f7a919cc34643f0fbcacd1c40",
+  "sourceTree": "b5943377369a835f486d2851446f46db417f9579",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -5004,17 +5004,17 @@
       "mode": "100644"
     },
     "src/components/device/device-status-bar.vue": {
-      "sourceBlob": "a25d67d312a55c30e7818822e475ac0e00a92ae3",
-      "sourceSha256": "7548dcdee5271ca4e9c4cd20fe4e7e08dbb1ed5ecf835b6bb6318a1c3014b6e2",
-      "targetBlob": "a25d67d312a55c30e7818822e475ac0e00a92ae3",
-      "targetSha256": "7548dcdee5271ca4e9c4cd20fe4e7e08dbb1ed5ecf835b6bb6318a1c3014b6e2",
+      "sourceBlob": "6975547689fb987290f228f7934693cf233514f6",
+      "sourceSha256": "f4c303c33a445b11e59a9eaf3ec20d13cabc3363c7325934d2b5faca3d047fb7",
+      "targetBlob": "6975547689fb987290f228f7934693cf233514f6",
+      "targetSha256": "f4c303c33a445b11e59a9eaf3ec20d13cabc3363c7325934d2b5faca3d047fb7",
       "mode": "100644"
     },
     "src/components/device/standalone-page-shell.vue": {
-      "sourceBlob": "8a287eb7de686ea46db55b7e524237044f84dcc6",
-      "sourceSha256": "4310b45a1c83ea4f0d57f445119727d8f9bbe976618707a6a43ba17b1b0ba713",
-      "targetBlob": "8a287eb7de686ea46db55b7e524237044f84dcc6",
-      "targetSha256": "4310b45a1c83ea4f0d57f445119727d8f9bbe976618707a6a43ba17b1b0ba713",
+      "sourceBlob": "73742f781be7848aac4d03f51d168e38b05213d4",
+      "sourceSha256": "59227ca635065b37fd4196837a1799bcebff3f4f30e8caffa14c4c2b7b5d7617",
+      "targetBlob": "73742f781be7848aac4d03f51d168e38b05213d4",
+      "targetSha256": "59227ca635065b37fd4196837a1799bcebff3f4f30e8caffa14c4c2b7b5d7617",
       "mode": "100644"
     },
     "src/components/dialog-focus-roots.contract.test.ts": {
