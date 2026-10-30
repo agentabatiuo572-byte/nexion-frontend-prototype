@@ -135,7 +135,15 @@
             </view>
             <text v-if="trialZeroDue" class="checkout-note">{{ t.store.coTrialZeroNote }}</text>
             <view v-if="tradeinPlacementText" class="checkout-note"><text>{{ tradeinPlacementText }}</text></view>
-            <view v-if="capped" class="checkout-note checkout-note--warning"><text>{{ slotsFullText }}</text></view>
+            <view v-if="checkoutCapacityRequired && !hasTradein && !remoteCapacityGate.canConfirm(false)" class="checkout-note checkout-note--warning" role="status" data-testid="checkout-capacity-notice">
+              <text>{{ checkoutCapacityMessage }}</text>
+              <view class="checkout-capacity-actions">
+                <NxButton variant="text" size="small" :label="t.store.catalogRetry" :busy="remoteCapacityGate.pending" @click="retryCheckoutCapacity" />
+                <NxButton v-if="remoteCapacityGate.decision === 'REPLACE_REQUIRED'" variant="text" size="small" :label="t.tradein.checkoutReAdd" :busy="reAddingTradein" @click="reAddTradein" />
+                <NxButton v-if="remoteCapacityGate.decision" variant="text" size="small" :label="t.myDevices.inventoryTitle" @click="navTo('/pages/me/devices')" />
+              </view>
+            </view>
+            <view v-else-if="!remoteApiEnabled && capped" class="checkout-note checkout-note--warning"><text>{{ slotsFullText }}</text></view>
             <view class="checkout-policy-notice" data-testid="checkout-policy-notice"><text>{{ policyHasDevice ? policyCopy.deviceScope+t.store.faq.refund.a+(trialConversionMode ? purchaseCopy.refundClause : '') : policyCopy.review }}</text><button class="checkout-policy-link" @click="purchasePolicyOpen=true">{{ policyCopy.entry }}</button></view>
             <view class="checkout-legal"><text>{{ legalCopy.before }}</text><text class="checkout-legal-link" role="link" tabindex="0" @click="navTo('/pages/onboarding/terms')" @keydown.enter.prevent="navTo('/pages/onboarding/terms')">{{ auditCopy.terms }}</text><text>{{ legalCopy.join }}</text><text class="checkout-legal-link" role="link" tabindex="0" @click="navTo('/pages/me/risk-disclosure')" @keydown.enter.prevent="navTo('/pages/me/risk-disclosure')">{{ t.me.riskRow }}</text><text>{{ legalCopy.end }}</text></view>
             <view class="checkout-cancel" role="button" tabindex="0" @click.stop="cancelCheckout" @keydown.enter.prevent.stop="cancelCheckout" @keydown.space.prevent.stop="cancelCheckout"><text>{{ t.store.coCancel }}</text></view>
@@ -243,7 +251,7 @@
 
 <script setup lang="ts">
 import { formatAmount as formatPlainAmount, formatGroupedAmount } from "@/lib/amount-display";
-import { ref, nextTick, computed, watch, onMounted, onUnmounted, type CSSProperties } from "vue";
+import { ref, reactive, nextTick, computed, watch, onMounted, onUnmounted, type CSSProperties } from "vue";
 import NxButton from "@/components/ui/nx-button.vue";
 import NxSheet from "@/components/ui/nx-sheet.vue";
 import { useAuditUiCopy } from "@/i18n/audit-ui";
@@ -293,7 +301,7 @@ import type { DeviceKind } from "@/store/types";
 import { confirm, toast, useUI } from "@/store/ui";
 import { deviceE3Api, orderApi, purchaseEligibilityApi, remoteApiEnabled } from "@/api/runtime";
 import { asApiError, isSettledRejection } from "@/api/errors";
-import type { CanonicalTradeinResult } from "@/api/device-e3-api";
+import type { CanonicalTradeinEligibility, CanonicalTradeinResult } from "@/api/device-e3-api";
 import { resolvePurchaseEligibilityMessage } from "@/lib/purchase-eligibility-copy";
 import { completeVerifiedMutation, handleNoActiveDeviceDecision, RemoteCapacityGate, StableCommandKey } from "@/domain/e20-capacity-coordinator";
 import { resolveTradeinCheckoutPreflight } from "@/domain/tradein-checkout-preflight";
@@ -873,7 +881,7 @@ function removeTradein() {
 }
 // 移除后的找回入口(PR-D 债 #2:intercept 一次性,移除后本页原无恢复路径)。
 async function reAddTradein() {
-  if (reAddingTradein.value) return;
+  if (reAddingTradein.value || (remoteApiEnabled && remoteCapacityGate.pending)) return;
   if (remoteApiEnabled && remoteTradeinRecoveryRequired.value) {
     toast.warn(t.value.tradein.errPleaseRetry);
     return;
@@ -933,7 +941,7 @@ const KNOWN_KINDS: DeviceKind[] = [
   "stellarrack-p2",
 ];
 let interceptFired = false;
-const remoteCapacityGate = new RemoteCapacityGate();
+const remoteCapacityGate = reactive(new RemoteCapacityGate());
 watch([() => app.accountKey, () => app.accountBindingEpoch], () => {
   interceptFired = false;
   tradeinAvailable.value = false;
@@ -984,14 +992,18 @@ async function fireTradeinIntercept(interactive = false): Promise<boolean | unde
     // optional enhancement. A transient eligibility failure must not reject an
     // otherwise ordinary purchase, matching the prototype's local flow where
     // the absence of a trade-in candidate simply continues to payment.
-    return resolveTradeinCheckoutPreflight(
-      deviceE3Api.eligibility(kind),
-      remoteCapacityGate.resolve(
-        () => deviceE3Api.capacityQuote(kind),
-        () => {},
-        () => isCurrentCheckoutRoute(requestScope),
-      ),
-    ).then(async ({ eligibility, capacity: quote }) => {
+    let eligibility: CanonicalTradeinEligibility | null = null;
+    return remoteCapacityGate.resolve(
+      async () => {
+        const result = await resolveTradeinCheckoutPreflight(
+          deviceE3Api.eligibility(kind), deviceE3Api.capacityQuote(kind),
+        );
+        eligibility = result.eligibility;
+        return result.capacity;
+      },
+      () => {},
+      () => isCurrentCheckoutRoute(requestScope),
+    ).then(async (quote) => {
       if (!isCurrentCheckoutRoute(requestScope)) return;
       const sourceIds = eligibility?.sources.filter((source) => source.eligible)
         .map((source) => String(source.sourceDeviceId)) ?? [];
@@ -1029,7 +1041,7 @@ async function fireTradeinIntercept(interactive = false): Promise<boolean | unde
       return false;
     }).catch((): undefined => {
       if (!isCurrentCheckoutRoute(requestScope)) return;
-      toast.warn(t.value.tradein.errPleaseRetry);
+      toast.warn(t.value.store.coCapacityUnavailable);
     });
   }
   // Mock/demo keeps the isolated local eligibility composer.
@@ -1049,6 +1061,11 @@ async function fireTradeinIntercept(interactive = false): Promise<boolean | unde
     return true;
   }
   return false;
+}
+async function retryCheckoutCapacity() {
+  if (remoteCapacityGate.pending) return;
+  interceptFired = false;
+  await fireTradeinIntercept();
 }
 const checkoutBackHref = computed(() => promotionRoute.value
   ? promotionStoreHref(promotionRoute.value.activityId,promotionRoute.value)
@@ -1152,6 +1169,13 @@ const isCard = computed(() => payment.value === "card");
 const reservedSlots = computed(() => (trialReservesSlotNow() ? 1 : 0));
 const cappedRaw = computed(() => app.activeSlotCount + reservedSlots.value >= app.slotCap);
 const targetOccupiesPhysicalSlot = computed(() => product.value?.productType !== "SHARE");
+const checkoutCapacityRequired = computed(() => remoteApiEnabled && !trialConversionMode.value
+  && !freeTrial.hasPendingConversion() && targetOccupiesPhysicalSlot.value
+  && KNOWN_KINDS.includes(productId.value as DeviceKind));
+const checkoutCapacityMessage = computed(() => remoteCapacityGate.pending ? t.value.store.coCapacityChecking
+  : remoteCapacityGate.decision === "REPLACE_REQUIRED" ? slotsFullText.value
+  : remoteCapacityGate.decision === "NO_ACTIVE_DEVICE" ? t.value.tradein.errNoActiveDevice
+  : t.value.store.coCapacityUnavailable);
 // Conversion order = the trial's own reserved slot converts into the real
 // device (slot exchange) — don't scare the user with a slots-full warning that
 // counts the very slot this purchase frees (only warn when real actives cap).
@@ -1224,8 +1248,9 @@ function goConfirm() {
   }
   if (step.value !== "select-payment") return;
   const hasCanonicalTradein = Boolean(appliedTradeinView.value?.canonicalQuote);
-  if (remoteApiEnabled && !remoteCapacityGate.canConfirm(hasCanonicalTradein)) {
-    toast.warn(t.value.tradein.errPleaseRetry);
+  if (checkoutCapacityRequired.value && !remoteCapacityGate.canConfirm(hasCanonicalTradein)) {
+    toast.warn(checkoutCapacityMessage.value);
+    if (!remoteCapacityGate.pending && !remoteCapacityGate.decision) void retryCheckoutCapacity();
     return;
   }
   step.value = "confirm";
@@ -1381,6 +1406,15 @@ async function onConfirmPay() {
       // Replace checkout with the canonical order URL. A browser refresh now
       // reloads the paid server order instead of reopening a fresh purchase.
       navReplace({ url: `/pages/store/order-detail?id=${encodeURIComponent(conversion.orderNo)}&result=trial` });
+      return;
+    }
+    // Existing orders/conversions recover above before capacity can reject a
+    // fresh purchase, including a confirmation retained across page hide/show.
+    if (checkoutCapacityRequired.value && !remoteCapacityGate.canConfirm(Boolean(appliedTradeinView.value?.canonicalQuote))) {
+      confirming = false;
+      toast.warn(checkoutCapacityMessage.value);
+      step.value = "select-payment";
+      if (!remoteCapacityGate.pending && !remoteCapacityGate.decision) void retryCheckoutCapacity();
       return;
     }
     await submitRemoteOrder();
@@ -1999,6 +2033,8 @@ onHide(() => {
   if(promotionRoute.value){promotionCheckout.value?.hide();return;}
   pageVisible = false;
   invalidateCheckoutRoute();
+  interceptFired = false;
+  remoteCapacityGate.reset();
   if (dialogsOpen > 0) useUI().clearConfirmsBy(dialogOwner);
   // 页面被别的页压住(前向导航)时,让浮动条在上面那页露出这张发票;回来 onShow 再收起。
   if (activeSession.value && pending.viewingId === activeSession.value.id) pending.setViewing(null);
@@ -2631,6 +2667,7 @@ button.checkout-quantity-button::after {border:0;}
 .checkout-trial-credit { display:flex; justify-content:space-between; align-items:baseline; gap:var(--v5-space-3); margin-top:var(--v5-space-3); padding:var(--v5-space-3) var(--v5-space-4); border-radius:var(--v5-radius-m); background:color-mix(in srgb, var(--v5-brand) 10%, transparent); font-size:var(--ui-type-list-subtitle); line-height:var(--ui-type-list-subtitle-lh); font-weight:600; color:var(--v5-ink-2); }
 .checkout-trial-credit-value { color:var(--v5-brand); text-align:right; font-variant-numeric:tabular-nums; }
 .checkout-note--warning { padding:10px 12px; border-radius:12px; background:var(--v5-warning-soft); color:var(--v5-warning-ink); }
+.checkout-capacity-actions { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:6px; }
 .checkout-legal { margin:12px 2px 0; font:400 12.5px/20px var(--font-v5); color:var(--v5-ink-3); }
 .checkout-legal-link { display:inline; color:var(--v5-brand); cursor:pointer; }
 .checkout-legal-link:focus-visible { outline:2px solid var(--v5-brand); outline-offset:2px; border-radius:2px; }

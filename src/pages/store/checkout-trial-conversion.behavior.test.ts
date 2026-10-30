@@ -105,6 +105,7 @@ function harness() {
     t: ref(en), toast: { warn: vi.fn(), error: vi.fn() }, orderId: ref(null), navReplace: vi.fn(), navTo: vi.fn(),
     confirm: vi.fn().mockResolvedValue(true), dialogOwner: "fixture-dialog", fmt: (copy: string) => copy,
     submitRemoteOrder: vi.fn(),
+    checkoutCapacityRequired: ref(false),
   };
   const pay = new Function("formatAmount", ...Object.keys(deps),
     `let confirming = false, trialQuote, quotedTotal, voucherQuote, quotedTradeIn, dialogsOpen = 0;\n${topup}\n${handler}\nreturn onConfirmPay;`,

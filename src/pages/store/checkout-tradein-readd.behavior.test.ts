@@ -41,7 +41,7 @@ function scenario() {
   const deps = {
     ref, tradein, deviceE3Api, remoteApiEnabled: true, tradeinAvailable: ref(false),
     remoteTradeinRecoveryRequired: ref(false), removedTradein: ref(true),
-    toast: { warn: vi.fn() }, t: ref({ tradein: { errPleaseRetry: "Please retry", errNoActiveDevice: "No active device" } }),
+    toast: { warn: vi.fn() }, t: ref({ tradein: { errPleaseRetry: "Please retry", errNoActiveDevice: "No active device" }, store: { coCapacityUnavailable: "Unable to check activation slots" } }),
     trialConversionMode: ref(false), productId: ref(identity.productNo),
     getProduct: () => ({ id: identity.productNo, price: 2639 }), KNOWN_KINDS: [identity.productNo],
     captureCheckoutRoute, isCurrentCheckoutRoute,
@@ -79,7 +79,7 @@ describe("actual checkout trade-in re-add async result", () => {
     await operation; await settle();
     expect(s.deps.tradein.state.kind).toBe("none");
     expect(s.deps.removedTradein.value).toBe(true);
-    expect(s.deps.toast.warn).toHaveBeenCalledExactlyOnceWith("Please retry");
+    expect(s.deps.toast.warn).toHaveBeenCalledExactlyOnceWith(outcome === "capacity-error" ? "Unable to check activation slots" : "Please retry");
   });
   it("coalesces repeated clicks while a re-add is pending", async () => {
     const s = scenario(); const first = s.page.reAddTradein(); const second = s.page.reAddTradein();

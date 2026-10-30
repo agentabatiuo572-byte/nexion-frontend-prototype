@@ -21,7 +21,8 @@ export async function handleNoActiveDeviceDecision(steps: NoActiveDeviceDecision
 
 export class RemoteCapacityGate {
   pending = false;
-  blocked = false;
+  blocked = true;
+  decision: CapacityDecision | null = null;
 
   async resolve<T extends { decision: CapacityDecision }>(
     load: () => Promise<T>,
@@ -30,9 +31,11 @@ export class RemoteCapacityGate {
   ): Promise<T> {
     this.pending = true;
     this.blocked = true;
+    this.decision = null;
     try {
       const quote = await load();
       if (!isCurrent()) return quote;
+      this.decision = quote.decision;
       this.blocked = quote.decision !== "CAPACITY_AVAILABLE";
       await consume(quote);
       return quote;
@@ -46,7 +49,8 @@ export class RemoteCapacityGate {
 
   reset(): void {
     this.pending = false;
-    this.blocked = false;
+    this.blocked = true;
+    this.decision = null;
   }
 
   canConfirm(hasCanonicalReplacement: boolean): boolean {
