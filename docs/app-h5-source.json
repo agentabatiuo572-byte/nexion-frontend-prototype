@@ -3,10 +3,10 @@
   "sourcePath": "D:\\workspace\\artifacts\\device-online-restore-20261030\\app-candidate",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "9f96de323b01bbbf8d7bba24d9e91b4ce46605f6",
-  "sourceRef": "9f96de323b01bbbf8d7bba24d9e91b4ce46605f6",
+  "sourceHead": "d4b1654b724bfbe12a0add3dca48c556826ef5a2",
+  "sourceRef": "d4b1654b724bfbe12a0add3dca48c556826ef5a2",
   "sourceRefKind": "commit",
-  "sourceTree": "4ea6d7a5bf8b414a305197715cde82b3a265eb5b",
+  "sourceTree": "6081987246da233513b465ed524220f7e2752325",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -475,10 +475,10 @@
       "mode": "100644"
     },
     "docs/native-push-setup.md": {
-      "sourceBlob": "b57e0b68c8088a467271625ed21976e288141e60",
-      "sourceSha256": "3a2ed0f9a39e6c8794cfeb37f4b265f2ffd77d40e66124ca85d0271f9bf0ebda",
-      "targetBlob": "b57e0b68c8088a467271625ed21976e288141e60",
-      "targetSha256": "3a2ed0f9a39e6c8794cfeb37f4b265f2ffd77d40e66124ca85d0271f9bf0ebda",
+      "sourceBlob": "d7da192222eda95ebb5360689f24d58676c51952",
+      "sourceSha256": "e8351f89ed473c836afa822d9a8941583c53b4f0039acdd1ea006ae076808b0b",
+      "targetBlob": "d7da192222eda95ebb5360689f24d58676c51952",
+      "targetSha256": "e8351f89ed473c836afa822d9a8941583c53b4f0039acdd1ea006ae076808b0b",
       "mode": "100644"
     },
     "docs/前端产品更新日志.md": {

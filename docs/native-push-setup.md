@@ -19,7 +19,7 @@
 
    该脚本只生成四项公开 Firebase XML 资源，冷启动也需要这些资源；服务账号 JSON 私钥不得进入客户端。Android 保留 minSdk 23、targetSdk 33 或以上、通知权限、渠道 `uvel_notifications`，以及插件声明的 Firebase Messaging / Google Play services base 依赖。设备需有实际可用的 GMS 和网络，不能仅凭品牌判断。
 3. 保留插件 `utssdk/app-ios/UTS.entitlements` 的 `aps-environment=production`；如需重新生成，仅在 stage 执行 `node src/uni_modules/uvel-native-push/configure-ios.mjs production`。使用匹配 `ai.uvel.app`、推送能力和 Production 环境的证书/profile；不修改描述文件冒充分发签名。
-4. 用真实匹配的 App/UTS 编译器和原生 SDK 重建完整包或自定义基座，本轮验证基线为 **5.33**。不得伪改版本元数据或忽略 Runtime 版本检查。获准 HBuilder CLI 的形式为 `publish app --type appResource --project <stage>`、`pack --config <私有签名JSON路径>`；分平台配置，密码不放命令行。遇到云配额限制停止，不重试或换账号规避。
+4. 用真实匹配的 App/UTS 编译器和原生 SDK 重建完整包或自定义基座，本轮验证基线为 **5.33**。不得伪改版本元数据或忽略 Runtime 版本检查。获准 HBuilder CLI 的形式为 `publish app --type appResource --project <stage>`、`pack --config <私有签名JSON路径>`；分平台配置，密码不放命令行。遇到云配额限制先停止，不自行重试、切换账号或付费；用户另行明确授权时，仅执行授权的操作与次数。
 5. 核对实际生成的 Kotlin/Swift、持续回调 keepAlive、原生 SDK 类/Hook，以及最终包的包名、签名、最低系统、compiler/runtime 版本和 TEST API。iOS 还需核对签名 entitlement/profile；源码或 JS 构建成功不等于原生编译、签名包或手机验收成功。iOS 分发包通过获准 TestFlight 流程安装。
 
 ## 服务端配置
@@ -59,6 +59,8 @@ FCM 服务账号所属项目必须与客户端和目标项目一致；APNs 私�
 
 截至 2026-10-30 本次更新，双端偏好 UI/系统设置与安装登记已确认；Android UI 使用保留 3003 原生宿主的资源验收副本，不是完整 3004 云包。TEST 已部署后端 408 / `c2e3a0bb`，上述三开关实际为 true；首次排空后原生初始 cursor 由 43810 CAS 为 43889，业务 baseline 未改。获准 iPhone 已收到客服回复 43890 的后台系统通知，但 3004 点击仅打开 App，未进入客服模块，该次没有目标 GET/opened 请求，`opened_at` 仍为空。
 
-点击缺陷 #689 已在 App `c05b12c5` 修复，92 项专项、类型检查及独立复核通过；3005 stage 的真实 5.33 iOS 资源编译通过，生成 Swift 与 3004 基线一致。这些不是已在手机更新的结论。3005 官方云包在 20:14:07 被当日配额拒绝，虽 CLI exit 0，但无成功 ticket/IPA，也未上传 Apple。App 当前没有 `runtime.install` / WGT 热更新执行通道，不能把本地预览 WGT 安装到已有 TestFlight 包；不得将 3005 称为可安装包。
+点击缺陷 #689 已在 App `c05b12c5` 修复，92 项专项、类型检查及独立复核通过；3005 使用真实 5.33 编译，原生代码段独立复核与 3004 一致，本次为 JS 导航 gate 修复。首次 20:14:07 配额拒绝记录保留；随后用户明确授权更换 DCloud 账号后单次重试，官方云包已成功。IPA 为 36,840,762 bytes，SHA256 `9713f8215e5964501c91be32ddd5d8c973df407483d87591b5de8b01421ca507`，JS 与冻结 stage 精确匹配，manual、Production entitlement/profile 和 TEST API 已核对。Apple 上传 COMPLETE、处理 VALID，并已进入原获准内部单人组 IN_BETA_TESTING，可通过 TestFlight 更新 3005。App 仍无 WGT 热更新执行通道，不将本地预览 WGT 当作安装入口。
 
-客服导航和 opened 持久化需待新的完整包验证；尚未完成 iOS 三态或五类业务全链实机验收。后续状态以部署回执和 PRD 为准，没有生产启用或生产发布结论。
+用户已安装 3005，并实机确认点击后台通知直接进入对应客服会话。服务端核对的是 PC 实际回复 3813/3814/3816 → 通知 43896/43897/43899 → 投递 244/246/252，均 APNS_ACCEPTED、attempt 1、epoch 3，目标会话一致，GET/POST opened 全为 HTTP 200 且 `opened_at` 已落库；`onboardingComplete` 仍为 0。后发测试通知 43901 未被点击、`opened_at` 为空，不计入此次点击证明。
+
+上述通过范围为真实后台客服通知、对应会话导航与打开回执；尚未完成 iOS 三态或五类业务全链实机验收，Android 仍保留前述资源验收边界。后续状态以部署回执和 PRD 为准，没有生产启用或生产发布结论。
