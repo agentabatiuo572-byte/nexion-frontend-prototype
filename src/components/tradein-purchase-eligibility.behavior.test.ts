@@ -53,7 +53,7 @@ function page(recovery: unknown = null) {
     isDeviceTaskBlocked: () => false, onUnmounted: (fn: () => void) => cleanup.push(fn) };
   const scope = effectScope();
   const actual = scope.run(() => new Function(...Object.keys(deps), code +
-    "return {purchaseStatus,purchaseSnapshot,purchaseRecovery,purchaseBlocked,purchaseActionText,purchaseActionDisabled,refreshTradeinPurchaseEligibility,onConfirmTradein,hide,restoreTradeinAfterConditions};")(...Object.values(deps)));
+    "return {purchaseStatus,purchaseSnapshot,purchaseRecovery,purchaseBlocked,purchaseConfirmed,purchaseActionText,purchaseActionDisabled,refreshTradeinPurchaseEligibility,onConfirmTradein,hide,restoreTradeinAfterConditions};")(...Object.values(deps)));
   cleanup.push(() => scope.stop());
   sheet.showTradein();
   return { ...deps, actual, request };
@@ -68,7 +68,10 @@ describe("actual trade-in confirmation purchase authorization", () => {
     await p.actual.onConfirmTradein();
     expect(p.navTo).toHaveBeenCalledExactlyOnceWith("/pages/team/quota?product=stellarrack-p1&intent=tradein-conditions");
     expect(p.sheet.applyTradein).not.toHaveBeenCalled();
-    p.props.active = false; p.props.active = true; await settle();
+    const returning = deferred<PurchaseEligibilitySnapshot>(); p.request.mockReturnValueOnce(returning.promise);
+    p.props.active = false; p.props.active = true;
+    expect(p.actual.purchaseStatus.value).toBe('loading'); expect(p.actual.purchaseConfirmed.value).toBe(false);
+    returning.resolve(rackPurchaseEligibility); await settle();
     expect(p.state.value.kind).toBe("tradein");
     expect(p.request).toHaveBeenCalledTimes(2);
   });
@@ -81,6 +84,17 @@ describe("actual trade-in confirmation purchase authorization", () => {
     expect(p.request).toHaveBeenCalledTimes(3);
     expect(p.sheet.applyTradein).not.toHaveBeenCalled(); expect(p.navTo).not.toHaveBeenCalled();
     expect(p.actual.purchaseActionText.value).toBe(zh.tradein.purchaseViewConditions);
+  });
+  it("revokes full-confirmation presentation immediately during a fresh click read", async () => {
+    const p = page(); await settle();
+    p.request.mockResolvedValueOnce(allowed()); await p.actual.refreshTradeinPurchaseEligibility();
+    expect(p.actual.purchaseConfirmed.value).toBe(true);
+    const delayed = deferred<PurchaseEligibilitySnapshot>(); p.request.mockReturnValueOnce(delayed.promise);
+    const click = p.actual.onConfirmTradein();
+    expect(p.actual.purchaseStatus.value).toBe('loading'); expect(p.actual.purchaseSnapshot.value).toBeNull();
+    expect(p.actual.purchaseConfirmed.value).toBe(false);
+    delayed.resolve(rackPurchaseEligibility); await click;
+    expect(p.actual.purchaseBlocked.value).toBe(true); expect(p.sheet.applyTradein).not.toHaveBeenCalled();
   });
   it("only passes the original quote after a second canonical grant", async () => {
     vi.useFakeTimers(); const p = page(); await settle();

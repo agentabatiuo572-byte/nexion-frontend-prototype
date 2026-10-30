@@ -107,13 +107,20 @@
         <view class="tis-cta" :style="ctaHalo" role="button" tabindex="0" @click="onConfirmTradein" @keydown.enter.prevent="onKeyboardActivate($event, onConfirmTradein)" @keydown.space.prevent="onKeyboardActivate($event, onConfirmTradein)"><text class="tis-cta-text">{{ purchaseActionText }}</text></view>
         <view class="tis-ghost" role="button" tabindex="0" @click="hide" @keydown.enter.prevent="hide" @keydown.space.prevent="hide"><text class="tis-ghost-text">{{ t.tradein.sheetCancel }}</text></view>
       </template>
+      <template v-else-if="state.kind === 'tradein' && remoteApiEnabled && purchaseMessage === 'error'">
+        <view class="tis-head" role="status" :aria-busy="purchaseStatus === 'loading' || purchaseStatus === 'idle'">
+          <text class="tis-title">{{ purchaseStatus === 'loading' || purchaseStatus === 'idle' ? t.store.purchaseEligibilityLoading : t.store.purchaseEligibilityError }}</text>
+        </view>
+        <view v-if="purchaseStatus === 'error' || purchaseStatus === 'ready'" class="tis-cta" :style="ctaHalo" role="button" tabindex="0" @click="onConfirmTradein" @keydown.enter.prevent="onKeyboardActivate($event, onConfirmTradein)" @keydown.space.prevent="onKeyboardActivate($event, onConfirmTradein)"><text class="tis-cta-text">{{ t.store.purchaseEligibilityRetry }}</text></view>
+        <view class="tis-ghost" role="button" tabindex="0" @click="hide" @keydown.enter.prevent="hide" @keydown.space.prevent="hide"><text class="tis-ghost-text">{{ t.tradein.sheetCancel }}</text></view>
+      </template>
       <template v-else-if="state.kind === 'tradein' && tradeinView">
         <view class="tis-head tis-head-mb4">
-          <text class="tis-title">{{ purchaseBlocked ? t.tradein.purchaseBlockedTitle : tradeinView.title }}</text>
+          <text class="tis-title">{{ purchaseConfirmed ? tradeinView.title : t.tradein.purchaseBlockedTitle }}</text>
         </view>
 
         <!-- 旧机 / 累计产出 / 档位 / 抵扣 / 预计应付 — soft surface card, no border -->
-        <view v-if="!purchaseBlocked" class="tis-card">
+        <view v-if="purchaseConfirmed" class="tis-card">
           <view class="tis-row">
             <text class="tis-row-label">{{ t.tradein.sheetOldDeviceLabel }}</text>
             <text class="tis-row-value">{{ tradeinView.oldDeviceText }}</text>
@@ -138,10 +145,10 @@
         </view>
 
         <PurchaseEligibilityPanel v-if="remoteApiEnabled" class="tis-purchase" :status="purchaseStatus" :snapshot="purchaseSnapshot" :blocking-only="purchaseBlocked" />
-        <text v-if="!purchaseBlocked && remoteApiEnabled && canonicalQuote && !canonicalQuote.sufficientFunds" class="tis-disclaimer">{{ fmt(t.tradein.purchaseFundsGap, { amount: formatAmount(canonicalQuote.walletShortfallUsdt) }) }}</text>
+        <text v-if="purchaseConfirmed && remoteApiEnabled && canonicalQuote && !canonicalQuote.sufficientFunds" class="tis-disclaimer">{{ fmt(t.tradein.purchaseFundsGap, { amount: formatAmount(canonicalQuote.walletShortfallUsdt) }) }}</text>
 
-        <text v-if="!purchaseBlocked" class="tis-disclaimer">{{ tradeinView.placementHint }}</text>
-        <text v-if="!purchaseBlocked" class="tis-disclaimer">{{ t.tradein.sheetDisclaimer }}</text>
+        <text v-if="purchaseConfirmed" class="tis-disclaimer">{{ tradeinView.placementHint }}</text>
+        <text v-if="purchaseConfirmed" class="tis-disclaimer">{{ t.tradein.sheetDisclaimer }}</text>
 
         <view class="tis-cta" :class="{ 'tis-cta-disabled': purchaseActionDisabled }" :style="ctaHalo" role="button" :tabindex="purchaseActionDisabled ? -1 : 0" :aria-disabled="purchaseActionDisabled" :aria-busy="purchaseActionBusy" @click="onConfirmTradein"  @keydown.enter.prevent="onKeyboardActivate($event, onConfirmTradein)" @keydown.space.prevent="onKeyboardActivate($event, onConfirmTradein)">
           <text class="tis-cta-text">{{ purchaseActionText }}</text>
@@ -333,6 +340,7 @@ const purchaseScopeKey = computed(() => {
 });
 const purchaseMessage = computed(() => resolvePurchaseEligibilityMessage(purchaseStatus.value, purchaseSnapshot.value));
 const purchaseBlocked = computed(() => remoteApiEnabled && (purchaseMessage.value === "ineligible" || purchaseMessage.value === "quotaDepleted"));
+const purchaseConfirmed = computed(() => !remoteApiEnabled || purchaseMessage.value === "eligible");
 const purchaseActionBusy = computed(() => confirming.value || remoteApiEnabled && (purchaseStatus.value === "loading" || !props.active));
 const purchaseActionDisabled = computed(() => purchaseActionBusy.value || remoteApiEnabled && purchaseMessage.value === "quotaDepleted");
 const purchaseActionText = computed(() => purchaseRecovery.value === "pending" ? t.value.tradein.purchaseResume
