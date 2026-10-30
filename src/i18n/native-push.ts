@@ -1,5 +1,5 @@
 export const nativePushCopy = {
-  zh: { title: "系统通知", granted: "已开启", denied: "已关闭，站内消息仍可查看", unknown: "尚未开启", enable: "开启通知", settings: "通知设置" },
-  en: { title: "System notifications", granted: "Enabled", denied: "Disabled. Messages remain available in your inbox.", unknown: "Not enabled yet", enable: "Enable notifications", settings: "Notification settings" },
-  vi: { title: "Thông báo hệ thống", granted: "Đã bật", denied: "Đã tắt. Bạn vẫn có thể xem tin nhắn trong hộp thư.", unknown: "Chưa bật", enable: "Bật thông báo", settings: "Cài đặt thông báo" },
+  zh: { title: "系统通知", granted: "已开启", denied: "已关闭，站内消息仍可查看", unknown: "尚未开启", enable: "开启通知", settings: "通知设置", settingsFailed: "无法打开系统设置，请在手机设置中找到 UVEL 并开启通知。", connectionUnavailable: "推送连接暂不可用，站内消息仍可查看。" },
+  en: { title: "System notifications", granted: "Enabled", denied: "Disabled. Messages remain available in your inbox.", unknown: "Not enabled yet", enable: "Enable notifications", settings: "Notification settings", settingsFailed: "Could not open Settings. Find UVEL in your phone settings to enable notifications.", connectionUnavailable: "Push connection is unavailable. Messages remain available in your inbox." },
+  vi: { title: "Thông báo hệ thống", granted: "Đã bật", denied: "Đã tắt. Bạn vẫn có thể xem tin nhắn trong hộp thư.", unknown: "Chưa bật", enable: "Bật thông báo", settings: "Cài đặt thông báo", settingsFailed: "Không thể mở Cài đặt. Tìm UVEL trong cài đặt điện thoại để bật thông báo.", connectionUnavailable: "Kết nối thông báo hiện không khả dụng. Bạn vẫn có thể xem tin nhắn trong hộp thư." },
 };

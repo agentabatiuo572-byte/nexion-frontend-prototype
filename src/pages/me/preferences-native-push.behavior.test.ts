@@ -30,13 +30,13 @@ function mount(platform: "app" | "h5" = "app", state: PushPermission = "unknown"
   const code = ts.transpileModule(compileScript(parse(processed).descriptor, { id: "preferences-push", inlineTemplate: true }).content,
     { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
   const permission = Vue.ref(state), locale = Vue.reactive({ code: language });
-  const push = { nativePushPermission: permission, refreshNativePush: vi.fn(), requestNativePushPermission: vi.fn(), openNativePushSettings: vi.fn() };
+  const push = { nativePushPermission: permission, nativePushRegistrationUnavailable: Vue.ref(false), refreshNativePush: vi.fn(), requestNativePushPermission: vi.fn(), openNativePushSettings: vi.fn() };
   const shows: Array<() => void> = [];
   const slot = { setup: (_props: unknown, { slots }: any) => () => Vue.h("view", slots.default?.()) };
   const imports: Record<string, unknown> = {
     vue: Vue, "@dcloudio/uni-app": { onShow: (fn: () => void) => shows.push(fn) },
     "@/components/app-chassis.vue": { default: slot }, "@/components/sub-page-header.vue": { default: { render: () => null } },
-    "@/components/me/preference-toggle-row.vue": { default: { render: () => null } },
+    "@/components/me/preference-toggle-row.vue": { default: { props: ["label"], setup: (props: any) => () => Vue.h("text", props.label) } },
     "@/i18n/use-t": { useT: () => Vue.ref(zh) },
     "@/store/preferences": { usePreferences: () => ({ remoteReady: false, error: null }), isMandatoryNotifKind: (kind: string) => kind === "system" },
     "@/services/native-push": push, "@/i18n/native-push": { nativePushCopy }, "@/store/locale": { useLocaleStore: () => locale },
@@ -47,7 +47,7 @@ function mount(platform: "app" | "h5" = "app", state: PushPermission = "unknown"
   disposals.push(() => app.unmount()); shows.forEach(show => show());
   const panel = () => all(root).find(item => item.props["data-testid"] === "system-notifications");
   return { push, permission, locale, panel, shows, text: () => all(root).map(item => item.text).join(""),
-    click: () => panel()!.children.find(item => item.props.role === "button")!.props.onClick() };
+    click: () => all(panel()!).find(item => item.props.role === "button")!.props.onClick() };
 }
 
 it("requests first permission from the unknown native state and refreshes on page show", () => {
@@ -67,4 +67,21 @@ it.each(["zh", "en", "vi"] as const)("renders and reacts to permission readback 
 it("compiles the native permission panel and lifecycle hook out of H5", () => {
   const page = mount("h5"); expect(page.panel()).toBeUndefined(); expect(page.shows).toHaveLength(0);
   expect(page.push.refreshNativePush).not.toHaveBeenCalled(); expect(page.text()).not.toContain(nativePushCopy.zh.title);
+});
+
+it("keeps the permission row inside the same settings surface and hides only staking", () => {
+  const page = mount("app", "granted");
+  expect(all(page.panel()!).find(item => item.props.class === "nx-glass-card")).toBeTruthy();
+  expect(page.text()).not.toContain(zh.preferences.notifKinds.staking);
+  for (const kind of ["commission", "team", "market", "genesis"] as const) expect(page.text()).toContain(zh.preferences.notifKinds[kind]);
+});
+it("shows settings failure and a separate retry without changing granted permission", async () => {
+  const page = mount("app", "granted");
+  page.push.openNativePushSettings.mockImplementation((fail: () => void) => fail()); page.click(); await Vue.nextTick();
+  expect(page.text()).toContain(nativePushCopy.zh.settingsFailed);
+  page.push.nativePushRegistrationUnavailable.value = true; await Vue.nextTick();
+  expect(page.text()).toContain(nativePushCopy.zh.connectionUnavailable);
+  expect(page.text()).toContain(nativePushCopy.zh.granted);
+  all(page.panel()!).find(item => item.props["aria-label"] === zh.ui.retry)!.props.onClick();
+  expect(page.push.refreshNativePush).toHaveBeenCalledTimes(2);
 });

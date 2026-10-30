@@ -21,7 +21,7 @@ function harness(loggedIn = true) {
   const port: NativePushPort = {
     platform: "android", appVersion: "1.0.0", installationId: () => "test-install", bindingToken: vi.fn(() => "a".repeat(64)),
     permission: vi.fn(async () => "granted" as const), token: vi.fn(async () => ({ token: "fcm:" + "a".repeat(140), provider: "FCM" as const })),
-    stop: vi.fn(), listen: cb => { callback = cb; }, navigate: vi.fn(async () => true), canNavigate: () => true, received: vi.fn(),
+    registrationUnavailable: vi.fn(), stop: vi.fn(), listen: cb => { callback = cb; }, navigate: vi.fn(async () => true), canNavigate: () => true, received: vi.fn(),
   };
   const push = createNativePushController(client, vault, port);
   vault.subscribe!(push.sessionChanged);
@@ -42,6 +42,25 @@ describe("native push trust and lifecycle", () => {
     expect(h.port.token).not.toHaveBeenCalled(); expect(h.port.stop).toHaveBeenCalledOnce();
     h.port.permission = vi.fn(async () => "granted" as const); h.push.foreground(); await turn();
     expect(h.request.mock.calls.some(([r]) => r.method === "PUT")).toBe(true);
+  });
+  it("exposes a failed binding request and clears it only after a successful retry", async () => {
+    const h = harness(false); h.request.mockRejectedValueOnce(new Error("network"));
+    h.vault.save(snapshot()); await turn();
+    expect(h.port.registrationUnavailable).toHaveBeenLastCalledWith(true);
+    h.push.foreground(); await turn();
+    expect(h.port.registrationUnavailable).toHaveBeenLastCalledWith(false);
+    expect(h.request.mock.calls.filter(([r]) => r.method === "PUT")).toHaveLength(2);
+  });
+  it.each(["success", "failure"] as const)("does not publish stale binding %s after account switch", async outcome => {
+    const h = harness(false), old = deferred<unknown>(), next = deferred<unknown>();
+    h.request.mockImplementationOnce(async () => { await old.promise; if (outcome === "failure") throw new Error("old failure"); return null; })
+      .mockImplementationOnce(() => next.promise);
+    h.vault.save(snapshot()); await turn(); h.vault.save(snapshot(8));
+    old.resolve(null); await turn(); await turn();
+    expect(h.port.registrationUnavailable).not.toHaveBeenCalled();
+    next.resolve(null); await turn();
+    expect(h.port.registrationUnavailable).toHaveBeenCalledExactlyOnceWith(false);
+    expect(h.request.mock.calls[1][0].headers?.Authorization).toBe("Bearer test-access-8");
   });
   it("refreshes rotating native tokens on foreground", async () => {
     const h = harness(); await turn(); h.port.token = vi.fn(async () => ({ token: "rotated:" + "b".repeat(140), provider: "FCM" as const })); h.push.foreground(); await turn();

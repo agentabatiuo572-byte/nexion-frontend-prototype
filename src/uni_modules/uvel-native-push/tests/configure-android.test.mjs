@@ -37,3 +37,13 @@ test('targets Android 13 permission control while retaining the native SDK minim
   assert.ok(android.targetSdkVersion >= 33)
   assert.ok(android.permissions.includes('<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>'))
 })
+
+test('retains the classic iOS APNs hook packaging prerequisite without a cloud push provider', () => {
+  const manifest = JSON5.parse(readFileSync(new URL('../../../manifest.json', import.meta.url), 'utf8'))
+  assert.deepEqual(manifest['app-plus'].modules.Push, {})
+  assert.equal(manifest['app-plus'].distribute.ios.pushRegisterMode, 'manual')
+  assert.equal(manifest['app-plus'].distribute.android.pushRegisterMode, 'manual')
+  assert.equal(manifest['app-plus'].distribute.sdkConfigs?.push, undefined)
+  const entitlement = readFileSync(new URL('../utssdk/app-ios/UTS.entitlements', import.meta.url), 'utf8')
+  assert.match(entitlement, /<key>aps-environment<\/key>\s*<string>production<\/string>/)
+})

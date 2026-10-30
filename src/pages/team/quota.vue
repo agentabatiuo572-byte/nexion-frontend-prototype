@@ -1,8 +1,13 @@
 <template>
   <AppChassis active="team">
     <view class="quota-page">
-      <SubPageHeader :back="focusedProductId ? `/pages/store/detail?id=${encodeURIComponent(focusedProductId)}` : '/pages/team/team'" :title="t.quota.pageTitle" plain design />
-      <view v-if="!focusedTierPresent" class="quota-content quota-state">
+      <SubPageHeader :back="conditionsOnly ? '/pages/me/devices' : focusedProductId ? `/pages/store/detail?id=${encodeURIComponent(focusedProductId)}` : '/pages/team/team'" :title="conditionsOnly ? t.store.purchaseEligibilityProductPolicy : t.quota.pageTitle" plain design />
+      <view v-if="conditionsOnly" class="quota-content">
+        <text class="quota-headline">{{ focusedProductName }}</text>
+        <PurchaseEligibilityPanel :status="conditionEligibility.status" :snapshot="conditionEligibility.snapshot" />
+        <NxButton variant="secondary" :label="t.store.purchaseEligibilityRetry" :busy="conditionEligibility.status === 'loading'" @click="retryConditionEligibility" />
+      </view>
+      <view v-else-if="!focusedTierPresent" class="quota-content quota-state">
         <text class="quota-headline">{{ focusedProductName }}</text>
         <text class="quota-body" role="note">{{ t.quota.focusedTierMissing }}</text>
         <NxButton variant="secondary" :label="t.store.gateLockedCta" @click="go(focusedProductHref)"><text>{{ t.store.gateLockedCta }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
@@ -46,6 +51,8 @@ import NxButton from '@/components/ui/nx-button.vue';
 import TeamArt from '@/components/team/team-art.vue';
 import { getProductMedia } from '@/lib/product-media';
 import QuotaTierCard, { type QuotaTier, type QuotaCondition } from "@/components/team/quota-tier-card.vue";
+import PurchaseEligibilityPanel from "@/components/store/purchase-eligibility-panel.vue";
+import { useRemotePurchaseEligibility } from "@/store/purchase-eligibility";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
 import { networkReauditCopy } from "@/i18n/network-reaudit";
@@ -125,9 +132,11 @@ watch(() => locale.code, () => {
   if (quotaMounted && remoteApiEnabled) void refreshRemoteQuota();
 }, { flush: 'sync' });
 onLoad((options) => {
-  const fallback = new URLSearchParams(takeNavigationQuery("/pages/team/quota")).get("product");
+  const query = new URLSearchParams(takeNavigationQuery("/pages/team/quota"));
+  const fallback = query.get("product");
   const requested = typeof options?.product === "string" ? options.product.trim() : fallback?.trim() ?? "";
   focusedProductId.value = requested.slice(0, 64);
+  conditionsOnly.value = (options?.intent ?? query.get("intent")) === "tradein-conditions";
 });
 
 onShow(() => {
@@ -135,7 +144,10 @@ onShow(() => {
   // The tier cards render catalog-owned names/perks (BUG 34/33), so the
   // catalog must be observed here too — a direct entry never visits the store.
   void refreshProductCatalog();
-  if (remoteApiEnabled) void refreshRemoteQuota();
+  if (remoteApiEnabled) {
+    if (conditionsOnly.value) void retryConditionEligibility();
+    else void refreshRemoteQuota();
+  }
 });
 onHide(() => {
   quotaMounted = false;
@@ -171,6 +183,10 @@ const activeDirectText = computed(() => remoteApiEnabled && !remoteSnapshot.valu
  * 现在带上 id 并据此定位;若该商品根本不在配额档位里,页面**明说**,而不是静默展示无关档位。
  */
 const focusedProductId = ref("");
+const conditionsOnly = ref(false);
+const { eligibility: conditionEligibility, retry: retryConditionEligibility } = useRemotePurchaseEligibility(
+  focusedProductId, () => conditionsOnly.value,
+);
 // Clear synchronously, including A→B→A, before a scheduled account read can run.
 watch([() => app.accountKey, () => app.accountBindingEpoch,
   () => apiRuntimeConfig.environment, () => apiRuntimeConfig.baseUrl, focusedProductId], resetQuotaPageState, { flush: 'sync' });

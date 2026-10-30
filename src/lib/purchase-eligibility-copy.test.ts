@@ -28,6 +28,16 @@ test("unknown, malformed, or failed remote decisions map to error and never loca
   expect(resolvePurchaseEligibilityMessage("ready", { ...base, eligible: true, decisionCode: "ELIGIBLE" })).toBe("eligible");
 });
 
+test("a combined grant cannot override a denied or unknown policy", () => {
+  for (const policy of [
+    { ...base.policies[0], eligible: false, decisionCode: "PURCHASE_GATE_NOT_MET" },
+    { ...base.policies[0], eligible: true, decisionCode: "UNKNOWN_POLICY" },
+  ]) {
+    expect(resolvePurchaseEligibilityMessage("ready", { ...base, eligible: true, decisionCode: "ELIGIBLE",
+      policies: [policy, base.policies[1]] })).toBe("error");
+  }
+});
+
 test("known empty E1 and F4B policies mean no extra restriction, while unknown empty policies stay unconfirmed", () => {
   expect(purchaseEligibilityPolicyHasNoRestriction(base.policies[0])).toBe(true);
   expect(purchaseEligibilityPolicyHasNoRestriction(base.policies[1])).toBe(true);

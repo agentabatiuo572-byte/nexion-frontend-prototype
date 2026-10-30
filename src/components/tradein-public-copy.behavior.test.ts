@@ -33,13 +33,16 @@ function page(copy = en, remoteApiEnabled = true) {
   const state = ref({ kind: 'choice', tradeInSources: ['42'], newPrice: 500, oldDeviceId: '42', newKind: 'stellarbox-pro' });
   const device = { id: '42', kind: 'stellarbox-s1', name: 'UVEL S1', paidPriceUsdt: 200, cumulativeEarningsUsdt: 50 };
   const canonicalQuote = ref({ sourceDeviceId: 42, sourceRowVersion: 1, targetDeviceStatus: "ACTIVE", targetProductNo: 'stellarbox-pro', sourceActualPaidUsdt: 200,
-    cumulativeOutputUsdt: 50, discountUsdt: 123.45, creditRatePct: 61.725, payableUsdt: 376.55 });
+    cumulativeOutputUsdt: 50, discountUsdt: 123.45, creditRatePct: 61.725, payableUsdt: 376.55, sufficientFunds: true });
   const deps = { computed, state, app: { devices: [device] }, t: ref(copy), remoteApiEnabled,
     canonicalQuote, fmt, formatAmount, deviceName, computeTradeInCredit, ladderBandFor, kindLabel: (kind: string) => kind };
   const actual = new Function('deps', `const {${Object.keys(deps).join(',')}} = deps; ${code}; return {choiceSources, tradeinView};`)(deps);
-  const setup = { ...deps, ...actual, quoteLoading: false, confirming: false, ctaHalo: {},
+  const setup = { ...deps, ...actual, active: true, purchaseStatus: 'loading', purchaseSnapshot: null,
+    purchaseMessage: 'error', purchaseRecovery: 'none', purchaseActionDisabled: false, purchaseActionBusy: false,
+    purchaseActionText: copy.store.purchaseEligibilityLoading, quoteLoading: false, confirming: false, ctaHalo: {},
     hide: () => {}, onKeyboardActivate: () => {}, onChooseTradein: () => {}, onChooseFullPrice: () => {}, onConfirmTradein: () => {} };
-  const show = () => renderToString(Vue.createSSRApp({ render, setup: () => Vue.proxyRefs(setup) }));
+  const show = () => renderToString(Vue.createSSRApp({ render,
+    components: { PurchaseEligibilityPanel: { render: () => null } }, setup: () => Vue.proxyRefs(setup) }));
   return { state, canonicalQuote, actual, show };
 }
 

@@ -35,7 +35,11 @@ export function resolvePurchaseEligibilityMessage(
 ): PurchaseEligibilityMessage {
   if (status !== "ready" || !snapshot) return "error";
   if (snapshot.source !== PURCHASE_ELIGIBILITY_SOURCE) return "error";
-  if (snapshot.decisionCode === "ELIGIBLE") return snapshot.eligible ? "eligible" : "error";
+  if (snapshot.decisionCode === "ELIGIBLE") {
+    const policiesConfirmed = snapshot.policies.length >= 2 && snapshot.policies.every(policy => policy.eligible
+      && (policy.decisionCode === "ELIGIBLE" || policy.policy === "F4B" && policy.decisionCode === "F4B_NOT_CONFIGURED"));
+    return snapshot.eligible && policiesConfirmed ? "eligible" : "error";
+  }
   if (snapshot.decisionCode === "PURCHASE_GATE_NOT_MET") return snapshot.eligible ? "error" : "ineligible";
   if (snapshot.decisionCode === "PURCHASE_GATE_SOLD_OUT") return snapshot.eligible ? "error" : "quotaDepleted";
   if (snapshot.decisionCode === "F4B_REQUIREMENTS_NOT_MET") return snapshot.eligible ? "error" : "ineligible";

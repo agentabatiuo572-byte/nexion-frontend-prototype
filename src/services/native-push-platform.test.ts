@@ -17,7 +17,7 @@ function adapter(platform: "Android" | "iOS", enabled = false, initialIosState =
   const requestPermissions = vi.fn((_permissions, success) => success({ deniedPresent: ["android.permission.POST_NOTIFICATIONS"] }));
   const uni = { getStorageSync: (key: string) => storage.get(key), setStorageSync: (key: string, value: unknown) => storage.set(key, value),
     getAppAuthorizeSetting: vi.fn(() => ({ notificationAuthorized: iosState })), navigateTo: vi.fn(), openAppAuthorizeSetting: vi.fn() };
-  const plus = { os: { name: platform }, runtime: { version: "1.2.3" }, globalEvent: { addEventListener: vi.fn() },
+  const plus = { os: { name: platform }, runtime: { version: "1.2.3", openURL: vi.fn() }, globalEvent: { addEventListener: vi.fn() },
     android: { importClass: () => ({ SDK_INT: 33 }), runtimeMainActivity: () => "activity",
     invoke: vi.fn((_target, method) => method === "areNotificationsEnabled" ? enabled : "manager"), requestPermissions } };
   const sdk = {
@@ -34,7 +34,7 @@ function adapter(platform: "Android" | "iOS", enabled = false, initialIosState =
   const code = ts.transpileModule(ast.statements.filter(statement => !ts.isImportDeclaration(statement)).map(statement => statement.getText(ast).replace(/^export /, "")).join("\n"),
     { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
   const functions = new Function("uni", "plus", "ref", "getDeviceId", "requireCryptoUuid", "sha256", "hasCheckoutLeaveGuard", "createNativePushController", "validNativePushToken", ...Object.keys(sdk),
-    `${code}; return { installNativePush, refreshNativePush, nativePushPermission };`)(uni, plus, ref, () => "test-install", () => "test-uuid", () => "a".repeat(64), () => false,
+    `${code}; return { installNativePush, refreshNativePush, nativePushPermission, nativePushRegistrationUnavailable, openNativePushSettings };`)(uni, plus, ref, () => "test-install", () => "test-uuid", () => "a".repeat(64), () => false,
       (_client: unknown, _vault: unknown, nativePort: NativePushPort) => { port = nativePort; return { sessionChanged() {}, start() {}, foreground() {} }; }, validNativePushToken, ...Object.values(sdk));
   functions.installNativePush({ client: {}, vault: {}, canNavigate: () => true, received() {} });
   return { port, uni, plus, storage, functions, sdk, event: (value: NativeEvent) => event(value) };
@@ -63,10 +63,11 @@ describe("native platform push adapter", () => {
     const h = adapter("iOS", false, "not determined"); expect(await h.port.permission(false)).toBe("unknown");
     expect(h.sdk.requestSystemPushPermission).not.toHaveBeenCalled();
   });
-  it.each(["Android", "iOS"] as const)("reports missing native SDK/config as unknown and rejects token registration on %s", async platform => {
+  it.each(["Android", "iOS"] as const)("reports native SDK/config failure separately from OS permission and rejects token registration on %s", async platform => {
     const h = adapter(platform, true, "authorized", false);
     expect(await h.port.permission(true)).toBe("granted");
-    await expect(h.port.token()).rejects.toThrow("PUSH_NATIVE_UNAVAILABLE"); expect(h.functions.nativePushPermission.value).toBe("unknown");
+    await expect(h.port.token()).rejects.toThrow("PUSH_NATIVE_UNAVAILABLE"); expect(h.functions.nativePushPermission.value).toBe("granted");
+    expect(h.functions.nativePushRegistrationUnavailable.value).toBe(true);
   });
   it("does not let a stale native token failure overwrite permission readback after shutdown", async () => {
     const h = adapter("iOS", true, "authorized"); let completed!: (result: unknown) => void;
@@ -80,10 +81,13 @@ describe("native platform push adapter", () => {
     const h = adapter("Android", true);
     h.sdk.getNativePushToken.mockImplementationOnce(callback => callback({ available: false, provider: "FCM", code: "GMS_UNAVAILABLE" }));
     await expect(h.port.token()).rejects.toThrow("GMS_UNAVAILABLE");
-    expect(h.functions.nativePushPermission.value).toBe("unknown");
+    expect(h.functions.nativePushRegistrationUnavailable.value).toBe(true);
     expect(await h.port.permission(false)).toBe("granted");
     await expect(h.port.token()).resolves.toEqual({ token: "fcm:" + "a".repeat(140), provider: "FCM" });
     expect(h.sdk.initializeNativePush).toHaveBeenCalledTimes(2);
+    expect(h.functions.nativePushRegistrationUnavailable.value).toBe(true);
+    h.port.registrationUnavailable?.(false);
+    expect(h.functions.nativePushRegistrationUnavailable.value).toBe(false);
   });
   it.each(["Android", "iOS"] as const)("normalizes real %s SDK token/message/cold click callbacks", platform => {
     const h = adapter(platform), callback = vi.fn(); h.port.listen(callback);
@@ -98,6 +102,19 @@ describe("native platform push adapter", () => {
     const newIntent = h.plus.globalEvent.addEventListener.mock.calls[0][1] as () => void; newIntent();
     expect(h.sdk.getInitialNotification).toHaveBeenCalledTimes(3);
     h.event({ type: "error", provider: "FCM", code: "CONFIG_MISSING" }); expect(h.functions.nativePushPermission.value).toBe("unknown");
+  });
+  it("opens the iOS public app settings URL and exposes callback/throw failures", () => {
+    const h = adapter("iOS"), failed = vi.fn(); h.functions.openNativePushSettings(failed);
+    expect(h.plus.runtime.openURL).toHaveBeenCalledWith("app-settings:", failed);
+    expect(h.uni.openAppAuthorizeSetting).not.toHaveBeenCalled();
+    h.plus.runtime.openURL.mock.calls[0][1](); expect(failed).toHaveBeenCalledOnce();
+    h.plus.runtime.openURL.mockImplementation(() => { throw new Error("unavailable"); });
+    h.functions.openNativePushSettings(failed); expect(failed).toHaveBeenCalledTimes(2);
+  });
+  it("retains Android settings API with observable failures", () => {
+    const h = adapter("Android"), failed = vi.fn(); h.functions.openNativePushSettings(failed);
+    expect(h.plus.runtime.openURL).not.toHaveBeenCalled();
+    h.uni.openAppAuthorizeSetting.mock.calls[0][0].fail(); expect(failed).toHaveBeenCalledOnce();
   });
   it("persists proof before returning it and reuses it across controller instances", () => {
     const h = adapter("Android"); const proof = h.port.bindingToken();
@@ -118,9 +135,11 @@ describe("native platform push adapter", () => {
     expect(preJs(appScript, "App.vue")).not.toMatch(/installNativePush\(\{|refreshNativePush\(\)|flushNativePushClick\(\)/);
     expect(preJs(preferences.match(/<script[^>]*>([\s\S]*?)<\/script>/)![1], "preferences.vue")).not.toContain("managePushPermission");
   });
-  it("removes the cloud Push module while retaining actual platform permission and URL scheme", () => {
+  it("keeps the manual iOS lifecycle Push module without any UniPush provider", () => {
     const manifest = JSON.parse(manifestSource.replace(/\/\*[\s\S]*?\*\//g, ""));
-    expect(manifest["app-plus"].modules).toEqual({ Barcode: {} });
+    expect(manifest["app-plus"].modules).toEqual({ Barcode: {}, Push: {} });
+    expect(manifest["app-plus"].distribute.ios.pushRegisterMode).toBe("manual");
+    expect(manifest["app-plus"].distribute.android.pushRegisterMode).toBe("manual");
     expect(manifest["app-plus"].distribute.sdkConfigs?.push).toBeUndefined();
     expect(manifest["app-plus"].distribute.ios.urltypes).toBe("uvel");
     expect(manifest["app-plus"].distribute.android.permissions).toContain('<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>');

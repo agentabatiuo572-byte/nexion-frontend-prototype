@@ -68,6 +68,8 @@ async function page(code: keyof typeof dictionaries = 'en', kind = 'ineligible')
     '@dcloudio/uni-app': { onLoad: (fn: any) => load.push(fn), onShow: (fn: any) => show.push(fn), onHide: (fn: any) => hide.push(fn), onUnload: (fn: any) => unload.push(fn) },
     '@/components/app-chassis.vue': slot, '@/components/sub-page-header.vue': slot, '@/components/team/team-art.vue': slot,
     '@/components/ui/nx-button.vue': button, '@/components/team/quota-tier-card.vue': tier,
+    '@/components/store/purchase-eligibility-panel.vue': slot,
+    '@/store/purchase-eligibility': { useRemotePurchaseEligibility: () => ({ eligibility: Vue.ref({ status: 'idle', snapshot: null }), retry: vi.fn() }) },
     '@/api/runtime': { remoteApiEnabled: true, teamQuotaApi: api, apiRuntimeConfig: transport.config }, '@/api/order-api': runtimeRevision,
     '@/mock/products': { getProduct: () => undefined, annualRoiPct: () => 5 }, '@/store/product-catalog': store,
     '@/lib/product-copy': { specText: (_: unknown, v: string) => v }, '@/store/network': { useNetwork: () => ({ members: [] }) }, '@/store/v-rank': { useVRank: () => ({ myRank: 2 }) }, '@/store/config': { useConfig: () => ({}) }, '@/store/app': { useApp: () => app },

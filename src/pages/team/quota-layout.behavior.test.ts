@@ -18,6 +18,7 @@ import { zh } from '@/i18n/messages/zh';
 import { en } from '@/i18n/messages/en';
 import { vi as vietnamese } from '@/i18n/messages/vi';
 import type { TeamQuotaSnapshot } from '@/api/team-quota-api';
+import { rackPurchaseEligibility } from '@/components/store/purchase-eligibility.fixture';
 
 const dictionaries = { zh, en, vi: vietnamese };
 const snapshot = (): TeamQuotaSnapshot => ({ source: 'server', sourceEnvironment: 'PRODUCTION', runId: '', generatedAt: '2026-10-25T00:00:00Z',
@@ -30,9 +31,10 @@ const button = { default: Vue.defineComponent({ props: ['label', 'busy'], emits:
   { role: 'button', 'aria-label': props.label, onClick: () => { if (!props.busy) emit('click'); } }, slots.default?.() ?? String(props.label)) }) };
 const stop: Array<() => void> = [];
 afterEach(() => stop.splice(0).forEach(fn => fn()));
-function page(locale: keyof typeof dictionaries = 'en', product = '') {
+function page(locale: keyof typeof dictionaries = 'en', product = '', intent = '') {
   const show: Array<() => void> = [], hide: Array<() => void> = [], load: Array<(query: object) => void> = [];
   const navTo = vi.fn(), api = { snapshot: vi.fn(async () => snapshot()) }, refreshCatalog = vi.fn(async () => {});
+  const retryEligibility = vi.fn(async () => false);
   const app = Vue.reactive({ accountKey: 'user:A', accountBindingEpoch: 1 });
   const catalogState = Vue.reactive({ status: 'ready', serverCanonical: true });
   const presentation = Vue.ref({ products: snapshot().tiers.map((tier, i) => ({ id: tier.productId, name: `Catalog product ${i + 1}`,
@@ -45,6 +47,8 @@ function page(locale: keyof typeof dictionaries = 'en', product = '') {
     '@dcloudio/uni-app': { onLoad: (fn: (q: object) => void) => load.push(fn), onShow: (fn: () => void) => show.push(fn), onHide: (fn: () => void) => hide.push(fn), onUnload: vi.fn() },
     '@/components/app-chassis.vue': slot, '@/components/sub-page-header.vue': { default: Vue.defineComponent({ props: ['back'], setup: props => () => Vue.h('view', { 'data-back': props.back }) }) },
     '@/components/team/team-art.vue': slot, '@/components/ui/nx-button.vue': button,
+    '@/components/store/purchase-eligibility-panel.vue': { default: Vue.defineComponent({ props: ['status', 'snapshot'], setup: props => () => Vue.h('view', { 'data-purchase-conditions': props.snapshot }) }) },
+    '@/store/purchase-eligibility': { useRemotePurchaseEligibility: () => ({ eligibility: Vue.ref({ status: 'ready', snapshot: rackPurchaseEligibility }), retry: retryEligibility }) },
     '@/components/team/quota-tier-card.vue': { default: Vue.defineComponent({ props: ['tier', 'pending', 'actionBlocked'], setup: props => () => Vue.h('view', { 'data-tier': props.tier.productId, 'data-facts': props.tier, 'data-pending': props.pending, 'data-action-blocked': props.actionBlocked }, props.tier.name) }) },
     '@/i18n/use-t': { useT: () => Vue.ref(dictionaries[locale]) }, '@/store/data-visibility': teamPrivacyFixture().dependency, '@/store/locale': { useLocaleStore: () => ({ code: locale }) },
     '@/i18n/network-reaudit': { networkReauditCopy }, '@/i18n/format': { fmt }, '@/api/runtime': { remoteApiEnabled: true, teamQuotaApi: api, apiRuntimeConfig: { environment: 'dev', baseUrl: 'https://test.invalid' } },
@@ -55,10 +59,19 @@ function page(locale: keyof typeof dictionaries = 'en', product = '') {
     '@/lib/product-copy': { specText: (_: unknown, value: string) => value }, '@/store/network': { useNetwork: () => ({ members: [] }) },
     '@/store/v-rank': { useVRank: () => ({ myRank: 2 }) }, '@/store/config': { useConfig: () => ({}) }, '@/store/app': { useApp: () => app },
     '@/lib/team-p3-17-18-request-scope': requestScope, '@/lib/quota-perk': { isAnnualizedQuotaPerk },
-  }); stop.push(p.unmount); load.forEach(fn => fn({ product }));
-  return { ...p, app, api, navTo, catalogState, refreshCatalog, tiers: () => all(p.root).filter(n => n.props['data-tier']),
+  }); stop.push(p.unmount); load.forEach(fn => fn({ product, intent }));
+  return { ...p, app, api, navTo, catalogState, refreshCatalog, retryEligibility, tiers: () => all(p.root).filter(n => n.props['data-tier']),
     show: async () => { show.forEach(fn => fn()); await flush(); }, hide: async () => { hide.forEach(fn => fn()); await flush(); } };
 }
+it('opens exact product conditions as a read-only destination with all E1 and F4B facts', async () => {
+  const p = page('zh', 'stellarrack-p1', 'tradein-conditions'); await p.show();
+  expect(p.tiers()).toHaveLength(0);
+  expect(all(p.root).find(n => n.props['data-purchase-conditions'])!.props['data-purchase-conditions']).toEqual(rackPurchaseEligibility);
+  expect(all(p.root).filter(n => n.props.role === 'button').map(n => n.props['aria-label'])).toEqual([zh.store.purchaseEligibilityRetry]);
+  expect(p.retryEligibility).toHaveBeenCalledOnce();
+  expect(p.api.snapshot).not.toHaveBeenCalled(); expect(p.navTo).not.toHaveBeenCalled();
+  expect(all(p.root).find(n => n.props['data-back'])!.props['data-back']).toBe('/pages/me/devices');
+});
 it.each(['zh', 'en', 'vi'] as const)('keeps %s focused product identity, stock and independent point conditions', async locale => {
   const p = page(locale, 'stellarrack-p1'); await p.show();
   expect(p.tiers()).toHaveLength(1);

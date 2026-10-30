@@ -46,7 +46,7 @@
                         one server transaction)
 -->
 <template>
-  <view v-if="state.kind !== 'none'" class="tis-root" role="dialog" aria-modal="true" :aria-label="t.tradein.choiceTitle">
+  <view v-if="active && state.kind !== 'none' && (state.kind !== 'tradein' || tradeinView || purchaseRecovery !== 'none')" class="tis-root" role="dialog" aria-modal="true" :aria-label="t.tradein.choiceTitle">
     <view class="tis-backdrop" @click="hide" />
 
     <view class="nx-glass-sheet tis-panel" @click.stop>
@@ -101,6 +101,12 @@
       </template>
 
       <!-- ─────────── 2. tradein — 置换确认(去结算) ─────────── -->
+      <template v-else-if="state.kind === 'tradein' && purchaseRecovery !== 'none'">
+        <view class="tis-head"><text class="tis-title">{{ t.tradein.recoveryPending }}</text></view>
+        <text v-if="purchaseRecovery === 'error'" class="tis-disclaimer" role="alert">{{ t.tradein.errPleaseRetry }}</text>
+        <view class="tis-cta" :style="ctaHalo" role="button" tabindex="0" @click="onConfirmTradein" @keydown.enter.prevent="onKeyboardActivate($event, onConfirmTradein)" @keydown.space.prevent="onKeyboardActivate($event, onConfirmTradein)"><text class="tis-cta-text">{{ purchaseActionText }}</text></view>
+        <view class="tis-ghost" role="button" tabindex="0" @click="hide" @keydown.enter.prevent="hide" @keydown.space.prevent="hide"><text class="tis-ghost-text">{{ t.tradein.sheetCancel }}</text></view>
+      </template>
       <template v-else-if="state.kind === 'tradein' && tradeinView">
         <view class="tis-head tis-head-mb4">
           <text class="tis-title">{{ tradeinView.title }}</text>
@@ -131,12 +137,16 @@
           </view>
         </view>
 
+        <PurchaseEligibilityPanel v-if="remoteApiEnabled" class="tis-purchase" :status="purchaseStatus" :snapshot="purchaseSnapshot" />
+        <text v-if="remoteApiEnabled && canonicalQuote && !canonicalQuote.sufficientFunds" class="tis-disclaimer">{{ fmt(t.tradein.purchaseFundsGap, { amount: formatAmount(canonicalQuote.walletShortfallUsdt) }) }}</text>
+
         <text class="tis-disclaimer">{{ tradeinView.placementHint }}</text>
         <text class="tis-disclaimer">{{ t.tradein.sheetDisclaimer }}</text>
 
-        <view class="tis-cta" :style="ctaHalo" role="button" :tabindex="confirming ? -1 : 0" :aria-disabled="confirming" :aria-busy="confirming" @click="onConfirmTradein"  @keydown.enter.prevent="onKeyboardActivate($event, onConfirmTradein)" @keydown.space.prevent="onKeyboardActivate($event, onConfirmTradein)">
-          <text class="tis-cta-text">{{ tradeinView.ctaText }}</text>
+        <view class="tis-cta" :class="{ 'tis-cta-disabled': purchaseActionDisabled }" :style="ctaHalo" role="button" :tabindex="purchaseActionDisabled ? -1 : 0" :aria-disabled="purchaseActionDisabled" :aria-busy="purchaseActionBusy" @click="onConfirmTradein"  @keydown.enter.prevent="onKeyboardActivate($event, onConfirmTradein)" @keydown.space.prevent="onKeyboardActivate($event, onConfirmTradein)">
+          <text class="tis-cta-text">{{ purchaseActionText }}</text>
         </view>
+        <view v-if="remoteApiEnabled && purchaseMessage === 'quotaDepleted'" class="tis-ghost" role="button" tabindex="0" @click="refreshTradeinPurchaseEligibility" @keydown.enter.prevent="onKeyboardActivate($event, refreshTradeinPurchaseEligibility)" @keydown.space.prevent="onKeyboardActivate($event, refreshTradeinPurchaseEligibility)"><text class="tis-ghost-text">{{ t.store.purchaseEligibilityRetry }}</text></view>
         <view class="tis-ghost" role="button" tabindex="0" @click="hide"  @keydown.enter.prevent="onKeyboardActivate($event, hide)" @keydown.space.prevent="onKeyboardActivate($event, hide)">
           <text class="tis-ghost-text">{{ t.tradein.sheetCancel }}</text>
         </view>
@@ -236,7 +246,7 @@
 <script setup lang="ts">
 import { runPassiveTabRead, passiveTabReadScope } from "@/lib/passive-tab-read";
 import { formatAmount } from "@/lib/amount-display";
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useTradeinSheet } from "@/store/tradein-sheet";
 import { useApp } from "@/store/app";
 import { postMoneyBill, reportStuckFunds } from "@/lib/money-receipt";
@@ -254,7 +264,10 @@ import type { DeviceKind, Device } from "@/store/types";
 import { useT } from "@/i18n/use-t";
 import { deviceName, deviceNameByKind } from "@/lib/device-copy";
 import { fmt } from "@/i18n/format";
-import { deviceE3Api, orderApi, remoteApiEnabled } from "@/api/runtime";
+import { deviceE3Api, orderApi, purchaseEligibilityApi, remoteApiEnabled } from "@/api/runtime";
+import type { PurchaseEligibilitySnapshot } from "@/api/purchase-eligibility-api";
+import { resolvePurchaseEligibilityMessage } from "@/lib/purchase-eligibility-copy";
+import PurchaseEligibilityPanel from "@/components/store/purchase-eligibility-panel.vue";
 import type { CanonicalCapacityReplaceQuote, CanonicalTradeinConfig, CanonicalTradeinQuote } from "@/api/device-e3-api";
 import { productCatalogState } from "@/store/product-catalog";
 import { isProductAvailable } from "@/store/product-availability";
@@ -263,7 +276,9 @@ import { completeVerifiedMutation, handleNoActiveDeviceDecision } from "@/domain
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import { acquireAccountCommandKey, releaseAccountCommandKey } from "@/store/account-scoped-storage";
+import { readCheckoutTradein } from "@/lib/checkout-order-recovery";
 
+const props = withDefaults(defineProps<{ active?: boolean }>(), { active: true });
 const sheet = useTradeinSheet();
 const app = useApp();
 const pending = usePendingCheckout();
@@ -291,8 +306,117 @@ const capacityCommandKey = ref<string | null>(null);
 const CAPACITY_COMMAND_TABLE = "nexgrid-e3-capacity-commands-accounts-v1";
 const quoteRequestGeneration = ref(0);
 const quoteLoading = ref(false);
+const purchaseSnapshot = ref<PurchaseEligibilitySnapshot | null>(null);
+const purchaseStatus = ref<"idle" | "loading" | "ready" | "error">("idle");
+const purchaseRecovery = ref<"none" | "pending" | "error">("none");
+let purchaseReadGeneration = 0;
+let purchaseSheetEpoch = 0;
+let purchaseMounted = true;
+let purchaseReturn: {
+  account: ReturnType<typeof captureAccountScope>;
+  accountKey: string;
+  accountEpoch: number;
+  oldDeviceId: string;
+  newKind: DeviceKind;
+  newPrice: number;
+  quote: CanonicalTradeinQuote;
+} | null = null;
+const purchaseScopeKey = computed(() => {
+  const current = state.value;
+  if (!props.active || current.kind !== "tradein") return "";
+  const source = app.devices.find(device => device.id === current.oldDeviceId);
+  const quote = canonicalQuote.value;
+  if (!source || !quote || quote.sourceDeviceId !== Number(source.id)
+      || quote.targetProductNo !== current.newKind || quote.sourceRowVersion !== source.rowVersion) return "";
+  return JSON.stringify([app.accountKey, app.accountBindingEpoch, source.id, source.rowVersion,
+    current.newKind, quote.targetDeviceStatus, quote.payableUsdt, quote.discountUsdt]);
+});
+const purchaseMessage = computed(() => resolvePurchaseEligibilityMessage(purchaseStatus.value, purchaseSnapshot.value));
+const purchaseActionBusy = computed(() => confirming.value || remoteApiEnabled && (purchaseStatus.value === "loading" || !props.active));
+const purchaseActionDisabled = computed(() => purchaseActionBusy.value || remoteApiEnabled && purchaseMessage.value === "quotaDepleted");
+const purchaseActionText = computed(() => purchaseRecovery.value === "pending" ? t.value.tradein.purchaseResume
+  : purchaseRecovery.value === "error" ? t.value.store.purchaseEligibilityRetry
+  : !remoteApiEnabled || purchaseMessage.value === "eligible"
+  ? tradeinView.value?.ctaText ?? ""
+  : purchaseStatus.value === "loading" || purchaseStatus.value === "idle" ? t.value.store.purchaseEligibilityLoading
+  : purchaseMessage.value === "ineligible" ? t.value.tradein.purchaseViewConditions
+  : purchaseMessage.value === "quotaDepleted" ? t.value.tradein.purchaseQuotaDepleted : t.value.store.purchaseEligibilityRetry);
+
+function readTradeinRecovery(): "none" | "pending" | "error" {
+  const current = state.value;
+  purchaseRecovery.value = "none";
+  if (!remoteApiEnabled || current.kind !== "tradein" || !props.active) return "none";
+  try {
+    purchaseRecovery.value = readCheckoutTradein(app.accountKey, current.newKind) ? "pending" : "none";
+  } catch {
+    purchaseRecovery.value = "error";
+  }
+  return purchaseRecovery.value;
+}
+
+async function refreshTradeinPurchaseEligibility(): Promise<boolean> {
+  if (readTradeinRecovery() !== "none") return false;
+  const key = purchaseScopeKey.value;
+  if (!remoteApiEnabled || !key || !purchaseMounted) return false;
+  const request = ++purchaseReadGeneration;
+  const account = captureAccountScope();
+  const target = state.value.kind === "tradein" ? state.value.newKind : "";
+  const current = () => purchaseMounted && props.active && request === purchaseReadGeneration
+    && purchaseRecovery.value === "none" && key === purchaseScopeKey.value && isCurrentAccountScope(account);
+  purchaseStatus.value = "loading";
+  purchaseSnapshot.value = null;
+  try {
+    const snapshot = await purchaseEligibilityApi.get(target);
+    if (!current()) return false;
+    purchaseSnapshot.value = snapshot;
+    purchaseStatus.value = "ready";
+    return resolvePurchaseEligibilityMessage("ready", snapshot) === "eligible";
+  } catch {
+    if (current()) purchaseStatus.value = "error";
+    return false;
+  }
+}
+watch([purchaseScopeKey, state, () => app.accountKey, () => app.accountBindingEpoch, () => props.active,
+  () => state.value.kind === "tradein" ? `${state.value.oldDeviceId}|${state.value.newKind}` : ""], () => {
+  purchaseSheetEpoch++;
+  purchaseReadGeneration++;
+  purchaseSnapshot.value = null;
+  purchaseStatus.value = "idle";
+  confirming.value = false;
+  if (readTradeinRecovery() !== "none") return;
+  if (remoteApiEnabled && state.value.kind === "tradein") {
+    if (purchaseScopeKey.value) void refreshTradeinPurchaseEligibility();
+    else purchaseStatus.value = "error";
+  }
+}, { flush: "sync" });
+function restoreTradeinAfterConditions(): void {
+  const pendingReturn = purchaseReturn;
+  purchaseReturn = null;
+  if (!pendingReturn || !props.active || state.value.kind !== "none"
+      || app.accountKey !== pendingReturn.accountKey || app.accountBindingEpoch !== pendingReturn.accountEpoch
+      || !isCurrentAccountScope(pendingReturn.account)) return;
+  const source = app.devices.find(device => device.id === pendingReturn.oldDeviceId);
+  if (!source || source.rowVersion !== pendingReturn.quote.sourceRowVersion) return;
+  canonicalQuote.value = pendingReturn.quote;
+  sheet.showTradein(pendingReturn.oldDeviceId, pendingReturn.newKind, pendingReturn.newPrice);
+}
+watch(() => props.active, active => { if (active) restoreTradeinAfterConditions(); }, { flush: "sync" });
+onUnmounted(() => { purchaseMounted = false; purchaseReadGeneration++; purchaseSheetEpoch++; purchaseReturn = null; });
+function navigateTradeinCheckout(targetId: string): void {
+  hide();
+  const closedState = state.value;
+  const navigationAccount = captureAccountScope();
+  const cur = (getCurrentPages().slice(-1)[0] as { route?: string } | undefined)?.route ?? "";
+  if (!cur.includes("store/checkout")) {
+    setTimeout(() => {
+      if (purchaseMounted && props.active && state.value === closedState && isCurrentAccountScope(navigationAccount)) {
+        void navTo(`/pages/store/checkout?product=${encodeURIComponent(targetId)}`);
+      }
+    }, 260);
+  }
+}
 let remoteRetireRequest = 0;
-watch(() => app.accountKey, () => {
+watch([() => app.accountKey, () => app.accountBindingEpoch], () => {
   quoteRequestGeneration.value += 1;
   canonicalQuote.value = null;
   canonicalTradeinConfig.value = null;
@@ -303,7 +427,7 @@ watch(() => app.accountKey, () => {
   capacityCommandKey.value = null;
   quoteLoading.value = false;
   void loadCanonicalTradeinConfig();
-});
+}, { flush: "sync" });
 async function loadCanonicalTradeinConfig() {
   if (!remoteApiEnabled) return;
   const requestScope = captureAccountScope();
@@ -344,6 +468,7 @@ const ctaHalo = computed(() => ({
 }));
 
 function hide() {
+  purchaseReturn = null;
   quoteRequestGeneration.value += 1;
   quoteLoading.value = false;
   sheet.hide();
@@ -632,9 +757,37 @@ const tradeinView = computed(() => {
   };
 });
 
-function onConfirmTradein() {
+async function onConfirmTradein() {
   const s = state.value;
-  if (s.kind !== "tradein" || confirming.value) return;
+  if (s.kind !== "tradein" || confirming.value || !props.active) return;
+  const recovery = readTradeinRecovery();
+  if (recovery === "pending") { navigateTradeinCheckout(s.newKind); return; }
+  if (recovery === "error") return;
+  if (purchaseActionDisabled.value) return;
+  if (remoteApiEnabled) {
+    if (purchaseMessage.value === "ineligible" && purchaseScopeKey.value && canonicalQuote.value) {
+      const pendingReturn = { account: captureAccountScope(), accountKey: app.accountKey,
+        accountEpoch: app.accountBindingEpoch, oldDeviceId: s.oldDeviceId, newKind: s.newKind,
+        newPrice: s.newPrice, quote: canonicalQuote.value };
+      hide();
+      purchaseReturn = pendingReturn;
+      if (!(await navTo(`/pages/team/quota?product=${encodeURIComponent(s.newKind)}&intent=tradein-conditions`))) restoreTradeinAfterConditions();
+      return;
+    }
+    if (purchaseMessage.value !== "eligible") {
+      await refreshTradeinPurchaseEligibility();
+      return;
+    }
+    const epoch = purchaseSheetEpoch;
+    confirming.value = true;
+    const eligible = await refreshTradeinPurchaseEligibility();
+    if (epoch !== purchaseSheetEpoch) return;
+    confirming.value = false;
+    if (!eligible) return;
+    const recoveryAfterRead = readTradeinRecovery();
+    if (recoveryAfterRead === "pending") { navigateTradeinCheckout(s.newKind); return; }
+    if (recoveryAfterRead === "error") return;
+  }
   const oldDevice = app.devices.find((d) => d.id === s.oldDeviceId) ?? null;
   if (!oldDevice) {
     hide();
@@ -651,15 +804,7 @@ function onConfirmTradein() {
   // FEAT-DEV02:确认 = 写入结算抵扣上下文,原子事务(净额扣款 + 移除旧机 + 新机
   // 新机继承原位置)统一发生在结算页持久块——本弹层不再直接动钱/动设备数组。
   sheet.applyTradein(oldDevice.id, s.newKind, remoteApiEnabled ? canonicalQuote.value ?? undefined : undefined);
-  const targetId = s.newKind;
-  hide();
-  const cur = (getCurrentPages().slice(-1)[0] as { route?: string } | undefined)?.route ?? "";
-  if (!cur.includes("store/checkout")) {
-    // 弹层退场后再路由(与 goDevices 同节奏),choice 路径本就在结算页则原地接管。
-    setTimeout(() => {
-      navTo(`/pages/store/checkout?product=${targetId}`);
-    }, 260);
-  }
+  navigateTradeinCheckout(s.newKind);
   confirming.value = false;
 }
 
@@ -1142,7 +1287,8 @@ function onForce() {
 
 // 遮罩只拦指针不拦键盘:不接这一层,弹层打开后 Tab 会直接走到背景(那里有花钱的按钮),
 // 且没有 Esc、关掉后焦点也回不到触发它的控件。
-useDialogA11y(computed(() => state.value.kind !== "none"), ".tis-root", hide);
+useDialogA11y(computed(() => props.active && state.value.kind !== "none"
+  && (state.value.kind !== "tradein" || !!tradeinView.value || purchaseRecovery.value !== "none")), ".tis-root", hide);
 
 
 </script>

@@ -10,9 +10,20 @@
       <!-- #ifdef APP-PLUS -->
       <view class="mx-4" style="margin-bottom: 20px" data-testid="system-notifications">
         <text class="block" :style="headingStyle">{{ pushCopy.title }}</text>
-        <text class="block" :style="footerStyle">{{ pushCopy[nativePushPermission] }}</text>
-        <view class="family-control" role="button" tabindex="0" :aria-label="nativePushPermission === 'unknown' ? pushCopy.enable : pushCopy.settings" @click="managePushPermission" @keydown.enter.prevent="managePushPermission" @keydown.space.prevent="managePushPermission">
-          <text>{{ nativePushPermission === 'unknown' ? pushCopy.enable : pushCopy.settings }}</text>
+        <view class="nx-glass-card" :style="cardStyle">
+          <view class="push-settings-row" role="button" tabindex="0" :aria-label="nativePushPermission === 'unknown' ? pushCopy.enable : pushCopy.settings" @click="managePushPermission" @keydown.enter.prevent="managePushPermission" @keydown.space.prevent="managePushPermission">
+            <view class="push-settings-icon" aria-hidden="true">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+            </view>
+            <text class="push-settings-status">{{ pushCopy[nativePushPermission] }}</text>
+            <text class="push-settings-action">{{ nativePushPermission === 'unknown' ? pushCopy.enable : pushCopy.settings }}</text>
+            <text class="push-settings-chevron" aria-hidden="true">›</text>
+          </view>
+        </view>
+        <text v-if="pushSettingsFailed" class="block mx-1" :style="footerStyle" role="alert">{{ pushCopy.settingsFailed }}</text>
+        <view v-if="nativePushRegistrationUnavailable" class="mx-1" role="status" aria-live="polite">
+          <text class="block" :style="footerStyle">{{ pushCopy.connectionUnavailable }}</text>
+          <view class="family-control family-control--text" role="button" tabindex="0" :aria-label="t.ui.retry" @click="refreshNativePush" @keydown.enter.prevent="refreshNativePush" @keydown.space.prevent="refreshNativePush"><text>{{ t.ui.retry }}</text></view>
         </view>
       </view>
       <!-- #endif -->
@@ -61,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, type CSSProperties } from "vue";
+import { computed, ref, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import ToggleRow from "@/components/me/preference-toggle-row.vue";
@@ -69,14 +80,16 @@ import { useT } from "@/i18n/use-t";
 import { isMandatoryNotifKind, usePreferences, type NotifKind } from "@/store/preferences";
 // #ifdef APP-PLUS
 import { onShow } from "@dcloudio/uni-app";
-import { nativePushPermission, openNativePushSettings, requestNativePushPermission, refreshNativePush } from "@/services/native-push";
+import { nativePushPermission, nativePushRegistrationUnavailable, openNativePushSettings, requestNativePushPermission, refreshNativePush } from "@/services/native-push";
 import { nativePushCopy } from "@/i18n/native-push";
 import { useLocaleStore } from "@/store/locale";
 const pushLocale = useLocaleStore();
+const pushSettingsFailed = ref(false);
 const pushCopy = computed(() => nativePushCopy[pushLocale.code === 'zh' || pushLocale.code === 'vi' ? pushLocale.code : 'en']);
 function managePushPermission() {
+  pushSettingsFailed.value = false;
   if (nativePushPermission.value === 'unknown') void requestNativePushPermission();
-  else openNativePushSettings();
+  else openNativePushSettings(() => { pushSettingsFailed.value = true; });
 }
 // #endif
 
@@ -92,7 +105,7 @@ const preferenceError = computed(() => {
 });
 
 // Mandatory kinds cannot be switched off, so they are not listed.
-const notifKinds = (["commission", "team", "staking", "market", "genesis", "system"] as NotifKind[]).filter(k => !isMandatoryNotifKind(k));
+const notifKinds = (["commission", "team", "market", "genesis", "system"] as NotifKind[]).filter(k => !isMandatoryNotifKind(k));
 const NOTIF_COLOR: Record<NotifKind, string> = {
   commission: "var(--v5-brand)",
   team: "var(--v5-tech-cyan)",
@@ -134,3 +147,12 @@ const footerStyle: CSSProperties = {
 </script>
 
 <style src="@/styles/message-family.css"></style>
+
+<style scoped>
+.push-settings-row { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 12px 14px; cursor: pointer; }
+.push-settings-row:active { opacity: .75; }
+.push-settings-icon { display: grid; place-items: center; flex-shrink: 0; width: 28px; height: 28px; border-radius: 6px; background: var(--v5-surface-2); color: var(--v5-brand); }
+.push-settings-status { flex: 1; min-width: 0; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); }
+.push-settings-action { max-width: 48%; font-size: var(--ui-type-list-subtitle); color: var(--v5-brand); text-align: right; }
+.push-settings-chevron { flex-shrink: 0; color: var(--v5-ink-4); }
+</style>

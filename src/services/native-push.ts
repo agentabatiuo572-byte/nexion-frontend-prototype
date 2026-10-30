@@ -12,6 +12,7 @@ import { initializeNativePush, getNativePushToken, addNativePushListener, getIni
 // #endif
 
 export const nativePushPermission = ref<PushPermission>("unknown");
+export const nativePushRegistrationUnavailable = ref(false);
 let controller: ReturnType<typeof createNativePushController> | undefined;
 let readInitialNotification: (() => void) | undefined;
 let stopNativePush: (() => void) | undefined;
@@ -28,6 +29,7 @@ export function installNativePush(options: { client: ApiClient; vault: SessionVa
     initialized = false;
     try { shutdownNativePush(); } catch { /* Old native bases may not include this plugin. */ }
     nativePushPermission.value = "unknown";
+    nativePushRegistrationUnavailable.value = false;
   };
   const initialize = () => {
     if (!initialized) { initializeNativePush({}); initialized = true; }
@@ -39,13 +41,13 @@ export function installNativePush(options: { client: ApiClient; vault: SessionVa
       getNativePushToken(result => {
         const native = { token: result.token ?? "", provider: result.provider } as NativePushToken;
         if (!result.available || !validNativePushToken(native, platform)) {
-          if (captured === nativeEpoch) { initialized = false; nativePushPermission.value = "unknown"; }
+          if (captured === nativeEpoch) { initialized = false; nativePushRegistrationUnavailable.value = true; }
           reject(new Error(result.code ?? "PUSH_NATIVE_UNAVAILABLE"));
           return;
         }
         resolve(native);
       });
-    } catch (error) { if (captured === nativeEpoch) { initialized = false; nativePushPermission.value = "unknown"; } reject(error); }
+    } catch (error) { if (captured === nativeEpoch) { initialized = false; nativePushRegistrationUnavailable.value = true; } reject(error); }
   });
   const permission = async (request: boolean): Promise<PushPermission> => {
     const captured = nativeEpoch;
@@ -87,23 +89,24 @@ export function installNativePush(options: { client: ApiClient; vault: SessionVa
       return proof;
     },
     permission, token,
+    registrationUnavailable(value) { nativePushRegistrationUnavailable.value = value; },
     stop() { stopNativePush?.(); nativePushPermission.value = "denied"; },
     listen(callback) {
       try {
         addNativePushListener(event => {
-          if (event.type === "error") { nativePushPermission.value = "unknown"; return; }
+          if (event.type === "error") { nativePushRegistrationUnavailable.value = true; return; }
           if (event.type) callback({ type: event.type === "received" ? "receive" : event.type, data: { notificationId: event.notificationId } });
         });
         readInitialNotification = () => {
           try { getInitialNotification(event => {
             if (event.notificationId) callback({ type: "click", data: { notificationId: event.notificationId } });
-          }); } catch { nativePushPermission.value = "unknown"; }
+          }); } catch { nativePushRegistrationUnavailable.value = true; }
         };
         // The documented uni-app global event bridge is absent from @dcloudio/types.
         (plus as typeof plus & { globalEvent: { addEventListener(name: string, callback: () => void): void } })
           .globalEvent.addEventListener("newintent", () => readInitialNotification?.());
         readInitialNotification();
-      } catch { nativePushPermission.value = "unknown"; }
+      } catch { nativePushRegistrationUnavailable.value = true; }
     },
     navigate: route => new Promise(resolve => uni.navigateTo({ url: route, success: () => resolve(true), fail: () => resolve(false) })),
     canNavigate: () => options.canNavigate() && !hasCheckoutLeaveGuard(), received: options.received,
@@ -138,9 +141,12 @@ export function resumeNativePush(snapshot: SessionSnapshot) {
   controller?.sessionChanged(null, snapshot, false);
   // #endif
 }
-export function openNativePushSettings() {
+export function openNativePushSettings(onFailure: () => void = () => {}) {
   // #ifdef APP-PLUS
-  uni.openAppAuthorizeSetting({ success: () => refreshNativePush() });
+  try {
+    if (plus.os.name === "iOS") plus.runtime.openURL("app-settings:", onFailure);
+    else uni.openAppAuthorizeSetting({ success: () => refreshNativePush(), fail: onFailure });
+  } catch { onFailure(); }
   // #endif
 }
 export async function requestNativePushPermission() {

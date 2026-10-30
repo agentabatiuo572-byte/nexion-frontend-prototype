@@ -21,7 +21,7 @@
             "delay" : 0
         },
         /* 模块配置 */
-        "modules" : { "Barcode": {} },
+        "modules" : { "Barcode": {}, "Push": {} },
         /* 应用发布信息 */
         "distribute" : {
             "icons": {
@@ -59,6 +59,7 @@
             },
             /* android打包配置 */
             "android" : {
+                "pushRegisterMode": "manual",
                 "minSdkVersion": 23,
                 "targetSdkVersion": 33,
                 "enableOAID": false,
@@ -83,7 +84,7 @@
                 ]
             },
             /* ios打包配置 */
-            "ios" : { "urltypes": "uvel" }
+            "ios" : { "urltypes": "uvel", "pushRegisterMode": "manual" }
         }
     },
     /* 快应用特有相关 */

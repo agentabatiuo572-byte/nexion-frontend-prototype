@@ -17,6 +17,7 @@ export interface NativePushPort {
   bindingToken(): string;
   permission(request: boolean): Promise<PushPermission>;
   token(): Promise<NativePushToken>;
+  registrationUnavailable?(unavailable: boolean): void;
   stop(): void;
   listen(callback: (event: { type: string; data: unknown }) => void): void;
   navigate(route: string): Promise<boolean>;
@@ -139,14 +140,20 @@ export function createNativePushController(client: ApiClient, vault: SessionVaul
       if (!validNativePushToken(native, port.platform) || !current(snapshot, captured)) return;
       const clientId = native.token, provider = native.provider;
       const key = JSON.stringify([snapshot.user.userId, snapshot.sessionChainId, id, provider, clientId, permission]);
-      if (key === registered) return;
+      if (key === registered) { port.registrationUnavailable?.(false); return; }
       // Persist proof before the first request so a lost response can be retried.
       const token = port.bindingToken();
       await authenticatedRequest({ path: `/api/me/push-installations/${encodeURIComponent(id)}`, method: "PUT",
         headers: { "X-Push-Binding-Token": token },
         body: { clientId, provider, platform: port.platform, permission, appVersion: port.appVersion } }, snapshot, captured);
-      if (current(snapshot, captured)) registered = key;
-    } catch { /* Native SDK/configuration/network failure is retried on foreground; inbox stays available. */ }
+      if (current(snapshot, captured)) {
+        registered = key;
+        if (tokenRevision === capturedTokenRevision) port.registrationUnavailable?.(false);
+      }
+    } catch {
+      if (current(snapshot, captured) && tokenRevision === capturedTokenRevision) port.registrationUnavailable?.(true);
+      // Retried on foreground; inbox stays available.
+    }
     finally {
       syncing = false;
       // A new login may arrive while the old native token callback is pending.
