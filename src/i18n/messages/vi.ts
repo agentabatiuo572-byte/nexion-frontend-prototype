@@ -905,8 +905,6 @@ trustReserve: "Chưa có thông tin dự trữ có thể xác minh.",
     jobsCount: "Đã hoàn thành {n} tác vụ",
     taskLockTitle: "Khóa nhiệm vụ",
     taskLockRemaining: "{n} phút",
-
-estimateDisclaimer: "Ước tính chưa trừ chi phí mua; thu nhập giảm dần theo thời gian sử dụng.",
 },
   market: {
     title: "Tổng quan thị trường",

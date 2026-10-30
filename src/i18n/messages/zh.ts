@@ -891,8 +891,6 @@ trustReserve: "暂无可核验的储备资料。",
     jobsCount: "已完成 {n} 个作业",
     taskLockTitle: "作业锁定",
     taskLockRemaining: "{n} 分钟",
-
-estimateDisclaimer: "预估值，未扣除购买成本，收益会随使用时长下降。",
 },
   market: {
     title: "行情看板",

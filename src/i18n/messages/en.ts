@@ -907,8 +907,6 @@ trustReserve: "No verifiable reserve information available.",
     jobsCount: "{n} jobs completed",
     taskLockTitle: "Job lock",
     taskLockRemaining: "{n} min",
-
-estimateDisclaimer: "Estimate before purchase cost; earnings decrease with time in use.",
 },
   market: {
     title: "Market Overview",
