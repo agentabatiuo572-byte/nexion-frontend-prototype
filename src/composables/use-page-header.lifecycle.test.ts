@@ -98,7 +98,7 @@ function chassis(translations: Vue.Ref<typeof en>, back: ReturnType<typeof vi.fn
       props: { radius: { type: Number, required: true } },
       setup: props => () => Vue.h("glass", { "data-radius": props.radius }),
     }) };
-    if (id === "@/components/nova/nova-bubble.vue") return { default: Vue.defineComponent({
+    if (id === "@/components/support/support-bubble.vue") return { default: Vue.defineComponent({
       props: ["dimmed"], setup: props => () => Vue.h("support-shortcut", { dimmed: props.dimmed }),
     }) };
     if (id.endsWith(".vue")) return { default: blank };
