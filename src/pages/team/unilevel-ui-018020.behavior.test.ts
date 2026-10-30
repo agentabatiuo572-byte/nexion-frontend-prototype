@@ -91,9 +91,9 @@ test('020 long names, signed amounts and separate currency statuses survive reco
   expect(text(page.root)).toContain(entry.sourceRef);
 });
 
-test('019 has one explicit glass track and a separate 44px source chip row', () => {
+test('019 has one explicit glass track and a separate 44px underline source row', () => {
   expect(source.match(/<GlassSegments\b/g)).toHaveLength(1);
   expect(source).toContain('layout="equal" surface="glass" selection="flat"');
-  expect(source).toMatch(/\.nx-unilevel-source--selected \{[^}]*background:/);
+  expect(source).toContain('text-underline-offset: 8px');
   expect(source).toMatch(/\.nx-unilevel-source \{ min-height: 44px/);
 });

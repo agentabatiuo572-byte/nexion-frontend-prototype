@@ -8,8 +8,6 @@
         <view v-if="pageReadState === 'error'" class="agent-cta agent-retry" role="button" tabindex="0" @click="retryAgentPage" @keydown.enter.prevent="retryAgentPage" @keydown.space.prevent="retryAgentPage"><text>{{ t.agent.retry }}</text><text aria-hidden="true">→</text></view>
       </view>
       <view class="agent-content">
-        <!-- P-41: headline, intro and eligibility share one tinted card with a V1→V5 track. -->
-        <view class="agent-hero-card">
         <view class="agent-hero">
           <view class="agent-hero-medal" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--v5-warning-ink)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6" /><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" /></svg></view>
           <view class="agent-hero-copy">
@@ -18,12 +16,6 @@
         </view>
         <text class="agent-intro">{{ fmt(t.agent.heroBody, { rank: requiredRankLabel }) }}</text>
 
-        <view v-if="rankReady && !visibility.hidden" class="agent-track" aria-hidden="true">
-          <template v-for="n in AGENT_TRACK" :key="n">
-            <view v-if="n > 1" class="agent-track__line"><view class="nx-viz-grow" :style="{ width: n <= myRank ? '100%' : '0%', animationDelay: `${(n - 2) * 120}ms` }" /></view>
-            <view class="agent-track__node" :class="{ 'agent-track__node--done': n <= myRank, 'agent-track__node--current': n === myRank, 'agent-track__node--goal': n === AGENT_TRACK }"><text>V{{ n }}</text></view>
-          </template>
-        </view>
         <view class="agent-eligibility">
           <TeamRankEmblem v-if="!visibility.hidden" :rank="rankReady ? myRank : null" :size="52" /><view v-else style="width: 52px; height: 52px" aria-hidden="true" />
           <view class="agent-eligibility-copy">
@@ -39,8 +31,6 @@
           </view>
         </view>
 
-        </view>
-
         <view class="agent-support-types">
           <text class="agent-section-title">{{ locale.code === 'zh' ? '申请类别' : locale.code === 'vi' ? 'Loại hỗ trợ' : 'Support type' }}</text>
         <view :style="bucketsGroupStyle">
@@ -48,7 +38,7 @@
             v-for="(b, i) in BUCKETS"
             :key="b.id"
             class="flex items-start agent-bucket" :class="{ 'agent-bucket--selected': selectedBucketId === b.id }"
-            :style="[bucketRowStyle(i === BUCKETS.length - 1), { '--tint': b.tint }]"
+            :style="bucketRowStyle(i === BUCKETS.length - 1)"
             role="button"
             :tabindex="submitting || (remoteApiEnabled && pageReadState !== 'ready') ? -1 : 0"
             :aria-label="b.title"
@@ -226,8 +216,6 @@ const myRank = computed(() => vrank.myRank);
 const rankReady = computed(() => vrank.remoteReady);
 const requiredRankLabel = computed(() => rankLabel(5, locale.code, vrank.ladder));
 const unlocked = computed(() => rankReady.value && vrank.myRank >= 5);
-/** Milestones shown on the eligibility track: V1 up to the V5 requirement. */
-const AGENT_TRACK = 5;
 const formReady = computed(() => (!remoteApiEnabled || pageReadState.value === 'ready') && unlocked.value);
 
 interface Bucket {
@@ -538,15 +526,12 @@ function go(url: string) {
 
 // Rules and records stay flat; eligibility and input controls have distinct boundaries.
 const pathCtaStyle: CSSProperties = { color: "var(--v5-ink)" };
-// Support types form a 2-column grid of tinted tiles (P-41); the tint comes from each bucket.
-const bucketsGroupStyle: CSSProperties = { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "12px" };
-function bucketRowStyle(_isLast: boolean): CSSProperties {
-  return { flexDirection: "column", gap: "10px", minHeight: "132px", padding: "14px", boxSizing: "border-box", borderRadius: "22px",
-    background: "radial-gradient(120% 90% at 85% 0%, color-mix(in srgb, var(--tint) 9%, transparent), transparent 60%), var(--v5-surface)",
-    boxShadow: "inset 0 0 0 1px var(--v5-border)" };
+const bucketsGroupStyle: CSSProperties = { borderTop: "1px solid var(--v5-border)" };
+function bucketRowStyle(isLast: boolean): CSSProperties {
+  return { padding: "13px 0", gap: "12px", borderBottom: isLast ? "none" : "1px solid var(--v5-border)" };
 }
 const selectedBucketStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-2)", lineHeight: 1.5 };
-const bucketIconStyle: CSSProperties = { width: "36px", height: "36px", borderRadius: "12px", background: "color-mix(in srgb, var(--tint) 16%, transparent)" };
+const bucketIconStyle: CSSProperties = { width: "40px", height: "40px", borderRadius: "12px", background: "var(--v5-surface)" };
 const formBlockStyle: CSSProperties = { paddingTop: "8px" };
 const formCapStyle: CSSProperties = { color: "var(--v5-ink)" };
 const fieldStyle: CSSProperties = { padding: "8px 0" };
@@ -601,14 +586,4 @@ function caseRowStyle(isLast: boolean): CSSProperties {
 .agent-submit[aria-disabled="true"] { cursor: default; }
 [role="button"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 @media (max-width: 374px) { .agent-content { padding-inline: 16px; } .agent-hero :deep(.team-art) { --team-art-size: 64px; } .agent-bucket { min-height: 56px; } }
-.agent-hero-card { display: flex; flex-direction: column; gap: var(--ui-space-inline); padding: 20px; border-radius: 28px; background: radial-gradient(120% 90% at 85% 0%, color-mix(in srgb, var(--v5-brand-2) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
-.agent-hero-card .agent-eligibility { margin: 0; padding: var(--ui-space-inline) 0 0; border: 0; border-top: 1px solid var(--v5-border); border-radius: 0; background: transparent; }
-.agent-track { display: flex; align-items: center; padding: 4px 0; }
-.agent-track__line { flex: 1; height: 3px; margin: 0 4px; border-radius: 999px; background: var(--v5-surface-3); overflow: hidden; }
-.agent-track__line > view { height: 100%; border-radius: 999px; background: var(--v5-brand); }
-.agent-track__node { display: grid; place-items: center; flex: none; width: 34px; height: 38px; clip-path: polygon(50% 0, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%); background: var(--v5-surface-3); font: 600 11px/1 var(--font-metric); color: var(--v5-ink-4); }
-.agent-track__node--done { background: color-mix(in srgb, var(--v5-brand) 22%, var(--v5-surface-2)); color: var(--v5-brand); }
-.agent-track__node--current { width: 40px; height: 44px; background: var(--v5-brand); color: var(--v5-on-brand); }
-.agent-track__node--goal { width: 40px; height: 44px; background: color-mix(in srgb, var(--v5-brand-2) 22%, var(--v5-surface-2)); color: var(--v5-brand-2); }
-.agent-bucket-range { color: var(--tint) !important; font-family: var(--font-metric); font-size: 11px; }
 </style>

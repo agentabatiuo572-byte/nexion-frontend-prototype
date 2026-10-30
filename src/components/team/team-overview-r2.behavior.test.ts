@@ -19,7 +19,6 @@ import { vi as vietnamese } from '@/i18n/messages/vi';
 import { teamRedesignCopy } from '@/i18n/team-redesign';
 import { formatAmount } from '@/lib/amount-display';
 import { formatUsd, formatUsdOverviewParts } from '@/lib/usd-display';
-import * as vizMotion from "@/composables/use-scroll-grow-progress";
 
 // Node-only host: execute the actual SFCs without a browser or layout engine.
 type Host = { tag: string; text: string; props: Record<string, any>; parent: Host | null; children: Host[] };
@@ -80,7 +79,6 @@ async function mount(source: string, initial: Record<string, unknown>, locale: L
     '@/store/data-visibility': { useDataVisibility },
     '@/i18n/team-redesign': { teamRedesignCopy },
     '@/lib/route': { navTo, takeNavigationQuery: () => '' }, '@/lib/amount-display': { formatAmount },
-    '@/composables/use-scroll-grow-progress': vizMotion,
     '@/lib/usd-display': { formatUsd, formatUsdOverviewParts },
     './team-art.vue': { default: compile(artSource, {}) },
     '@/components/ui/nx-button.vue': { default: { props: ['label'], emits: ['click'],

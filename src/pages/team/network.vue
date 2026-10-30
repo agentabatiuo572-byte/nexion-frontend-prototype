@@ -22,13 +22,9 @@
             <view :style="metricCardStyle"><text class="block" :style="metricLabelStyle">{{ t.network.activeNow }}</text><text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-brand)')">{{ visibility.mask(metricsUnavailable ? '—' : activeCount) }}</text></view>
             <view :style="metricCardStyle"><text class="block" :style="metricLabelStyle">{{ t.network.direct }}</text><text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-ink-2)')">{{ visibility.mask(metricsUnavailable ? '—' : directCount) }}</text></view>
           </view>
-          <!-- Orbit (P-41): direct invites on the inner ring, the rest outside, dot colour = status.
-               Positions only group members; they do not encode who invited whom. -->
-          <view v-if="!visibility.hidden && !metricsUnavailable && members.length" class="network-orbit" aria-hidden="true">
-            <view class="network-orbit__ring network-orbit__ring--outer" /><view class="network-orbit__ring network-orbit__ring--inner" />
-            <view class="network-orbit__center"><text>{{ t.network.diagramYou }}</text></view>
-            <view v-for="(dot, index) in orbitDots" :key="dot.id" class="network-orbit__dot nx-viz-pop" :class="{ 'network-orbit__dot--inner': dot.inner }"
-              :style="{ left: `${dot.x}%`, top: `${dot.y}%`, background: dot.color, animationDelay: `${Math.min(index * 60, 900)}ms` }"><text>{{ dot.initial }}</text></view>
+          <view v-if="!visibility.hidden && !metricsUnavailable && members.length" class="network-distribution" aria-hidden="true">
+            <view class="network-distribution-direct" :style="{ flexGrow: directCount }" />
+            <view class="network-distribution-other" :style="{ flexGrow: members.length - directCount }" />
           </view>
           <view class="network-legend"><text>{{ t.network.legendDirect }}</text><text>{{ t.network.legendExtended }}</text></view>
         </view>
@@ -177,16 +173,6 @@ const memberGroups = computed(() => [
 ]);
 
 const directCount = computed(() => members.value.filter((m) => m.layer === 1).length);
-// Orbit dots: up to 12 direct invites on the inner ring and 24 others outside, evenly spaced.
-const orbitDots = computed(() => {
-  const place = (list: typeof members.value, radius: number, offset: number, inner: boolean) => list.map((member, index) => {
-    const angle = (offset + index * 360 / list.length) * Math.PI / 180;
-    return { id: member.id, inner, color: statusColor(member.status), initial: member.name.trim().charAt(0).toUpperCase() || "•",
-      x: 50 + radius * Math.cos(angle), y: 50 + radius * Math.sin(angle) };
-  });
-  return [...place(members.value.filter(m => m.layer === 1).slice(0, 12), 25, -90, true),
-    ...place(members.value.filter(m => m.layer !== 1).slice(0, 24), 45, -60, false)];
-});
 const activeCount = computed(() => members.value.filter((m) => m.status === "active").length);
 const idleCount = computed(() => members.value.filter((m) => m.status === "idle").length);
 
@@ -238,19 +224,16 @@ useDialogA11y(computed(() => selected.value !== null), ".nx-net-sheet-wrap", () 
 
 <style scoped>
 .network-content { display: flex; flex-direction: column; gap: 24px; padding: 12px 20px 24px; }
-.network-overview { padding: 0 16px 16px; border: 0; border-radius: 28px; background: radial-gradient(120% 90% at 50% 40%, color-mix(in srgb, var(--v5-brand) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.network-overview { padding: 0 16px 16px; border: 1px solid var(--v5-border); border-radius: 20px; background: var(--v5-surface); }
 .network-self { display: flex; align-items: center; gap: 10px; min-height: 64px; padding-block: 10px; border-bottom: 1px solid var(--v5-border); }
 .network-self-copy { min-width: 0; flex: 1; }
 .network-self-title { display: block; font-size: var(--ui-type-list-title); line-height: var(--ui-type-list-title-lh); font-weight: 500; }
 .network-self-route { max-width: 36%; color: var(--v5-ink-3); font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); text-align: right; }
 .network-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; padding-block: 18px; }
-.network-orbit { position: relative; width: 260px; max-width: 100%; aspect-ratio: 1; margin: 8px auto 4px; }
-.network-orbit__ring { position: absolute; border-radius: 999px; border: 1px dashed color-mix(in srgb, var(--v5-ink) 14%, transparent); }
-.network-orbit__ring--outer { inset: 5%; }
-.network-orbit__ring--inner { inset: 25%; border-color: color-mix(in srgb, var(--v5-brand) 30%, transparent); }
-.network-orbit__center { position: absolute; left: 50%; top: 50%; display: grid; place-items: center; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 999px; background: color-mix(in srgb, var(--v5-brand) 18%, var(--v5-surface-2)); box-shadow: 0 0 24px color-mix(in srgb, var(--v5-brand) 30%, transparent); font: 600 var(--ui-type-message-title)/1 var(--font-v5); color: var(--v5-brand); }
-.network-orbit__dot { position: absolute; display: grid; place-items: center; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 999px; box-shadow: 0 0 0 3px var(--v5-surface); font: 600 10px/1 var(--font-v5); color: var(--v5-on-brand); }
-.network-orbit__dot--inner { width: 26px; height: 26px; margin: -13px 0 0 -13px; }
+.network-distribution { display: flex; height: 5px; overflow: hidden; border-radius: 3px; background: var(--v5-surface-3); }
+.network-distribution > view { min-width: 0; flex-basis: 0; }
+.network-distribution-direct { background: var(--v5-brand); }
+.network-distribution-other { background: var(--v5-ink-3); }
 .network-legend { display: flex; justify-content: space-between; gap: 16px; padding-top: 10px; font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); color: var(--v5-ink-3); }
 .network-legend > text { flex: 1; min-width: 0; }
 .network-legend > text:first-child { color: var(--v5-brand); }

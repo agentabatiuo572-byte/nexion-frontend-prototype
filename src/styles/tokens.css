@@ -561,29 +561,6 @@ body {
 }
 .glow-green { animation: glow-green 1.8s ease-in-out infinite; }
 
-/* Data-visual motion (design system 07 · DS-29): rings sweep through this registered
-   number (0–100); podium crowns pop in after the pedestals land; pressed data cards dip. */
-@property --nx-viz-ring { syntax: "<number>"; inherits: false; initial-value: 0; }
-@keyframes nx-viz-pop { 0% { opacity: 0; transform: translateY(6px) scale(.6); } 70% { opacity: 1; transform: translateY(-2px) scale(1.08); } 100% { opacity: 1; transform: none; } }
-.nx-viz-pop { animation: nx-viz-pop 420ms cubic-bezier(.2, 1.4, .4, 1) both; }
-/* Marks that appear with their data (podium steps, columns, bars) grow from zero on render. */
-@keyframes nx-viz-rise { from { height: 0; } }
-@keyframes nx-viz-grow { from { width: 0; } }
-.nx-viz-rise { animation: nx-viz-rise 1100ms cubic-bezier(0.16, 1, 0.3, 1) both; }
-.nx-viz-grow { animation: nx-viz-grow 1400ms cubic-bezier(0.16, 1, 0.3, 1) both; }
-/* Rings sweep from zero to their --nx-viz-ring value; dots light up one after another. */
-@keyframes nx-viz-sweep { from { --nx-viz-ring: 0; } }
-@keyframes nx-viz-light { from { opacity: .15; transform: scale(.6); } }
-.nx-viz-sweep { animation: nx-viz-sweep 1400ms cubic-bezier(0.16, 1, 0.3, 1) both; }
-.nx-viz-light { animation: nx-viz-light 320ms cubic-bezier(.2, .8, .2, 1) both; }
-.nx-viz-press { transition: transform 120ms cubic-bezier(.2, .8, .2, 1); }
-.nx-viz-press:active { transform: scale(.98); }
-@media (prefers-reduced-motion: reduce) {
-  .nx-viz-pop, .nx-viz-rise, .nx-viz-grow, .nx-viz-sweep, .nx-viz-light { animation: none; }
-  .nx-viz-press:active { transform: none; }
-  .nx-viz-motion, .nx-viz-motion * { transition: none !important; }
-}
-
 /* Support avatar halo pulse — outward brand ring. Used by <support-avatar pulse>. */
 @keyframes v5-support-halo {
   0%   { box-shadow: 0 0 0 0 color-mix(in oklab, var(--v5-brand) 60%, transparent); }
