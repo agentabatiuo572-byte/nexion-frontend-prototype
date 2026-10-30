@@ -244,11 +244,21 @@ function finiteNumber(value: unknown, minimum = 0): number {
 
 function historyAmount(source: Record<string, unknown>): number | string {
   if (typeof source.promotionQuoteId === 'string' && source.promotionQuoteId.trim()) {
-    const value=source.amountUsdt;
-    if(typeof value!=='string'||!/^(0|[1-9]\d{0,11})(\.\d{1,6})?$/.test(value))return invalid();
-    return value;
+    return promotionDecimal(source.amountUsdt);
   }
   return finiteNumber(source.amountUsdt);
+}
+
+function promotionDecimal(value: unknown): string {
+  if(typeof value!=='string'||!/^(0|[1-9]\d{0,11})(\.\d{1,6})?$/.test(value))return invalid();
+  return value;
+}
+
+function historyNumber(source: Record<string, unknown>, field: "subtotalUsdt" | "discountUsdt"): number {
+  const value=source[field];
+  // Promotion overlays encode every total as a decimal string; the settled amount stays exact above.
+  return typeof value==='string' && typeof source.promotionQuoteId==='string' && source.promotionQuoteId.trim()
+    ? Number(promotionDecimal(value)) : finiteNumber(value);
 }
 
 function integer(value: unknown, minimum = 0): number {
@@ -286,9 +296,9 @@ function canonicalOrder(value: unknown): CanonicalOrder {
     productNo: nonEmptyString(source.productNo),
     productName: nonEmptyString(source.productName),
     quantity: integer(source.quantity, 1),
-    subtotalUsdt: finiteNumber(source.subtotalUsdt),
+    subtotalUsdt: historyNumber(source,"subtotalUsdt"),
     unitPriceUsdt: finiteNumber(source.unitPriceUsdt),
-    discountUsdt: finiteNumber(source.discountUsdt),
+    discountUsdt: historyNumber(source,"discountUsdt"),
     amountUsdt: historyAmount(source),
     ...(source.promotionQuoteId ? { promotionQuoteId: nonEmptyString(source.promotionQuoteId) } : {}),
     paymentMethod: nullableString(source.paymentMethod),

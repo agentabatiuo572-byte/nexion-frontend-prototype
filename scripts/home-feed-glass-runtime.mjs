@@ -54,7 +54,10 @@ function fixture(url, request, locale) {
   if (url.pathname === "/api/devices/earnings") return { ...authority, source: "nx_user_device + nx_compute_receipt + nx_compute_e3_config", dailyUsdt: 0, dailyNex: 0, realizedTodayUsdt: .1, realizedTodayNex: 0, walletUsdt: 0, walletNex: 0, userJoinedAt: now, serverNow: now, timezone: "UTC", slotCap: 1, devices: [], capacitySchedule: {} };
   if (url.pathname === "/api/config/platform") return { featureFlags: { computeShareEnabled: false, homeNewcomerTasksEnabled: false, homeWeeklyPromoEnabled: false }, share: { baseUrl: "", channels: [], appDownload: { officialUrl: "", iosUrl: "", androidUrl: "", apkUrl: "", version: "", releaseNotes: { zh: "", en: "" }, source: "unavailable" } }, publicStats: { version: 1, ...authority, source: "server:nx_config_item,nx_user", realUserCount: 0 }, updatedAt: iso };
   if (url.pathname === "/api/app/wallet/bills/summary") return { ...authority, source: "server", timeZone: "UTC", asOf: iso, rewardsUsdt: .1, rewardsNex: 0, latestRewardAt: iso, todayNexEarn: 0, pendingNex: 0, monthBillCount: 1, recentNexBills: [] };
-  if (url.pathname === "/api/app/wallet/bills") return { ...authority, source: "server", bills: [], page: 1, pageSize: 50, total: 0, nextPage: null, nextCursor: null };
+  if (url.pathname === "/api/app/wallet/bills") {
+    const bills = url.searchParams.get("direction") === "IN" ? [{ id: "home-glass-income", bizNo: "home-glass-income", bizType: "COMPUTE_REWARD", category: "earn", asset: "USDT", direction: "IN", amount: .1, balanceAfter: .1, status: "SUCCESS", remark: "", createdAt: iso }] : [];
+    return { ...authority, source: "server", bills, page: 1, pageSize: 50, total: bills.length, nextPage: null, nextCursor: null };
+  }
   if (url.pathname === "/api/store/catalog") return { ...authority, source: "nx_product", revision: null, products: [] };
   if (url.pathname === "/api/orders") return { ...authority, source: "server", orders: [] };
   if (url.pathname === "/api/notifications") return { items: [], nextCursor: null, unread: 0 };
@@ -214,7 +217,7 @@ async function variantRun(browser, variant) {
     const hostGeometry = await page.locator(host).boundingBox();
     record.seeAllGeometry = { ...seeAllGeometry, hostRight: hostGeometry.x + hostGeometry.width };
     check(seeAllGeometry && seeAllGeometry.width >= 44 && seeAllGeometry.height >= 44 && seeAllGeometry.x >= hostGeometry.x + hostGeometry.width + 7 && seeAllGeometry.x + seeAllGeometry.width <= variant.width, "See All hitbox overlaps tabs or the viewport", record);
-    check(await page.locator('[data-home-live-earnings-row="true"]').count() === 1 && (await page.locator('[data-home-live-earnings-row="true"]').innerText()).includes("0.10000"), "Earnings must project the isolated ledger row", record);
+    check(await page.locator('[data-home-income-row="true"]').count() === 1 && (await page.locator('[data-home-income-row="true"]').innerText()).includes("0.1"), "Earnings must project the isolated income bill", record);
     await image(page, record, "earnings");
     activation = await activationMark(page);
     await beginFrames(page); await page.locator(tabSelector("activity")).click(); await selected(page, "activity");

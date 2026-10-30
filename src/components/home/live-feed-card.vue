@@ -1,15 +1,18 @@
 <!--
-  LiveFeedCard — ZONE 1 dual-tab live ticker (ported from mission-control.tsx
-  LiveFeedCard). The formal App keeps the same dual-tab layout while projecting
-  both views exclusively from the authenticated Home settlement ledger returned
-  by Java. High-fidelity Mock data remains isolated in the 5174 prototype repo.
+  LiveFeedCard — home "my compute activity / recent income" card (P-33).
+  Activity: tasks running on the account's devices, then settled rows from the
+  authenticated Home settlement ledger returned by Java. Income: the latest
+  income bills from the same ledger as the bills page. High-fidelity Mock data
+  remains isolated in the 5174 prototype repo.
 -->
 <template>
   <view class="nx-home-live-feed" data-home-section="live-feed" data-feed-mode="CANONICAL">
-    <!-- Compact switcher aligned to the card's right edge. -->
-    <view class="nx-home-feed-heading px-0.5 pt-1 pb-2.5 flex items-center justify-between">
-      <view class="nx-home-feed-mark" aria-hidden="true">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-7 4 14 3-7h4" /></svg>
+    <view class="nx-home-feed-heading">
+      <view class="nx-home-feed-identity">
+        <view class="nx-home-feed-mark" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-7 4 14 3-7h4" /></svg>
+        </view>
+        <text class="nx-home-feed-title">{{ tab === 'activity' ? t.home.liveFeedTitleActivity : t.home.liveFeedTitleEarnings }}</text>
       </view>
       <GlassSegments
         v-model="tab"
@@ -23,57 +26,39 @@
     </view>
 
     <!-- Activity tab -->
-    <view v-show="tab === 'activity'" ref="activityPanel" id="home-live-feed-panel-activity" class="font-mono-tabular" :style="tab === 'activity' ? heldPanelStyle : undefined" style="padding: 0 2px 6px; font-size: 12px" role="tabpanel" aria-labelledby="home-live-feed-tab-activity" :aria-hidden="tab !== 'activity'" :tabindex="tab === 'activity' ? 0 : -1">
+    <view v-show="tab === 'activity'" ref="activityPanel" id="home-live-feed-panel-activity" :style="tab === 'activity' ? heldPanelStyle : undefined" role="tabpanel" aria-labelledby="home-live-feed-tab-activity" :aria-hidden="tab !== 'activity'" :tabindex="tab === 'activity' ? 0 : -1">
+      <HomeRunningTasks :limit="RUNNING_ROWS" @count="runningCount = $event" />
       <view
-        v-for="(r, i) in displayActivityRows"
+        v-for="r in visibleActivityRows"
         :key="r.k"
         data-home-live-activity-row="true"
-        class="grid items-center gap-2.5 py-2"
+        class="nx-feed-row"
         :class="{ 'nx-home-feed-row--entering': r.k === enteringId }"
-        :style="{ gridTemplateColumns: whoColTemplate, minHeight: '56px', rowGap: '4px', borderBottom: i < displayActivityRows.length - 1 ? '1px solid var(--v5-border)' : 'none' }"
       >
-        <text data-home-live-time="true" class="tabular-nums" style="grid-column: 1 / -1; min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 18px; font-size: 12px; color: var(--v5-ink-2)">{{ r.ts }}</text>
-        <text class="text-center" :style="whoBadgeStyle(r)">{{ whoLabel(r.who) }}</text>
-        <!-- 《02》§4 判定线:动态流是「浏览型」内容且设计上单行截断,归 caption 12
-             (原 12.5→13 迁移使截断加剧,溢出探针实测 +6px,数据驱动回到 12) -->
-        <text class="truncate" style="font-family: var(--font-v5); font-weight: 400; font-size: 12px; line-height: 16px; color: var(--v5-ink-2)">{{ r.msg }}</text>
-        <text class="tabular-nums text-right" style="font-weight: 500" :style="{ color: valColor(r) }">{{ r.val === 'locked' ? t.home.feedValLocked : r.val }}</text>
+        <view class="nx-feed-icon nx-feed-icon--done" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+        </view>
+        <view class="nx-feed-copy">
+          <text class="nx-feed-title">{{ r.model }}</text>
+          <view class="nx-feed-sub nx-feed-sub--split"><text class="nx-feed-sub__lead">{{ r.client }}</text><text aria-hidden="true">·</text><text data-home-live-time="true" class="nx-feed-sub__time">{{ r.ts }}</text></view>
+        </view>
+        <text class="nx-feed-amount nx-feed-amount--earned font-mono-tabular">{{ r.val }}</text>
       </view>
-      <view v-if="displayActivityRows.length === 0" class="flex items-center justify-between px-1 py-3" style="gap: 12px">
-        <text style="font-size: 12px; color: var(--v5-ink-3)">{{ remoteFeedStatusText }}</text>
-        <text v-if="app.homeTruthStatus === 'error'" class="active:opacity-70" role="button" tabindex="0" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font: 600 13px/20px var(--font-v5); color: var(--v5-brand)" @click="retryHome"  @keydown.enter.stop.prevent="retryHome" @keydown.space.stop.prevent="retryHome">{{ t.ui.retry }}</text>
+      <view v-if="displayActivityRows.length === 0 && runningCount === 0" class="nx-feed-state">
+        <text>{{ remoteFeedStatusText }}</text>
+        <text v-if="app.homeTruthStatus === 'error'" class="nx-feed-retry" role="button" tabindex="0" @click="retryHome" @keydown.enter.stop.prevent="retryHome" @keydown.space.stop.prevent="retryHome">{{ t.ui.retry }}</text>
       </view>
     </view>
 
     <!-- Earnings tab -->
-    <view v-show="tab === 'earnings'" ref="earningsPanel" id="home-live-feed-panel-earnings" :style="tab === 'earnings' ? heldPanelStyle : undefined" role="tabpanel" aria-labelledby="home-live-feed-tab-earnings" :aria-hidden="tab !== 'earnings'" :tabindex="tab === 'earnings' && displayEarningsItems.length === 0 ? 0 : -1">
-      <view v-if="displayEarningsItems.length > 0" class="block active:opacity-90 transition-opacity" role="link" tabindex="0" @click="goEarnings" @keydown.enter.stop.prevent="goEarnings">
-        <view
-          v-for="(it, i) in displayEarningsItems"
-          :key="it.id"
-          data-home-live-earnings-row="true"
-          class="px-0.5 py-2 grid items-center gap-2"
-          :class="{ 'nx-home-feed-row--entering': it.id === enteringId }"
-          :style="{ gridTemplateColumns: '5px auto minmax(0, 1fr) auto', minHeight: '56px', rowGap: '4px', fontSize: '12px', borderBottom: i < displayEarningsItems.length - 1 ? '1px solid var(--v5-border)' : 'none' }"
-        >
-          <text data-home-live-earnings-time="true" class="tabular-nums" style="grid-column: 1 / -1; min-width: 0; white-space: normal; overflow-wrap: anywhere; line-height: 18px; color: var(--v5-ink-2)">{{ it.ts }}</text>
-          <view style="width: 5px; height: 5px; border-radius: 50%; background: var(--v5-success); flex-shrink: 0" />
-          <text style="font-family: var(--font-v5); font-weight: 600; color: var(--v5-ink)">{{ it.name }}</text>
-          <text class="truncate flex-1" style="color: var(--v5-ink-3)">{{ it.product }}</text>
-          <text class="font-mono-tabular tabular-nums whitespace-nowrap" style="color: var(--v5-success-ink); font-weight: 500">{{ earningsAmount(it) }}</text>
-        </view>
-      </view>
-      <view v-else class="flex items-center justify-between px-1 py-3" style="gap: 12px">
-        <text style="font-size: 12px; color: var(--v5-ink-3)">{{ remoteFeedStatusText }}</text>
-        <text v-if="app.homeTruthStatus === 'error'" class="active:opacity-70" role="button" tabindex="0" style="display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font: 600 13px/20px var(--font-v5); color: var(--v5-brand)" @click="retryHome"  @keydown.enter.stop.prevent="retryHome" @keydown.space.stop.prevent="retryHome">{{ t.ui.retry }}</text>
-      </view>
+    <view v-show="tab === 'earnings'" ref="earningsPanel" id="home-live-feed-panel-earnings" :style="tab === 'earnings' ? heldPanelStyle : undefined" role="tabpanel" aria-labelledby="home-live-feed-tab-earnings" :aria-hidden="tab !== 'earnings'" :tabindex="tab === 'earnings' ? 0 : -1">
+      <HomeIncomeList :active="tab === 'earnings'" />
     </view>
-    <view v-if="tab === 'earnings'" class="nx-home-feed-footer flex justify-end px-0.5">
-      <view class="inline-flex items-center gap-1 font-mono-tabular active:opacity-70 transition-opacity" style="min-height: 44px; font-size: 12px; color: var(--v5-ink-3)" role="link" tabindex="0" @click.stop="goEarnings" @keydown.enter.stop.prevent="goEarnings">
+
+    <view class="nx-home-feed-footer">
+      <view class="nx-home-feed-more" role="link" tabindex="0" @click.stop="goAll" @keydown.enter.stop.prevent="goAll">
         <text>{{ t.home.liveFeedSeeAll }}</text>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 18l6-6-6-6" />
-        </svg>
+        <text aria-hidden="true">›</text>
       </view>
     </view>
   </view>
@@ -84,6 +69,8 @@ import { formatUsd } from "@/lib/usd-display";
 import { navTo } from "@/lib/route";
 import { computed, nextTick, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import GlassSegments from "@/components/glass-segments.vue";
+import HomeRunningTasks from "./home-running-tasks.vue";
+import HomeIncomeList from "./home-income-list.vue";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
 import { useApp } from "@/store/app";
@@ -96,26 +83,24 @@ import type { AppHomeEarningsLedgerRow } from "@/api/app-home-api";
 
 interface FeedRow {
   k: number | string;
-  lvl: "ok" | "live" | "warn";
-  who: string;
-  msg: string;
+  model: string;
+  client: string;
   val: string;
-  ts: string;
-}
-interface EarningsItem {
-  id: string;
-  name: string;
-  product: string;
-  amount: number;
   ts: string;
 }
 
 const t = useT();
 const app = useApp();
 const visibility = useDataVisibility();
+const localeStore = useLocaleStore();
 const tab = ref<"activity" | "earnings">("activity");
 
 const FEED_ROWS = 6;
+// The card shows five rows: up to two running tasks, then settled rows. Rows share one height so a
+// task that moves from running to settled leaves the card the same size.
+const CARD_ROWS = 5;
+const RUNNING_ROWS = 2;
+const runningCount = ref(0);
 // New settlements arrive in batches with each ledger refresh. Hold them and
 // reveal one at a time at the original ticker pace, each sliding in at the top
 // and pushing the bottom row out. The server returns only its newest rows, so
@@ -180,42 +165,19 @@ const feedTabOptions = computed(() => [
 const displayActivityRows = computed<FeedRow[]>(() => {
   return canonicalFeed.value.activityRows.map((row) => ({
     k: row.id,
-    lvl: "ok",
-    who: "You",
-    msg: `${row.model} @ ${row.client}`,
+    model: row.model,
+    client: row.client,
     val: visibility.mask(formatUsd(row.rewardUsdt, 'detail', true)),
     ts: formatHomeFeedTime(row.completedAt, localeStore.code),
   }));
 });
-const displayEarningsItems = computed<EarningsItem[]>(() => {
-  return canonicalFeed.value.earningsItems.map((row) => ({
-    id: row.id,
-    name: row.model,
-    product: row.client,
-    amount: row.amountUsdt,
-    ts: formatHomeFeedTime(row.completedAt, localeStore.code),
-  }));
-});
+const visibleActivityRows = computed(() => displayActivityRows.value.slice(0, Math.max(0, CARD_ROWS - runningCount.value)));
 const remoteFeedStatusText = computed(() => {
   if (app.homeTruthStatus === "loading" || app.homeTruthStatus === "idle") return t.value.home.networkStatUpdating;
   if (app.homeTruthStatus === "error") return t.value.uiChrome.unavailable;
-  return tab.value === "activity" ? t.value.home.liveFeedEmpty : t.value.home.ledgerEmpty;
+  return t.value.home.liveFeedEmpty;
 });
 
-// 身份徽章列宽按语言取值(包 G P2#2 选项 a):en「Peer」/zh「同伴」进 38px,
-// vi「Thành viên」实测 ~62px,固定 38px 溢出 5px+;列宽仍是常量 → 跨行对齐不破。
-const localeStore = useLocaleStore();
-const whoColTemplate = computed(() => `${localeStore.code === "vi" ? "66px" : "38px"} minmax(0, 1fr) auto`);
-
-function whoBadgeStyle(r: FeedRow): CSSProperties {
-  const bg = r.lvl === "ok" ? "var(--v5-success-soft)" : r.lvl === "live" ? "var(--v5-tech-cyan-soft)" : "var(--v5-warning-soft)";
-  const color = r.lvl === "ok" ? "var(--v5-success)" : r.lvl === "live" ? "var(--v5-tech-cyan)" : "var(--v5-warning)";
-  return { fontSize: "12px", fontWeight: 500, padding: "1px 5px", borderRadius: "3px", letterSpacing: "0.04em", background: bg, color };
-}
-function valColor(r: FeedRow): string {
-  return r.val === "locked" ? "var(--v5-ink-4)" : r.who === "You" ? "var(--v5-ink-3)" : "var(--v5-success)";
-}
-function whoLabel(who: string): string { return who === "You" ? t.value.home.feedWhoYou : who === "Peer" ? t.value.home.feedWhoPeer : who === "Lock" ? t.value.home.feedWhoLock : who; }
 function activateAdjacentTab(current: "activity" | "earnings", offset: -1 | 1) {
   const currentIndex = tabOrder.indexOf(current);
   const nextIndex = (currentIndex + offset + tabOrder.length) % tabOrder.length;
@@ -228,22 +190,54 @@ function activateTabFromKeyboard(nextTab: "activity" | "earnings") {
     document.getElementById(`home-live-feed-tab-${nextTab}`)?.focus();
   });
 }
-function earningsAmount(it: EarningsItem): string {
-  return visibility.mask(formatUsd(it.amount, 'detail', true));
-}
 function retryHome() {
   void app.refreshHomeTruth();
 }
-function goEarnings() {
-  navTo("/pages/me/wallet-bills");
+// Activity opens every task receipt; income opens the bills page filtered to income.
+function goAll() {
+  navTo(tab.value === "activity" ? "/pages/me/receipts" : "/pages/me/wallet-bills?filter=in");
 }
-
-
 </script>
 
 <style scoped>
-.nx-home-live-feed { padding: 12px 16px 6px; border-radius: var(--ui-radius-surface); background: var(--v5-surface); }
-.nx-home-feed-heading { min-height:44px; }
+.nx-home-live-feed { padding: var(--ui-space-inline) 16px 4px; border: 1px solid var(--v5-border); border-radius: var(--ui-radius-surface); background: var(--v5-surface); color: var(--v5-ink); }
+.nx-home-feed-heading { display:flex;align-items:center;justify-content:space-between;gap:var(--ui-space-inline);min-height:44px; }
+.nx-home-feed-identity { display:flex;align-items:center;gap:10px;min-width:0; }
+.nx-home-feed-mark { display:flex;align-items:center;justify-content:center;flex:none;width:30px;height:30px;border-radius:50%;background:color-mix(in srgb,var(--v5-brand) 10%,transparent);color:var(--v5-brand); }
+.nx-home-feed-title { font:var(--ui-type-subheading-weight) var(--ui-type-subheading)/var(--ui-type-subheading-lh) var(--font-v5);overflow-wrap:anywhere; }
+.nx-home-feed-tabs { flex:0 0 90px;width:90px;height:26px;min-width:0;padding:2px;gap:1px; }
+.nx-home-feed-tabs :deep(.nx-glass-option) { min-height:22px;padding:0; }
+.nx-home-feed-tabs :deep(.nx-glass-option::after) { content:"";position:absolute;inset:-11px 0; }
+.nx-home-feed-tabs :deep(.nx-glass-option__label) { font-size:10px;font-weight:600;line-height:12px;white-space:nowrap; }
+.nx-home-feed-tabs--vi :deep(.nx-glass-option__label) { font-size:9px;letter-spacing:-.4px; }
+/* Feed rows (also rendered by the running-task and income children). One height for every row. */
+.nx-home-live-feed :deep(.nx-feed-row) { position:relative;display:grid;grid-template-columns:32px minmax(0,1fr) auto;align-items:center;column-gap:var(--ui-space-inline);box-sizing:border-box;min-height:63px;padding:var(--ui-space-inline) 0; }
+/* Every row (and the empty state) carries its own top divider, so the first row is no taller than the rest. */
+.nx-home-live-feed :deep(.nx-feed-row), .nx-home-live-feed :deep(.nx-feed-state) { border-top:1px solid var(--v5-border); }
+/* A running row sits higher so its progress bar keeps clear of the divider below. */
+.nx-home-live-feed :deep(.nx-feed-row--running) { padding:var(--v5-space-2) 0 var(--ui-space-inset); }
+.nx-home-live-feed :deep(.nx-feed-icon) { display:grid;place-items:center;width:32px;height:32px;border-radius:10px; }
+.nx-home-live-feed :deep(.nx-feed-icon--done) { background:color-mix(in srgb,var(--v5-success) 16%,transparent);color:var(--v5-success); }
+.nx-home-live-feed :deep(.nx-feed-icon--running) { background:color-mix(in srgb,var(--ui-device-ink) 16%,transparent);color:var(--ui-device-ink); }
+.nx-home-live-feed :deep(.nx-feed-copy) { display:flex;flex-direction:column;min-width:0; }
+.nx-home-live-feed :deep(.nx-feed-title-row) { display:flex;align-items:center;gap:var(--v5-space-2);min-width:0; }
+.nx-home-live-feed :deep(.nx-feed-title) { overflow:hidden;font:var(--ui-type-message-title-weight) var(--ui-type-message-title)/var(--ui-type-message-title-lh) var(--font-v5);white-space:nowrap;text-overflow:ellipsis; }
+.nx-home-live-feed :deep(.nx-feed-sub) { overflow:hidden;font:var(--ui-type-note-weight) var(--ui-type-note)/var(--ui-type-note-lh) var(--font-v5);color:var(--v5-ink-3);white-space:nowrap;text-overflow:ellipsis; }
+.nx-home-live-feed :deep(.nx-feed-sub--split) { display:flex;gap:var(--v5-space-1); }
+.nx-home-live-feed :deep(.nx-feed-sub__lead) { overflow:hidden;min-width:0;text-overflow:ellipsis;white-space:nowrap; }
+.nx-home-live-feed :deep(.nx-feed-sub__time) { flex:none; }
+.nx-home-live-feed :deep(.nx-feed-amount) { display:flex;align-items:baseline;gap:9px;font:500 14px/20px var(--font-metric);white-space:nowrap; }
+.nx-home-live-feed :deep(.nx-feed-amount--earned), .nx-home-live-feed :deep(.nx-feed-list .nx-feed-amount) { color:var(--v5-success-ink); }
+.nx-home-live-feed :deep(.nx-feed-unit) { font:500 12px/16px var(--font-metric);color:var(--v5-ink-3); }
+.nx-home-live-feed :deep(.nx-feed-figure) { display:flex;flex-direction:column;align-items:flex-end; }
+.nx-home-live-feed :deep(.nx-feed-pct) { font:500 14px/20px var(--font-metric);color:var(--ui-device-ink); }
+.nx-home-live-feed :deep(.nx-feed-est) { font:400 12px/18px var(--font-metric);color:var(--v5-ink-3);white-space:nowrap; }
+.nx-home-live-feed :deep(.nx-feed-progress) { position:absolute;left:0;right:0;bottom:var(--v5-space-2);height:4px;overflow:hidden;border-radius:999px;background:var(--v5-surface-3); }
+.nx-home-live-feed :deep(.nx-feed-progress__fill) { height:100%;border-radius:inherit;background:var(--ui-device-ink);transition:width 1s linear; }
+.nx-home-live-feed :deep(.nx-feed-state) { display:flex;align-items:center;justify-content:space-between;gap:var(--ui-space-inline);min-height:64px;font:var(--ui-type-note-weight) var(--ui-type-note)/var(--ui-type-note-lh) var(--font-v5);color:var(--v5-ink-3); }
+.nx-home-live-feed :deep(.nx-feed-retry) { display:inline-flex;align-items:center;min-height:44px;padding:0 12px;font:500 13px/18px var(--font-v5);color:var(--v5-brand); }
+.nx-home-feed-footer { display:flex;justify-content:flex-end; }
+.nx-home-feed-more { display:inline-flex;align-items:center;gap:var(--v5-space-1);min-height:44px;font:500 13px/18px var(--font-v5);color:var(--v5-ink-3); }
 /* A newly settled row opens from zero height at the top, pushing older rows down. */
 .nx-home-feed-row--entering { overflow: hidden; animation: nx-home-feed-row-in .6s cubic-bezier(.2,.8,.2,1); }
 @keyframes nx-home-feed-row-in {
@@ -251,11 +245,8 @@ function goEarnings() {
   60% { opacity: 1; }
   to { max-height: 80px; opacity: 1; background-color: transparent; }
 }
-@media (prefers-reduced-motion: reduce) { .nx-home-feed-row--entering { animation: none; } }
-.nx-home-feed-mark { display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:color-mix(in srgb,var(--v5-brand) 10%,transparent);color:var(--v5-brand); }
-.nx-home-feed-tabs { flex:0 0 90px;width:90px;height:26px;min-width:0;padding:2px;gap:1px; }
-.nx-home-feed-tabs :deep(.nx-glass-option) { min-height:22px;padding:0; }
-.nx-home-feed-tabs :deep(.nx-glass-option::after) { content:"";position:absolute;inset:-11px 0; }
-.nx-home-feed-tabs :deep(.nx-glass-option__label) { font-size:10px;font-weight:600;line-height:12px;white-space:nowrap; }
-.nx-home-feed-tabs--vi :deep(.nx-glass-option__label) { font-size:9px;letter-spacing:-.4px; }
+@media (prefers-reduced-motion: reduce) {
+  .nx-home-feed-row--entering { animation: none; }
+  .nx-home-live-feed :deep(.nx-feed-progress__fill) { transition: none; }
+}
 </style>

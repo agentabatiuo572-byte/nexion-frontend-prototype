@@ -166,10 +166,10 @@ function billTypesFromSource(src) {
   return [...m[1].matchAll(/"([a-z]+)"/g)].map((x) => x[1]);
 }
 
-/** 账单页 TYPE_COLOR 的键 = 页面真正渲染的类型集合(Record<BillType, string>,穷举)。 */
+/** 账单类型配色表(账单页与首页收入共用)的键 = 真正渲染的类型集合(Record<BillType, string>,穷举)。 */
 function renderedTypes(src) {
-  const m = /const TYPE_COLOR: Record<BillType, string> = \{([\s\S]*?)\n\};/.exec(src);
-  if (!m) throw new Error("selfcheck-bill-producers: 解析不到 TYPE_COLOR(wallet-bills.vue 结构变了?)");
+  const m = /export const WALLET_BILL_TYPE_COLOR: Record<BillType, string> = \{([\s\S]*?)\n\};/.exec(src);
+  if (!m) throw new Error("selfcheck-bill-producers: 解析不到 WALLET_BILL_TYPE_COLOR(wallet-bill-display.ts 结构变了?)");
   return [...m[1].matchAll(/^\s*([a-z]+):/gm)].map((x) => x[1]);
 }
 
@@ -298,7 +298,7 @@ function evaluate(overrides = {}) {
 // ── 正跑 ──────────────────────────────────────────────────────────────────────
 function run() {
   const { types, drafts, scanned, mismatches } = evaluate();
-  const rendered = renderedTypes(read(BILLS_PAGE));
+  const rendered = renderedTypes(read("src/lib/wallet-bill-display.ts"));
 
   // 🔴 空集/缩集自曝:取材面塌了(正则失配 / 目录挪走)会让所有断言无条件全过。
   // 下限贴着当前实测设(45 draft / 20 记账文件),掉一条就响 —— 上一版写 `>20`,

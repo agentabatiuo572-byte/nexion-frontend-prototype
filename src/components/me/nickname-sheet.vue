@@ -9,7 +9,7 @@
 <template>
   <view v-if="open" class="nx-nickname-sheet-root" role="dialog" aria-modal="true" :aria-label="t.profile.nicknameSheetTitle">
     <view class="nx-sheet-fade-in" :style="scrimStyle" @click="emit('close')">
-      <view class="nx-glass-sheet nx-sheet-fade-in" :style="panelStyle" @click.stop>
+      <view class="nx-glass-sheet nx-dialog-pop-in" :style="panelStyle" @click.stop>
         <!-- Title row -->
         <view class="flex items-start justify-between" style="gap: 12px">
           <text class="block" :style="titleStyle">{{ t.profile.nicknameSheetTitle }}</text>

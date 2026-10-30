@@ -119,9 +119,9 @@
       </view>
     </NxSheet>
     <PromotionTerms :open="termsOpen" :title="localized(promotion?.title,locale.code)" :terms="order ? '' : localized(promotion?.terms,locale.code)" :disclosures="disclosures" @close="termsOpen=false" />
-    <view v-if="leaveOpen" class="promotion-overlay">
+    <view v-if="leaveOpen" class="promotion-overlay nx-sheet-fade-in">
       <view class="promotion-overlay-dismiss" aria-hidden="true" @click="finishLeave(false)" />
-      <view class="promotion-modal promotion-leave" role="dialog" aria-modal="true" :aria-label="p.leaveTitle" tabindex="-1"><LiquidGlass :radius="28" tone="navigation" /><view class="promotion-modal-content"><text class="promotion-title">{{ p.leaveTitle }}</text><text class="promotion-copy" style="margin-top:12px">{{ order?p.reservedBody:p.leaveBody }}</text><view class="promotion-actions"><PromotionAction class="promotion-action primary" role="button" tabindex="0" @click="finishLeave(false)"><text>{{ p.continue }}</text></PromotionAction><PromotionAction class="promotion-action" role="button" tabindex="0" @click="finishLeave(true)"><text>{{ p.exit }}</text></PromotionAction></view></view></view>
+      <view class="promotion-modal promotion-leave nx-dialog-pop-in" role="dialog" aria-modal="true" :aria-label="p.leaveTitle" tabindex="-1"><LiquidGlass :radius="28" tone="navigation" /><view class="promotion-modal-content"><text class="promotion-title">{{ p.leaveTitle }}</text><text class="promotion-copy" style="margin-top:12px">{{ order?p.reservedBody:p.leaveBody }}</text><view class="promotion-actions"><PromotionAction class="promotion-action primary" role="button" tabindex="0" @click="finishLeave(false)"><text>{{ p.continue }}</text></PromotionAction><PromotionAction class="promotion-action" role="button" tabindex="0" @click="finishLeave(true)"><text>{{ p.exit }}</text></PromotionAction></view></view></view>
     </view>
   </view>
 </template>

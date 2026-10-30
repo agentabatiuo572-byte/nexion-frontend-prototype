@@ -1,5 +1,5 @@
 import { formatAmount } from "@/lib/amount-display";
-import { computed, ref } from "vue";
+import { computed, reactive, ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
 import ts from "typescript";
 import source from "./checkout.vue?raw";
@@ -8,6 +8,25 @@ import { resolveTrialAt, accruedShadow, type TrialRowSnapshot } from "@/store/tr
 import { DEFAULT_TRIAL_CONFIG, computeDiscountedPrice, computeTrialOffset, resolveTrialCheckoutProductId } from "@/store/trial-config";
 
 describe("trial credit in the actual checkout quote", () => {
+  it("keeps a confirmed checkout visible during revalidation without accepting initial, failed or rebound authority", () => {
+    const code = ts.transpileModule(source.slice(source.indexOf("const trialQuoteIncomplete ="), source.indexOf("const trialConversionMode =")),
+      { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+    const freeTrial = reactive({ authorityStatus:"ready", authorityServerState:"CANCELLED" as string|null,
+      status:"ended", authoritativeOffsetUSD:0 as number|null, authoritativeRemainderUSD:0 as number|null, authoritativePriceUSD:1299 });
+    const trialEarlyQuoteLapsed = ref(false);
+    const gates = new Function("computed", "remoteApiEnabled", "freeTrial", "trialEarlyQuoteLapsed", code + "return {screen:trialQuoteScreenUnavailable,action:trialQuoteUnavailable};")
+      (computed,true,freeTrial,trialEarlyQuoteLapsed);
+    const unavailable=gates.screen;
+    expect(unavailable.value).toBe(false);
+    freeTrial.authorityStatus="loading"; expect(unavailable.value).toBe(false);
+    expect(gates.action.value).toBe(true);
+    freeTrial.authorityServerState=null; expect(unavailable.value).toBe(true);
+    freeTrial.authorityStatus="error"; expect(unavailable.value).toBe(true);
+    freeTrial.authorityStatus="ready"; freeTrial.authorityServerState="ACTIVE"; freeTrial.status="active";
+    freeTrial.authoritativeOffsetUSD=null; expect(unavailable.value).toBe(true);
+    freeTrial.authoritativeOffsetUSD=0; expect(unavailable.value).toBe(false);
+    trialEarlyQuoteLapsed.value=true; expect(unavailable.value).toBe(true);
+  });
   it.each([499, 1999])("quotes the claim price rather than changed catalogue price %s", catalogPrice => {
     const subtotal = ts.transpileModule(source.slice(source.indexOf("const purchaseSubtotal ="), source.indexOf("const promoDiscount =")), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
     const net = ts.transpileModule(source.slice(source.indexOf("const netPrice ="), source.indexOf("// 异常4: credit")), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
@@ -75,13 +94,13 @@ function harness() {
   let current = true;
   const scope = { accountKey: "fixture-a", accountEpoch: 1, productNo: "stellarbox-s1", generation: 1 };
   const deps = {
-    trialQuoteUnavailable: ref(false),
+    trialQuoteUnavailable: ref(false), trialQuoteScreenUnavailable: ref(false),
     ref, voucherSelecting:ref(false), remoteApiEnabled: true, checkoutWalletRefreshing: ref(false), step: ref("confirm"),
     captureCheckoutRoute: () => scope, isCurrentCheckoutRoute: () => current,
     resumeServerOrder: vi.fn().mockResolvedValue(false), product: ref({ id: scope.productNo }),
     trialView: ref({ applied: true, quoteVersion: null as string | null }), trialQuoteAt: vi.fn().mockReturnValue({ applied: true, quoteVersion: null }), mockServerNow: () => 0,
     netPrice: ref(1247.73), cardFee: ref(0), voucherMatch: ref(null), voucherDiscount: ref(0), appliedTradeinView: ref(null),
-    freeTrial: { convert: vi.fn(), hasPendingConversion: vi.fn().mockReturnValue(false) },
+    freeTrial: { refreshRemote: vi.fn().mockResolvedValue(true), convert: vi.fn(), hasPendingConversion: vi.fn().mockReturnValue(false) },
     app: { user: { usdtBalance: 0.10 }, debitBalance: vi.fn(), creditBalance: vi.fn() },
     t: ref(en), toast: { warn: vi.fn(), error: vi.fn() }, orderId: ref(null), navReplace: vi.fn(), navTo: vi.fn(),
     confirm: vi.fn().mockResolvedValue(true), dialogOwner: "fixture-dialog", fmt: (copy: string) => copy,
@@ -94,6 +113,78 @@ function harness() {
 }
 
 describe("real trial checkout refusal and recovery feedback", () => {
+  it.each(["success","failed","stale"])("keeps the original tap scoped while waiting for a trial poll: %s", async outcome => {
+    const code=ts.transpileModule(source.slice(source.indexOf("async function submitReview()"),source.indexOf("function selectPayment(")),
+      {compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
+    let finish!: (ready:boolean)=>void,current=true;
+    const deps={captureCheckoutRoute:()=>({epoch:1}),isCurrentCheckoutRoute:()=>current,trialQuoteUnavailable:ref(true),
+      trialQuoteScreenUnavailable:ref(false),freeTrial:{refreshRemote:vi.fn(()=>new Promise<boolean>(done=>{finish=done;}))},
+      quantitySwitching:ref(false),remoteApiEnabled:true,checkoutWalletReadable:ref(true),step:ref("confirm"),
+      goConfirm:vi.fn(),nextTick:async()=>{},requestConfirmPay:vi.fn()};
+    const tap=new Function(...Object.keys(deps),code+"return submitReview;")(...Object.values(deps));
+    const pending=tap(); deps.trialQuoteUnavailable.value=false; current=outcome!=="stale";
+    finish(outcome!=="failed"); await pending;
+    expect(deps.requestConfirmPay).toHaveBeenCalledTimes(outcome==="success"?1:0);
+  });
+  it("does not open a new confirmation when identity changes during the review render tick", async () => {
+    const code=ts.transpileModule(source.slice(source.indexOf("async function submitReview()"),source.indexOf("function selectPayment(")),
+      {compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
+    let current=true; const step=ref("select-payment");
+    const deps={captureCheckoutRoute:()=>({epoch:1}),isCurrentCheckoutRoute:()=>current,trialQuoteUnavailable:ref(false),
+      trialQuoteScreenUnavailable:ref(false),freeTrial:{refreshRemote:vi.fn()},quantitySwitching:ref(false),remoteApiEnabled:true,
+      checkoutWalletReadable:ref(true),step,goConfirm:()=>{step.value="confirm";},nextTick:async()=>{current=false;},requestConfirmPay:vi.fn()};
+    const tap=new Function(...Object.keys(deps),code+"return submitReview;")(...Object.values(deps));
+    await tap(); expect(deps.requestConfirmPay).not.toHaveBeenCalled();
+  });
+  it.each(["mode","version","poll"])("checks the trial state when the confirmation dialog outlives its %s", async change => {
+    const code=ts.transpileModule(source.slice(source.indexOf("let purchaseConfirmationOpen = false;"),source.indexOf("async function onConfirmPay()")),
+      { compilerOptions:{target:ts.ScriptTarget.ES2022} }).outputText;
+    let accept!: (value:boolean)=>void;
+    const trialView=ref({applied:false,quoteVersion:null as string|null});
+    const deps={trialView,trialQuoteUnavailable:ref(false),trialQuoteScreenUnavailable:ref(false),voucherSelecting:ref(false),checkoutWalletRefreshing:ref(false),
+      step:ref("confirm"),captureCheckoutRoute:()=>({}),isCurrentCheckoutRoute:()=>true,netPrice:ref(100),cardFee:ref(0),
+      trialConversionMode:computed(()=>trialView.value.applied),freeTrial:{hasPendingConversion:()=>false},
+      product:ref({name:"Device"}),t:ref(en),purchaseCopy:ref({}),confirmTotalText:ref("100.00"),trialCreditText:ref(""),
+      confirm:vi.fn(()=>new Promise<boolean>(resolve=>{accept=resolve;})),dialogOwner:"trial-review",fmt:(text:string)=>text,
+      onConfirmPay:vi.fn(),toast:{warn:vi.fn()}};
+    const pay=new Function(...Object.keys(deps),"let confirming=false,dialogsOpen=0;"+code+"return requestConfirmPay;")(...Object.values(deps));
+    const pending=pay();
+    if(change==="mode")trialView.value.applied=true;
+    else if(change==="version")trialView.value.quoteVersion="NEW";
+    else deps.trialQuoteUnavailable.value=true;
+    accept(true); await pending;
+    if(change==="poll") { expect(deps.onConfirmPay).toHaveBeenCalledOnce(); return; }
+    expect(deps.onConfirmPay).not.toHaveBeenCalled(); expect(deps.toast.warn).toHaveBeenCalledWith(en.store.coTotalQuoteChanged);
+    expect(deps.step.value).toBe("select-payment");
+  });
+  it("waits for current trial authority before an ordinary or trade-in payment and refuses failed reads", async () => {
+    const h = harness(); h.trialView.value.applied=false;
+    let resolve!: (ready:boolean) => void;
+    h.freeTrial.refreshRemote.mockReturnValue(new Promise<boolean>(done => { resolve=done; }));
+    const pending=h.pay(); await vi.waitFor(() => expect(h.freeTrial.refreshRemote).toHaveBeenCalledOnce());
+    expect(h.submitRemoteOrder).not.toHaveBeenCalled(); expect(h.freeTrial.convert).not.toHaveBeenCalled();
+    resolve(false); await pending; expect(h.submitRemoteOrder).not.toHaveBeenCalled();
+    h.freeTrial.refreshRemote.mockResolvedValue(true); await h.pay();
+    expect(h.submitRemoteOrder).toHaveBeenCalledOnce(); expect(h.freeTrial.convert).not.toHaveBeenCalled();
+  });
+  it("reaches the fresh payment read when another poll starts while the confirmation is open", async () => {
+    const h=harness(); h.trialView.value.applied=false; h.trialQuoteUnavailable.value=true;
+    h.freeTrial.refreshRemote.mockImplementation(async()=>{h.trialQuoteUnavailable.value=false;return true;});
+    await h.pay(); expect(h.freeTrial.refreshRemote).toHaveBeenCalledOnce(); expect(h.submitRemoteOrder).toHaveBeenCalledOnce();
+  });
+  it("rejects stale identities and changed trial transaction modes after the fresh read", async () => {
+    const h=harness(); h.trialView.value.applied=false;
+    h.freeTrial.refreshRemote.mockImplementation(async () => { h.trialView.value.applied=true; return true; });
+    await h.pay(); expect(h.submitRemoteOrder).not.toHaveBeenCalled(); expect(h.freeTrial.convert).not.toHaveBeenCalled();
+    expect(h.toast.warn).toHaveBeenCalledWith(en.store.coTotalQuoteChanged);
+    const stale=harness(); stale.trialView.value.applied=false;
+    stale.freeTrial.refreshRemote.mockImplementation(async () => { stale.stale(); return true; });
+    await stale.pay(); expect(stale.submitRemoteOrder).not.toHaveBeenCalled(); expect(stale.freeTrial.convert).not.toHaveBeenCalled();
+    const version=harness(); version.trialView.value.quoteVersion="REVIEWED";
+    version.freeTrial.refreshRemote.mockImplementation(async () => { version.trialView.value.quoteVersion="NEW"; return true; });
+    await version.pay(); expect(version.freeTrial.convert).not.toHaveBeenCalled();
+    expect(version.toast.warn).toHaveBeenCalledWith(en.store.coTotalQuoteChanged);
+  });
   it("echoes the current server quote version without changing its reviewed amount", async () => {
     const h = harness(); h.trialView.value.quoteVersion = "SERVER-QUOTE-05";
     h.trialQuoteAt.mockReturnValue({ applied: true, quoteVersion: "SERVER-QUOTE-05" });

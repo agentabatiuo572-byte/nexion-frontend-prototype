@@ -991,8 +991,17 @@ body {
 .nx-sheet-slide-up {
   animation: nx-sheet-slide-up 340ms cubic-bezier(0.32, 0.72, 0, 1) both;
 }
+/* Centred dialogs: fade in with a slight scale-up. */
+@keyframes nx-dialog-pop-in {
+  from { opacity: 0; transform: scale(.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.nx-dialog-pop-in {
+  animation: nx-dialog-pop-in 260ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
 @media (prefers-reduced-motion: reduce) {
   .nx-sheet-slide-up { animation: nx-sheet-fade-in 200ms ease both; }
+  .nx-dialog-pop-in { animation: nx-sheet-fade-in 200ms ease both; }
 }
 
 /* Flat content keeps its press feedback on decoration, leaving text stationary. */

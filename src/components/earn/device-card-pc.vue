@@ -21,7 +21,7 @@
          庆祝(780),菜单开着时庆祝盖在上面并吞掉「以旧换新 / 统计」的点击。 -->
     <view
       v-if="menuOpen"
-      class="nx-device-quick-menu flex items-end"
+      class="nx-device-quick-menu nx-sheet-fade-in flex items-end"
       style="position: fixed; inset: 0; z-index: 790; background: var(--v5-bg-color-mask)"
       role="dialog"
       aria-modal="true"
@@ -30,7 +30,7 @@
       @keydown="onMenuKeydown"
     >
       <!-- Mobile action sheet: handle, device header, grouped actions, separate cancel. -->
-      <view class="nx-glass-sheet nx-action-sheet" @click.stop>
+      <view class="nx-glass-sheet nx-action-sheet nx-sheet-slide-up" @click.stop>
         <view class="nx-action-sheet__handle" aria-hidden="true" />
         <view class="nx-action-sheet__head">
           <text class="nx-action-sheet__title">{{ displayName }}</text>

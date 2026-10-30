@@ -6,8 +6,8 @@
 <template>
   <view v-if="visible" class="nx-capacity-explainer-root fixed inset-0" style="z-index: 900" role="dialog" aria-modal="true" :aria-label="t.earn.capExplainTitle" @click.stop>
     <!-- 仅 @click(uni 编译器小程序端自动映射 tap;H5 双绑会双触发) -->
-    <view class="absolute inset-0" style="background: var(--v5-bg-color-mask)" @click="close" />
-    <view class="nx-glass-sheet absolute left-0 right-0 bottom-0" :style="sheetStyle">
+    <view class="absolute inset-0 nx-sheet-fade-in" style="background: var(--v5-bg-color-mask)" @click="close" />
+    <view class="nx-glass-sheet nx-sheet-slide-up absolute left-0 right-0 bottom-0" :style="sheetStyle">
       <view class="flex items-center justify-between">
         <text style="font-family: var(--font-v5); font-size: var(--ui-type-hero-title); font-weight: var(--ui-type-hero-title-weight); color: var(--v5-ink)">{{ t.earn.capExplainTitle }}</text>
         <view class="grid place-items-center active:opacity-70" style="width:44px;height:44px;flex:none" role="button" tabindex="0" :aria-label="t.ui.close" @click.stop="close">

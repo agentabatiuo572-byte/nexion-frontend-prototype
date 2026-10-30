@@ -1,7 +1,7 @@
 <template>
   <view v-if="open" class="invite-detail" role="dialog" aria-modal="true" :aria-label="title">
-    <view class="invite-detail__mask" @click="emit('close')" />
-    <view class="invite-detail__sheet">
+    <view class="invite-detail__mask nx-sheet-fade-in" @click="emit('close')" />
+    <view class="invite-detail__sheet nx-sheet-slide-up">
       <view class="invite-detail__header"><text>{{ title }}</text><view class="invite-detail__close" role="button" tabindex="0" :aria-label="t.ui.close" @click="emit('close')" @keydown.enter.prevent="emit('close')" @keydown.space.prevent="emit('close')"><LiquidGlass :radius="999" tone="control" /><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg></view></view>
       <view class="invite-detail__body">
         <template v-if="mode === 'rules'">

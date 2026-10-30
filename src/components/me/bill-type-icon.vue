@@ -7,29 +7,29 @@
 <template>
   <!-- earn / swap share the Coins/ArrowDownUp split below -->
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" :stroke="color" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <!-- earn: Coins -->
+    <!-- earn: Zap (compute earnings) -->
     <template v-if="type === 'earn'">
-      <circle cx="8" cy="8" r="6" /><path d="M18.09 10.37A6 6 0 1 1 10.34 18" /><path d="M7 6h1v4" /><path d="m16.71 13.88.7.71-2.82 2.82" />
+      <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
     </template>
-    <!-- refer: Sparkles -->
+    <!-- refer: UserPlus -->
     <template v-else-if="type === 'refer'">
-      <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z" /><path d="M20 3v4" /><path d="M22 5h-4" /><path d="M4 17v2" /><path d="M5 18H3" />
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M19 8v6" /><path d="M22 11h-6" />
     </template>
-    <!-- bonus / achievement: Award -->
+    <!-- bonus / achievement: medal -->
     <template v-else-if="type === 'bonus' || type === 'achievement'">
-      <path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526" /><circle cx="12" cy="8" r="6" />
+      <circle cx="12" cy="9" r="6" /><path d="m8.5 14.5-1.5 7 5-3 5 3-1.5-7" />
     </template>
-    <!-- topup: ArrowDownLeft -->
+    <!-- topup: ArrowUpFromLine -->
     <template v-else-if="type === 'topup'">
-      <path d="M17 7 7 17" /><path d="M17 17H7V7" />
+      <path d="m18 9-6-6-6 6" /><path d="M12 3v14" /><path d="M5 21h14" />
     </template>
-    <!-- withdraw: ArrowUpRight -->
+    <!-- withdraw: ArrowDownToLine -->
     <template v-else-if="type === 'withdraw'">
-      <path d="M7 7h10v10" /><path d="M7 17 17 7" />
+      <path d="M12 3v14" /><path d="m6 11 6 6 6-6" /><path d="M19 21H5" />
     </template>
-    <!-- purchase: ShoppingBag -->
+    <!-- purchase: bag -->
     <template v-else-if="type === 'purchase'">
-      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 0 1-8 0" />
+      <path d="M6 7h12l-1 13H7z" /><path d="M9 7a3 3 0 0 1 6 0" />
     </template>
     <!-- swap: ArrowDownUp -->
     <template v-else-if="type === 'swap'">

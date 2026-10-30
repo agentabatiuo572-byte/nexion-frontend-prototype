@@ -22,6 +22,7 @@ function mount(motion = true) {
   const imports: Record<string, unknown> = {
     vue: Vue, "./home-live-feed": feed, "@/api/server-time": { parseServerTimestamp }, "@/lib/usd-display": { formatUsd }, "@/lib/route": { navTo: vi.fn() },
     "@/components/glass-segments.vue": { default: { render: () => null } },
+    "./home-running-tasks.vue": { default: { render: () => null } }, "./home-income-list.vue": { default: { render: () => null } },
     "@/i18n/use-t": { useT: () => Vue.ref(zh) }, "@/store/locale": { useLocaleStore: () => ({ code: "zh" }) },
     "@/store/app": { useApp: () => app }, "@/store/data-visibility": { useDataVisibility: () => ({ hidden: false, mask: String }) },
     "@/composables/use-intro-motion": { useIntroMotion: () => Vue.ref(motion) },
@@ -47,7 +48,6 @@ it("shows the first ledger snapshot at once, then reveals each new settlement ol
   expect(view.shown()).toEqual(["e", "d", "c", "b", "a"]); expect(view.state.enteringId.value).toBe("e");
   view.tick();
   expect(view.shown()).toEqual(["e", "d", "c", "b", "a"]);
-  expect(view.state.displayEarningsItems.value.map((item: { id: string }) => item.id)).toEqual(view.shown());
 });
 
 it("keeps six rows visible while new settlements wait", async () => {

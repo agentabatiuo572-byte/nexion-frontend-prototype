@@ -8,8 +8,8 @@
 -->
 <template>
   <view v-if="open && recovering" class="nx-staking-sheet-root" role="dialog" aria-modal="true" :aria-label="t.stakingV3.sheet.checkPrevious">
-    <view class="nx-sheet-backdrop" @click="emitClose" />
-    <view class="nx-glass-sheet nx-sheet-panel" :style="panelStyle">
+    <view class="nx-sheet-backdrop nx-sheet-fade-in" @click="emitClose" />
+    <view class="nx-glass-sheet nx-sheet-panel nx-sheet-slide-up" :style="panelStyle">
       <text class="block" :style="titleStyle">{{ staking.pendingOpenRejection ? t.stakingV3.sheet.failedTitle : t.stakingV3.toast.openFailedTitle }}</text>
       <text v-if="pendingOpen" class="block" :style="subtitleStyle">{{ fmt(t.stakingV3.sheet.cta, { amount: formatAmount(pendingOpen.amountUsdt), n: pendingTerm }) }}</text>
       <text v-if="!staking.pendingOpenRejection" class="block" :style="noticeStyle">{{ t.stakingV3.sheet.pendingHint }}</text>
@@ -21,10 +21,10 @@
   </view>
   <view v-else-if="open && term !== null && selectedPool" class="nx-staking-sheet-root" role="dialog" aria-modal="true" :aria-label="t.staking.title">
     <transition name="nx-sheet-fade">
-      <view v-if="open" class="nx-sheet-backdrop" @click="emitClose" />
+      <view v-if="open" class="nx-sheet-backdrop nx-sheet-fade-in" @click="emitClose" />
     </transition>
     <transition name="nx-sheet-slide">
-      <view v-if="open" class="nx-glass-sheet nx-sheet-panel" :style="panelStyle" @click.stop>
+      <view v-if="open" class="nx-glass-sheet nx-sheet-panel nx-sheet-slide-up" :style="panelStyle" @click.stop>
         <!-- Title row -->
         <view class="flex items-start justify-between" style="margin-bottom: 16px">
           <view>
@@ -91,8 +91,8 @@
     </transition>
   </view>
   <view v-else-if="open && term !== null" class="nx-staking-sheet-root" role="dialog" aria-modal="true" :aria-label="t.staking.remoteUnavailableClosed">
-    <view class="nx-sheet-backdrop" @click="emitClose" />
-    <view class="nx-staking-sheet-panel nx-sheet-panel" :style="panelStyle" @click.stop>
+    <view class="nx-sheet-backdrop nx-sheet-fade-in" @click="emitClose" />
+    <view class="nx-staking-sheet-panel nx-sheet-panel nx-sheet-slide-up" :style="panelStyle" @click.stop>
       <view class="flex items-start justify-between" style="gap: 12px">
         <text class="block" :style="titleStyle">{{ t.staking.remoteUnavailableClosed }}</text>
         <view class="inline-flex items-center justify-center active:opacity-60" :style="closeBtnStyle" role="button" tabindex="0" :aria-label="t.ui.close" @click="emitClose"  @keydown.enter.prevent="emitClose" @keydown.space.prevent="emitClose">

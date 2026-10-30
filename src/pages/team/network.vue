@@ -51,8 +51,8 @@
 
       <!-- The only surfaced container is the modal member detail. -->
       <view v-if="selected" class="nx-net-sheet-wrap" role="dialog" aria-modal="true" :aria-label="selected.name">
-        <view class="nx-net-scrim" @click="selected = null" />
-        <view class="nx-glass-sheet nx-net-sheet" :style="sheetStyle">
+        <view class="nx-net-scrim nx-sheet-fade-in" @click="selected = null" />
+        <view class="nx-glass-sheet nx-net-sheet nx-sheet-slide-up" :style="sheetStyle">
           <view class="sheet-handle" aria-hidden="true" />
           <view class="sheet-heading">
             <TeamRankEmblem v-if="!visibility.hidden" :rank="selected.vRank" :size="60" />

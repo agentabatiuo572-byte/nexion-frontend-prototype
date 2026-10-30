@@ -13,11 +13,11 @@
   <view v-if="open" class="nx-genesis-purchase-root" role="dialog" aria-modal="true" :aria-label="t.genesis.confirmTitle">
     <!-- Backdrop -->
     <transition name="nx-sheet-fade">
-      <view v-if="open" class="nx-sheet-backdrop" @click="emitClose" />
+      <view v-if="open" class="nx-sheet-backdrop nx-sheet-fade-in" @click="emitClose" />
     </transition>
     <!-- Panel -->
     <transition name="nx-sheet-slide">
-      <view v-if="open" class="nx-glass-sheet nx-sheet-panel" :style="panelStyle" @click.stop>
+      <view v-if="open" class="nx-glass-sheet nx-sheet-panel nx-sheet-slide-up" :style="panelStyle" @click.stop>
         <!-- Title row -->
         <view class="flex items-start justify-between" style="margin-bottom: 16px">
           <view>

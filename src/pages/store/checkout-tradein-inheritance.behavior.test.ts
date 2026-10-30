@@ -38,6 +38,8 @@ function checkout(active: boolean) {
       refreshRemoteFleet: vi.fn().mockResolvedValue(true) },
     product: ref({ id: "stellarbox-pro" }), purchaseUnavailable: ref(false), voucherQuote: { id: null },
     quotedTotal: 80, confirming: true, offerWalletTopup: vi.fn(), refreshPurchaseEligibility: vi.fn().mockResolvedValue("eligible"),
+    netPrice:ref(80),cardFee:ref(0),trialView:ref({applied:false,quoteVersion:null}),trialQuoteScreenUnavailable:ref(false),
+    freeTrial:{hasPendingConversion:()=>false},
     tradein: { appliedTradein: { canonicalQuote: quote }, clearApplied: vi.fn() },
     appliedTradeinView: ref({ device: { id: "11" }, canonicalQuote: quote }),
     deviceE3Api: { submit: vi.fn().mockResolvedValue(submitted) },
@@ -65,6 +67,21 @@ it.each([true, false])("the actual RETIRE handler verifies the selected source p
   expect(h.tradein.clearApplied).toHaveBeenCalledOnce();
   expect(h.finishCheckoutTradein.mock.invocationCallOrder[0]).toBeLessThan(h.tradein.clearApplied.mock.invocationCallOrder[0]);
   expect(h.app.user.usdtBalance).toBe(100);
+});
+
+it.each(["trial","quote","amount","error"])("does not start a new trade-in after eligibility changes the reviewed %s", async change => {
+  const h=checkout(false);
+  h.refreshPurchaseEligibility.mockImplementation(async () => {
+    if(change==="trial")h.trialView.value.applied=true;
+    if(change==="quote")h.trialView.value.quoteVersion="NEW";
+    if(change==="amount")h.netPrice.value=81;
+    if(change==="error")h.trialQuoteScreenUnavailable.value=true;
+    return "eligible";
+  });
+  await h.submit();
+  expect(h.deviceE3Api.submit).not.toHaveBeenCalled(); expect(h.orderApi.create).not.toHaveBeenCalled();
+  expect(h.rememberCheckoutOrder).not.toHaveBeenCalled();
+  expect(h.toast.warn).toHaveBeenCalledWith(en.store.coTotalQuoteChanged);
 });
 
 it.each([true, false])("does not commit a changed target placement active=%s", async active => {

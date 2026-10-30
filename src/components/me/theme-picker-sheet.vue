@@ -13,7 +13,7 @@
 <template>
   <view v-if="open" class="nx-theme-picker-root" role="dialog" aria-modal="true" :aria-label="t.me.themePickerTitle">
     <view class="nx-sheet-fade-in" :style="scrimStyle" @click="emit('close')">
-      <view class="nx-glass-sheet nx-sheet-fade-in" :style="panelStyle" @click.stop>
+      <view class="nx-glass-sheet nx-dialog-pop-in" :style="panelStyle" @click.stop>
         <!-- Title row -->
         <view class="flex items-start justify-between" style="gap: 12px; margin-bottom: 14px">
           <text class="block" :style="titleStyle">{{ t.me.themePickerTitle }}</text>

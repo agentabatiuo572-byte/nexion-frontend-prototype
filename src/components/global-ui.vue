@@ -25,13 +25,13 @@
        既确认不了也取消不了,而 confirm() 返回的 Promise 会永久悬空 —— 钱的流程卡死在这里。 -->
   <view
     v-if="topConfirm"
-    class="nx-mask nx-mask--confirm"
+    class="nx-mask nx-mask--confirm nx-sheet-fade-in"
     role="dialog"
     aria-modal="true"
     :aria-label="topConfirm.title"
     @click="ui.resolveConfirm(topConfirm.id, false)"
   >
-    <view class="nx-glass-sheet nx-modal" @click.stop>
+    <view class="nx-glass-sheet nx-modal nx-dialog-pop-in" @click.stop>
       <text class="nx-modal__title">{{ topConfirm.title }}</text>
       <text v-if="topConfirm.message" class="nx-modal__msg">{{ topConfirm.message }}</text>
       <view class="nx-modal__actions">
@@ -58,8 +58,8 @@
   </view>
 
   <!-- Network-error overlay -->
-  <view v-if="ui.netError.visible" class="nx-mask nx-mask--neterr" role="dialog" aria-modal="true" :aria-label="ui.netError.title">
-    <view class="nx-glass-sheet nx-modal">
+  <view v-if="ui.netError.visible" class="nx-mask nx-mask--neterr nx-sheet-fade-in" role="dialog" aria-modal="true" :aria-label="ui.netError.title">
+    <view class="nx-glass-sheet nx-modal nx-dialog-pop-in">
       <text class="nx-modal__title">{{ ui.netError.title }}</text>
       <text class="nx-modal__msg">{{ ui.netError.message }}</text>
       <view class="nx-modal__actions">

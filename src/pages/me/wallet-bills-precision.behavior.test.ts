@@ -1,4 +1,5 @@
 import { formatUsd } from "@/lib/usd-display";
+import { formatWalletBillDecimal } from "@/lib/wallet-bill-display";
 import { platformDisplayText } from "@/lib/brand-copy";
 import * as Vue from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
@@ -33,7 +34,7 @@ async function render(locale: keyof typeof dicts, rows: Bill[], ledgerBizNo = ""
     "@/components/glass-segments.vue": { default: Vue.defineComponent(() => () => Vue.h("view", { "data-bill-tabs": "true" })) }, "@/i18n/use-t": { useT: () => Vue.ref(dicts[locale]) },
     "@/i18n/format": { dateLocale: () => locale, fmt: (text: string) => text },
     "@/lib/wallet-bill-date": { walletBillMonthKey: () => "2026-10", walletBillMonthLabel: () => "October", walletBillTimeLabel: () => "12:00" },
-    "@/lib/wallet-bill-display": { resolveWalletBillMemo: () => "Reward" }, "@/lib/rank-how-content": { formatHowNumber },
+    "@/lib/wallet-bill-display": { resolveWalletBillMemo: () => "Reward", formatWalletBillDecimal }, "@/lib/rank-how-content": { formatHowNumber },
     "@/composables/use-course-reward-titles": { useCourseRewardTitles: () => Vue.ref({}) },
     "@/store/bills": { useBills: () => ({ bills: rows, getLedger: () => pager }) },
     "@/store/app": { useApp: () => ({ accountBindingEpoch: 1, accountKey: "user:7" }) },

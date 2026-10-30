@@ -17,6 +17,8 @@ function harness() {
     captureAccountScope: () => ({}), isCurrentAccountScope: () => true,
     app: { captureRemoteAccountRequest: () => ({}), user: { usdtBalance: 100 }, adoptCommerceWallet: vi.fn(), refreshRemoteFleet: vi.fn() },
     product: ref({ id: "sku" }), purchaseUnavailable: ref(false), voucherQuote: { id: null }, quotedTotal: 100,
+    netPrice:ref(100),cardFee:ref(0),trialView:ref({applied:false,quoteVersion:null}),trialQuoteScreenUnavailable:ref(false),
+    freeTrial:{hasPendingConversion:()=>false},
     confirming: true, offerWalletTopup: vi.fn(), refreshPurchaseEligibility: vi.fn().mockResolvedValue("eligible"),
     captureCheckoutRoute: () => ({ accountKey: "a", accountEpoch: 1, productNo: "sku", generation: 1 }),
     isCurrentCheckoutRoute: () => true,

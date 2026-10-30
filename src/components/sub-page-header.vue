@@ -221,7 +221,7 @@ import LiquidGlass from "@/components/liquid-glass.vue";
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--v5-brand-2);
+  background: var(--ui-unread-badge);
 }
 </style>
 

@@ -1,6 +1,6 @@
 <template>
-  <view v-if="open" class="nx-sheet-mask" @click.self="$emit('close')">
-    <view :id="id" class="nx-sheet" role="dialog" aria-modal="true" :aria-label="title">
+  <view v-if="open" class="nx-sheet-mask nx-sheet-fade-in" @click.self="$emit('close')">
+    <view :id="id" class="nx-sheet nx-sheet-slide-up" role="dialog" aria-modal="true" :aria-label="title">
       <view class="nx-sheet__header"><text class="nx-sheet__title">{{ title }}</text><NxButton :label="copy.close" size="medium" @click="$emit('close')"><text aria-hidden="true">×</text></NxButton></view>
       <view class="nx-sheet__body"><slot /></view>
       <view v-if="$slots.footer" class="nx-sheet__footer"><slot name="footer" /></view>

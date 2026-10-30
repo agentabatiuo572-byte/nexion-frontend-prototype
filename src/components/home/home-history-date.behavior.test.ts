@@ -40,6 +40,7 @@ function page(source: string, language: keyof typeof dictionaries) {
     "@/i18n/use-t": { useT: () => Vue.computed(() => dictionaries[locale.code]) }, "@/store/locale": { useLocaleStore: () => locale },
     "@/store/app": { useApp: () => app }, "@/api/runtime": { remoteApiEnabled: true },
     "@/lib/route": { navTo: vi.fn() }, "@/components/glass-segments.vue": { default: segments },
+    "./home-running-tasks.vue": { default: { render: () => null } }, "./home-income-list.vue": { default: { render: () => null } },
     "@/composables/use-intro-motion": { useIntroMotion: () => Vue.ref(false) },
   };
   const exports = {} as { default: { setup: (props: object, context: object) => any } };
@@ -58,11 +59,11 @@ it.each([
   ["zh", "2025/12/31 23:59", "2026/01/01 00:05"],
   ["en", "Dec 31, 2025 23:59", "Jan 1, 2026 00:05"],
   ["vi", "31/12/2025 23:59", "01/01/2026 00:05"],
-] as const)("renders full year/day/minutes in actual %s activity, earnings and ledger consumers", async (language, older, newer) => {
+] as const)("renders full year/day/minutes in actual %s activity and ledger consumers", async (language, older, newer) => {
   vi.stubEnv("TZ", "Asia/Tokyo"); expect(new Date("2025-12-31T15:05:00Z").getTimezoneOffset()).toBe(-540);
   vi.stubGlobal("Intl", undefined);
   const activity = page(activitySource, language), ledger = page(ledgerSource, language);
-  for (const html of [await activity.html(), await activity.html("earnings"), await ledger.html()]) {
+  for (const html of [await activity.html(), await ledger.html()]) {
     expect(html).toContain(older); expect(html).toContain(newer);
   }
   expect(JSON.stringify(activity.app.homeTruth.earningsLedger)).toBe(activity.original);

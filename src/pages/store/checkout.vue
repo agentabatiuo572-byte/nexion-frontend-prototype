@@ -1195,10 +1195,14 @@ const stepLabels = computed(() => [
 ]);
 const stepDisplay = computed(() => ['confirmed','activating','live'].includes(step.value) ? 2 : ['pay-instructions','awaiting'].includes(step.value) ? 1 : 0);
 async function submitReview() {
+  const scope = captureCheckoutRoute();
   // A tap during the 4s trial re-read waits for that read, then goes on with the fresh authority.
-  if (trialQuoteUnavailable.value && !trialQuoteScreenUnavailable.value) await freeTrial.refreshRemote();
+  if (trialQuoteUnavailable.value && !trialQuoteScreenUnavailable.value) {
+    const ready = await freeTrial.refreshRemote();
+    if (!ready || !isCurrentCheckoutRoute(scope)) return;
+  }
   if (trialQuoteUnavailable.value || quantitySwitching.value || (remoteApiEnabled && !checkoutWalletReadable.value)) return;
-  if (step.value === 'select-payment') { goConfirm(); await nextTick(); }
+  if (step.value === 'select-payment') { goConfirm(); await nextTick(); if (!isCurrentCheckoutRoute(scope)) return; }
   if (step.value === 'confirm') await requestConfirmPay();
 }
 
@@ -1275,6 +1279,8 @@ async function requestConfirmPay() {
   if (voucherSelecting.value || purchaseConfirmationOpen || confirming || checkoutWalletRefreshing.value || step.value !== "confirm") return;
   const scope = captureCheckoutRoute();
   const amount = netPrice.value + cardFee.value;
+  const reviewedTrialApplied = trialView.value.applied;
+  const reviewedTrialQuoteVersion = trialView.value.quoteVersion;
   if (!Number.isFinite(amount) || amount < 0) return;
   purchaseConfirmationOpen = true;
   dialogsOpen += 1;
@@ -1291,8 +1297,10 @@ async function requestConfirmPay() {
       cancelLabel: t.value.store.coCancel,
       owner: dialogOwner,
     });
-    if (!accepted || !isCurrentCheckoutRoute(scope) || trialQuoteUnavailable.value || step.value !== "confirm") return;
-    if (amount !== netPrice.value + cardFee.value) {
+    if (!accepted || !isCurrentCheckoutRoute(scope) || trialQuoteScreenUnavailable.value || step.value !== "confirm") return;
+    if (amount !== netPrice.value + cardFee.value
+        || (!freeTrial.hasPendingConversion() && (reviewedTrialApplied !== trialView.value.applied
+          || reviewedTrialQuoteVersion !== trialView.value.quoteVersion))) {
       toast.warn(t.value.store.coTotalQuoteChanged);
       step.value = "select-payment";
       return;
@@ -1305,17 +1313,24 @@ async function requestConfirmPay() {
 }
 
 async function onConfirmPay() {
-  if (trialQuoteUnavailable.value) return;
+  if (trialQuoteScreenUnavailable.value) return;
   if (voucherSelecting.value || confirming || checkoutWalletRefreshing.value || step.value !== "confirm") return;
   confirming = true;
   const recoveryScope = captureCheckoutRoute();
   const confirmedAmount = netPrice.value + cardFee.value;
+  const confirmedTrialApplied = trialView.value.applied;
+  const confirmedTrialQuoteVersion = trialView.value.quoteVersion;
   if (remoteApiEnabled) {
     const recovering = await resumeServerOrder(recoveryScope);
     if (recovering || !isCurrentCheckoutRoute(recoveryScope)) { confirming = false; return; }
+    // Background polls retain the reviewed page; only a fresh authority read can authorize payment.
+    const trialReady = await freeTrial.refreshRemote();
+    if (!trialReady || !isCurrentCheckoutRoute(recoveryScope)) { confirming = false; return; }
   }
   if (trialQuoteUnavailable.value) { confirming = false; return; }
-  if (confirmedAmount !== netPrice.value + cardFee.value) {
+  if (confirmedAmount !== netPrice.value + cardFee.value
+      || (!freeTrial.hasPendingConversion() && (confirmedTrialApplied !== trialView.value.applied
+        || confirmedTrialQuoteVersion !== trialView.value.quoteVersion))) {
     confirming = false;
     toast.warn(t.value.store.coTotalQuoteChanged);
     step.value = "select-payment";
@@ -1770,6 +1785,8 @@ async function offerWalletTopup(requiredUsdt: number, routeScope = captureChecko
 async function submitRemoteOrder(): Promise<void> {
   const submissionScope = captureCheckoutRoute();
   const scopeIsCurrent = () => isCurrentCheckoutRoute(submissionScope);
+  const reviewedTotal = netPrice.value + cardFee.value;
+  const reviewedTrialVersion = trialView.value.quoteVersion;
   if (await resumePendingRemoteTradein(submissionScope)) { confirming = false; return; }
   const walletReceiptScope = app.captureRemoteAccountRequest();
   const p = product.value;
@@ -1802,6 +1819,13 @@ async function submitRemoteOrder(): Promise<void> {
   // order after an account change, product change, or page exit.
   if (!scopeIsCurrent()) {
     confirming = false;
+    return;
+  }
+  if (trialQuoteScreenUnavailable.value || trialView.value.applied || freeTrial.hasPendingConversion()
+      || reviewedTrialVersion !== trialView.value.quoteVersion || reviewedTotal !== netPrice.value + cardFee.value) {
+    confirming = false;
+    toast.warn(t.value.store.coTotalQuoteChanged);
+    step.value = "select-payment";
     return;
   }
   let canonicalOrderCommitted = false;

@@ -167,8 +167,8 @@
       <!-- Drawer -->
       <view v-if="selected" class="nx-globe-drawer" role="dialog" aria-modal="true"
         @touchstart.stop @touchmove.stop @touchend.stop @touchcancel.stop>
-        <view class="nx-globe-scrim" @touchmove.prevent @click="selected = null" />
-        <view class="nx-glass-sheet relative border rounded-2xl" :style="drawerCardStyle">
+        <view class="nx-globe-scrim nx-sheet-fade-in" @touchmove.prevent @click="selected = null" />
+        <view class="nx-glass-sheet nx-sheet-slide-up relative border rounded-2xl" :style="drawerCardStyle">
           <view class="absolute grid place-items-center active:opacity-70" :style="drawerCloseStyle" role="button" tabindex="0" :aria-label="t.trial.sheetCloseAria" @click="selected = null"  @keydown.enter.prevent="selected = null" @keydown.space.prevent="selected = null">
             <view class="grid place-items-center" :style="drawerCloseFaceStyle">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>

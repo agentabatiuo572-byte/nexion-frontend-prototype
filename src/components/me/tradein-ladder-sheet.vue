@@ -1,7 +1,7 @@
 <template>
   <view v-if="device" class="nx-tradein-ladder-root fixed inset-0" style="z-index: 900" role="dialog" aria-modal="true" :aria-label="t.tradein.ladderTitle" @click.stop>
-    <view class="absolute inset-0" style="background: var(--v5-bg-color-mask)" @click="emit('close')" />
-    <view class="nx-glass-sheet absolute left-0 right-0 bottom-0" :style="sheetStyle">
+    <view class="absolute inset-0 nx-sheet-fade-in" style="background: var(--v5-bg-color-mask)" @click="emit('close')" />
+    <view class="nx-glass-sheet nx-sheet-slide-up absolute left-0 right-0 bottom-0" :style="sheetStyle">
       <view class="flex items-center justify-between">
         <text style="font-family: var(--font-v5); font-size: var(--ui-type-hero-title); font-weight: var(--ui-type-hero-title-weight); color: var(--v5-ink)">{{ t.tradein.ladderTitle }}</text>
         <view class="grid place-items-center active:opacity-70" :style="closeBtnStyle" role="button" tabindex="0" :aria-label="t.ui.close" @click.stop="emit('close')">

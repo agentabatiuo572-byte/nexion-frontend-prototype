@@ -41,7 +41,7 @@ describe("controlled wallet descriptions on every consumer", () => {
     const t = ref(en);
     const labelCode = section("./wallet-bills.vue", "function typeLabel(", "function statusLabel(");
     const typeLabel = new Function("t", `${labelCode}; return typeLabel;`)(t);
-    const clickCode = section("./wallet-bills.vue", "function billClickable(", "function billRowOn(");
+    const clickCode = section("./wallet-bills.vue", "function billClickable(", "const detail = ref<Bill | null>(null);");
     const billClickable = new Function("txParamsForTopup", `${clickCode}; return billClickable;`)(() => {
       throw new Error("A refund must not route to a chain transaction");
     });

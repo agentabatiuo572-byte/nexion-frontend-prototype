@@ -2,10 +2,10 @@
 <template>
   <view v-if="open" class="nx-elig-root" role="dialog" aria-modal="true" :aria-label="t.genesisEligibility.title">
     <transition name="nx-elig-fade">
-      <view v-if="open" class="nx-elig-backdrop" @click="emitClose" />
+      <view v-if="open" class="nx-elig-backdrop nx-sheet-fade-in" @click="emitClose" />
     </transition>
     <transition name="nx-elig-slide">
-      <view v-if="open" class="nx-glass-sheet nx-elig-panel" :style="panelStyle" @click.stop>
+      <view v-if="open" class="nx-glass-sheet nx-elig-panel nx-sheet-slide-up" :style="panelStyle" @click.stop>
         <view class="flex items-start justify-between" style="margin-bottom: 14px">
           <view>
             <text class="block" :style="titleStyle">{{ t.genesisEligibility.title }}</text>

@@ -537,10 +537,10 @@ const JULY = Date.parse("2026-07-03T09:00:00.000Z");
 const AUGUST = Date.parse("2026-08-05T11:30:00.000Z");
 
 /**
- * 账单页的分月键 —— 从页面源码确认调用,再抠账单专用 helper 的实现来跑。
+ * 账单页的分组键(按天分组)—— 从页面源码确认调用,再抠账单专用 helper 的实现来跑。
  * (时区、locale、粒度任一处漂移,门与页面就会各说各话 —— 本门 ⑧ 正是栽在「重写一份」上。)
  *
- * 🔴 分组键仅取本地年月,与语言无关。保留旧形参以兼容本门其余调用。
+ * 🔴 分组键仅取本地年月日,与语言无关。保留旧形参以兼容本门其余调用。
  *
  * 🔴 抠不到 / 跑不起来时**不抛**,回 null 让下面的哨兵值去判红。
  * module 级一抛会把它**后面**十几格断言整片带走 —— 门的输出就只剩一条堆栈,
@@ -553,33 +553,33 @@ const monthKeyFn = (() => {
   // 一段不是真在跑的代码上,而抠出来的东西照样能跑、照样全绿。
   const page = readFileSync(path.join(SRC, "pages", "me", "wallet-bills.vue"), "utf8")
     .replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/.*$/gm, "");
-  const m = page.match(/const key = (walletBillMonthKey\(b\.ts\));/);
-  if (!m) { monthKeyErr = "抠不出 wallet-bills 的分月键"; return null; }
+  const m = page.match(/const key = (walletBillDayKey\(b\.ts\));/);
+  if (!m) { monthKeyErr = "抠不出 wallet-bills 的分组键"; return null; }
   try {
     const helper = readFileSync(path.join(SRC, "lib", "wallet-bill-date.ts"), "utf8");
-    const source = helper.match(/export function walletBillMonthKey\(ts: number\): string \{([\s\S]*?)\n\}/);
-    if (!source) throw new Error("walletBillMonthKey implementation missing");
+    const source = helper.match(/export function walletBillDayKey\(ts: number\): string \{([\s\S]*?)\n\}/);
+    if (!source) throw new Error("walletBillDayKey implementation missing");
     const fn = new Function("ts", "dateLocale", "localeTag",
-      `const walletBillMonthKey = (ts) => {${source[1]}}; return ${m[1].replace("b.ts", "ts")};`);
+      `const walletBillDayKey = (ts) => {${source[1]}}; return ${m[1].replace("b.ts", "ts")};`);
     // 构造成功 ≠ 跑得起来:表达式里引用了本门没注入的名字时,`new Function` 不报错,
     // 第一次调用才 ReferenceError。当场试跑一次,把「判据已失效」提前到这里认出来。
     fn(0, () => PINNED_DATE_LOCALE, { value: PINNED_DATE_LOCALE });
     return fn;
   } catch (e) {
-    monthKeyErr = `抠出来的分月键跑不起来:${e?.message ?? e}`;
+    monthKeyErr = `抠出来的分组键跑不起来:${e?.message ?? e}`;
     return null;
   }
 })();
-/** 失效时回**常量**哨兵:同月同键恒成立、跨月异键恒不成立 ⇒ 依赖它的两格都判红(而不是一格假绿)。 */
+/** 失效时回**常量**哨兵:同日同键恒成立、跨日异键恒不成立 ⇒ 依赖它的两格都判红(而不是一格假绿)。 */
 const monthOf = (ts) => (monthKeyFn
   ? monthKeyFn(ts, () => PINNED_DATE_LOCALE, { value: PINNED_DATE_LOCALE })
   : `harness-broken(${monthKeyErr})`);
-// 🔴 判据自证:分月键必须**恰好是月粒度**。抠错了表达式(比如抓到页面里那个精确到分的
-// `fmtTime`)的话,任意两个不同时刻都会得到不同的键 —— 下面那条「落在不同月分组」就变成
-// 一条恒真的自证,而冲正行哪怕只差一秒也算「换了月」。两头都钉:同月同键 + 跨月异键。
-check("🔴 ⑬ 判据自证:抠出来的分月键**恰好是月粒度**(同月同键、跨月异键)",
-  monthOf(AUGUST) === monthOf(AUGUST + 3 * 86400_000) && monthOf(JULY) !== monthOf(AUGUST),
-  JSON.stringify({ aug: monthOf(AUGUST), augPlus3d: monthOf(AUGUST + 3 * 86400_000), jul: monthOf(JULY) }));
+// 🔴 判据自证:分组键必须**恰好是天粒度**(账单页按天分组)。抠错了表达式(比如抓到页面里那个精确到分的
+// `fmtClock`)的话,任意两个不同时刻都会得到不同的键 —— 下面那条「落在不同分组」就变成
+// 一条恒真的自证,而冲正行哪怕只差一秒也算「换了组」。两头都钉:同日同键 + 跨日异键。
+check("🔴 ⑬ 判据自证:抠出来的分组键**恰好是天粒度**(同日同键、跨日异键)",
+  monthOf(AUGUST) === monthOf(AUGUST + 30 * 60_000) && monthOf(AUGUST) !== monthOf(AUGUST + 86400_000) && monthOf(JULY) !== monthOf(AUGUST),
+  JSON.stringify({ aug: monthOf(AUGUST), augPlus30m: monthOf(AUGUST + 30 * 60_000), augPlus1d: monthOf(AUGUST + 86400_000), jul: monthOf(JULY) }));
 
 {
   // 第一拍:7 月提交,服务端还没退 → 账上只有 USDT− 与 NEX−,都该盖提交时刻。
@@ -601,7 +601,7 @@ check("🔴 ⑬ 判据自证:抠出来的分月键**恰好是月粒度**(同月�
     plus?.ts === AUGUST, `ts=${plus?.ts} 期望=${AUGUST}`);
   check("🔴 ⑬ 且**不等于**提交时刻 —— 改回 `submittedAt` 这一条必红",
     plus?.ts !== JULY, `ts=${plus?.ts} submittedAt=${JULY}`);
-  check("🔴 ⑬ 用户看得见的那一面:冲正行与被它冲正的「烧掉」行落在**不同的月分组**里",
+  check("🔴 ⑬ 用户看得见的那一面:冲正行与被它冲正的「烧掉」行落在**不同的日期分组**里",
     plus && monthOf(plus.ts) !== monthOf(minusNex(wd.id)[0].ts),
     `退回→${plus && monthOf(plus.ts)} ｜ 烧掉→${monthOf(minusNex(wd.id)[0].ts)}`);
   check("⑬ 同批其余分录不被带跑:USDT 主行与烧掉行**仍**盖提交时刻(整批时刻照旧生效)",
