@@ -8,14 +8,12 @@ const sources = import.meta.glob([
 const read = (file: string) => sources[`../${file}`];
 
 describe("publication UI regression contracts", () => {
-  it("shares reactive dictionary copy for recommendations and human handoff", () => {
+  it("shares reactive dictionary copy for recommendations", () => {
     expect(read("components/home/featured-learning-card.vue")).toContain("t.learning.featuredLabel");
     expect(read("pages/learn/courses.vue")).toContain("t.learning.featuredLabel");
-    expect(read("pages/support/chat.vue")).toContain("computed(() => t.value.nova.handoff)");
     for (const language of ["en", "zh", "vi"]) {
       const dictionary = read(`i18n/messages/${language}.ts`);
       expect(dictionary).toMatch(/featuredLabel:\s*"[^"]+"/);
-      expect(dictionary).toMatch(/handoff:\s*\{[\s\S]*?action:[\s\S]*?recommend:[\s\S]*?fresh:[\s\S]*?confirm:/);
     }
   });
 
@@ -23,7 +21,6 @@ describe("publication UI regression contracts", () => {
     ["pages/genesis/holder.vue", "genesis.emissionPage.busy"],
     ["pages/genesis/marketplace.vue", "genesis.activityPage.busy"],
     ["pages/store/orders.vue", "genesis.orderPage.busy"],
-    ["pages/support/chat.vue", "handoffBusy"],
   ])("keeps %s actions accessible and guarded when busy", (file, busy) => {
     const source = read(file);
     expect(source).not.toMatch(/<\/?button\b/);

@@ -5,7 +5,7 @@ import test from "node:test";
 const source = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
 test("human floating shortcut opens the unified full-screen Service section", async () => {
-  const bubble = await source("src/components/nova/nova-bubble.vue");
+  const bubble = await source("src/components/support/support-bubble.vue");
   assert.match(bubble, /messageCenter\.show\("service"\)/);
   assert.doesNotMatch(bubble, /navTo\("\/pages\/support\/messages"\)/);
   assert.doesNotMatch(bubble, /navTo\("\/pages\/support\/chat"\)/);

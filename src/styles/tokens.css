@@ -561,37 +561,8 @@ body {
 }
 .glow-green { animation: glow-green 1.8s ease-in-out infinite; }
 
-/* Nova unread pulse — pure box-shadow so no transform/layout side-effects.
-   Avoids the bug where Tailwind's animate-ping (transform: scale(2)) on the
-   floating bubble caused the sticky TabBar to perceptibly jitter. */
-@keyframes nova-pulse {
-  0%, 100% {
-    box-shadow:
-      0 0 24px rgba(198, 255, 58, 0.28),
-      0 0 0 0 rgba(198, 255, 58, 0.45);
-  }
-  70% {
-    box-shadow:
-      0 0 24px rgba(198, 255, 58, 0.28),
-      0 0 0 14px rgba(198, 255, 58, 0);
-  }
-}
-.nova-pulse { animation: nova-pulse 2s ease-out infinite; }
-
-/* Nova gentle floating motion — translate3d for GPU compositing so the
-   sticky TabBar (separate compositing layer) is not affected. */
-@keyframes nova-float {
-  0%, 100% { transform: translate3d(0, 0, 0); }
-  50%      { transform: translate3d(0, -4px, 0); }
-}
-.nova-float {
-  animation: nova-float 3.4s ease-in-out infinite;
-  will-change: transform;
-}
-
-/* NovaAvatar halo pulse — outward brand ring (ported from prototype globals
-   @keyframes v5-nova-halo). Used by <nova-avatar pulse>. */
-@keyframes v5-nova-halo {
+/* Support avatar halo pulse — outward brand ring. Used by <support-avatar pulse>. */
+@keyframes v5-support-halo {
   0%   { box-shadow: 0 0 0 0 color-mix(in oklab, var(--v5-brand) 60%, transparent); }
   70%  { box-shadow: 0 0 0 10px color-mix(in oklab, var(--v5-brand) 0%, transparent); }
   100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--v5-brand) 0%, transparent); }
@@ -864,34 +835,6 @@ body {
   0%   { box-shadow: 0 0 0 0 rgba(14, 142, 74, 0.5); }
   70%  { box-shadow: 0 0 0 8px rgba(14, 142, 74, 0); }
   100% { box-shadow: 0 0 0 0 rgba(14, 142, 74, 0); }
-}
-
-/* Nova avatar halo pulse — outward lemon ring radiating from the cartoon
-   portrait so "Nova is listening" reads visually without re-rendering the
-   character art. Drives NovaAvatar's optional pulse prop. */
-@keyframes v5-nova-halo {
-  0%   { box-shadow: 0 0 0 0 color-mix(in oklab, var(--v5-brand) 60%, transparent); }
-  70%  { box-shadow: 0 0 0 10px color-mix(in oklab, var(--v5-brand) 0%, transparent); }
-  100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--v5-brand) 0%, transparent); }
-}
-
-/* Nova chat-card flowing aurora — three overlapping color blobs drift
-   around inside the bubble continuously, like a slow lava-lamp. Brand
-   (lemon) + brand-2 (purple) + tech-cyan, each blob runs on its own
-   duration / offset so they never align and the motion never repeats
-   visibly. All three live inside the bubble's overflow:hidden container,
-   so motion is fully contained — zero bleed into adjacent layout. */
-@keyframes v5-nova-blob-1 {
-  0%, 100% { transform: translate(-22%, 18%)  scale(1);    opacity: 0.55; }
-  50%      { transform: translate(18%,  -12%) scale(1.25); opacity: 0.85; }
-}
-@keyframes v5-nova-blob-2 {
-  0%, 100% { transform: translate(55%, -15%) scale(1.1);  opacity: 0.4;  }
-  50%      { transform: translate(15%,  25%) scale(0.95); opacity: 0.65; }
-}
-@keyframes v5-nova-blob-3 {
-  0%, 100% { transform: translate(70%, 55%) scale(0.95); opacity: 0.3;  }
-  50%      { transform: translate(40%, 75%) scale(1.2);  opacity: 0.55; }
 }
 
 @keyframes v5-lane-shimmer {

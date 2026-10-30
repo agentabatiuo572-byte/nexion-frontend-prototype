@@ -15,7 +15,7 @@ try{
     const metrics=await page.locator('.me-shortcut-grid').evaluate(grid=>({width:grid.getBoundingClientRect().width,colors:[...new Set([...grid.querySelectorAll('.me-row-icon')].map(icon=>getComputedStyle(icon).color))],items:[...grid.querySelectorAll('.me-shortcut')].map(item=>{const r=item.getBoundingClientRect();return {width:r.width,height:r.height,overflow:item.scrollWidth>item.clientWidth+1}})}));
     assert.equal(metrics.items.length,8);assert.ok(metrics.colors.length>=4);assert.ok(metrics.items.every(item=>item.width>=44&&item.height>=44&&!item.overflow));
     const key=`${width}-${locale}-${theme}`;await page.screenshot({path:path.join(out,key+'.png'),animations:'disabled'});
-    assert.equal(await page.locator('.nx-nova-bubble').count(),0);
+    assert.equal(await page.locator('.nx-support-bubble').count(),0);
     await page.locator('.me-network-grid').evaluate(el=>el.scrollIntoView({block:'center'}));
     await page.waitForFunction(()=>!document.querySelector('.nx-chassis[data-scrolling="true"]'));
     await page.screenshot({path:path.join(out,key+'-network.png'),animations:'disabled'});

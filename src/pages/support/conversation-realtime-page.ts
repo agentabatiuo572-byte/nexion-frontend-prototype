@@ -1,6 +1,5 @@
 export function createHumanThreadRealtimeLifecycle(hooks: {
   currentId: () => string;
-  isAi: () => boolean;
   setTyping: (active: boolean) => void;
   watch: (id: string | null) => void;
 }) {
@@ -8,7 +7,7 @@ export function createHumanThreadRealtimeLifecycle(hooks: {
   let visible = false;
   function show(): number { visible = true; return epoch; }
   function isVisibleFor(openId: string): boolean {
-    return visible && !hooks.isAi() && openId === hooks.currentId();
+    return visible && openId === hooks.currentId();
   }
   function capture(openId: string): { epoch: number; id: string } | null {
     return isVisibleFor(openId) ? { epoch, id: openId } : null;
@@ -75,14 +74,13 @@ export function createHumanConversationCreationRecovery<T extends string>(hooks:
 
 export function humanConversationPresence(input: {
   remote: boolean;
-  isAi: boolean;
   ready: boolean;
   conversationId: string;
   online: boolean;
   closed: boolean;
 }) {
   return {
-    showOnline: !input.closed && input.remote && !input.isAi && input.ready && !!input.conversationId && input.online,
-    mutedDot: input.closed || (input.remote && !input.isAi && (!input.ready || !input.online)),
+    showOnline: !input.closed && input.remote && input.ready && !!input.conversationId && input.online,
+    mutedDot: input.closed || (input.remote && (!input.ready || !input.online)),
   };
 }

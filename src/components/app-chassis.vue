@@ -127,7 +127,7 @@
     <!-- Bottom chrome: floating pill TabBar (tab routes) + home indicator (always) -->
     <view class="nx-tabbar-wrap">
       <!-- Anchor to the actual navigation height, including its safe area. -->
-      <NovaBubble v-if="showFloatingSupport" :dimmed="scrolling" />
+      <SupportBubble v-if="showFloatingSupport" :dimmed="scrolling" />
       <GlassSegments v-if="isTabRoute" :key="navigationReset" class="nx-tabbar-pill" variant="navigation" selection="flat" :options="navigationOptions" :model-value="activeTab" :from-value="navigationReset ? undefined : navigationFrom" :navigation-on-arrival="tabHost ? false : undefined" @select="selectNavigation">
         <template #option="{ option: tab, selected }">
           <view class="nx-tab__icon" aria-hidden="true">
@@ -172,7 +172,7 @@ import InviteScanEntry from "@/components/team/invite-scan-entry.vue";
 // #endif
 import GlobalUi from "@/components/global-ui.vue";
 import { toast } from "@/store/ui";
-import NovaBubble from "@/components/nova/nova-bubble.vue";
+import SupportBubble from "@/components/support/support-bubble.vue";
 import TrialClaimSheet from "@/components/trial-claim-sheet.vue";
 import SlotActionSheet from "@/components/slot-action-sheet.vue";
 import StickyCtaBar from "@/components/sticky-cta-bar.vue";
@@ -370,7 +370,7 @@ function pageScrollKey(): string {
     return route.value;
   }
 }
-// ── Nova 浮标让路 —— 滚动中淡出,停下再淡回 ──
+// ── 客服浮标让路 —— 滚动中淡出,停下再淡回 ──
 // 浮标锚定导航上方；滚动时让出正在阅读的内容，停下后淡回。
 // 页尾另加空间，确保最后一个操作可以完整滚过浮标。
 // 复位靠 debounce 而非 scrollend:后者 Safari / uni webview 都还没有。
@@ -997,9 +997,9 @@ export default chassisView;
   margin: 0 12px;
 }
 /* APP's view thread supplies this state when the logic thread has no DOM. */
-.nx-chassis[data-scrolling="true"] :deep(.nx-nova-bubble) { opacity: 0; pointer-events: none; }
-.nx-chassis[data-scrolling="true"] :deep(.nx-nova-motion),
-.nx-chassis[data-scrolling="true"] :deep(.nx-nova-halo) { animation-play-state: paused; }
+.nx-chassis[data-scrolling="true"] :deep(.nx-support-bubble) { opacity: 0; pointer-events: none; }
+.nx-chassis[data-scrolling="true"] :deep(.nx-support-motion),
+.nx-chassis[data-scrolling="true"] :deep(.nx-support-halo) { animation-play-state: paused; }
 </style>
 
 <style scoped>

@@ -2,9 +2,8 @@
   Conversation management — horizontal category selection followed by a flat
   list of existing conversations. Tapping a row opens the full-screen chat page.
 
-  The "ai" category is virtual: its single row is synthesised from the nova store
-  (Nova's transcript + unread), so the existing proactive push channels keep feeding
-  it untouched. Advisor / Support rows come from the conversations store. Wrapped in
+  Advisor / Support rows come from the conversations store; the retired "ai"
+  category the server may still report is never listed. Wrapped in
   <AppChassis active="me">. Bare text in <text> (P-026); stable nx-conv-* selectors.
 -->
 <template>
@@ -26,13 +25,13 @@
             <text>{{ t.help.loadingMore }}</text>
           </view>
           <template v-else>
-          <view v-if="remoteApiEnabled && selectedType !== 'ai' && convStore.realtimeFallback && !humanReadFailed && !convStore.advisorError" class="nx-conv-refresh-warning" role="status" aria-live="polite">
+          <view v-if="remoteApiEnabled && convStore.realtimeFallback && !humanReadFailed && !convStore.advisorError" class="nx-conv-refresh-warning" role="status" aria-live="polite">
             <text class="nx-conv-refresh-warning__text">{{ t.conversations.realtimeFallback }}</text>
             <view role="button" :tabindex="retrying ? -1 : 0" :aria-disabled="retrying" class="nx-conv-refresh-warning__retry family-control" @click="retryConversations"  @keydown.enter.prevent="retryConversations" @keydown.space.prevent="retryConversations">
               <text>{{ t.ui.retry }}</text>
             </view>
           </view>
-          <view v-if="remoteApiEnabled && selectedType !== 'ai' && convStore.advisorError && !humanReadFailed" class="nx-conv-refresh-warning" role="alert">
+          <view v-if="remoteApiEnabled && convStore.advisorError && !humanReadFailed" class="nx-conv-refresh-warning" role="alert">
             <text class="nx-conv-refresh-warning__text">{{ t.conversations.image.advisorUnavailable }}</text>
             <view role="button" :tabindex="retrying ? -1 : 0" :aria-disabled="retrying" class="nx-conv-refresh-warning__retry family-control" :aria-label="t.conversations.retry"
               @click="retryConversations"  @keydown.enter.prevent="retryConversations" @keydown.space.prevent="retryConversations">
@@ -81,7 +80,7 @@
             v-for="r in rows"
             :key="r.id"
             class="nx-conv-rowgroup" :label="r.name" :delete-label="actions.copy.value.delete"
-            :open="actions.openedId.value === r.id" :disabled="r.isAi || !convStore.deletionAvailable"
+            :open="actions.openedId.value === r.id" :disabled="!convStore.deletionAvailable"
             :busy="actions.pending.value || convStore.deletingIds[r.id]"
             @update:open="actions.openedId.value = $event ? r.id : ''" @delete="actions.remove(r.id)"
           >
@@ -89,13 +88,12 @@
             class="nx-conv-row active:opacity-80"
             role="button"
             tabindex="0"
-            :aria-label="r.isAi ? t.conversations.openAiSession : r.name"
+            :aria-label="r.name"
             @click="openRow(r)"
 
             @keydown.enter.prevent="openRow(r)" @keydown.space.prevent="openRow(r)"
           >
-            <NovaAvatar v-if="r.isAi" :size="44" />
-            <view v-else class="nx-conv-ava" :style="avaStyle(r.tint)">
+            <view class="nx-conv-ava" :style="avaStyle(r.tint)">
               <view v-html="r.avatarIcon" />
             </view>
             <view class="nx-conv-rowmeta">
@@ -126,23 +124,19 @@ import SubPageHeader from "@/components/sub-page-header.vue";
 import LiquidGlass from "@/components/liquid-glass.vue";
 import ConversationSwipeRow from '@/components/support/conversation-swipe-row.vue';
 import { useConversationDelete } from '@/composables/use-conversation-delete';
-import NovaAvatar from "@/components/nova/nova-avatar.vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { localizedIdleClose } from "@/lib/support-idle-message";
 import { navTo } from "@/lib/route";
 import { useConversations } from "@/store/conversations";
-import { useNova } from "@/store/nova";
 import type { Conversation, ConversationType, ConvMessage } from "@/domain/support";
-import { novaAiApi, remoteApiEnabled } from "@/api/runtime";
-import { NOVA_SUPPORT_VISIBLE } from "@/lib/nova-visibility";
+import { remoteApiEnabled } from "@/api/runtime";
 import { useApp } from "@/store/app";
 import { registerActivePageRefresh } from "@/lib/active-page-refresh";
 import { formatUnreadBadge } from "@/lib/unread-badge";
 
 const t = useT();
 const convStore = useConversations();
-const nova = useNova();
 const app = useApp();
 const actions = useConversationDelete();
 
@@ -165,9 +159,6 @@ async function refreshInbox(): Promise<void> {
   if (!inboxVisible) return;
   const tasks: Promise<unknown>[] = [convStore.refresh(), convStore.refreshCategories()];
   if (remoteApiEnabled) tasks.push(convStore.refreshAdvisor());
-  if (NOVA_SUPPORT_VISIBLE && remoteApiEnabled) {
-    tasks.push(nova.ensureRemoteHistory(app.accountKey, () => novaAiApi.history()));
-  }
   await Promise.allSettled(tasks);
 }
 
@@ -202,13 +193,11 @@ const currentAdvisorThread = computed(() => convStore.advisor?.currentAdvisorId
   ? humanConversations.value.find(row => row.ownerAgentId === String(convStore.advisor!.currentAdvisorId))
   : undefined);
 const canStartConversation = computed(() =>
-  selectedType.value !== "ai"
-    && !currentAdvisorThread.value
+  !currentAdvisorThread.value
     && !convStore.error && convStore.categoryEnabled("advisor"),
 );
 
 function onStartConversation() {
-  if (selectedType.value === "ai") return;
   const target = "advisor";
   const ongoing = currentAdvisorThread.value;
   if (ongoing) { navTo("/pages/support/chat?cid=" + encodeURIComponent(ongoing.id)); return; }
@@ -218,14 +207,12 @@ function onStartConversation() {
 
 // Inline category icons (stroke=currentColor → tinted via container `color`).
 const ADVISOR_ICON = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4" /><path d="M6 21a6 6 0 0 1 12 0" /></svg>`;
-const AI_ICON = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.8 3.2 11 7l3.8 1.2L11 9.4 9.8 13 8.6 9.4 4.8 8.2 8.6 7z" /><path d="M17.5 13.5l.6 1.9 1.9.6-1.9.6-.6 1.9-.6-1.9-1.9-.6 1.9-.6z" /></svg>`;
 
 const TYPES = computed<{ key: ConversationType; tint: string; icon: string }[]>(() => {
   const available: { key: ConversationType; tint: string; icon: string }[] = [
     { key: "advisor", tint: "var(--v5-brand)", icon: ADVISOR_ICON },
   ];
-  if (NOVA_SUPPORT_VISIBLE) available.push({ key: "ai", tint: "var(--v5-brand-2)", icon: AI_ICON });
-  return available.filter(row => row.key === "ai" ? convStore.categoryReadable("ai") : convStore.categoryReadable("advisor") || convStore.categoryReadable("support"));
+  return available.filter(() => convStore.categoryReadable("advisor") || convStore.categoryReadable("support"));
 });
 
 watch(TYPES, (available) => {
@@ -238,24 +225,22 @@ interface Row {
   preview: string;
   time: string;
   unread: number;
-  isAi: boolean;
   /** Agent is typing right now → preview swaps to the live "typing…" hint. */
   typing: boolean;
   tint: string;
   avatarIcon: string;
 }
-function unreadUnavailable(row: Row) { return !Number.isSafeInteger(row.unread) || row.unread < 0 || !row.isAi && humanReadFailed.value; }
+function unreadUnavailable(row: Row) { return !Number.isSafeInteger(row.unread) || row.unread < 0 || humanReadFailed.value; }
 
 function typeLabel(key: ConversationType): string {
   const c = t.value.conversations;
-  return key === "ai" ? c.typeAi : key === "advisor" ? c.typeAdvisor : c.typeSupport;
+  return key === "advisor" ? c.typeAdvisor : c.typeSupport;
 }
 
 function typeUnread(key: ConversationType): number {
-  if (key === "ai") return nova.unread;
   return humanConversations.value.reduce((sum, c) => sum + c.unread, 0);
 }
-function typeUnreadBadge(key: ConversationType) { const count = typeUnread(key); return key !== "ai" && humanReadFailed.value || !Number.isSafeInteger(count) || count < 0 ? "-" : formatUnreadBadge(count) || undefined; }
+function typeUnreadBadge(key: ConversationType) { const count = typeUnread(key); return humanReadFailed.value || !Number.isSafeInteger(count) || count < 0 ? "-" : formatUnreadBadge(count) || undefined; }
 
 // Rail tabs are one roving-tabindex group: arrows move the selection and carry the
 // focus ring with it (same idiom as team/leaderboard.vue and team/unilevel.vue).
@@ -308,25 +293,6 @@ function relTime(ts: number): string {
 }
 
 const rows = computed<Row[]>(() => {
-  const sel = selectedType.value;
-  if (sel === "ai" && !convStore.categoryReadable("ai")) return [];
-  if (sel === "ai") {
-    const msgs = nova.messages;
-    const last = msgs.length ? msgs[msgs.length - 1] : null;
-    return [
-      {
-        id: "ai",
-        name: t.value.nova.name,
-        preview: nova.typing ? t.value.conversations.agentTyping : last ? cleanPreview(last.text) : t.value.conversations.roleAi,
-        time: last ? relTime(last.ts) : "",
-        unread: nova.unread,
-        isAi: true,
-        typing: nova.typing,
-        tint: "var(--v5-brand-2)",
-        avatarIcon: "",
-      },
-    ];
-  }
   const avatarIcon = ADVISOR_ICON;
   return humanConversations.value.map((c) => {
     const last = c.messages.length ? c.messages[c.messages.length - 1] : null;
@@ -347,7 +313,6 @@ const rows = computed<Row[]>(() => {
       preview: typing ? t.value.conversations.agentTyping : cleanPreview(latestText) || t.value.conversations[c.roleKey],
       time: relTime(c.lastTs),
       unread: c.unread,
-      isAi: false,
       typing,
       tint: c.avatarTint,
       avatarIcon,
@@ -356,7 +321,7 @@ const rows = computed<Row[]>(() => {
 });
 
 const emptyHint = computed(() =>
-  convStore.advisor?.assignmentState === "UNBOUND" && selectedType.value !== "ai"
+  convStore.advisor?.assignmentState === "UNBOUND"
     ? t.value.conversations.image.unassignedHint
     :
   t.value.conversations.listEmptyAdvisor,
@@ -364,10 +329,6 @@ const emptyHint = computed(() =>
 const contactLabel = computed(() => t.value.conversations.contactAdvisor);
 
 function openRow(r: Row) {
-  if (r.isAi) {
-    navTo("/pages/support/chat?type=ai");
-    return;
-  }
   navTo("/pages/support/chat?cid=" + r.id);
 }
 

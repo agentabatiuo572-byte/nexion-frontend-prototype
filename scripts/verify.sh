@@ -878,8 +878,7 @@ if grep -nE 'd\.status === "online"|props\.device\.status === "online"' \
   src/components/me/my-devices-entry.vue \
   src/pages/me/me.vue \
   src/pages/me/proof.vue \
-  src/pages/support/chat.vue \
-  src/mock/nova-templates.ts >"${VERIFY_LOG_PREFIX}-uni-r7-ui-status.log" 2>&1; then
+  src/pages/support/chat.vue >"${VERIFY_LOG_PREFIX}-uni-r7-ui-status.log" 2>&1; then
   bad "SPEC-1 R7 user-facing online state bypasses heartbeat seam"; sed 's/^/        /' "${VERIFY_LOG_PREFIX}-uni-r7-ui-status.log"
 else
   ok "SPEC-1 R7 user-facing online state uses heartbeat seam"
@@ -2040,8 +2039,8 @@ sentinel_present "P2-8 cart store is account-scoped" src/store/cart.ts 'writeAcc
 sentinel_present "P2-8 profile store is account-scoped" src/store/profile.ts 'writeAccountRow'
 sentinel_present "P2-8 security store is account-scoped" src/store/security.ts 'writeAccountRow'
 sentinel_present "P2-8 rewards-seen store is account-scoped" src/store/rewards-seen.ts 'writeAccountRow'
-# P2-8 batch-5 会话记录:会话中心/Nova 非持久,换号收口点必须 reset 重播种(防上一账号的客服对话被下一账号看到;audit 2026-07-16)
-sentinel_present "P2-8 account-scope helper resets nova" src/lib/account-scope.ts 'useNova\(\)\.reset\(\)'
+# P2-8 batch-5 会话记录:会话中心非持久,换号收口点必须重绑重播种(防上一账号的客服对话被下一账号看到;audit 2026-07-16)
+sentinel_present "P2-8 account-scope helper rebinds conversations" src/lib/account-scope.ts 'useConversations\(\)\.bindAccount\(accountKey\)'
 # 客服会话闲置策略双端 parity(本仓侧 tripwire;admin 侧 canon-sentinel 逐键比 canon-numbers.json):
 # 改这两个默认值必须三处同步(uniapp 常量 + admin m-tabs/data.ts + canon json),单独改本仓即红。
 sentinel_present "support idle policy warn default pinned (1min · canon parity)" src/mock/conversations.ts 'SUPPORT_IDLE_WARN_MINS = 1'
@@ -2378,7 +2377,7 @@ section_header_imported() {
 }
 section_header_imported
 # Chassis chrome completeness (PITFALLS P-037): the prototype's IOSFrame mounts a
-# fixed set of ALWAYS-ON chrome — Header + TabBar + NovaBubble (nova 浮标) +
+# fixed set of ALWAYS-ON chrome — Header + TabBar + SupportBubble (客服浮标) +
 # pull-to-refresh. Batch-0 chassis was simplified and silently dropped the bubble
 # + pull-refresh; verify only caught what it was told to look at (cf. P-036). This
 # sentinel enumerates the always-on chrome so it can't regress unnoticed.
@@ -2386,7 +2385,7 @@ chassis_chrome_complete() {
   local f="src/components/app-chassis.vue"
   local miss=""
   [ -f "$f" ] || { bad "chassis file missing ($f)"; return; }
-  grep -q 'NovaBubble' "$f" || miss="${miss}NovaBubble(nova浮标) "
+  grep -q 'SupportBubble' "$f" || miss="${miss}SupportBubble(客服浮标) "
   grep -q 'nx-refresher' "$f" || miss="${miss}pull-to-refresh(touch) "
   grep -q 'nx-page-enter' "$f" || miss="${miss}page-entrance-anim "
   grep -q 'nx-tabbar-pill' "$f" || miss="${miss}floating-pill-tabbar "
@@ -2394,7 +2393,7 @@ chassis_chrome_complete() {
   # frosted-glass chrome must NOT use <scroll-view> for content (P-039): its
   # separate compositing layer kills the fixed chrome's backdrop-filter frosting.
   grep -qE '<scroll-view[^>]*class="nx-content' "$f" && miss="${miss}scroll-view-breaks-frosting(use-overflow-view) "
-  if [ -z "$miss" ]; then ok "chassis chrome complete (header + pill + nova浮标 + pull-refresh + entrance, frosting-safe)";
+  if [ -z "$miss" ]; then ok "chassis chrome complete (header + pill + 客服浮标 + pull-refresh + entrance, frosting-safe)";
   else bad "chassis chrome INCOMPLETE — missing: $miss"; fi
 }
 chassis_chrome_complete
@@ -2452,18 +2451,16 @@ nav_routes_valid() {
   else bad "INVALID nav routes (navigateTo silently fails): $bad_routes"; fi
 }
 nav_routes_valid
-# User-facing brand must be NOVA, never Stella (已决产品决策 / ALIGNMENT carve-out).
-# The AI assistant was renamed Stella→NOVA; code identifiers (nova-bubble.vue,
-# useNova, .nx-nova-*) are internal and fine, but no user-VISIBLE "Stella" may
-# leak. i18n message VALUES are the authoritative user-facing surface (all copy
+# The retired AI assistant's old name "Stella" must never be user-visible
+# (已决产品决策 / ALIGNMENT carve-out; the assistant itself was withdrawn).
+# No user-VISIBLE "Stella" may leak. i18n message VALUES are the authoritative user-facing surface (all copy
 # goes through t()), so guard quoted values containing "Stella" there (excluding
-# the unrelated 'stellar*' hardware SKU). Keys like `nova: {` aren't quoted values
-# so won't match.
+# the unrelated 'stellar*' hardware SKU).
 no_userfacing_stella() {
   local hits
   hits=$(grep -rnE ':[[:space:]]*"[^"]*[Ss]tella[^"]*"' src/i18n/messages 2>/dev/null | grep -iv 'stellar' | head -8)
-  if [ -z "$hits" ]; then ok "no user-facing 'Stella' (brand=NOVA) (0 hits)";
-  else bad "user-facing 'Stella' leaked (brand must be NOVA)"; echo "$hits" | sed 's/^/        /'; fi
+  if [ -z "$hits" ]; then ok "no user-facing 'Stella' (0 hits)";
+  else bad "user-facing 'Stella' leaked"; echo "$hits" | sed 's/^/        /'; fi
 }
 no_userfacing_stella
 # Brand rebrand guard (2026-07-22 → NexGrid): 旧品牌词不得回流用户可见/运行时层。

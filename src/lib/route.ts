@@ -1,4 +1,4 @@
-// Map a prototype-style LOGICAL path (the web routes baked into nova /
+// Map a prototype-style LOGICAL path (the web routes baked into support /
 // notification CTA data, e.g. "/team/commissions", "/genesis",
 // "/me/wallet/exchange", "/store") to the actual uni-app route, then navigate.
 //
@@ -9,7 +9,7 @@
 //   /store /team /earn /me / -> tab roots, reLaunch to /pages/x/x
 //
 // Without this, navigating raw logical hrefs (message-drawer did) or naive
-// `/pages${href}` prefixing (nova-drawer did) hits non-existent routes and
+// `/pages${href}` prefixing (the retired chat drawer did) hits non-existent routes and
 // uni's navigateTo silently fails → "点击无跳转". (P-046)
 
 import { useTrialClaimSheet } from "@/store/trial-claim-sheet";

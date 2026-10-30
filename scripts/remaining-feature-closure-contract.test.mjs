@@ -49,7 +49,8 @@ test("global search offers Help Center and old AI links return to the inbox", as
   assert.doesNotMatch(search, /type=ai/);
   assert.match(search, /refreshProductCatalog/);
   assert.match(search, /refreshCanonicalNetwork/);
-  assert.match(chat, /if \(!NOVA_SUPPORT_VISIBLE\) \{/);
+  // The retired AI route is gone: any query other than cid/start returns to the message center.
+  assert.doesNotMatch(chat, /type === "ai"|nova/i);
   assert.match(chat, /navReplace\("\/pages\/support\/messages"\)/);
 });
 

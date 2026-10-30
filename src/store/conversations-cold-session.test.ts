@@ -39,10 +39,10 @@ function pageHarness() {
   const transport = vi.fn(async () => ({ status: 200, data: { code: 0, message: "OK", data: row() }, headers: {} }));
   const client = createApiClient({ baseUrl: "https://example.test", vault, transport: { request: transport } });
   runtime.supportApi.conversation.mockImplementation(id => client.request({ path: `/api/app/support/conversations/${id}` }));
-  const cid = ref("CV-1"), startType = ref<string | null>(null), isAi = ref(false), nav = vi.fn(), policy = vi.fn(), images = vi.fn();
+  const cid = ref("CV-1"), startType = ref<string | null>(null), nav = vi.fn(), policy = vi.fn(), images = vi.fn();
   const navigation = vi.fn(async () => false);
   const watchRealtime = vi.spyOn(store, "watchRealtime");
-  const realtime = createHumanThreadRealtimeLifecycle({ currentId: () => cid.value, isAi: () => isAi.value,
+  const realtime = createHumanThreadRealtimeLifecycle({ currentId: () => cid.value,
     watch: store.watchRealtime, setTyping: vi.fn() });
   const ast = ts.createSourceFile("chat.ts", chat.split('<script setup lang="ts">')[1].split("</script>")[0], ts.ScriptTarget.ES2022, true);
   const names = new Set(["openHumanConversation", "startHumanThreadPolling", "stopHumanThreadPolling", "activateHumanPage", "cleanup", "restoreCompletedHumanCreate", "restoreRecoveredComposer", "resetAttachmentPolicy"]);
@@ -62,7 +62,7 @@ function pageHarness() {
   let show!: () => Promise<void>, hide!: () => void;
   const deps = { computed, ref, shallowRef, watch, app, auth, sessionVault: vault, accountSessionReady, ApiError, convStore: store,
     cid, humanComposerKey: computed(() => cid.value ? `conversation:${cid.value}` : startType.value ? `start:${startType.value}` : ""),
-    startType, isAi, humanRealtime: realtime, hiddenAiRoute: ref(false), createHumanConversationCreationRecovery, navReplace: navigation,
+    startType, humanRealtime: realtime, createHumanConversationCreationRecovery, navReplace: navigation,
     revealTick: ref(0), novaHistoryLoading: ref(false), remoteApiEnabled: true, navBack: nav,
     loadAttachmentPolicy: policy, loadPrivateImages: images,
     // Layout and Nova effects are outside this human-session harness.
@@ -73,7 +73,7 @@ function pageHarness() {
   const code = ts.transpileModule(parts.join("\n"), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
   const scope = effectScope();
   const result = scope.run(() => new Function("deps", `const {${Object.keys(deps).join(",")}} = deps;
-    let novaPageVisible = false, categoryGate = null, recoveredNavigation = '', topOverlayMeasureEpoch = 0;
+    let pageVisible = false, categoryGate = null, recoveredNavigation = '', topOverlayMeasureEpoch = 0;
     let handoffAttemptEpoch = 0, novaStatusEpoch = 0, novaHistoryEpoch = 0;
     const handoffBusy = ref(false), dialogOwner = 'test', pendingTimers = [];
     ${code}\nreturn { ready: supportSessionReady, unmount: cleanup, creation: humanCreateRecovery };`)(deps)) as {
@@ -193,11 +193,11 @@ function attachmentHarness(waitAt: "policy" | "picker", platform: "app" | "h5" =
     .map(node => node.getText(ast)).join("\n"), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
   let show!: () => Promise<void>, hide!: () => void;
   const deps = { ref, watch, app, convStore, humanComposerKey: key, imageDraft, attachmentPolicy: policy, attachmentPolicyError: ref(false), supportApi: api,
-    supportSessionReady: ref(true), isAi: ref(false), failedHumanSend: ref(null), humanSendBusy: ref(false),
+    supportSessionReady: ref(true), failedHumanSend: ref(null), humanSendBusy: ref(false),
     remoteApiEnabled: true, requireCryptoUuid: () => "test-upload", asApiError, toast: { info: vi.fn(), error: vi.fn() },
     // Keep the actual human lifecycle and policy transaction; unrelated layout,
     // message history, creation recovery and Nova effects have no host here.
-    cid: ref("CV-1"), startType: ref(null), hiddenAiRoute: ref(false), revealTick: ref(0),
+    cid: ref("CV-1"), startType: ref(null), revealTick: ref(0),
     draftText: ref(""), ticketCreationBlock: ref(null), measureTopOverlay: vi.fn(),
     humanRealtime: { show: vi.fn(() => 1) }, stopHumanThreadPolling: vi.fn(), openHumanConversation: vi.fn(),
     restoreCompletedHumanCreate: vi.fn(), restoreRecoveredComposer: vi.fn(), loadPrivateImages: vi.fn(), clearPrivateImages: vi.fn(),
@@ -206,7 +206,7 @@ function attachmentHarness(waitAt: "policy" | "picker", platform: "app" | "h5" =
     t: ref({ conversations: { image: { uploadFailed: "upload-failed" } } }) };
   const scope = effectScope(); attachmentScopes.push(scope);
   const ops = scope.run(() => new Function("deps", `const {${Object.keys(deps).join(",")}} = deps;
-    let chatDisposed = false, novaPageVisible = ${!lifecycle}, humanComposerResetting = false;
+    let chatDisposed = false, pageVisible = ${!lifecycle}, humanComposerResetting = false;
     let categoryGate = null, topOverlayMeasureEpoch = 0, handoffAttemptEpoch = 0, novaStatusEpoch = 0, novaHistoryEpoch = 0;
     const handoffBusy = ref(false), pendingTimers = [], dialogOwner = 'attachment-test'; ${code}
     return { chooseSupportImage, retrySupportUpload, replaceSupportAttachment, loadAttachmentPolicy,
@@ -427,12 +427,12 @@ function attachmentCancelBoundaryHarness() {
   const deps = { app, convStore, imageDraft, supportSessionReady, humanComposerKey, toast, supportApi: api, asApiError, watch,
     clearQueuedSendVisuals: vi.fn(),
     failedHumanSend: ref(null), draftText: ref(""), attachmentPolicy: ref(null), attachmentPolicyError: ref(false), ticketCreationBlock: ref(null),
-    imageSources: ref({}), imageFailures: ref({}), isAi: ref(false), t: ref({ conversations: { image: { cancelFailed: "CANCEL_FAILED" } } }) };
+    imageSources: ref({}), imageFailures: ref({}), t: ref({ conversations: { image: { cancelFailed: "CANCEL_FAILED" } } }) };
   const scope = effectScope();
   const ops = scope.run(() => new Function("deps", `const {${Object.keys(deps).join(",")}} = deps;
     const remoteApiEnabled=true, loadAttachmentPolicy=()=>{}, dialogOwner="offline-cancel", pendingTimers=[];
     const useUI=()=>({clearConfirmsBy:()=>{}}), stopHumanThreadPolling=()=>{}, cancelNovaThinking=()=>{}, nova={close:()=>{}};
-    let imageEpoch=0, imageLoads=new Set(), humanComposerResetting=false, novaPageVisible=true, chatDisposed=false;
+    let imageEpoch=0, imageLoads=new Set(), humanComposerResetting=false, pageVisible=true, chatDisposed=false;
     let categoryGate=null, novaStatusEpoch=0, novaHistoryEpoch=0;
     ${code} return {cancel:cancelSupportAttachment, dispose:cleanup};`)(deps))!;
   return { app, convStore, imageDraft, supportSessionReady, humanComposerKey, toast, api, scope, ...ops,

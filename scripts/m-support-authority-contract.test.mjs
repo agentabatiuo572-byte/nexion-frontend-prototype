@@ -128,7 +128,7 @@ test("canonical support uses the development authority and late lifecycle work c
   assert.match(api, /authorityRevision: async \(\) => "canonical-v1"/);
   assert.doesNotMatch(api, /support\/acceptance|sourceEnvironment !== "SANDBOX"/);
   assert.match(api, /supportPath\(`\/commands\//);
-  assert.match(chat, /async function activateHumanPage\(\) \{\s*if \(!novaPageVisible \|\| isAi\.value \|\| !supportSessionReady\.value\) return;\s*stopHumanThreadPolling\(\);\s*const epoch = humanRealtime\.show\(\)/);
+  assert.match(chat, /async function activateHumanPage\(\) \{\s*if \(!pageVisible \|\| !supportSessionReady\.value\) return;\s*stopHumanThreadPolling\(\);\s*const epoch = humanRealtime\.show\(\)/);
   assert.match(chat, /humanOpenRequest === request && request\.binding === app\.accountBindingEpoch/);
   assert.match(chat, /humanRealtime\.isCurrent\(request\.epoch, request\.id\)/);
   assert.match(chat, /if \(current\(\)\) startHumanThreadPolling\(epoch, id\);/);

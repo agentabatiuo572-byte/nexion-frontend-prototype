@@ -1,11 +1,11 @@
 // Shared view-model types for the conversation thread body (ConversationThread.vue).
-// Pages normalise either the nova store (AI/Nova) or the conversations store
-// (advisor/support) into ThreadMsg[] before handing them to the presentational thread.
+// The chat page normalises the conversations store (advisor/support) into
+// ThreadMsg[] before handing it to the presentational thread.
 
 export type MessageDeliveryState = 'sending' | 'sent' | 'read' | 'failed' | 'unknown' | 'queued';
 export interface ThreadMsg {
   id: string;
-  /** Bubble alignment: left = agent/Nova, right = the user. */
+  /** Bubble alignment: left = agent, right = the user. */
   side: "left" | "right";
   /** Bubble tone → colour treatment. */
   tone: "agent" | "user" | "system";

@@ -1,8 +1,6 @@
-// Conversation-center mock data — multi-category human support (advisor / support)
-// alongside the Nova AI advisor. Pure data, zero framework deps, backend-replaceable
-// (serialisable, action-driven, ms-epoch timestamps). The "ai" type is virtual —
-// it is backed by the existing `nova` store, so this mock only seeds the human
-// categories. A real backend returns ConvMessage.text directly; the mock instead
+// Conversation-center mock data — multi-category human support (advisor / support).
+// Pure data, zero framework deps, backend-replaceable (serialisable, action-driven,
+// ms-epoch timestamps). The retired "ai" type is never seeded. A real backend returns ConvMessage.text directly; the mock instead
 // references i18n seed keys (textKey/ctaKey) so seed copy stays bilingual + on-brand.
 
 import type { Messages } from "@/i18n/messages/en";
@@ -16,11 +14,11 @@ export type ConvCtaKey = keyof ConvNs["cta"];
 /** i18n key for a runtime agent reply template (resolved via `t.conversations[...]`). */
 export type ConvReplyKey = (typeof ADVISOR_REPLY_KEYS)[number] | (typeof SUPPORT_REPLY_KEYS)[number];
 
-/** Customer-service categories. "ai" is virtual (nova-backed); store holds the rest. */
+/** Customer-service categories. "ai" is the retired AI category the server may still report; the App never shows it. */
 export type ConversationType = "ai" | "advisor" | "support";
 
 /** i18n key for a conversation's role subtitle (`t.conversations[roleKey]`). */
-export type ConvRoleKey = "roleAi" | "roleAdvisor" | "roleSupport";
+export type ConvRoleKey = "roleAdvisor" | "roleSupport";
 
 /** Delivery receipt for user-sent messages: sent = delivered/unread, read = seen by agent. */
 export type ConvMessageStatus = "sent" | "read";
@@ -90,7 +88,7 @@ export function nextSupportAgent(prevAgentName?: string): string {
   return SUPPORT_AGENT_POOL[(idx + 1) % SUPPORT_AGENT_POOL.length];
 }
 
-// ─── Runtime agent-reply templates (cycled in order, like nova's AGENT_REPLIES) ───
+// ─── Runtime agent-reply templates (cycled in order) ───
 // `as const satisfies` proves each key exists on the conversations namespace at
 // compile time; indexing with the literal element then yields a string.
 export const ADVISOR_REPLY_KEYS = [
@@ -113,8 +111,7 @@ export function replyKeysForType(type: ConversationType): readonly ConvReplyKey[
 // ─── Seed conversations (advisor reaches out proactively; support is a prior
 // user-initiated thread kept as history — support sessions time out and a restart
 // opens a NEW session with a rotated agent, never reopens this one). Re-seeded each
-// session, non-persisted
-// (mirrors the nova transcript), so the advisor's proactive unread is always a
+// session, non-persisted, so the advisor's proactive unread is always a
 // live touchpoint on landing. ───
 export function seedConversations(now: number = Date.now()): Conversation[] {
   return [

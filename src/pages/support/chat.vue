@@ -1,22 +1,21 @@
 <!--
   Conversation chat — full-screen thread for one conversation. Bare full-screen
   (own header + ConversationThread), NOT wrapped in AppChassis: a focused chat wants
-  no tabbar / nova bubble, and its own flex column (header + scrolling messages +
+  no tabbar / support bubble, and its own flex column (header + scrolling messages +
   pinned input) would fight the chassis scroll container. Not standalone-page-shell
   either: the pinned input row owns the bottom safe-area itself (P-040), which the
   shell's reserved band would double — so this page draws its own status bar and
   home indicator.
 
-  query ?type=ai     → backed by the nova store (Nova): quick prompt chips (human
-                       support lives in the conversation center's support tab).
-  query ?cid=<id>    → backed by the conversations store (advisor / support).
+  query ?cid=<id>              → an existing advisor / support conversation.
+  query ?start=advisor|support → compose the opening message of a new one.
+  Any other query (including the retired ?type=ai) returns to the message center.
 
   A separate route (vs in-page state) means each open gets a fresh onLoad, sidestepping
   the H5 same-page hash-query staleness (P-044/P-049). Bare text in <text> (P-026).
 -->
 <template>
   <view class="cp-root message-family">
-    <template v-if="!hiddenAiRoute">
     <!-- Simulated device status bar (preview shell only) — bare page draws its own. -->
     <DeviceStatusBar />
 
@@ -30,19 +29,15 @@
 
       <view class="cp-identity">
         <LiquidGlass rendering="frosted" :radius="24" />
-        <NovaAvatar v-if="isAi" :size="32" pulse />
         <view class="cp-meta">
           <text class="cp-name">{{ headerName }}</text>
-          <view v-if="headerRole" class="cp-role" :class="{ 'cp-role--online': !isAi && headerRole === t.conversations.online }">
+          <view v-if="headerRole" class="cp-role" :class="{ 'cp-role--online': headerRole === t.conversations.online }">
             <view class="cp-dot" :style="dotStyle" />
             <text class="cp-role-t">{{ headerRole }}</text>
           </view>
         </view>
       </view>
-      <view v-if="isAi && remoteApiEnabled" class="cp-restart active:opacity-70" role="button" tabindex="0" :aria-label="t.conversations.restartSession" @click="onStartNewConversation"  @keydown.enter.prevent="onKeyboardActivate($event, onStartNewConversation)" @keydown.space.prevent="onKeyboardActivate($event, onStartNewConversation)"><LiquidGlass rendering="frosted" :radius="22" />
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12v6a2 2 0 0 1-2 2H6l-3 2V6a2 2 0 0 1 2-2h6" /><path d="M17 2v8m-4-4h8" /></svg>
-      </view>
-      <view v-else class="cp-head-spacer" aria-hidden="true" />
+      <view class="cp-head-spacer" aria-hidden="true" />
     </view>
 
     </view>
@@ -53,37 +48,35 @@
       :top-inset="topOverlayHeight"
       :history-content-key="historyContentKey"
       :time-locale="locale.code"
-      @typing="!isAi && convStore.setTyping($event)"
+      @typing="convStore.setTyping($event)"
       :messages="threadMessages"
-      :entrance-ready="isAi ? !novaHistoryLoading : humanOpenRequest === null && !humanHistoryRetryBusy && !humanEarlierBusy"
+      :entrance-ready="humanOpenRequest === null && !humanHistoryRetryBusy && !humanEarlierBusy"
 	      :input-placeholder="inputPlaceholder"
 	      :input-label="inputLabel"
 	      :send-label="t.conversations.send"
       :status-labels="t.conversations.delivery"
       :send-success-revision="sendSuccessRevision"
       :send-success-owner="sendSuccessOwner"
-      :quick-chips="quickChips"
       :empty-hint="emptyHint"
       :typing="agentTyping"
-      :typing-label="thinkingLabel"
+      :typing-label="t.conversations.agentTyping"
       :reveal-tick="revealTick"
       :closed="isClosedSession"
-      :restart-label="isAi && remoteApiEnabled ? t.nova.localRetry : t.conversations.restartSession"
-      :queue-labels="isAi && remoteApiEnabled ? t.nova.queue : undefined"
-      :composer-key="isAi ? app.accountKey + ':' + nova.conversationId : app.accountBindingEpoch + ':' + convStore.scopeInvalidated + ':' + (cid || startType || '')"
-      :initial-draft="!isAi ? draftText : undefined"
+      :restart-label="t.conversations.restartSession"
+      :composer-key="app.accountBindingEpoch + ':' + convStore.scopeInvalidated + ':' + (cid || startType || '')"
+      :initial-draft="draftText"
       :max-input-length="MESSAGE_MAX_LENGTH"
       :input-limit-hint="fmt(t.conversations.messageTooLong, { n: MESSAGE_MAX_LENGTH })"
-      :image-labels="!isAi ? t.conversations.image : undefined"
-      :attach-disabled="!isAi && (!supportSessionReady || attachmentPolicy?.available !== true)"
-      :attach-unavailable="!isAi && attachmentPolicy?.available !== true ? (!remoteApiEnabled || attachmentPolicyError || attachmentPolicy?.available === false ? t.conversations.image.unavailable : t.conversations.image.checkingPolicy) : undefined"
+      :image-labels="t.conversations.image"
+      :attach-disabled="!supportSessionReady || attachmentPolicy?.available !== true"
+      :attach-unavailable="attachmentPolicy?.available !== true ? (!remoteApiEnabled || attachmentPolicyError || attachmentPolicy?.available === false ? t.conversations.image.unavailable : t.conversations.image.checkingPolicy) : undefined"
       :attach-retry="remoteApiEnabled && attachmentPolicyError"
       :attachment-draft="attachmentDisplay"
-      :attachment-preview-src="!isAi ? imageDraft?.filePath : undefined"
+      :attachment-preview-src="imageDraft?.filePath"
       :failed-send-label="failedHumanLabel"
       :can-discard-send="failedHumanSend?.settled"
       :can-retry-send="supportSessionReady && failedHumanSend?.retryable !== false && !humanSendBusy"
-      :send-blocked="(!isAi && !supportSessionReady) || !!failedHumanSend || humanSendBusy"
+      :send-blocked="!supportSessionReady || !!failedHumanSend || humanSendBusy"
       @send="onSend"
       @draft-change="draftText = $event"
       @attach="chooseSupportImage"
@@ -95,9 +88,6 @@
       @retry-message="retryHumanSend"
       @edit-message="editHumanSend"
       @discard-message="discardHumanSend"
-      @queue-action="onQueueAction"
-      @queue-save="onQueueSave"
-      @chip="onChip"
       @cta="onCta"
       @restart="onRestart"
     >
@@ -106,24 +96,10 @@
         <text class="cp-ai-history-t">{{ t.conversations.image.advisorUnavailable }}</text>
         <view class="cp-history-text-action" role="button" :tabindex="convStore.advisorLoading ? -1 : 0" :aria-disabled="convStore.advisorLoading" :aria-busy="convStore.advisorLoading" @click="!convStore.advisorLoading && convStore.refreshAdvisor()" @keydown.enter.prevent="!convStore.advisorLoading && convStore.refreshAdvisor()" @keydown.space.prevent="!convStore.advisorLoading && convStore.refreshAdvisor()"><text>{{ t.conversations.image.retryPolicy }}</text></view>
       </view>
-      <view v-if="isAi && remoteApiEnabled" class="cp-ai-safety" role="note">
-        <text class="cp-ai-safety-t">{{ t.nova.localSafetyNotice }}</text>
-      </view>
-      <view v-if="isAi && remoteApiEnabled" class="cp-ai-history">
-        <text v-if="handoffRecommended" class="cp-ai-history-t">{{ handoffCopy.recommend }}</text>
-        <view class="cp-ai-history-action active:opacity-70 family-control" role="button" tabindex="0" :aria-disabled="handoffBusy ? 'true' : 'false'" :aria-busy="handoffBusy ? 'true' : 'false'" @click="!handoffBusy && onHumanHandoff()"><LiquidGlass rendering="frosted" :radius="22" /><text>{{ handoffCopy.action }}</text></view>
-      </view>
-      <view v-if="isAi && remoteApiEnabled && nova.historyTruncated" class="cp-ai-history" role="status" aria-live="polite">
-        <text class="cp-ai-history-t">{{ t.nova.historyTruncated }}</text>
-      </view>
-      <view v-if="isAi && remoteApiEnabled && nova.historyNextCursor" class="cp-history-text-action" role="button" :tabindex="novaHistoryLoading ? -1 : 0" :aria-disabled="novaHistoryLoading" :aria-busy="novaHistoryLoading"
-        :aria-label="t.nova.loadEarlier" @click="loadEarlierNovaHistory"  @keydown.enter.prevent="onKeyboardActivate($event, loadEarlierNovaHistory)" @keydown.space.prevent="onKeyboardActivate($event, loadEarlierNovaHistory)">
-        <text class="cp-ai-history-t">{{ t.nova.loadEarlier }}</text>
-      </view>
-      <view v-if="!isAi && conv?.historyTruncated" class="cp-ai-history" role="status" aria-live="polite">
+      <view v-if="conv?.historyTruncated" class="cp-ai-history" role="status" aria-live="polite">
         <text class="cp-ai-history-t">{{ t.conversations.historyTruncated }}</text>
       </view>
-      <view v-if="!isAi && conv?.historyNextCursor" class="cp-history-text-action" role="button" :tabindex="humanEarlierBusy || humanHistoryRetryBusy ? -1 : 0" :aria-disabled="humanEarlierBusy || humanHistoryRetryBusy" :aria-busy="humanEarlierBusy"
+      <view v-if="conv?.historyNextCursor" class="cp-history-text-action" role="button" :tabindex="humanEarlierBusy || humanHistoryRetryBusy ? -1 : 0" :aria-disabled="humanEarlierBusy || humanHistoryRetryBusy" :aria-busy="humanEarlierBusy"
         :aria-label="t.conversations.loadEarlier" @click="loadEarlierHumanHistory"  @keydown.enter.prevent="onKeyboardActivate($event, loadEarlierHumanHistory)" @keydown.space.prevent="onKeyboardActivate($event, loadEarlierHumanHistory)">
         <text class="cp-ai-history-t">{{ t.conversations.loadEarlier }}</text>
       </view>
@@ -142,56 +118,41 @@
          carry its own GlobalUi or toast/confirm/netError raised here (e.g. the send
          rate-limit warning) would post to the store with nothing rendering them. -->
     <GlobalUi />
-    </template>
-    <view v-else style="display: flex; align-items: center; justify-content: center; gap: 12px; padding: 24px">
-      <text role="status">{{ t.conversations.categoryDisabled }}</text>
-      <view role="button" tabindex="0" @click="navReplace('/pages/support/messages')"  @keydown.enter.prevent="navReplace('/pages/support/messages')" @keydown.space.prevent="navReplace('/pages/support/messages')">
-        <text>{{ t.me.supportHubRow }}</text>
-      </view>
-    </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, shallowRef, computed, watch, nextTick, onMounted, onUnmounted, getCurrentInstance, type CSSProperties } from "vue";
 import { onLoad, onUnload, onShow, onHide } from "@dcloudio/uni-app";
-import NovaAvatar from "@/components/nova/nova-avatar.vue";
 import ConversationThread from "@/components/support/conversation-thread.vue";
 import GlobalUi from "@/components/global-ui.vue";
 import DeviceStatusBar from "@/components/device/device-status-bar.vue";
 import DeviceHomeIndicator from "@/components/device/device-home-indicator.vue";
-import type { ThreadMsg, QuickChip } from "@/components/support/thread-types";
+import type { ThreadMsg } from "@/components/support/thread-types";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { localizedIdleClose } from "@/lib/support-idle-message";
 import { navTo, navBack, navReplace } from "@/lib/route";
-import { NOVA_SUPPORT_VISIBLE } from "@/lib/nova-visibility";
 import { conversationSendLimiter } from "@/lib/send-limiter";
 import { MESSAGE_MAX_LENGTH, normalizeMessageText } from '@/lib/message-length-policy';
 import { h5DevicePreviewStatusBarHeight } from "@/lib/device-preview";
-import { isDeviceOnline } from "@/lib/hashpower";
 import { useConversations, type CategoryRefreshOutcome, type HumanComposer } from "@/store/conversations";
-import { useNova } from "@/store/nova";
 import { useApp } from "@/store/app";
 import { useAuth } from "@/store/auth";
-import { sessionVault, novaAiApi, remoteApiEnabled, supportApi } from "@/api/runtime";
+import { sessionVault, remoteApiEnabled, supportApi } from "@/api/runtime";
 import { binarySessionReady as accountSessionReady } from "@/lib/binary-session-ready";
-import { toast, confirm, useUI } from "@/store/ui";
-import { replyToQuickPrompt, type QuickPromptKey } from "@/mock/nova-templates";
+import { toast } from "@/store/ui";
 import type { ConversationType, ConvMessage } from "@/domain/support";
 
 import { ApiError, asApiError } from "@/api/errors";
 import { isConversationDeliveryAmbiguous, isConversationPeerChanged } from '@/lib/conversation-delivery-policy';
 import { isSupportAttachmentNotReady, type SupportAttachmentPolicy } from "@/api/support-api";
-import { novaFailure } from "@/lib/nova-failure";
 import { useLocaleStore } from "@/store/locale";
 import { requireCryptoUuid } from "@/lib/secure-command-id";
 import { createHumanConversationCreationRecovery, createHumanThreadRealtimeLifecycle } from "./conversation-realtime-page";
-import { createLatestAbortableRequest, NOVA_THINKING_CHECKING_MS, NOVA_THINKING_COMPOSING_MS, novaThinkingNow, remainingNovaThinkingMs, type NovaThinkingStage } from "@/lib/nova-thinking";
 
 const t = useT();
 const convStore = useConversations();
-const nova = useNova();
 const app = useApp();
 const auth = useAuth();
 const supportSessionReady = computed(() => {
@@ -212,37 +173,12 @@ const localHumanSend = ref<ThreadMsg | null>(null);
 let localHumanSequence = 0;
 const sendSuccessRevision = ref(0);
 const sendSuccessOwner = ref('');
-const pendingNovaSounds = new Set<string>();
 function noteSendSuccess() {
-  if (novaPageVisible && !chatDisposed) {
+  if (pageVisible && !chatDisposed) {
     sendSuccessOwner.value = JSON.stringify([app.accountKey, app.accountBindingEpoch, threadComposerKey.value]);
     sendSuccessRevision.value++;
   }
 }
-const queuedSendVisuals = new Map<string, (accepted?: boolean) => void>();
-function clearQueuedSendVisuals() {
-  pendingNovaSounds.clear();
-  const callbacks = [...queuedSendVisuals.values()]; queuedSendVisuals.clear();
-  callbacks.forEach(done => done(false));
-}
-function settleQueuedSendVisuals() {
-  for (const turnId of pendingNovaSounds) {
-    const item = nova.pendingRemote.find(row => row.turnId === turnId);
-    if (!item || item.delivery === 'failed') {
-      pendingNovaSounds.delete(turnId);
-      if (!item && nova.messages.some(row => row.turnId === turnId && !row.delivery)) noteSendSuccess();
-    }
-  }
-  for (const [turnId, done] of queuedSendVisuals) {
-    const item = nova.pendingRemote.find(row => row.turnId === turnId);
-    if (!item || item.delivery === 'failed') {
-      queuedSendVisuals.delete(turnId);
-      done(!item && nova.messages.some(row => row.turnId === turnId && !row.delivery));
-    }
-  }
-}
-watch(() => nova.pendingRemote.map(row => [row.turnId, row.delivery]), settleQueuedSendVisuals, { flush: 'sync' });
-watch(() => [app.accountKey, app.accountBindingEpoch, nova.conversationBoundary], clearQueuedSendVisuals, { flush: 'sync' });
 const draftText = ref("");
 const attachmentPolicy = ref<SupportAttachmentPolicy | null>(null);
 const attachmentPolicyError = ref(false);
@@ -271,7 +207,7 @@ watch(() => [app.accountBindingEpoch, convStore.scopeInvalidated], ([binding], [
     clearPrivateImages(); imageDraft.value = null; resetAttachmentPolicy();
     if (binding !== previousBinding) { failedHumanSend.value = null; draftText.value = ""; }
   } finally { humanComposerResetting = false; }
-  if (novaPageVisible && !isAi.value && remoteApiEnabled && supportSessionReady.value) { void convStore.refreshAdvisor(); void loadAttachmentPolicy(); }
+  if (pageVisible && remoteApiEnabled && supportSessionReady.value) { void convStore.refreshAdvisor(); void loadAttachmentPolicy(); }
 }, { flush: "sync" });
 async function loadPrivateImages() {
   if (!supportSessionReady.value) return;
@@ -285,7 +221,7 @@ async function loadPrivateImages() {
       ...(avatarKey ? [{ id: avatarKey, read: async () => {
         const source = await supportApi.authorAvatarContent(message.senderId!);
         try {
-          if (epoch !== imageEpoch || binding !== app.accountBindingEpoch || scope !== convStore.scopeInvalidated || !novaPageVisible || conv.value?.id !== conversationId) return source;
+          if (epoch !== imageEpoch || binding !== app.accountBindingEpoch || scope !== convStore.scopeInvalidated || !pageVisible || conv.value?.id !== conversationId) return source;
           // The guarded endpoint returns the author's current photo; confirm its revision before caching.
           const before = Number(message.id) + 1;
           const sourceConversationId = humanHistory.value.find(row => row.messages.some(item=>item.id===message.id))?.id;
@@ -305,7 +241,7 @@ async function loadPrivateImages() {
     imageLoads.add(id);
     try {
       const source = await read();
-      if (epoch !== imageEpoch || binding !== app.accountBindingEpoch || scope !== convStore.scopeInvalidated || !novaPageVisible || conv.value?.id !== conversationId) {
+      if (epoch !== imageEpoch || binding !== app.accountBindingEpoch || scope !== convStore.scopeInvalidated || !pageVisible || conv.value?.id !== conversationId) {
         if (source.startsWith("blob:") && typeof URL !== "undefined") URL.revokeObjectURL(source);
         return;
       }
@@ -319,7 +255,7 @@ function avatarImageKey(message: ConvMessage): string | undefined {
   return message.sender === "agent" && message.authorConfidence === "VERIFIED" && message.senderId && message.senderAvatar
     ? `author:${message.senderId}:${message.senderAvatar.assetId}:${message.senderAvatar.version}` : undefined;
 }
-const attachmentDisplay = computed(() => imageDraft.value && !isAi.value ? {
+const attachmentDisplay = computed(() => imageDraft.value ? {
   state: imageDraft.value.state,
   replaceOnly: imageDraft.value.replaceOnly,
   label: imageDraft.value.state === "ready" ? t.value.conversations.image.ready
@@ -333,15 +269,15 @@ const failedHumanLabel = computed(() => failedHumanSend.value
   : undefined);
 
 async function chooseSupportImage() {
-  if (chatDisposed || !novaPageVisible || !supportSessionReady.value || supportImagePicker) return;
-  if (isAi.value || imageDraft.value || failedHumanSend.value) return;
+  if (chatDisposed || !pageVisible || !supportSessionReady.value || supportImagePicker) return;
+  if (imageDraft.value || failedHumanSend.value) return;
   const account = app.accountKey, binding = app.accountBindingEpoch, scope = convStore.scopeInvalidated, key = humanComposerKey.value;
   const current = () => !chatDisposed && supportSessionReady.value && account === app.accountKey && binding === app.accountBindingEpoch
     && scope === convStore.scopeInvalidated && key === humanComposerKey.value;
   let picker: SupportImagePicker | null = null;
   try {
     if (!attachmentPolicy.value) await loadAttachmentPolicy();
-    if (!novaPageVisible || !current() || supportImagePicker) return;
+    if (!pageVisible || !current() || supportImagePicker) return;
     const policy = attachmentPolicy.value, generation = attachmentPolicyGeneration;
     if (!policy?.available) return;
     picker = { allowHidden: false, current: () => current() && generation === attachmentPolicyGeneration && attachmentPolicy.value === policy };
@@ -361,7 +297,7 @@ async function chooseSupportImage() {
           // #endif
           if (cancelled) resolve(null); else reject(cause);
         } }));
-      if (!selected || supportImagePicker !== picker || !picker.current() || !novaPageVisible && !picker.allowHidden) return;
+      if (!selected || supportImagePicker !== picker || !picker.current() || !pageVisible && !picker.allowHidden) return;
       const path = selected.tempFilePaths[0];
       if (!path) return;
       const selectedFile = Array.isArray(selected.tempFiles) ? selected.tempFiles[0] : selected.tempFiles;
@@ -374,21 +310,21 @@ async function chooseSupportImage() {
     } finally {
       if (supportImagePicker === picker) {
         supportImagePicker = null;
-        if (!novaPageVisible) resetAttachmentPolicy();
+        if (!pageVisible) resetAttachmentPolicy();
       }
     }
     await retrySupportUpload();
   } catch {
-    if (!current() || !novaPageVisible && !picker?.allowHidden) return;
+    if (!current() || !pageVisible && !picker?.allowHidden) return;
     toast.error(t.value.conversations.image.uploadFailed, "");
   }
 }
 async function loadAttachmentPolicy() {
-  if (!supportSessionReady.value || !remoteApiEnabled || !novaPageVisible || chatDisposed) return;
+  if (!supportSessionReady.value || !remoteApiEnabled || !pageVisible || chatDisposed) return;
   if (supportImagePicker?.allowHidden && supportImagePicker.current()) return;
   const binding = app.accountBindingEpoch, scope = convStore.scopeInvalidated, key = humanComposerKey.value;
   const generation = ++attachmentPolicyGeneration;
-  const current = () => generation === attachmentPolicyGeneration && !chatDisposed && novaPageVisible && supportSessionReady.value
+  const current = () => generation === attachmentPolicyGeneration && !chatDisposed && pageVisible && supportSessionReady.value
     && binding === app.accountBindingEpoch && scope === convStore.scopeInvalidated && key === humanComposerKey.value;
   attachmentPolicy.value = null;
   attachmentPolicyError.value = false;
@@ -479,40 +415,12 @@ function editHumanSend() {
 }
 
 const cid = ref("");
-const isAi = ref(false);
-const threadComposerKey = computed(() => isAi.value ? app.accountKey + ':' + nova.conversationId
-  : app.accountBindingEpoch + ':' + convStore.scopeInvalidated + ':' + (cid.value || startType.value || ''));
-const hiddenAiRoute = ref(false);
-const initialPrompt = ref("");
-// Nova availability belongs only to ?type=ai. Human advisor/support routes must
-// never inherit a provisional local-model state before their route is resolved.
-const novaProviderHold = ref(false);
-const novaStatusLoading = ref(false);
-const novaAiRequestInFlight = ref(false);
-const novaHistoryLoading = ref(false);
-const handoffBusy = ref(false);
-const handoffRecommended = ref(false);
-const handoffNeedsFreshQuestion = ref(false);
-let handoffAttemptEpoch = 0;
-let pendingHandoff: { account: string; epoch: number; conversation: string; turn: string; key: string } | null = null;
-const handoffCopy = computed(() => t.value.nova.handoff);
-watch(() => [app.accountKey, app.accountBindingEpoch, nova.conversationId], () => {
-  ++handoffAttemptEpoch;
-  handoffNeedsFreshQuestion.value = false;
-  pendingHandoff = null; handoffRecommended.value = false; handoffBusy.value = false;
-});
-let novaPageVisible = false;
-let novaHistoryEpoch = 0;
-let novaDispatchTimer: ReturnType<typeof setTimeout> | undefined;
-let novaReplyDeadline: { turnId: string; expiresAt: number } | undefined;
-const dialogOwner = `nova-chat-${Date.now()}`;
-const novaThinkingStage = ref<NovaThinkingStage>("understanding");
-let novaStatusEpoch = 0;
+const threadComposerKey = computed(() => app.accountBindingEpoch + ':' + convStore.scopeInvalidated + ':' + (cid.value || startType.value || ''));
+let pageVisible = false;
 let categoryGate: {
   category: ConversationType;
   promise: Promise<CategoryRefreshOutcome>;
 } | null = null;
-const novaRequestControl = createLatestAbortableRequest();
 const startType = ref<Exclude<ConversationType, "ai"> | null>(null);
 const humanComposerKey = computed(() => cid.value ? `conversation:${cid.value}` : startType.value ? `start:${startType.value}` : "");
 watch(() => [app.accountBindingEpoch, humanComposerKey.value, convStore.clearedComposerThrough[humanComposerKey.value]] as const,
@@ -524,12 +432,12 @@ watch(() => [app.accountBindingEpoch, humanComposerKey.value, convStore.clearedC
       draftText.value = ""; failedHumanSend.value = null; imageDraft.value = null; localHumanSend.value = null;
       clearPrivateImages(); resetAttachmentPolicy();
     } finally { humanComposerResetting = false; }
-    if (novaPageVisible && !isAi.value && supportSessionReady.value) void loadAttachmentPolicy();
+    if (pageVisible && supportSessionReady.value) void loadAttachmentPolicy();
   }, { flush: 'sync' });
 watch(() => [humanComposerKey.value, app.accountBindingEpoch, convStore.scopeInvalidated], () => { localHumanSend.value = null; }, { flush: 'sync' });
 let recoveredNavigation = "";
 function restoreRecoveredComposer(saved: HumanComposer | null | undefined, key: string) {
-  if (!saved?.recoveredId || !startType.value || cid.value || !novaPageVisible || recoveredNavigation === saved.recoveredId) return;
+  if (!saved?.recoveredId || !startType.value || cid.value || !pageVisible || recoveredNavigation === saved.recoveredId) return;
   const id = saved.recoveredId;
   const binding = app.accountBindingEpoch;
   const scope = convStore.scopeInvalidated;
@@ -550,7 +458,7 @@ watch(humanComposerKey, (key, previous) => {
   imageDraft.value = saved?.imageDraft ?? null;
   failedHumanSend.value = saved?.failedSend ?? null;
   restoreRecoveredComposer(saved, key);
-  if (hadPicker && novaPageVisible) void loadAttachmentPolicy();
+  if (hadPicker && pageVisible) void loadAttachmentPolicy();
 }, { flush: "sync" });
 watch([draftText, imageDraft, failedHumanSend], () => {
   if (humanComposerResetting) return;
@@ -569,12 +477,11 @@ watch([() => convStore.humanComposers[humanComposerKey.value], humanSendBusy], (
 });
 const humanRealtime = createHumanThreadRealtimeLifecycle({
   currentId: () => cid.value,
-  isAi: () => isAi.value,
   setTyping: active => convStore.setTyping(active),
   watch: id => convStore.watchRealtime(id),
 });
 const humanCreateRecovery = createHumanConversationCreationRecovery({
-  visible: () => novaPageVisible,
+  visible: () => pageVisible,
   account: () => app.accountKey,
   binding: () => app.accountBindingEpoch,
   currentId: () => cid.value,
@@ -590,7 +497,7 @@ function restoreCompletedHumanCreate(activateRealtime = false) {
   const type = startType.value;
   const restoredId = humanCreateRecovery.restore();
   if (restoredId && activateRealtime) humanRealtime.activateIfCurrent(restoredId);
-  if (restoredId && novaPageVisible && type) {
+  if (restoredId && pageVisible && type) {
     const key = `start:${type}`;
     const binding = app.accountBindingEpoch;
     const scope = convStore.scopeInvalidated;
@@ -637,20 +544,19 @@ async function openHumanConversation(epoch: number, id: string) {
 }
 
 watch([() => app.accountBindingEpoch, supportSessionReady, humanShowRevision], () => {
-  if (isAi.value) return;
   if (!supportSessionReady.value) { stopHumanThreadPolling(); return; }
-  if (novaPageVisible) void activateHumanPage();
+  if (pageVisible) void activateHumanPage();
 }, { flush: "post" });
 
 async function activateHumanPage() {
-  if (!novaPageVisible || isAi.value || !supportSessionReady.value) return;
+  if (!pageVisible || !supportSessionReady.value) return;
   stopHumanThreadPolling();
   const epoch = humanRealtime.show(), binding = app.accountBindingEpoch, scope = convStore.scopeInvalidated;
   void convStore.refreshAdvisor(); void loadAttachmentPolicy();
   restoreCompletedHumanCreate();
   restoreRecoveredComposer(convStore.composer(humanComposerKey.value), humanComposerKey.value);
   const id = cid.value, type = startType.value;
-  const current = () => novaPageVisible && supportSessionReady.value && binding === app.accountBindingEpoch
+  const current = () => pageVisible && supportSessionReady.value && binding === app.accountBindingEpoch
     && scope === convStore.scopeInvalidated && id === cid.value && type === startType.value;
   revealTick.value += 1;
   const savedCreate = type && !id ? convStore.composer(`start:${type}`).failedSend : null;
@@ -694,16 +600,6 @@ const statusBarHeight = computed(() => {
 const revealTick = ref(0);
 
 onLoad((q) => {
-  if (q?.type === "ai") {
-    if (!NOVA_SUPPORT_VISIBLE) {
-      hiddenAiRoute.value = true;
-      void navReplace("/pages/support/messages");
-      return;
-    }
-    isAi.value = true;
-    if (typeof q?.prompt === "string") initialPrompt.value = q.prompt.trim().slice(0, 800);
-    return;
-  }
   const routeCid = typeof q?.cid === "string" ? q.cid.trim() : "";
   if (routeCid) {
     cid.value = routeCid;
@@ -718,100 +614,21 @@ onLoad((q) => {
 
 // onShow/onHide track the hidden-but-alive state that onUnload/onUnmounted miss.
 // onShow fires on first open AND on navigateBack re-reveal; onHide fires when a
-// forward navigateTo hides this page. Managing Nova's open flag here (not only in
-// cleanup) fixes the unread-suppression bug: leaving the AI chat forward used to
-// leave isOpen=true forever, so every later proactive push silently zeroed unread.
-// While a human-support thread is on screen the idle state machine must advance
-// LIVE (quiet 1 min → in-thread countdown warning; quiet 5 min → auto-close), so a
-// coarse interval keeps calling the sweep. Store-side idempotence (idleWarnedAt /
-// sessionStatus guards) makes redundant ticks free. A real backend pushes these
-// events — the interval then becomes a harmless no-op.
-onShow(async () => {
+// forward navigateTo hides this page.
+onShow(() => {
   measureTopOverlay();
-  if (hiddenAiRoute.value) return;
-  novaPageVisible = true;
-  if (!isAi.value) { humanShowRevision.value += 1; return; }
-  novaHistoryLoading.value = false;
-  revealTick.value += 1;
-  const requestedCategory = isAi.value ? "ai" : startType.value;
-  // Bind the local account boundary synchronously. Input can become interactive
-  // before the category request finishes, and must never capture the previous
-  // account/conversation generation during that await gap.
-  if (isAi.value && remoteApiEnabled) {
-    try {
-      nova.bindRemoteAccount(app.accountKey);
-    } catch {
-      novaProviderHold.value = true;
-      novaStatusLoading.value = false;
-      return;
-    }
-  }
-  if (requestedCategory && remoteApiEnabled) {
-    const gate: NonNullable<typeof categoryGate> = {
-      category: requestedCategory,
-      promise: convStore.refreshCategories(),
-    };
-    categoryGate = gate;
-    const categoryOutcome = await gate.promise;
-    if (categoryGate !== gate || !novaPageVisible || categoryOutcome === "stale") return;
-    if (categoryOutcome === "failed" || !convStore.categoryEnabled(requestedCategory)) {
-      toast.info(t.value.conversations.categoryDisabled, "");
-      navBack("/pages/support/messages");
-      return;
-    }
-  }
-  if (isAi.value) {
-    nova.open(); // mark Nova as being viewed → clears + tracks unread
-    if (remoteApiEnabled) {
-      await Promise.allSettled([refreshNovaAvailability(), refreshNovaHistory()]);
-      void drainNovaQueue();
-    }
-  }
+  pageVisible = true;
+  humanShowRevision.value += 1;
 });
 onHide(() => {
-  novaPageVisible = false;
+  pageVisible = false;
   topOverlayMeasureEpoch++;
-  clearQueuedSendVisuals();
   if (!supportImagePicker?.allowHidden || !supportImagePicker.current()) resetAttachmentPolicy();
   cancelHistoryRetry();
   clearPrivateImages();
   categoryGate = null;
-  ++handoffAttemptEpoch;
-  handoffBusy.value = false;
-  novaStatusEpoch += 1;
-  novaHistoryEpoch += 1;
-  useUI().clearConfirmsBy(dialogOwner);
-  if (isAi.value) {
-    cancelNovaThinking();
-    nova.close(); // no longer viewing Nova → later pushes accrue unread
-  }
   stopHumanThreadPolling();
 });
-
-watch(() => app.accountKey, () => {
-  if (!isAi.value || !remoteApiEnabled) return;
-  categoryGate = null;
-  cancelNovaThinking();
-  novaStatusEpoch += 1;
-  novaHistoryEpoch += 1;
-  novaHistoryLoading.value = false;
-  useUI().clearConfirmsBy(dialogOwner);
-  try { nova.bindRemoteAccount(app.accountKey); } catch { novaProviderHold.value = true; return; }
-  if (novaPageVisible) {
-    const accountKey = app.accountKey;
-    const gate = { category: "ai" as const, promise: convStore.refreshCategories() };
-    categoryGate = gate;
-    void gate.promise.then(outcome => {
-      if (categoryGate !== gate || !novaPageVisible || accountKey !== app.accountKey || outcome === "stale") return;
-      if (outcome === "failed" || !convStore.categoryEnabled("ai")) {
-        toast.info(t.value.conversations.categoryDisabled, "");
-        navBack("/pages/support/messages");
-        return;
-      }
-      void Promise.allSettled([refreshNovaAvailability(), refreshNovaHistory()]);
-    });
-  }
-}, { flush: "sync" });
 
 const humanHistoryError = ref(false);
 const humanHistoryListError = ref(false);
@@ -821,10 +638,10 @@ let historyRetryGeneration = 0;
 function cancelHistoryRetry() { historyRetryGeneration++; humanHistoryRetryBusy.value=false; humanEarlierBusy.value=false; }
 watch([cid,()=>app.accountBindingEpoch],cancelHistoryRetry,{flush:'sync'});
 async function retryHumanHistory() {
-  if(!novaPageVisible||!supportSessionReady.value||humanHistoryRetryBusy.value||humanEarlierBusy.value)return;
+  if(!pageVisible||!supportSessionReady.value||humanHistoryRetryBusy.value||humanEarlierBusy.value)return;
   const binding=app.accountBindingEpoch, id=cid.value, request=++historyRetryGeneration, scope=convStore.scopeInvalidated;
   humanHistoryRetryBusy.value=true;
-  const current=()=>novaPageVisible && request===historyRetryGeneration && binding===app.accountBindingEpoch && scope===convStore.scopeInvalidated && id===cid.value;
+  const current=()=>pageVisible && request===historyRetryGeneration && binding===app.accountBindingEpoch && scope===convStore.scopeInvalidated && id===cid.value;
   try { await convStore.refresh(current); if(current()) { humanHistoryListError.value=false; humanHistoryRetry.value++; } }
   catch { if(current()) humanHistoryListError.value=true; }
   finally { if(request===historyRetryGeneration)humanHistoryRetryBusy.value=false; }
@@ -843,12 +660,12 @@ watch([cid, () => app.accountBindingEpoch, supportSessionReady, () => humanHisto
   if (!id || !ready) return;
   let current = true; onCleanup(()=>{current=false;}); humanHistoryError.value=false;
   for (const row of humanHistory.value) {
-    if (!current || !novaPageVisible) return;
+    if (!current || !pageVisible) return;
     if (row.id === id) continue;
-    try { await convStore.open(row.id,()=>current && novaPageVisible); } catch { if(current)humanHistoryError.value=true; }
+    try { await convStore.open(row.id,()=>current && pageVisible); } catch { if(current)humanHistoryError.value=true; }
   }
 }, { immediate: true });
-watch(() => conv.value?.messages?.map(message => [message.attachmentId, avatarImageKey(message)].join(":")).join("|"), () => { if (novaPageVisible && !isAi.value) void loadPrivateImages(); });
+watch(() => conv.value?.messages?.map(message => [message.attachmentId, avatarImageKey(message)].join(":")).join("|"), () => { if (pageVisible) void loadPrivateImages(); });
 const humanType = computed<Exclude<ConversationType, "ai"> | null>(() =>
   conv.value?.type === "advisor" || conv.value?.type === "support" ? conv.value.type : startType.value,
 );
@@ -856,19 +673,15 @@ const humanType = computed<Exclude<ConversationType, "ai"> | null>(() =>
 // The App only permits replies to the same states accepted by AppSupportService.
 // A transferred thread is history: a restart creates a new user-owned conversation.
 const replyAllowedStatuses = new Set(["open", "resolved", "closed"]);
-const isTransferredSession = computed(() => !isAi.value
-  && (conv.value?.status === "transferred" || convStore.peerChangedIds[cid.value] === true));
+const isTransferredSession = computed(() => conv.value?.status === "transferred" || convStore.peerChangedIds[cid.value] === true);
 const isReplyAllowed = computed(() => !isTransferredSession.value && (!conv.value || replyAllowedStatuses.has(conv.value.status)));
-const isClosedSession = computed(() =>
-  isAi.value ? novaProviderHold.value : !!conv.value && !isReplyAllowed.value,
-);
+const isClosedSession = computed(() => !!conv.value && !isReplyAllowed.value);
 // Account advisor identity belongs to new composition. Existing conversation
 // headers and waiting state use the server's owner for that exact conversation id.
-const advisorApplies = computed(() => !isAi.value && !isClosedSession.value && !cid.value && !!startType.value);
-const showUnassignedReceived = computed(() => !isAi.value && !isClosedSession.value && !!conv.value
+const advisorApplies = computed(() => !isClosedSession.value && !cid.value && !!startType.value);
+const showUnassignedReceived = computed(() => !isClosedSession.value && !!conv.value
   && isWaitingForAgent(conv.value.agentName) && conv.value.messages.some(message => message.sender === "user"));
 const headerName = computed(() => {
-  if (isAi.value) return t.value.nova.name;
   if (advisorApplies.value && convStore.advisor?.assignmentState === "UNBOUND") return t.value.conversations.image.unassigned;
   if (advisorApplies.value && convStore.advisor?.currentAdvisorName) return convStore.advisor.currentAdvisorName;
   if (advisorApplies.value && convStore.advisorError) return t.value.conversations.typeAdvisor;
@@ -881,17 +694,7 @@ function displayAgentName(name: string): string {
   const normalized = name.trim();
   return isWaitingForAgent(normalized) ? t.value.conversations.unassignedAgent : normalized;
 }
-const agentTyping = computed(() =>
-  isAi.value ? nova.typing : (cid.value ? convStore.typingIds[cid.value] === true : false),
-);
-const thinkingLabel = computed(() => {
-  if (!isAi.value || !remoteApiEnabled) return t.value.conversations.agentTyping;
-  switch (novaThinkingStage.value) {
-    case "checking": return t.value.nova.thinkingChecking;
-    case "composing": return t.value.nova.thinkingComposing;
-    default: return t.value.nova.thinkingUnderstanding;
-  }
-});
+const agentTyping = computed(() => cid.value ? convStore.typingIds[cid.value] === true : false);
 function isWaitingForAgent(name: string): boolean {
   const normalized = name.trim();
   return !normalized || normalized.toLowerCase() === "unassigned" || normalized === "备勤池" || normalized === "待分配";
@@ -899,8 +702,6 @@ function isWaitingForAgent(name: string): boolean {
 const waitingForAgent = computed(() => (advisorApplies.value && convStore.advisor?.assignmentState === "UNBOUND")
   || (!!conv.value && (!advisorApplies.value || !convStore.advisor) && isWaitingForAgent(conv.value.agentName)));
 const humanPresence = computed(() => {
-  // Nova never consumes a human thread's connection or presence state.
-  if (isAi.value) return { online: undefined, mutedDot: false };
   const online = cid.value ? convStore.onlineIds[cid.value] : undefined;
   return {
     online,
@@ -909,12 +710,6 @@ const humanPresence = computed(() => {
   };
 });
 const headerRole = computed(() => {
-  if (isAi.value) {
-    if (agentTyping.value) return thinkingLabel.value;
-    if (novaStatusLoading.value) return t.value.nova.localConnecting;
-    if (novaProviderHold.value) return t.value.nova.localUnavailable;
-    return remoteApiEnabled ? t.value.nova.localRole : t.value.conversations.roleAi;
-  }
   if (!supportSessionReady.value) return t.value.conversations.connecting;
   if (advisorApplies.value && convStore.advisorError) return "";
   if (startType.value && advisorApplies.value && convStore.advisor?.assignmentState === "UNBOUND") return t.value.conversations.waitingAgent;
@@ -930,59 +725,27 @@ const headerRole = computed(() => {
   if (waitingForAgent.value) return t.value.conversations.waitingAgent;
   if (!convStore.realtimeReady) return t.value.conversations.connecting;
   if (humanPresence.value.online === false) return t.value.conversations.offline;
-  if (agentTyping.value) return thinkingLabel.value;
+  if (agentTyping.value) return t.value.conversations.agentTyping;
   if (humanPresence.value.online === true) return t.value.conversations.online;
   return t.value.conversations[conv.value.roleKey];
 });
-const headerTint = computed(() =>
-  isAi.value ? "var(--v5-brand-2)" : conv.value?.avatarTint ?? (humanType.value === "advisor" ? "var(--v5-brand)" : "var(--v5-tech-cyan)"),
-);
 // Never show a live dot until a human conversation has an assigned, current
 // websocket presence. Unknown, reconnecting, and offline stay visually neutral.
 const dotStyle = computed<CSSProperties>(() =>
   humanPresence.value.mutedDot
     ? { background: "var(--v5-ink-4)", animation: "none" }
-    : { background: isAi.value ? headerTint.value : "var(--nx-presence-green)" },
+    : { background: "var(--nx-presence-green)" },
 );
 
-const inputPlaceholder = computed(() =>
-  isAi.value && novaProviderHold.value
-    ? t.value.nova.localUnavailable
-    : isAi.value
-      ? remoteApiEnabled ? t.value.nova.localInputPlaceholder : t.value.nova.inputPlaceholder
-      : t.value.conversations.inputPlaceholder,
-);
-// 输入框的**名称**,与 inputPlaceholder(提示)分开。
-// 本仓 lib/a11y-field-label.ts 的契约写得很明白:placeholder 是提示不是名称 ——
-// 「拿 placeholder 冒充可访问名会把『提示』和『名称』混为一谈(placeholder 在输入后
-// 就消失了,不是稳定的名称)」。而 placeholder 这一侧是**随可用性变**的
-// (Nova 不可用时换成 localUnavailable),名称不能跟着一个会变的提示走。
-const inputLabel = computed(() =>
-  isAi.value
-    ? remoteApiEnabled ? t.value.nova.localInputPlaceholder : t.value.nova.inputPlaceholder
-    : t.value.conversations.inputPlaceholder,
-);
+// The field keeps a stable accessible name separate from its placeholder hint.
+const inputPlaceholder = computed(() => t.value.conversations.inputPlaceholder);
+const inputLabel = computed(() => t.value.conversations.inputPlaceholder);
 const emptyHint = computed(() => {
   if (advisorApplies.value && convStore.advisorError) return "";
-  if (isAi.value && novaStatusLoading.value) return t.value.nova.localConnecting;
-  if (isAi.value && novaProviderHold.value) return t.value.nova.localUnavailable;
-  if (isAi.value) return remoteApiEnabled ? t.value.nova.localEmptyHint : t.value.nova.emptyHint;
   if (!supportSessionReady.value) return t.value.conversations.connecting;
   if (waitingForAgent.value) return t.value.conversations.image.unassignedHint;
   return humanType.value === "advisor" ? t.value.conversations.listEmptyAdvisor : t.value.conversations.listEmptySupport;
 });
-
-const quickChips = computed<QuickChip[]>(() =>
-  isAi.value && !novaProviderHold.value
-    ? [
-        ...(initialPrompt.value ? [{ key: "search-query", emoji: "🔎", label: initialPrompt.value }] : []),
-        { key: "explain-today", emoji: "📦", label: quickLabel("explain-today") },
-        { key: "how-to-boost", emoji: "💸", label: quickLabel("how-to-boost") },
-        { key: "whats-hot", emoji: "🔐", label: quickLabel("whats-hot") },
-        { key: "show-top-jobs", emoji: "💬", label: quickLabel("show-top-jobs") },
-      ]
-    : [],
-);
 
 // Keep the latest outgoing receipt and explicitly supplied incoming receipts.
 // An incoming read status is this user's server-acknowledged read, never inferred.
@@ -1011,32 +774,6 @@ function humanMessageRecommendation(message: ConvMessage): Partial<ThreadMsg> {
   return { text };
 }
 const threadMessages = computed<ThreadMsg[]>(() => {
-  if (isAi.value) {
-    const msgs = nova.messages;
-    const lastUser = msgs.map((m) => m.sender).lastIndexOf("user");
-    return msgs.map((m, i) => ({
-      id: m.id,
-      side: m.sender === "user" ? "right" : "left",
-      tone: m.sender === "user" ? "user" : "agent",
-      text: m.text,
-      timestamp: m.ts,
-      receipt: receiptFor(m.status, i === lastUser),
-      deliveryState: m.delivery ? undefined : m.status,
-      queue: m.delivery ? {
-        turnId: m.turnId!, state: m.delivery,
-        label: m.delivery === "failed" ? t.value.nova.queue[m.failure === "input-rejected" ? "failed" : m.failure ?? "failed"]
-          : m.serverPending && ["processing", "tracking"].includes(m.delivery) ? t.value.nova.queue.tracking
-          : m.delivery === "processing" ? t.value.nova.queue.processing
-          : m.delivery === "editing" ? t.value.nova.queue.editing
-          : nova.pendingRemote[0]?.delivery === "failed" ? t.value.nova.queue.paused
-          : nova.pendingRemote.indexOf(m) === 0 ? t.value.nova.queue.ready
-          : fmt(t.value.nova.queue.waiting, { n: nova.pendingRemote.indexOf(m) }),
-        editable: nova.canEditRemote(m.turnId!),
-      } : undefined,
-      ctaLabel: m.ctaLabel,
-      ctaHref: m.ctaHref,
-    }));
-  }
   const c = conv.value;
   const failed = failedHumanSend.value;
   const pending: ThreadMsg | null = humanSendBusy.value && localHumanSend.value
@@ -1099,235 +836,34 @@ async function loadEarlierHumanHistory() {
 // Restart returns to the same server-backed compose path. A durable conversation
 // is created only after the user submits the opening message.
 function onRestart() {
-  if (isAi.value && remoteApiEnabled) {
-    void refreshNovaAvailability();
-    return;
-  }
   const type = humanType.value;
   if (!type) return;
   navTo("/pages/support/chat?start=advisor");
 }
 
-async function onHumanHandoff() {
-  if (handoffBusy.value || !novaPageVisible) return;
-  if (handoffNeedsFreshQuestion.value) {
-    toast.info(handoffCopy.value.fresh, "");
-    navTo("/pages/support/chat?start=advisor");
-    return;
-  }
-  const lastReply = [...nova.messages].reverse().find(message => message.sender === "nova" && /^[0-9a-f-]{36}:nova$/i.test(message.id));
-  if (!lastReply) { navTo("/pages/support/chat?start=advisor"); return; }
-  const attemptEpoch = ++handoffAttemptEpoch;
-  const account = app.accountKey;
-  const bindingEpoch = app.accountBindingEpoch;
-  const conversation = nova.conversationId;
-  const current = () => novaPageVisible && attemptEpoch === handoffAttemptEpoch
-    && account === app.accountKey && bindingEpoch === app.accountBindingEpoch
-    && conversation === nova.conversationId;
-  handoffBusy.value = true;
-  let hasRequestKey = false;
-  try {
-    const request = pendingHandoff ?? {
-      account, epoch: bindingEpoch, conversation,
-      turn: lastReply.id.slice(0, 36), key: requireCryptoUuid(),
-    };
-    hasRequestKey = true;
-    if (!await confirm({ title: handoffCopy.value.action, message: handoffCopy.value.confirm,
-      confirmLabel: handoffCopy.value.action, owner: dialogOwner }) || !current()) return;
-    pendingHandoff = request;
-    const conversationNo = await novaAiApi.confirmHandoff(request.conversation, request.turn, request.key);
-    if (!current()) return;
-    pendingHandoff = null;
-    navTo(`/pages/support/chat?cid=${encodeURIComponent(conversationNo)}`);
-  } catch {
-    if (current()) {
-      if (!hasRequestKey) {
-        toast.info(handoffCopy.value.fresh, "");
-        navTo("/pages/support/chat?start=advisor");
-      } else toast.error(t.value.nova.localFailed, t.value.nova.localRetry);
-    }
-  } finally { if (attemptEpoch === handoffAttemptEpoch) handoffBusy.value = false; }
-}
-
-async function refreshNovaAvailability() {
-  if (!remoteApiEnabled || !isAi.value) return;
-  const epoch = ++novaStatusEpoch;
-  const accountKey = app.accountKey;
-  novaStatusLoading.value = true;
-  try {
-    const status = await novaAiApi.status();
-    if (epoch !== novaStatusEpoch || accountKey !== app.accountKey) return;
-    novaProviderHold.value = !status.available;
-  } catch {
-    if (epoch !== novaStatusEpoch || accountKey !== app.accountKey) return;
-    novaProviderHold.value = true;
-  } finally {
-    if (epoch === novaStatusEpoch && accountKey === app.accountKey) {
-      novaStatusLoading.value = false;
-      void drainNovaQueue();
-    }
-  }
-}
-
-async function refreshNovaHistory() {
-  if (!remoteApiEnabled || !isAi.value || nova.historyLoaded || nova.pendingRemote.length) return;
-  const epoch = ++novaHistoryEpoch;
-  novaHistoryLoading.value = true;
-  try {
-    await nova.ensureRemoteHistory(app.accountKey, () => novaAiApi.history());
-  } finally {
-    if (epoch === novaHistoryEpoch) {
-      novaHistoryLoading.value = false;
-      void drainNovaQueue();
-    }
-  }
-}
-
-async function loadEarlierNovaHistory() {
-  if (!remoteApiEnabled || !isAi.value || !novaPageVisible || novaHistoryLoading.value) return;
-  const epoch=++novaHistoryEpoch;
-  novaHistoryLoading.value=true;
-  try {
-    const prepared = await conversationThread.value?.prepareHistoryPrepend();
-    if (!novaPageVisible || epoch !== novaHistoryEpoch) return;
-    if (prepared !== true) { toast.warn(t.value.nova.localFailed, t.value.nova.localRetry); return; }
-    await nova.loadEarlierRemote(app.accountKey, cursor => novaAiApi.history(nova.conversationId, cursor));
-  } catch {
-    if(novaPageVisible&&epoch===novaHistoryEpoch)toast.warn(t.value.nova.localFailed, t.value.nova.localRetry);
-  } finally { if(epoch===novaHistoryEpoch)novaHistoryLoading.value=false; }
-}
-
-function quickLabel(k: QuickPromptKey): string {
-  if (remoteApiEnabled) {
-    switch (k) {
-      case "explain-today": return t.value.nova.localQOrder;
-      case "how-to-boost": return t.value.nova.localQWithdraw;
-      case "whats-hot": return t.value.nova.localQSecurity;
-      case "show-top-jobs": return t.value.nova.localQHuman;
-    }
-  }
-  switch (k) {
-    case "explain-today": return t.value.nova.qExplainToday;
-    case "how-to-boost": return t.value.nova.qHowToBoost;
-    case "whats-hot": return t.value.nova.qWhatsHot;
-    case "show-top-jobs": return t.value.nova.qShowTopJobs;
-  }
-}
-
-// One-shot reply timers — tracked so they can be cancelled if the user leaves the
-// chat before the reply lands. Otherwise a ghost reply posts to the singleton store
-// after unmount; for AI it would also bump unread once isOpen is reset below.
-const pendingTimers: ReturnType<typeof setTimeout>[] = [];
-function schedule(fn: () => void, ms: number) {
-  pendingTimers.push(setTimeout(fn, ms));
-}
-
-const novaThinkingTimers = new Set<ReturnType<typeof setTimeout>>();
-let pendingNovaThinkingWait: {
-  timer: ReturnType<typeof setTimeout>;
-  resolve: (completed: boolean) => void;
-} | undefined;
-
-function clearNovaThinkingTimers() {
-  novaThinkingTimers.forEach(clearTimeout);
-  novaThinkingTimers.clear();
-}
-
-function scheduleNovaThinkingStage(stage: NovaThinkingStage, ms: number, epoch: number) {
-  const timer = setTimeout(() => {
-    novaThinkingTimers.delete(timer);
-    if (novaRequestControl.isCurrent(epoch)) novaThinkingStage.value = stage;
-  }, ms);
-  novaThinkingTimers.add(timer);
-}
-
-function beginNovaThinking() {
-  clearNovaThinkingTimers();
-  const request = novaRequestControl.begin();
-  novaThinkingStage.value = "understanding";
-  nova.setTyping(true);
-  scheduleNovaThinkingStage("checking", NOVA_THINKING_CHECKING_MS, request.epoch);
-  scheduleNovaThinkingStage("composing", NOVA_THINKING_COMPOSING_MS, request.epoch);
-  return request;
-}
-
-function waitForNovaThinkingDelay(ms: number, epoch: number): Promise<boolean> {
-  if (!novaRequestControl.isCurrent(epoch)) return Promise.resolve(false);
-  if (ms <= 0) return Promise.resolve(true);
-  if (pendingNovaThinkingWait) {
-    clearTimeout(pendingNovaThinkingWait.timer);
-    pendingNovaThinkingWait.resolve(false);
-  }
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => {
-      if (pendingNovaThinkingWait?.timer === timer) pendingNovaThinkingWait = undefined;
-      resolve(novaRequestControl.isCurrent(epoch));
-    }, ms);
-    pendingNovaThinkingWait = { timer, resolve };
-  });
-}
-
-function finishNovaThinking(epoch: number) {
-  if (!novaRequestControl.finish(epoch)) return;
-  clearNovaThinkingTimers();
-  nova.setTyping(false);
-}
-
-function cancelNovaThinking() {
-  if (novaDispatchTimer !== undefined) clearTimeout(novaDispatchTimer);
-  novaDispatchTimer = undefined;
-  novaReplyDeadline = undefined;
-  novaRequestControl.cancel();
-  clearNovaThinkingTimers();
-  if (pendingNovaThinkingWait) {
-    clearTimeout(pendingNovaThinkingWait.timer);
-    pendingNovaThinkingWait.resolve(false);
-    pendingNovaThinkingWait = undefined;
-  }
-  nova.setTyping(false);
-  novaAiRequestInFlight.value = false;
-  nova.interruptRemote();
-}
-
 function cleanup() {
   chatDisposed = true;
-  novaPageVisible = false;
-  clearQueuedSendVisuals();
+  pageVisible = false;
   resetAttachmentPolicy();
   clearPrivateImages();
   categoryGate = null;
-  novaStatusEpoch += 1;
-  novaHistoryEpoch += 1;
-  useUI().clearConfirmsBy(dialogOwner);
   stopHumanThreadPolling();
-  pendingTimers.forEach(clearTimeout);
-  pendingTimers.length = 0;
-  // Cancelled timers would otherwise leave a ghost "typing…" flag on the store
-  // (it bleeds into the list preview) — always drop it on the way out.
-  cancelNovaThinking();
-  // Reset Nova's open flag (the AI chat page acted as the "open" view). Without this
-  // isOpen stays true forever and every future proactive push would silently zero
-  // unread → the bubble would never surface Nova news again after one AI visit.
-  if (isAi.value) nova.close();
 }
 onUnload(cleanup);
 onUnmounted(cleanup);
 
 // ── send rate limit — anti-spam guard across every channel of this chat
-// (advisor / support / AI free text, incl. quick chips). A real backend answers
+// (advisor / support). A real backend answers
 // 429 + Retry-After remains authoritative; the local budget protects the UI.
 const SEND_MAX = 5; // max sends…
 const SEND_WINDOW_MS = 15_000; // …per rolling window
 const SEND_MIN_GAP_MS = 1000; // min gap between two consecutive sends
-const sendLimiter = () => conversationSendLimiter(app.accountKey, isAi.value ? 'nova:' + nova.conversationId : cid.value || 'start:' + startType.value,
+const sendLimiter = () => conversationSendLimiter(app.accountKey, cid.value || 'start:' + startType.value,
   SEND_MAX, SEND_WINDOW_MS, SEND_MIN_GAP_MS);
-// Continuous input is accepted immediately. Apply the original anti-spam
-// budget to actual dispatch (including retries), without discarding input.
-const novaDispatchLimiter = () => conversationSendLimiter(app.accountKey, 'nova:' + nova.conversationId, SEND_MAX, SEND_WINDOW_MS, SEND_MIN_GAP_MS);
 
 function acquireSendSlot(): boolean {
   // Navigation may still be pending or have failed; never spend a send without a target.
-  if (!isAi.value && !cid.value && !startType.value) {
+  if (!cid.value && !startType.value) {
     void navReplace("/pages/support/messages");
     return false;
   }
@@ -1341,102 +877,29 @@ function acquireSendSlot(): boolean {
   return verdict.ok;
 }
 
-// Reply choreography (ms after send): agent reads → types → answers.
-const AI_TYPING_ON_MS = 300;
-const AI_REPLY_MS = 1100;
-const NOVA_SERVER_TRACK_RETRY_MS = 3000;
-const NOVA_REPLY_DEADLINE_MS = 75_000;
-
-async function waitForNovaReply<T>(reply: Promise<T>, abort: () => void, remainingMs: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      reply,
-      new Promise<never>((_, reject) => {
-        timer = setTimeout(() => { abort(); reject(new Error("request:fail timeout")); }, remainingMs);
-      }),
-    ]);
-  } finally { if (timer !== undefined) clearTimeout(timer); }
-}
-
 async function onSend(text: string, restore?: () => void, settled?: (accepted?: boolean) => void) {
-  let queuedVisualTurn: string | undefined;
   let accepted = false;
   try {
-  try { text = normalizeMessageText(text, { allowEmpty: !isAi.value && imageDraft.value?.state === 'ready' }); }
+  try { text = normalizeMessageText(text, { allowEmpty: imageDraft.value?.state === 'ready' }); }
   catch { restore?.(); toast.warn(fmt(t.value.conversations.messageTooLong, { n: MESSAGE_MAX_LENGTH })); return; }
-  if (!isAi.value && !supportSessionReady.value) { restore?.(); return; }
-  if (isAi.value && remoteApiEnabled) {
-    const accountKey = app.accountKey;
-    const conversationBoundary = nova.conversationBoundary;
-    let gate = categoryGate;
-    if (!gate || gate.category !== "ai") {
-      gate = { category: "ai", promise: convStore.refreshCategories() };
-      categoryGate = gate;
-    }
-    const categoryOutcome = await gate.promise;
-    if (categoryGate !== gate || categoryOutcome !== "applied" || !convStore.categoryEnabled("ai")) {
-      restore?.();
-      return;
-    }
-    if (!novaPageVisible || accountKey !== app.accountKey
-      || conversationBoundary !== nova.conversationBoundary) {
-      restore?.();
-      return;
-    }
-    if (!nova.historyLoaded) {
-      try {
-        await refreshNovaHistory();
-      } catch {
-        restore?.();
-        toast.error(t.value.nova.localFailed, t.value.nova.localRetry);
-        return;
-      }
-      if (!novaPageVisible || accountKey !== app.accountKey
-        || conversationBoundary !== nova.conversationBoundary || !nova.historyLoaded) {
-        restore?.();
-        return;
-      }
-    }
-    if (!text.trim() || text.length > 2000) {
-      restore?.(); toast.warn(t.value.nova.queue.invalid); return;
-    }
-    if (nova.pendingRemote.length >= 4) {
-      restore?.(); toast.info(t.value.nova.queue.full); return;
-    }
-    if (novaProviderHold.value) {
-      restore?.(); toast.info(t.value.nova.localUnavailable, t.value.nova.localRetry); return;
-    }
-    // Bound admission by queue capacity. Only the serial worker sends requests.
-    try {
-      const turnId = requireCryptoUuid();
-      if (!nova.enqueueRemote(turnId, text,
-        locale.code === "zh" || locale.code === "vi" ? locale.code : "en")) {
-        restore?.(); toast.warn(t.value.nova.queue.failed); return;
-      }
-      queuedVisualTurn = turnId;
-      pendingNovaSounds.add(turnId);
-    } catch { restore?.(); toast.error(t.value.nova.queue.failed); return; }
-    void drainNovaQueue();
-    return;
-  }
+  if (!supportSessionReady.value) { restore?.(); return; }
   if (humanSendBusy.value) { restore?.(); return; }
   humanSendBusy.value = true;
   try {
   // Do not supersede an in-flight page read; preserve the draft for its result.
-  if (!isAi.value && humanOpenRequest.value !== null) { restore?.(); return; }
-  if (!isAi.value && !cid.value && startType.value && remoteApiEnabled) {
+  if (humanOpenRequest.value !== null) { restore?.(); return; }
+  if (!cid.value && startType.value && remoteApiEnabled) {
     const binding = app.accountBindingEpoch, scope = convStore.scopeInvalidated, type = startType.value;
     let originalPending = false;
     try { originalPending = await convStore.hasPendingHumanCreate(type, text, imageDraft.value?.state === "ready" ? imageDraft.value.attachmentId : undefined); }
     catch {
-      if (binding !== app.accountBindingEpoch || scope !== convStore.scopeInvalidated || !novaPageVisible || startType.value !== type || cid.value) return;
+      if (binding !== app.accountBindingEpoch || scope !== convStore.scopeInvalidated || !pageVisible || startType.value !== type || cid.value) return;
       restore?.(); toast.error(t.value.conversations.image.sendBlocked, ""); return;
     }
-    if (binding !== app.accountBindingEpoch || scope !== convStore.scopeInvalidated || !novaPageVisible || startType.value !== type || cid.value) return;
+    if (binding !== app.accountBindingEpoch || scope !== convStore.scopeInvalidated || !pageVisible || startType.value !== type || cid.value) return;
     if (!originalPending && convStore.categoryAvailabilityStatus !== "ready") {
       const outcome = await convStore.refreshCategories();
-      if (binding !== app.accountBindingEpoch || scope !== convStore.scopeInvalidated || !novaPageVisible || startType.value !== type || cid.value) return;
+      if (binding !== app.accountBindingEpoch || scope !== convStore.scopeInvalidated || !pageVisible || startType.value !== type || cid.value) return;
       if (outcome !== "applied") { restore?.(); return; }
     }
     if (!originalPending && !convStore.categoryEnabled(type)) { restore?.(); toast.info(t.value.conversations.categoryDisabled, ""); return; }
@@ -1445,25 +908,9 @@ async function onSend(text: string, restore?: () => void, settled?: (accepted?: 
     restore?.(); // rejected send must not swallow the typed message
     return;
   }
-  if (isAi.value) {
-    nova.sendUser(text);
-    accepted = true;
-    noteSendSuccess();
-    nova.markUserRead(); // Nova reads instantly
-    schedule(() => nova.setTyping(true), AI_TYPING_ON_MS);
-    schedule(() => {
-      nova.setTyping(false);
-      nova.push({ kind: "nova-reply", text: t.value.conversations.aiFreeFormReply });
-    }, AI_REPLY_MS);
-    return;
-  }
   accepted = (await sendHumanMessage(text, imageDraft.value?.state === "ready" ? imageDraft.value.attachmentId : undefined, restore)) === true;
   } finally { humanSendBusy.value = false; }
-  } finally {
-    if (queuedVisualTurn && settled && novaPageVisible && !chatDisposed) {
-      queuedSendVisuals.set(queuedVisualTurn, settled); settleQueuedSendVisuals();
-    } else settled?.(accepted);
-  }
+  } finally { settled?.(accepted); }
 }
 
 async function sendHumanMessage(text: string, attachmentId?: string, restore?: () => void, attempts = 1) {
@@ -1582,149 +1029,9 @@ function humanSendFailed(text: string, attachmentId: string | undefined, cause: 
   if (humanComposerKey.value) convStore.saveComposer(humanComposerKey.value, { text: draftText.value, imageDraft: imageDraft.value, failedSend: failedHumanSend.value });
 }
 
-async function drainNovaQueue() {
-  if (!novaPageVisible || !isAi.value || !remoteApiEnabled || novaProviderHold.value
-      || novaStatusLoading.value || novaHistoryLoading.value || novaAiRequestInFlight.value) return;
-  const headDelivery = nova.pendingRemote[0]?.delivery;
-  if (!headDelivery || !["queued", "tracking"].includes(headDelivery) || novaDispatchTimer !== undefined) return;
-  const headTurnId = nova.pendingRemote[0].turnId!;
-  const retainedDeadline = nova.pendingRemote[0].replyDeadlineAt;
-  novaReplyDeadline = retainedDeadline === undefined ? undefined : { turnId: headTurnId, expiresAt: retainedDeadline };
-  if (headDelivery === "tracking" && novaReplyDeadline?.turnId === headTurnId
-      && Date.now() >= novaReplyDeadline.expiresAt) {
-    nova.failRemote(headTurnId, "timeout");
-    novaReplyDeadline = undefined;
-    handoffNeedsFreshQuestion.value = true;
-    handoffRecommended.value = true;
-    return;
-  }
-  {
-    const verdict = headDelivery === "queued" ? novaDispatchLimiter().tryAcquire() : novaDispatchLimiter().peek();
-    if (!verdict.ok) {
-      novaDispatchTimer = setTimeout(() => {
-        novaDispatchTimer = undefined;
-        void drainNovaQueue();
-      }, Math.min(verdict.retryInSec * 1000, novaReplyDeadline ? Math.max(0, novaReplyDeadline.expiresAt - Date.now()) : Infinity));
-      return;
-    }
-  }
-  const item = nova.claimRemote(retainedDeadline ?? Date.now() + NOVA_REPLY_DEADLINE_MS);
-  if (!item) return;
-  novaReplyDeadline = { turnId: item.turnId, expiresAt: nova.pendingRemote[0].replyDeadlineAt! };
-  const accountKey = app.accountKey;
-  const conversationId = nova.conversationId;
-  const requestStartedAt = novaThinkingNow();
-  const request = beginNovaThinking();
-  novaAiRequestInFlight.value = true;
-  const current = () => novaPageVisible && novaRequestControl.isCurrent(request.epoch)
-    && accountKey === app.accountKey && conversationId === nova.conversationId;
-  try {
-    const result = await waitForNovaReply(novaAiApi.chat({ message: item.text, language: item.language,
-      conversationId, turnId: item.turnId }, request.signal), request.abort,
-      Math.max(0, novaReplyDeadline.expiresAt - Date.now()));
-    if (!current()) return;
-    const completed = await waitForNovaThinkingDelay(
-      remainingNovaThinkingMs(requestStartedAt, novaThinkingNow()), request.epoch);
-    if (!completed || !current()) return;
-    nova.completeRemote(item.turnId, result.reply);
-    novaReplyDeadline = undefined;
-    handoffNeedsFreshQuestion.value = false;
-    handoffRecommended.value = !!result.handoffReason;
-  } catch (error) {
-    if (current()) {
-      if (error instanceof ApiError && error.retryAfterMs !== undefined) novaDispatchLimiter().defer(error.retryAfterMs);
-      const failure = novaFailure(error);
-      if (Date.now() < novaReplyDeadline!.expiresAt
-          && (failure === "timeout" || failure === "network" || (item.tracking && failure === "busy"))) {
-        nova.trackRemote(item.turnId);
-        novaDispatchTimer = setTimeout(() => {
-          novaDispatchTimer = undefined;
-          void drainNovaQueue();
-        }, Math.min(Math.max(NOVA_SERVER_TRACK_RETRY_MS, error instanceof ApiError ? error.retryAfterMs ?? 0 : 0), novaReplyDeadline!.expiresAt - Date.now()));
-      } else {
-        nova.failRemote(item.turnId, Date.now() >= novaReplyDeadline!.expiresAt ? "timeout" : failure);
-        novaReplyDeadline = undefined;
-        handoffNeedsFreshQuestion.value = true;
-        handoffRecommended.value = true;
-      }
-    }
-  } finally {
-    if (novaRequestControl.isCurrent(request.epoch)) {
-      finishNovaThinking(request.epoch);
-      novaAiRequestInFlight.value = false;
-      void drainNovaQueue();
-    }
-  }
-}
-
-function onQueueAction(turnId: string, action: "edit" | "cancel" | "retry" | "cancel-edit") {
-  if (!isAi.value || !remoteApiEnabled || !novaPageVisible) return;
-  let changed = false;
-  if (action === "edit") changed = nova.editRemote(turnId);
-  if (action === "cancel") changed = nova.cancelRemote(turnId);
-  if (action === "cancel-edit") changed = nova.cancelRemoteEdit(turnId);
-  if (action === "retry") {
-    changed = nova.retryRemote(turnId);
-    if (changed) pendingNovaSounds.add(turnId);
-  }
-  if (changed) void drainNovaQueue();
-}
-
-function onQueueSave(turnId: string, text: string) {
-  if (!novaPageVisible || !isAi.value || !remoteApiEnabled) return;
-  const item = nova.pendingRemote.find(row => row.turnId === turnId);
-  if (item?.delivery !== "editing" || !nova.canEditRemote(turnId)) return;
-  try { text = normalizeMessageText(text); }
-  catch { toast.warn(t.value.nova.queue.invalid); return; }
-  if (!nova.saveRemoteEdit(turnId, text)) { toast.warn(t.value.security.opFailed); return; }
-  const saved = nova.pendingRemote.find(row => row.turnId === item.turnId);
-  if (saved?.delivery === "queued") pendingNovaSounds.add(saved.turnId!);
-  void drainNovaQueue();
-}
-
 let humanConvertRequest: { binding: number; id: string } | null = null;
-function onChip(key: string) {
-  if (remoteApiEnabled) {
-    const message = key === "search-query" ? initialPrompt.value : quickLabel(key as QuickPromptKey);
-    void onSend(message);
-    return;
-  }
-  if (!acquireSendSlot()) return;
-  const k = key as QuickPromptKey;
-  const onlineCount = app.visibleDevices.filter((d) => d.activatedAt !== null && isDeviceOnline(d, Date.now())).length;
-  nova.sendUser(quickLabel(k), "user-quick");
-  noteSendSuccess();
-  nova.markUserRead();
-  schedule(() => nova.setTyping(true), AI_TYPING_ON_MS);
-  schedule(() => {
-    nova.setTyping(false);
-    nova.push(replyToQuickPrompt(t.value, k, { earningsToday: app.earnings.today, devices: app.visibleDevices, onlineCount }));
-  }, AI_REPLY_MS);
-}
-
 function onCta(href: string) {
   navTo(href);
-}
-
-async function onStartNewConversation() {
-  const accountKey = app.accountKey;
-  const conversationId = nova.conversationId;
-  if (nova.pendingRemote.length && !await confirm({
-    title: t.value.conversations.restartSession, message: t.value.nova.queue.newConfirm,
-    confirmLabel: t.value.nova.queue.newConfirmAction, owner: dialogOwner,
-  })) return;
-  if (!novaPageVisible || accountKey !== app.accountKey || conversationId !== nova.conversationId) return;
-  try {
-    novaHistoryEpoch += 1;
-    novaHistoryLoading.value = false;
-    cancelNovaThinking();
-    nova.startNewConversation();
-    initialPrompt.value = "";
-    revealTick.value += 1;
-  } catch {
-    novaProviderHold.value = true;
-    toast.error(t.value.nova.localFailed, t.value.nova.localRetry);
-  }
 }
 
 function goBack() {
@@ -1744,9 +1051,9 @@ let topOverlayMeasureEpoch = 0;
 function measureTopOverlay() {
   const epoch = ++topOverlayMeasureEpoch;
   void nextTick(() => {
-    if (chatDisposed || !novaPageVisible || epoch !== topOverlayMeasureEpoch) return;
+    if (chatDisposed || !pageVisible || epoch !== topOverlayMeasureEpoch) return;
     const apply = (height?: number) => {
-      if (!chatDisposed && novaPageVisible && epoch === topOverlayMeasureEpoch && height && Number.isFinite(height)) topOverlayHeight.value = height;
+      if (!chatDisposed && pageVisible && epoch === topOverlayMeasureEpoch && height && Number.isFinite(height)) topOverlayHeight.value = height;
     };
     const node = (topOverlayHost.value as { $el?: HTMLElement } | null)?.$el ?? topOverlayHost.value as HTMLElement | null;
     if (node?.getBoundingClientRect) { apply(node.getBoundingClientRect().height); return; }
@@ -1767,11 +1074,10 @@ onMounted(() => {
   }
 });
 watch(() => [headerName.value, headerRole.value, locale.code, statusBarHeight.value], measureTopOverlay);
-const historyContentKey = computed(() => JSON.stringify([isAi.value, remoteApiEnabled, advisorApplies.value,
+const historyContentKey = computed(() => JSON.stringify([remoteApiEnabled, advisorApplies.value,
   convStore.advisorError, convStore.advisorLoading, humanHistoryError.value, humanHistoryListError.value,
   humanEarlierBusy.value, humanHistoryRetryBusy.value, showUnassignedReceived.value,
-  conv.value?.historyTruncated, conv.value?.historyNextCursor,
-  nova.historyTruncated, nova.historyNextCursor, novaHistoryLoading.value, handoffRecommended.value]));
+  conv.value?.historyTruncated, conv.value?.historyNextCursor]));
 onUnmounted(() => { topOverlayMeasureEpoch++; topOverlayObserver?.disconnect(); });
 
 import LiquidGlass from "@/components/liquid-glass.vue";
@@ -1808,17 +1114,6 @@ import LiquidGlass from "@/components/liquid-glass.vue";
 }
 :global([data-theme="light"] .cp-head) { --v5-liquid-tint: rgba(255,255,255,.58); --v5-liquid-shadow: inset 0 1px 1px rgba(255,255,255,.8), 0 2px 8px rgba(30,45,65,.06); }
 .cp-head :deep(.nx-liquid-glass[data-glass-strategy="frosted"]) { backdrop-filter: blur(18px) saturate(135%); -webkit-backdrop-filter: blur(18px) saturate(135%); }
-.cp-ai-safety {
-  padding: 8px 16px;
-  background: color-mix(in srgb, var(--v5-tech-cyan) 8%, var(--v5-bg));
-  border-bottom: 1px solid color-mix(in srgb, var(--v5-tech-cyan) 18%, var(--v5-border));
-}
-.cp-ai-safety-t {
-  display: block;
-  font-size: 12px;
-  line-height: 1.45;
-  color: var(--v5-ink-3);
-}
 .cp-ai-history {
   padding: 7px 16px;
   background: color-mix(in srgb, var(--v5-warning) 9%, var(--v5-bg));
@@ -1830,7 +1125,7 @@ import LiquidGlass from "@/components/liquid-glass.vue";
   line-height: 1.45;
   color: var(--v5-ink-2);
 }
-.cp-back, .cp-restart {
+.cp-back {
   width: 44px;
   height: 44px;
   margin-left: 0;
@@ -1895,10 +1190,8 @@ import LiquidGlass from "@/components/liquid-glass.vue";
   z-index: 110;
   pointer-events: none;
 }
-.cp-back, .cp-restart { overflow: visible; }
-.cp-back > svg, .cp-restart > svg { position: relative; z-index: 1; }
-.cp-root .cp-ai-history-action { background: transparent; border: none; margin: 6px 16px; }
-.cp-root .cp-ai-history-action .cp-ai-history-t { position: relative; }
+.cp-back { overflow: visible; }
+.cp-back > svg { position: relative; z-index: 1; }
 .cp-history-error { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:12px; padding:7px 16px; text-align:start; color:var(--v5-ink-3); font-size:12px; }
 .cp-history-error > text { min-width:0; overflow-wrap:anywhere; }
 .cp-history-error > .cp-history-text-action { min-width:44px; padding-inline:0; white-space:nowrap; font:600 13px/20px var(--font-v5); }

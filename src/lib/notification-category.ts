@@ -2,7 +2,8 @@ import type { Notification } from "@/store/notifications";
 
 export type NotificationCategory = "finance" | "device" | "team" | "rewards" | "system";
 
-/** Display groups are independent of the six persisted notification preferences. */
+/** Display groups are independent of the six persisted notification preferences.
+ *  `nova_*` kinds are the server's business push channels, not the retired AI chat. */
 export function notificationCategory(notification: Pick<Notification, "kind" | "rawKind">): NotificationCategory {
   const kind = (notification.rawKind ?? notification.kind).toLowerCase();
   switch (kind) {

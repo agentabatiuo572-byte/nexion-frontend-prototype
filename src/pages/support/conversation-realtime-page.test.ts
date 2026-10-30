@@ -8,11 +8,9 @@ import {
 describe("human conversation realtime page contract", () => {
   it("does not let a hidden or replaced conversation revive its realtime watch", () => {
     let id = "CV-1";
-    let ai = false;
     const calls: Array<["typing" | "watch", boolean | string | null]> = [];
     const lifecycle = createHumanThreadRealtimeLifecycle({
       currentId: () => id,
-      isAi: () => ai,
       setTyping: active => calls.push(["typing", active]),
       watch: target => calls.push(["watch", target]),
     });
@@ -26,34 +24,28 @@ describe("human conversation realtime page contract", () => {
     expect(lifecycle.isCurrent(oldHistoryScope!.epoch, oldHistoryScope!.id)).toBe(false);
     id = "CV-2";
     lifecycle.watchIfCurrent(secondEpoch, "CV-1");
-    ai = true;
-    lifecycle.watchIfCurrent(secondEpoch, "CV-2");
 
     expect(calls).toEqual([["watch", "CV-1"], ["typing", false], ["watch", null]]);
   });
 
   it("stops typing before unwatch and derives online and muted-dot states from the active mode", () => {
     const calls: string[] = [];
-    const lifecycle = createHumanThreadRealtimeLifecycle({ currentId: () => "CV-1", isAi: () => false, setTyping: () => calls.push("typing"), watch: () => calls.push("watch") });
+    const lifecycle = createHumanThreadRealtimeLifecycle({ currentId: () => "CV-1", setTyping: () => calls.push("typing"), watch: () => calls.push("watch") });
     lifecycle.show();
     lifecycle.stop();
     expect(calls).toEqual(["typing", "watch"]);
-    expect(humanConversationPresence({ remote: true, isAi: false, ready: true, conversationId: "CV-1", online: true, closed: false })).toEqual({ showOnline: true, mutedDot: false });
-    expect(humanConversationPresence({ remote: true, isAi: false, ready: true, conversationId: "CV-1", online: false, closed: false })).toEqual({ showOnline: false, mutedDot: true });
-    expect(humanConversationPresence({ remote: true, isAi: true, ready: true, conversationId: "CV-1", online: true, closed: false })).toEqual({ showOnline: false, mutedDot: false });
-    expect(humanConversationPresence({ remote: true, isAi: true, ready: true, conversationId: "CV-1", online: false, closed: false })).toEqual({ showOnline: false, mutedDot: false });
-    expect(humanConversationPresence({ remote: true, isAi: false, ready: false, conversationId: "CV-1", online: true, closed: false })).toEqual({ showOnline: false, mutedDot: true });
-    expect(humanConversationPresence({ remote: false, isAi: false, ready: false, conversationId: "CV-1", online: false, closed: false })).toEqual({ showOnline: false, mutedDot: false });
-    expect(humanConversationPresence({ remote: true, isAi: false, ready: true, conversationId: "CV-1", online: true, closed: true })).toEqual({ showOnline: false, mutedDot: true });
+    expect(humanConversationPresence({ remote: true, ready: true, conversationId: "CV-1", online: true, closed: false })).toEqual({ showOnline: true, mutedDot: false });
+    expect(humanConversationPresence({ remote: true, ready: true, conversationId: "CV-1", online: false, closed: false })).toEqual({ showOnline: false, mutedDot: true });
+    expect(humanConversationPresence({ remote: true, ready: false, conversationId: "CV-1", online: true, closed: false })).toEqual({ showOnline: false, mutedDot: true });
+    expect(humanConversationPresence({ remote: false, ready: false, conversationId: "CV-1", online: false, closed: false })).toEqual({ showOnline: false, mutedDot: false });
+    expect(humanConversationPresence({ remote: true, ready: true, conversationId: "CV-1", online: true, closed: true })).toEqual({ showOnline: false, mutedDot: true });
   });
 
   it("activates a newly-created human thread only while its page is current", () => {
     let id = "";
-    let ai = false;
     const calls: Array<["typing" | "watch", boolean | string | null]> = [];
     const lifecycle = createHumanThreadRealtimeLifecycle({
       currentId: () => id,
-      isAi: () => ai,
       setTyping: active => calls.push(["typing", active]),
       watch: target => calls.push(["watch", target]),
     });
@@ -66,8 +58,8 @@ describe("human conversation realtime page contract", () => {
     expect(lifecycle.activateIfCurrent(id)).toBe(false);
 
     lifecycle.show();
-    ai = true;
-    expect(lifecycle.activateIfCurrent(id)).toBe(false);
+    id = "CV-other";
+    expect(lifecycle.activateIfCurrent("CV-created")).toBe(false);
     expect(calls).toEqual([["watch", "CV-created"], ["typing", false], ["watch", null]]);
   });
 

@@ -15,6 +15,8 @@ import * as conversationBubbleLayout from './conversation-bubble-layout';
 import type { ThreadMsg } from './thread-types';
 import { createSupportApi } from '@/api/support-api';
 import { zh } from '@/i18n/messages/zh';
+// The thread's generic queue controls are exercised with fixed labels.
+const queueLabels = { edit: '修改', cancel: '取消', retry: '重试', save: '保存', cancelEdit: '取消修改', failed: '发送失败，请重试。', ready: '等待发送，请稍候…' };
 import { en } from '@/i18n/messages/en';
 import { vi as vietnamese } from '@/i18n/messages/vi';
 
@@ -65,7 +67,7 @@ function mount(initial: ThreadMsg[] = [], sendSuccessRevision = 0, slots: Vue.Sl
   const app = Vue.reactive({ accountKey: 'user:7', accountBindingEpoch: 1 });
   const shown: Array<() => void> = [], hidden: Array<() => void> = [];
   const props = Vue.reactive({ messages: initial, entranceReady: true, typing: false, topInset: 0, timeLocale: 'zh' as 'zh' | 'en' | 'vi', composerKey: 'conversation:A', revealTick: 0,
-    inputPlaceholder: 'Message', inputLabel: 'Message', sendLabel: 'Send', queueLabels: zh.nova.queue, sendSuccessRevision, historyContentKey: '',
+    inputPlaceholder: 'Message', inputLabel: 'Message', sendLabel: 'Send', queueLabels: queueLabels, sendSuccessRevision, historyContentKey: '',
     imageLabels: zh.conversations.image, statusLabels: zh.conversations.delivery, canRetrySend: true, sendBlocked: false, attachDisabled: false, attachUnavailable: '', attachRetry: false,
     sendSuccessOwner: JSON.stringify(['user:7', 1, 'conversation:A']), maxInputLength: 2000, inputLimitHint: 'Message too long' });
   const exports: Record<string, any> = {}, emit = vi.fn();
@@ -281,7 +283,7 @@ function activateExistingHumanPage(screen: ReturnType<typeof mount>) {
   const start = chatSource.indexOf('async function activateHumanPage()');
   const end = chatSource.indexOf('// Bare full-screen page', start);
   const reads = { refreshAdvisor: vi.fn(), refresh: vi.fn(async () => {}), open: vi.fn(async () => {}), images: vi.fn(), policy: vi.fn() };
-  const context = { novaPageVisible: true, isAi: Vue.ref(false), supportSessionReady: Vue.ref(true), stopHumanThreadPolling: vi.fn(),
+  const context = { pageVisible: true, supportSessionReady: Vue.ref(true), stopHumanThreadPolling: vi.fn(),
     humanRealtime: { show: () => 1 }, app: screen.app, convStore: { scopeInvalidated: 0, refreshAdvisor: reads.refreshAdvisor, refresh: reads.refresh, composer: () => ({}) },
     loadAttachmentPolicy: reads.policy, restoreCompletedHumanCreate: vi.fn(), restoreRecoveredComposer: vi.fn(), humanComposerKey: Vue.ref('conversation:A'),
     cid: Vue.ref('existing-canonical'), startType: Vue.ref(null), revealTick: Vue.toRef(screen.props, 'revealTick'), remoteApiEnabled: true,
@@ -753,7 +755,7 @@ it.each([
   const actions = findAll(await screen.node(), 'nx-conv-queue-action');
   expect(actions).toHaveLength(count);
   if (count) {
-    expect(actions.map(visibleText)).toEqual([zh.nova.queue.edit, zh.nova.queue.cancel]);
+    expect(actions.map(visibleText)).toEqual([queueLabels.edit, queueLabels.cancel]);
     actions[0].props!.onClick(); expect(screen.emit).toHaveBeenLastCalledWith('queue-action', 'original-turn', 'edit');
     actions[1].props!.onClick(); expect(screen.emit).toHaveBeenLastCalledWith('queue-action', 'original-turn', 'cancel');
   }
@@ -855,9 +857,9 @@ it('animates first outgoing and incoming live IDs in opposite directions and exp
 
 it('does not replay same-ID failed-send retry, receipt updates or removed-then-restored IDs', async () => {
   const screen = mount(); screen.props.messages = [message('same', 'right', { queue: {
-    turnId: 'turn', state: 'failed', label: zh.nova.queue.failed, editable: true,
+    turnId: 'turn', state: 'failed', label: queueLabels.failed, editable: true,
   } })]; await flush(); vi.advanceTimersByTime(201);
-  screen.props.messages[0].queue!.state = 'queued'; screen.props.messages[0].queue!.label = zh.nova.queue.ready; await flush();
+  screen.props.messages[0].queue!.state = 'queued'; screen.props.messages[0].queue!.label = queueLabels.ready; await flush();
   expect(screen.view.entranceBindings(screen.props.messages[0]).class).toBeUndefined();
   screen.props.messages = []; await flush(); screen.props.messages = [message('same', 'right', { receipt: 'Read' })]; await flush();
   expect(screen.view.entranceBindings(screen.props.messages[0]).class).toBeUndefined();
@@ -1811,7 +1813,7 @@ function extract(names: string[]) {
 }
 function projection(conversation: unknown, copy = zh) {
   return new Function('deps', `const {computed,ref}=deps, t=ref(deps.copy), conv=ref(deps.conversation),
-    isAi=ref(false),nova={},locale={code:'zh'},imageSources=ref({}),imageFailures=ref({}),
+    locale={code:'zh'},imageSources=ref({}),imageFailures=ref({}),
     failedHumanSend=ref(null),humanSendBusy=ref(false),localHumanSend=ref(null),humanComposerKey=ref('test'),imageDraft=ref(null);
     const avatarImageKey=()=>undefined,humanMessageRecommendation=()=>({}),localizedIdleClose=()=>null;
     ${extract(['receiptFor', 'threadMessages'])}; return threadMessages;`)(
@@ -1850,7 +1852,7 @@ it('history recovery retry is single-flight, handles failure and ignores an obso
   const refresh = vi.fn(() => new Promise<void>(resolve => { complete = resolve; }));
   const deps = { ref: Vue.ref, app: Vue.reactive({ accountBindingEpoch: 1 }), cid: Vue.ref('CV-1'),
     convStore: { scopeInvalidated: 1, refresh }, supportSessionReady: Vue.ref(true) };
-  const state = new Function('deps', `const {ref,app,cid,convStore,supportSessionReady}=deps;let novaPageVisible=true;
+  const state = new Function('deps', `const {ref,app,cid,convStore,supportSessionReady}=deps;let pageVisible=true;
     ${extract(['humanHistoryListError', 'humanHistoryRetry', 'humanHistoryRetryBusy', 'historyRetryGeneration', 'cancelHistoryRetry', 'retryHumanHistory'])};
     return {retryHumanHistory,humanHistoryRetryBusy,humanHistoryRetry,humanHistoryListError,cancelHistoryRetry};`)(deps);
   const first = state.retryHumanHistory(); await state.retryHumanHistory(); expect(refresh).toHaveBeenCalledTimes(1);

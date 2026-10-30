@@ -93,9 +93,8 @@ function mount(type: "advisor" | "support", state: "empty" | "ended" | "active" 
     "@/i18n/conversation-actions": { conversationActionsCopy },
     "@/store/locale": { useLocaleStore: () => ({ code: locale === en ? "en" : locale === vietnamese ? "vi" : "zh" }) },
     "@/store/ui": { confirm, toast, useUI: () => ({ clearConfirmsBy }) },
-    "@/lib/nova-visibility": { NOVA_SUPPORT_VISIBLE: false },
     "@/lib/route": { navTo }, "@/store/conversations": { useConversations: () => providedStore ?? store },
-    "@/store/nova": { useNova: () => ({ messages: [], unread: 0 }) }, "@/store/app": { useApp: () => account },
+    "@/store/app": { useApp: () => account },
     "@/api/runtime": { remoteApiEnabled: true }, "@/lib/active-page-refresh": { registerActivePageRefresh: vi.fn(() => () => {}) },
     "@/components/app-chassis.vue": { default: { setup: (_props: unknown, { slots }: any) => () => Vue.h("main", slots.default?.()) } },
     "@/components/empty-state.vue": { default: { props: ["title", "desc", "ctaLabel"], setup: (props: any) => () => Vue.h("empty-state", props, [props.title, props.desc]) } },
@@ -324,10 +323,7 @@ describe("human conversation contact entry", () => {
 // Execute the real human chat SFC together with its real Pinia conversation store.
 import { createPinia, setActivePinia } from "pinia";
 import { useConversations } from "@/store/conversations";
-import { useNova } from "@/store/nova";
 import * as chatRealtime from "./conversation-realtime-page";
-import * as chatThinking from "@/lib/nova-thinking";
-import * as chatFailure from "@/lib/nova-failure";
 import * as chatLimiter from "@/lib/send-limiter";
 import * as messagePolicy from '@/lib/message-length-policy';
 import * as chatSecure from "@/lib/secure-command-id";
@@ -351,7 +347,7 @@ const chatTransport = vi.hoisted(() => ({
   attachmentPolicy: vi.fn(async () => ({ available: false })),
 }));
 vi.mock("@/api/runtime", () => ({ supportApi: chatTransport, remoteApiEnabled: true,
-  apiClient: { request: vi.fn() }, apiRuntimeConfig: {}, novaAiApi: {} }));
+  apiClient: { request: vi.fn() }, apiRuntimeConfig: {} }));
 
 const humanChatSource = readFileSync(new URL("./chat.vue", import.meta.url), "utf8").split('<script setup lang="ts">')[1].split("</script>")[0];
 const humanChatScript = ts.transpileModule(humanChatSource, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
@@ -396,22 +392,21 @@ function mountRealHumanChat(query: Record<string, string> = { cid: "CV-cold" }, 
     "@dcloudio/uni-app": Object.fromEntries(["onLoad", "onUnload", "onShow", "onHide"].map(name => [name, (fn: () => void) => { hooks[name] = fn; }])),
     "@/i18n/use-t": { useT: () => Vue.ref(messages) }, "@/i18n/format": chatFormat,
     "@/lib/support-idle-message": { localizedIdleClose },
-    "@/lib/nova-visibility": { NOVA_SUPPORT_VISIBLE: false },
     "@/lib/route": navigation, "@/lib/send-limiter": { ...chatLimiter, conversationSendLimiter: sendBudgets },
     '@/lib/message-length-policy': messagePolicy,
     "@/lib/device-preview": { h5DevicePreviewStatusBarHeight: () => 0 }, "@/lib/hashpower": { isDeviceOnline: () => false },
-    "@/store/conversations": { useConversations: () => store }, "@/store/nova": { useNova }, "@/store/app": { useApp: () => app },
+    "@/store/conversations": { useConversations: () => store }, "@/store/app": { useApp: () => app },
     "@/store/auth": { useAuth: () => auth }, "@/lib/binary-session-ready": { binarySessionReady },
     "@/store/ui": { toast, confirm: vi.fn(), useUI: () => ({ clearConfirmsBy: vi.fn() }) },
-    "@/mock/nova-templates": {}, "@/api/runtime": { novaAiApi: {}, remoteApiEnabled: true, sessionVault, supportApi: chatTransport },
+    "@/api/runtime": { remoteApiEnabled: true, sessionVault, supportApi: chatTransport },
     "@/api/errors": chatApiErrors,
     '@/lib/conversation-delivery-policy': deliveryPolicy,
     "@/api/support-api": { isSupportAttachmentNotReady },
-    "@/lib/nova-failure": chatFailure, "@/store/locale": { useLocaleStore: () => ({ code: "zh" }) },
-    "@/lib/secure-command-id": chatSecure, "@/lib/nova-thinking": chatThinking, "./conversation-realtime-page": chatRealtime,
+    "@/store/locale": { useLocaleStore: () => ({ code: "zh" }) },
+    "@/lib/secure-command-id": chatSecure, "./conversation-realtime-page": chatRealtime,
   };
   const scope = Vue.effectScope();
-  const page = scope.run(() => new Function("require", "exports", humanChatScript + ";return { onSend, onRestart, goBack, cleanup, loadAttachmentPolicy, attachmentPolicy, attachmentPolicyError, loadEarlierHumanHistory, conversationThread, humanEarlierBusy,  headerName, headerRole, emptyHint, humanType, isClosedSession, waitingForAgent, showUnassignedReceived, humanHistoryError, humanHistoryListError, retryHumanHistory, conv, threadMessages, retryHumanSend, sendSuccessRevision, sendSuccessOwner, cid, startType, draftText, imageDraft, failedHumanSend, failedHumanLabel, humanSendBusy, supportSessionReady, localHumanSend, measureTopOverlay, topOverlayHeight, get entranceScope() { return { isAi, novaHistoryLoading, humanOpenRequest, humanHistoryRetryBusy, humanEarlierBusy }; } };")((name: string) => {
+  const page = scope.run(() => new Function("require", "exports", humanChatScript + ";return { onSend, onRestart, goBack, cleanup, loadAttachmentPolicy, attachmentPolicy, attachmentPolicyError, loadEarlierHumanHistory, conversationThread, humanEarlierBusy,  headerName, headerRole, emptyHint, humanType, isClosedSession, waitingForAgent, showUnassignedReceived, humanHistoryError, humanHistoryListError, retryHumanHistory, conv, threadMessages, retryHumanSend, sendSuccessRevision, sendSuccessOwner, cid, startType, draftText, imageDraft, failedHumanSend, failedHumanLabel, humanSendBusy, supportSessionReady, localHumanSend, measureTopOverlay, topOverlayHeight, get entranceScope() { return { humanOpenRequest, humanHistoryRetryBusy, humanEarlierBusy }; } };")((name: string) => {
     if (name.endsWith(".vue")) return {}; if (!(name in modules)) throw new Error(`Unexpected chat dependency: ${name}`); return modules[name];
   }, {}));
   hooks.onLoad(query); chatCleanups.push(() => { page.cleanup(); scope.stop(); });
@@ -606,7 +601,8 @@ describe('scrolling history controls', () => {
     expect(nodes(overlay).filter(node => hasClass(node, 'cp-history-text-action') || hasClass(node, 'cp-history-error') || hasClass(node, 'cp-ai-history'))).toHaveLength(0);
     expect(nodes(overlay).some(node => hasClass(node, 'cp-identity'))).toBe(true);
     expect(slot).toBeDefined();
-    expect(nodes(slot).filter(node => hasClass(node, 'cp-history-text-action'))).toHaveLength(4);
+    // Advisor retry, load earlier and history retry (the retired AI history action is gone).
+    expect(nodes(slot).filter(node => hasClass(node, 'cp-history-text-action'))).toHaveLength(3);
     expect(nodes(slot).filter(node => hasClass(node, 'cp-history-error'))).toHaveLength(2);
   });
 
@@ -620,7 +616,7 @@ describe('scrolling history controls', () => {
       mode: 'function', prefixIdentifiers: true, isCustomElement: tag => ['view', 'text'].includes(tag),
     }).code)(Vue);
     const scope = Vue.proxyRefs({ ...current.page, t: copy, advisorApplies: false, convStore: current.store,
-      isAi: false, remoteApiEnabled: true, humanHistoryRetryBusy: false });
+      remoteApiEnabled: true, humanHistoryRetryBusy: false });
     const root = element('root'), view = renderer.createApp({ render: () => render(scope, []) });
     view.component('LiquidGlass', { render: () => null }); view.mount(root); mounted.push(view);
     const actions = () => flatten(root).filter(node => String(node.props.class).split(/\s+/).includes('cp-history-text-action'));
@@ -1179,9 +1175,9 @@ const composerScript = ts.transpileModule(composerCompiled.content, { compilerOp
 // Read the production template expression, then feed its value to the actual
 // child SFC. This includes the draft-owning component, unlike script-only tests.
 const composerBindingSource = readFileSync(new URL("./chat.vue", import.meta.url), "utf8").match(/:composer-key="([^"]+)"/)![1];
-const humanComposerBinding = new Function("app", "cid", "startType", "isAi", "nova", "convStore", `return ${composerBindingSource};`);
+const humanComposerBinding = new Function("app", "cid", "startType", "convStore", `return ${composerBindingSource};`);
 const entranceBindingSource = readFileSync(new URL('./chat.vue', import.meta.url), 'utf8').match(/:entrance-ready="([^"]+)"/)![1];
-const entranceKeys = ['isAi', 'novaHistoryLoading', 'humanOpenRequest', 'humanHistoryRetryBusy', 'humanEarlierBusy'];
+const entranceKeys = ['humanOpenRequest', 'humanHistoryRetryBusy', 'humanEarlierBusy'];
 const humanEntranceBinding = new Function(...entranceKeys, `return ${entranceBindingSource};`);
 function humanThreadComponent(state: unknown, audio?: ReturnType<typeof conversationAudio.createConversationAudio>) {
   return new Function('require', 'exports', composerScript + ';return exports.default;')((name: string) => {
@@ -1246,7 +1242,7 @@ describe("rendered human composer account boundary", () => {
     }, {});
     const empty: unknown[] = [], root = element("root");
     const app = renderer.createApp({ render: () => Vue.h(thread, { messages: empty, inputPlaceholder: "Message", inputLabel: "Message", sendLabel: "Send",
-      composerKey: humanComposerBinding(state, scenario.startsWith("existing") ? "CV-same" : "", scenario.startsWith("new") ? "support" : null, false, {}, { scopeInvalidated: 0 }) }) });
+      composerKey: humanComposerBinding(state, scenario.startsWith("existing") ? "CV-same" : "", scenario.startsWith("new") ? "support" : null, { scopeInvalidated: 0 }) }) });
     app.component("scroll-view", { setup: (_props: unknown, { slots }: any) => () => Vue.h("scroll-view", slots.default?.()) });
     app.mount(root); mounted.push(app);
     const input = () => flatten(root).find(node => node.tag === "textarea")!;
@@ -1268,13 +1264,13 @@ const deliveryBindings = [
   ['composerKey', 'composer-key'], ['sendSuccessRevision', 'send-success-revision'], ['sendSuccessOwner', 'send-success-owner'], ['initialDraft', 'initial-draft'],
   ['failedSendLabel', 'failed-send-label'], ['canDiscardSend', 'can-discard-send'], ['canRetrySend', 'can-retry-send'], ['sendBlocked', 'send-blocked'],
 ].map(([prop, attribute]) => `${prop}: (${parentTemplate.match(new RegExp(`:${attribute}="([^"]+)"`))![1]})`);
-const bindDeliveryProps = new Function('scope', `const {app,cid,startType,isAi,nova,convStore,sendSuccessRevision,sendSuccessOwner,
+const bindDeliveryProps = new Function('scope', `const {app,cid,startType,convStore,sendSuccessRevision,sendSuccessOwner,
   draftText,failedHumanLabel,failedHumanSend,humanSendBusy,supportSessionReady} = scope; return {${deliveryBindings.join(',')}};`);
 const retryHandler = parentTemplate.match(/@retry-message="([^"]+)"/)![1];
 function renderHumanDelivery(current: ReturnType<typeof mountRealHumanChat>) {
   const sound = { unlock: vi.fn(), play: vi.fn(), stop: vi.fn(), destroy: vi.fn() };
   const thread = humanThreadComponent(current.app, sound), root = element('root');
-  const scope = Vue.proxyRefs({ ...current.page, app: current.app, convStore: current.store, isAi: false, nova: useNova() });
+  const scope = Vue.proxyRefs({ ...current.page, app: current.app, convStore: current.store });
   const view = renderer.createApp({ render: () => Vue.h(thread, {
     ...bindDeliveryProps(scope), messages: current.page.threadMessages.value,
     entranceReady: humanEntranceBinding(...entranceKeys.map(key => Vue.unref(current.page.entranceScope[key]))),

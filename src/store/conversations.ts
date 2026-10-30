@@ -344,11 +344,11 @@ export const useConversations = defineStore("conversations", () => {
     ? { advisor: false, support: false, ai: false }
     : { advisor: true, support: true, ai: true });
   // M5 controls new human conversation entry. Existing human conversations
-  // remain readable and replyable; Nova has its own full-capability gate.
+  // remain readable and replyable.
   const categoryAvailabilityStatus = ref<CategoryAvailabilityStatus>(remoteApiEnabled ? "loading" : "ready");
   const categoryLoading = ref(remoteApiEnabled);
-  const totalUnread = computed(() => humanThreads.value.reduce((sum, row) => sum + row.unread, 0)
-    + conversations.value.filter(row => row.type === 'ai' && visibleInInbox(row)).reduce((sum, row) => sum + row.unread, 0));
+  // The retired "ai" category is never listed, so its rows never count as unread.
+  const totalUnread = computed(() => humanThreads.value.reduce((sum, row) => sum + row.unread, 0));
   let pendingKeys = new Map<string, string>();
   let inFlight = new Map<string, Promise<unknown>>();
   const runningCommandKeys = new WeakMap<Promise<unknown>, string>();

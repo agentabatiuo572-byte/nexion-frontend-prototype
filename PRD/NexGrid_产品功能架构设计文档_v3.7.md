@@ -241,7 +241,7 @@ TabBar:active tab 显示背景 chip 高亮。
 /me/support                      实时客服(渠道枢纽)
 /me/support/tickets              工单系统(列表 / 创建 / 详情 3 mode)
 /support/messages                统一会话中心(多类别客服会话列表)
-/support/chat                    会话聊天线程(?cid= 人工 / ?type=ai Nova)
+/support/chat                    会话聊天线程(?cid= 已有人工会话 / ?start= 新建;其他参数回到会话中心)
 /me/language                     语言切换
 /me/notifications                通知中心
 /staking                         Staking 4 档质押
@@ -3612,7 +3612,7 @@ DAO 治理功能本期**仅作为持有人权益的文字承诺**(在 Perks 列�
 
 ### 11.0A 自动通知与人工服务边界
 
-当前整合版关闭 Nova AI 会话入口。浮标只提供人工顾问/客服快捷入口；铃铛与 Me 消息中心包含通知和服务两个分区，具体契约见 §11.2、§11.8.4。
+Nova AI 会话已下线，App 内的 AI 会话、帮助页 AI 问答及相关代码已于 2026-10-30 移除（BUG-008）。浮标只提供人工顾问/客服快捷入口；铃铛与 Me 消息中心包含通知和服务两个分区，具体契约见 §11.2、§11.8.4。
 
 #### 11.0A.1 自动通知
 
@@ -4038,12 +4038,12 @@ FAQ accordion,分类:Account / Earnings / Hardware / Payment / Security。
 |---|---|---|
 | `advisor` 专属客服 | 当前专属客服 | 人工服务的新建及展示入口；未分配时客户可留言等待分配 |
 | `support` 兼容类型 | 当前专属客服 | 旧链接和历史会话继续读取；入口及类别可用性按专属客服处理，不迁移历史标识 |
-| `ai` Nova | 兼容类型 | 当前入口关闭；不展示、不计入总未读，旧 AI 路由回到可用的人工入口 |
+| `ai` | 兼容类型 | 服务端仍可能返回该分类；App 不展示、不计入总未读，旧 AI 路由回到会话中心 |
 
 **入口与路由**:
 - `/me/notifications?section=service` — 人工服务统一入口；会话行直接进入全屏聊天。
 - `/support/messages` — 会话管理:按类别查看历史、发起新会话和移除列表；保留旧链接与聊天异常回退。
-- `/support/chat?cid={id}` — 人工类别会话聊天线程；旧 `/support/chat?type=ai` 链接按当前关闭状态返回服务入口，不创建 Nova 聊天线程。
+- `/support/chat?cid={id}` — 人工类别会话聊天线程；旧 `/support/chat?type=ai` 等其他参数一律回到会话中心。
 - 入口:人工服务浮标、客服渠道枢纽 `/me/support`「在线会话」行(§11.8.2)统一到消息中心“服务”分区；分区内“会话管理”进入管理页。
 
 **业务规则**:
@@ -4735,7 +4735,7 @@ Conversation:
 }
 ```
 
-派生:`byType(type)` 按类别取会话、`totalUnread` 人工侧未读合计(Nova 未读在页面层合并)。`typingIds` 和在线状态仅来自当前授权会话的实时事件；断线、未知和归属失效时清空，不推断为在线。待发命令保留同一幂等键，账号/归属边界清除本地草稿和私有图片。
+派生:`byType(type)` 按类别取会话、`totalUnread` 人工侧未读合计（`ai` 分类不计入）。`typingIds` 和在线状态仅来自当前授权会话的实时事件；断线、未知和归属失效时清空，不推断为在线。待发命令保留同一幂等键，账号/归属边界清除本地草稿和私有图片。
 
 ### 12.10 Exchange Cap(useExchangeV3)
 

@@ -28,7 +28,7 @@ const lifecycleCode = ts.transpileModule(
 const template = parse(page).descriptor.template?.content;
 if (!template) throw new Error("Help template is required");
 const faqStart = template.indexOf('<view class="mx-4" :style="faqWrapStyle">');
-const faqEnd = template.indexOf("      <!-- UVELBot -->", faqStart);
+const faqEnd = template.indexOf("\n    </view>\n  </AppChassis>", faqStart);
 if (faqStart < 0 || faqEnd < 0) throw new Error("Help FAQ template is required");
 const faqRender = new Function("Vue", compile(template.slice(faqStart, faqEnd), { mode: "function", prefixIdentifiers: true }).code)(await import("vue"));
 

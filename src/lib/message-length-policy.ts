@@ -1,6 +1,6 @@
 import { ApiError } from '@/api/errors';
 
-/** Existing human/Nova input contract, counted in UTF-16 code units after trim. */
+/** Existing support input contract, counted in UTF-16 code units after trim. */
 export const MESSAGE_MAX_LENGTH = 2_000;
 
 export type MessageTextValidationReason = 'required' | 'too_long' | 'invalid_type';

@@ -280,7 +280,6 @@ const LEDGER = {
   "/api/app/support/realtime-ticket": "BACKEND: ConversationSocketTicketController POST, one-time 30s USER ticket; M3-会话实时通信契约 §1",
   "/api/app/support/faqs/page": "TBD-NAME: 同上(FAQ, 服务端有界分页)",
   "/api/app/referral-rewards": "TBD-NAME: /api/app/* 族,推荐奖励发放面;另有 /api/config/referral-rewards 读配置",
-  "/api/app/support/ai/:param": "BACKEND: AppNovaAiController 已实现;status/chat 动态动作段,PRD §11.0A Nova AI 顾问",
   "/api/app/profile/language": "BACKEND: AppUserProfileController 已实现;账户语言跨设备同步",
 
   // ── PRD 里找得到的(7 条,逐条核过原文不是正则假命中)──────────────
@@ -305,14 +304,11 @@ const LEDGER = {
   "/api/developer/docs": "BACKEND: PublishedDeveloperDocsController 已实现;PC 发布开发者文档后 App 只读",
   "/api/me/notification-preferences": "BACKEND: AppNotificationPreferenceController 已实现;当前账号通知偏好读写",
 // ── 2026-08-14 并入远端主线(9db1d5d)带来的新端点 ────────────────────
-  // 同事那批(Nova AI 客服 / 用户自助资料 / 注销账号 / 里程碑评估)。逐条回根 PRD 核过。
+  // 同事那批(用户自助资料 / 注销账号 / 里程碑评估)。逐条回根 PRD 核过。
   "/api/app/profile": "PRD §11.0B(个人资料:整页无自由文本输入,昵称走预置候选)",
   "/api/app/profile/nickname-candidates": "PRD §11.0B(昵称预置词库构造器,唯一改名路径 = 候选挑选)",
   "/api/app/profile/avatar": "PRD §11.0B(头像)",
   "/api/app/security/account-deletion": "PRD §4.5a(账号注销:余额与锁仓本金均不退、在途提现禁止提交、数据留存 1 个月;主人 2026-08-14 拍板)",
-  "/api/app/support/ai/status": "TBD-NAME: Nova AI 顾问可用性探测(实现在 nova-ai-api.ts)。功能见 PRD §11.0A Nova AI 顾问系统 + §11.8.4 统一会话中心,仅端点未点名",
-  "/api/app/support/ai/handoffs": "BACKEND: AppNovaAiController POST /handoffs;authenticated human-support handoff with Idempotency-Key",
-  "/api/app/support/ai/chat": "TBD-NAME: 同上(会话);⚠️ 早先误记为「§11.8 客服域无 AI 章节」——归错域了,它属 Nova 不属人工客服",
   "/api/earnings/milestones/evaluate": "TBD-NAME: 里程碑达成评估;PRD §11.3a 定义了里程碑庆祝但未定义该评估端点",
   "/api/team/rank": "TBD-NAME: 团队等级读;同上",
   "/api/tasks/route": "TBD-NAME: 按显存派发任务路由;PRD §6.8 有容量概念,未定义该端点",

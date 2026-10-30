@@ -249,7 +249,9 @@ function producedKinds(src) {
   //     一个明说「已暂停」的页面。**真闸不是报警**:目标业务整体不可用时撤掉 CTA、
   //     去掉 button 角色并说明原因,已挣到的 CLAIMABLE 不在此组件内处理。
   //     判据与 hero/list 同源(useQuestTargetAvailability + 创世闸),不新增第二份读数。
-  const EXPECTED_GATE_CONSUMERS = 13;
+  //   2026-10-30 13→12:nova-bubble.vue 改为人工客服浮标 support-bubble.vue(BUG-008),
+  //     本地模拟推送(含「席位不多了」)整套删除,浮标不再发任何创世文案,随之不再问闸。
+  const EXPECTED_GATE_CONSUMERS = 12;
   check(`🔴 ⑤ 闸消费者基数 = ${EXPECTED_GATE_CONSUMERS}(实测 ${actual})`, actual === EXPECTED_GATE_CONSUMERS,
     `数量变了就同步改这个数并说明:新增了消费者,还是有人把闸摘了`);
 }

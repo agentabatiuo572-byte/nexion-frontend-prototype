@@ -48,7 +48,6 @@ const REGISTRY = {
   "remote-truth-boundary-contract.test.mjs": { how: "chain" },
   "remote-config-merge-contract.test.mjs": { how: "chain" },
   "remaining-feature-authority-contract.test.mjs": { how: "chain" },
-  "nova-local-ai-contract.test.mjs": { how: "chain" },
   "capacity-subsidy-countdown-contract.test.mjs": { how: "chain" },
   "remaining-feature-closure-contract.test.mjs": { how: "chain" },
   "phase-isolation-contract.test.mjs": { how: "chain" },

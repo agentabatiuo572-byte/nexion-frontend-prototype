@@ -10,7 +10,7 @@
 // (e.g. the wallet-cards unbind flow, or demo seeding) resolves the current
 // locale's copy at push time and hands the payload to
 // useNotifications().push(), exactly like every existing pushed notification
-// (nova-bubble channels). Copy references i18n keys so samples stay bilingual
+// (support push channels). Copy references i18n keys so samples stay bilingual
 // (conversations.ts seed precedent); the notification feed itself deliberately
 // seeds empty (store note), so nothing is auto-injected here.
 

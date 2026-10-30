@@ -363,11 +363,8 @@ test("remote achievements render and claim server milestone facts instead of loc
   assert.match(page, /Local prototype achievements stay available only in mock mode[\s\S]{0,120}v-else/);
 });
 
-test("remote Nova and globe consume their authenticated server authorities", () => {
-  const chat = read("src/pages/support/chat.vue");
+test("remote globe consumes its authenticated server authority", () => {
   const globe = read("src/pages/globe/globe.vue");
-  assert.match(chat, /novaAiApi\.status/);
-  assert.match(chat, /novaAiApi\.chat/);
   assert.match(globe, /remoteApiEnabled/);
   assert.match(globe, /networkRegionsApi\.list\(\)/);
   assert.match(globe, /networkProjection\.value\?\.regions/);

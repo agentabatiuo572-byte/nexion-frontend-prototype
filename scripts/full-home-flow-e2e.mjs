@@ -755,7 +755,7 @@ async function testHomeInteractions() {
   await appPage.screenshot({ path: path.join(evidenceDir, "05-home-bottom.png"), fullPage: true });
 }
 
-async function testSearchAndNova() {
+async function testSearch() {
   await clickRoute({ label: "顶部搜索", locator: (home) => home.getByRole("button", { name: "搜索", exact: true }), route: "/pages/search/search" });
   let frame = await waitForAppFrame(".nx-search-row, .nx-empty");
   const input = frame.locator("input").first();
@@ -770,28 +770,6 @@ async function testSearchAndNova() {
   await frame.getByText("目标追踪", { exact: true }).waitFor({ state: "visible" });
   clickResults.push({ label: "搜索结果点击", expectedRoute: "/pages/me/goals", actualUrl: currentAppUrl(), result: "PASS", landingProof: "目标追踪" });
 
-  await relaunch("/pages/search/search");
-  frame = await waitForAppFrame("input");
-  await frame.locator("input").first().fill("完全不存在的功能20260824");
-  const ask = frame.getByText(/问 Nova|Ask Nova/i).last();
-  await ask.waitFor({ state: "visible" });
-  const aiStatusResponse = appPage.waitForResponse((response) => response.request().method() === "GET" && safePathname(response.url()) === "/api/app/support/ai/status", { timeout: 30_000 });
-  const aiHistoryResponse = appPage.waitForResponse((response) => response.request().method() === "GET" && safePathname(response.url()) === "/api/app/support/ai/history", { timeout: 30_000 });
-  await ask.click();
-  await waitUntil(() => Promise.resolve(currentAppUrl().includes("#/pages/support/chat?type=ai")), "SEARCH_NOVA_ROUTE_FAILED");
-  frame = await waitForAppFrame(".nx-conv-input");
-  const [statusResponse, historyResponse] = await Promise.all([aiStatusResponse, aiHistoryResponse]);
-  assert(statusResponse.status() === 200, "NOVA_AI_STATUS_FAILED");
-  assert(historyResponse.status() === 200, "NOVA_AI_HISTORY_FAILED");
-  await waitUntil(async () => !/连接|connecting/i.test(await frame.locator(".cp-role-t").innerText()), "NOVA_AI_STATUS_NOT_READY", 30_000, 250);
-  const searchPromptChip = frame.locator(".nx-conv-chip").filter({ hasText: "完全不存在的功能20260824" });
-  await searchPromptChip.waitFor({ state: "visible" });
-  const aiResponse = appPage.waitForResponse((response) => response.request().method() === "POST" && safePathname(response.url()) === "/api/app/support/ai/chat", { timeout: 90_000 });
-  await searchPromptChip.click();
-  assert((await aiResponse).status() === 200, "NOVA_AI_RESPONSE_FAILED");
-  await waitUntil(async () => await frame.locator(".nx-conv-bubble").count() >= 2, "NOVA_AI_BUBBLE_NOT_RENDERED", 90_000, 500);
-  await appPage.screenshot({ path: path.join(evidenceDir, "07-search-to-nova-answer.png"), fullPage: true });
-  clickResults.push({ label: "搜索无结果→Nova→真实问答", expectedRoute: "/pages/support/chat?type=ai", actualUrl: currentAppUrl(), result: "PASS", landingProof: ".nx-conv-input + >=2 条真实会话气泡" });
 }
 
 async function testMessageFunctions() {
@@ -928,7 +906,7 @@ try {
   pcVoucherCreated = true;
   await testVoucherOnHome();
   await testHomeInteractions();
-  await testSearchAndNova();
+  await testSearch();
   await testMessageFunctions();
   prototypeParity = await capturePrototypeParity();
   assert(prototypeParity.messageCategoryCount === 3, "PROTOTYPE_MESSAGE_CATEGORY_COUNT_INVALID");

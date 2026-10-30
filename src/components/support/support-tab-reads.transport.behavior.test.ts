@@ -5,7 +5,7 @@ import { createPinia, disposePinia, setActivePinia } from 'pinia';
 import { compileScript, parse } from '@vue/compiler-sfc';
 import ts from 'typescript';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import novaSource from './nova-bubble.vue?raw';
+import bubbleSource from './support-bubble.vue?raw';
 import gateSource from '@/composables/use-genesis-sale-gate.ts?raw';
 import pulseSource from '@/components/home/network-pulse-card.vue?raw';
 import snapshotSource from '@/components/home/network-snapshot.vue?raw';
@@ -87,18 +87,18 @@ function selectedGate() {
   const modules:Record<string,any>={vue:Vue,'@/lib/passive-tab-read':{runPassiveTabRead},'@/store/genesis-config':{useGenesisConfig,isPreSale,genesisPurchaseBlock,genesisShowsUrgency,genesisSecondaryBlock},'@/store/genesis':{useGenesis:()=>({remoteSupplyKnown:false,totalSlots:1000,soldSlots:0})},'@/i18n/use-t':{useT:()=>Vue.ref(zh)},'@/api/runtime':runtime};
   const exports:any={};new Function('require','exports',ts.transpileModule(original('genesis-gate',gateSource),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText)((id:string)=>modules[id],exports);return exports.useGenesisSaleGate;
 }
-function nova() {
-  const modules:Record<string,any>={vue:Vue,'@/lib/passive-tab-read':{runPassiveTabRead},'@/api/runtime':runtime,'@/store/genesis-config':{useGenesisConfig},'@/composables/use-genesis-sale-gate':{useGenesisSaleGate:selectedGate()},'@/store/notifications':{useNotifications},'@/store/conversations':{useConversations},'@/store/nova':{useNova:()=>({push:()=>false})},'@/store/config':{useConfig:()=>({isEnabled:()=>false})},'@/store/message-drawer':{useMessageDrawer:()=>({show:vi.fn()})},'@/i18n/use-t':{useT:()=>Vue.ref(zh)},'@/i18n/format':{fmt:()=>''},'@/lib/amount-display':{formatAmount:String},'@/lib/nova-visibility':{NOVA_SUPPORT_VISIBLE:false},'@/lib/unread-badge':{formatUnreadBadge:String},'@/store/theme':{useTheme:()=>({resolved:'dark'})},'@/mock/nova-templates':{welcomeMessage:()=>({})}};
-  const compiled=compileScript(parse(original('nova',novaSource)).descriptor,{id:'native-nova-real-transport',inlineTemplate:true,templateOptions:{compilerOptions:{isCustomElement:tag=>['view','text'].includes(tag)}}});const exports:any={};
+function bubble() {
+  const modules:Record<string,any>={vue:Vue,'@/lib/passive-tab-read':{runPassiveTabRead},'@/api/runtime':runtime,'@/store/genesis-config':{useGenesisConfig},'@/composables/use-genesis-sale-gate':{useGenesisSaleGate:selectedGate()},'@/store/notifications':{useNotifications},'@/store/conversations':{useConversations},'@/store/config':{useConfig:()=>({isEnabled:()=>false})},'@/store/message-drawer':{useMessageDrawer:()=>({show:vi.fn()})},'@/i18n/use-t':{useT:()=>Vue.ref(zh)},'@/i18n/format':{fmt:()=>''},'@/lib/amount-display':{formatAmount:String},'@/lib/unread-badge':{formatUnreadBadge:String},'@/store/theme':{useTheme:()=>({resolved:'dark'})}};
+  const compiled=compileScript(parse(original('nova',bubbleSource)).descriptor,{id:'native-nova-real-transport',inlineTemplate:true,templateOptions:{compilerOptions:{isCustomElement:tag=>['view','text'].includes(tag)}}});const exports:any={};
   new Function('require','exports',ts.transpileModule(compiled.content,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText)((id:string)=>id.endsWith('.vue')?{default:{render:()=>null}}:modules[id],exports);
   const app=renderer.createApp(exports.default,{dimmed:false});app.use(pinia);app.mount(node());mounted.push(app);return()=>{app.unmount();mounted.splice(mounted.indexOf(app),1);};
 }
-it('actual Nova remounts use real conversation store/API/ApiClient once and issue no unused notification or Genesis GET',async()=>{
-  for(let i=0;i<9;i++){const unmount=nova();await flush();unmount();}
+it('actual support bubble remounts use real conversation store/API/ApiClient once and issue no unused notification or Genesis GET',async()=>{
+  for(let i=0;i<9;i++){const unmount=bubble();await flush();unmount();}
   expect(paths.filter(path=>path==='/api/genesis/state')).toHaveLength(0);expect(paths.filter(path=>path==='/api/notifications')).toHaveLength(0);
   for(const endpoint of ['conversation-management','conversations/cursor','conversation-dismissals'])expect(paths.filter(path=>path.endsWith('/'+endpoint))).toHaveLength(1);
   expect(useConversations().error).toBeNull();await runPassiveTabRead('conversations',()=>useConversations().refresh(),{owner:useConversations().scopeInvalidated},()=>!useConversations().loading&&!useConversations().error);expect(paths).toHaveLength(3);
-  newVisit();const unmount=nova();await flush();unmount();expect(paths).toHaveLength(6);
+  newVisit();const unmount=bubble();await flush();unmount();expect(paths).toHaveLength(6);
 });
 it('actual Genesis gate consumers share raw config refresh despite its real invalidation, then refresh once on the next normal visit',async()=>{
   const gate=selectedGate();

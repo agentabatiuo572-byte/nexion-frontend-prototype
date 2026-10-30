@@ -42,7 +42,6 @@ import { createReferralRewardApi } from "./referral-reward-api";
 import { createSupportApi } from "./support-api";
 import { renewAppConversationRealtime, withConversationRealtime } from "./app-conversation-realtime";
 import { createProfileApi } from "./profile-api";
-import { createNovaAiApi } from "./nova-ai-api";
 import { createNetworkRegionsApi } from "./network-regions-api";
 import { createTeamNetworkApi } from "./team-network-api";
 import { createDeveloperAccessApi } from "./developer-access-api";
@@ -187,7 +186,6 @@ export const taskAssignmentApi = createTaskAssignmentApi(apiClient, expectedApiE
 export const referralRewardApi = createReferralRewardApi(apiClient, expectedApiEnvironment);
 export const supportApi = createSupportApi(withConversationRealtime(apiClient));
 export const profileApi = createProfileApi(apiClient);
-export const novaAiApi = createNovaAiApi(apiClient);
 export const networkRegionsApi = createNetworkRegionsApi(apiClient);
 export const teamNetworkApi = createTeamNetworkApi(apiClient, expectedApiEnvironment);
 export const developerAccessApi = createDeveloperAccessApi(apiClient, expectedApiEnvironment);

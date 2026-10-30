@@ -27,7 +27,7 @@ const sendPolicyDeps = { ApiError, fmt, MESSAGE_MAX_LENGTH, normalizeMessageText
 function humanSendHarness(inputs: Record<string, unknown>) {
   const deps = { ref, computed, ...sendPolicyDeps, isSupportAttachmentNotReady, isConversationDeliveryAmbiguous, t: ref(zh),
     conversationSendLimiter: createConversationSendBudgets(), isAi: ref(false),
-    chatDisposed: false, novaPageVisible: true, ...inputs };
+    chatDisposed: false, pageVisible: true, ...inputs };
   const code = extractChat(['localHumanSend', 'localHumanSequence', 'sendSuccessRevision', 'sendSuccessOwner', 'threadComposerKey', 'noteSendSuccess',
     'SEND_MAX', 'SEND_WINDOW_MS', 'SEND_MIN_GAP_MS', 'sendLimiter', 'bindHumanDispatchKey',
     'onSend', 'retryHumanSend', 'sendHumanMessage', 'stageHumanSend', 'humanSendFailed']);
@@ -153,7 +153,7 @@ it("same-account epoch reset clears private Blob/input without writing empties o
     { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
   const scope = effectScope();
   scope.run(() => new Function("watch", "app", "convStore", "imageSources", "imageFailures", "imageDraft", "failedHumanSend", "draftText",
-    "attachmentPolicy", "attachmentPolicyError", "novaPageVisible", "isAi", "remoteApiEnabled", "loadAttachmentPolicy", "humanComposerKey", "humanSendBusy", "restoreRecoveredComposer",
+    "attachmentPolicy", "attachmentPolicyError", "pageVisible", "isAi", "remoteApiEnabled", "loadAttachmentPolicy", "humanComposerKey", "humanSendBusy", "restoreRecoveredComposer",
     code)(watch, app, store, images, failures, imageDraft, failed, draft, ref(null), ref(false), false, ref(false), true, vi.fn(), ref("conversation:CV-1"), ref(false), vi.fn()));
   try {
     app.accountBindingEpoch++;
@@ -172,7 +172,7 @@ it("old recovery navigation callbacks cannot clear a newer account's composer", 
   const app = { accountBindingEpoch: 1 }, store = { scopeInvalidated: 0, clearComposer: vi.fn() };
   let release!: (value: boolean) => void;
   const navigation = new Promise<boolean>(resolve => { release = resolve; });
-  const recover = new Function("app", "convStore", "startType", "cid", "novaPageVisible", "recoveredNavigation", "navReplace",
+  const recover = new Function("app", "convStore", "startType", "cid", "pageVisible", "recoveredNavigation", "navReplace",
     code + "\nreturn restoreRecoveredComposer;")(app, store, ref("support"), ref(""), true, "", () => navigation);
   recover({ recoveredId: "CV-1" }, "start:support"); app.accountBindingEpoch++;
   release(true); await navigation; await nextTick(); expect(store.clearComposer).not.toHaveBeenCalled();
@@ -307,7 +307,7 @@ it("retires an opening send waiting for category admission after support transfe
   const store = { scopeInvalidated: 0, categoryAvailabilityStatus: "loading", hasPendingHumanCreate: vi.fn().mockResolvedValue(false), refreshCategories: vi.fn(() => held), categoryEnabled: () => true };
   const send = vi.fn(), busy = ref(false), slot = vi.fn(() => true), restore = vi.fn();
   const toast = { error: vi.fn(), info: vi.fn(), warn: vi.fn() };
-  const onSend = new Function("isAi", "remoteApiEnabled", "humanSendBusy", "humanOpenRequest", "cid", "startType", "app", "convStore", "novaPageVisible", "acquireSendSlot", "imageDraft", "sendHumanMessage", "supportSessionReady", "toast", "t", "policy",
+  const onSend = new Function("isAi", "remoteApiEnabled", "humanSendBusy", "humanOpenRequest", "cid", "startType", "app", "convStore", "pageVisible", "acquireSendSlot", "imageDraft", "sendHumanMessage", "supportSessionReady", "toast", "t", "policy",
     `const { ApiError, fmt, MESSAGE_MAX_LENGTH, normalizeMessageText } = policy;\n${code}\nreturn onSend;`)(ref(false), true, busy, ref(null), ref(""), ref("support"), { accountBindingEpoch: 1 }, store, true, slot, ref(null), send, ref(true), toast, ref(zh), sendPolicyDeps);
   const work = onSend("old opening intent", restore);
   await vi.waitFor(() => expect(store.refreshCategories).toHaveBeenCalledOnce());
@@ -329,7 +329,7 @@ it("preserves the original draft/key before auth readiness and admits only one o
   let release!: (id: string) => void;
   const start = vi.spyOn(store, "startConversation").mockImplementation(() => new Promise(resolve => { release = resolve; }));
   const deps = { convStore: store, app: { accountBindingEpoch: 1 }, isAi: ref(false), remoteApiEnabled: true,
-    cid: ref(""), startType: ref("support"), humanOpenRequest: ref(null), novaPageVisible: true, supportSessionReady: ready,
+    cid: ref(""), startType: ref("support"), humanOpenRequest: ref(null), pageVisible: true, supportSessionReady: ready,
     humanSendBusy: busy, failedHumanSend: failed, draftText: ref("next draft"), imageDraft: ref(null), humanComposerKey: ref("start:support"),
     acquireSendSlot: () => true, humanCreateRecovery: { begin: () => ({}), isCurrent: () => true, complete: vi.fn(), finish: vi.fn() },
     restoreCompletedHumanCreate: vi.fn(), toast: { info: vi.fn(), error: vi.fn() } };
@@ -356,7 +356,7 @@ it.each(["binding", "scope", "current"])("failed pending preflight restores only
   const code = ts.transpileModule(node.getText(ast), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
   const deps = { ...sendPolicyDeps, app, convStore: store, isAi: ref(false), remoteApiEnabled: true, supportSessionReady: ref(true),
     humanSendBusy: ref(false), humanOpenRequest: ref(null), cid: ref(""), startType: ref("support"), imageDraft: ref(null),
-    novaPageVisible: true, acquireSendSlot: vi.fn(() => true), sendHumanMessage: vi.fn(),
+    pageVisible: true, acquireSendSlot: vi.fn(() => true), sendHumanMessage: vi.fn(),
     toast: { error: vi.fn(), info: vi.fn(), warn: vi.fn() }, t: ref(zh) };
   const send = new Function("deps", `const {${Object.keys(deps).join(",")}} = deps; ${code}\nreturn onSend;`)(deps);
   const restore = vi.fn(); const pending = send("old account draft", restore);

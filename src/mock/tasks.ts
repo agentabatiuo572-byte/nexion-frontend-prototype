@@ -192,7 +192,7 @@ export interface LockedTeaser {
   type: string;        // human label
   model: string;       // most attractive locked model in this category
   minVRAM: number;     // VRAM the user lacks
-  rewardHint: string;  // e.g. "$0.18-$1.80" — per-task range (used in Nova copy)
+  rewardHint: string;  // e.g. "$0.18-$1.80" — per-task range
   unlockTier: string;  // e.g. "UVELBox S1 (96GB)"
 }
 

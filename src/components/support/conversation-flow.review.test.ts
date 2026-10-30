@@ -14,6 +14,8 @@ import { conversationScrollChange, preservedConversationTop } from './conversati
 import * as conversationTime from './conversation-time';
 import * as conversationBubbleLayout from './conversation-bubble-layout';
 import { zh } from '@/i18n/messages/zh';
+// The thread's generic queue controls are exercised with fixed labels.
+const queueLabels = { edit: '修改', cancel: '取消', retry: '重试', save: '保存', cancelEdit: '取消修改', failed: '发送失败，请重试。', ready: '等待发送，请稍候…' };
 
 // Independent review fixture: production SFC and Vue scheduling are executed.
 // Only the platform, lifecycle registration, and geometry delivery are controlled.
@@ -60,7 +62,7 @@ function mount(initial: any[] = []) {
     timeLocale: 'zh', composerKey: 'conversation:A', revealTick: 0, typing: false, inputLabel: 'Message',
     inputPlaceholder: 'Message', sendLabel: 'Send', maxInputLength: 2000, inputLimitHint: 'Too long',
     imageLabels: zh.conversations.image, attachRetry: false, attachDisabled: true,
-    sendSuccessRevision: 0, queueLabels: zh.nova.queue, statusLabels: zh.conversations.delivery });
+    sendSuccessRevision: 0, queueLabels: queueLabels, statusLabels: zh.conversations.delivery });
   const sound = { unlock() {}, play() {}, stop() {}, destroy() {} };
   const modules: Record<string, any> = {
     vue: { ...Vue, onMounted: (fn: () => void) => mounted.push(fn) },

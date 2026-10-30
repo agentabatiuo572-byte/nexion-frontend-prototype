@@ -1,7 +1,7 @@
 <!--
   ConversationThread — presentational chat body shared by the conversation center's
-  chat page across all categories (Nova AI / advisor / support). Ported from the
-  body of the retired nova-drawer (message bubbles + **bold**/\n segments + CTA row
+  chat page across all categories (advisor / support). Ported from the
+  body of the retired chat drawer (message bubbles + **bold**/\n segments + CTA row
   + quick chips + input), minus the header (the chat page owns its own header).
 
   Pure/presentational: pages normalise their store into ThreadMsg[] and wire actions
@@ -201,7 +201,7 @@ const props = defineProps<{
   inputPlaceholder: string;
   /** 输入框的**名称**(稳定),与 inputPlaceholder(提示,随可用性变)分开。
       见 lib/a11y-field-label.ts 的契约:placeholder 在输入后就消失,不是稳定的名称,
-      而这里的 placeholder 还会在 Nova 不可用时换成状态句 —— 名称不能跟着它走。 */
+      名称不能跟着提示走。 */
   inputLabel: string;
   sendLabel: string;
   statusLabels?: Record<MessageDeliveryState, string> & { retry: string };

@@ -111,7 +111,7 @@ export function borderSides(cs) {
 /** chrome 身份豁免:TabBar / Header / 玻璃砖 / 浮层(规范《03》§4 明写不在约束内) */
 export function isChrome(className, borderColorRaw) {
   const c = String(className || "");
-  if (/nx-tabbar|nx-header|nx-chrome|nx-glass|glass|chassis|nx-nova|nx-toast|nx-sticky/i.test(c)) return true;
+  if (/nx-tabbar|nx-header|nx-chrome|nx-glass|glass|chassis|nx-support|nx-toast|nx-sticky/i.test(c)) return true;
   if (/var\(--v5-(glass|chrome|tabbar)-border\)/.test(String(borderColorRaw || ""))) return true;
   return false;
 }

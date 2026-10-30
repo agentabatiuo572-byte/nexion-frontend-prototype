@@ -11,7 +11,7 @@ export interface SendVerdict {
 export interface SendLimiter {
   /** Consume one attempted dispatch, including a retry or a rejected request. */
   tryAcquire(now?: number): SendVerdict;
-  /** Query all gates without consuming a dispatch, including for Nova tracking. */
+  /** Query all gates without consuming a dispatch. */
   peek(now?: number): SendVerdict;
   remainingMs(now?: number): number;
   defer(delayMs: number, now?: number): void;

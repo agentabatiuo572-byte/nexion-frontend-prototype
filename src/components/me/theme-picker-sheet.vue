@@ -6,7 +6,7 @@
   Centered-modal范式(scrim flex-centers panel, both `nx-sheet-fade-in`, prop
   `open` / emit `close`, P-032 page-mounted) — same convention as global-ui.vue
   nx-mask/nx-modal. Overlay z-index 790/800 对齐主流 sheet(trial-claim / slot-action
-  等),盖过 chassis header/tabbar/nova(z 90–110);device-deactivate 的 79/80 会被那些
+  等),盖过 chassis header/tabbar/客服浮标(z 90–110);device-deactivate 的 79/80 会被那些
   chrome 浮在遮罩之上,勿照抄。
   Device-local preference — no backend call.
 -->

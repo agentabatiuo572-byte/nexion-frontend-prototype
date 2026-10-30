@@ -1,6 +1,6 @@
 export type ConversationType = "ai" | "advisor" | "support";
 export type ConversationCategoryAvailability = Record<ConversationType, boolean>;
-export type ConvRoleKey = "roleAi" | "roleAdvisor" | "roleSupport";
+export type ConvRoleKey = "roleAdvisor" | "roleSupport";
 export type ConvSessionStatus = "active" | "closed";
 export interface ConvMessage {
   id: string;

@@ -8,7 +8,7 @@ import { nativeTabUrl } from "@/lib/native-tab-navigation";
 import chassisSource from "@/components/app-chassis.vue?raw";
 import headerSource from "@/components/sub-page-header.vue?raw";
 import meSource from "@/pages/me/me.vue?raw";
-import bubbleSource from "@/components/nova/nova-bubble.vue?raw";
+import bubbleSource from "@/components/support/support-bubble.vue?raw";
 
 installSupportStorage();
 const runtime = vi.hoisted(() => ({ remoteApiEnabled: true,

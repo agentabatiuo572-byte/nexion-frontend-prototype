@@ -63,8 +63,8 @@ function preflightHarness(messages = zh) {
   const page = new Function("deps", `const { isAi, supportSessionReady, humanSendBusy, cid, startType, remoteApiEnabled,
     app, convStore, imageDraft, t, toast, sendHumanMessage, stopHumanThreadPolling, humanRealtime,
     loadAttachmentPolicy, restoreCompletedHumanCreate, restoreRecoveredComposer, humanComposerKey, revealTick, normalizeMessageText, MESSAGE_MAX_LENGTH, fmt, humanOpenRequest } = deps;
-    let novaPageVisible = true;
-    ${preflightCode}; return { onSend, activateHumanPage, hide: () => { novaPageVisible = false; } };`)(
+    let pageVisible = true;
+    ${preflightCode}; return { onSend, activateHumanPage, hide: () => { pageVisible = false; } };`)(
     { isAi: ref(false), supportSessionReady: ref(true), humanSendBusy, cid, startType, remoteApiEnabled: true,
       app, convStore, imageDraft: ref(null), t: ref(messages), toast, sendHumanMessage, normalizeMessageText, MESSAGE_MAX_LENGTH, fmt, humanOpenRequest: shallowRef(null),
       stopHumanThreadPolling: vi.fn(), humanRealtime: { show: vi.fn(() => 1) },

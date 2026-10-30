@@ -1097,8 +1097,6 @@ estimateDisclaimer: "Estimate before purchase cost; earnings decrease with time 
     emptyTitle: "Search UVEL",
     emptyBody: "Type to find pages, devices, products, network members, or common questions.",
     noResults: "No results — try different keywords.",
-    askNova: "Ask Nova",
-    askNovaWithQuery: "Continue with Nova support about “{query}”",
     navigationFailed: "That page couldn't be opened right now.",
     retryNavigation: "Try again",
     groupLabels: {
@@ -1650,13 +1648,6 @@ progressLabel: "Progress",
     urgency24h: "Trial ends within 24 hours · Buy now and save up to ${amount}",
     urgencyGrace24h: "The ${amount} trial credit and trial UVT expire within 24 hours.",
     urgencyGrace1h: "The ${amount} trial credit and trial UVT expire within 1 hour.",
-  },
-  novaCard: {
-    // Home NovaCard — chat bubble form (distinct from full nova chat namespace)
-    senderName: "Nova",
-    senderRole: "AI advisor",
-    messageWithPercent: "See your estimated daily earnings after an upgrade?",
-    openChatCta: "Open chat",
   },
   myDevices: {
     // /me MyDevicesEntry — ported from v5 design draft
@@ -2564,123 +2555,6 @@ rankBenefits: "View rank benefits",
       founder: "Founder",
     },
   },
-  nova: {
-    handoff: {
-      action: "Contact human support",
-      recommend: "This issue may need a human agent.",
-      fresh: "The failed question was not forwarded. Describe the latest issue to a support agent.",
-      confirm: "Share up to 5 recent questions (with detected credentials removed) with human support? Do not include passwords, codes or private keys.",
-    },
-    name: "Nova",
-    role: "AI support · Online",
-    inputPlaceholder: "Ask Nova about products or your account…",
-    send: "Send",
-    emptyHint:
-      "Hi, I'm Nova. Ask me about products, your account or devices.",
-    providerHold: "Nova assistant isn't available just yet — coming soon.",
-    localRole: "UVEL AI support",
-    localInputPlaceholder: "Ask Nova a product or support question…",
-    localEmptyHint: "Ask about product navigation, account safety, or how to reach a human agent.",
-    localConnecting: "Connecting to Nova…",
-    thinkingUnderstanding: "Understanding the question…",
-    thinkingChecking: "Checking the relevant rules…",
-    thinkingComposing: "Preparing the answer…",
-    localUnavailable: "Nova AI support is unavailable. Please try again shortly.",
-    localRetry: "Retry AI support",
-    localFailed: "Nova could not answer. No account action was performed.",
-    queue: {
-      waiting: "Queued. {n} questions ahead.",
-      ready: "Waiting to send. Please wait…",
-      processing: "Answering the question…",
-      tracking: "The question is still processing. The answer will appear automatically when ready.",
-      editing: "Editing · save to continue in the queue",
-      paused: "Queue paused. Retry the unfinished question first.",
-      full: "3 questions are awaiting answers. Wait for one to finish before sending another. The input is retained.",
-      busy: "Nova is busy; no answer has been returned. Retry later. Following questions are paused.",
-      timeout: "The wait for an answer timed out. Please retry. Following questions are paused.",
-      network: "Connection interrupted. Your question is retained. Check your connection and retry.",
-      unavailable: "Unable to connect to Nova. Please retry shortly. Your questions are retained and paused.",
-      auth: "Your session has expired. Please sign in again to continue.",
-      failed: "The question is not complete. Please retry. Following questions are paused.",
-      interrupted: "The previous wait was interrupted. Retry to retrieve the answer before continuing with following questions.",
-      invalid: "Enter a question between 1 and 2000 characters.",
-      edit: "Edit question", cancel: "Cancel queued question", retry: "Retry", save: "Save changes", cancelEdit: "Discard changes",
-      newConfirm: "Some questions are unfinished. Starting a new conversation removes pending questions from this page. The current answer will not appear in the new conversation. Continue?",
-      newConfirmAction: "Start new conversation",
-    },
-    localSafetyNotice: "AI answers may be incorrect. AI cannot view or change the account. Do not send passwords, verification codes, seed phrases, private keys, full card numbers, or identity documents.",
-    historyTruncated: "Only recent records from this conversation are shown.",
-    loadEarlier: "Load earlier messages",
-    localQOrder: "How do I check an order?",
-    localQWithdraw: "How do I withdraw?",
-    localQSecurity: "How do I protect my account?",
-    localQHuman: "How do I contact a human?",
-    qExplainToday: "Today's earnings",
-    qHowToBoost: "How to boost?",
-    qWhatsHot: "Job market",
-    qShowTopJobs: "See available jobs",
-    // Live human-agent handoff — retired 2026-07-16 (in-chat pill removed; human
-    // support now lives in the conversation center). Keys kept per dead-key policy.
-    // Channel push templates (team / staking / market). Previously hardcoded
-    // English in nova-bubble.vue — every locale saw English copy.
-    push: {
-      teamBought: "{buyer} bought {product}. A new team reward has been credited.",
-      teamBoughtCta: "View rewards",
-      teamPlacedOne: "1 new member joined your team.",
-      teamPlacedMany: "{n} new members joined your team.",
-      teamPlacedCta: "View team",
-      teamRankGap: "${remain} to go for V3. See the requirements.",
-      teamRankGapCta: "View rank",
-      teamPeerBonus: "A new team reward has been credited.",
-      teamPeerBonusCta: "View rewards",
-      stakingApyUp: "Staking terms and est. reward rates are shown on the staking page.",
-      stakingApyUpCta: "View staking",
-      stakingGenesisLow: "Genesis seats are limited. See the Genesis page.",
-      stakingGenesisLowCta: "View Genesis",
-      stakingLockNow: "See the staking page for current plans.",
-      stakingLockNowCta: "View staking",
-      stakingMatures: "One of your stakes matures soon and can be claimed at maturity.",
-      stakingMaturesCta: "View staking",
-      marketPriceBreak: "UVT exchange prices change in real time; see the exchange page.",
-      marketPriceBreakCta: "View exchange",
-      marketTvl: "See the Trust Center for published platform data.",
-      marketTvlCta: "Trust Center",
-      marketLiquidity: "See the market page for UVT prices.",
-      marketLiquidityCta: "View market",
-    },
-    // Quick-prompt reply scripts (drawer chip → Nova answer). Previously
-    // hardcoded English in mock/nova-templates.ts. Workload names are injected
-    // from t.market.workloads so Nova names a pool exactly like the rest of the
-    // app does. Model / client / device names are proper nouns — not translated.
-    reply: {
-      deviceOne: "1 active device",
-      deviceMany: "{n} active devices",
-      todayTop: "Your top device today is {name} ({gpu}), with ${amount} credited.",
-      todayNoDevice: "No devices online yet. Connect a device to start taking jobs.",
-      todayBody:
-        "So far today, your {devices} have credited ${amount}.\\n\\n{topLine}",
-      boostLocked:
-        "Suggestions:\\n\\n1. Keep your devices online.\\n2. Your current VRAM limit is {vram}GB; {tier} can run jobs such as {model} ({type}).\\n3. Invite friends; see the team page for reward rules.",
-      boostMaxed:
-        "You are at the top tier. You can add another device, or see invite reward rules on the team page.",
-      hotLlm:
-        "See the job market for current {pool} demand.",
-      hotVideo:
-        "See the job market for current {pool} demand.",
-      hotFineTune:
-        "See the job market for current {pool} demand.",
-      topJobsOpen:
-        "See the job market for available jobs.",
-      topJobsLocked:
-        "These jobs need more VRAM (current limit {vram}GB):\\n\\n{lines}",
-      topJobsLockedLine: "• {model} ({type}) · needs {tier}",
-      welcome:
-        "Hi, I'm Nova. Ask me about products, your account or devices.",
-      ctaBrowseStore: "Browse Store →",
-      ctaOpenTeam: "Open Team →",
-      ctaOpenMarket: "Open Market →",
-    },
-  },
   // Device display strings. The Device record stores English (a real backend
   // would return it, and devices persist), so the UI resolves these from the
   // stable kind at render — see lib/device-copy.ts. Only descriptive strings
@@ -2945,26 +2819,13 @@ autoDetect: "auto-detect coming soon",
     searchPlaceholder: "Search topics, questions or keywords…",
     searchLabel: "Search help content",
     categoryGroupLabel: "Help categories",
-    botInputLabel: "Ask UVELBot",
-    botSendLabel: "Send message",
     catGettingStarted: "Getting started",
     catEarnings: "Earnings",
     catDevices: "Devices",
     catPayments: "Payments",
     catTechnical: "Technical",
-    askBot: "Ask UVELBot",
-    botGreeting:
-      "Select a topic above or enter a question below.",
-    botPlaceholder: "Enter a question…",
-    botThinking: "UVELBot is thinking…",
-    remoteFailed: "Nova could not answer. Please try again later. No account action was performed.",
-    botTimeout: "Waiting for UVELBot timed out. The question may still be processing. No account action was performed.",
-    botTimeoutHint: "Retry to retrieve the original answer or contact support. Wait for the current question to finish before submitting another.",
-    botRetry: "Retry",
     contactSupport: "Contact support",
-    contactCta: "Contact support",
     emptyResults: "No articles match \"{q}\". Try a broader keyword.",
-    botUnmatched: "No matching answer was found. Contact online support or browse the categories above.",
   },
   support: {
     title: "Live support",
@@ -3008,15 +2869,11 @@ autoDetect: "auto-detect coming soon",
     title: "Messages",
     back: "Back",
     // Left type-rail short labels
-    typeAi: "Nova",
     typeAdvisor: "Dedicated support",
     typeSupport: "Dedicated support",
-    // Group name for the category rail; the Nova row needs a name that does not
-    // collide with the Nova category tab itself.
+    // Group name for the category rail.
     typeGroupLabel: "Conversation category",
-    openAiSession: "Open Nova AI support",
     // Role subtitles (list row + chat header)
-    roleAi: "AI support",
     roleAdvisor: "Dedicated support",
     roleSupport: "Dedicated support",
     offline: 'Offline',
@@ -3055,8 +2912,6 @@ autoDetect: "auto-detect coming soon",
     tMinAgo: "{n}m",
     tHrAgo: "{n}h",
     tDayAgo: "{n}d",
-    aiFreeFormReply:
-      "Got it. Try one of the quick questions above.",
     // Seed message bodies (proactive advisor + support) — {name} filled from mock
     seed: {
       advisorWelcome:

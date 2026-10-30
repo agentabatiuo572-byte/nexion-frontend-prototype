@@ -16,22 +16,20 @@ describe("conversation-center refresh failure contract", () => {
     expect(source).toMatch(/v-else-if="rows\.length === 0"/);
   });
 
-  it("loads Nova history on first entry so the AI row has a remote preview", () => {
-    expect(source).toContain('import { novaAiApi, remoteApiEnabled } from "@/api/runtime"');
-    expect(source).toContain("nova.ensureRemoteHistory(app.accountKey, () => novaAiApi.history())");
+  it("never lists the retired AI category or reads its history", () => {
+    // Past the header comment, which records why the category is absent.
+    expect(source.slice(source.indexOf("-->"))).not.toMatch(/nova|"ai"|'ai'/i);
   });
 
   it("uses the backend M5 availability read model before exposing category entry points", () => {
     expect(source).toContain("convStore.refreshCategories()");
     expect(source).toContain('convStore.categoryReadable("advisor") || convStore.categoryReadable("support")');
-    expect(source).toContain('sel === "ai" && !convStore.categoryReadable("ai")');
     expect(source).toContain("convStore.categoryEnabled(target)");
   });
 
   it("keeps only confirmed conversation snapshots readable when category authority is unavailable", () => {
     expect(source).toContain("convStore.categoryAvailabilityStatus === 'failed'");
     expect(source).toContain('convStore.categoryReadable("advisor") || convStore.categoryReadable("support")');
-    expect(source).toContain('sel === "ai" && !convStore.categoryReadable("ai")');
     expect(source).toContain('convStore.categoryEnabled("advisor")');
   });
 
@@ -47,13 +45,12 @@ describe("conversation-center refresh failure contract", () => {
   });
 
   it("shows a retryable polling notice when the human realtime channel fails", () => {
-    expect(source).toContain("selectedType !== 'ai' && convStore.realtimeFallback");
+    expect(source).toContain('remoteApiEnabled && convStore.realtimeFallback');
     expect(source).toContain("t.conversations.realtimeFallback");
     expect(source).toContain('role="status" aria-live="polite"');
   });
 
-  it("gives a failed prior AI selection the same retry state as a human category", () => {
-    expect(source).not.toContain("selectedType !== 'ai' && (convStore.error || convStore.categoryAvailabilityStatus === 'failed')");
+  it("gives every category read failure the same retry state", () => {
     expect(source).toContain("convStore.error || convStore.categoryAvailabilityStatus === 'failed'");
     expect(source).toContain('@click="retryConversations"');
     expect(source).toContain('class="family-control family-control--text" role="button" :tabindex="retrying ? -1 : 0" :aria-disabled="retrying" :aria-label="t.conversations.retry"');

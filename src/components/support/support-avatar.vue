@@ -1,17 +1,15 @@
 <!--
-  NovaAvatar — anthropomorphic cartoon portrait (ported from
-  Nexion-prototype/app/components/nova/nova-avatar.tsx; next/image → <image>).
+  SupportAvatar — the cartoon portrait on the floating support shortcut.
 
-  Same external contract: `size` + `pulse` (+ caller class via attr inherit).
-  The brand-tinted ring is a static boxShadow on the image; the pulse halo is a
-  CSS ring (@keyframes v5-nova-halo) around the avatar — works at every size
-  from 28px to 56px without re-rendering.
+  `size` + `pulse` (+ caller class via attr inherit). The brand-tinted ring is a
+  static boxShadow on the image; the pulse halo is a CSS ring
+  (@keyframes v5-support-halo) around the avatar.
 -->
 <template>
   <view class="relative inline-block shrink-0" :style="{ width: size + 'px', height: size + 'px' }">
     <image
       class="block rounded-full"
-      :src="appearance === 'light' ? '/static/img/marketing/nova-avatar-light-20261026.webp' : '/static/img/marketing/nova-avatar.png'"
+      :src="appearance === 'light' ? '/static/img/marketing/support-avatar-light-20261026.webp' : '/static/img/marketing/support-avatar.png'"
       mode="aspectFill"
       :style="{
         width: size + 'px',
@@ -23,7 +21,7 @@
     />
     <view
       v-if="pulse"
-      class="absolute inset-0 rounded-full pointer-events-none nx-nova-halo"
+      class="absolute inset-0 rounded-full pointer-events-none nx-support-halo"
       :style="{
         boxShadow: '0 0 0 0 color-mix(in oklab, var(--v5-brand) 60%, transparent)',
       }"
@@ -42,6 +40,6 @@ withDefaults(defineProps<{ size?: number; pulse?: boolean; appearance?: 'light' 
 </script>
 
 <style scoped>
-.nx-nova-halo { animation: v5-nova-halo 1.8s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .nx-nova-halo { animation: none; } }
+.nx-support-halo { animation: v5-support-halo 1.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .nx-support-halo { animation: none; } }
 </style>
