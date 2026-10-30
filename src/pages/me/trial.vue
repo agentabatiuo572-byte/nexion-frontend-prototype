@@ -17,7 +17,7 @@
     <view style="padding-bottom: 24px">
       <SubPageHeader back="/pages/me/me" :title="t.trial.pageTitle" :subtitle="t.trial.pageHeaderSubtitle" />
 
-      <view v-if="authorityUnavailable" class="mx-4 trial-read-state" role="status" :aria-busy="freeTrial.authorityStatus === 'loading'">
+      <view v-if="authorityScreenUnavailable" class="mx-4 trial-read-state" role="status" :aria-busy="freeTrial.authorityStatus === 'loading'">
         <view v-if="freeTrial.authorityStatus === 'loading'" class="trial-read-skeleton" aria-hidden="true"><view/><view/><view/></view>
         <text>{{ freeTrial.authorityStatus === 'loading' ? lifecycle.loading : lifecycle.unavailable }}</text>
         <view v-if="freeTrial.authorityStatus !== 'loading'" role="button" tabindex="0" class="trial-read-retry" @click="freeTrial.refreshRemote(true)"><text>{{ lifecycle.retry }}</text></view>
@@ -246,9 +246,13 @@ const freeTrial = useFreeTrial();
 const trialConfig = useTrialConfig();
 const lifecycle = useTrialLifecycleCopy();
 const purchase = useTrialPurchaseCopy();
-const authorityUnavailable = computed(() => remoteApiEnabled && (freeTrial.authorityStatus !== "ready"
-  || ((freeTrial.status === "active" || freeTrial.status === "grace")
-    && (freeTrial.authoritativeOffsetUSD === null || freeTrial.authoritativeRemainderUSD === null))));
+const authorityIncomplete = computed(() => (freeTrial.status === "active" || freeTrial.status === "grace")
+  && (freeTrial.authoritativeOffsetUSD === null || freeTrial.authoritativeRemainderUSD === null));
+const authorityUnavailable = computed(() => remoteApiEnabled && (freeTrial.authorityStatus !== "ready" || authorityIncomplete.value));
+// The 4s trial poll marks the authority loading while it re-reads; keep the confirmed page on screen
+// meanwhile instead of swapping in the read state. Actions still wait on authorityUnavailable.
+const authorityScreenUnavailable = computed(() => remoteApiEnabled && ((freeTrial.authorityStatus !== "ready"
+  && !(freeTrial.authorityStatus === "loading" && freeTrial.authorityServerState !== null)) || authorityIncomplete.value));
 
 const cfg = computed(() => trialConfig.config);
 const status = computed(() => freeTrial.status);

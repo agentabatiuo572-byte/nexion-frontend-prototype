@@ -26,7 +26,7 @@
         </view>
       </view>
 
-      <view v-else-if="trialQuoteUnavailable" class="text-center" role="status" style="padding: 24px 16px">
+      <view v-else-if="trialQuoteScreenUnavailable" class="text-center" role="status" style="padding: 24px 16px">
         <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3)">{{ freeTrial.authorityStatus === 'loading' ? t.trial.entryChecking : t.trial.entryUnavailable }}</text>
         <NxButton variant="secondary" :label="t.trial.entryRetry" :busy="freeTrial.authorityStatus === 'loading'" @click="freeTrial.refreshRemote(true)" />
       </view>
@@ -233,9 +233,9 @@
         <view class="checkout-sticky-copy"><text class="checkout-total">{{ promotionCheckout.footer.amount }}</text><text class="checkout-product-meta">{{ t.store.coRowTotal }}</text></view>
         <NxButton variant="primary" :disabled="promotionCheckout.footer.disabled" :label="promotionCheckout.footer.label" @click="promotionCheckout.footer.action" />
       </view>
-      <view v-if="!promotionRoute && !remoteTradeinRecoveryError && product && !trialQuoteUnavailable && !receiptWriteFailure && (step === 'select-payment' || step === 'confirm')" class="checkout-sticky">
+      <view v-if="!promotionRoute && !remoteTradeinRecoveryError && product && !trialQuoteScreenUnavailable && !receiptWriteFailure && (step === 'select-payment' || step === 'confirm')" class="checkout-sticky">
         <view class="checkout-sticky-copy"><text class="checkout-total">{{ confirmTotalText }} USDT</text><text class="checkout-product-meta">{{ t.store.coRowTotal }}</text></view>
-        <NxButton variant="primary" :disabled="checkoutWalletRefreshing || (remoteApiEnabled && !checkoutWalletReadable) || purchaseUnavailable || quantitySwitching" :busy="checkoutWalletRefreshing || quantitySwitching" :label="isCard ? t.store.coContinueToPayment : t.store.coPayNow" @click="submitReview" />
+        <NxButton variant="primary" :disabled="checkoutWalletRefreshing || (remoteApiEnabled && !checkoutWalletReadable) || purchaseUnavailable || quantitySwitching || trialQuoteUnavailable" :busy="checkoutWalletRefreshing || quantitySwitching || trialQuoteUnavailable" :label="isCard ? t.store.coContinueToPayment : t.store.coPayNow" @click="submitReview" />
       </view>
     </template>
   </AppChassis>
@@ -716,11 +716,16 @@ const trialEarlyQuoteLapsed = computed(() => {
   const quote = freeTrial.authoritativeQuote;
   return !!quote?.earlyPurchase && quote.earlyEndsAt !== null && nowTick.value >= quote.earlyEndsAt;
 });
-const trialQuoteUnavailable = computed(() => remoteApiEnabled && (freeTrial.authorityStatus !== "ready"
-  || trialEarlyQuoteLapsed.value
+const trialQuoteIncomplete = computed(() => trialEarlyQuoteLapsed.value
   || ((freeTrial.status === "active" || freeTrial.status === "grace")
     && (freeTrial.authoritativeOffsetUSD === null || freeTrial.authoritativeRemainderUSD === null
-      || freeTrial.authoritativePriceUSD === null))));
+      || freeTrial.authoritativePriceUSD === null)));
+const trialQuoteUnavailable = computed(() => remoteApiEnabled && (freeTrial.authorityStatus !== "ready" || trialQuoteIncomplete.value));
+// The 4s trial poll marks the authority loading while it re-reads. Keep the last confirmed quote on
+// screen meanwhile instead of swapping the page out (which also threw the scroll back to the top);
+// every action still waits on trialQuoteUnavailable.
+const trialQuoteScreenUnavailable = computed(() => remoteApiEnabled && ((freeTrial.authorityStatus !== "ready"
+  && !(freeTrial.authorityStatus === "loading" && freeTrial.authorityServerState !== null)) || trialQuoteIncomplete.value));
 const trialConversionMode = computed(() => trialView.value.applied);
 const purchaseSubtotal = computed(() => remoteApiEnabled && trialConversionMode.value
   ? freeTrial.authoritativePriceUSD ?? 0 : product.value?.price ?? 0);

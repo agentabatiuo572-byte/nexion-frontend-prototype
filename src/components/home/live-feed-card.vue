@@ -23,7 +23,7 @@
     </view>
 
     <!-- Activity tab -->
-    <view v-show="tab === 'activity'" id="home-live-feed-panel-activity" class="font-mono-tabular" style="padding: 0 2px 6px; font-size: 12px" role="tabpanel" aria-labelledby="home-live-feed-tab-activity" :aria-hidden="tab !== 'activity'" :tabindex="tab === 'activity' ? 0 : -1">
+    <view v-show="tab === 'activity'" ref="activityPanel" id="home-live-feed-panel-activity" class="font-mono-tabular" :style="tab === 'activity' ? heldPanelStyle : undefined" style="padding: 0 2px 6px; font-size: 12px" role="tabpanel" aria-labelledby="home-live-feed-tab-activity" :aria-hidden="tab !== 'activity'" :tabindex="tab === 'activity' ? 0 : -1">
       <view
         v-for="(r, i) in displayActivityRows"
         :key="r.k"
@@ -46,7 +46,7 @@
     </view>
 
     <!-- Earnings tab -->
-    <view v-show="tab === 'earnings'" id="home-live-feed-panel-earnings" role="tabpanel" aria-labelledby="home-live-feed-tab-earnings" :aria-hidden="tab !== 'earnings'" :tabindex="tab === 'earnings' && displayEarningsItems.length === 0 ? 0 : -1">
+    <view v-show="tab === 'earnings'" ref="earningsPanel" id="home-live-feed-panel-earnings" :style="tab === 'earnings' ? heldPanelStyle : undefined" role="tabpanel" aria-labelledby="home-live-feed-tab-earnings" :aria-hidden="tab !== 'earnings'" :tabindex="tab === 'earnings' && displayEarningsItems.length === 0 ? 0 : -1">
       <view v-if="displayEarningsItems.length > 0" class="block active:opacity-90 transition-opacity" role="link" tabindex="0" @click="goEarnings" @keydown.enter.stop.prevent="goEarnings">
         <view
           v-for="(it, i) in displayEarningsItems"
@@ -82,7 +82,7 @@
 <script setup lang="ts">
 import { formatUsd } from "@/lib/usd-display";
 import { navTo } from "@/lib/route";
-import { computed, nextTick, ref, watch, type CSSProperties } from "vue";
+import { computed, nextTick, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import GlassSegments from "@/components/glass-segments.vue";
 import { useT } from "@/i18n/use-t";
 import { useLocaleStore } from "@/store/locale";
@@ -129,9 +129,27 @@ const heldEntries = ref<AppHomeEarningsLedgerRow[]>([]); // newest first
 const enteringId = ref<string | null>(null);
 let revealCap = FEED_ROWS;
 const canonicalFeed = computed(() => buildCanonicalHomeFeed(shownEntries.value, FEED_ROWS));
+// The bottom row leaves at once while the new top row opens from zero height. Hold the panel at
+// its height for the opening so nothing below it (or a page scrolled to the end) jumps.
+const activityPanel = ref<unknown>(null);
+const earningsPanel = ref<unknown>(null);
+const heldHeight = ref<number | null>(null);
+const heldPanelStyle = computed<CSSProperties | undefined>(() => heldHeight.value === null ? undefined
+  : { height: `${heldHeight.value}px`, boxSizing: "border-box", overflow: "hidden" });
+let releaseTimer: ReturnType<typeof setTimeout> | undefined;
+function holdPanelHeight() {
+  const raw = tab.value === "activity" ? activityPanel.value : earningsPanel.value;
+  const el = (raw as { $el?: unknown } | null)?.$el ?? raw;
+  if (typeof HTMLElement === "undefined" || !(el instanceof HTMLElement)) return;
+  heldHeight.value = el.getBoundingClientRect().height;
+  clearTimeout(releaseTimer);
+  releaseTimer = setTimeout(() => { heldHeight.value = null; }, 650);
+}
+onUnmounted(() => clearTimeout(releaseTimer));
 function revealNext() {
   const next = heldEntries.value.at(-1);
   if (next === undefined) return;
+  if (motionAllowed.value && shownEntries.value.length >= revealCap) holdPanelHeight();
   heldEntries.value = heldEntries.value.slice(0, -1);
   shownEntries.value = [next, ...shownEntries.value].slice(0, revealCap);
   enteringId.value = next.id;
