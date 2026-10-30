@@ -16,6 +16,7 @@ import { en } from '@/i18n/messages/en';
 import { vi as vietnamese } from '@/i18n/messages/vi';
 import { asApiError,ApiError } from '@/api/errors';
 import { PromotionCheckoutSession,selectPromotionCheckoutRecord,type PromotionCheckoutRecord } from '@/lib/promotion-checkout-session';
+import { parsePendingKeepCommand } from '@/lib/keep-command-recovery';
 import { projectServerNow } from '@/lib/server-deadline-clock';
 import { displayDeadline,localized,rewardSummary } from '@/lib/promotion-display';
 import { formatAmount } from '@/lib/amount-display';
@@ -61,6 +62,8 @@ function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items
   const intent=selectPromotionCheckoutRecord({},props).intent;
   let rows:Record<string,PromotionCheckoutRecord>=stored?{[intent]:structuredClone(stored)}:{};
   let writable=true;
+  let keepHistory:unknown;
+  const tradein={showKeepRecovery:vi.fn()};
   const save=vi.fn((_table:string,_account:string,value:Record<string,PromotionCheckoutRecord>)=>{if(!writable)return false;rows=structuredClone(value);return true;});
   const api={quote:vi.fn().mockResolvedValue(quote()),get:vi.fn().mockResolvedValue(activity()),create:vi.fn().mockResolvedValue(receipt()),pay:vi.fn().mockResolvedValue({...receipt(),paymentStatus:'PAID',orderStatus:'COMPLETED'}),cancel:vi.fn(),command:vi.fn().mockResolvedValue({status:'PROCESSING',order:null}),findOrder:vi.fn().mockResolvedValue(receipt())};
   const app=Vue.reactive({accountKey:'user:7',accountBindingEpoch:1,remoteFleetHasSnapshot:true,remoteSlotsUsed:null as number|null,slotCap:6,user:{usdtBalance:150},captureRemoteAccountRequest:vi.fn(()=>({accountKey:'user:7',epoch:1})),refreshRemoteFleet:vi.fn().mockResolvedValue(true)});
@@ -86,6 +89,8 @@ function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items
     '@/store/product-catalog':{productCatalogState:catalog,productCatalogPresentation:presentation,refreshProductCatalog:refreshCatalog},
     '@/lib/route':{navTo:vi.fn(),navBack:vi.fn()},'@/store/ui':{confirm,useUI:()=>({clearConfirmsBy})},
     '@/lib/promotion-checkout-session':{PromotionCheckoutSession,selectPromotionCheckoutRecord},
+    '@/lib/keep-command-recovery':{readPendingKeepCommand:(account:string,productNo:string)=>parsePendingKeepCommand(keepHistory,account,productNo)},
+    '@/store/tradein-sheet':{useTradeinSheet:()=>tradein},
     '@/lib/promotion-entry':entry,
     '@/store/account-scoped-storage':{readAccountRow:()=>rows,writeAccountRow:save,acquireAccountCommandKey:key},
     '@/lib/promotion-leave-guard':{registerCheckoutLeaveGuard:guardRegistration,requestCheckoutLeave:vi.fn().mockResolvedValue(true)},
@@ -102,8 +107,61 @@ function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items
   cleanup.push(()=>{unmounted.forEach(fn=>fn());scope.stop();});
   const passthrough={setup:(_props:unknown,{slots}:Vue.SetupContext)=>()=>Vue.h('view',slots.default?.())};
   const html=()=>renderToString(Vue.createSSRApp({components:{PromotionAction:passthrough,PromotionTerms:empty,RewardRows:empty,LiquidGlass:empty,NxSheet:empty},render:()=>render(Vue.proxyRefs({$slots:{},...Vue.toRefs(props),...view}),[])}));
-  return{view,exposed,api,save,key,app,fleet,props,auth,locale,vouchers,getProduct,catalog,presentation,refreshCatalog,html,confirm,clearConfirmsBy,start:()=>Promise.all(mounted.map(fn=>fn())),saved:()=>rows[intent],failStorage:()=>{writable=false;}};
+  return{view,exposed,api,save,key,app,fleet,props,auth,locale,vouchers,getProduct,catalog,presentation,refreshCatalog,html,confirm,clearConfirmsBy,tradein,setKeepHistory:(history:unknown)=>{keepHistory=history;},start:()=>Promise.all(mounted.map(fn=>fn())),saved:()=>rows[intent],failStorage:()=>{writable=false;}};
 }
+
+const oldKeepIntent='keep|1156|sku|1|1299|1299|6';
+const oldKeepHistory=()=>({'user:7':{commands:{[oldKeepIntent]:'old-keep-key'}}});
+async function parentItemsRoute(){
+  const ast=ts.createSourceFile('parent.ts',parse(checkoutSource).descriptor.scriptSetup!.content,ts.ScriptTarget.Latest,true);
+  const node=ast.statements.find(node=>ts.isExpressionStatement(node)&&ts.isCallExpression(node.expression)&&node.expression.expression.getText(ast)==='onLoad') as ts.ExpressionStatement;
+  const callback=((node.expression as ts.CallExpression).arguments[0]).getText(ast);
+  const code=ts.transpileModule(`return (${callback});`,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
+  const promotionRoute=Vue.ref(null),recoverKeepBeforePurchase=vi.fn(()=>true);
+  const deps={promotionRoute,recoverKeepBeforePurchase,takeNavigationQuery:()=>'',URLSearchParams,validatePromotionItems,voucherEntryContext:entry.voucherEntryContext,toast:{warn:vi.fn()},t:Vue.ref(zh),navTo:vi.fn()};
+  await new Function('deps',`with(deps){${code}}`)(deps)({items:JSON.stringify([{productNo:'sku',quantity:1}])});
+  expect(recoverKeepBeforePurchase).not.toHaveBeenCalled();
+  return promotionRoute.value!;
+}
+it.each(['order','pending'] as const)('items without orderNo recover the original Promotion %s before a same-SKU KEEP',async state=>{
+  const q=quote(),pending=state==='pending'?{key:'old-promotion-key',operation:'createOrder' as const,targetId:q.quoteId}:null;
+  const route=await parentItemsRoute();
+  const page=screen({quote:q,order:state==='order'?receipt(q):null,pending},route);
+  page.setKeepHistory(oldKeepHistory());
+  await page.start();
+  expect(page.api.quote).not.toHaveBeenCalled();expect(page.api.create).not.toHaveBeenCalled();expect(page.key).not.toHaveBeenCalled();
+  expect(page.tradein.showKeepRecovery).not.toHaveBeenCalled();
+  if(state==='order'){
+    expect(page.api.findOrder).toHaveBeenCalledExactlyOnceWith('o1');expect(page.saved().order?.orderNo).toBe('o1');
+  }else{
+    expect(page.api.command).toHaveBeenCalledExactlyOnceWith('old-promotion-key','createOrder','q1');
+    expect(page.saved().pending).toEqual(pending);
+    page.api.command.mockResolvedValueOnce({status:'NOT_FOUND',order:null});await page.view.recover();await page.view.createOrder();
+    expect(page.api.create).toHaveBeenCalledExactlyOnceWith(q,'old-promotion-key',null);
+    expect(page.key).not.toHaveBeenCalled();expect(page.api.quote).not.toHaveBeenCalled();
+  }
+});
+it('fresh items stop before quoting or creating for an old KEEP, then quote after verified recovery clears its key',async()=>{
+  const page=screen(undefined,{activityId:''}),history=oldKeepHistory();page.setKeepHistory(history);await page.start();
+  expect(page.api.quote).not.toHaveBeenCalled();expect(page.tradein.showKeepRecovery).toHaveBeenCalledExactlyOnceWith('sku');
+  expect(page.exposed.footer.value).toBeNull();expect(await page.html()).toContain(zh.tradein.keepRecoveryPending);
+  await page.view.createOrder();expect(page.api.create).not.toHaveBeenCalled();expect(page.key).not.toHaveBeenCalled();
+  page.setKeepHistory({'user:7':{commands:{}}});await page.view.loadQuote();expect(page.api.quote).toHaveBeenCalledOnce();
+  expect(page.view.canCreate.value).toBe(true);
+});
+it.each(['malformed',[],{[oldKeepIntent]:'first','keep|1157|sku|1|1399|1399|6':'second'}])('fresh Promotion items fail closed for invalid or ambiguous KEEP storage: %s',async commands=>{
+  const page=screen(undefined,{activityId:''}),history={'user:7':{commands}},before=JSON.stringify(history);
+  page.setKeepHistory(history);await page.start();await page.view.createOrder();
+  expect(page.api.quote).not.toHaveBeenCalled();expect(page.api.create).not.toHaveBeenCalled();expect(page.key).not.toHaveBeenCalled();
+  expect(await page.html()).toContain(zh.tradein.keepRecoveryReadError);expect(page.exposed.footer.value).toBeNull();
+  expect(JSON.stringify(history)).toBe(before);
+});
+it('a KEEP written after mount closes fresh Promotion create without minting a new command',async()=>{
+  const page=screen(undefined,{activityId:''});await page.start();expect(page.view.canCreate.value).toBe(true);
+  page.setKeepHistory(oldKeepHistory());await page.view.createOrder();
+  expect(page.api.create).not.toHaveBeenCalled();expect(page.key).not.toHaveBeenCalled();expect(page.exposed.footer.value).toBeNull();
+  expect(page.tradein.showKeepRecovery).toHaveBeenCalledExactlyOnceWith('sku');
+});
 
 it('order creation, recovery and payment keep the UVEL display name without rewriting the receipt snapshot',async()=>{
   const page=screen(),originalName='NexGridBox S1',order={...receipt(),items:[{lineId:'9001',productNo:'sku',productName:originalName,quantity:1}]};

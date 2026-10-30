@@ -55,7 +55,16 @@
       </view>
 
       <!-- ─────────── 1. choice — trade-in or full price ─────────── -->
-      <template v-if="state.kind === 'choice'">
+      <template v-if="keepRecovery || keepRecoveryError">
+        <view class="tis-head"><text class="tis-title">{{ t.tradein.keepRecoveryPending }}</text></view>
+        <text v-if="keepRecoveryError" class="tis-disclaimer" role="alert">{{ t.tradein.keepRecoveryReadError }}</text>
+        <view class="tis-cta" :class="{ 'tis-cta-disabled': confirming }" role="button" :tabindex="confirming ? -1 : 0" :aria-disabled="confirming"
+          @click="onRecoverKeep" @keydown.enter.prevent="onKeyboardActivate($event, onRecoverKeep)" @keydown.space.prevent="onKeyboardActivate($event, onRecoverKeep)">
+          <text class="tis-cta-text">{{ t.tradein.keepRecoveryAction }}</text>
+        </view>
+        <view class="tis-ghost" role="button" tabindex="0" @click="hide" @keydown.enter.prevent="hide" @keydown.space.prevent="hide"><text class="tis-ghost-text">{{ t.tradein.sheetCancel }}</text></view>
+      </template>
+      <template v-else-if="state.kind === 'choice'">
         <view class="tis-head">
           <text class="tis-title">{{ t.tradein.choiceTitle }}</text>
         </view>
@@ -185,6 +194,7 @@
           <text class="tis-cta-text">{{ replaceView.replaceCta }}</text>
         </view>
         <view
+          v-if="!remoteApiEnabled || (state.kind === 'replace' && state.canonicalCapacityQuote?.decision === 'CAPACITY_AVAILABLE')"
           class="tis-secondary"
           :class="{ 'tis-cta-disabled': replaceView.insufficient || confirming }"
           role="button"
@@ -284,6 +294,7 @@ import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope"
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import { acquireAccountCommandKey, releaseAccountCommandKey } from "@/store/account-scoped-storage";
 import { readCheckoutTradein } from "@/lib/checkout-order-recovery";
+import { CAPACITY_COMMAND_TABLE, readPendingKeepCommand, type PendingKeepCommand } from "@/lib/keep-command-recovery";
 
 const props = withDefaults(defineProps<{ active?: boolean }>(), { active: true });
 const sheet = useTradeinSheet();
@@ -310,7 +321,30 @@ const remoteRetireEligibleTargets = ref<Set<string>>(new Set());
 const remoteRetirePayables = ref<Map<string, number>>(new Map());
 const remoteRetireTargetsReady = ref(!remoteApiEnabled);
 const capacityCommandKey = ref<string | null>(null);
-const CAPACITY_COMMAND_TABLE = "nexgrid-e3-capacity-commands-accounts-v1";
+const keepRecovery = ref<PendingKeepCommand | null>(null);
+const keepRecoveryError = ref(false);
+function keepTarget(): DeviceKind | null {
+  const current = state.value;
+  return current.kind === "choice" || current.kind === "keep-recovery" ? current.targetKind : current.kind === "replace" ? current.newKind : null;
+}
+function readPendingKeep(targetProductNo: DeviceKind): PendingKeepCommand | null {
+  return readPendingKeepCommand(app.accountKey, targetProductNo);
+}
+function refreshKeepRecovery(target: DeviceKind | null = keepTarget()): void {
+  keepRecovery.value = null; keepRecoveryError.value = false;
+  if (!remoteApiEnabled || !target) return;
+  try { keepRecovery.value = readPendingKeep(target); }
+  catch { keepRecoveryError.value = true; }
+}
+watch([() => app.accountKey, () => app.accountBindingEpoch, keepTarget], () => refreshKeepRecovery(), { immediate: true, flush: "sync" });
+function onRecoverKeep(): void {
+  if (confirming.value) return;
+  refreshKeepRecovery();
+  const command = keepRecovery.value;
+  if (!command) return;
+  confirming.value = true;
+  void submitCanonicalKeepBuy(command.targetProductNo as DeviceKind);
+}
 const quoteRequestGeneration = ref(0);
 const quoteLoading = ref(false);
 const purchaseSnapshot = ref<PurchaseEligibilitySnapshot | null>(null);
@@ -563,6 +597,9 @@ async function onChooseFullPrice() {
   const s = state.value;
   if (s.kind !== "choice" || quoteLoading.value) return;
   if (remoteApiEnabled) {
+    refreshKeepRecovery(s.targetKind);
+    if (keepRecovery.value) { onRecoverKeep(); return; }
+    if (keepRecoveryError.value) { toast.warn(t.value.tradein.errPleaseRetry); return; }
     const requestGeneration = ++quoteRequestGeneration.value;
     const requestScope = captureAccountScope();
     const requestIsCurrent = () => requestGeneration === quoteRequestGeneration.value
@@ -596,7 +633,7 @@ async function onChooseFullPrice() {
   }
   // If slot full, hand off to the replace sheet; else just dismiss (caller's
   // checkout flow proceeds normally to payment).
-  if (app.activeSlotCount + reservedSlots.value >= app.slotCap) {
+  if ((app.remoteSlotsUsed ?? (app.activeSlotCount + reservedSlots.value)) >= app.slotCap) {
     sheet.showReplace(s.targetKind, s.newPrice);
   } else {
     hide();
@@ -990,7 +1027,7 @@ function onReplace() {
   }
   // 先算再动:停掉旧机后新机能不能占到槽,用同一个谓词事先判(审计 R9 P1:事后失败再回滚,回滚里的再激活撞的是
   // 同一个槽位谓词,必然连环失败,把一台已付费旧机甩进库存)。
-  if (app.activeSlotCount - 1 + reservedSlots.value >= app.slotCap) {
+  if ((app.remoteSlotsUsed ?? (app.activeSlotCount + reservedSlots.value)) - 1 >= app.slotCap) {
     toast.warn(t.value.tradein.errReplaceSlotConflict);
     confirming.value = false;
     return;
@@ -1049,24 +1086,28 @@ function onReplace() {
 
 async function submitCanonicalKeepBuy(
   newKind: DeviceKind,
-  quote: CanonicalCapacityReplaceQuote,
+  quote?: CanonicalCapacityReplaceQuote,
 ): Promise<void> {
   const requestScope = captureAccountScope();
-  const intent = capacityIntent("keep", quote);
+  let intent = "";
   let key = "";
   const requireCurrentAccount = () => {
     if (!isCurrentAccountScope(requestScope)) throw new Error("ACCOUNT_SCOPE_CHANGED");
   };
   try {
-    if (quote.decision !== "REPLACE_REQUIRED" || quote.targetProductNo !== newKind
-        || quote.decisionSource !== "server") {
+    const original = readPendingKeep(newKind);
+    if (!original && (!quote || quote.decision !== "CAPACITY_AVAILABLE" || quote.targetProductNo !== newKind
+        || quote.decisionSource !== "server")) {
       throw new Error("CAPACITY_KEEP_QUOTE_INVALID");
     }
+    intent = original?.intent ?? capacityIntent("keep", quote!);
     await completeVerifiedMutation({
       submit: async () => {
         requireCurrentAccount();
-        key = canonicalCapacityKey("keep", quote, requestScope.accountKey);
-        const submitted = await deviceE3Api.capacityKeep(newKind, key, quote);
+        key = original?.key ?? canonicalCapacityKey("keep", quote!, requestScope.accountKey);
+        const submitted = original
+          ? await deviceE3Api.replayCapacityKeep(original.targetProductNo, key, original.payableUsdt)
+          : await deviceE3Api.capacityKeep(newKind, key, quote!);
         requireCurrentAccount();
         return submitted;
       },
@@ -1123,6 +1164,7 @@ async function submitCanonicalKeepBuy(
     });
   } catch {
     if (!isCurrentAccountScope(requestScope)) return;
+    refreshKeepRecovery(newKind);
     toast.warn(t.value.tradein.errPleaseRetry);
   } finally {
     confirming.value = false;
@@ -1132,16 +1174,24 @@ async function submitCanonicalKeepBuy(
 function onKeepBuy() {
   const s = state.value;
   if (s.kind !== "replace" || confirming.value) return;
-  if (replaceView.value?.insufficient) return;
   if (remoteApiEnabled) {
+    refreshKeepRecovery(s.newKind);
+    if (keepRecovery.value) { onRecoverKeep(); return; }
+    if (keepRecoveryError.value) { toast.warn(t.value.tradein.errPleaseRetry); return; }
+    if (replaceView.value?.insufficient) return;
     if (!s.canonicalCapacityQuote) {
       toast.warn(t.value.tradein.errPleaseRetry);
+      return;
+    }
+    if (s.canonicalCapacityQuote.decision !== "CAPACITY_AVAILABLE") {
+      toast.warn(t.value.tradein.errReplaceSlotConflict);
       return;
     }
     confirming.value = true;
     void submitCanonicalKeepBuy(s.newKind, s.canonicalCapacityQuote);
     return;
   }
+  if (replaceView.value?.insufficient) return;
   confirming.value = true;
   // ⚠️ MOCK-ONLY CROSS-STORE COMPOSER — Path B "Keep & buy" branch.
   // Order: addDevice (default inactive) → postMoneyBill(扣款 ⊗ 记账,单次落盘)。
@@ -1226,7 +1276,7 @@ function onForce() {
   //   activate(new) → postMoneyBill(扣款 ⊗ 记账,单次落盘)。Each failure restores the old device's task.
   const taskSnapshot = lowest.currentTask;
   // 先算再动:停掉旧机后新机能不能占到槽,用同一个谓词事先判(与 onReplace 同一条;审计 R9 P1)。
-  if (app.activeSlotCount - 1 + reservedSlots.value >= app.slotCap) {
+  if ((app.remoteSlotsUsed ?? (app.activeSlotCount + reservedSlots.value)) - 1 >= app.slotCap) {
     toast.warn(t.value.tradein.errReplaceSlotConflict);
     confirming.value = false;
     return;

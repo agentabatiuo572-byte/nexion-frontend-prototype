@@ -83,6 +83,7 @@ const loadSource=(loadNode.expression as ts.CallExpression).arguments[0].getText
 function routeScreen(overrides:Record<string,unknown>={}) {
   const scope={accountKey:'user:7',generation:1,productNo:'cloud-share'};
   const deps={takeNavigationQuery:()=>'',voucherEntryContext,promotionRoute:ref(null),validatePromotionItems,t:ref(zh),toast:{warn:vi.fn()},navTo:vi.fn(),URLSearchParams,
+    recoverKeepBeforePurchase:vi.fn(()=>false),
     trialCheckoutSource:false,productId:ref('cloud-share'),resolveTrialCheckoutProductId:(id:string)=>id,resumeSessionId:null,
     beginCheckoutRoute:()=>scope,checkoutRouteInitialized:false,activeCheckoutLoad:null,remoteApiEnabled:true,
     resumeServerOrder:vi.fn(async()=>false),isCurrentCheckoutRoute:()=>true,refreshProductCatalog:vi.fn(async()=>true),

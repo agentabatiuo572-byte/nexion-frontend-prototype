@@ -17,6 +17,8 @@ function mount(remoteApiEnabled = true, locale?: "en" | "zh" | "vi") {
   const app = reactive({
     remoteFleetHasSnapshot: false, remoteWalletReceiptHasSnapshot: false, remoteFleetStatus: "idle",
     slotCap: 6,
+    get remoteSlotsUsed(): number | null { return this.remoteSlotUsage?.slotsUsed ?? null; },
+    remoteSlotUsage: null as { slotsUsed: number; reservedSlotCount: number; trialSlotCount: number } | null,
     user: { usdtBalance: 0, nexBalance: 0, earningBuckets: { pendingReviewUsdt: 0, bonusLockedUsdt: 0 } },
     get activeSlotCount() { return devices.filter(isActiveSlotDevice).length; },
     get visibleDevices() { return devices.filter(d => computeShareEnabled.value || d.kind !== "pc-gpu"); },
@@ -83,6 +85,15 @@ function mount(remoteApiEnabled = true, locale?: "en" | "zh" | "vi") {
 }
 
 describe("Me wallet and device authority", () => {
+  it("uses server capacity for five devices plus an order reservation without treating reservations as Online", () => {
+    const s = mount(); s.confirmFleetAndTrial();
+    s.devices.push(...Array.from({ length: 5 }, () => ({ kind: "cloud-share" as const, activatedAt: 1 })));
+    s.app.remoteSlotUsage = { slotsUsed: 6, reservedSlotCount: 1, trialSlotCount: 0 };
+    expect(s.readDevices()).toMatchObject({ count: "6 / 6", active: "5 active", open: "0 slots open", warehouseActive: 5, walletSummary: null });
+    s.trial.status = "active"; s.trial.authorityServerState = "ACTIVE";
+    s.app.remoteSlotUsage = { slotsUsed: 6, reservedSlotCount: 0, trialSlotCount: 1 };
+    expect(s.readDevices()).toMatchObject({ count: "6 / 6", active: "5 active", open: "0 slots open", warehouseActive: 5 });
+  });
   it.each([[1.005, "1.01", "1.005"], [2.675, "2.68", "2.675"], [0.145, "0.15", "0.145"],
     [999.995, "1000.00", "999.995"]] as const)("uses decimal amount rounding for NEX valuation while keeping the price rate: %s", (price, amount, rate) => {
       const s = mount(false);

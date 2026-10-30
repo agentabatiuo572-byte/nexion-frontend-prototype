@@ -524,7 +524,9 @@ selectors:`selectActiveDevices/InactiveDevices/ActiveCount/ActivePhone`、`deriv
 转移:`active→matured`(unlockTs 到期,4s tick 累息)/ `matured→claimed`/ `active→early-withdrawn`(罚款 5/15/30/50% 本金+forfeit 利息)。资金锁定整期,无手动暂停;APY 浮动但已质押按原利率。
 
 ### 5.7 Device 激活/库存(§11.1/§12.2)
-`activatedAt: null`(库存)↔`number`(在槽);辅 `pendingDeactivate`。actions:`addDevice`(入库无上限)/`activateDevice`(守卫 `(active+trialReserves?1:0)<MAX_DEVICES=6` 返 bool)/`deactivateDevice`(清遥测+currentTask)/`scheduleDeactivation`(有任务则置 pendingDeactivate,等完成 tick 自动出槽)。2026-10-30 容量纠正：`pendingDeactivate=true` 仅表示等待停用，实际停用前仍为已激活 Online 且占一槽；必须在任务完成或合法强制停用后，权威激活事实变为未激活才释放，不得提前允许第七台。取消激活 UI 分支:无任务→confirm;有任务→3 选 sheet(等完成/强制/返回)。
+`activatedAt: null`(库存)↔`number`(在槽);辅 `pendingDeactivate`。actions:`addDevice`(入库无上限)/`activateDevice`(普通新增守卫为已确认 `slotsUsed < slotCap`，产品上限仍为6，返 bool)/`deactivateDevice`(清遥测+currentTask)/`scheduleDeactivation`(有任务则置 pendingDeactivate,等完成 tick 自动出槽)。2026-10-30 容量纠正：`pendingDeactivate=true` 仅表示等待停用，实际停用前仍为已激活 Online 且占一槽；必须在任务完成或合法强制停用后，权威激活事实变为未激活才释放，不得提前允许第七台。取消激活 UI 分支:无任务→confirm;有任务→3 选 sheet(等完成/强制/返回)。
+
+2026-10-30 权威容量投影：`GET /api/devices/earnings` 数据顶层、Home overview的`onboarding`均提供 `slotCap`、`reservedSlotCount`（有效订单预留）、`trialSlotCount`（有效试用预留）、`slotsUsed=C`，其中`C=N+有效订单预留+有效试用预留`；实际激活N由同一fleet真实激活实例统计，Home的`onboarding.activeDevices`继续为N。所有激活类型各计一槽，原`slotCap`上限保持。槽位条、空槽及普通新增容量守卫使用同一fleet epoch/revision接收的权威C，不能再叠加本地试用，也不能被Home独立旧快照覆盖；Online设备与任务执行依据实际激活实例N及各自执行资格，预留不生成设备、任务或收益。旧后端缺字段时兼容原有`N+已确认试用预留`计算，未知不当零、容量未确认时关闭新增动作。投影复用既有账号epoch/revision隔离，迟到响应不得跨账号或覆盖较新结果；原抵扣置换、试用预留交换及原交易恢复规则保持。详见[六槽专题](UVEL_算力激活队列与六槽_20261029.md)。
 
 ### 5.8 Device 衰减曲线(§6.8,平滑非离散)
 按 `getMonthsOwned` 浮点月:月1-3 −4%/月4-8 −6%/月9-12+ **−23.7%**→22% floor(`MIN_EFFICIENCY=0.22`);豁免 phone/cloud-share;client 60s 重算(展示用非权威)。

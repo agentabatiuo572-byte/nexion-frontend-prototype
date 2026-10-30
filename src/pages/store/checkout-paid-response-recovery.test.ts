@@ -78,7 +78,7 @@ describe("real checkout handler outcome recovery", () => {
       isCurrentCheckoutRoute: (scope: { accountKey: string; accountEpoch: number; productNo: string }) => scope.accountKey === account.accountKey
         && scope.accountEpoch === account.epoch && scope.productNo === productId.value,
       orders: { currentAccountKey: () => account.accountKey }, orderApi: { list: vi.fn() },
-      recoverCheckoutOrder: recover, navReplace: vi.fn() };
+      recoverCheckoutOrder: recover, recoverKeepBeforePurchase: vi.fn(() => false), navReplace: vi.fn() };
     const resume = new Function(...Object.keys(deps), js)(...Object.values(deps));
     const first = resume();
     expect(resume()).toBe(first);

@@ -34,7 +34,7 @@ describe("all-device activation capacity", () => {
       pendingDeactivate: false, currentTask: index === 0 ? task : null,
     })));
     const count = computed(() => devices.value.filter(isActiveSlotDevice).length);
-    const deps = { devices, activeSlotCount: count, slotCap: ref(6), computeShareEnabled: ref(true), persistAccountSnapshot: vi.fn(() => true) };
+    const deps = { devices, activeSlotCount: count, remoteSlotUsage: ref(null), slotCap: ref(6), computeShareEnabled: ref(true), persistAccountSnapshot: vi.fn(() => true) };
     const activate = actualFunction(appSource, "activateDevice", deps);
     actualFunction(appSource, "scheduleDeactivation", deps)("0");
     expect(devices.value[0]).toMatchObject({ activatedAt: 123, pendingDeactivate: true, currentTask: task });
@@ -53,6 +53,7 @@ describe("all-device activation capacity", () => {
     const persistAccountSnapshot = vi.fn(() => true);
     const activate = actualFunction(appSource, "activateDevice", {
       devices, activeSlotCount: computed(() => devices.value.filter(isActiveSlotDevice).length),
+      remoteSlotUsage: ref(null),
       slotCap: ref(6), computeShareEnabled: ref(true), persistAccountSnapshot,
     });
     expect(activate("5", 1)).toBe(false);
@@ -63,6 +64,20 @@ describe("all-device activation capacity", () => {
     devices.value[0].activatedAt = null;
     expect(activate("6", 0)).toBe(true);
     expect(devices.value.filter(isActiveSlotDevice)).toHaveLength(6);
+  });
+
+  it("blocks device six when five active devices plus a confirmed order reservation use all capacity", () => {
+    const devices = ref(Array.from({ length: 6 }, (_, index) => ({ id: String(index), kind: "cloud-share" as const, activatedAt: index < 5 ? 123 as number | null : null })));
+    const remoteSlotUsage = ref({ slotsUsed: 6, reservedSlotCount: 1, trialSlotCount: 0 });
+    const persistAccountSnapshot = vi.fn(() => true);
+    const activate = actualFunction(appSource, "activateDevice", { devices, remoteSlotUsage,
+      activeSlotCount: computed(() => devices.value.filter(isActiveSlotDevice).length), slotCap: ref(6),
+      computeShareEnabled: ref(true), persistAccountSnapshot });
+    expect(activate("5", 0)).toBe(false);
+    expect(persistAccountSnapshot).not.toHaveBeenCalled();
+    expect(devices.value.filter(isActiveSlotDevice)).toHaveLength(5);
+    remoteSlotUsage.value = { slotsUsed: 5, reservedSlotCount: 0, trialSlotCount: 0 };
+    expect(activate("5", 0)).toBe(true);
   });
 
   it.each([zh, en, vietnamese])("blocks Cloud Share from the actual sheet and inventory handlers when full", async copy => {

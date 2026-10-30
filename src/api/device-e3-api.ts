@@ -52,7 +52,7 @@ export interface CanonicalE3Fleet {
   serverNow: number;
   timezone: string;
   slotCap: number;
-  /** Server total includes active instances, trial and unfulfilled order reservations. */
+  /** Authoritative capacity includes order reservations and the trial exactly once. */
   slotsUsed?: number;
   reservedSlotCount?: number;
   trialSlotCount?: number;
@@ -185,6 +185,8 @@ export interface DeviceE3Api {
     idempotencyKey: string,
     expectedQuote: CanonicalCapacityReplaceQuote,
   ): Promise<CanonicalCapacityKeepResult>;
+  /** Replay only an existing durable command with its original payable and key. */
+  replayCapacityKeep(targetProductNo: string, idempotencyKey: string, expectedPayableUsdt: number): Promise<CanonicalCapacityKeepResult>;
   submit(
     sourceDeviceId: number,
     targetProductNo: string,
@@ -330,9 +332,9 @@ function fleet(value: unknown, mode: ApiEnvironment): CanonicalE3Fleet {
     serverNow,
     timezone: string(source.timezone),
     slotCap: integer(source.slotCap, 1),
-    slotsUsed: source.slotsUsed == null ? undefined : integer(source.slotsUsed),
-    reservedSlotCount: source.reservedSlotCount == null ? undefined : integer(source.reservedSlotCount),
-    trialSlotCount: source.trialSlotCount == null ? undefined : integer(source.trialSlotCount),
+    slotsUsed: source.slotsUsed === undefined ? undefined : integer(source.slotsUsed),
+    reservedSlotCount: source.reservedSlotCount === undefined ? undefined : integer(source.reservedSlotCount),
+    trialSlotCount: source.trialSlotCount === undefined ? undefined : integer(source.trialSlotCount),
     devices,
     capacitySchedule: stringMap(source.capacitySchedule),
     source: string(source.source),
@@ -592,6 +594,18 @@ function validTargetNo(value: string): string {
   return normalized;
 }
 
+async function sendCapacityKeep(client: ApiClient, targetProductNo: string, idempotencyKey: string, expectedPayableUsdt: number): Promise<CanonicalCapacityKeepResult> {
+  const key = idempotencyKey.trim();
+  if (!key) throw new ApiError({ kind: "configuration", message: "IDEMPOTENCY_KEY_REQUIRED" });
+  const payable = number(expectedPayableUsdt);
+  const parsed = capacityKeepResult(await client.request<unknown>({
+    method: "POST", path: "/api/app/trade-in/capacity-keep",
+    body: { targetProductNo: validTargetNo(targetProductNo), expectedPayableUsdt: payable }, idempotencyKey: key,
+  }));
+  if (!sameMoney(parsed.walletDebitUsdt, payable)) return invalid("E3_CAPACITY_KEEP_RESULT_QUOTE_MISMATCH");
+  return parsed;
+}
+
 export function createDeviceE3Api(client: ApiClient, mode: ApiEnvironment = "prod"): DeviceE3Api {
   return {
     async fleet() {
@@ -646,26 +660,15 @@ export function createDeviceE3Api(client: ApiClient, mode: ApiEnvironment = "pro
       });
     },
     async capacityKeep(targetProductNo, idempotencyKey, expectedQuote) {
-      const key = idempotencyKey.trim();
-      if (!key) throw new ApiError({ kind: "configuration", message: "IDEMPOTENCY_KEY_REQUIRED" });
-      if (expectedQuote.decision !== "REPLACE_REQUIRED"
+      if (expectedQuote.decision !== "CAPACITY_AVAILABLE"
           || expectedQuote.targetProductNo !== targetProductNo
           || expectedQuote.decisionSource !== "server") {
         throw new ApiError({ kind: "configuration", message: "CAPACITY_KEEP_QUOTE_CONTEXT_INVALID" });
       }
-      const parsed = capacityKeepResult(await client.request<unknown>({
-        method: "POST",
-        path: "/api/app/trade-in/capacity-keep",
-        body: {
-          targetProductNo: validTargetNo(targetProductNo),
-          expectedPayableUsdt: number(expectedQuote.payableUsdt),
-        },
-        idempotencyKey: key,
-      }));
-      if (!sameMoney(parsed.walletDebitUsdt, expectedQuote.payableUsdt)) {
-        return invalid("E3_CAPACITY_KEEP_RESULT_QUOTE_MISMATCH");
-      }
-      return parsed;
+      return sendCapacityKeep(client, targetProductNo, idempotencyKey, expectedQuote.payableUsdt);
+    },
+    async replayCapacityKeep(targetProductNo, idempotencyKey, expectedPayableUsdt) {
+      return sendCapacityKeep(client, targetProductNo, idempotencyKey, expectedPayableUsdt);
     },
     async submit(sourceDeviceId, targetProductNo, idempotencyKey, expectedQuote) {
       const key = idempotencyKey.trim();

@@ -265,7 +265,7 @@ it.each(["a", "b"])("cookie bootstrap reads only bound account %s's recovery aft
   refreshed.scope.accountKey = "default";
   const recoverySource = source.slice(source.indexOf("let serverOrderRecovery:"), source.indexOf("function onKeyboardActivate("));
   const code = ts.transpileModule(recoverySource + "; return resumeServerOrder;", { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-  const recoveryDeps = { ...refreshed, recoverCheckoutOrder };
+  const recoveryDeps = { ...refreshed, recoverCheckoutOrder, recoverKeepBeforePurchase: vi.fn(() => false) };
   const resumeServerOrder = new Function(...Object.keys(recoveryDeps), code)(...Object.values(recoveryDeps));
   await expect(resumeServerOrder()).resolves.toBe(false);
   expect(refreshed.orderApi.list).not.toHaveBeenCalled();
@@ -273,6 +273,7 @@ it.each(["a", "b"])("cookie bootstrap reads only bound account %s's recovery aft
     .filter(ts.isCallExpression).find(node => node.expression.getText(ast) === "watch"
       && node.arguments[0]?.getText(ast) === "[() => app.accountKey, () => app.accountBindingEpoch]")!;
   const deps = { ...refreshed, resumeServerOrder, interceptFired: false, tradeinAvailable: ref(false),
+    keepCheckoutTarget: ref(null), keepCheckoutReadError: ref(false), promotionRoute: ref(null),
     remoteCapacityGate: { reset: vi.fn() }, checkoutWalletRefreshSequence: 0, checkoutWalletRefreshing: ref(false),
     quantityReady: ref(false), clearRemotePurchaseEligibility: vi.fn(), remoteOrderFailure: ref(null),
     receiptWriteFailure: ref(null), receiptRetrying: ref(false), restoreReceiptRecovery: vi.fn(),

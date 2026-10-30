@@ -33,6 +33,12 @@ const valid = {
 
 describe("parseAppHomeOverview", () => {
   afterEach(() => advanceRuntimeRevision(null));
+  it("retains capacity totals separately from actual Online devices", () => {
+    expect(parseAppHomeOverview({ ...valid, onboarding: { cumulativePaidUsdt: 0, activeDevices: 5,
+      slotsUsed: 6, slotCap: 6, reservedSlotCount: 1, trialSlotCount: 0 } }).onboarding)
+      .toMatchObject({ activeDevices: 5, slotsUsed: 6, slotCap: 6, reservedSlotCount: 1, trialSlotCount: 0 });
+    expect(() => parseAppHomeOverview({ ...valid, onboarding: { ...valid.onboarding, slotsUsed: -1 } })).toThrow();
+  });
   it("accepts a complete server projection", () => {
     expect(parseAppHomeOverview(valid).earnings.week.jobCount).toBe(9);
     expect(parseAppHomeOverview(valid).earnings.todayVsYesterdayPct).toBe(5.2);

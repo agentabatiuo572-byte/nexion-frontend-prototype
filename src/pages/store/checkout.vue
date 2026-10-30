@@ -11,7 +11,11 @@
     </PromotionCheckout>
     <view v-else class="checkout-content">
 
-      <view v-if="remoteTradeinRecoveryError" class="text-center" role="status" style="padding:20px">
+      <view v-if="keepCheckoutTarget" class="text-center" role="status" style="padding:20px">
+        <text class="block">{{ keepCheckoutReadError ? t.tradein.keepRecoveryReadError : t.tradein.keepRecoveryPending }}</text>
+        <NxButton :label="t.tradein.keepRecoveryAction" @click="recoverKeepBeforePurchase([keepCheckoutTarget])" />
+      </view>
+      <view v-else-if="remoteTradeinRecoveryError" class="text-center" role="status" style="padding:20px">
         <text class="block" style="font-size:13px;color:var(--v5-ink-2);margin-bottom:12px">{{ t.tradein.recoveryPending }}</text>
         <NxButton :label="t.store.catalogRetry" :busy="remoteTradeinRecoveryBusy" @click="resumeServerOrder()" />
       </view>
@@ -241,7 +245,7 @@
         <view class="checkout-sticky-copy"><text class="checkout-total">{{ promotionCheckout.footer.amount }}</text><text class="checkout-product-meta">{{ t.store.coRowTotal }}</text></view>
         <NxButton variant="primary" :disabled="promotionCheckout.footer.disabled" :label="promotionCheckout.footer.label" @click="promotionCheckout.footer.action" />
       </view>
-      <view v-if="!promotionRoute && !remoteTradeinRecoveryError && product && !trialQuoteScreenUnavailable && !receiptWriteFailure && (step === 'select-payment' || step === 'confirm')" class="checkout-sticky">
+      <view v-if="!promotionRoute && !keepCheckoutTarget && !remoteTradeinRecoveryError && product && !trialQuoteScreenUnavailable && !receiptWriteFailure && (step === 'select-payment' || step === 'confirm')" class="checkout-sticky">
         <view class="checkout-sticky-copy"><text class="checkout-total">{{ confirmTotalText }} USDT</text><text class="checkout-product-meta">{{ t.store.coRowTotal }}</text></view>
         <NxButton variant="primary" :disabled="checkoutWalletRefreshing || (remoteApiEnabled && !checkoutWalletReadable) || purchaseUnavailable || quantitySwitching" :busy="checkoutWalletRefreshing || quantitySwitching" :label="isCard ? t.store.coContinueToPayment : t.store.coPayNow" @click="submitReview" />
       </view>
@@ -257,6 +261,7 @@ import NxSheet from "@/components/ui/nx-sheet.vue";
 import { useAuditUiCopy } from "@/i18n/audit-ui";
 import { onHide, onLoad, onShow, onUnload, onBackPress } from "@dcloudio/uni-app";
 import PromotionCheckout from '@/components/promotion/promotion-checkout.vue';
+import { readPendingKeepCommand } from '@/lib/keep-command-recovery';
 import { validatePromotionItems, type PromotionItem } from '@/api/promotion-api';
 import { takeNavigationQuery } from '@/lib/route';
 import { promotionCheckoutHref,promotionStoreHref,voucherEntryContext,type VoucherEntryContext } from '@/lib/promotion-entry';
@@ -359,6 +364,7 @@ const legalCopy = computed(() => locale.code === 'zh'
     : { before: 'Before paying, review ', join: ' and ', end: '.' });
 const app = useApp();
 const promotionRoute=ref<({activityId:string;items:PromotionItem[];orderNo?:string}&VoucherEntryContext)|null>(null);
+const keepCheckoutTarget = ref<string | null>(null), keepCheckoutReadError = ref(false);
 const promotionCheckout=ref<InstanceType<typeof PromotionCheckout>|null>(null);
 const policyHasDevice=computed(()=>promotionRoute.value ? promotionCheckout.value?.hasDevicePolicy===true : !!product.value&&product.value.productType!=='SHARE');
 onBackPress(()=>promotionRoute.value ? (promotionCheckout.value?.back()??false) : false);
@@ -518,6 +524,20 @@ function purchaseEligibilityFailureCopy(): string {
   return purchaseGate.value.soldOut
     ? t.value.store.gateSoldOutToast
     : t.value.store.gateBlockedToast;
+}
+
+function recoverKeepBeforePurchase(targets: string[]): boolean {
+  keepCheckoutTarget.value = null; keepCheckoutReadError.value = false;
+  if (!remoteApiEnabled) return false;
+  for (const target of targets) {
+    try { if (!readPendingKeepCommand(app.accountKey, target)) continue; }
+    catch { keepCheckoutReadError.value = true; }
+    keepCheckoutTarget.value = target;
+    productId.value = target;
+    tradein.showKeepRecovery(target as DeviceKind);
+    return true;
+  }
+  return false;
 }
 
 onLoad(async (options) => {
@@ -967,6 +987,7 @@ watch([() => app.accountKey, () => app.accountBindingEpoch], () => {
   receiptRetrying.value = false;
   restoreReceiptRecovery();
   remoteTradeinRecoveryRequired.value = false;
+  keepCheckoutTarget.value = null; keepCheckoutReadError.value = false;
   remoteTradeinRecoveryError.value = false;
   remoteTradeinRecoveryBusy.value = false;
   remoteOrderCommandKey.clear();
@@ -1185,7 +1206,7 @@ const checkoutCapacityMessage = computed(() => remoteCapacityGate.pending ? t.va
 // device (slot exchange) — don't scare the user with a slots-full warning that
 // counts the very slot this purchase frees (only warn when real actives cap).
 const capped = computed(() => !hasTradein.value && (
-  trialConversionMode.value ? app.activeSlotCount >= app.slotCap : cappedRaw.value
+  trialConversionMode.value ? (app.remoteSlotUsage ? app.remoteSlotUsage.slotsUsed - (app.remoteSlotUsage.trialSlotCount ?? reservedSlots.value) : app.activeSlotCount) >= app.slotCap : cappedRaw.value
 ));
 
 // ── derived text ──
@@ -1798,7 +1819,8 @@ function resumeServerOrder(routeScope = captureCheckoutRoute()): Promise<boolean
     isCurrent: () => isCurrentCheckoutRoute(routeScope),
     isCurrentAccount: () => isCurrentAccountScope({ accountKey: routeScope.accountKey, epoch: routeScope.accountEpoch }),
     navigate: (url) => isCurrentCheckoutRoute(routeScope) ? navReplace(url) : Promise.resolve(false),
-  })).finally(() => { if (serverOrderRecovery?.key === key) serverOrderRecovery = null; });
+  })).then(recovered => recovered || (isCurrentCheckoutRoute(routeScope) && recoverKeepBeforePurchase([routeScope.productNo])))
+    .finally(() => { if (serverOrderRecovery?.key === key) serverOrderRecovery = null; });
   serverOrderRecovery = { key, promise };
   return promise;
 }

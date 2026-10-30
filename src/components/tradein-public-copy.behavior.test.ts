@@ -39,6 +39,7 @@ function page(copy = en, remoteApiEnabled = true, purchaseBlocked = false) {
     cumulativeOutputUsdt: 50, discountUsdt: 123.45, creditRatePct: 61.725, payableUsdt: 376.55, sufficientFunds: true });
   const purchaseStatus = ref<'idle' | 'loading' | 'ready' | 'error'>('ready');
   const purchaseRecovery = ref('none');
+  const keepRecovery = ref<{ key: string } | null>(null), keepRecoveryError = ref(false);
   const purchaseSnapshot = ref<PurchaseEligibilitySnapshot | null>({ productNo: 'stellarbox-pro', eligible: !purchaseBlocked,
     decisionCode: purchaseBlocked ? 'PURCHASE_GATE_NOT_MET' : 'ELIGIBLE', evaluatedAt: 1, source: PURCHASE_ELIGIBILITY_SOURCE,
     sourceEnvironment: 'PRODUCTION', runId: null, serverCanonical: true,
@@ -46,16 +47,24 @@ function page(copy = en, remoteApiEnabled = true, purchaseBlocked = false) {
       mode: 'ALL', conditions: purchaseBlocked ? [{ kind: 'rank', current: 1, required: 2, gap: 1, met: false }] : [] },
     { policy: 'F4B', eligible: true, decisionCode: 'F4B_NOT_CONFIGURED', mode: 'ALL', conditions: [] }] });
   const deps = { computed, state, app: { devices: [device] }, t: ref(copy), remoteApiEnabled,
-    canonicalQuote, purchaseStatus, purchaseRecovery, purchaseSnapshot, confirming: ref(false), props: { active: true },
+    canonicalQuote, purchaseStatus, purchaseRecovery, keepRecovery, keepRecoveryError, purchaseSnapshot, confirming: ref(false), props: { active: true },
     resolvePurchaseEligibilityMessage, fmt, formatAmount, deviceName, computeTradeInCredit, ladderBandFor, kindLabel: (kind: string) => kind };
   const actual = new Function('deps', `const {${Object.keys(deps).join(',')}} = deps; ${code}; return {choiceSources, tradeinView,
     purchaseMessage,purchaseBlocked,purchaseConfirmed,purchaseActionBusy,purchaseActionDisabled,purchaseActionText};`)(deps);
   const setup = { ...deps, ...actual, active: true, quoteLoading: false, ctaHalo: {},
-    hide: () => {}, onKeyboardActivate: () => {}, onChooseTradein: () => {}, onChooseFullPrice: () => {}, onConfirmTradein: () => {} };
+    hide: () => {}, onKeyboardActivate: () => {}, onChooseTradein: () => {}, onChooseFullPrice: () => {}, onConfirmTradein: () => {}, onRecoverKeep: () => {} };
   const show = () => renderToString(Vue.createSSRApp({ render,
     components: { PurchaseEligibilityPanel: { render: () => null } }, setup: () => Vue.proxyRefs(setup) }));
-  return { state, canonicalQuote, purchaseStatus, purchaseRecovery, purchaseSnapshot, actual, show };
+  return { state, canonicalQuote, purchaseStatus, purchaseRecovery, keepRecovery, keepRecoveryError, purchaseSnapshot, actual, show };
 }
+
+it.each([zh, en, vietnamese])('presents the original KEEP recovery before new purchase choices', async copy => {
+  const p = page(copy); p.keepRecovery.value = { key: 'legacy-key' };
+  const html = await p.show();
+  expect(html).toContain(copy.tradein.keepRecoveryPending);
+  expect(html).toContain(copy.tradein.keepRecoveryAction);
+  expect(html).not.toContain(copy.tradein.choiceFullPriceOption);
+});
 
 it.each([{ locale: 'zh', copy: zh }, { locale: 'en', copy: en }, { locale: 'vi', copy: vietnamese }])(
   '$locale renders an unavailable credit as a quote action without a dollar amount', async ({ copy }) => {

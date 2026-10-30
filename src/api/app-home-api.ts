@@ -217,11 +217,13 @@ export function parseAppHomeOverview(value: unknown, mode: ApiEnvironment = "pro
   }
   const onboardingPaid = onboarding.cumulativePaidUsdt == null ? null : nonNegative(onboarding.cumulativePaidUsdt);
   const onboardingDevices = onboarding.activeDevices == null ? null : integer(onboarding.activeDevices);
-  const capacity = Object.fromEntries(["slotsUsed", "slotCap", "reservedSlotCount", "trialSlotCount"]
-    .map(key => [key, onboarding[key] == null ? null : integer(onboarding[key])])) as {
-      slotsUsed: number | null; slotCap: number | null; reservedSlotCount: number | null; trialSlotCount: number | null };
-  if (Object.entries(capacity).some(([key, value]) => onboarding[key] != null && value === null)
-    || capacity.slotCap === 0) return invalid();
+  const onboardingCapacity: Record<string, number | null> = { slotsUsed: null, slotCap: null, reservedSlotCount: null, trialSlotCount: null };
+  for (const key of ["slotsUsed", "slotCap", "reservedSlotCount", "trialSlotCount"]) {
+    if (onboarding[key] === undefined) continue;
+    const count = integer(onboarding[key]);
+    if (count === null || (key === "slotCap" && count < 1)) return invalid();
+    onboardingCapacity[key] = count;
+  }
   const activeDevices = grid.activeDevices == null ? null : integer(grid.activeDevices);
   const activeJobs = grid.activeJobs == null ? null : integer(grid.activeJobs);
   const perSecUsdt = grid.perSecUsdt == null ? null : nonNegative(grid.perSecUsdt);
@@ -239,7 +241,7 @@ export function parseAppHomeOverview(value: unknown, mode: ApiEnvironment = "pro
     earningsLedgerMode: ledgerMode as AppHomeOverview["earningsLedgerMode"], earningsLedger,
     marketBoard: { workloads: market.workloads.map(workload), deviceRankings: market.deviceRankings.map(ranking) },
     doTheMath: calculator,
-    weeklyPromo, onboarding: { cumulativePaidUsdt: onboardingPaid, activeDevices: onboardingDevices, ...capacity },
+    weeklyPromo, onboarding: { cumulativePaidUsdt: onboardingPaid, activeDevices: onboardingDevices, ...onboardingCapacity },
     onGrid: { clients: grid.clients.map(client), activeDevices, activeJobs, perSecUsdt }, source,
   };
 }

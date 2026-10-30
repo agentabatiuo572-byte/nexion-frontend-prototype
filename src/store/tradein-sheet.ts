@@ -22,6 +22,7 @@ import type { CanonicalCapacityReplaceQuote, CanonicalTradeinQuote } from "@/api
  */
 export type TradeinSheetState =
   | { kind: "none" }
+  | { kind: "keep-recovery"; targetKind: DeviceKind }
   | {
       kind: "choice";
       targetKind: DeviceKind;
@@ -107,6 +108,10 @@ export const useTradeinSheet = defineStore("tradeinSheet", () => {
     state.value = { kind: "choice", targetKind, newPrice, tradeInSources };
   }
 
+  function showKeepRecovery(targetKind: DeviceKind) {
+    state.value = { kind: "keep-recovery", targetKind };
+  }
+
   function showRetire(oldDeviceId: string) {
     state.value = { kind: "retire", oldDeviceId };
   }
@@ -166,5 +171,5 @@ export const useTradeinSheet = defineStore("tradeinSheet", () => {
     state.value = { kind: "none" };
   }
 
-  return { state, appliedTradein, applyTradein, clearApplied, appliedBy, showChoice, showRetire, showTradein, showReplace, showCanonicalReplace, showBlock, showRetireBlock, hide };
+  return { state, appliedTradein, applyTradein, clearApplied, appliedBy, showChoice, showKeepRecovery, showRetire, showTradein, showReplace, showCanonicalReplace, showBlock, showRetireBlock, hide };
 });

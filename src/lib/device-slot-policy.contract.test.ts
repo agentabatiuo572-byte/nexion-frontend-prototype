@@ -12,7 +12,7 @@ describe("device slot policy consumers", () => {
     const deviceInventory = readFileSync(new URL("../pages/me/devices.vue", import.meta.url), "utf8");
 
     expect(app).toContain("isActiveSlotDevice");
-    expect(app).toContain("if (activeSlotCount.value + reservedSlots >= slotCap.value) return false;");
+    expect(app).toContain("remoteSlotUsage.value?.slotsUsed ?? (activeSlotCount.value + reservedSlots)");
     expect(earn).toContain("isActiveSlotDevice");
     expect(slots).toContain("isActiveSlotDevice");
     expect(poster).toContain("app.visibleDevices.filter(isActiveSlotDevice).length");

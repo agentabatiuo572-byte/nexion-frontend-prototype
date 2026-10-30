@@ -3670,7 +3670,7 @@ flowchart LR
 - **Online**：权威确认已激活的设备，每行显示设备名、收益、规格与停用动作；任务结束后停用的设备在实际停用前仍 Online。
 - **仓库**：权威确认未激活或已停用的设备，不显示 Offline 状态，每行同上并提供激活动作，槽位满时禁用；读取未确认与错误另提供反馈。
 
-**顶部 slot meter**:`activeCount / MAX_DEVICES` 双色进度条(6 格)+ 文字 mono 标识。
+**顶部 slot meter（2026-10-30 容量投影）**:`slotsUsed / slotCap` 双色进度条(6 格)+ 文字 mono 标识。总占用`C=实际激活N+有效订单预留+有效试用预留`；原后端容量上限保持6。`GET /api/devices/earnings` 数据顶层与Home overview的`onboarding`均提供 `reservedSlotCount`、`trialSlotCount`、`slotsUsed`及既有`slotCap`，实际激活N由同一fleet真实激活实例统计，Home的`onboarding.activeDevices`仍为N。槽位条、空槽与普通新增容量守卫用同一fleet epoch/revision接收的权威C，不能再次叠加本地试用或被Home独立旧快照覆盖；Online列表与执行仍按真实激活实例，订单预留不生成设备、额外任务或收益。等待停用在实际停用前仍计N。旧后端缺字段时兼容原有`N+已确认试用预留`回退，容量事实未知不当零并关闭新增动作；复用账号epoch/revision隔离，迟到结果不能跨账号、覆盖较新投影或放行操作。抵扣升级位置继承、试用预留交换和原交易恢复不变，详见[六槽专题](UVEL_算力激活队列与六槽_20261029.md)。
 
 **Actions**:
 - `激活`:调 `useApp.activateDevice(id)`,失败条件:槽位满 / 设备不存在 / 已激活;成功 toast `已激活 {name}`
@@ -4547,7 +4547,7 @@ Events 分两大类:
 
 **Store actions**:
 - 正式购买流程 — 订单成功由服务端在原支付事务中创建设备并自动激活 Online，返回后刷新权威 fleet；不得调用本地 `addDevice(kind)` 冒充已购或激活。原型本地 action 仅作演示，不作为正式业务依据。
-- `activateDevice(id) → boolean` — 进槽位,**返回 false 当且仅当**:设备不存在 / 已激活 / **(当前激活数 + 试用预留槽 `trialReservesSlotNow() ? 1 : 0`)≥ `MAX_DEVICES`(6)**;成功时清零 `pendingDeactivate`(恢复激活时清除遗留挂起标记)
+- `activateDevice(id) → boolean` — 进槽位,失败包括设备不存在 / 已激活 / 容量事实未确认 / **权威 `slotsUsed ≥ slotCap`（原产品上限6）**；`slotsUsed`已包含有效订单和试用预留，不重复叠加试用；旧后端缺字段时沿原已知事实计算回退，未知不放行。成功时清零 `pendingDeactivate`(恢复激活时清除遗留挂起标记)，后端仍校验归属、版本与并发容量。
 - `deactivateDevice(id)` — **立即**出槽位:清零运行态遥测 + `currentTask=null`(放弃任务奖励)+ `pendingDeactivate=false`,保留 `purchasedAt` / `cumulativeEarningsUsdt` / `paidPriceUsdt` / 其他元数据
 - `scheduleDeactivation(id)` — **排期停用**:若 `currentTask !== null` 则只设 `pendingDeactivate=true`(等任务完成)，实际停用前仍是已激活 Online、仍占六槽之一，不得提前释放容量允许第七台；若 `currentTask === null` 则立即执行 `deactivateDevice` 等效行为。2026-10-30 明确以实际激活事实而非排期标记统计容量。
 - `tick()` 守卫:`activatedAt === null` 的设备不参与 earnings / task 累计;任务完成处理时检查 `pendingDeactivate=true` → 自动执行 deactivate(清零 telemetry + `activatedAt=null`,不再 pickRandomTask)

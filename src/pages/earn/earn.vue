@@ -267,8 +267,8 @@ const trialPresentation = useTrialPresentation();
 const fleetReady = computed(() => !remoteApiEnabled
   || app.remoteFleetStatus === "ready"
   || (app.remoteFleetStatus === "loading" && app.remoteFleetHasSnapshot));
-const fleetCountText = computed(() => fleetReady.value && trialPresentation.reservedSlots.value !== null ? fmt(t.value.home.fleetOfMax, {
-  n: app.activeSlotCount + (trialPresentation.reservedSlots.value ?? 0),
+const fleetCountText = computed(() => fleetReady.value && (app.remoteSlotsUsed != null || trialPresentation.reservedSlots.value !== null) ? fmt(t.value.home.fleetOfMax, {
+  n: app.remoteSlotsUsed ?? (app.activeSlotCount + (trialPresentation.reservedSlots.value ?? 0)),
   max: app.slotCap,
 }) : "— / —");
 

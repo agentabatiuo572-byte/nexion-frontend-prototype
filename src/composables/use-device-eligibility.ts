@@ -68,7 +68,7 @@ export function useDeviceEligibility(
   );
   const canTradeIn = computed(() => tradeInSources.value.length > 0);
   const reservedSlots = computed(() => (trialReservesSlotNow() ? 1 : 0));
-  const capped = computed(() => app.activeSlotCount + reservedSlots.value >= app.slotCap);
+  const capped = computed(() => (app.remoteSlotsUsed ?? (app.activeSlotCount + reservedSlots.value)) >= app.slotCap);
 
   return { result, canTradeIn, tradeInSources, capped };
 }

@@ -82,6 +82,35 @@ beforeEach(() => {
 });
 
 describe("App remote fleet refresh wiring", () => {
+  it("binds authoritative usage to the current fleet lease and clears it on account change", async () => {
+    const previous = deferred<CanonicalE3Fleet>();
+    remote.deviceE3Api.fleet.mockReturnValueOnce(previous.promise)
+      .mockResolvedValueOnce({ ...fleet(0), slotsUsed: 2, reservedSlotCount: 1, trialSlotCount: 0 });
+    const app = useApp(); app.bindAccount("user:1001");
+    const oldRead = app.refreshRemoteFleet();
+    remote.sessionVault.read.mockReturnValue({ user: { userId: 2002 } });
+    app.bindAccount("user:2002");
+    expect(app.remoteSlotUsage).toBeNull();
+    await app.refreshRemoteFleet();
+    previous.resolve({ ...fleet(0), slotsUsed: 6, reservedSlotCount: 1, trialSlotCount: 1 });
+    expect(await oldRead).toBe(false);
+    expect(app.remoteSlotUsage?.slotsUsed).toBe(2);
+    expect(app.activeSlotCount).toBe(0);
+  });
+  it("rejects a late same-account capacity snapshot and supports a confirmed legacy response", async () => {
+    const previous = deferred<CanonicalE3Fleet>();
+    remote.deviceE3Api.fleet.mockReturnValueOnce(previous.promise)
+      .mockResolvedValueOnce({ ...fleet(0), slotsUsed: 6, reservedSlotCount: 1, trialSlotCount: 0 })
+      .mockResolvedValueOnce(fleet(0));
+    const app = useApp(); app.bindAccount("user:1001");
+    const oldRead = app.refreshRemoteFleet();
+    await app.refreshRemoteFleet();
+    previous.resolve({ ...fleet(0), slotsUsed: 5, reservedSlotCount: 0, trialSlotCount: 0 });
+    expect(await oldRead).toBe(false);
+    expect(app.remoteSlotUsage?.slotsUsed).toBe(6);
+    await app.refreshRemoteFleet();
+    expect(app.remoteSlotUsage).toBeNull();
+  });
   it.each(["success", "failure"])("keeps a delayed Home %s from the previous account out of the current wallet projection", async (outcome) => {
     const previous = deferred<unknown>();
     const overview = {

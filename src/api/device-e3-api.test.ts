@@ -27,6 +27,12 @@ describe("settled trade-in wallet receipt", () => {
     sufficientFunds: true, decisionSource: "server" };
   const keepReceipt = { operationNo: "KEEP-C22", orderNo: "ORD-C22", targetDeviceId: 1204,
     deviceStatus: "ACTIVE", orderStatus: "COMPLETED", walletDebitUsdt: 2639, walletBalanceAfterUsdt: 7663.193405 };
+  const availableKeepQuote: CanonicalCapacityReplaceQuote = { ...keepQuote, decision: "CAPACITY_AVAILABLE", activeDevices: 5 };
+  it("rejects a full-capacity KEEP before sending a purchase command", async () => {
+    const transport = client(keepReceipt);
+    await expect(createDeviceE3Api(transport, "dev").capacityKeep(quote.targetProductNo, "full-keep", keepQuote)).rejects.toBeDefined();
+    expect(transport.request).not.toHaveBeenCalled();
+  });
 
   it.each([8637.443405, 8000, 0])("accepts authoritative RETIRE balance %s after other wallet activity and on same-key replay", async walletBalanceAfterUsdt => {
     const response = { ...receipt, walletBalanceAfterUsdt };
@@ -35,8 +41,15 @@ describe("settled trade-in wallet receipt", () => {
       .resolves.toEqual(response);
   });
   it("accepts an authoritative KEEP balance after other wallet activity", async () => {
-    await expect(createDeviceE3Api(client(keepReceipt), "dev").capacityKeep(quote.targetProductNo, "original-keep-key", keepQuote))
+    await expect(createDeviceE3Api(client(keepReceipt), "dev").capacityKeep(quote.targetProductNo, "original-keep-key", availableKeepQuote))
       .resolves.toEqual(keepReceipt);
+  });
+  it("replays a persisted legacy KEEP key with its original payable instead of requiring a fresh quote", async () => {
+    const transport = client(keepReceipt);
+    await expect(createDeviceE3Api(transport, "dev").replayCapacityKeep(quote.targetProductNo, "legacy-keep-key", 2639))
+      .resolves.toEqual(keepReceipt);
+    expect(transport.request).toHaveBeenCalledExactlyOnceWith({ method: "POST", path: "/api/app/trade-in/capacity-keep",
+      body: { targetProductNo: quote.targetProductNo, expectedPayableUsdt: 2639 }, idempotencyKey: "legacy-keep-key" });
   });
   it("accepts an authoritative replacement balance while retaining the quoted debit and zero discount", async () => {
     const response = { ...receipt, targetDeviceStatus: "ACTIVE", discountUsdt: 0, walletDebitUsdt: keepQuote.payableUsdt };
@@ -47,7 +60,7 @@ describe("settled trade-in wallet receipt", () => {
     await expect(createDeviceE3Api(client({ ...receipt, walletBalanceAfterUsdt }), "dev")
       .submit(1156, quote.targetProductNo, "original-c22-key", quote)).rejects.toBeDefined();
     await expect(createDeviceE3Api(client({ ...keepReceipt, walletBalanceAfterUsdt }), "dev")
-      .capacityKeep(quote.targetProductNo, "original-keep-key", keepQuote)).rejects.toBeDefined();
+      .capacityKeep(quote.targetProductNo, "original-keep-key", availableKeepQuote)).rejects.toBeDefined();
   });
   it.each([{ sourceDeviceId: 999 }, { targetDeviceStatus: "ACTIVE" }, { walletDebitUsdt: 1664.76 },
     { discountUsdt: 974.26 }, { applicationStatus: "PENDING" }, { orderStatus: "PENDING" }])("retains RETIRE identity, placement, amount and completion checks: %j", async changed => {
@@ -56,7 +69,7 @@ describe("settled trade-in wallet receipt", () => {
   });
   it("retains KEEP debit and activation checks", async () => {
     for (const changed of [{ walletDebitUsdt: 2638 }, { deviceStatus: "INACTIVE" }]) await expect(
-      createDeviceE3Api(client({ ...keepReceipt, ...changed }), "dev").capacityKeep(quote.targetProductNo, "original-keep-key", keepQuote),
+      createDeviceE3Api(client({ ...keepReceipt, ...changed }), "dev").capacityKeep(quote.targetProductNo, "original-keep-key", availableKeepQuote),
     ).rejects.toBeDefined();
   });
 });
@@ -89,6 +102,16 @@ describe("device E3 eligibility API", () => {
       }],
     };
   }
+
+  it("retains authoritative order and trial capacity without creating devices", async () => {
+    const parsed = await createDeviceE3Api(client({ ...fleetPayload(100), slotsUsed: 6, reservedSlotCount: 4, trialSlotCount: 1 }), "dev").fleet();
+    expect(parsed).toMatchObject({ slotsUsed: 6, reservedSlotCount: 4, trialSlotCount: 1 });
+    expect(parsed.devices).toHaveLength(1);
+    expect((await createDeviceE3Api(client(fleetPayload(100)), "dev").fleet()).slotsUsed).toBeUndefined();
+  });
+  it.each([null, -1, 1.5, "6", Infinity])("rejects malformed authoritative slot usage %s", async slotsUsed => {
+    await expect(createDeviceE3Api(client({ ...fleetPayload(100), slotsUsed }), "dev").fleet()).rejects.toBeDefined();
+  });
 
   it.each([[-0.0001, "below zero"], [100.0001, "above one hundred"]] as const)(
     "rejects E3 capacityPct %s (%s) instead of accepting an impossible projection",

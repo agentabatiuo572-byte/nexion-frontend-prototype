@@ -9,6 +9,7 @@
     <view v-if="!auth.isAuthenticated" class="promotion-flat"><text class="promotion-title">{{ p.signIn }}</text><PromotionAction class="promotion-action primary" role="button" tabindex="0" @click="signIn"><text>{{ p.signIn }}</text></PromotionAction></view>
     <view v-else-if="loading" class="promotion-flat" role="status" aria-live="polite"><text>{{ p.loading }}</text></view>
     <template v-else>
+      <view v-if="keepRecoveryTarget" class="promotion-notice" role="alert"><text>{{ keepRecoveryReadError?t.tradein.keepRecoveryReadError:t.tradein.keepRecoveryPending }}</text><PromotionAction class="promotion-action primary" role="button" tabindex="0" @click="recoverKeepBeforeNewPurchase(true)"><text>{{ t.tradein.keepRecoveryAction }}</text></PromotionAction></view>
       <view v-if="unknown" class="promotion-flat" role="status"><text class="promotion-title">{{ session.record.pending?.operation==='payOrder'?p.unknownTitle:p.orderUnknownTitle }}</text><text class="promotion-copy">{{ p.unknownBody }}</text><PromotionAction class="promotion-action primary" role="button" tabindex="0" :aria-disabled="busy" @click="recover"><text>{{ p.query }}</text></PromotionAction></view>
       <view v-if="error" class="promotion-notice" role="alert"><text>{{ error }}</text><view v-if="!order&&!openedOriginal&&!session.record.pending&&!freshQuoteReady&&!busy" class="promotion-link" role="button" tabindex="0" @click="loadQuote"><text>{{ t.empty.errorCta }}</text></view></view>
       <view v-if="openedOriginal" class="promotion-notice" role="status"><text>{{ p.openedOriginal }}</text></view>
@@ -145,6 +146,9 @@ import type { PromotionItem } from '@/api/promotion-api';
 import { validatePromotionItems } from '@/api/promotion-api';
 import type { LocalizedText,RewardDisclosure,Quote } from '@/api/promotion-contracts';
 import { useT } from '@/i18n/use-t';import { useLocaleStore } from '@/store/locale';import { useApp } from '@/store/app';import { useAuth } from '@/store/auth';
+import { readPendingKeepCommand } from '@/lib/keep-command-recovery';
+import { useTradeinSheet } from '@/store/tradein-sheet';
+import type { DeviceKind } from '@/store/types';
 import { useVoucher } from '@/store/voucher';
 import { computeVoucherDiscount,isVoucherValid,voucherAppliesToSku,type VoucherDef } from '@/mock/vouchers';
 import { ApiError,asApiError } from '@/api/errors';
@@ -244,6 +248,22 @@ function voucherCondition(def:VoucherDef):string {
   return [scope,fmt(p.value.voucherMinimum,{amount:formatAmount(def.minPurchaseUSD??0)}),def.endAt?p.value.deadline+' · '+displayDeadline(new Date(def.endAt).toISOString(),locale.code):''].filter(Boolean).join(' · ');
 }
 const selection=ref(props.items.map(({productNo,quantity})=>({productNo,quantity})));
+const keepRecoveryTarget=ref<string|null>(null),keepRecoveryReadError=ref(false),tradein=useTradeinSheet();
+function recoverKeepBeforeNewPurchase(reopen=false):boolean {
+  // Original orders and commands always recover before any new purchase gate.
+  if(props.orderNo||session.record.order||session.record.pending)return false;
+  const previous=keepRecoveryTarget.value;
+  keepRecoveryTarget.value=null;keepRecoveryReadError.value=false;
+  for(const {productNo} of selection.value){
+    try{if(!readPendingKeepCommand(account,productNo))continue;}
+    catch{keepRecoveryReadError.value=true;}
+    keepRecoveryTarget.value=productNo;
+    freshQuoteReady.value=false;quoteFresh.value=false;quotePresentation.value=null;
+    if(reopen||previous!==productNo)tradein.showKeepRecovery(productNo as DeviceKind);
+    return true;
+  }
+  return false;
+}
 const rewardsReleased=computed(()=>!!order.value&&['CANCELLED','EXPIRED','REFUNDED'].includes(order.value.paymentStatus));
 const items=computed(()=>order.value?.items??displayQuote.value?.items??selection.value);const rewards=computed(()=>order.value?.rewards??displayQuote.value?.expectedRewards??[]);
 // Match the published device FAQ's scope in store/detail; do not extend it to SHARE.
@@ -292,13 +312,14 @@ async function loadOrderClock(){
   const fleet=await deviceE3Api.fleet();if(!current()||generation!==clockGeneration)return;
   orderClock={serverNow:fleet.serverNow,at:sampledAt};updateClock();
 }
-const canCreate=computed(()=>current()&&visible&&auth.isAuthenticated&&!busy.value&&!unknown.value&&completeTerms.value&&(quoteFresh.value||session.retryOriginal)&&quote.value?.eligibility==='ELIGIBLE'&&session.canExecute(quote.value.items.length>1?'createBundle':'createOrder'));
+const canCreate=computed(()=>current()&&visible&&auth.isAuthenticated&&!busy.value&&!unknown.value&&!keepRecoveryTarget.value&&completeTerms.value&&(quoteFresh.value||session.retryOriginal)&&quote.value?.eligibility==='ELIGIBLE'&&session.canExecute(quote.value.items.length>1?'createBundle':'createOrder'));
 const canPay=computed(()=>(Number(order.value?.amountUsdt)===0||walletState.value==='ready')&&!busy.value&&!unknown.value&&completeTerms.value&&session.confirmed&&order.value?.paymentStatus==='PENDING'&&payWindow.value===true&&session.canExecute('payOrder'));
 const canCancel=computed(()=>{revision.value;return !busy.value&&!unknown.value&&session.confirmed&&order.value?.paymentStatus==='PENDING'&&session.canExecute('cancelOrder');});
 const canStartNew=computed(()=>{revision.value;return !busy.value&&!unknown.value&&session.confirmed&&!session.record.pending&&!!order.value&&['PAID','CANCELLED','EXPIRED','REFUNDED'].includes(order.value.paymentStatus);});
 async function run(action:()=>Promise<void>){if(busy.value||!current())return;busy.value=true;error.value='';try{await action();}catch(cause){if(current()){const message=asApiError(cause).message;error.value=message==='PROMOTION_NOT_ELIGIBLE_OR_UNAVAILABLE'?p.value.disabledNote:message.includes('CAPACITY_UNAVAILABLE')?p.value.capacityUnavailable:message==='PROMOTION_ACCOUNT_UNAVAILABLE'?p.value.accountUnavailable:message.includes('QUOTE_EXPIRED')||message.includes('QUOTE_INPUT_CHANGED')?p.value.quoteExpired:message.includes('INSUFFICIENT')?p.value.balanceInsufficient:p.value.errorNote;}}finally{if(current()){busy.value=false;revision.value++;updateClock();}}}
 async function loadQuote(){
   if(busy.value||!visible||!current()||openedOriginal||props.orderNo||session.record.pending||session.record.order||!auth.isAuthenticated)return;
+  if(recoverKeepBeforeNewPurchase())return;
   const generation=++readGeneration,inputKey=quotePresentationKey();
   if(quotePresentation.value?.key!==inputKey){quotePresentation.value=null;promotion.value=null;}
   voucherOpen.value=false;freshQuoteReady.value=false;promotionReceivedAt=null;termsOpen.value=false;receivedAt=null;quoteFresh.value=false;
@@ -385,7 +406,7 @@ async function selectVoucher(id:string|null){
   try{session.selectVoucher(id);}catch{error.value=p.value.errorNote;return;}
   voucherId.value=id;voucherOpen.value=false;await loadQuote();
 }
-async function createOrder(){if(!canCreate.value)return;await run(()=>session.create());}
+async function createOrder(){if(!current()||!visible||recoverKeepBeforeNewPurchase()||!canCreate.value)return;await run(()=>session.create());}
 const paymentDialogOwner=`promotion-payment:${Date.now()}:${Math.random()}`;
 let paymentConfirming=false;
 async function pay(){
@@ -450,7 +471,7 @@ function show(){
 }
 watch(busy,value=>{if(!value&&refreshOnIdle){refreshOnIdle=false;if(visible&&current())show();}});
 const footer = computed(() => {
-  if (loading.value || !auth.isAuthenticated || unknown.value) return null;
+  if (loading.value || !auth.isAuthenticated || unknown.value || keepRecoveryTarget.value) return null;
   const rawAmount = order.value?.amountUsdt ?? displayQuote.value?.amountUsdt;
   const amount = rawAmount == null ? '-' : formatAmount(rawAmount)+' USDT';
   if (order.value?.paymentStatus === 'PENDING') return { amount, label: p.value.pay, disabled: !canPay.value, action: pay };

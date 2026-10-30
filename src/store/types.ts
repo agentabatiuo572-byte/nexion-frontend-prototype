@@ -452,6 +452,8 @@ export interface AppState {
   visibleDevices: Device[];
   slotDevices: Device[];
   activeSlotCount: number;
+  remoteSlotsUsed?: number | null;
+  remoteSlotUsage?: { slotsUsed: number; reservedSlotCount?: number; trialSlotCount?: number } | null;
   earnings: EarningsState;
   global: GlobalStats;
   latestWithdrawal: Withdrawal | null;
