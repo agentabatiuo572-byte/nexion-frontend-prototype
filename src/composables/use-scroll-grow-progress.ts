@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, watch, onMounted, onUnmounted } from "vue";
 
 /**
  * useScrollGrowProgress — IntersectionObserver-driven progress-bar entrance
@@ -21,6 +21,7 @@ export function useScrollGrowProgress(options: { threshold?: number; fallbackInV
   const elRef = ref<HTMLElement | null>(null);
   const inView = ref(false);
   let observer: IntersectionObserver | null = null;
+  let stopObserving: (() => void) | undefined;
 
   onMounted(() => {
     if (typeof IntersectionObserver === "undefined") {
@@ -31,28 +32,37 @@ export function useScrollGrowProgress(options: { threshold?: number; fallbackInV
     // uni H5 PITFALL (P-019): a template ref on a <view> yields the component
     // instance, NOT the raw DOM node (plain Vue/web gives the Element directly).
     // Resolve via $el so IntersectionObserver.observe() gets a real Element.
-    const raw = elRef.value as unknown;
-    const el: Element | null =
-      typeof Element !== "undefined" && raw instanceof Element
-        ? raw
-        : typeof Element !== "undefined" && (raw as { $el?: unknown } | null)?.$el instanceof Element
-          ? (raw as { $el: Element }).$el
-          : null;
-    if (!el) {
-      // Couldn't resolve an element → show final state rather than stay at 0.
-      inView.value = fallbackInView;
-      return;
-    }
-    observer = new IntersectionObserver(
-      (entries) => {
-        inView.value = entries[0]?.isIntersecting ?? false;
-      },
-      { threshold },
-    );
-    observer.observe(el);
+    // API-backed cards can mount after the page's mounted hook. Rebind when their ref appears.
+    stopObserving = watch(elRef, (value, _previous, onCleanup) => {
+      const raw = value as unknown;
+      const el: Element | null =
+        typeof Element !== "undefined" && raw instanceof Element
+          ? raw
+          : typeof Element !== "undefined" && (raw as { $el?: unknown } | null)?.$el instanceof Element
+            ? (raw as { $el: Element }).$el
+            : null;
+      if (!el) {
+        // Couldn't resolve an element → show final state rather than stay at 0.
+        inView.value = fallbackInView;
+        return;
+      }
+      inView.value = false;
+      observer = new IntersectionObserver(
+        (entries) => {
+          inView.value = entries[0]?.isIntersecting ?? false;
+        },
+        { threshold },
+      );
+      observer.observe(el);
+      onCleanup(() => {
+        observer?.disconnect();
+        observer = null;
+      });
+    }, { immediate: true, flush: 'post' });
   });
 
   onUnmounted(() => {
+    stopObserving?.();
     observer?.disconnect();
     observer = null;
   });

@@ -7,6 +7,7 @@
       </view>
       <text class="roster-chevron" aria-hidden="true">{{ isOpen ? '−' : '+' }}</text>
     </view>
+    <slot v-if="isOpen" name="root" />
     <view v-if="isOpen" :id="`roster-${kind}`">
       <text v-if="sortedMembers.length === 0" class="roster-empty">{{ visibility.mask(emptyLabel) }}</text>
       <view v-for="m in sortedMembers" :key="m.id" class="member-row">
@@ -16,7 +17,7 @@
             <text class="member-name">{{ displayNickname(m.name) }}</text>
             <view class="member-meta"><text>{{ visibility.mask(rankLabel(m.vRank, locale.code, [])) }}</text><view class="relation-dot" :style="{ background: statusColor(m.status) }" /><text>{{ auditCopy[m.status] }}</text></view>
           </view>
-          <view class="member-points"><text class="tabular-nums">{{ visibility.mask(formatComputePoints(m.monthComputePoints, locale.code)) }}</text><text class="member-points-label">{{ t.network.monthVolume }}</text></view>
+          <view class="member-points"><text class="nx-num-metric" :aria-label="visibility.mask(formatComputePoints(m.monthComputePoints, locale.code))">{{ visibility.mask(formatComputePoints(m.monthComputePoints, locale.code).split(' ')[0]) }}</text><text class="member-points-label">{{ t.network.monthVolume }}</text></view>
           <text class="roster-chevron" aria-hidden="true">{{ expandedMemberId === m.id ? '−' : '+' }}</text>
         </view>
         <view v-if="expandedMemberId === m.id" :id="`member-${kind}-${m.id}`" class="member-details">
@@ -84,7 +85,7 @@ function statusColor(status: MemberStatus): string {
 .team-roster { min-width: 0; }
 .roster-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); padding: 0 0 14px; min-height: 44px; }
 .roster-heading-copy { min-width: 0; flex: 1; }
-.roster-title { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 16px; font-weight: 600; }
+.roster-title { display: flex; align-items: center; flex-wrap: wrap; gap: var(--v5-space-2); font-size: 16px; font-weight: 600; }
 .roster-count { font-size: 13px; font-weight: 400; color: var(--v5-ink-3); }
 .roster-subtitle { display: block; margin-top: 6px; font-size: 12px; line-height: 1.5; color: var(--v5-ink-3); overflow-wrap: anywhere; }
 .relation-dot { width: 5px; height: 5px; border-radius: 50%; flex: 0 0 auto; }
@@ -96,13 +97,13 @@ function statusColor(status: MemberStatus): string {
 .member-name { display: block; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
 .member-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 5px; font-size: 11px; color: var(--v5-ink-3); }
 .member-points { text-align: right; font-size: 16px; color: var(--v5-ink); max-width: 34%; overflow-wrap: anywhere; }
-.member-points-label { display: block; margin-top: 4px; font-size: 11px; color: var(--v5-ink-3); line-height: 1.4; }
-.member-details { margin-left: 54px; padding: 0 0 16px; display: flex; flex-direction: column; gap: var(--ui-space-inline); }
+.member-points-label { display: block; margin-top: var(--v5-space-1); font-size: 11px; color: var(--v5-ink-3); line-height: 1.4; }
+.member-details { margin-left: 54px; padding: 0 0 var(--v5-space-4); display: flex; flex-direction: column; gap: var(--ui-space-inline); }
 .member-detail { display: flex; justify-content: space-between; gap: var(--ui-space-inset); font-size: 12px; line-height: 1.5; color: var(--v5-ink-3); }
 .member-detail > :last-child { text-align: right; color: var(--v5-ink-2); overflow-wrap: anywhere; }
 .member-joined { flex-wrap: wrap; }
 .member-joined > :last-child { min-width: 0; flex: 1 1 170px; }
 .member-contribution { color: var(--v5-ink-2); text-align: right; font-size: 12px; }
 [role="button"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
-@media (max-width: 360px) { .member-trigger { gap: 8px; } .member-details { margin-left: 0; } .member-points { font-size: 14px; } }
+@media (max-width: 360px) { .member-trigger { gap: var(--v5-space-2); } .member-details { margin-left: 0; } .member-points { font-size: 14px; } }
 </style>

@@ -1,7 +1,7 @@
 import * as Vue from 'vue';
 import { createPinia, disposePinia, setActivePinia } from 'pinia';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { mountEntry, slot, flush, text } from '@/lib/entry-review.test-support';
+import { mountEntry, slot, flush, text, all } from '@/lib/entry-review.test-support';
 import { installSupportStorage } from '@/test/storage-setup';
 import { en } from '@/i18n/messages/en';
 import commissionSource from './commissions.vue?raw';
@@ -32,7 +32,7 @@ async function screen(source:string){
  deps['@/components/empty-state.vue']={default:Vue.defineComponent({props:['title','desc','ctaLabel'],setup:props=>()=>Vue.h('view',[props.title,props.desc,props.ctaLabel])})};
  const page=mountEntry(source,deps);stops.push(page.unmount);await flush();return{...page,app,auth,commission,net};
 }
-for(const [name,source,expected] of [['commissions',commissionSource,'$123.00'],['binary',binarySource,'+$12.00']] as const)test(name+' actual store runtime reset retains presentation while real authority is idle/loading; error and same-account bind clear',async()=>{
+for(const [name,source,expected] of [['commissions',commissionSource,'$123.00'],['binary',binarySource,'$12.00']] as const)test(name+' actual store runtime reset retains presentation while real authority is idle/loading; error and same-account bind clear',async()=>{
  const p=await screen(source);expect(text(p.root)).toContain(expected);
  const events=deferred(),match=deferred();remote.teamInsightsApi.commissions.mockReturnValue(events.promise);remote.commissionConfigApi.binary.mockReturnValue(match.promise);
  advanceRuntimeRevision();await Vue.nextTick();expect(p.commission.eventsStatus).toBe('loading');expect(p.commission.binaryStatus).toBe('loading');expect(p.commission.eventsEvidence).toBeNull();expect(p.commission.binarySnapshot).toBeNull();expect(text(p.root)).toContain(expected);
@@ -44,5 +44,13 @@ for(const [name,source,expected] of [['commissions',commissionSource,'$123.00'],
 test('Tree actual store keep marker survives normal runtime, true error never becomes readable unknown zero',async()=>{
  // Use the existing Vue directive with a style-capable test host.
  const original=Vue.vShow.beforeMount as Function;vi.spyOn(Vue.vShow as { beforeMount: (...args: any[]) => unknown },'beforeMount').mockImplementation(((el:any,...args:any[])=>{el.style={};return original(el,...args);}) as any);
- const p=await screen(treeSource);expect(text(p.root)).toContain('10 compute pts');const pending=deferred();remote.teamNetworkApi.snapshot.mockReturnValue(pending.promise);advanceRuntimeRevision();await flush();expect(p.net.hasRemoteSnapshot).toBe(true);expect(p.net.remoteStatus).toBe('loading');expect(text(p.root)).toContain('10 compute pts');expect(text(p.root)).not.toContain(en.network.projectionLoadingTitle);pending.reject(new Error('offline'));await flush();expect(text(p.root)).toContain(en.network.projectionErrorTitle);vi.restoreAllMocks();
+ const p=await screen(treeSource);
+ const monthly=()=>all(p.root).find(node=>Vue.normalizeClass(node.props.class).split(' ').includes('tree-points'))!;
+ expect(text(monthly())).toBe('10');
+ expect(monthly().props['aria-label']).toBe('10 compute pts');
+ const pending=deferred();remote.teamNetworkApi.snapshot.mockReturnValue(pending.promise);advanceRuntimeRevision();await flush();
+ expect(p.net.hasRemoteSnapshot).toBe(true);expect(p.net.remoteStatus).toBe('loading');
+ expect(text(monthly())).toBe('10');expect(monthly().props['aria-label']).toBe('10 compute pts');
+ expect(text(p.root)).not.toContain(en.network.projectionLoadingTitle);
+ pending.reject(new Error('offline'));await flush();expect(text(p.root)).toContain(en.network.projectionErrorTitle);vi.restoreAllMocks();
 });

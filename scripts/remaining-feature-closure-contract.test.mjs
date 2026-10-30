@@ -32,9 +32,10 @@ test("bundle editor uses the real remote order lifecycle with stable command rec
 test("remote team projection never turns errors into zero or local royalty money", async () => {
   const [store, page] = await Promise.all([read("src/store/network.ts"), read("src/pages/team/unilevel.vue")]);
   assert.doesNotMatch(store, /catch \{[\s\S]{0,260}totalMembers\.value = 0/);
-  assert.match(page, /amount\(remoteTotalUSDT\)/);
-  assert.match(page, /v-else-if="remoteState !== 'ready'"/);
-  assert.match(page, /v-if="remoteState === 'ready' && remoteSnapshot"/);
+  // P-41 splits the hero amount and keeps a confirmed snapshot visible while refreshing.
+  assert.match(page, /amount\(remoteTotalUSDT\.value\)\.split\('\.'\)/);
+  assert.match(page, /v-else-if="remoteState !== 'ready' && !remoteSnapshot"/);
+  assert.match(page, /v-if="\(remoteState === 'ready' \|\| remoteState === 'loading'\) && remoteSnapshot"/);
   assert.doesNotMatch(page, /totalRoyalty|UNILEVEL_USDT/);
   assert.match(page, /projectionErrorTitle/);
 });

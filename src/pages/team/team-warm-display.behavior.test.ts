@@ -668,10 +668,12 @@ it.each([en,zh,vietnamese])('keeps first cold ledger pending silent and unknown 
 // Team reward summaries: run the complete Team SFC and actual commission/catalog
 // stores. The transport promises below do not bypass their canonical reset.
 const binaryFacts=(amount=19.75)=>({...proof,runId:null,estimatedAmountUsdt:amount,trackA:500,trackB:300});
-it.each([['en',en],['zh',zh],['vi',vietnamese]] as const)('keeps binary amount and A/B facts through a legitimate catalog publication pending in %s',async(_language,copy)=>{
+it.each([['en',en],['zh',zh],['vi',vietnamese]] as const)('keeps binary estimate and A/B visual through a legitimate catalog publication pending in %s',async(_language,copy)=>{
  remote.commissionConfigApi.binary.mockResolvedValue(binaryFacts());
  const s=await screen(copy),binaryText=text(s.find('nx-team-binary-link')),poolText=text(s.find('nx-team-leadership-pool-link'));
- expect(binaryText).toContain(formatUsd(19.75));expect(binaryText).toContain(`A · ${formatUsd(500)} / B · ${formatUsd(300)}`);
+ expect(binaryText).toContain(formatUsd(19.75));expect(binaryText).not.toContain('A ·');
+ const split=()=>all(s.find('nx-team-binary-link')).find(node=>String(node.props.class).includes('team-bento__split'))!;
+ expect(split().children.map(node=>(node as Host).props.style.width)).toEqual(['61.25%','36.75%']);
  const binary=deferred(),pool=deferred();remote.commissionConfigApi.binary.mockReturnValueOnce(binary.promise);remote.teamInsightsApi.leadershipPool.mockReturnValueOnce(pool.promise);
  remote.productCatalogApi.catalog.mockResolvedValue({...proof,products:[],revision:'republished',publishedAt:'2026-10-29T00:00:00Z'});
  await refreshProductCatalog(true);await Vue.nextTick();
@@ -681,7 +683,7 @@ it.each([['en',en],['zh',zh],['vi',vietnamese]] as const)('keeps binary amount a
  s.find('nx-team-leadership-pool-link').props.onClick();expect(s.navTo).toHaveBeenLastCalledWith('/pages/team/leadership-pool');
  expect(s.commission.binarySnapshot).toBeNull(); // Navigation/display never restores raw authority.
  binary.resolve({...binaryFacts(0),trackA:0,trackB:0});pool.resolve({...proof,myVotes:0,currentWeekPoolUSDT:0,unlockRank:3,injectRate:.05});await flush();
- expect(s.commission.binaryStatus).toBe('ready');expect(text(s.find('nx-team-binary-link'))).toContain(`A · ${formatUsd(0)} / B · ${formatUsd(0)}`);expect(text(s.find('nx-team-binary-link'))).not.toContain(formatUsd(19.75));
+ expect(s.commission.binaryStatus).toBe('ready');expect(text(s.find('nx-team-binary-link'))).toContain(formatUsd(0));expect(split().children.map(node=>(node as Host).props.style.width)).toEqual(['0%','0%']);expect(text(s.find('nx-team-binary-link'))).not.toContain(formatUsd(19.75));
 });
 it('already keeps a normal binary refresh without clearing the actual store snapshot',async()=>{
  remote.commissionConfigApi.binary.mockResolvedValue(binaryFacts());const s=await screen(),before=text(s.find('nx-team-binary-link')),old=s.commission.binarySnapshot;
@@ -730,6 +732,8 @@ it.each(['price','stock','qualification','permission','source'])('clears binary 
 it('masks and reveals the retained binary display through the real privacy store while raw authority stays absent',async()=>{
  remote.commissionConfigApi.binary.mockResolvedValue(binaryFacts());const s=await screen(),read=deferred();remote.commissionConfigApi.binary.mockReturnValueOnce(read.promise);await refreshProductCatalog(true);await Vue.nextTick();
  expect(s.commission.binarySnapshot).toBeNull();const visibility=useDataVisibility();visibility.toggle();await Vue.nextTick();expect(text(s.find('nx-team-binary-link'))).not.toContain(formatUsd(19.75));
+ expect(all(s.find('nx-team-binary-link')).some(node=>String(node.props.class).includes('team-bento__split'))).toBe(false);
+ expect(all(s.find('nx-team-leadership-pool-link')).find(node=>String(node.props.class).includes('team-bento__ring'))!.props.style['--nx-viz-ring']).toBe(0);
  visibility.toggle();await Vue.nextTick();expect(text(s.find('nx-team-binary-link'))).toContain(formatUsd(19.75));expect(s.commission.binarySnapshot).toBeNull();
  read.resolve(binaryFacts(0));await flush();expect(text(s.find('nx-team-binary-link'))).toContain(formatUsd(0));
 });

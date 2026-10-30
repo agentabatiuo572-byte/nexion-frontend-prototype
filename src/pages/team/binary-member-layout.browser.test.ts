@@ -50,7 +50,7 @@ beforeAll(async () => { browser = await chromium.launch({ headless: true }); });
 afterAll(async () => { await browser?.close(); });
 for (const width of [320, 360, 390]) {
   for (const language of ['zh', 'en', 'vi'] as const) {
-    it(`T3 ${language} ${width}px keeps member rank and full compute points separate`, async () => {
+    it(`T3 ${language} ${width}px keeps the leader badge beside readable member facts in each small card`, async () => {
       const t = { en, zh, vi: vietnamese }[language];
       const badge = component(badgeSource, {
         './team-rank-emblem.vue': emblem,
@@ -83,8 +83,8 @@ for (const width of [320, 360, 390]) {
           const row = facts.nth(i), rank = row.locator('.nx-vbadge'), points = row.locator('.reward-wing-member__points');
           const rankBox = await rank.boundingBox(), pointBox = await points.boundingBox(), rowBox = await row.boundingBox();
           expect(rankBox).not.toBeNull(); expect(pointBox).not.toBeNull(); expect(rowBox).not.toBeNull();
-          expect(pointBox!.y).toBeGreaterThanOrEqual(rankBox!.y + rankBox!.height);
-          expect(rankBox!.width).toBeGreaterThanOrEqual(42);
+          expect(pointBox!.x).toBeGreaterThanOrEqual(rankBox!.x + rankBox!.width);
+          expect(rankBox!.width).toBeGreaterThanOrEqual(40);
           expect(rankBox!.x + rankBox!.width).toBeLessThanOrEqual(rowBox!.x + rowBox!.width + 1);
           expect(await points.textContent()).toBe(formatComputePoints(i ? 1480 : 1234567.123456, language));
           expect(await points.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);

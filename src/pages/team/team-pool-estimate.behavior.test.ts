@@ -6,7 +6,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { useDataVisibility } from '@/store/data-visibility';
 import source from './team.vue?raw';
-import { formatUsd } from '@/lib/usd-display';
+import { formatUsd, formatUsdOverviewParts } from '@/lib/usd-display';
 
 beforeEach(() => {
   vi.stubGlobal('uni', { getStorageSync: () => undefined, setStorageSync: vi.fn() });
@@ -20,12 +20,12 @@ const valuesSource = source.slice(source.indexOf('const myVotes = computed'), so
 const template = source.match(/<view class="team-estimate"><text v-if="leadershipPoolUnlocked[^]*?<\/view>/)![0];
 const render = new Function('Vue', compile(template, { mode: 'function', prefixIdentifiers: true, isCustomElement: tag => ['view', 'text'].includes(tag) }).code)(Vue);
 function page(votes = 2) {
-  const code = ts.transpileModule(stateSource + valuesSource + ';return {remotePool,remotePoolState,remotePoolReadable,leadershipPoolUnlocked,leadershipPoolPrimary};',
+  const code = ts.transpileModule(stateSource + valuesSource + ';return {remotePool,remotePoolState,remotePoolReadable,leadershipPoolUnlocked,leadershipPoolPrimary,poolAmountParts};',
     { compilerOptions: { module: ts.ModuleKind.None, target: ts.ScriptTarget.ES2022 } }).outputText;
-  const state = new Function('ref', 'computed', 'remoteApiEnabled', 'pool', 'vrank', 'formatUsd', code)(Vue.ref, Vue.computed, true, {}, {}, formatUsd);
+  const state = new Function('ref', 'computed', 'remoteApiEnabled', 'pool', 'vrank', 'formatUsd', 'formatUsdOverviewParts', code)(Vue.ref, Vue.computed, true, {}, {}, formatUsd, formatUsdOverviewParts);
   const snapshot = { myVotes: votes, currentWeekPoolUSDT: 5000, projectedPayoutUSDT: 17.25 };
   state.remotePool.value = snapshot; state.remotePoolState.value = 'ready';
-  const html = () => renderToString(Vue.createSSRApp({ render, setup: () => ({ ...state, visibility: useDataVisibility(), remoteApiEnabled: true, designCopy: { estimated: 'Estimated' }, quickRowValueStyle: {} }) }));
+  const html = async () => (await renderToString(Vue.createSSRApp({ render, setup: () => ({ ...state, visibility: useDataVisibility(), remoteApiEnabled: true, designCopy: { estimated: 'Estimated' }, quickRowValueStyle: {} }) }))).replace(/<[^>]+>/g, '');
   return { state, snapshot, html };
 }
 

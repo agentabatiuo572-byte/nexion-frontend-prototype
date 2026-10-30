@@ -34,7 +34,7 @@ async function screen(name: string, language: 'en'|'zh'|'vi' = 'en', actualPayou
     unlockedUSDT:()=>0, unlockedNEX:()=>0, coolingUSDT:()=>0, monthUSDT:()=>0, monthNEX:()=>0, totalUSDTLifetime:()=>0, totalNEXLifetime:()=>0 });
   const network = Vue.reactive<any>({ remoteStatus:'idle', hasRemoteSnapshot:false, members:[], totalMonthComputePoints:null,
     ensureCanonicalNetwork:vi.fn(), refreshCanonicalNetwork:vi.fn(), byBinary:()=>({left:[],right:[]}) });
-  const rank = Vue.reactive<any>({ myRank:5, remoteReady:true, remoteError:false, ladder:[], refreshCanonicalVRank:vi.fn().mockResolvedValue(undefined) });
+  const rank = Vue.reactive<any>({ myRank:5, remoteReady:true, remoteError:false, ladder:name==='agent'?[{v:0}]:[], refreshCanonicalVRank:vi.fn().mockResolvedValue(undefined) });
   const deps: Record<string, any> = {
     '@dcloudio/uni-app': { onShow:(f:()=>void)=>callbacks.show.push(f), onHide:(f:()=>void)=>callbacks.hide.push(f), onUnload:(f:()=>void)=>callbacks.unload.push(f) },
     '@/store/data-visibility': visibilityDependency,
@@ -58,8 +58,9 @@ async function screen(name: string, language: 'en'|'zh'|'vi' = 'en', actualPayou
   if (actualPayoutClock) deps['@/lib/payout-clock'] = await vi.importActual('@/lib/payout-clock');
   let source = name==='quota-tier-card'?Object.values(quotaSource)[0]:sources['./'+name+'.vue'];
   if(name==='agent') {
-    source=source.replace('<script setup lang="ts">','<script setup lang="ts">\nimport UniInput from "./secondary-test-input.vue";').replace(/<input\b/g,'<UniInput');
+    source=source.replace('<script setup lang="ts">','<script setup lang="ts">\nimport UniInput from "./secondary-test-input.vue";\nimport UniDatePicker from "./secondary-test-picker.vue";').replace(/<input\b/g,'<UniInput').replace(/<picker\b/g,'<UniDatePicker').replace(/<\/picker>/g,'</UniDatePicker>');
     deps['./secondary-test-input.vue']={default:Vue.defineComponent({props:['modelValue','disabled'],emits:['update:modelValue'],setup:(props,{emit})=>()=>Vue.h('input',{value:props.modelValue,disabled:props.disabled,onInput:(v:string)=>emit('update:modelValue',v)})})};
+    deps['./secondary-test-picker.vue']={default:Vue.defineComponent({props:['value','disabled','mode'],emits:['change'],setup:(props,{emit,slots})=>()=>Vue.h('date-picker',{value:props.value,disabled:props.disabled,mode:props.mode,onChange:(v:string)=>emit('change',{detail:{value:v}})},slots.default?.())})};
   }
   const script=parse(source).descriptor.scriptSetup!.content;
   const bindings: string[]=[];
@@ -145,6 +146,7 @@ for(const name of ['leaderboard','leadership-pool','leadership-pool-how'])test(n
 test.each(['zh','en','vi'] as const)('Agent %s keeps fixed title and application label normal across cold/warm while form guards remain false',async lang=>{
  const p=await screen('agent',lang),copy=({en,zh,vi:vietnamese})[lang];const hero=p.nodes('agent-hero')[0],cta=p.nodes('agent-submit')[0];expect(text(hero)).toContain(copy.agent.heroHeadline);expect(text(cta)).toContain(copy.agent.submitForReview);expect(cta.props.style.opacity).toBe(1);expect(cta.props['aria-disabled']).toBe('true');
  await p.show();p.reads.policy[0].resolve({defaultBudgetUsdt:3000,buckets:[]});p.reads.latest[0].resolve({status:'NONE'});p.reads.history[0].resolve([]);await flush();await p.hide();await p.show();p.rank.remoteReady=false;await flush();expect(p.nodes('agent-hero')[0]).toBe(hero);expect(p.nodes('agent-submit')[0]).toBe(cta);expect(text(cta)).toContain(copy.agent.submitForReview);expect(cta.props.style.opacity).toBe(1);expect(cta.props['aria-disabled']).toBe('true');
+ const form=p.nodes('agent-form')[0],preview=p.nodes('agent-preview')[0];expect(form.props.style.display).toBe('none');expect(text(preview)).toBe(copy.agent.previewForm);preview.props.onClick();await flush();expect(form.props.style.display).toBeUndefined();expect(p.nodes('agent-submit')[0]).toBe(cta);expect(cta.props['aria-disabled']).toBe('true');preview.props.onClick();await flush();expect(form.props.style.display).toBe('none');
 });
 test('Pool HOLD remains a hard failure, not a retained loading estimate',async()=>{
  const {ApiError}=await vi.importActual<any>('@/api/errors');const p=await screen('leadership-pool');await p.show();p.reads.pool[0].resolve(pool());await flush();await p.show();p.reads.pool[1].reject(new ApiError({kind:'business',message:'F4_LEADERSHIP_POOL_HOLD'}));await flush();expect(p.view.remoteState).toBe('hold');expect(p.view.remotePool).toBeNull();expect(text(p.root)).toContain(en.pool.settlementHold);
@@ -223,10 +225,11 @@ test.each([null,0,3200])('Tree privacy restores unknown/zero/known points (%s) a
 
 test.each(['en','zh','vi'] as const)('Pool %s hides personal and participation statistics while keeping the public pool',async lang=>{
   const p=await screen('leadership-pool',lang);await p.show();p.reads.pool[0].resolve({...pool(),projectedPayoutUSDT:250.75,myVotes:2,mySharePct:.05,totalVotes:40,history:[{weekId:'2026-W43',poolUSDT:4000,payoutUSDT:120.25}]});await flush();
-  const before=text(p.root), raw=JSON.stringify(p.view.remotePool), personal=text(p.nodes('pool-personal')[0]);
+  const before=text(p.root), raw=JSON.stringify(p.view.remotePool), personal=text(p.nodes('pool-hero')[0]);
   expect(personal).toContain('250.75');expect(text(p.root)).toContain('120.25');
-  const publicHero=text(p.nodes('pool-hero')[0]);p.visibility.toggle();await flush();
-  expect(text(p.nodes('pool-hero')[0])).toBe(publicHero);expect(text(p.nodes('pool-votes')[0])).not.toContain('40');
+  const publicPool=text(p.nodes('pool-share__note')[0]);p.visibility.toggle();await flush();
+  expect(text(p.nodes('pool-share__note')[0])).toBe(publicPool);expect(text(p.nodes('pool-votes-heading')[0])).not.toContain('40');
+  expect(text(p.nodes('pool-hero')[0])).toContain('••••');
   expect(text(p.nodes('pool-personal')[0])).toContain('••••');expect(text(p.nodes('pool-history-row')[0])).toContain('••••');
   for(const secret of ['250.75','120.25','5.00%'])expect(accessiblePresentation(p.root)).not.toContain(secret);
   expect(JSON.stringify(p.view.remotePool)).toBe(raw);expect(p.api.leadershipPool).toHaveBeenCalledTimes(1);
@@ -248,8 +251,8 @@ test.each(['en','zh','vi'] as const)('Agent %s masks draft and submitted budgets
   p.view.budgetText='6543.21';await flush();
   const before=accessiblePresentation(p.root), raw=JSON.stringify(p.view.draft.form), bucket=text(p.nodes('agent-bucket')[0]), submit=p.nodes('agent-submit')[0].props['aria-disabled'];
   expect(before).toContain('6543.21');expect(before).toContain('8,765.43');
-  p.visibility.toggle();await flush();expect(p.nodes('agent-budget-masked')).toHaveLength(1);expect(all(p.root).filter(n=>n.tag==='input')).toHaveLength(2);
+  p.visibility.toggle();await flush();expect(p.nodes('agent-budget-masked')).toHaveLength(1);expect(all(p.root).filter(n=>n.tag==='input')).toHaveLength(1);expect(all(p.root).filter(n=>n.tag==='date-picker')).toHaveLength(1);expect(all(p.root).find(n=>n.tag==='date-picker')!.props.mode).toBe('date');
   expect(accessiblePresentation(p.root)).not.toContain('6543.21');expect(accessiblePresentation(p.root)).not.toContain('8,765.43');expect(text(p.nodes('agent-bucket')[0])).toBe(bucket);
   expect(p.nodes('agent-submit')[0].props['aria-disabled']).toBe(submit);expect(JSON.stringify(p.view.draft.form)).toBe(raw);expect(p.api.create).not.toHaveBeenCalled();
-  p.visibility.toggle();await flush();expect(accessiblePresentation(p.root)).toBe(before);expect(all(p.root).filter(n=>n.tag==='input')).toHaveLength(3);
+  p.visibility.toggle();await flush();expect(accessiblePresentation(p.root)).toBe(before);expect(all(p.root).filter(n=>n.tag==='input')).toHaveLength(2);expect(all(p.root).filter(n=>n.tag==='date-picker')).toHaveLength(1);
 });

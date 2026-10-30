@@ -22,7 +22,8 @@ describe("public team copy keeps internal layers private", () => {
       expect(output).toContain(copy.directReferral.purchase);
       expect(output).toContain(copy.directReferral.networkPurchase);
       expect(output).toContain(copy.directReferral.deviceEarning);
-      expect(output).toContain("USDT"); expect(output).toContain("UVT");
+      // P-41 uses the established $ amount symbol with a compact UVT secondary line.
+      expect(output).toContain("$60.00"); expect(output).toContain("UVT");
       expect(output).not.toMatch(/\bL[1-7]\b|L2–L7|L2-L7/);
     });
   }

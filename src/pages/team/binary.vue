@@ -1,24 +1,42 @@
 <template>
   <AppChassis active="team">
     <RewardPageSurface>
-      <view class="pb-6" style="color: var(--v5-ink)">
+      <view class="pb-6 nx-viz-motion" style="color: var(--v5-ink)">
         <SubPageHeader back="/pages/team/team" :title="t.headerTitles.teamBinary" :subtitle="t.headerSubtitles.teamBinary" />
         <view class="binary-content">
+          <view ref="comparisonRef">
           <EmptyState v-if="remoteApiEnabled && pageState.primary === 'error'" kind="recoverable-error"
             :title="t.network.projectionErrorTitle" :desc="t.network.projectionErrorDesc" :cta-label="t.network.retry"
             compact @cta="retryCanonicalData" />
           <view v-else-if="remoteApiEnabled && pageState.primary === 'loading' && !snapshot" class="binary-loading"
             role="status" aria-live="polite" aria-busy="true" />
-          <template v-if="pageState.primary === 'ready' || (pageState.primary === 'loading' && snapshot !== null)">
-            <view class="binary-hero">
+            <view v-if="pageState.primary === 'ready' || (pageState.primary === 'loading' && snapshot !== null)" class="binary-comparison-section">
+            <view class="binary-hero nx-viz-press">
               <view class="binary-hero-heading">
-                <text class="binary-label">{{ estimateText }}</text>
+                <text class="binary-label">{{ binaryCopy.contributions }}</text>
                 <view class="binary-rule-link" role="link" tabindex="0" :aria-label="t.binary.howItWorksEntry"
                   @click="go('/pages/team/binary-how')" @keydown.enter.prevent="go('/pages/team/binary-how')" @keydown.space.prevent="go('/pages/team/binary-how')"><text>{{ binaryCopy.rules }}</text></view>
               </view>
-              <RewardHero kind="balance"><text class="reward-amount">+${{ visibility.mask(formatFinanceAmount(periodMatch)) }}</text></RewardHero>
+              <view class="binary-comparison">
+                <view v-for="(wing, index) in wings" :key="wing.key" class="binary-contribution">
+                  <view class="binary-group-heading"><text v-if="!visibility.hidden && leftMonthVol !== rightMonthVol" class="binary-group-badge" :class="{ 'binary-weak': wing.isWeak }">{{ wing.isWeak ? t.binary.weakBadge : t.binary.strongBadge }}</text></view>
+                  <view class="binary-contribution-track" aria-hidden="true"><view v-if="contributionWidths && !visibility.hidden" class="binary-contribution-fill" :class="{ 'binary-contribution-fill--other': index === 1 }" :style="{ height: (comparisonInView === false ? 0 : contributionWidths[index]) + '%', transition: comparisonInView === false ? 'none' : VIZ_GROW_HEIGHT_TRANSITION, transitionDelay: comparisonInView === false ? '0ms' : vizStagger(index, 120) }" /></view>
+                  <text class="binary-group-name">{{ wing.name }}</text>
+                  <text class="binary-points tabular-nums">{{ visibility.mask('$' + formatFinanceAmount(wing.monthVol)) }}</text>
+                  <text class="binary-note">{{ wingMembersText(wing.count) }}</text>
+                </view>
+                <view class="binary-rate"><text class="nx-num-metric">×{{ rateLabel }}%</text><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z" /></svg><text class="binary-note">{{ t.binary.weakBadge }}</text></view>
+              </view>
+              <view class="binary-estimate"><text class="binary-label">{{ estimateText }}</text><text class="reward-amount nx-num-amount"><text class="binary-dollar">$</text>{{ estimateAmountParts[0] }}<text v-if="estimateAmountParts[1]" class="binary-decimals">.{{ estimateAmountParts[1] }}</text></text></view>
             </view>
+              <view class="reward-binary-basis">
+                <text class="binary-note">{{ formulaText }}</text>
+                <text class="binary-note">{{ gapHintText }}</text>
+              </view>
+            </view>
+          </view>
 
+          <template v-if="pageState.primary === 'ready' || (pageState.primary === 'loading' && snapshot !== null)">
             <view v-if="blocked" class="binary-notice" :style="blockedStyle">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/><path d="M12 9v4m0 4h.01"/></svg>
               <view class="binary-notice-copy">
@@ -29,22 +47,6 @@
               </view>
             </view>
 
-            <view class="binary-comparison-section">
-              <text class="binary-section-title">{{ binaryCopy.contributions }}</text>
-              <view class="binary-comparison">
-                <view v-for="(wing, index) in wings" :key="wing.key" class="binary-contribution">
-                  <view class="binary-group-heading"><text>{{ wing.name }}</text><text v-if="wing.isWeak && !visibility.hidden" class="binary-weak">{{ t.binary.weakBadge }}</text></view>
-                  <text class="binary-points tabular-nums">{{ visibility.mask('$' + formatFinanceAmount(wing.monthVol)) }}</text>
-                  <view class="binary-contribution-track" aria-hidden="true"><view v-if="contributionWidths && !visibility.hidden" class="binary-contribution-fill nx-viz-rise" :class="{ 'binary-contribution-fill--other': index === 1 }" :style="{ height: contributionWidths[index] + '%', animationDelay: vizStagger(index, 120) }" /></view>
-                  <text class="binary-note">{{ wingMembersText(wing.count) }}</text>
-                </view>
-              </view>
-              <view class="reward-binary-basis">
-                <text class="binary-note">{{ formulaText }}</text>
-                <text class="binary-note">{{ gapHintText }}</text>
-              </view>
-            </view>
-
             <view v-if="remoteApiEnabled && pageState.memberDetails === 'error'" class="binary-member-recovery" :style="memberReadErrorStyle">
               <text class="binary-note">{{ t.binary.memberDetailsUnavailable }}</text>
               <view role="button" tabindex="0" class="binary-text-action" @click="retryNetworkMembers" @keydown.enter.prevent="retryNetworkMembers" @keydown.space.prevent="retryNetworkMembers"><text>{{ t.network.retry }}</text><text aria-hidden="true">→</text></view>
@@ -52,29 +54,30 @@
             <view v-if="wings.some(wing => wing.top)" class="binary-leaders">
               <text class="binary-section-title">{{ binaryCopy.leadingMembers }}</text>
               <view class="reward-wings">
-                <view v-for="wing in wings" :key="wing.key" class="reward-wing" :style="wingStyle(wing.isWeak)">
-                  <text class="binary-label">{{ wing.name }}</text>
+                <view v-for="wing in wings" :key="wing.key" class="reward-wing nx-viz-press" :style="wingStyle(wing.isWeak)">
                   <view v-if="wing.top" class="reward-wing-member" :style="topMemberStyle">
-                    <view class="reward-wing-member__body">
-                      <text class="reward-wing-member__name">{{ wing.top.name }}</text>
                       <view class="reward-wing-member__facts">
-                        <VBadge v-if="!visibility.hidden" class="reward-wing-member__rank" :v="wing.top.vRank" size="sm" :show-title="false" />
+                        <VBadge v-if="!visibility.hidden" class="reward-wing-member__rank" :v="wing.top.vRank" size="lg" :show-title="false" />
                         <text v-else class="reward-wing-member__rank">{{ visibility.mask('') }}</text>
+                        <view class="reward-wing-member__body">
+                        <text class="binary-label">{{ wing.name }}</text>
+                        <text class="reward-wing-member__name">{{ wing.top.name }}</text>
                         <text class="reward-wing-member__points tabular-nums">{{ visibility.mask(formatComputePoints(wing.top.monthComputePoints, locale.code)) }}</text>
+                        </view>
                       </view>
-                    </view>
                   </view>
-                  <text v-else class="binary-note">—</text>
+                  <template v-else><text class="binary-label">{{ wing.name }}</text><text class="binary-note">—</text></template>
                 </view>
               </view>
             </view>
 
             <view v-if="recentBinaries.length > 0" class="binary-recent" :style="recentBlockStyle">
               <text class="binary-section-title" :style="recentCapStyle">{{ t.binary.recentMatches }}</text>
-              <view :style="recentGroupStyle">
-                <view v-for="(e, i) in recentBinaries" :key="e.id" class="binary-recent-row" :style="recentRowStyle(i === recentBinaries.length - 1)">
-                  <view class="binary-recent-source"><text class="binary-record-name">{{ e.sourceUserName }}</text><text class="binary-note">{{ formatTrialDate(e.ts, dateLocale()) }}</text></view>
-                  <view class="reward-match-amount"><text class="binary-record-value tabular-nums" :style="{ color: binaryAmountColor(e.status) }">{{ visibility.mask(binaryAmountLabel(e)) }}</text><text v-if="binaryStatusLabel(e.status)" class="binary-note">{{ binaryStatusLabel(e.status) }}</text></view>
+              <view class="binary-recent-card" :style="recentGroupStyle">
+                <view v-for="(e, i) in recentBinaries" :key="e.id" class="binary-recent-row nx-viz-press" :style="recentRowStyle(i === recentBinaries.length - 1)">
+                  <view class="binary-record-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z" /></svg></view>
+                  <view class="binary-recent-source"><text class="binary-record-name">{{ e.sourceUserName }}</text><text class="binary-note">{{ formatTrialDate(e.ts, dateLocale()) }}<template v-if="binaryStatusLabel(e.status)"> · {{ binaryStatusLabel(e.status) }}</template></text></view>
+                  <view class="reward-match-amount"><text class="binary-record-value nx-num-metric" :style="{ color: binaryAmountColor(e.status) }">{{ visibility.mask(binaryAmountLabel(e)) }}</text><text v-if="'amountNEX' in e" class="binary-record-uvt">{{ visibility.mask(formatFinanceAmount(e.amountNEX)) }} UVT</text></view>
                 </view>
               </view>
             </view>
@@ -85,14 +88,13 @@
   </AppChassis>
 </template>
 <script setup lang="ts">
-import { vizStagger } from "@/composables/use-scroll-grow-progress";
+import { useScrollGrowProgress, VIZ_GROW_HEIGHT_TRANSITION, vizStagger } from "@/composables/use-scroll-grow-progress";
 import { useDataVisibility } from "@/store/data-visibility";
 import { formatFinanceAmount } from "@/lib/finance-amount-display";
 import { formatComputePoints } from "@/i18n/compute-points";
 import { useLocaleStore } from "@/store/locale";
 import { computed, onMounted, ref, watch, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
-import RewardHero from "@/components/team/reward-compact-hero.vue";
 import RewardPageSurface from "@/components/team/reward-page-surface.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import EmptyState from "@/components/empty-state.vue";
@@ -123,6 +125,7 @@ const phase = useProductPhase();
 const auth = useAuth();
 const app = useApp();
 const locale = useLocaleStore();
+const { elRef: comparisonRef, inView: comparisonInView } = useScrollGrowProgress();
 const canonicalReadCoalescer = createScopedReadCoalescer();
 const binaryCopy = computed(() => ({
   zh: { rules: '玩法说明', contributions: '本月两组订单额', leadingMembers: '各组领先成员' },
@@ -165,6 +168,7 @@ const settlePeriod = computed(() => remoteApiEnabled ? snapshot.value?.settlePer
 const settleDays = computed(() => SETTLE_PERIOD_DAYS[settlePeriod.value]);
 const MIN_THRESHOLD = computed(() => remoteApiEnabled ? snapshot.value?.threshold ?? 0 : 1000);
 const MATCH_RATE = computed(() => remoteApiEnabled ? snapshot.value?.matchRate ?? 0 : 0.1);
+const rateLabel = computed(() => (MATCH_RATE.value * 100).toLocaleString(dateLocale(), { maximumFractionDigits: 8 }));
 const DAILY_CAP = computed(() => remoteApiEnabled ? snapshot.value?.dailyCap ?? 0 : phase.value.binaryDailyCapUSD);
 const sides = computed(() => network.byBinary());
 const leftMonthVol = computed(() => remoteApiEnabled ? remoteTrackA.value : network.leftVolumeMonth());
@@ -184,6 +188,7 @@ const periodMatch = computed(() => {
   const factor = settleDays.value / 30;
   return Math.min(weakVol.value * factor * MATCH_RATE.value, DAILY_CAP.value * settleDays.value);
 });
+const estimateAmountParts = computed(() => visibility.mask(formatFinanceAmount(periodMatch.value)).split('.'));
 const blocked = computed(() => remoteApiEnabled
   ? Boolean(snapshot.value?.blockedReason)
   : leftMonthVol.value < MIN_THRESHOLD.value || rightMonthVol.value < MIN_THRESHOLD.value);
@@ -301,7 +306,7 @@ function binaryAmountColor(status?: string): string {
   if (status === "rejected") return "var(--v5-danger)";
   if (status === "frozen") return "var(--v5-ink-2)";
   if (status === "reversed") return "var(--v5-ink-4)";
-  return "var(--v5-ink)";
+  return "var(--v5-brand)";
 }
 
 function retryCanonicalData(): void {
@@ -337,61 +342,69 @@ onShow(() => {
 
 const blockedStyle: CSSProperties = { padding: "16px 0", gap: "10px" };
 function wingStyle(_isWeak: boolean): CSSProperties { return { padding: "14px 0" }; }
-const topMemberStyle: CSSProperties = { marginTop: "8px" };
+const topMemberStyle: CSSProperties = {};
 const memberReadErrorStyle: CSSProperties = { gap: "12px" };
 const recentBlockStyle: CSSProperties = {};
 const recentCapStyle: CSSProperties = { marginBottom: "12px" };
-const recentGroupStyle: CSSProperties = { borderTop: "1px solid var(--v5-border)" };
+const recentGroupStyle: CSSProperties = {};
 function recentRowStyle(isLast: boolean): CSSProperties {
-  return { padding: "16px 0", gap: "16px", borderBottom: isLast ? "none" : "1px solid var(--v5-border)" };
+  return { padding: "14px 0", gap: "12px", borderBottom: isLast ? "none" : "1px solid var(--v5-border)" };
 }
 </script>
 
 <style scoped>
-.binary-content { display: flex; flex-direction: column; gap: 28px; padding: 12px 20px 24px; }
+.binary-content { display: flex; flex-direction: column; gap: 28px; padding: var(--v5-space-3) var(--v5-space-5) var(--v5-space-6); }
 .binary-loading { height: 156px; border-radius: 20px; background: var(--v5-surface-2); }
-.binary-hero { padding: 8px 20px 16px; border-radius: 28px; background: radial-gradient(120% 90% at 85% 0%, color-mix(in srgb, var(--ui-device-ink) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
-.binary-hero-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.binary-hero { padding: var(--v5-space-2) var(--v5-space-4) var(--v5-space-4); border-radius: 28px; background: radial-gradient(120% 90% at 85% 0%, color-mix(in srgb, var(--ui-device-ink) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.binary-hero-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--v5-space-4); }
 .binary-label { display: block; font-size: var(--ui-type-list-subtitle); line-height: var(--ui-type-list-subtitle-lh); color: var(--v5-ink-2); }
 .binary-hero-heading > .binary-label { flex: 1; min-width: 0; }
 .binary-rule-link { display: flex; align-items: center; justify-content: flex-end; min-width: 44px; min-height: 44px; color: var(--v5-ink-3); font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); flex: 0 0 auto; }
-.binary-hero :deep(.reward-hero) { border: 0; padding: 0; }
-.binary-hero :deep(.reward-hero__art) { --team-art-size: 64px; flex-basis: 64px; }
-.binary-hero .reward-amount { margin: 0; font-size: 40px; line-height: 48px; font-weight: 550; }
+.binary-estimate { display: flex; align-items: center; justify-content: space-between; gap: var(--v5-space-3); margin-top: var(--v5-space-4); padding: 14px var(--v5-space-4); border-radius: 18px; background: color-mix(in srgb, var(--ui-device-ink) 10%, transparent); }
+.binary-estimate .binary-label { flex: 1; min-width: 0; }
+.binary-hero .reward-amount { margin: 0; max-width: 68%; font-size: 30px; line-height: 38px; font-weight: 550; letter-spacing: -.03em; overflow-wrap: anywhere; }
+.binary-dollar { margin-right: 2px; font-size: 18px; color: var(--v5-ink-3); }
+.binary-decimals { color: var(--v5-ink-3); }
 .binary-section-title { display: block; font-size: var(--ui-type-section); line-height: var(--ui-type-section-lh); font-weight: 600; color: var(--v5-ink); }
 .binary-note { display: block; color: var(--v5-ink-3); font-size: var(--ui-type-list-subtitle); line-height: 1.6; overflow-wrap: anywhere; }
 .binary-notice { display: flex; align-items: flex-start; border-bottom: 1px solid var(--v5-border); margin-top: -12px; }
 .binary-notice > svg { flex: 0 0 18px; color: var(--v5-warning); margin-top: 2px; }
 .binary-notice-copy { min-width: 0; flex: 1; }
 .binary-notice-title { display: block; font-weight: 500; font-size: var(--ui-type-list-title); line-height: var(--ui-type-list-title-lh); margin-bottom: 6px; }
-.binary-text-action { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; min-width: 44px; color: var(--v5-ink-2); font-size: var(--ui-type-button); line-height: var(--ui-type-button-lh); }
-.binary-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ui-space-inline); margin-top: var(--ui-space-inline); padding: 20px var(--ui-space-inset) var(--ui-space-inset); border-radius: 28px; background: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--ui-device-ink) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.binary-text-action { display: inline-flex; align-items: center; gap: var(--ui-space-row-y); min-height: 44px; min-width: 44px; color: var(--v5-ink-2); font-size: var(--ui-type-button); line-height: var(--ui-type-button-lh); }
+.binary-comparison { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 56px; margin-top: 6px; padding: 0 var(--v5-space-3); }
 .binary-contribution { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; text-align: center; }
-.binary-group-heading { display: flex; flex-direction: column-reverse; align-items: center; justify-content: flex-start; gap: 8px; min-height: 56px; order: 0; font: 500 var(--ui-type-list-subtitle)/var(--ui-type-list-subtitle-lh) var(--font-v5); color: var(--v5-ink-2); }
-.binary-weak { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; background: color-mix(in srgb, var(--ui-device-ink) 16%, transparent); color: var(--ui-device-ink); font: 500 12px/16px var(--font-v5); }
-.binary-points { display: block; order: 2; color: var(--v5-ink); font: 500 15px/20px var(--font-metric); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.binary-contribution-track { position: relative; order: 1; width: 64px; height: 150px; margin: 4px 0; border-radius: 18px; background: var(--v5-surface-3); box-shadow: inset 0 0 0 1px var(--v5-border); overflow: hidden; }
+.binary-group-heading { display: flex; align-items: center; justify-content: center; min-height: 24px; color: var(--v5-ink-2); }
+.binary-group-badge { display: inline-flex; align-items: center; min-height: 24px; padding: 2px var(--ui-space-row-y); border-radius: 999px; background: color-mix(in srgb, var(--v5-ink) 8%, transparent); color: var(--v5-ink-3); font: 500 12px/16px var(--font-v5); }
+.binary-weak { background: color-mix(in srgb, var(--ui-device-ink) 16%, transparent); color: var(--ui-device-ink); }
+.binary-group-name { color: var(--v5-ink-2); font-size: 13px; line-height: 18px; }
+.binary-points { display: block; color: var(--v5-ink); font: 600 15px/20px var(--font-metric); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.binary-contribution-track { position: relative; width: 64px; height: 150px; margin: var(--v5-space-1) 0; border-radius: 18px; background: var(--v5-surface-3); box-shadow: inset 0 0 0 1px var(--v5-border); overflow: hidden; }
 .binary-contribution-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 18px; background: linear-gradient(180deg, var(--v5-brand), color-mix(in srgb, var(--v5-brand) 25%, transparent)); }
 .binary-contribution-fill--other { background: linear-gradient(180deg, var(--ui-device-ink), color-mix(in srgb, var(--ui-device-ink) 25%, transparent)); }
-.reward-binary-basis { display: flex; flex-direction: column; gap: 8px; padding-top: 18px; margin-top: 18px; border-top: 1px solid var(--v5-border); }
+.binary-rate { position: absolute; left: 50%; top: 132px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; width: 72px; color: var(--ui-device-ink); font: 600 14px/20px var(--font-metric); text-align: center; overflow-wrap: anywhere; }
+.binary-rate .binary-note { font-size: 11px; line-height: 16px; }
+.reward-binary-basis { display: flex; flex-direction: column; gap: var(--v5-space-1); margin-top: var(--v5-space-3); padding-inline: var(--v5-space-1); }
 .binary-member-recovery { display: flex; align-items: center; justify-content: space-between; }
 .binary-member-recovery > .binary-note { flex: 1; }
 .binary-member-recovery > .binary-text-action { flex: none; font: 600 13px/20px var(--font-v5); }
-.reward-wings { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 24px; margin-top: 12px; border-top: 1px solid var(--v5-border); }
-.reward-wing { min-width: 0; }
+.reward-wings { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: var(--v5-space-3); margin-top: var(--v5-space-3); }
+.reward-wing { min-width: 0; padding: var(--v5-space-4) !important; border-radius: 24px; background: var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
 .reward-wing-member__body { min-width: 0; }
-.reward-wing-member__name { display: block; font-size: var(--ui-type-list-title); line-height: var(--ui-type-list-title-lh); font-weight: 500; overflow-wrap: anywhere; }
-.reward-wing-member__facts { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 8px; min-width: 0; }
+.reward-wing-member__body > .binary-label { font-size: 11px; line-height: 16px; }
+.reward-wing-member__name { display: block; font-size: 14px; line-height: 20px; font-weight: 500; overflow-wrap: anywhere; }
+.reward-wing-member__facts { display: flex; align-items: center; gap: var(--ui-space-row-y); min-width: 0; }
 .reward-wing-member__rank { flex: none; }
+.reward-wing-member__rank :deep(.nx-vbadge__level) { display: none; }
 .reward-wing-member__points { display: block; max-width: 100%; overflow-wrap: anywhere; color: var(--v5-ink-3); font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); }
-.binary-recent-row { display: flex; align-items: flex-start; }
+.binary-recent-card { padding: 0 var(--v5-space-4); border-radius: 24px; background: var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.binary-recent-row { display: flex; align-items: center; }
+.binary-record-icon { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 12px; color: var(--ui-device-ink); background: color-mix(in srgb, var(--ui-device-ink) 16%, transparent); }
 .binary-recent-source { min-width: 0; flex: 1; }
-.binary-record-name { display: block; font-size: var(--ui-type-list-title); line-height: var(--ui-type-list-title-lh); overflow-wrap: anywhere; margin-bottom: 4px; }
-.binary-record-value { font-size: var(--ui-type-list-title); line-height: var(--ui-type-list-title-lh); font-weight: 500; overflow-wrap: anywhere; }
-.reward-match-amount { display: flex; flex-direction: column; align-items: flex-end; text-align: right; gap: 4px; max-width: 48%; }
+.binary-record-name { display: block; font-size: var(--ui-type-list-title); line-height: var(--ui-type-list-title-lh); overflow-wrap: anywhere; margin-bottom: var(--v5-space-1); }
+.binary-record-value { font-size: var(--ui-type-list-title); line-height: var(--ui-type-list-title-lh); font-weight: 600; overflow-wrap: anywhere; }
+.binary-record-uvt { color: var(--v5-ink-3); font: 500 12px/16px var(--font-metric); overflow-wrap: anywhere; }
+.reward-match-amount { display: flex; flex-direction: column; align-items: flex-end; text-align: right; gap: var(--v5-space-1); max-width: 48%; }
 [role="button"]:focus-visible, [role="link"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
-@media (max-width: 374px) { .binary-content { padding-inline: 16px; gap: 24px; } .binary-hero { padding-inline: 14px; } .binary-comparison, .reward-wings { gap: 16px; } }
-.binary-contribution > .binary-note { order: 3; }
-.reward-binary-basis { display: flex; flex-direction: column; gap: 4px; margin-top: var(--ui-space-inline); padding: var(--ui-space-inline) var(--ui-space-inset); border-radius: 18px; background: color-mix(in srgb, var(--ui-device-ink) 10%, transparent); }
-.reward-wings { padding: 4px var(--ui-space-inset) var(--ui-space-inset); border-top: 0; border-radius: var(--ui-radius-surface); background: var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+@media (max-width: 374px) { .binary-content { padding-inline: var(--v5-space-4); gap: var(--v5-space-6); } .binary-hero { padding-inline: 14px; } .binary-comparison { gap: 48px; padding-inline: 0; } .reward-wing { padding: var(--v5-space-3) !important; } .binary-hero .reward-amount { font-size: 26px; } }
 </style>

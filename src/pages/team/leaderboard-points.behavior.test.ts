@@ -57,7 +57,8 @@ for (const language of ['en', 'zh', 'vi'] as const) for (const period of ['today
     p.nodes('nx-leader-periods')[0].props.onSelect(period); await flush();
     expect(p.request.mock.calls.at(-1)![0].path).toContain(`period=${period}`);
     expect(presentation(p.root)).toContain(leaderboardPointsCopy(language).title);
-    expect(p.nodes('leader-points').map(text)).toEqual([formatComputePoints(3421, language), formatComputePoints(0, language), '—']);
+    expect(p.nodes('leader-points').map(text)).toEqual([formatComputePoints(3421, language).split(' ')[0], '0', '—']);
+    expect(p.nodes('leader-points').map(node => all(node).find(child => child.props['aria-label'])!.props['aria-label'])).toEqual([formatComputePoints(3421, language), formatComputePoints(0, language), '—']);
     expect(text(p.nodes('leader-gap')[0])).toContain(formatComputePoints(3421, language));
     expect(presentation(p.root)).not.toMatch(/\$|USDT|USD|98,765|98765|765432/);
     const before = presentation(p.root), reads = p.request.mock.calls.length;
@@ -105,5 +106,7 @@ it('appends a coherent point page without sorting by money', async () => {
   const p = await page('en', url => url.searchParams.get('page') === '2' ? { ...first, page: 2, rows: [row(21, 180)] } : first);
   p.nodes('leader-more')[0].props.onClick(); await flush();
   expect(p.nodes('leader-row').map(node => node.props['data-rank'])).toEqual(Array.from({ length: 21 }, (_, i) => i + 1));
-  expect(text(p.nodes('leader-points')[20])).toBe('180 compute pts'); expect(p.nodes('leader-more')).toHaveLength(0);
+  expect(text(p.nodes('leader-points')[20])).toBe('180');
+  expect(all(p.nodes('leader-points')[20]).find(node => node.props['aria-label'])!.props['aria-label']).toBe('180 compute pts');
+  expect(p.nodes('leader-more')).toHaveLength(0);
 });

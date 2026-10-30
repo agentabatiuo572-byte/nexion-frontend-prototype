@@ -54,7 +54,7 @@
           <view ref="bentoEl" class="team-bento nx-viz-motion">
             <view class="nx-team-leaderboard-link team-bento__card nx-viz-press team-bento__card--wide team-bento__card--gold" role="link" tabindex="0" @click="go('/pages/team/leaderboard')" @keydown.enter.prevent="go('/pages/team/leaderboard')">
               <view class="team-bento__head"><view class="team-bento__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0z" /></svg></view><svg class="team-bento__chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg></view>
-              <view class="team-bento__podium" aria-hidden="true"><view v-for="(bar, index) in PODIUM_BARS" :key="index" :style="{ height: bentoInView === false ? '0px' : `${bar.height}px`, transition: VIZ_GROW_HEIGHT_TRANSITION, transitionDelay: vizStagger(bar.order) }" /></view>
+              <view class="team-bento__podium" aria-hidden="true"><view v-for="(bar, index) in PODIUM_BARS" :key="index" :style="{ height: bentoInView === false ? '0px' : `${bar.height}px`, transition: bentoInView === false ? 'none' : VIZ_GROW_HEIGHT_TRANSITION, transitionDelay: bentoInView === false ? '0ms' : vizStagger(bar.order) }" /></view>
               <view class="team-bento__foot">
                 <text class="team-bento__headline">{{ t.teamV3.leaderboardCard.subtitle }}</text>
                 <text class="team-bento__caption">{{ t.teamV3.leaderboardCard.title }}</text>
@@ -72,19 +72,18 @@
             </view>
             <view class="nx-team-binary-link team-bento__card nx-viz-press team-bento__card--cyan" role="link" tabindex="0" @click="go('/pages/team/binary')" @keydown.enter.prevent="go('/pages/team/binary')">
               <view class="team-bento__head"><view class="team-bento__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z" /></svg></view><svg class="team-bento__chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg></view>
-              <view class="team-bento__split" aria-hidden="true"><view :style="{ width: bentoInView === false ? '0%' : `${binarySplit.left}%`, transition: PROGRESS_GROW_TRANSITION }" /><view :style="{ width: bentoInView === false ? '0%' : `${binarySplit.right}%`, transition: PROGRESS_GROW_TRANSITION, transitionDelay: vizStagger(1) }" /></view>
-              <text class="team-bento__meta">A · {{ visibility.mask(leftVolText) }}  /  B · {{ visibility.mask(rightVolText) }}</text>
+              <view v-if="binary && !visibility.hidden" class="team-bento__split" aria-hidden="true"><view :style="{ width: bentoInView === false ? '0%' : `${binarySplit.left}%`, transition: bentoInView === false ? 'none' : PROGRESS_GROW_TRANSITION }" /><view :style="{ width: bentoInView === false ? '0%' : `${binarySplit.right}%`, transition: bentoInView === false ? 'none' : PROGRESS_GROW_TRANSITION, transitionDelay: bentoInView === false ? '0ms' : vizStagger(1) }" /></view>
               <view class="team-bento__foot">
-                <text class="team-bento__value">{{ visibility.mask(binaryMatchText) }}</text>
+                <text v-if="binaryAmountParts && !visibility.hidden" class="team-bento__value team-bento__amount nx-num-amount"><text class="team-bento__currency">{{ binaryAmountParts.prefix }}</text>{{ binaryAmountParts.integer }}<text class="team-bento__fraction">.{{ binaryAmountParts.fraction }}</text></text><text v-else class="team-bento__value team-bento__amount nx-num-amount">{{ visibility.mask(binaryMatchText) }}</text>
                 <text class="team-bento__caption">{{ designCopy.twoGroupRewards }} · <text class="team-bento__muted">{{ designCopy.estimated }}</text></text>
               </view>
             </view>
             <view class="nx-team-leadership-pool-link team-bento__card nx-viz-press team-bento__card--wide team-bento__card--violet" role="link" tabindex="0" @click="go('/pages/team/leadership-pool')" @keydown.enter.prevent="go('/pages/team/leadership-pool')">
               <view class="team-bento__head"><view class="team-bento__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14" /></svg></view><svg class="team-bento__chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg></view>
               <view class="team-bento__pool">
-                <view class="team-bento__ring" aria-hidden="true" :style="{ '--nx-viz-ring': bentoInView === false ? 0 : poolRingPct, transition: VIZ_RING_TRANSITION }"><view /></view>
+                <view class="team-bento__ring" aria-hidden="true" :style="{ '--nx-viz-ring': bentoInView === false ? 0 : poolRingPct, transition: bentoInView === false ? 'none' : VIZ_RING_TRANSITION }"><view /></view>
                 <view class="team-bento__pool-copy">
-                  <view class="team-estimate"><text v-if="leadershipPoolUnlocked && remotePoolReadable" class="team-estimate__label">{{ designCopy.estimated }}</text><text class="team-bento__value">{{ visibility.mask(leadershipPoolPrimary) }}</text></view>
+                  <view class="team-estimate"><text v-if="leadershipPoolUnlocked && remotePoolReadable" class="team-estimate__label">{{ designCopy.estimated }}</text><text v-if="poolAmountParts && !visibility.hidden" class="team-bento__value team-bento__amount nx-num-amount"><text class="team-bento__currency">{{ poolAmountParts.prefix }}</text>{{ poolAmountParts.integer }}<text class="team-bento__fraction">.{{ poolAmountParts.fraction }}</text></text><text v-else class="team-bento__value team-bento__amount nx-num-amount">{{ visibility.mask(leadershipPoolPrimary) }}</text></view>
                   <text class="team-bento__caption">{{ t.teamV3.weeklyPool }}</text>
                   <text class="team-bento__meta">{{ leadershipPoolLineB ? `${leadershipPoolLineA}  /  ${leadershipPoolLineB}` : leadershipPoolLineA }}</text>
                 </view>
@@ -110,7 +109,7 @@
 <script setup lang="ts">
 import { useScrollGrowProgress, PROGRESS_GROW_TRANSITION, VIZ_GROW_HEIGHT_TRANSITION, VIZ_RING_TRANSITION, vizStagger } from "@/composables/use-scroll-grow-progress";
 import { runPassiveTabRead, invalidatePassiveTabRead, passiveTabReadScope } from "@/lib/passive-tab-read";
-import { formatUsd } from "@/lib/usd-display";
+import { formatUsd, formatUsdOverviewParts } from "@/lib/usd-display";
 import { formatComputePoints, sumComputePoints } from "@/i18n/compute-points";
 import ReferralProgress from '@/components/promotion/referral-progress.vue';
 import { navTo } from "@/lib/route";
@@ -303,8 +302,7 @@ const binary = computed(() => {
   return { binaryMatch: match, leftVol: L, rightVol: R };
 });
 const binaryMatchText = computed(() => binary.value === null ? "—" : formatUsd(binary.value.binaryMatch));
-const leftVolText = computed(() => binary.value === null ? "—" : formatUsd(binary.value.leftVol));
-const rightVolText = computed(() => binary.value === null ? "—" : formatUsd(binary.value.rightVol));
+const binaryAmountParts = computed(() => binary.value === null ? null : formatUsdOverviewParts(binary.value.binaryMatch));
 
 const myVotes = computed(() => remoteApiEnabled ? remotePool.value?.myVotes ?? 0 : pool.myVotes(vrank.myRank));
 const leadershipUnlockRank = computed(() => remoteApiEnabled ? remotePool.value?.unlockRank ?? 3 : 3);
@@ -315,6 +313,7 @@ const leadershipPoolTotal = computed(() => remoteApiEnabled ? remotePool.value?.
 const leadershipPoolPrimary = computed(() =>
   !remotePoolReadable.value ? "—" : formatUsd(leadershipPoolUnlocked.value ? projectedPayout.value : leadershipPoolTotal.value),
 );
+const poolAmountParts = computed(() => !remotePoolReadable.value ? null : formatUsdOverviewParts(leadershipPoolUnlocked.value ? projectedPayout.value : leadershipPoolTotal.value));
 const leadershipPoolLineA = computed(() =>
   !remotePoolReadable.value ? (remotePoolState.value === "hold" ? t.value.pool.settlementHoldShort : remotePoolState.value === "loading" ? t.value.pool.loading : t.value.network.projectionErrorDesc) : leadershipPoolUnlocked.value ? `${visibility.mask(myVotes.value)} ${t.value.teamV3.votes}` : `V${leadershipUnlockRank.value}`,
 );
@@ -341,12 +340,12 @@ const memberInitials = computed(() => {
 const binarySplit = computed(() => {
   const left = binary.value?.leftVol ?? 0, right = binary.value?.rightVol ?? 0;
   // Each side's share of the track, leaving room for the 3px gap.
-  return left + right > 0 ? { left: left / (left + right) * 98, right: right / (left + right) * 98 } : { left: 49, right: 49 };
+  return left + right > 0 ? { left: left / (left + right) * 98, right: right / (left + right) * 98 } : { left: 0, right: 0 };
 });
 // Decorative pedestals (2nd, 1st, 3rd); they rise 3rd → 2nd → 1st.
 const PODIUM_BARS = [{ height: 26, order: 1 }, { height: 40, order: 2 }, { height: 18, order: 0 }];
 const { elRef: bentoEl, inView: bentoInView } = useScrollGrowProgress();
-const poolRingPct = computed(() => remotePoolReadable.value && leadershipPoolUnlocked.value
+const poolRingPct = computed(() => !visibility.hidden && remotePoolReadable.value && leadershipPoolUnlocked.value
   ? Math.min(100, Math.max(0, myShare.value * 100)) : 0);
 
 function go(url: string) {
@@ -575,22 +574,29 @@ const teamSummaryStatus = computed(() => remoteApiEnabled ? network.remoteStatus
 .team-bento__foot { display: flex; flex-direction: column; gap: 2px; margin-top: auto; min-width: 0; }
 .team-bento__headline { font: 600 var(--ui-type-hero-title)/var(--ui-type-hero-title-lh) var(--font-v5); }
 .team-bento__value { font: 500 22px/30px var(--font-metric); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.team-bento__amount { font-family: var(--font-amount); }
+.team-bento__currency { font-size: 14px; }
+.team-bento__fraction { color: var(--v5-ink-3); }
 .team-bento__caption { font: 500 var(--ui-type-description)/18px var(--font-v5); color: var(--v5-ink); }
 .team-bento__muted { color: var(--v5-ink-3); }
-.team-bento__meta { overflow: hidden; font: var(--ui-type-meta-weight) var(--ui-type-meta)/var(--ui-type-meta-lh) var(--font-v5); color: var(--v5-ink-3); white-space: nowrap; text-overflow: ellipsis; }
+.team-bento__meta { font: var(--ui-type-meta-weight) var(--ui-type-meta)/var(--ui-type-meta-lh) var(--font-v5); color: var(--v5-ink-3); overflow-wrap: anywhere; }
 .team-bento__podium { position: absolute; right: var(--ui-space-inset); bottom: 14px; display: flex; align-items: flex-end; gap: var(--v5-space-1); }
 .team-bento__podium > view { width: 22px; border-radius: 6px 6px 2px 2px; }
+.team-bento__card--gold { display: grid; grid-template-columns: minmax(0, 1fr) 74px; gap: var(--v5-space-3); }
+.team-bento__card--gold .team-bento__head { grid-column: 1 / -1; }
+.team-bento__card--gold .team-bento__foot { grid-column: 1; grid-row: 2; align-self: end; }
+.team-bento__card--gold .team-bento__podium { position: static; grid-column: 2; grid-row: 2; align-self: end; height: 40px; }
 .team-bento__podium > view:nth-child(1) { background: linear-gradient(180deg, var(--v5-ink-2), color-mix(in srgb, var(--v5-ink-2) 25%, transparent)); }
 .team-bento__podium > view:nth-child(2) { background: linear-gradient(180deg, var(--v5-warning), color-mix(in srgb, var(--v5-warning) 25%, transparent)); }
 .team-bento__podium > view:nth-child(3) { background: linear-gradient(180deg, var(--v5-brand-2), color-mix(in srgb, var(--v5-brand-2) 25%, transparent)); }
 .team-bento__avatars { display: flex; }
-.team-bento__avatar { display: grid; place-items: center; min-width: 22px; height: 22px; margin-left: -6px; padding: 0 4px; box-sizing: border-box; border-radius: 999px; background: var(--v5-brand); box-shadow: 0 0 0 2px var(--v5-surface); font: 600 10px/1 var(--font-v5); color: var(--v5-on-brand); }
+.team-bento__avatar { display: grid; place-items: center; min-width: 22px; height: 22px; margin-left: -6px; padding: 0 var(--v5-space-1); box-sizing: border-box; border-radius: 999px; background: var(--v5-brand); box-shadow: 0 0 0 2px var(--v5-surface); font: 600 10px/1 var(--font-v5); color: var(--v5-on-brand); }
 .team-bento__avatar:first-child { margin-left: 0; }
 .team-bento__avatar:nth-child(2) { background: var(--ui-device-ink); }
 .team-bento__avatar:nth-child(3) { background: var(--v5-warning); }
 .team-bento__avatar:nth-child(4) { background: var(--v5-ink-2); }
 .team-bento__split { display: flex; gap: 3px; }
-.team-bento__split > view { height: 8px; min-width: 8px; border-radius: 999px; background: var(--ui-device-ink); }
+.team-bento__split > view { height: 8px; min-width: 0; border-radius: 999px; background: var(--ui-device-ink); }
 .team-bento__split > view:last-child { background: color-mix(in srgb, var(--ui-device-ink) 35%, transparent); }
 .team-bento__pool { display: flex; align-items: center; gap: var(--ui-space-inline); margin-top: auto; }
 .team-bento__ring { display: grid; place-items: center; flex: none; width: 52px; height: 52px; border-radius: 999px; background: conic-gradient(var(--v5-nex) calc(var(--nx-viz-ring) * 1%), var(--v5-surface-3) 0); }
@@ -606,5 +612,5 @@ const teamSummaryStatus = computed(() => remoteApiEnabled ? network.remoteStatus
 .team-tool__icon--orange { color: var(--v5-brand-2); }
 .team-tool__icon--cyan { color: var(--ui-device-ink); }
 .team-tool__icon--violet { color: var(--v5-nex); }
-.team-tool__label { overflow: hidden; max-width: 100%; text-align: center; font: 500 var(--ui-type-meta)/var(--ui-type-meta-lh) var(--font-v5); color: var(--v5-ink-2); white-space: nowrap; text-overflow: ellipsis; }
+.team-tool__label { max-width: 100%; text-align: center; font: 500 var(--ui-type-meta)/var(--ui-type-meta-lh) var(--font-v5); color: var(--v5-ink-2); overflow-wrap: anywhere; }
 </style>

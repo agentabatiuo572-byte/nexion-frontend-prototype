@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useScrollGrowProgress } from "./use-scroll-grow-progress";
+import { nextTick } from 'vue';
 
 const hooks = vi.hoisted(() => ({ mounted: [] as Array<() => void>, unmounted: [] as Array<() => void> }));
 vi.mock("vue", async (original) => ({
@@ -16,6 +17,23 @@ afterEach(() => {
 });
 
 describe("visibility fallback for network readers", () => {
+  it("binds an API-backed card that mounts later and disconnects when it leaves", async () => {
+    class ViewElement {}
+    vi.stubGlobal('Element', ViewElement);
+    const observe = vi.fn(), disconnect = vi.fn();
+    vi.stubGlobal('IntersectionObserver', vi.fn(function () { return { observe, disconnect }; }));
+    const card = useScrollGrowProgress();
+    hooks.mounted[0]();
+    expect(observe).not.toHaveBeenCalled();
+    const element = new ViewElement();
+    card.elRef.value = { $el: element } as unknown as HTMLElement;
+    await nextTick();
+    expect(observe).toHaveBeenCalledWith(element);
+    expect(card.inView.value).toBe(false);
+    card.elRef.value = null;
+    await nextTick();
+    expect(disconnect).toHaveBeenCalledOnce();
+  });
   it("keeps progress bars visible without IO while network readers remain inactive", () => {
     vi.stubGlobal("IntersectionObserver", undefined);
     const bar = useScrollGrowProgress();
