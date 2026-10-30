@@ -1102,7 +1102,7 @@ import LiquidGlass from "@/components/liquid-glass.vue";
   /* top padding is bound inline to the device status-bar height (see cp-head :style) */
 }
 .cp-top-overlay {
-  position: absolute; inset: 0 0 auto; z-index: 4;
+  position: absolute; inset: 0 0 auto; z-index: 100;
   background: transparent; pointer-events: none;
 }
 .cp-top-overlay > * { pointer-events: auto; }

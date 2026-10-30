@@ -12,8 +12,6 @@
 -->
 <template>
   <view v-bind="$attrs" :id="chassisHostId" class="nx-chassis" :lang="contentLang" :data-tab-key="tabHost ? tabLocationKey : undefined" :data-tab-revision="tabHost ? tabRevision : undefined" :data-page-visible="pageVisible && hostVisible ? 'true' : 'false'" style="background: var(--v5-bg)" :chrome-config="chromeConfiguration" :change:chrome-config="chromeView.update">
-    <view class="nx-top-chrome" :style="{ height: statusBarHeight + 'px' }" />
-
     <!-- Status bar safe area (real on device, ~0 on desktop H5) -->
     <DeviceStatusBar />
 
@@ -728,17 +726,6 @@ export default chassisView;
 @media (min-width: 375px) { .nx-chassis { --nx-tabbar-height: 62px; } }
 @media (min-width: 390px) { .nx-chassis { --nx-tabbar-height: 64px; } }
 @media (min-width: 414px) { .nx-chassis { --nx-tabbar-height: 68px; } }
-.nx-top-chrome {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 90;
-  background: var(--v5-chrome-bg);
-  backdrop-filter: saturate(180%) blur(24px);
-  -webkit-backdrop-filter: saturate(180%) blur(24px);
-  pointer-events: none;
-}
 .nx-header {
   isolation: isolate;
   position: absolute;

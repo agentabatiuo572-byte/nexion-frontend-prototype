@@ -56,4 +56,8 @@ const shellStyle = computed<CSSProperties>(() => ({
   position: fixed;
   z-index: 10050;
 }
+.nx-standalone-page :deep(.nx-statusbar-material) {
+  position: fixed;
+  z-index: 10049;
+}
 </style>
