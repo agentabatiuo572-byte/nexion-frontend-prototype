@@ -20,6 +20,7 @@ import { zh } from "@/i18n/messages/zh";
 import { vi as vietnamese } from "@/i18n/messages/vi";
 import type { NetworkMember } from "@/store/network";
 import type { TeamLeaderboardSnapshot } from "@/api/team-insights-api";
+import * as vizMotion from "@/composables/use-scroll-grow-progress";
 
 const dictionaries = { en, zh, vi: vietnamese };
 const disposers: Array<() => void> = [];
@@ -99,7 +100,7 @@ test.each(["en", "zh", "vi"] as const)("ranking keeps server order, independent 
   const page = mountEntry(leaderboardSource, {
     "@/i18n/compute-points": { formatComputePoints }, "@/i18n/leaderboard-points-copy": { leaderboardPointsCopy },
     "@/components/ui/nx-button.vue": compileComponent(buttonSource, { "@/components/liquid-glass.vue": slot }),
-    "@/lib/amount-display": { formatAmount }, "@/lib/route": { navTo }, "@dcloudio/uni-app": { onShow: (fn: () => void) => shown.push(fn), onHide: vi.fn() },
+    "@/lib/amount-display": { formatAmount }, "@/lib/route": { navTo }, "@/composables/use-scroll-grow-progress": vizMotion, "@dcloudio/uni-app": { onShow: (fn: () => void) => shown.push(fn), onHide: vi.fn() },
     "@/components/app-chassis.vue": slot, "@/components/sub-page-header.vue": slot,
     "@/components/team/team-art.vue": slot, "@/components/team/team-rank-emblem.vue": slot,
     "@/lib/v-rank-copy": { rankLabel }, "@/store/data-visibility": teamPrivacyFixture().dependency, "@/store/locale": { useLocaleStore: () => ({ code: language }) },

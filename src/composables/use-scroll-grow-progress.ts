@@ -63,3 +63,14 @@ export function useScrollGrowProgress(options: { threshold?: number; fallbackInV
 /** Shared transition spec — keeps all progress bars in sync.
  *  1400ms easeOutExpo: fast start, gentle settle. */
 export const PROGRESS_GROW_TRANSITION = "width 1400ms cubic-bezier(0.16, 1, 0.3, 1)";
+
+/* Data-visual entrance (design system 07 · DS-29). Bind values as
+ * `inView === false ? 0 : value` so renders without an observer show the final state. */
+/** Columns and pedestals grow upward. */
+export const VIZ_GROW_HEIGHT_TRANSITION = "height 1100ms cubic-bezier(0.16, 1, 0.3, 1)";
+/** Rings sweep their arc through the registered `--nx-viz-ring` (tokens.css). */
+export const VIZ_RING_TRANSITION = "--nx-viz-ring 1400ms cubic-bezier(0.16, 1, 0.3, 1)";
+/** Sibling marks (columns, bars, dots) start 80ms apart, capped so long sets still finish quickly. */
+export function vizStagger(index: number, stepMs = 80, maxMs = 480): string {
+  return `${Math.min(index * stepMs, maxMs)}ms`;
+}

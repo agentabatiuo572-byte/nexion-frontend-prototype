@@ -10,7 +10,7 @@
       <view v-else class="quota-content">
         <view class="quota-hero">
           <view v-if="heroTier && focusedProductId" class="quota-hero__main"><view class="quota-hero__copy"><text class="quota-headline">{{ heroTier.name }}</text><text v-if="heroTier" class="quota-hero__price">{{ fmt(t.quota.priceLine, { price: formatFinanceAmount(heroTier.price) }) }}</text></view><image v-if="heroImage" :src="heroImage" mode="aspectFit" class="quota-hero__image" :alt="heroTier?.name" /><TeamArt v-else kind="members" :size="112" /></view>
-          <view class="quota-invite-count"><text>{{ t.quota.yourInvites }}</text><view><text class="quota-invite-count__number nx-num-metric">{{ visibility.mask(activeDirectText) }}</text><text class="quota-caption">{{ remoteApiEnabled && !remoteSnapshot ? visibility.mask('—') : fmt(t.quota.totalSuffix, { n: visibility.mask(directInvites) }) }}</text></view></view>
+          <view class="quota-invite-count"><view class="quota-ring nx-viz-sweep" aria-hidden="true" :style="{ '--nx-viz-ring': inviteRingPct }"><view class="quota-ring__hole" /></view><text>{{ t.quota.yourInvites }}</text><view><text class="quota-invite-count__number nx-num-metric">{{ visibility.mask(activeDirectText) }}</text><text class="quota-caption">{{ remoteApiEnabled && !remoteSnapshot ? visibility.mask('—') : fmt(t.quota.totalSuffix, { n: visibility.mask(directInvites) }) }}</text></view></view>
           <text class="quota-body">{{ t.quota.heroBody }}</text>
         </view>
 
@@ -21,7 +21,10 @@
           <NxButton v-if="productCatalogState.status === 'error'" class="nx-inline-recovery__action" variant="text" :label="t.store.catalogRetry" @click="retryCatalog" />
         </view>
         <view v-if="quotaReady && !focusedTiers.length" class="quota-state" role="status"><text>{{ t.empty.listTitle }}</text></view>
+        <!-- Tiers swipe sideways as large product cards (P-41). -->
+        <view v-if="focusedTiers.length" class="quota-carousel">
         <QuotaTierCard v-for="tier in focusedTiers" :key="tier.productId" :tier="tier" :pending="remoteApiEnabled && !remoteSnapshot" :action-blocked="!quotaReady" @navigate="go" />
+        </view>
 
         <view class="quota-footer">
           <NxButton variant="secondary" :label="t.empty.devicesCta" @click="go('/pages/store/store')"><text>{{ t.empty.devicesCta }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
@@ -156,6 +159,11 @@ const inviteHint = computed(() => remoteApiEnabled ? "—" : fmt(t.value.quota.i
 const members = computed(() => network.members);
 const directInvites = computed(() => remoteApiEnabled ? remoteSnapshot.value?.facts.directInvites ?? "—" : members.value.filter((m) => m.layer === 1).length);
 const activeDirect = computed(() => remoteApiEnabled ? remoteSnapshot.value?.facts.activeDirect ?? 0 : members.value.filter((m) => m.layer === 1 && m.status === "active").length);
+// Share of direct invites that are active, drawn as the hero ring (hidden data shows an empty ring).
+const inviteRingPct = computed(() => {
+  const total = directInvites.value;
+  return visibility.hidden || typeof total !== "number" || total <= 0 ? 0 : Math.min(100, activeDirect.value / total * 100);
+});
 const activeDirectText = computed(() => remoteApiEnabled && !remoteSnapshot.value ? "—" : String(activeDirect.value));
 
 // Single source: tiers derive from the catalog products that carry a
@@ -320,4 +328,19 @@ const quotaReady = computed(() => !remoteApiEnabled || (catalogDisplayReady.valu
 .quota-invite-count > view { justify-content: flex-end; text-align: right; max-width: 58%; overflow-wrap: anywhere; }
 .quota-invite-count > text { padding-top: 8px; flex: 1; }
 @media(max-width:374px) { .quota-content { padding-inline:16px; } .quota-hero__image { height:112px; } }
+/* P-41: hero card with the invite ring; tiers as a horizontal carousel of tinted product cards. */
+.quota-hero { margin-top: 4px; padding: 20px; border: 0; border-radius: 28px; background: radial-gradient(120% 90% at 85% 0%, color-mix(in srgb, var(--v5-brand) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.quota-invite-count { align-items: center; }
+.quota-invite-count > .quota-ring { justify-content: initial; max-width: none; text-align: initial; }
+.quota-ring { display: grid; place-items: center; flex: none; width: 56px; height: 56px; border-radius: 999px; background: conic-gradient(var(--v5-brand) calc(var(--nx-viz-ring) * 1%), var(--v5-surface-3) 0); }
+.quota-ring__hole { width: 44px; height: 44px; border-radius: 999px; background: var(--v5-surface); }
+.quota-carousel { display: flex; gap: var(--ui-space-inline); margin: var(--ui-space-inset) -20px 0; padding: 0 20px 4px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: 20px; scrollbar-width: none; }
+.quota-carousel::-webkit-scrollbar { display: none; }
+.quota-content .quota-carousel :deep(.quota-tier) { flex: none; width: 280px; box-sizing: border-box; padding: var(--ui-space-inset); border: 0; border-radius: 28px; scroll-snap-align: start; background: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--v5-brand) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.quota-content .quota-carousel :deep(.quota-product) { flex-direction: column; align-items: flex-start; gap: var(--v5-space-2); }
+.quota-content .quota-carousel :deep(.quota-product__image) { align-self: center; width: 100%; height: 120px; }
+.quota-content .quota-carousel :deep(.quota-product__arrow) { display: none; }
+.quota-content .quota-carousel :deep(.quota-product__name) { font: 600 var(--ui-type-card-title)/var(--ui-type-card-title-lh) var(--font-v5); }
+.quota-content .quota-carousel :deep(.quota-conditions) { padding-top: var(--ui-space-inline); }
+@media (max-width: 374px) { .quota-carousel { margin-inline: -16px; padding-inline: 16px; } .quota-content .quota-carousel :deep(.quota-tier) { width: 248px; } }
 </style>

@@ -16,29 +16,36 @@
             <view class="leader-cta" role="button" tabindex="0" @click="loadRemote()" @keydown.enter.prevent="loadRemote()" @keydown.space.prevent="loadRemote()"><text class="leader-retry-label">{{ t.leaderboard.retry }}</text><text aria-hidden="true">→</text></view>
           </view>
           <template v-else>
-            <view class="leader-hero">
-              <view class="leader-hero-copy">
-                <text class="leader-caption">{{ t.leaderboard.myRank.label }}</text>
-                <view class="leader-my-rank"><text class="nx-num-metric">{{ visibility.mask(!pointsRankingAvailable || me.rank === null ? '—' : '#' + myRankDisplay) }}</text><text class="leader-total">/ {{ visibility.mask(pointsRankingAvailable ? totalRows.toLocaleString() : '—') }}</text></view>
-                <text class="leader-gap">{{ visibility.mask(gapText) }}</text>
-              </view>
-              <TeamArt kind="podium" :size="80" />
-            </view>
-
             <view v-if="!pointsRankingAvailable" class="leader-state" role="status"><text>{{ pointsCopy.unavailable }}</text></view>
             <view v-else class="leader-list">
-              <view class="leader-list-heading"><text>{{ t.leaderboard.columns.rank }} · {{ t.leaderboard.columns.inviter }}</text><text>{{ pointsCopy.points }}</text></view>
-              <view v-for="group in rankingGroups" :key="group.id" :class="group.featured ? 'leader-podium' : 'leader-flat'">
-              <view v-for="row in group.rows" :key="row.rank" class="leader-row" :data-rank="visibility.hidden ? undefined : row.rank">
-                <text class="leader-position tabular-nums" :class="{ 'leader-position--top': row.rank <= 3 }">{{ visibility.mask(row.rank) }}</text>
-                <TeamRankEmblem v-if="!visibility.hidden" :rank="row.vRank" :size="40" /><view v-else style="width: 40px; height: 40px" aria-hidden="true" />
-                <view class="leader-person">
+              <view v-for="group in rankingGroups" :key="group.id" :class="group.featured ? 'leader-podium nx-viz-motion' : 'leader-flat'">
+              <view v-for="row in group.rows" :key="row.rank" class="leader-row" :class="group.featured ? `leader-row--podium leader-row--p${row.rank}` : ''" :data-rank="visibility.hidden ? undefined : row.rank">
+                <template v-if="group.featured">
+                  <view class="leader-podium__badge">
+                    <svg v-if="row.rank === 1" class="leader-podium__crown nx-viz-pop" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14" /></svg>
+                    <TeamRankEmblem v-if="!visibility.hidden" :rank="row.vRank" :size="row.rank === 1 ? 48 : 42" /><view v-else class="leader-podium__blank" aria-hidden="true" />
+                  </view>
                   <text class="leader-name">{{ row.handle }}</text>
-                  <text class="leader-meta">{{ visibility.mask(rankLabel(row.vRank, locale.code, [])) }} · {{ fmt(t.leaderboard.chips.directs, { n: visibility.mask(row.directs) }) }}</text>
-                  <text class="leader-meta">{{ fmt(t.leaderboard.chips.teamSize, { n: visibility.mask(row.teamSize.toLocaleString()) }) }}</text>
-                </view>
-                <view class="leader-points"><text class="tabular-nums">{{ visibility.mask(formatComputePoints(row.computePoints, locale.code)) }}</text></view>
+                  <view class="leader-points"><text class="nx-num-metric">{{ visibility.mask(formatComputePoints(row.computePoints, locale.code)) }}</text></view>
+                  <view class="leader-podium__step nx-viz-rise" :style="{ animationDelay: vizStagger(3 - row.rank, 120) }"><text class="leader-position nx-num-metric">{{ visibility.mask(row.rank) }}</text></view>
+                </template>
+                <template v-else>
+                  <text class="leader-position nx-num-metric">{{ visibility.mask(row.rank) }}</text>
+                  <TeamRankEmblem v-if="!visibility.hidden" :rank="row.vRank" :size="36" /><view v-else style="width: 36px; height: 36px" aria-hidden="true" />
+                  <view class="leader-person">
+                    <text class="leader-name">{{ row.handle }}</text>
+                    <text class="leader-meta">{{ visibility.mask(rankLabel(row.vRank, locale.code, [])) }} · {{ fmt(t.leaderboard.chips.directs, { n: visibility.mask(row.directs) }) }} · {{ fmt(t.leaderboard.chips.teamSize, { n: visibility.mask(row.teamSize.toLocaleString()) }) }}</text>
+                  </view>
+                  <view class="leader-points"><text class="nx-num-metric">{{ visibility.mask(formatComputePoints(row.computePoints, locale.code)) }}</text></view>
+                </template>
               </view>
+              </view>
+            </view>
+            <view class="leader-me">
+              <view class="leader-my-rank"><text class="nx-num-metric">{{ visibility.mask(!pointsRankingAvailable || me.rank === null ? '—' : '#' + myRankDisplay) }}</text><text class="leader-total">/ {{ visibility.mask(pointsRankingAvailable ? totalRows.toLocaleString() : '—') }}</text></view>
+              <view class="leader-me__body">
+                <view class="leader-me__line"><text class="leader-caption">{{ t.leaderboard.myRank.label }}</text><text class="leader-gap">{{ visibility.mask(gapText) }}</text></view>
+                <view v-if="myProgress !== null && !visibility.hidden" class="leader-me__bar nx-viz-motion" aria-hidden="true"><view class="nx-viz-grow" :style="{ width: `${myProgress}%`, animationDelay: '600ms' }" /></view>
               </view>
             </view>
             <view v-if="hasMore" class="leader-more" role="button" :tabindex="remoteState !== 'ready' || remoteLoadingMore ? -1 : 0" :aria-disabled="remoteState !== 'ready' || remoteLoadingMore" :aria-busy="remoteLoadingMore" @click="loadMore" @keydown.enter.prevent="loadMore" @keydown.space.prevent="loadMore">
@@ -61,12 +68,12 @@ import { formatDisplayDateTime } from "@/lib/display-date";
 import { formatComputePoints } from "@/i18n/compute-points";
 import { leaderboardPointsCopy } from "@/i18n/leaderboard-points-copy";
 import { navTo } from "@/lib/route";
+import { vizStagger } from "@/composables/use-scroll-grow-progress";
 import { computed, nextTick, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import { onShow, onHide } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import NxButton from '@/components/ui/nx-button.vue';
-import TeamArt from "@/components/team/team-art.vue";
 import TeamRankEmblem from "@/components/team/team-rank-emblem.vue";
 import { rankLabel } from "@/lib/v-rank-copy";
 import { useLocaleStore } from "@/store/locale";
@@ -123,6 +130,13 @@ const rankingGroups = computed(() => [
   { id: "leaders", featured: true, rows: visibleRows.value.filter(row => row.rank <= 3) },
   { id: "others", featured: false, rows: visibleRows.value.filter(row => row.rank > 3) },
 ].filter(group => group.rows.length > 0));
+// Progress toward the next rank, only when my own row and the server gap are both known.
+const myProgress = computed(() => {
+  const mine = me.value.rank === null ? undefined : rows.value.find(row => row.rank === me.value.rank);
+  const gap = me.value.gapToNextComputePoints, points = mine?.computePoints ?? null;
+  if (!pointsRankingAvailable.value || points === null || gap === null || points + gap <= 0) return null;
+  return Math.round(points / (points + gap) * 100);
+});
 const hasMore = computed(() => pointsRankingAvailable.value && (remoteApiEnabled
   ? rows.value.length < (remoteSnapshot.value?.totalRows ?? 0)
   : visibleCount.value < rows.value.length));
@@ -253,25 +267,39 @@ const periodOptions = computed(() => PERIODS.map(value => ({ value, label: t.val
 <style scoped>
 .leader-content { display: flex; flex-direction: column; gap: 24px; padding: var(--ui-space-inline) 20px 24px; }
 .nx-leader-periods { width: 100%; min-width: 0; }
-.leader-hero { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); padding: 4px 0 8px; }
-.leader-hero-copy { min-width: 0; flex: 1; overflow-wrap: anywhere; }
-.leader-caption { color: var(--v5-ink-3); font-size: var(--ui-type-list-subtitle); }
-.leader-my-rank { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; font-size: var(--ui-type-wallet-amount); font-weight: 600; line-height: var(--ui-type-wallet-amount-lh); margin: 8px 0 12px; }
-.leader-total { color: var(--v5-ink-3); font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); font-weight: 400; }
-.leader-gap { display: block; color: var(--v5-ink-2); font-size: var(--ui-type-list-subtitle); line-height: var(--ui-type-list-subtitle-lh); }
-.leader-list-heading { display: flex; justify-content: space-between; gap: var(--ui-space-inset); color: var(--v5-ink-3); font-size: 12px; padding-bottom: 12px; }
-.leader-list-heading > :last-child { text-align: right; }
-.leader-podium { padding: 0 12px; border: 1px solid var(--v5-border); border-radius: 16px; background: color-mix(in srgb, var(--v5-ink) 4%, var(--v5-bg)); }
-.leader-podium > .leader-row:first-child { border-top: 0; }
-.leader-flat { margin-top: var(--ui-space-inline); }
-.leader-row { display: flex; align-items: center; gap: var(--ui-space-row-y); border-top: 1px solid var(--v5-border); padding: 16px 0; min-height: 64px; }
-.leader-position { min-width: 20px; font-size: 14px; color: var(--v5-ink-3); }
-.leader-position--top { color: var(--v5-brand); font-weight: 600; }
+.leader-caption { color: var(--v5-ink-3); font: var(--ui-type-meta-weight) var(--ui-type-meta)/var(--ui-type-meta-lh) var(--font-v5); }
+/* Podium: top three on pedestals, 2-1-3 visual order (DOM stays 1-2-3), faint gold tint. */
+.leader-podium { display: flex; align-items: flex-end; gap: var(--v5-space-2); padding: 28px var(--ui-space-inline) var(--ui-space-inset); border-radius: 28px; background: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--v5-warning) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.leader-row--podium { flex: 1; min-width: 0; border-top: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.leader-row--p1 { order: 2; --step: 124px; --tone: var(--v5-warning); }
+.leader-row--p2 { order: 1; --step: 92px; --tone: var(--v5-ink-2); }
+.leader-row--p3 { order: 3; --step: 72px; --tone: var(--v5-brand-2); }
+.leader-podium__badge { position: relative; display: grid; place-items: center; }
+.leader-podium__crown { position: absolute; top: -20px; color: var(--v5-warning); animation-delay: 1000ms; }
+.leader-podium__blank { width: 42px; height: 42px; }
+.leader-row--podium .leader-name { max-width: 100%; overflow: hidden; text-align: center; white-space: nowrap; text-overflow: ellipsis; font-weight: 600; }
+.leader-row--podium .leader-points { max-width: 100%; text-align: center; font: 500 var(--ui-type-meta)/var(--ui-type-meta-lh) var(--font-metric); color: var(--v5-ink-3); }
+/* Pedestals rise 3rd → 2nd → 1st as the podium renders; the crown lands last (DS-29). */
+.leader-podium__step { display: flex; justify-content: center; width: 100%; height: var(--step); overflow: hidden; box-sizing: border-box; padding-top: 10px; border-radius: 16px 16px 6px 6px; background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 40%, transparent), color-mix(in srgb, var(--tone) 4%, transparent)); box-shadow: inset 0 1px 0 rgba(255,255,255,.16); }
+.leader-podium__step .leader-position { font: 600 26px/30px var(--font-metric); color: var(--tone); }
+.leader-flat { margin-top: var(--ui-space-inline); padding: 0 var(--ui-space-inset); border-radius: var(--ui-radius-surface); background: var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.leader-flat > .leader-row:first-child { border-top: 0; }
+.leader-row { display: flex; align-items: center; gap: var(--ui-space-inline); border-top: 1px solid var(--v5-border); min-height: 64px; }
+.leader-position { min-width: 20px; font: 600 var(--ui-type-list-title)/20px var(--font-metric); color: var(--v5-ink-3); }
 .leader-person { min-width: 0; flex: 1; }
-.leader-name { display: block; font-size: var(--ui-type-list-title); line-height: var(--ui-type-list-title-lh); font-weight: 500; overflow-wrap: anywhere; }
-.leader-meta { display: block; color: var(--v5-ink-3); font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); margin-top: 4px; overflow-wrap: anywhere; }
-.leader-points { text-align: right; font-size: var(--ui-type-list-subtitle); line-height: var(--ui-type-list-subtitle-lh); max-width: 34%; overflow-wrap: anywhere; }
+.leader-name { display: block; font: var(--ui-type-message-title-weight) var(--ui-type-message-title)/var(--ui-type-message-title-lh) var(--font-v5); overflow-wrap: anywhere; }
+.leader-meta { display: block; color: var(--v5-ink-3); font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.leader-points { text-align: right; font: 500 var(--ui-type-subheading)/20px var(--font-metric); max-width: 34%; overflow-wrap: anywhere; }
 .leader-currency { display: block; margin-top: 4px; font-size: 11px; color: var(--v5-ink-3); }
+/* My rank: brand-tinted strip with the gap and, when known, progress to the next rank. */
+.leader-me { display: flex; align-items: center; gap: var(--ui-space-inline); padding: var(--ui-space-inline) var(--ui-space-inset); border-radius: 20px; background: color-mix(in srgb, var(--v5-brand) 10%, var(--v5-surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--v5-brand) 30%, transparent); }
+.leader-me .leader-my-rank { display: flex; align-items: baseline; gap: 4px; flex: none; font: 600 22px/28px var(--font-metric); color: var(--v5-brand); }
+.leader-total { color: var(--v5-ink-3); font: 400 var(--ui-type-meta)/var(--ui-type-meta-lh) var(--font-metric); }
+.leader-me__body { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+.leader-me__line { display: flex; align-items: baseline; justify-content: space-between; gap: var(--v5-space-2); }
+.leader-gap { overflow: hidden; color: var(--v5-ink-2); font: var(--ui-type-meta-weight) var(--ui-type-meta)/var(--ui-type-meta-lh) var(--font-v5); white-space: nowrap; text-overflow: ellipsis; }
+.leader-me__bar { position: relative; height: 6px; overflow: hidden; border-radius: 999px; background: var(--v5-surface-3); }
+.leader-me__bar > view { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: var(--v5-brand); }
 .leader-cta { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inset); min-height: 48px; padding: var(--ui-space-inline) 20px; box-sizing: border-box; border: 1px solid var(--v5-border); border-radius: 999px; color: var(--v5-ink); background: color-mix(in srgb, var(--v5-ink) 6%, transparent); font-size: 14px; font-weight: 500; }
 .leader-more { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-2); }
 .leader-retry-label { font: 600 13px/20px var(--font-v5); }
@@ -279,5 +307,5 @@ const periodOptions = computed(() => PERIODS.map(value => ({ value, label: t.val
 .leader-state { display: flex; flex-direction: column; gap: 14px; padding: 32px 0; color: var(--v5-ink-2); font-size: var(--ui-type-list-subtitle); line-height: 1.6; }
 .leader-state-title { font-size: var(--ui-type-card-title); line-height: var(--ui-type-card-title-lh); font-weight: var(--ui-type-card-title-weight); color: var(--v5-ink); }
 [role="button"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
-@media (max-width: 374px) { .leader-content { padding-left: 16px; padding-right: 16px; } .leader-hero :deep(.team-art) { --team-art-size: 72px; } .leader-row { gap: 6px; min-height: 56px; } .leader-podium { padding-inline: 8px; } .leader-points { font-size: var(--ui-type-list-subtitle); } }
+@media (max-width: 374px) { .leader-content { padding-left: 16px; padding-right: 16px; } .leader-row { min-height: 56px; } .leader-podium { padding-inline: 8px; } .leader-points { font-size: var(--ui-type-list-subtitle); } }
 </style>

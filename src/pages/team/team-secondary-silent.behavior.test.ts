@@ -51,7 +51,7 @@ async function screen(name: string, language: 'en'|'zh'|'vi' = 'en', actualPayou
     '@/composables/use-product-phase':{useProductPhase:()=>Vue.ref({binaryDailyCapUSD:100})},
     '@/lib/payout-clock':{createPayoutClock:()=>({start(){},stop(){}})},
     '@/lib/route':{navTo:vi.fn(),navBack:vi.fn()},
-    '@/composables/use-scroll-grow-progress':{useScrollGrowProgress:()=>({elRef:Vue.ref(null),inView:Vue.ref(true)}),PROGRESS_GROW_TRANSITION:''},
+    '@/composables/use-scroll-grow-progress':{useScrollGrowProgress:()=>({elRef:Vue.ref(null),inView:Vue.ref(true)}),VIZ_GROW_HEIGHT_TRANSITION:'',VIZ_RING_TRANSITION:'',vizStagger:()=>'0ms',PROGRESS_GROW_TRANSITION:''},
     // Rule guides pass their copy as props, so the shared rule components render for real.
     '@/components/team/team-rule-section.vue':ruleSection, '@/components/team/team-rule-hero.vue':ruleHero, '@/components/team/team-rule-document.vue':ruleDocument,
   };

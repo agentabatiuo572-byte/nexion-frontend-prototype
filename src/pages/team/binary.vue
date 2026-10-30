@@ -35,7 +35,7 @@
                 <view v-for="(wing, index) in wings" :key="wing.key" class="binary-contribution">
                   <view class="binary-group-heading"><text>{{ wing.name }}</text><text v-if="wing.isWeak && !visibility.hidden" class="binary-weak">{{ t.binary.weakBadge }}</text></view>
                   <text class="binary-points tabular-nums">{{ visibility.mask('$' + formatFinanceAmount(wing.monthVol)) }}</text>
-                  <view class="binary-contribution-track" aria-hidden="true"><view v-if="contributionWidths && !visibility.hidden" class="binary-contribution-fill" :class="{ 'binary-contribution-fill--other': index === 1 }" :style="{ width: contributionWidths[index] + '%' }" /></view>
+                  <view class="binary-contribution-track" aria-hidden="true"><view v-if="contributionWidths && !visibility.hidden" class="binary-contribution-fill nx-viz-rise" :class="{ 'binary-contribution-fill--other': index === 1 }" :style="{ height: contributionWidths[index] + '%', animationDelay: vizStagger(index, 120) }" /></view>
                   <text class="binary-note">{{ wingMembersText(wing.count) }}</text>
                 </view>
               </view>
@@ -85,6 +85,7 @@
   </AppChassis>
 </template>
 <script setup lang="ts">
+import { vizStagger } from "@/composables/use-scroll-grow-progress";
 import { useDataVisibility } from "@/store/data-visibility";
 import { formatFinanceAmount } from "@/lib/finance-amount-display";
 import { formatComputePoints } from "@/i18n/compute-points";
@@ -349,14 +350,14 @@ function recentRowStyle(isLast: boolean): CSSProperties {
 <style scoped>
 .binary-content { display: flex; flex-direction: column; gap: 28px; padding: 12px 20px 24px; }
 .binary-loading { height: 156px; border-radius: 20px; background: var(--v5-surface-2); }
-.binary-hero { padding: 8px 18px 12px; border-radius: 20px; background: var(--v5-surface); border: 1px solid var(--v5-border); }
+.binary-hero { padding: 8px 20px 16px; border-radius: 28px; background: radial-gradient(120% 90% at 85% 0%, color-mix(in srgb, var(--ui-device-ink) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
 .binary-hero-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .binary-label { display: block; font-size: var(--ui-type-list-subtitle); line-height: var(--ui-type-list-subtitle-lh); color: var(--v5-ink-2); }
 .binary-hero-heading > .binary-label { flex: 1; min-width: 0; }
 .binary-rule-link { display: flex; align-items: center; justify-content: flex-end; min-width: 44px; min-height: 44px; color: var(--v5-ink-3); font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); flex: 0 0 auto; }
 .binary-hero :deep(.reward-hero) { border: 0; padding: 0; }
 .binary-hero :deep(.reward-hero__art) { --team-art-size: 64px; flex-basis: 64px; }
-.binary-hero .reward-amount { margin: 0; font-size: var(--ui-type-wallet-amount); line-height: var(--ui-type-wallet-amount-lh); }
+.binary-hero .reward-amount { margin: 0; font-size: 40px; line-height: 48px; font-weight: 550; }
 .binary-section-title { display: block; font-size: var(--ui-type-section); line-height: var(--ui-type-section-lh); font-weight: 600; color: var(--v5-ink); }
 .binary-note { display: block; color: var(--v5-ink-3); font-size: var(--ui-type-list-subtitle); line-height: 1.6; overflow-wrap: anywhere; }
 .binary-notice { display: flex; align-items: flex-start; border-bottom: 1px solid var(--v5-border); margin-top: -12px; }
@@ -364,14 +365,14 @@ function recentRowStyle(isLast: boolean): CSSProperties {
 .binary-notice-copy { min-width: 0; flex: 1; }
 .binary-notice-title { display: block; font-weight: 500; font-size: var(--ui-type-list-title); line-height: var(--ui-type-list-title-lh); margin-bottom: 6px; }
 .binary-text-action { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; min-width: 44px; color: var(--v5-ink-2); font-size: var(--ui-type-button); line-height: var(--ui-type-button-lh); }
-.binary-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 18px; }
-.binary-contribution { min-width: 0; }
-.binary-group-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: var(--ui-type-list-title); line-height: var(--ui-type-list-title-lh); }
-.binary-weak { color: var(--v5-ink-3); font-size: var(--ui-type-meta); font-weight: 400; }
-.binary-points { display: block; margin-top: 10px; color: var(--v5-ink); font-size: var(--ui-type-profile); line-height: var(--ui-type-profile-lh); font-weight: 600; overflow-wrap: anywhere; }
-.binary-contribution-track { height: 4px; margin: 14px 0 10px; background: var(--v5-surface-3); border-radius: 2px; overflow: hidden; }
-.binary-contribution-fill { height: 100%; background: var(--v5-brand); }
-.binary-contribution-fill--other { background: var(--v5-ink-3); }
+.binary-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ui-space-inline); margin-top: var(--ui-space-inline); padding: 20px var(--ui-space-inset) var(--ui-space-inset); border-radius: 28px; background: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--ui-device-ink) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.binary-contribution { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; text-align: center; }
+.binary-group-heading { display: flex; flex-direction: column-reverse; align-items: center; justify-content: flex-start; gap: 8px; min-height: 56px; order: 0; font: 500 var(--ui-type-list-subtitle)/var(--ui-type-list-subtitle-lh) var(--font-v5); color: var(--v5-ink-2); }
+.binary-weak { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; background: color-mix(in srgb, var(--ui-device-ink) 16%, transparent); color: var(--ui-device-ink); font: 500 12px/16px var(--font-v5); }
+.binary-points { display: block; order: 2; color: var(--v5-ink); font: 500 15px/20px var(--font-metric); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.binary-contribution-track { position: relative; order: 1; width: 64px; height: 150px; margin: 4px 0; border-radius: 18px; background: var(--v5-surface-3); box-shadow: inset 0 0 0 1px var(--v5-border); overflow: hidden; }
+.binary-contribution-fill { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 18px; background: linear-gradient(180deg, var(--v5-brand), color-mix(in srgb, var(--v5-brand) 25%, transparent)); }
+.binary-contribution-fill--other { background: linear-gradient(180deg, var(--ui-device-ink), color-mix(in srgb, var(--ui-device-ink) 25%, transparent)); }
 .reward-binary-basis { display: flex; flex-direction: column; gap: 8px; padding-top: 18px; margin-top: 18px; border-top: 1px solid var(--v5-border); }
 .binary-member-recovery { display: flex; align-items: center; justify-content: space-between; }
 .binary-member-recovery > .binary-note { flex: 1; }
@@ -390,4 +391,7 @@ function recentRowStyle(isLast: boolean): CSSProperties {
 .reward-match-amount { display: flex; flex-direction: column; align-items: flex-end; text-align: right; gap: 4px; max-width: 48%; }
 [role="button"]:focus-visible, [role="link"]:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 @media (max-width: 374px) { .binary-content { padding-inline: 16px; gap: 24px; } .binary-hero { padding-inline: 14px; } .binary-comparison, .reward-wings { gap: 16px; } }
+.binary-contribution > .binary-note { order: 3; }
+.reward-binary-basis { display: flex; flex-direction: column; gap: 4px; margin-top: var(--ui-space-inline); padding: var(--ui-space-inline) var(--ui-space-inset); border-radius: 18px; background: color-mix(in srgb, var(--ui-device-ink) 10%, transparent); }
+.reward-wings { padding: 4px var(--ui-space-inset) var(--ui-space-inset); border-top: 0; border-radius: var(--ui-radius-surface); background: var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
 </style>

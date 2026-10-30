@@ -22,7 +22,17 @@
               <text class="font-mono-tabular" :style="statusCapStyle('var(--v5-ink-2)')">{{ t.pool.projectedDividend }}</text>
               <VBadge v-if="!visibility.hidden" :v="myRank" size="sm" /><text v-else>{{ visibility.mask('') }}</text>
             </view>
-            <text class="block font-display tabular-nums" :style="projectedStyle">${{ visibility.mask(formatFinanceAmount(projectedPayout)) }}</text>
+            <view class="pool-share">
+              <view class="pool-ring nx-viz-sweep" aria-hidden="true" :style="{ '--nx-viz-ring': visibility.hidden ? 0 : Math.min(100, Math.max(0, myShare * 100)) }"><view class="pool-ring__hole"><text class="pool-ring__pct">{{ visibility.mask(shareLabel) }}</text></view></view>
+              <view class="pool-share__copy">
+                <text class="block font-display tabular-nums" :style="projectedStyle">${{ visibility.mask(formatFinanceAmount(projectedPayout)) }}</text>
+                <text class="pool-share__note">{{ weeklyDescText }}</text>
+              </view>
+            </view>
+            <!-- One dot per vote (mine first), only while the count stays readable. -->
+            <view v-if="!visibility.hidden && totalVotes > 0 && totalVotes <= 60" class="pool-dots" aria-hidden="true">
+              <view v-for="n in totalVotes" :key="n" class="pool-dot nx-viz-light" :class="{ 'pool-dot--mine': n <= myVotes }" :style="{ animationDelay: `${Math.min((n - 1) * 40, 480)}ms` }" />
+            </view>
             <view class="pool-votes">
               <view><text :style="statLabelStyle">{{ auditCopy.votes }}</text><text class="block" :style="statValueStyle">{{ visibility.mask(myVotes) }}</text></view>
               <view><text :style="statLabelStyle">{{ auditCopy.totalVotes }}</text><text class="block" :style="statValueStyle">{{ visibility.mask(totalVotes) }}</text></view>
@@ -293,8 +303,7 @@ onUnmounted(() => {
 });
 
 const statusStyle: CSSProperties = {
-  padding: "16px 0",
-  background: "transparent",
+  padding: "20px",
 };
 function statusCapStyle(color: string): CSSProperties {
   return { fontSize: "var(--ui-type-list-subtitle)", lineHeight: "var(--ui-type-list-subtitle-lh)", color };
@@ -310,22 +319,36 @@ const lockedSubStyle: CSSProperties = { marginTop: "6px", fontSize: "12px", colo
 const pastGroupStyle: CSSProperties = {};
 const pastHeadStyle: CSSProperties = { padding: "0 0 12px", fontSize: "var(--ui-type-section)", lineHeight: "var(--ui-type-section-lh)", fontWeight: 600, color: "var(--v5-ink)" };
 function historyRowStyle(isLast: boolean): CSSProperties {
-  return { padding: "12px 0", borderBottom: isLast ? "none" : "1px solid var(--v5-border)" };
+  return { padding: "12px 16px", borderBottom: isLast ? "none" : "1px solid var(--v5-border)" };
 }
 </script>
 
 <style scoped>
 .pool-content { display: flex; flex-direction: column; gap: 28px; padding: 12px 20px 24px; }
-.pool-hero { padding: 8px 18px 18px; border: 1px solid var(--v5-border); border-radius: 20px; background: var(--v5-surface); }
+.pool-hero { padding: 8px 20px 20px; border-radius: 28px; background: radial-gradient(120% 90% at 85% 0%, color-mix(in srgb, var(--v5-nex) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
 .pool-hero-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .pool-label { color: var(--v5-ink-2); font-size: var(--ui-type-list-subtitle); line-height: var(--ui-type-list-subtitle-lh); }
 .pool-rule-link { display: flex; align-items: center; justify-content: flex-end; min-height: 44px; min-width: 44px; flex: none; color: var(--v5-ink-3); font-size: var(--ui-type-meta); }
 .pool-hero :deep(.reward-hero) { padding: 0; border: 0; }
 .pool-hero :deep(.reward-hero__art) { --team-art-size: 64px; flex-basis: 64px; }
 .pool-hero :deep(.reward-hero__sub) { margin-top: 8px; color: var(--v5-ink-3); }
-.pool-hero .reward-amount { margin: 0; font-size: var(--ui-type-wallet-amount); line-height: var(--ui-type-wallet-amount-lh); }
-.pool-personal { border-bottom: 1px solid var(--v5-border); }
-.pool-history-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.pool-hero .reward-amount { margin: 0; font-size: 40px; line-height: 48px; font-weight: 550; }
+/* Personal share (P-41): ring for my share, dot grid for votes, faint violet tint (DS-28/29). */
+.pool-personal { padding: 20px; border-radius: 28px; background: radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--v5-nex) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.pool-share { display: flex; align-items: center; gap: var(--ui-space-inset); margin-top: var(--ui-space-inline); }
+.pool-ring { display: grid; place-items: center; flex: none; width: 112px; height: 112px; border-radius: 999px; background: conic-gradient(var(--v5-nex) calc(var(--nx-viz-ring) * 1%), var(--v5-surface-3) 0); }
+.pool-ring__hole { display: grid; place-items: center; width: 90px; height: 90px; border-radius: 999px; background: var(--v5-surface); }
+.pool-ring__pct { font: 600 18px/24px var(--font-metric); color: var(--v5-nex); }
+.pool-share__copy { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.pool-share__copy > text:first-child { margin-top: 0 !important; font-family: var(--font-amount); font-weight: 550 !important; }
+.pool-share__note { font: var(--ui-type-meta-weight) var(--ui-type-meta)/var(--ui-type-meta-lh) var(--font-v5); color: var(--v5-ink-3); }
+.pool-dots { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 6px; margin-top: var(--ui-space-inset); }
+.pool-dot { aspect-ratio: 1; border-radius: 4px; background: var(--v5-surface-3); }
+.pool-dot--mine { background: var(--v5-nex); }
+.pool-history-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 60px; padding: 0 var(--ui-space-inset); background: var(--v5-surface); }
+.pool-history-row:first-of-type { border-radius: var(--ui-radius-surface) var(--ui-radius-surface) 0 0; }
+.pool-history-row:last-of-type { border-radius: 0 0 var(--ui-radius-surface) var(--ui-radius-surface); }
+.pool-history-row:only-of-type { border-radius: var(--ui-radius-surface); }
 .pool-history-row > view { flex: 1; min-width: 0; }
 .pool-history-row > text { max-width: 52%; text-align: right; overflow-wrap: anywhere; }
 .pool-action { display: inline-flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; color: var(--v5-ink-2); font-size: var(--ui-type-button); line-height: var(--ui-type-button-lh); }
