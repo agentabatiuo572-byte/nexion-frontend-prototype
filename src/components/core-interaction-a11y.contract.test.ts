@@ -6,6 +6,7 @@ const sources = import.meta.glob([
   "./support/conversation-thread.vue",
   "../pages/store/checkout.vue",
   "../pages/support/chat.vue",
+  "./ui/nx-button.vue",
 ], { query: "?raw", import: "default", eager: true }) as Record<string, string>;
 
 const read = (path: string) => sources[path] ?? "";
@@ -16,9 +17,11 @@ function clickableTag(source: string, click: string): string {
   return source.slice(source.lastIndexOf("<", marker), source.indexOf(">", marker) + 1);
 }
 
+// Reachable when actionable: a static tabindex="0", or a roving tabindex that is 0 while enabled.
+const REACHABLE = /(?<!:)tabindex="0"|:tabindex="[^"]*\? (?:0 : (?:-1|undefined)|-1 : 0)"/;
 function expectKeyboardControl(tag: string): void {
-  expect(tag).toContain('role="');
-  expect(tag).toContain('tabindex="0"');
+  expect(tag).toMatch(/(?<!:)role="|:role="/);
+  expect(tag).toMatch(REACHABLE);
   expect(tag).toContain("onKeyboardActivate($event");
 }
 
@@ -55,7 +58,8 @@ describe("core interaction accessibility contracts", () => {
     for (const click of [
       '@click="saveQueueEdit(m)"',
       "@click=\"runQueueAction(m, 'cancel-edit')\"",
-      "@click=\"runQueueAction(m, 'retry')\"",
+      // Retry lives on the delivery receipt, a button only while the message is retryable.
+      '@click="retryStatus(m)"',
       '@click="startEdit(m)"',
       "@click=\"runQueueAction(m, 'cancel')\"",
     ]) {
@@ -66,10 +70,8 @@ describe("core interaction accessibility contracts", () => {
   it("makes the full-screen support header and history actions keyboard reachable", () => {
     const source = read("../pages/support/chat.vue");
     for (const click of [
+      // New-conversation, ticket and Nova history actions left with Nova (BUG-008).
       '@click="goBack"',
-      '@click="onStartNewConversation"',
-      '@click="onConvertToTicket"',
-      '@click="loadEarlierNovaHistory"',
       '@click="loadEarlierHumanHistory"',
     ]) {
       expectKeyboardControl(clickableTag(source, click));
@@ -85,8 +87,10 @@ describe("core interaction accessibility contracts", () => {
 
   it("makes checkout trade-in removal and restoration keyboard reachable", () => {
     const source = read("../pages/store/checkout.vue");
-    for (const click of ['@click="removeTradein"', '@click="reAddTradein"']) {
-      expectKeyboardControl(clickableTag(source, click));
-    }
+    // Both are the shared NxButton, which owns role, roving tabindex and Enter/Space activation.
+    for (const click of ['@click="removeTradein"', '@click="reAddTradein"']) expect(clickableTag(source, click)).toMatch(/^<NxButton\b/);
+    const button = read("./ui/nx-button.vue");
+    expect(button).toContain('role="button" :tabindex="disabled || busy ? -1 : 0"');
+    expect(button).toContain('@keydown.enter.prevent="activate" @keydown.space.prevent="activate"');
   });
 });

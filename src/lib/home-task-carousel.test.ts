@@ -83,10 +83,10 @@ describe("home task carousel", () => {
     expect(deriveHomeTaskCards(true, flags, ["gift-A"]))
       .toEqual(["promotion:gift-A"]);
     const template = homePageSource.slice(homePageSource.indexOf("<template>"), homePageSource.indexOf("</template>"));
-    const slide = template.slice(template.indexOf("<swiper-item"), template.indexOf("</swiper-item>"));
-    expect(slide).toContain('<PromotionEntry v-else mode="home" :active="taskSlide === index"');
+    // Home dropped the task carousel in the 2026-10-25 UX audit; promotions render once, directly.
+    expect(template).not.toContain("<swiper");
+    expect(template).toContain('<PromotionEntry v-if="homePromotions.length" mode="home" :activities="homePromotions" />');
     expect(template.match(/<PromotionEntry\b/g)).toHaveLength(1);
-    expect(template.match(/<QuickActionRow\b/g)).toHaveLength(1);
   });
 
   it("renders the configured weekly mission instead of a paused upsell banner", () => {
@@ -231,12 +231,11 @@ describe("home task carousel", () => {
     expect(weeklyQuestHeroSource).toContain("const questTargetClosed = computed(");
     // 文案、可访问角色与焦点都必须随停用态一起收掉,不能只拦点击。
     expect(weeklyQuestHeroSource).toContain("questTargetClosed ? w.targetClosed : ctaText");
-    expect(weeklyQuestHeroSource).toContain(":role=\"questTargetClosed ? undefined : 'button'\"");
-    expect(weeklyQuestHeroSource).toContain(":tabindex=\"questTargetClosed ? -1 : 0\"");
-    expect(weeklyQuestHeroSource).toContain(":aria-disabled=\"questTargetClosed ? 'true' : 'false'\"");
-    expect(weeklyQuestHeroSource).toContain(":style=\"questTargetClosed ? closedCtaStyle : ctaStyle\"");
-    // 停用态不得再用「可点的主操作」配色。
-    expect(weeklyQuestHeroSource).toContain("const closedCtaStyle: CSSProperties = {");
+    // The CTA is the shared NxButton: :disabled withdraws focus and sets aria-disabled.
+    expect(weeklyQuestHeroSource).toContain(':disabled="questTargetClosed || periodExpired || wq.loading"');
+    expect(weeklyQuestHeroSource).toContain('<svg v-if="!questTargetClosed"');
+    // 停用态不得再用「可点的主操作」配色:CTA 是玻璃次按钮,禁用态由 NxButton 统一置灰。
+    expect(weeklyQuestHeroSource).toMatch(/<NxButton\s+v-if="!completed"\s+variant="secondary"/);
   });
 
   it("keeps mock-only weekly values out of the formal UniApp component", () => {
@@ -287,12 +286,6 @@ describe("home task carousel", () => {
     resizer.reset();
     expect(viewportHeight).toBe(HOME_TASK_CARD_COLLAPSED_HEIGHT);
 
-    // The actual page binds the v-for index to the card event and invokes the
-    // same active-slide gate; this is not a copy of the SFC measurement code.
-    expect(homePageSource).toContain('@content-resize="onNewcomerContentResize(index)"');
-    expect(homePageSource).toContain("createHomeNewcomerContentResizer");
-    expect(homePageSource).toContain("newcomerContentResizer.measure(taskSlide.value)");
-    expect(homePageSource).toContain("uni.onWindowResize(onTaskWindowResize)");
-    expect(homePageSource).toContain("uni.offWindowResize(onTaskWindowResize)");
+    // Home no longer mounts the carousel (UX audit 2026-10-25), so only the resizer itself is checked here.
   });
 });

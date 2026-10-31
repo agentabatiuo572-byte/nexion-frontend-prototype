@@ -13,34 +13,35 @@ const contracts: readonly LocaleContract[] = [
   {
     file: "../../i18n/messages/zh.ts",
     expected: [
-      "NEX 的发放和释放以适用的任务、活动、Genesis 等已发布规则及实际入账记录为准。",
+      "你可以通过以下方式获得 UVT：",
       "在兑换页按当前报价兑换，每日有兑换额度。",
     ],
-    faqExpected: "需要先在兑换页面将 NEX 换成 USDT，再按可用渠道提现。每日兑换上限可能适用。",
+    faqExpected: "需要先在兑换页面将 UVT 换成 USDT，再按可用渠道提现。每日兑换上限可能适用。",
     prohibited: ["没有固定释放节奏", "中等(真实需求驱动)", "价格结构上长期偏向上涨"],
   },
   {
     file: "../../i18n/messages/en.ts",
     expected: [
-      "NEX issuance and release follow the applicable published rules for tasks, activities, Genesis, and actual ledger records.",
+      "You can earn UVT in these ways:",
       "Exchange at the current quote on the exchange page. A daily limit applies.",
     ],
-    faqExpected: "First exchange NEX for USDT on the exchange page, then withdraw USDT through an available channel. Daily exchange caps may apply.",
+    faqExpected: "First exchange UVT for USDT on the exchange page, then withdraw USDT through an available channel. Daily exchange caps may apply.",
     prohibited: ["no fixed supply schedule", "Moderate (real demand-driven)", "structurally biased upward over time"],
   },
   {
     file: "../../i18n/messages/vi.ts",
     expected: [
-      "Việc phát hành và mở khóa NEX tuân theo các quy tắc đã công bố áp dụng cho nhiệm vụ, hoạt động, Genesis và bản ghi sổ cái thực tế.",
+      "Bạn có thể nhận UVT theo các cách sau:",
       "Quy đổi theo báo giá hiện tại trên trang quy đổi. Có hạn mức mỗi ngày.",
     ],
-    faqExpected: "Trước hết, hãy đổi NEX sang USDT trên trang Quy đổi, sau đó rút USDT qua kênh hiện có. Hạn mức quy đổi hằng ngày có thể áp dụng.",
+    faqExpected: "Trước hết, hãy đổi UVT sang USDT trên trang Quy đổi, sau đó rút USDT qua kênh hiện có. Hạn mức quy đổi hằng ngày có thể áp dụng.",
     prohibited: ["không có lịch phát hành cố định", "Vừa phải (do nhu cầu thật dẫn dắt)", "có xu hướng nghiêng lên theo thời gian"],
   },
 ];
 
 describe("NEX static narrative contract", () => {
-  it("uses published rules and actual records for issuance in every supported locale", () => {
+  // Copy audit 2026-10-29 (9dd4d088): issuance is a plain list of earning sources, no schedule or promise.
+  it("introduces UVT through its earning sources in every supported locale", () => {
     for (const contract of contracts) {
       const source = readFileSync(new URL(contract.file, import.meta.url), "utf8");
       expect(source).toContain(contract.expected[0]);

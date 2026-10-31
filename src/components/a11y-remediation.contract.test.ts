@@ -107,8 +107,8 @@ describe("accessibility remediation contracts", () => {
     expect(segments).toContain('?.focus()');
     const submit = developer.match(/<view\b[^>]*:aria-label="t\.developer\.formSubmit"[^>]*>/)?.[0] ?? "";
     expect(submit).toContain('role="button"');
-    expect(submit).toContain(':tabindex="submitting ? -1 : 0"');
-    expect(submit).toContain(':aria-disabled="submitting ? \'true\' : \'false\'"');
+    expect(submit).toContain(':tabindex="submitting || !canSubmitAccessRequest ? -1 : 0"');
+    expect(submit).toContain(':aria-disabled="submitting || !canSubmitAccessRequest ? \'true\' : \'false\'"');
     expect(submit).toContain(':aria-busy="submitting ? \'true\' : \'false\'"');
     expect(submit).toContain('@click="submitRequest"');
     expect(submit).toContain('@keydown.enter.prevent="submitRequest"');

@@ -7,7 +7,10 @@ const read = (path: string) => sources[path] ?? "";
 
 describe("September 5 audited display regressions", () => {
   it("uses the same actual upgrade for the store hero and comparison card", () => {
-    expect(read("./store/store.vue")).toContain(':multiplier="upgrade?.multiplier ?? null"');
+    // Hero, ladder and phone comparison all read the one store yield authority.
+    expect(read("./store/store.vue")).toContain('<StoreHero :multiplier="yieldAuthority.multiplier" />');
+    expect(read("./store/store.vue")).toContain('<ClusterLadder :authority="yieldAuthority"');
+    expect(read("./store/store.vue")).toContain('<VsPhoneHero :authority="yieldAuthority" />');
     expect(read("../components/store/store-hero.vue")).toContain('v-if="multiplier !== null"');
   });
   it.each(["zh", "en", "vi"])("does not invent weekly stock in %s", (locale) => {
@@ -21,13 +24,12 @@ describe("September 5 audited display regressions", () => {
     expect(source.indexOf("submitReasonAmountRequired")).toBeLessThan(source.indexOf('decision.configVersion === "remote-pending"'));
     expect(source.indexOf("submitReasonAddressRequired")).toBeLessThan(source.indexOf('decision.configVersion === "remote-pending"'));
   });
-  it("binds pool concentration to server topN and a lifecycle-managed clock", () => {
+  // The concentration hint (server topN) left in the 2026-10-29 copy audit; the payout clock stays lifecycle-managed.
+  it("keeps the pool payout clock lifecycle-managed", () => {
     const source = read("./team/leadership-pool.vue");
-    expect(source).toContain("remotePool.value?.topN");
-    expect(source).toContain("let remaining = poolTopN.value");
     expect(source).toContain("createPayoutClock");
     expect(source).toContain("payoutClock.stop()");
-    expect(source).toContain("if (!remoteApiEnabled || !pageVisible) return;");
+    expect(source).toMatch(/async function loadRemotePool\(\) \{\n  if \(!remoteApiEnabled \|\| !pageVisible\b/);
     expect(source).toContain("pageVisible = false;");
     expect(source).not.toContain("nextPayoutTs.value - Date.now()");
   });

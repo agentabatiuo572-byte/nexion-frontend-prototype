@@ -31,7 +31,8 @@ it('keeps compute job and receipt copy distinct from gameplay quests', () => {
   expect(zh.earn.taskCenter).toBe('作业中心');
   expect(zh.earn.taskPoolLineTitle).toContain('作业池');
   expect(JSON.stringify(zh.earn)).not.toContain('任务');
-  expect(zh.taskHistory.historyHint).toContain('算力证明');
+  expect(zh.taskHistory.historyHint).toContain('作业');
+  expect(zh.taskHistory.historyHint).not.toContain('任务');
   expect(zh.receipt.computeEmptyHint).toContain('作业');
   expect(zh.missions.heroSubtitle).toContain('任务');
   expect(en.earn.taskCenter).toBe('Job Center');
