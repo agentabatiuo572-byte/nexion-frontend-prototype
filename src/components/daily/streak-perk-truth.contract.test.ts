@@ -67,8 +67,10 @@ describe("连签增益只在目标业务可用时承诺可激活(BUG 195)", () =
 describe("等级卡不把下一阶奖励说成本阶奖励(BUG 196)", () => {
   it("精简等级卡只展示当前阶位,不把下一阶奖励当成当前奖励", () => {
     const rankCard = team.slice(team.indexOf("<!-- My V-rank summary -->"), team.indexOf("<!-- Unified quick nav -->"));
-    expect(rankCard).toContain(':rank="remoteApiEnabled && !vrank.remoteReady ? null : myRank"');
-    expect(rankCard).toContain("'V—' : `V${myRank}`");
+    // The rank shows only after a confirmed V-rank read: rankPresentation is set when vrank.remoteReady, else "V—".
+    expect(rankCard).toContain('<TeamRankEmblem v-if="!visibility.hidden && rankReadable" :rank="remoteApiEnabled ? rankPresentation : myRank"');
+    expect(team).toContain('if (displayCatalogValid.value && vrank.remoteReady) rankPresentation.value = vrank.myRank;');
+    expect(team).toContain('rankPresentation.value === null ? "V—" : `V${rankPresentation.value}`');
     expect(rankCard).not.toContain("cultivationBonus");
     expect(rankCard).not.toContain("prize");
   });

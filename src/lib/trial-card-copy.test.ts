@@ -6,6 +6,7 @@ import { zh } from "../i18n/messages/zh";
 import type { TrialStatus } from "../store/trial-boundary";
 import ghostSource from "../components/trial-ghost-slot.vue?raw";
 import devicesSource from "../pages/me/devices.vue?raw";
+import trialRowSource from "../components/trial-device-row.vue?raw";
 import { trialCardLabels } from "./trial-card-copy";
 
 describe("trial card status copy", () => {
@@ -35,7 +36,7 @@ describe("trial card status copy", () => {
     expect(state.status).toBe("grace");
   });
 
-  it.each([["Home/Earn", ghostSource], ["device inventory", devicesSource]])(
+  it.each([["Home/Earn", ghostSource]])(
     "%s consumes the shared badge instead of an unconditional on-trial label", (_, source) => {
       expect(source).toContain("trialCardLabels(trial.status, t.value.trial)");
       expect(source.split("<script setup")[0]).toContain("{{ trialLabels.badge }}");
@@ -48,7 +49,10 @@ describe("trial card status copy", () => {
     expect(ghostSource).toContain("remainingMs(now.value)");
   });
 
-  it("does not leave the device inventory subtitle claiming a free trial in grace", () => {
-    expect(devicesSource.includes("trial.status === 'grace' ? t.trial.ghostRibbonGrace : t.trial.deviceRowSub")).toBe(true);
+  // The device inventory renders the trial through TrialDeviceRow (bd23281d), whose copy follows the state.
+  it("does not leave the device inventory claiming a free trial in grace", () => {
+    expect(devicesSource).toContain('<TrialDeviceRow v-if="trialPresentation.active.value"');
+    expect(trialRowSource).toContain("presentation.status.value === 'grace' ? copy.creditRemaining : copy.remaining");
+    expect(trialRowSource).toContain(`<text v-if="presentation.status.value === 'grace'" class="trial-device-row__state">{{ copy.grace }}</text>`);
   });
 });

@@ -7,7 +7,7 @@ const source = (path: string): string => readFileSync(new URL(path, import.meta.
 describe("server state presentation regressions", () => {
   it("keeps history sync failures separate from the product unavailable screen", () => {
     const page = source("../pages/me/wallet-repurchase.vue");
-    expect(page).toContain('repurchase.historyLoading || repurchase.historyError');
+    expect(page).toContain('repurchase.historyError || (repurchase.historyLoading && repurchase.submitting)');
     expect(page).toContain('@click="repurchase.refreshHistory()"');
     expect(page).not.toMatch(/const remoteReady = computed\([^;]+repurchase\.history/);
   });

@@ -4,9 +4,8 @@ const source = (import.meta.glob("./intro.vue", {
 })["./intro.vue"] ?? "") as string;
 
 describe("onboarding intro public fleet authority", () => {
-  it("renders the H9 public fleet before authentication instead of waiting on home truth", () => {
-    expect(source).toContain("const devices = ref(fleetNow())");
-    expect(source).toContain("devices.value = fleetNow()");
-    expect(source).not.toContain("devices.value = app.homeTruth?.onboarding.activeDevices");
+  // The intro shows no platform statistics at all (no device count, no payout total) — slogan only.
+  it("renders no fleet or payout statistic, so nothing waits on home truth", () => {
+    expect(source).not.toMatch(/homeTruth|onlineDevicesOf|verifiedStats|publicStats|cumulativePaid|completedPayout|platform-stats/);
   });
 });

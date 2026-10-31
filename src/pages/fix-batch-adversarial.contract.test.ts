@@ -38,7 +38,8 @@ describe("adversarial fix-batch contracts", () => {
     expect(source).toContain("releaseActiveRefresh");
     expect(source).toContain("onHide(leaveInbox)");
     expect(source).toContain("onUnmounted(leaveInbox)");
-    expect(source).toMatch(/function leaveInbox\(\)\s*\{\s*inboxVisible = false;\s*releaseActiveRefresh\(\);/);
+    // Leaving also cancels a pending retry before releasing the refresh registration.
+    expect(source).toMatch(/function leaveInbox\(\)\s*\{\s*inboxVisible = false;\s*cancelRetry\(\);\s*releaseActiveRefresh\(\);/);
   });
 
   it("rejects drifting exchange pages and wrong first-page metadata", () => {

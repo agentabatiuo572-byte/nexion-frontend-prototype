@@ -11,7 +11,8 @@ describe("team share sheet configuration and reward boundaries", () => {
   });
 
   it("keeps the server reward amount while localizing the explanatory copy", () => {
-    expect(source).toContain("rewards.snapshot?.inviterRewardNex");
+    // The server amount is retained as a confirmed presentation snapshot before it is shown.
+    expect(source).toContain("amount: rewards.snapshot.inviterRewardNex");
     expect(source).toContain("`${formatAmount(nex)} UVT`");
     expect(source).toContain("copy.value.qualifiedFriendReward");
     expect(source).not.toContain("Server-set reward:");

@@ -7,7 +7,8 @@ const source = readFileSync(new URL("./missions.vue", import.meta.url), "utf8").
 describe("missions event-summary read state", () => {
   it("renders loading, refresh, error, and ready-empty states without treating unread data as zero", () => {
     expect(source).toContain("const remoteEventProjection = computed(() => projectMissionRemoteEvents(remoteEventsReadState.value, remoteEvents.value));");
-    expect(source).toContain('remoteEventProjection.state === \'error\'');
+    // A failed read keeps the subtitle quiet rather than showing zero (the page's recovery row owns the error).
+    expect(source).toContain('if (remoteEventProjection.value.state === "error") return "";');
     expect(source).toContain("t.value.missions.eventsLoading");
     expect(source).toContain("t.value.missions.eventsRefreshing");
     expect(source).toContain("t.value.missions.eventsEmpty");

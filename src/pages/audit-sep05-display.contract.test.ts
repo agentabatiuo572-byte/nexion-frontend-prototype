@@ -9,12 +9,13 @@ describe("audit display authority regressions", () => {
     for (const file of ["components/home/my-fleet-section.vue", "pages/earn/earn.vue"]) {
       expect(source(file)).toContain('app.remoteFleetStatus === "ready"');
       expect(source(file)).toContain('app.remoteFleetStatus === "loading" && app.remoteFleetHasSnapshot');
-      expect(source(file)).toContain('fleetReady.value ? fmt(');
-      expect(source(file)).toContain(': "— / —"');
+      // The count also waits for a confirmed used-slot figure before showing "n / max".
+      expect(source(file)).toMatch(/fleetReady\.value && \(app\.remoteSlotsUsed != null \|\| trialPresentation\.reservedSlots\.value !== null\)/);
+      expect(source(file)).toContain('}) : "— / —");');
     }
     const earn = source("pages/earn/earn.vue");
-    expect(source("components/home/my-fleet-section.vue")).toContain('v-if="fleetReady && slotDevices.length < app.slotCap"');
-    expect(earn).toContain('<EmptySlotsHint v-if="fleetReady">');
+    expect(source("components/home/my-fleet-section.vue")).toContain('<AddDeviceRow v-if="countReady && slotsUsed < app.slotCap" />');
+    expect(earn).toContain('<EmptySlotsHint v-if="fleetReady"');
   });
   it("keeps only a confirmed same-account fleet visible during background loading", () => {
     const expression = source("pages/earn/earn.vue").match(/const fleetReady = computed\(\(\) => ([\s\S]+?)\);/)?.[1];
@@ -32,7 +33,7 @@ describe("audit display authority regressions", () => {
     for (const file of ["components/home/my-fleet-section.vue", "pages/earn/earn.vue"]) {
       expect(source(file)).toMatch(/max:\s*app\.slotCap/);
     }
-    expect(source("components/home/my-fleet-section.vue")).toContain('slotDevices.length < app.slotCap');
+    expect(source("components/home/my-fleet-section.vue")).toContain('slotsUsed < app.slotCap');
     for (const locale of ["zh", "en", "vi"]) {
       expect(source(`i18n/messages/${locale}.ts`)).toMatch(/fleetOfMax:\s*"[^"\n]*\{max\}/);
     }

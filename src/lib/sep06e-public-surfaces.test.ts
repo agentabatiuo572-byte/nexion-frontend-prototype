@@ -6,8 +6,8 @@ describe("public config and localized surfaces", () => {
     expect(stats).toHaveProperty("onlineDevicesOf");
     const online = (stats as unknown as { onlineDevicesOf(ps: { fleetDevices: number; onlineRatePct: number }): number }).onlineDevicesOf;
     expect(online({ fleetDevices: stats.FLEET_DEVICES, onlineRatePct: 80 })).toBe(22746);
-    expect(sources["../pages/onboarding/intro.vue"]).toContain("cfg.config.verifiedStats?.onlineDevices.value");
-    expect(sources["../pages/onboarding/intro.vue"]).not.toContain("onlineDevicesOf(cfg.config.publicStats)");
+    // The intro no longer shows an online-device number at all.
+    expect(sources["../pages/onboarding/intro.vue"]).not.toMatch(/homeTruth|onlineDevicesOf|verifiedStats|publicStats|cumulativePaid|completedPayout|platform-stats/);
   });
   it("refreshes PC platform config on foreground", () => {
     expect(sources["../App.vue"].slice(sources["../App.vue"].indexOf("onShow(() =>"))).toContain("useConfig().load()");

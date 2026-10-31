@@ -44,7 +44,8 @@ describe("wallet pagination UI contracts", () => {
     const nex = read("wallet-nex.vue");
     expect(nex).toContain('v-if="remoteApiEnabled && bills.summaryStatus === \'error\'"');
     expect(nex).toContain('@click="refreshNexSummary"');
-    expect(nex).toContain('v-else-if="remoteApiEnabled && bills.summaryStatus !== \'ready\'"');
+    // Loading covers any summary not confirmed for the current scope (summaryForDisplay is scope-fenced).
+    expect(nex).toContain('v-else-if="remoteApiEnabled && summaryForDisplay == null"');
     expect(nex).toContain("t.wallet.loadingTransactions");
     expect(nex).not.toContain('<text>…</text>');
     expect(read("wallet-bills.vue")).toContain("t.wallet.loadingTransactions");
