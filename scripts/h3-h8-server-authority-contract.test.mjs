@@ -21,8 +21,11 @@ test("H8 card consumes isolated server ledger facts and has an honest empty stat
   const en = read("src/i18n/messages/en.ts");
   const zh = read("src/i18n/messages/zh.ts");
   assert.doesNotMatch(card, /TICKER_ITEMS|INVITER_REWARD_NEX|INVITER_REWARD_USDT_ESTIMATE|useCommission/);
-  assert.match(card, /t\.team\.noSettledRewards/);
-  assert.doesNotMatch(card, /No settled invitation rewards yet|暂无已结算的邀请奖励/);
+  // P-42 (5294862e) moved the reward records, and their empty state, into the invite detail sheet.
+  const sheet = read("src/components/team/invite-detail-sheet.vue");
+  assert.match(card, /detailMode='records'; detailOpen=true/);
+  assert.match(sheet, /v-if="recordsPresentation && !recordsPresentation\.recentRewards\.length"[^>]*>\{\{ t\.team\.noSettledRewards \}\}/);
+  assert.doesNotMatch(card + sheet, /No settled invitation rewards yet|暂无已结算的邀请奖励/);
   assert.match(en, /noSettledRewards:\s*"No settled invitation rewards yet"/);
   assert.match(zh, /noSettledRewards:\s*"暂无已结算的邀请奖励"/);
   // 🔴 语言面三语齐点(门的门 ① 判据):只点两种时,第三种可以随意漂移而本门全绿。

@@ -17,10 +17,14 @@ test('interactive containers own their 44px targets, independently of the icon',
   const fee = read('src/pages/me/wallet-withdraw.vue').split('\n').find(line => line.includes('@click="feeWhyOpen = true"'));
   assert.match(fee, /min-width: 44px; min-height: 44px; flex-shrink: 0/);
   assert.doesNotMatch(fee, /margin:/);
-  for (const [file, action] of [
-    ['src/components/earn/device-card-pc.vue', '@click="closeMenu"'],
-    ['src/components/how/how-published-content.vue', '@click="load"'],
-  ]) assert(read(file).split('\n').some(line => line.includes(action) && line.includes('min-height: 44px')));
+  // These targets get their size from shared classes rather than inline styles.
+  for (const [file, action, cls, css, rule] of [
+    ['src/components/earn/device-card-pc.vue', '@click="closeMenu"', 'nx-action-sheet__cancel', 'src/components/earn/device-card-pc.vue', /\.nx-action-sheet__cancel \{[^}]*min-height: (4[4-9]|[5-9]\d)px/],
+    ['src/components/how/how-published-content.vue', '@click="load"', 'nx-card-recovery-action', 'src/styles/tokens.css', /\.nx-card-recovery-action,[^{]*\{[^}]*min-height: 44px; height: 44px|\.nx-card-recovery-action,[^{]*\{[^}]*min-height: 44px;\s*height: 44px/],
+  ]) {
+    assert(read(file).split('\n').some(line => line.includes(action) && line.includes(cls)));
+    assert.match(read(css), rule);
+  }
 });
 
 test('resend uses a fixed number slot and preserves all translated word orders', () => {

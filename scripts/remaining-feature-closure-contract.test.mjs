@@ -167,7 +167,10 @@ test("royalty page separates canonical purchase and device queries before pagina
   assert.match(page, /directApi\.snapshot/);
   assert.match(page, /directApi\.snapshot\(period\.value, page, pageSize, querySnapshotAt, "device_earning"\)/);
   assert.match(page, /purchaseApi\.unilevel\(period\.value, page, pageSize, querySnapshotAt, filter\.value\)/);
-  assert.match(page, /v-for="event in remoteSnapshot\.events"/);
+  // P-41 groups the same server page by day; every event is still rendered, none filtered out.
+  assert.match(page, /v-for="day in eventDays"/);
+  assert.match(page, /v-for="event in day\.events"/);
+  assert.match(page, /const eventDays = computed\(\(\) => \{[\s\S]{0,200}\(remoteSnapshot\.value\?\.events \?\? \[\]\)\.forEach\(/);
   assert.match(page, /v-if="remoteSnapshot\.totalRows === 0"/);
   assert.doesNotMatch(page, /\.filter\([^;\n]*event\.(?:kind|layer)/);
   assert.match(page, /remoteState === 'error'/);
@@ -221,14 +224,14 @@ test("remote Genesis holder renders server holdings and emission ledger without 
   assert.doesNotMatch(holder, /4192 - i \* 137/);
 });
 
-test("remote globe and search refresh when account or canonical catalog changes", async () => {
+// The globe has no account-scoped read since 3d3acc05: it presents public H9 configuration.
+test("search refreshes when the canonical catalog changes; the globe reads no account data", async () => {
   const [globe, search] = await Promise.all([
     read("src/pages/globe/globe.vue"),
     read("src/pages/search/search.vue"),
   ]);
-  assert.match(globe, /watch\(\(\) => \[String\(app\.accountKey\), app\.accountBindingEpoch\]/);
-  assert.match(globe, /networkProjection\.value = null/);
-  assert.match(globe, /void loadRegions\(\)/);
+  assert.match(globe, /cfg\.config\.publicStats\.globeDisplay/);
+  assert.doesNotMatch(globe, /networkRegionsApi|loadRegions/);
   assert.match(search, /productCatalogState/);
   assert.match(search, /productCatalogState\.status === "ready"/);
   assert.match(search, /@keydown\.enter\.prevent="openHelp"/);

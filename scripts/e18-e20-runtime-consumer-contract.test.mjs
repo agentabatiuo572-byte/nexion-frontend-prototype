@@ -53,14 +53,17 @@ test("OPS-E-20 remote trade-in uses canonical quote, submit, and order readback"
   assert.match(checkout, /deviceE3Api\.capacityQuote/);
   assert.match(checkout, /RemoteCapacityGate/);
   assert.match(checkout, /remoteCapacityGate\.canConfirm/);
-  assert.match(checkout, /canonicalStatus !== "activated"/);
+  // A trade-in target can settle active or in inventory; readback checks the expected placement.
+  assert.match(checkout, /canonicalStatus !== \(expectedActive \? "activated" : "inventory"\)/);
   assert.match(checkout, /E3_TRADEIN_FLEET_READBACK_MISMATCH/);
   assert.match(checkout, /E20_CAPACITY_AVAILABLE_ORDER_READBACK_MISMATCH/);
   assert.match(sheets, /deviceE3Api\.capacityReplace/);
   assert.match(sheets, /orders\.refreshRemote/);
   assert.match(sheets, /app\.refreshRemoteFleet/);
   assert.match(sheets, /if \(remoteApiEnabled\) \{[\s\S]{0,500}submitCanonicalCapacityReplacement[\s\S]{0,200}return;/);
-  assert.match(sheets, /if \(remoteApiEnabled\) \{[\s\S]{0,300}submitCanonicalKeepBuy[\s\S]{0,100}return;/);
+  // The remote keep branch now checks original-command recovery first; it still ends in the canonical submit.
+  const keepBuy = sheets.slice(sheets.indexOf("function onKeepBuy()"), sheets.indexOf("if (replaceView.value?.insufficient) return;\n  confirming.value = true;", sheets.indexOf("function onKeepBuy()")));
+  assert.match(keepBuy, /if \(remoteApiEnabled\) \{[\s\S]*void submitCanonicalKeepBuy\(s\.newKind, s\.canonicalCapacityQuote\);\s*return;\s*\}\s*$/);
   assert.match(sheets, /never execute the legacy local force composer against canonical state/);
   assert.match(sheets, /CAPACITY_REPLACEMENT_FLEET_READBACK_MISMATCH/);
   assert.doesNotMatch(checkout, /remoteApiEnabled[\s\S]{0,500}tradein\.showReplace\(/);
@@ -77,7 +80,7 @@ test("OPS-E-20 retry safety retains trade-in context until durable order and fle
   assert.ok(refresh >= 0 && fleetCheck > refresh && commit > fleetCheck);
   assert.ok(commitOrder >= 0 && clearContext > commitOrder);
   assert.match(checkout, /StableCommandKey/);
-  assert.match(checkout, /v-if="!remoteTradeinRecoveryRequired"[\s\S]{0,200}@click="removeTradein"/);
+  assert.match(checkout, /v-if="hasTradein && !remoteTradeinRecoveryRequired"[\s\S]{0,200}@click="removeTradein"/);
   assert.match(checkout, /function removeTradein\(\) \{[\s\S]{0,160}remoteTradeinRecoveryRequired\.value[\s\S]{0,80}return;/);
   const mutationFreeze = checkout.indexOf("remoteTradeinRecoveryRequired.value = true");
   const remoteSubmit = checkout.indexOf("deviceE3Api.submit", mutationFreeze);

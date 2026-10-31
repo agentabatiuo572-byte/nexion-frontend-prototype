@@ -12,9 +12,10 @@ function memoryStorage() {
   let value;
   return { read: () => value, write: next => { value = structuredClone(next); } };
 }
-const intent = { direction: "USDT_TO_NEX", fromAmount: 10, queueIfCapped: true };
+// Asset contracts use UVT since 95e10bfa.
+const intent = { direction: "USDT_TO_UVT", fromAmount: 10, queueIfCapped: true };
 const baseline = { orders: [] };
-const committed = { orders: [{ exchangeNo: "EX-COMMITTED-0001", fromAsset: "USDT", toAsset: "NEX",
+const committed = { orders: [{ exchangeNo: "EX-COMMITTED-0001", fromAsset: "USDT", toAsset: "UVT",
   fromAmount: 10, toAmount: 100, rate: 0.1, status: "COMPLETED" }] };
 
 test("服务端已提交但响应丢失时，以原键 GET 收据及当前快照恢复并清除 pending key", async () => {

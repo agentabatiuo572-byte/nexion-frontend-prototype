@@ -3,6 +3,7 @@ import fs from "node:fs";
 import test, { mock } from "node:test";
 import ts from "typescript";
 import { createP318AccountPageFence } from "../src/pages/me/p3-18-account-page-fence.ts";
+import { ApiError } from "../src/api/errors.ts";
 
 function read(path) {
   return fs.readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
@@ -31,7 +32,7 @@ function passwordChangeFixture({ changePassword = async () => undefined, readbac
     securityPageFence: createP318AccountPageFence(() => binding.key, () => binding.epoch),
     captureAccountScope: () => ({ ...binding }),
     isCurrentAccountScope: (scope) => currentScope && scope.key === binding.key && scope.epoch === binding.epoch,
-    securityPageVisible: true, auth,
+    securityPageVisible: true, securityEnvironmentInvalidated: false, auth, ApiError, clearSecurityAccountState: mock.fn(),
     isPasswordOk: (value) => value === "NewPass2!", remoteApiEnabled: true,
     SECURITY_COMMAND_TABLE: "password-fixture-commands", acquireAccountCommandKey: mock.fn(() => "command-fixture"),
     releaseAccountCommandKey: mock.fn(),
@@ -65,7 +66,7 @@ function twoFactorFixture() {
   const deps = {
     securityBusy: { value: false }, securityPageFence: { capture: () => ({}) },
     captureAccountScope: () => ({}), auth: { accountId: "two-factor-fixture" },
-    isCurrentSecurityRequest: () => true, remoteApiEnabled: true,
+    isCurrentSecurityRequest: () => true, remoteApiEnabled: true, requireAccountPhone: () => true,
     remoteSecurity: { value: { twoFactorEnabled: false } }, err: { value: "" },
     twoFactorPassword: { value: "" }, twoFactorPasswordError: { value: "" },
     twoFactorPasswordFocus: { value: false }, twoFactorEnabled: { value: false },
@@ -363,12 +364,12 @@ test("remote achievements render and claim server milestone facts instead of loc
   assert.match(page, /Local prototype achievements stay available only in mock mode[\s\S]{0,120}v-else/);
 });
 
-test("remote globe consumes its authenticated server authority", () => {
+// Since 3d3acc05 the globe presents H9-configured simulation metrics (PRD H9-首页与网络展示配置-20261028).
+test("globe presentation follows the H9 platform configuration", () => {
   const globe = read("src/pages/globe/globe.vue");
-  assert.match(globe, /remoteApiEnabled/);
-  assert.match(globe, /networkRegionsApi\.list\(\)/);
-  assert.match(globe, /networkProjection\.value\?\.regions/);
-  assert.match(globe, /projectionStatus\.value = next\.regions\.length > 0 \? "ready" : "empty"/);
+  assert.match(globe, /const globeSettings = computed\(\(\) => cfg\.config\.publicStats\.globeDisplay\)/);
+  assert.match(globe, /globeSimulation\(/);
+  assert.doesNotMatch(globe, /networkRegionsApi/);
   assert.doesNotMatch(globe, /GLOBE_REGION_PROJECTION_HOLD/);
   assert.match(globe, /const regions = computed/);
 });

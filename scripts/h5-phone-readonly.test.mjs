@@ -122,7 +122,8 @@ test("phone action is absent from all H5 inventory groups and the hidden row can
   assert.equal(rows.length, 3);
   for (const [row] of rows) assert.match(row, /:show-action="canControlDevice\(d\)"/);
   const row = compile("src/components/me/device-inventory-row.vue", "h5");
-  assert.match(row, /<view v-if="showAction"[^>]*role="button"/);
+  // The action button now sits inside a showAction-gated group (with the optional trade-in CTA).
+  assert.match(row, /<view v-if="showAction" class="device-inventory-row__actions"[^>]*>\s*<view class="device-inventory-row__action"[^>]*\s*role="button"[^>]*@click="onAction"/);
   for (const showAction of [false, true]) {
     const events = [];
     const sandbox = { exports: {}, props: { showAction }, actionDisabled: { value: false }, emit: (name) => events.push(name) };

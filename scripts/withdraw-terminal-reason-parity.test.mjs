@@ -22,13 +22,15 @@ import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
- * 找真实运营后台仓。历史 checkout 名称是 admin-ops,当前正式仓名是
- * nexion-ops-console；worktree 里相对层级会变化,所以逐级上溯找两者。
+ * 找真实运营后台仓。NEXGRID_PC_ROOT 优先;否则逐级上溯找当前仓名 nexion-frontend-pc
+ * 及历史名 nexion-ops-console / admin-ops(worktree 里相对层级会变化)。
  */
 function findAdminOps() {
+  const configured = process.env.NEXGRID_PC_ROOT?.trim();
+  if (configured) return existsSync(join(configured, "package.json")) ? configured : null;
   let dir = ROOT;
   for (let i = 0; i < 6; i++) {
-    for (const name of ["nexion-ops-console", "admin-ops"]) {
+    for (const name of ["nexion-frontend-pc", "nexion-ops-console", "admin-ops"]) {
       const candidate = join(dir, name);
       if (existsSync(join(candidate, "package.json"))) return candidate;
     }
@@ -45,7 +47,7 @@ const D2_RELATIVE = "app/components/domain-views/d-tabs/d2-withdrawals.tsx";
 function assertAdminOps() {
   assert.ok(
     adminOps,
-    "找不到真实运营后台仓 nexion-ops-console/admin-ops —— 本门的 ground truth 在那边,缺件不许静默跳过。",
+    "找不到真实运营后台仓 nexion-frontend-pc(或 NEXGRID_PC_ROOT)—— 本门的 ground truth 在那边,缺件不许静默跳过。",
   );
   assert.ok(
     existsSync(join(adminOps, D2_RELATIVE)),

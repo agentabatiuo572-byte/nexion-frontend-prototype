@@ -19,7 +19,8 @@ test("H2 refreshes authority as soon as the first visible earn entry opens", () 
   assert.match(earn, /onShow/);
   assert.match(earn, /useFreeTrial/);
   assert.match(earn, /remoteApiEnabled/);
-  assert.match(earn, /freeTrial\.refreshRemote\(true\)/);
+  // Tab reads share the 10-second passive window (PRD UVEL_Tab被动读取10秒窗口_20261028).
+  assert.match(earn, /onShow\(\(\) => \{[\s\S]{0,300}runPassiveTabRead\('trial-state', \(\) => freeTrial\.refreshRemote\(\)\)/);
 });
 
 test("H3 and M distinguish an unavailable authority read from a real empty result", () => {
@@ -29,8 +30,11 @@ test("H3 and M distinguish an unavailable authority read from a real empty resul
   // Failure must win over the honest empty state. The localized copy is
   // deliberately indirect (`w.loadError`), so test the render branches rather
   // than an obsolete English literal.
-  assert.ok(weekly.indexOf("mounted && wq.error") < weekly.indexOf("mounted && !wq.snapshot"));
-  assert.ok(weekly.indexOf("mounted && !wq.snapshot") < weekly.indexOf("tier2Quests.length === 0"));
+  // Anchor on the branch directives: the loading branch also contains "!mounted && !wq.snapshot".
+  const errorBranch = weekly.indexOf('v-else-if="mounted && wq.error'), emptyBranch = weekly.indexOf('v-else-if="mounted && !wq.snapshot"');
+  assert.ok(errorBranch > 0 && emptyBranch > 0);
+  assert.ok(errorBranch < emptyBranch);
+  assert.ok(emptyBranch < weekly.indexOf("tier2Quests.length === 0"));
   assert.match(help, /faqLoadError/);
   assert.match(help, /@cta="loadFaqs"/);
   assert.match(help, /supportApi\.faqPage/);

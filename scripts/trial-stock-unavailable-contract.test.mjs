@@ -17,8 +17,9 @@ test("zero-stock S1 stays visible but every trial and purchase CTA is disabled",
   assert.match(card, /@keydown\.enter\.prevent\.stop="onBuy"/);
   assert.doesNotMatch(card, /<text role="button" tabindex="0" @click\.stop="onBuy">/);
   assert.doesNotMatch(card, /:style="cardStyle" role="button"/);
-  assert.match(card, /:role="compact \? 'link' : undefined" :tabindex="compact \? 0 : -1" :aria-label="compact \? nexGridBrandText\(product\.name\) : undefined" @click="goDetail"/);
-  assert.match(card, /:style="renderWrapStyle" :role="compact \? undefined : 'button'" :tabindex="compact \? -1 : 0" :aria-label="compact \? undefined : nexGridBrandText\(product\.name\)" @click\.stop="goDetail"/);
+  // Stored product names are shown as-is since 95e10bfa.
+  assert.match(card, /:role="compact \? 'link' : undefined" :tabindex="compact \? 0 : -1" :aria-label="compact \? \(product\.name\) : undefined" @click="goDetail"/);
+  assert.match(card, /:style="renderWrapStyle" :role="compact \? undefined : 'button'" :tabindex="compact \? -1 : 0" :aria-label="compact \? undefined : \(product\.name\)" @click\.stop="goDetail"/);
   assert.match(detail, /const stockUnavailable = computed/);
   assert.match(detail, /disabled:\s*true/);
   assert.match(detail, /buttonLabel:\s*t\.value\.store\.temporarilyOutOfStock/);
@@ -36,7 +37,8 @@ test("zero-stock S1 stays visible but every trial and purchase CTA is disabled",
   assert.match(trialHero, /:tabindex="canOpen \? 0 : -1"/);
   assert.match(trialHero, /const canOpen = computed\(\(\) => hasLifecycle\.value \|\| canClaim\.value \|\| capacityFull\.value\)/);
   assert.match(trialHero, /if \(!canClaim\.value\) return/);
-  assert.doesNotMatch(trialHero, /@keydown/);
+  // Keyboard activation (added for a11y in 067e7533/7f39702a) goes through onClick, whose claim guard still holds.
+  for (const handler of trialHero.match(/@keydown[.\w]*="[^"]*"/g) ?? []) assert.match(handler, /onClick/);
   assert.match(trialPage, /product-unavailable/);
   assert.match(trialPage, /trialProductUnavailable/);
   assert.match(trialPage, /:tabindex="canStartNow \? 0 : -1"/);

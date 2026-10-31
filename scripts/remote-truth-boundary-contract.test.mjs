@@ -70,7 +70,9 @@ test("remote proof and team finance pages expose unavailable instead of zero def
   const binary = read("src/pages/team/binary.vue");
   const unilevel = read("src/pages/team/unilevel.vue");
   assert.match(proof, /remoteError/);
-  assert.match(proof, /remoteApiEnabled && remoteError/);
+  // The remote error now feeds proofDisplayReady/proofReady, which gate the recovery card.
+  assert.match(proof, /const proofDisplayReady = computed\(\(\) => !remoteApiEnabled \|\| \(!remoteError\.value && remoteSnapshot\.value !== null\)\)/);
+  assert.match(proof, /v-if="!proofDisplayReady \|\| \(!remoteLoading && !proofReady\)"/);
   assert.match(proof, /remoteApiEnabled && !vRank\.remoteReady \? null/);
   assert.match(proof, /=== null \? "—"/);
   assert.match(commissions, /commission\.eventsStatus/);

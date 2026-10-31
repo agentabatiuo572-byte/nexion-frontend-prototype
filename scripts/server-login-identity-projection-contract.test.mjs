@@ -32,8 +32,10 @@ test("first server-mode profile render uses the projected name and masked E.164 
   assert.match(me, /import ProfileRow from "@\/components\/me\/profile-row\.vue"/);
   assert.match(me, /<ProfileRow\s*\/>/);
   assert.match(row, /const name = computed\(\(\) => displayNickname\(profile\.displayName\)\)/);
-  assert.match(row, /const phoneMask = computed\(\(\) => \{[\s\S]*?if \(!phone\) return ""/);
-  assert.match(row, /\$\{phone\.slice\(0, 3\)\} ••••• \$\{phone\.slice\(-4\)\}/);
+  // Since 8236439c the row shows the account UID with a copy action and no phone number at all.
+  assert.match(row, /import ProfileUid from "\.\/profile-uid\.vue";/);
+  const template = row.slice(row.indexOf("<template>"), row.indexOf("</template>"));
+  assert.doesNotMatch(template, /phone/i);
   // Remote mode must not fall back to a browser-owned user:<id> seed.
   assert.match(row, /remoteApiEnabled \? profile\.phoneE164\.replace\(\/\\D\/g, ""\) : app\.user\.email/);
   assert.match(row, /v-if="!remoteApiEnabled"/);

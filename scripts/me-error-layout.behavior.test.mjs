@@ -192,7 +192,8 @@ for(const language of ['zh','en','vi'])for(const theme of ['dark','light'])test(
 test('localized label fragments remain literal text around recognized amount placeholders',async()=>{
  const p=await screen('en',320);try{
   await p.evaluate(async()=>{const f=window.meFixture;f.copy.wallet.allTimeSublabel='constructor {c} toString {tm}';f.app.homeTruth.earnings.all.usdt+=1;await f.settle()});
-  assert.deepEqual(await p.locator('.wallet-metric-breakdown__part:not(.wallet-metric-breakdown__amount)').allTextContents(),['constructor ',' toString ']);
-  assert.ok((await p.locator('.wallet-metric-breakdown').getAttribute('aria-label')).startsWith('constructor $'));
+  // The breakdown shows icons and amounts; the localized label is only its accessible name.
+  assert.equal(await p.locator('.wallet-metric-breakdown__amount').count(),2);
+  assert.match(await p.locator('.wallet-metric-breakdown').getAttribute('aria-label'),/^constructor \$\S+ toString \$\S+$/);
  }finally{await p.close()}
 });

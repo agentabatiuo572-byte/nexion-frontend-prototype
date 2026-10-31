@@ -59,8 +59,11 @@ test("remote keep-and-buy uses the atomic server command and verifies completed 
   const start = source.indexOf("async function submitCanonicalKeepBuy");
   const end = source.indexOf("function onKeepBuy", start);
   const keep = source.slice(start, end);
-  assert.match(keep, /deviceE3Api\.capacityKeep/);
-  assert.doesNotMatch(keep, /orderApi\.create/);
+  // The atomic command is sent by the shared PIN-authorized capacity runner; this function verifies its receipt.
+  const runner = source.slice(source.indexOf("async function runCanonicalCapacityPurchase"), start);
+  assert.match(runner, /deviceE3Api\.capacityKeep\(/);
+  assert.match(keep, /if \(!recovered\) return runCanonicalCapacityPurchase\('keep',quote,newKind\);/);
+  assert.doesNotMatch(runner + keep, /orderApi\.create/);
   assert.match(keep, /canonicalStatus !== "activated"/);
   assert.match(keep, /activationStatus\.toUpperCase\(\) !== "ACTIVATED"/);
   assert.match(keep, /persisted\.targetDeviceId !== submitted\.targetDeviceId/);

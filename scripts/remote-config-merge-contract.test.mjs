@@ -141,7 +141,11 @@ function servingRuntimeStub() {
   }
   const special = {
     remoteApiEnabled: "export const remoteApiEnabled = true;",
-    apiRuntimeConfig: 'export const apiRuntimeConfig = { mode: "remote", baseUrl: "http://config-merge-gate.invalid" };',
+    apiRuntimeConfig: 'export const apiRuntimeConfig = { mode: "remote", environment: "development", baseUrl: "http://config-merge-gate.invalid" };',
+    // The config store invalidates itself when the runtime drifts from the client origin.
+    apiRuntimeClientOrigin: 'export const apiRuntimeClientOrigin = Object.freeze({ environment: "development", baseUrl: "http://config-merge-gate.invalid" });',
+    // Passive tab reads scope themselves by the signed-in session; this gate runs signed out.
+    sessionVault: 'export const sessionVault = { read: () => null, revision: () => 0, isRefreshContinuation: () => true };',
     platformConfigApi: `export const platformConfigApi = createPlatformConfigApi({
       request: async ({ path }) => (path.includes("referral") ? SERVED_REFERRAL : SERVED_PLATFORM),
     });`,
@@ -155,6 +159,7 @@ ${names.map((n) => special[n] ?? `export const ${n} = unavailable;`).join("\n")}
 
 const STUBS = {
   "pinia-stub": `const cache = new Map();
+export const getActivePinia = () => undefined;
 const unwrap = (v) => (v && typeof v === "object" && v.__nxRef === true);
 export const defineStore = (id, setup) => () => {
   if (!cache.has(id)) cache.set(id, new Proxy(setup(), {

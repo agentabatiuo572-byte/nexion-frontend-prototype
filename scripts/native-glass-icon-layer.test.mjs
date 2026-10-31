@@ -38,10 +38,10 @@ function find(node, className) {
   for (const child of node.children ?? []) { const match = find(child, className); if (match) return match; }
 }
 const back = find(chat.template.ast, 'cp-back').loc.source;
-const restart = find(chat.template.ast, 'cp-ticket').loc.source;
+// The ticket control left the chat header with user tickets (a3e4605e); the back control remains.
 const icon = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink)" stroke-width="2"><path d="m15 18-6-6 6-6" /></svg>';
 const source = `<template><view class="fixture">
-${back}${restart}
+${back}
 <view class="probe-control after-glass"><LiquidGlass rendering="frosted"/>${icon}</view>
 <view class="probe-control after-text"><LiquidGlass rendering="frosted"/><text aria-hidden="true">·</text>${icon}</view>
 <view class="probe-control before-glass">${icon}<LiquidGlass rendering="frosted"/></view>
@@ -72,12 +72,12 @@ for (const platform of ['app', 'h5']) for (const theme of ['dark', 'light']) {
       const page = await browser.newPage({ viewport: { width: 390, height: 300 } });
       await page.route('**/*', route => route.abort());
       await page.setContent(`<html data-theme="${theme}"><style>${css(platform)}</style><body>${await fragment(platform)}</body></html>`);
-      const facts = await page.evaluate(platform => Object.fromEntries(['cp-back', 'cp-ticket', 'after-glass', 'after-text', 'before-glass', 'no-glass'].map(key => {
+      const facts = await page.evaluate(platform => Object.fromEntries(['cp-back', 'after-glass', 'after-text', 'before-glass', 'no-glass'].map(key => {
         const parent = document.querySelector('.' + key), parentRect = parent.getBoundingClientRect(), icon = parent.querySelector(platform === 'app' ? '.nx-native-svg' : 'svg'), style = getComputedStyle(icon), r = icon.getBoundingClientRect();
         return [key, { hitWidth: parentRect.width, hitHeight: parentRect.height, role: parent.getAttribute('role'), tabIndex: parent.getAttribute('tabindex'), label: parent.getAttribute('aria-label'), position: style.position, zIndex: style.zIndex, width: r.width, height: r.height, path: icon.querySelector('path')?.getAttribute('d') ?? icon.getAttribute('d'), scopeAttributes: icon.getAttributeNames().filter(name => name.startsWith('data-v-')), directSvg: parent.querySelector(':scope > svg') !== null }];
       })), platform);
       const pixels = {};
-      for (const key of ['cp-back', 'cp-ticket']) {
+      for (const key of ['cp-back']) {
         const png = await page.locator('.' + key + (platform === 'app' ? ' > .nx-native-svg' : ' > svg')).screenshot();
         pixels[key] = await page.evaluate(async ({ data, theme }) => {
           const image = new Image(); image.src = 'data:image/png;base64,' + data; await image.decode();
@@ -95,7 +95,7 @@ for (const platform of ['app', 'h5']) for (const theme of ['dark', 'light']) {
         writeFileSync(prefix + '.json', JSON.stringify({ platform, theme, facts, pixels }, null, 2));
         await page.screenshot({ path: prefix + '.png' });
       }
-      for (const key of ['cp-back', 'cp-ticket']) {
+      for (const key of ['cp-back']) {
         assert.equal(facts[key].position, 'relative', key); assert.equal(facts[key].zIndex, '1', key);
         assert.equal(facts[key].hitWidth, 44); assert.equal(facts[key].hitHeight, 44); assert.equal(facts[key].role, 'button'); assert.equal(facts[key].tabIndex, '0'); assert.ok(facts[key].label);
         assert.equal(facts[key].width, 22); assert.equal(facts[key].height, 22); assert.ok(pixels[key] > 10, `${key}: visible foreground pixels=${pixels[key]}`);

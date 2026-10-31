@@ -52,9 +52,12 @@ test("catalog detail retry and bundle order item count remain visible", async ()
   assert.match(detail, /refreshServerProductPhase\(true\)/);
   assert.match(api, /itemCount: number \| null/);
   assert.match(orders, /itemCount: row\.itemCount/);
-  assert.match(orderDetail, /order\.itemCount \?\? order\.quantity/);
-  assert.match(bundle, /const successBody = t\.value\.bundle\.checkoutSuccessBody/);
-  assert.match(bundle, /bundleOrderApi\.create\([\s\S]*orderApi\.pay\([\s\S]*settled\.status !== "activated"[\s\S]*created\.itemCount/);
+  // Purchased units, not distinct SKU lines (OQ-1 fix): sum the lines, else the order quantity.
+  assert.match(orderDetail, /const orderQuantity = computed\(\(\) => order\.value\?\.lineItems\?\.reduce\(\(total, item\) => total \+ item\.quantity, 0\) \?\? order\.value\?\.quantity \?\? 0\)/);
+  // New bundles use the shared items checkout; the legacy path settles the original order and opens its detail,
+  // where the purchased units are shown (orderQuantity above).
+  assert.match(bundle, /await navTo\(promotionCheckoutHref\(list\.map\(product=>\(\{productNo:product\.id,quantity:1\}\)\)\)\)/);
+  assert.match(bundle, /bundleOrderApi\.create\([\s\S]*orderApi\.pay\([\s\S]*settled\.status !== "activated"[\s\S]*navTo\(`\/pages\/store\/order-detail\?id=\$\{encodeURIComponent\(created\.orderNo\)\}`\)/);
   const checkout = await source("src/pages/store/checkout.vue");
   assert.match(checkout, /freeTrial\.convert\(p\.id, quotedTotal, trialQuote\.quoteVersion\)/);
   assert.match(freeTrial, /const confirmed = await refreshRemote\(true\)[\s\S]*status\.value !== "converted"/);

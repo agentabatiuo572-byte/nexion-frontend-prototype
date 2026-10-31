@@ -15,6 +15,7 @@ const INJECTED_NAMES = [
   "normalizeAccountKey", "readAccountRow", "writeAccountRow",
   "questClaimNoticeFor",
   "dayOneClaimState",
+  "invalidateBeforePassiveTabRead",
 ];
 const importedNames = new Set();
 const importSource = ts.createSourceFile("quest.ts", rawSource, ts.ScriptTarget.Latest, false, ts.ScriptKind.TS);
@@ -92,6 +93,8 @@ function createStore(replies) {
     // never call claimDayOne. This fail-closed neutral shape keeps the runtime
     // import harness complete without pretending it verifies Day-One claiming.
     dayOneClaimState: () => Object.freeze({ claimCode: null, claimed: false }),
+    // Passive-read invalidation only clears the 10-second tab-read window; no race path depends on it.
+    invalidateBeforePassiveTabRead: () => undefined,
   };
   assert.deepEqual(Object.keys(INJECT), INJECTED_NAMES, "INJECT 与 INJECTED_NAMES 漂移");
   const useQuest = new Function(

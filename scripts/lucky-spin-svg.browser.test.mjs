@@ -7,6 +7,14 @@ import ts from 'typescript';
 import { chromium } from 'playwright';
 import { escapeSvgText } from '../src/lib/svg-text.ts';
 import { platformDisplayText } from '../src/lib/brand-copy.ts';
+import { build } from 'esbuild';
+import { fileURLToPath } from 'node:url';
+
+// Bundle the real deadline formatter: it reaches @/ aliased modules Node cannot resolve.
+const root = fileURLToPath(new URL('../', import.meta.url));
+const dates = await build({ stdin: { contents: "export { displayDeadline } from './src/lib/promotion-display.ts';", resolveDir: root },
+  bundle: true, write: false, platform: 'node', format: 'esm', alias: { '@': root + 'src' } });
+const { displayDeadline } = await import('data:text/javascript;base64,' + Buffer.from(dates.outputFiles[0].text).toString('base64'));
 
 const source = readFileSync(new URL('../src/components/lucky-spin-sheet.vue', import.meta.url), 'utf8');
 const { descriptor } = parse(source);
@@ -17,15 +25,11 @@ const selected = ast.statements.filter(node => ts.isFunctionDeclaration(node) ? 
 const script = ts.transpileModule(selected.map(node => node.getText(ast)).join('\n'), {
   compilerOptions: { target: ts.ScriptTarget.ES2022 },
 }).outputText;
-const dateAst = ts.createSourceFile('date.ts', readFileSync(new URL('../src/lib/promotion-display.ts', import.meta.url), 'utf8'), ts.ScriptTarget.Latest, true);
-const dateFunction = dateAst.statements.find(node => ts.isFunctionDeclaration(node) && node.name.text === 'displayDeadline');
-const dateScript = ts.transpileModule(dateFunction.getText(dateAst).replace(/^export /, ''), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-const displayDeadline = new Function(`${dateScript}\nreturn displayDeadline;`)();
 
 for (const [code, points, coupon] of [['zh', '积分', '券'], ['en', 'pts', 'coupon'], ['vi', 'điểm', 'phiếu']]) {
 test(`native wheel ${code}: exact localized amounts fit their slices and the rotor stays centered`, async t => {
   const maliciousLabel = '</text><script>globalThis.wheelXss = true</script><text> & "reward"';
-  const prizes = ref([['nex', 5], ['points', 50], ['nex', 30], ['nex', 150.123456], ['usdt', 1], ['coupon', 50], ['usdt', 20], ['usdt', 500]].map(([kind, amount], i) => ({
+  const prizes = ref([['uvt', 5], ['points', 50], ['uvt', 30], ['uvt', 150.123456], ['usdt', 1], ['coupon', 50], ['usdt', 20], ['usdt', 500]].map(([kind, amount], i) => ({
     kind, amount,
     id: String(i), rewardName: i === 0 ? maliciousLabel : `Reward ${i}`, isReal: i === 7, tint: '#44ccaa',
   })));
@@ -105,11 +109,11 @@ test(`native wheel ${code}: exact localized amounts fit their slices and the rot
 }
 
 test('history uses the matching prize name or its own receipt amount, never a changed tier amount', () => {
-  const prizes = ref([{ id: 'nex-30', kind: 'nex', amount: 30, labelKey: 'remote:nex-30', rewardName: '+30 UVT' }]);
+  const prizes = ref([{ id: 'uvt-30', kind: 'uvt', amount: 30, labelKey: 'remote:uvt-30', rewardName: '+30 UVT' }]);
   const deps = { computed, prizes, realActive: ref(true), locale: { code: 'zh' }, escapeSvgText, spin: {},
     t: { value: { luckySpin: { prizes: {} } } }, platformDisplayText, displayDeadline };
   const label = new Function(...Object.keys(deps), `${script}\nreturn historyPrizeLabel;`)(...Object.values(deps));
-  const receipt = { tierId: 'nex-30', rewardType: 'NEX', rewardAmount: 30, rewardName: 'nex-30' };
+  const receipt = { tierId: 'uvt-30', rewardType: 'UVT', rewardAmount: 30, rewardName: 'uvt-30' };
   assert.equal(label(receipt), '+30 UVT');
   prizes.value[0].amount = 300;
   prizes.value[0].rewardName = '+300 UVT';
@@ -125,12 +129,12 @@ test('history converts explicit offsets to UTC in three languages and leaves old
   const deps = { computed, prizes: ref([]), realActive: ref(true), locale, escapeSvgText, spin: {},
     t: { value: { luckySpin: { prizes: {} } } }, platformDisplayText, displayDeadline };
   const time = new Function(...Object.keys(deps), `${script}\nreturn historyAwardTime;`)(...Object.values(deps));
-  for (const [code, day] of [['zh', '2026-12-31'], ['en', '31/12/2026'], ['vi', '31/12/2026']]) {
+  for (const [code, day] of [['zh', '2026/12/31'], ['en', 'Dec 31, 2026'], ['vi', '31/12/2026']]) {
     locale.code = code;
     assert.equal(time('2027-01-01T00:05:00+08:00'), `${day} 16:05 · UTC`);
     assert.equal(time('2026-10-25 13:43:00'), '');
   }
   locale.code = 'zh';
-  assert.equal(time('2026-10-25T13:43:00+08:00'), '2026-10-25 05:43 · UTC');
+  assert.equal(time('2026-10-25T13:43:00+08:00'), '2026/10/25 05:43 · UTC');
   assert.match(source, /time: historyAwardTime\(h\.awardedAt\)/);
 });

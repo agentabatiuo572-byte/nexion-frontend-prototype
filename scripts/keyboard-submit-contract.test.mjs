@@ -23,8 +23,14 @@ test("App registration exposes keyboard-confirm submission on each step's final 
   assert.match(register, /confirmPasswordPlaceholder[^>]*confirm-type="done"[^>]*@confirm="onCta"/);
 });
 
-test("App support conversation keeps the native send key wired to the send action", () => {
+// Since 1fc11b1b the composer is a multi-line textarea: the native key inserts a line break and
+// sending stays on the send control, which is reachable by keyboard.
+test("App support conversation keeps multi-line input and a keyboard-reachable send action", () => {
   const conversation = read("src/components/support/conversation-thread.vue");
-  assert.match(conversation, /confirm-type="send"/);
-  assert.match(conversation, /@confirm="onSend"/);
+  assert.match(conversation, /<textarea[\s\S]{0,600}confirm-type="return"/);
+  const send = conversation.split("\n").find((line) => line.includes('class="nx-conv-send"'));
+  assert.ok(send, "send control must exist");
+  assert.match(send, /role="button"/);
+  assert.match(send, /@click="onSend"/);
+  assert.match(send, /@keydown\.enter\.prevent="[^"]*onSend/);
 });

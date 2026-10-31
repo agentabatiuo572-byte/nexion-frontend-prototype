@@ -8,8 +8,9 @@ test("canonical Java rows use the five-column high-fidelity board", () => {
   assert.match(source, /v-for="\(row, i\) in homeMarketRows"/);
   assert.match(source, /data-home-market-row="true"/);
   assert.match(source, /gridTemplateColumns: marketGridColumns/);
+  // Market board column labels are English in every language (user decision 2026-10-29).
   for (const heading of ["mbColTag", "mbColModel", "mbCol1h", "mbColPrice", "mbCol24h"]) {
-    assert.match(source, new RegExp(`t\\.home\\.${heading}`));
+    assert.match(source, new RegExp(`\\{\\{ en\\.home\\.${heading} \\}\\}`));
   }
 });
 

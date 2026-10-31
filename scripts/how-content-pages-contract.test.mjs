@@ -37,32 +37,33 @@ test("the commission guide reads its published document with the canonical commi
   assert.match(source, /howContentApi\.published\("team-commissions-how", language\)/);
   assert.match(source, /directReferralApi\.policy\(\), commissionGuideApi\.read\(\), vRankApi\.ladder\(\)/);
   assert.match(source, /createCommissionsHowResource/);
-  assert.match(source, /v-if="state\.loading \|\| state\.error \|\| content\.incomplete"/);
-  assert.match(source, /<template v-if="!state\.loading && !state\.error && !content\.incomplete">/);
-  assert.match(source, /watch\(\(\) => locale\.code, reload\)/);
+  // Since 78c1cb3d a retained snapshot stays visible while it reloads; errors and incomplete content still block.
+  assert.match(source, /v-if="\(state\.loading && !state\.snapshot\) \|\| state\.error \|\| content\.incomplete"/);
+  assert.match(source, /<template v-if="!state\.error && !content\.incomplete">/);
+  // A language change re-reads the document through the shared resource inputs.
+  assert.match(source, /const resourceInputs = \(\) => \[[^\]]*locale\.code[^\]]*\] as const;/);
+  assert.match(source, /watch\(resourceInputs, reload\);/);
   assert.doesNotMatch(source, /apiRuntimeConfig\.mode/);
 });
 
 test("binary and unilevel retain the published-content error boundary in remote runtime", () => {
+  // The unilevel guide is titled "团队奖励说明" since 8236439c.
   const teamPages = {
-    "src/pages/team/binary-how.vue": "teamBinary",
-    "src/pages/team/unilevel-how.vue": "teamUnilevel",
+    "src/pages/team/binary-how.vue": "t\\.headerTitles\\.teamBinary \\+ t\\.headerTitles\\.howItWorksSuffix",
+    "src/pages/team/unilevel-how.vue": "t\\.unilevelHowItWorks\\.navTitle",
   };
 
-  for (const [file, headerKey] of Object.entries(teamPages)) {
+  for (const [file, titleExpression] of Object.entries(teamPages)) {
     const source = fs.readFileSync(path.join(root, file), "utf8");
     assert.match(source, /const howMode = howContentMode\(remoteApiEnabled\);/);
     assert.match(source, /v-if="howMode === 'published'"/);
     assert.match(source, /v-if="howMode === 'local'"/);
     assert.doesNotMatch(source, /publishedContentUnavailable|@unavailable=/);
-    assert.match(
-      source,
-      new RegExp(`:title="t\\.headerTitles\\.${headerKey} \\+ t\\.headerTitles\\.howItWorksSuffix"`),
-    );
+    assert.match(source, new RegExp(`:title="${titleExpression}"`));
   }
 
   const consumer = fs.readFileSync(path.join(root, "src/components/how/how-published-content.vue"), "utf8");
-  assert.match(consumer, /v-else-if="error"/);
+  assert.match(consumer, /v-if="error"[^>]*role="alert"/);
   assert.match(consumer, /defineEmits<\{ unavailable: \[\] \}>\(\)/);
   assert.match(consumer, /emit\("unavailable"\)/);
 });

@@ -38,7 +38,9 @@ test("account switching invalidates catalog snapshots and ignores stale response
   assert.match(accountScope, /prepareProductCatalog\(\)/);
   assert.match(accountScope, /prepareServerProductPhase\(\)/);
   assert.match(productCatalogStore, /catalogEpoch \+= 1/);
-  assert.match(productCatalogStore, /requestEpoch !== catalogEpoch/);
+  // The stale-response guard is the shared current() predicate since 78c1cb3d.
+  assert.match(productCatalogStore, /const current = \(\) => requestEpoch === catalogEpoch && requestBinding === catalogBindingEpoch/);
+  assert.match(productCatalogStore, /if \(!current\(\)\) return false;\s*replaceProductCatalog/);
   assert.match(productCatalogStore, /refreshInFlight === request/);
   assert.match(phaseStore, /phaseEpoch \+= 1/);
   assert.match(phaseStore, /requestEpoch !== phaseEpoch/);

@@ -12,12 +12,15 @@ assert.match(howPage, /isCurrentRuntimeRevision/);
 assert.match(howPage, /unsubscribeRemotePoolRun/);
 assert.match(howPage, /remotePool\.value = null/);
 assert.match(howPage, /void loadRemotePool\(\)/);
-assert.match(howPage, /import \{ remoteApiEnabled, teamInsightsApi \} from "@\/api\/runtime"/);
+assert.match(howPage, /import \{ apiRuntimeConfig, remoteApiEnabled, teamInsightsApi \} from "@\/api\/runtime"/);
 assert.match(howPage, /remoteApiEnabled \? "loading" : "ready"/);
-assert.match(howPage, /if \(!remoteApiEnabled\) return;/);
+assert.match(howPage, /if \(!remoteApiEnabled \|\| !pageVisible \|\| !auth\.isAuthenticated \|\| !environmentCurrent\(\)\) return;/);
 assert.match(howPage, /rank: facts\.value\.unlockRank/);
-assert.match(howPage, /new Date\(facts\.value\.nextPayoutAt\)/);
-assert.doesNotMatch(howPage, /voteRows|V_VOTES|leadershipHowRows|leadershipHowRanks|injectRatePct/);
+// Payout time uses the shared localized formatter since 8236439c.
+assert.match(howPage, /formatDisplayDateTime\(remotePool\.value\.nextPayoutAt, locale\.code, true\)/);
+assert.doesNotMatch(howPage, /voteRows|V_VOTES|leadershipHowRows|leadershipHowRanks/);
+// The inject rate may stay in the server facts, but the guide never renders it.
+assert.doesNotMatch(howPage.slice(howPage.indexOf("<template>"), howPage.indexOf("</template>")), /injectRatePct/);
 for (const locale of ["zh", "en", "vi"]) {
   const messages = source(`../src/i18n/messages/${locale}.ts`);
   const rules = messages.match(/poolHowItWorks: \{[\s\S]*?currentRules: "([^"]+)"/)?.[1] ?? "";

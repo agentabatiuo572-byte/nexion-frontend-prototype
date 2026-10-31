@@ -22,6 +22,12 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const SCRIPTS = path.join(root, "scripts");
 
 const REGISTRY = {
+  // 10/28–10/30 新增后未登记的孤儿测试(BUG-013),已对齐当前实现后接入
+  "bare-template-content.behavior.test.mjs": { how: "chain" },
+  "me-error-layout.behavior.test.mjs": { how: "chain" },
+  "prototype-current-contracts.test.mjs": { how: "chain" },
+  "prototype-trial-capacity.test.mjs": { how: "chain" },
+  "tab-first-frame-scroll.behavior.test.mjs": { how: "chain" },
   "prototype-machine-images.test.mjs": { how: "chain" },
   "prototype-message-demo.test.mjs": { how: "chain" },
   "lucky-spin-svg.browser.test.mjs": { how: "chain" },

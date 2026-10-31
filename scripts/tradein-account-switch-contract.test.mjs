@@ -73,11 +73,17 @@ test("keep-and-buy also suppresses stale account readback and notifications", ()
   const start = sheets.indexOf("async function submitCanonicalKeepBuy");
   const end = sheets.indexOf("function onKeepBuy", start);
   const submit = sheets.slice(start, end);
+  // New keep purchases share the PIN-authorized capacity runner; this function recovers originals.
+  assert.match(submit, /if \(!recovered\) return runCanonicalCapacityPurchase\('keep',quote,newKind\);/);
   assert.match(submit, /const requestScope = captureAccountScope\(\)/);
   assert.match(submit, /ACCOUNT_SCOPE_CHANGED/);
-  assert.match(submit, /deviceE3Api\.capacityKeep[\s\S]{0,180}requireCurrentAccount\(\)/);
+  assert.match(submit, /readback: async[\s\S]{0,240}requireCurrentAccount\(\)/);
+  assert.match(submit, /commit\(\) \{\s*requireCurrentAccount\(\)/);
   assert.doesNotMatch(submit, /orderApi\.create/);
   assert.match(submit, /catch \{\s*if \(!isCurrentAccountScope\(requestScope\)\) return;/);
+  const runner = sheets.slice(sheets.indexOf("async function runCanonicalCapacityPurchase"));
+  assert.match(runner, /const scope=captureAccountScope\(\)/);
+  assert.match(runner, /deviceE3Api\.capacityKeep\([\s\S]{0,200}if \(!isCurrentAccountScope\(scope\)\|\|!original\) return;/);
 });
 
 test("learning failures are announced and retry remains keyboard reachable", () => {
@@ -87,5 +93,7 @@ test("learning failures are announced and retry remains keyboard reachable", () 
     assert.match(page, /v-else-if="error"[^>]*role="alert"[^>]*aria-live="assertive"/);
     assert.match(page, /role="button"[^>]*tabindex="0"/);
   }
-  assert.match(courses, /@keydown\.enter\.prevent="onKeyboardActivate\(\$event, load\)"/);
+  // The courses retry is the shared NxButton, which carries role, tabindex and Enter/Space activation.
+  assert.match(courses, /<NxButton class="learning-retry[^"]*"[^>]*@click="load"/);
+  assert.match(read("src/components/ui/nx-button.vue"), /@keydown\.enter\.prevent="activate" @keydown\.space\.prevent="activate"/);
 });
