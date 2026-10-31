@@ -3,10 +3,10 @@
   "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-bug013",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "2df78bdc6ff9401c24e9666976390b3c7152568e",
-  "sourceRef": "2df78bdc6ff9401c24e9666976390b3c7152568e",
+  "sourceHead": "9e6ea349f181ebe1cf80f3d8250923607bbf1491",
+  "sourceRef": "9e6ea349f181ebe1cf80f3d8250923607bbf1491",
   "sourceRefKind": "commit",
-  "sourceTree": "c7474172a5193baf8cc100e47a0586775fc2584d",
+  "sourceTree": "1794ac17c276c45e8178cb5ba004ec1dfe4cd372",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -6810,10 +6810,10 @@
       "mode": "100644"
     },
     "src/components/site-silent-warm.behavior.test.ts": {
-      "sourceBlob": "b3bb735f4f2e09efb962fb48d02ebabe79b4f4e9",
-      "sourceSha256": "9a3799f00753a22dbea2eebcd8714f3d450a5b2ec5c504d2742874de8152395a",
-      "targetBlob": "b3bb735f4f2e09efb962fb48d02ebabe79b4f4e9",
-      "targetSha256": "9a3799f00753a22dbea2eebcd8714f3d450a5b2ec5c504d2742874de8152395a",
+      "sourceBlob": "891e447a5e31c97bbb02c8ca149dab5b8ebe3842",
+      "sourceSha256": "edacfa81bcda0f0a7aee19f86b82318bcd49eee2e19d5ed8471ad7d1a5a3e53f",
+      "targetBlob": "891e447a5e31c97bbb02c8ca149dab5b8ebe3842",
+      "targetSha256": "edacfa81bcda0f0a7aee19f86b82318bcd49eee2e19d5ed8471ad7d1a5a3e53f",
       "mode": "100644"
     },
     "src/components/slot-action-sheet.vue": {
@@ -7461,10 +7461,10 @@
       "mode": "100644"
     },
     "src/components/team/team-overview-r2.behavior.test.ts": {
-      "sourceBlob": "4dd40b2700c93041fa21d16dea81e55817d78736",
-      "sourceSha256": "e0696d09e78b9b1c171633859f26b594666a1bc9cb58f50b712adf2fb2a50580",
-      "targetBlob": "4dd40b2700c93041fa21d16dea81e55817d78736",
-      "targetSha256": "e0696d09e78b9b1c171633859f26b594666a1bc9cb58f50b712adf2fb2a50580",
+      "sourceBlob": "845fdac34b333b8364415e2d1c6127f5421e2685",
+      "sourceSha256": "e3940df31ce8f5153e00181caaa2b715a51cab7fbdf33626391b75329a5b3da2",
+      "targetBlob": "845fdac34b333b8364415e2d1c6127f5421e2685",
+      "targetSha256": "e3940df31ce8f5153e00181caaa2b715a51cab7fbdf33626391b75329a5b3da2",
       "mode": "100644"
     },
     "src/components/team/team-rank-emblem.vue": {
@@ -14524,10 +14524,10 @@
       "mode": "100644"
     },
     "src/pages/support/chat-inbound-card.test.ts": {
-      "sourceBlob": "a53f21c5977e5028d88867d6187d894477a157e7",
-      "sourceSha256": "c3f72ab43890fdb0fa0248f62ebf1930a9b25dc3dc9a0c5f6002f41fa7234a42",
-      "targetBlob": "a53f21c5977e5028d88867d6187d894477a157e7",
-      "targetSha256": "c3f72ab43890fdb0fa0248f62ebf1930a9b25dc3dc9a0c5f6002f41fa7234a42",
+      "sourceBlob": "b567f330f00fba2fe4865ddb7bd313d84daffee2",
+      "sourceSha256": "926b3982b0b5fe72de9180fd54ddf3eabf282ac83602afdd342cf901d5832be7",
+      "targetBlob": "b567f330f00fba2fe4865ddb7bd313d84daffee2",
+      "targetSha256": "926b3982b0b5fe72de9180fd54ddf3eabf282ac83602afdd342cf901d5832be7",
       "mode": "100644"
     },
     "src/pages/support/chat-thread-identity.test.ts": {

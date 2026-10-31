@@ -38,11 +38,11 @@ describe("human incoming cards reuse existing CTA", () => {
       ...["HOME", "WALLET", "SUPPORT"].map((type, i) => ({ ...author, id: String(i + 2), kind: "LINK", text: "Link body", linkTarget: { type, params: {} }, targetAvailability: "AVAILABLE" })),
       { id: "5", sender: "user", text: "Reply", status: "read", ts: 1 }];
     const h = harness(cards, translations); const result = h.state.threadMessages.value;
-    expect(result.map((m: any) => m.ctaHref)).toEqual(["/pages/store/detail?id=stellarbox-s1", "/home", "/me/wallet", "/pages/support/messages", undefined]);
+    expect(result.map((m: any) => m.ctaHref)).toEqual(["/pages/store/detail?id=stellarbox-s1", "/home", "/pages/me/me", "/pages/support/messages", undefined]); // wallet lives on Me
     expect(result[0].text).toBe("Actual body\nSnapshot");
     expect(result.slice(0, 4).map((m: any) => toUniRoute(m.ctaHref))).toEqual([
       { url: "/pages/store/detail?id=stellarbox-s1", tab: false }, { url: "/pages/index/index", tab: true },
-      { url: "/pages/me/wallet", tab: false }, { url: "/pages/support/messages", tab: false },
+      { url: "/pages/me/me", tab: true }, { url: "/pages/support/messages", tab: false },
     ]);
     expect(result[0].meta).toContain("Real historical author");
     expect(result[0].receipt).toBeUndefined(); expect(result[4].receipt).toBe(translations.conversations.receiptRead);

@@ -168,13 +168,14 @@ async function teamHome(locale: Locale) {
   const poolSnapshot = Vue.reactive({ myVotes: 17, mySharePct: .1234, projectedPayoutUSDT: 876.54,
     currentWeekPoolUSDT: 76543.21, unlockRank: 3, injectRate: .05 });
   const network = Vue.reactive({ remoteStatus: 'ready', remoteTransientFailure: false, hasRemoteSnapshot: true, totalMembers: 987654321, members: [],
-    byLayer: () => ({ 1: [1, 2, 3], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [] }), refreshCanonicalNetwork: vi.fn(), ensureCanonicalNetwork: vi.fn(), invalidateReadOwner: vi.fn() });
+    // Layer buckets hold member rows; the reward card shows their initials.
+    byLayer: () => ({ 1: [{ name: 'An' }, { name: 'Bao' }, { name: 'Chi' }], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [] }), refreshCanonicalNetwork: vi.fn(), ensureCanonicalNetwork: vi.fn(), invalidateReadOwner: vi.fn() });
   const commission = Vue.reactive({ eventsStatus: 'ready', eventsTransientFailure: false, events: [],
     eventsEvidence: { source: 'server', serverCanonical: true, sourceEnvironment: 'PRODUCTION', runId: '', aggregate: {
     totalUSDT: 800, totalNEX: 12, directUSDT: 600, extendedUSDT: 200, contributorCount: 16,
     monthUSDT: 1234.56, monthNEX: 12, unlockedUSDT: 50, coolingUSDT: 25 } },
     monthUSDT: () => 1234.56, monthNEX: () => 12, unlockedUSDT: () => 50, coolingUSDT: () => 25,
-    binarySnapshot: { estimatedAmountUsdt: 456.78, trackAComputePoints: 31234, trackBComputePoints: 56789 },
+    binaryStatus: 'ready', binarySnapshot: { estimatedAmountUsdt: 456.78, trackA: 31234, trackB: 56789 },
     refreshCanonicalBinary: vi.fn(), refreshCanonicalEvents: vi.fn(), ensureCanonicalBinary: vi.fn(), ensureCanonicalEvents: vi.fn(), invalidateReadOwner: vi.fn() });
   const page = await mount(teamSource, {}, locale, {
     '@/lib/passive-tab-read': passive,
@@ -201,6 +202,7 @@ async function teamHome(locale: Locale) {
     '@/api/runtime': { remoteApiEnabled: true, apiRuntimeConfig: runtime, teamInsightsApi: { leadershipPool: async () => poolSnapshot } },
     '@/store/product-catalog': { productCatalogState: Vue.reactive({ status: 'ready', serverCanonical: true, sourceEnvironment: 'PRODUCTION', runId: '' }),
       productCatalogDisplayProof: Vue.ref({ sourceEnvironment: 'PRODUCTION', runId: '', revision: 'team-fixture', bindingEpoch: 1, runtimeEpoch: 0 }),
+      productCatalogPresentation: Vue.ref({ source: 'nx_product', serverCanonical: true, sourceEnvironment: 'PRODUCTION', runId: '', products: [] }),
       isProductCatalogDisplayCurrent: () => true },
     '@/lib/leadership-pool-state': { leadershipPoolFailureState: () => 'error' },
     '@/store/referral-reward': { useReferralReward: () => ({ snapshot: null, loading: false }) },
@@ -225,8 +227,9 @@ describe('team home privacy coverage through its actual SFC', () => {
     expect(text(find(page.root, 'team-rank__level'))).toBe('••••');
     expect(text(find(page.root, 'nx-team-royalty-network-link'))).not.toContain('987654321');
     const binary = find(page.root, 'nx-team-binary-link'), pool = find(page.root, 'nx-team-leadership-pool-link');
-    expect(text(binary)).toContain('A · ••••');
-    expect(text(binary)).toContain('B · ••••');
+    // The redesigned bento card drops the A/B split entirely while hidden and masks the amount.
+    expect(all(binary).some(node => hasClass(node, 'team-bento__split'))).toBe(false);
+    expect(text(binary)).toContain('••••');
     for (const value of [formatUsd(456.78), formatComputePoints(31234, locale), formatComputePoints(56789, locale)]) expect(text(binary)).not.toContain(value);
     expect(text(pool)).not.toContain(formatUsd(876.54));
     expect(text(pool)).not.toMatch(/17|12\.34/);

@@ -106,12 +106,23 @@ describe.each([["zh", zh], ["en", en], ["vi", vi]] as const)("silent retained wa
   });
   it("uses the current wallet snapshot only for presentation while loading", async () => {
     const path = "components/promotion/promotion-checkout.vue";
-    // Select the wallet line by its real expression; the component has other copy rows.
+    // Render the real balance block and its recovery row (the wallet line became label + amount on 2026-10-30).
     const template = parse(source(path)).descriptor.template!.content;
-    const line = template.split("\n").find(row => row.includes("t.wallet.usdtBalance"))!;
-    const render = new Function("Vue", compile(line, { mode: "function", prefixIdentifiers: true }).code)(Vue);
-    const show = (snapshot: boolean, walletState: string) => renderToString(Vue.createSSRApp({ render, setup: () => ({ t, walletState, app: { remoteFleetHasSnapshot: snapshot, user: { usdtBalance: 150 } }, formatAmount: String, reviewCopy: { walletLoading: "warm-read", walletError: "read-failed" } }) }));
-    expect(await show(true, "loading")).toContain("150 USDT");
+    // The balanced <view> element that starts at the marker.
+    const block = (start: string) => {
+      const from = template.indexOf(start);
+      let depth = 0, i = from;
+      for (const tag of template.slice(from).matchAll(/<view\b|<\/view>/g)) {
+        depth += tag[0] === "</view>" ? -1 : 1;
+        if (depth === 0) { i = from + tag.index! + tag[0].length; break; }
+      }
+      return template.slice(from, i);
+    };
+    const markup = `<view>${block('<view class="checkout-wallet-balance"')}${block('<view v-if="walletState===\'error\'" class="checkout-wallet-recovery"')}</view>`;
+    const render = new Function("Vue", compile(markup, { mode: "function", prefixIdentifiers: true, isCustomElement: tag => tag === "view" || tag === "text" }).code)(Vue);
+    const show = (snapshot: boolean, walletState: string) => renderToString(Vue.createSSRApp({ render, setup: () => ({ t, walletState, app: { remoteFleetHasSnapshot: snapshot, user: { usdtBalance: 150 } }, formatAmount: String, reviewCopy: { walletLoading: "warm-read", walletError: "read-failed" }, refreshWallet: () => {} }) }));
+    expect(await show(true, "loading")).toContain(t.wallet.usdtBalance);
+    expect(await show(true, "loading")).toContain(">150<");
     expect(await show(false, "loading")).toContain("warm-read");
     expect(await show(true, "error")).toContain("read-failed");
   });
