@@ -151,7 +151,7 @@ import { useOrders } from '@/store/orders';
 import { computeVoucherDiscount,isVoucherValid,voucherAppliesToSku,type VoucherDef } from '@/mock/vouchers';
 import { ApiError,asApiError } from '@/api/errors';
 import { getProduct as readProduct } from '@/mock/products';import { refreshProductCatalog,productCatalogState,productCatalogPresentation } from '@/store/product-catalog';
-import { navTo,navBack } from '@/lib/route';import { confirm,useUI } from '@/store/ui';
+import { navTo,navBack,navReset } from '@/lib/route';import { confirm,useUI } from '@/store/ui';
 import { fmt } from '@/i18n/format';
 import { PromotionCheckoutSession,selectPromotionCheckoutRecord,type PromotionCheckoutRecord } from '@/lib/promotion-checkout-session';
 import { acquireAccountCommandKey,readAccountRow,writeAccountRow } from '@/store/account-scoped-storage';
@@ -522,7 +522,8 @@ async function cancelOrder():Promise<boolean>{
   return cancelled;
 }
 function viewOrder(){if(order.value)void navTo('/pages/store/order-detail?id='+encodeURIComponent(order.value.orderNo));}
-function viewDevices(){if(current()&&visible.value&&order.value?.paymentStatus==='PAID')void navTo('/pages/me/devices');}
+// Open the warehouse on a fresh stack: back returns to Me, never to this finished result.
+function viewDevices(){if(current()&&visible.value&&order.value?.paymentStatus==='PAID')void navReset('/pages/me/devices');}
 function openWalletTopup(){paymentSheetOpen.value=false;void navTo('/pages/me/wallet-topup');}
 function signIn(){void navTo('/pages/login/login?return='+encodeURIComponent(promotionCheckoutHref(selection.value,props.activityId,props)));}
 let disposeGuard:(()=>void)|null=null;

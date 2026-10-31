@@ -116,7 +116,7 @@ async function detail(dataCenter: string | null, copy = en, status: CanonicalOrd
     if (id === "@/store/free-trial") return { trialReservesSlotNow: () => false };
     if (id === "@/store/ui" || id === "@/api/errors" || id === "@/lib/account-scope") return {};
     if (id === "@/composables/use-page-header") return { useSetPageHeader: () => {} };
-    if (id === "@/lib/route") return { navTo, takeNavigationQuery: () => "" };
+    if (id === "@/lib/route") return { navTo, navReset: vi.fn(), takeNavigationQuery: () => "" };
     if (id === "@/api/runtime") return remote;
     if (id === "@/api/order-api") return { captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision, paidOrderReceipt };
     if (id.endsWith(".vue")) return { __esModule: true, default: {} };

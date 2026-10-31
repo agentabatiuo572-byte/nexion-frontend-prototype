@@ -315,7 +315,7 @@ import { useDeviceEligibility } from "@/composables/use-device-eligibility";
 import { usePurchaseGate } from "@/composables/use-purchase-gate";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import { useProductImage } from "@/composables/use-product-image";
-import { navReplace, navBack, navTo } from "@/lib/route";
+import { navReplace, navReset, navBack, navTo } from "@/lib/route";
 import type { DeviceKind } from "@/store/types";
 import { confirm, toast, useUI } from "@/store/ui";
 import { deviceE3Api, orderApi, purchaseEligibilityApi, remoteApiEnabled } from "@/api/runtime";
@@ -1184,7 +1184,8 @@ async function refreshCheckoutResult() {
   if (!orderId.value) return;
   await orders.ensureRemoteOrder(orderId.value);
 }
-function viewPurchasedDevices() { navTo('/pages/me/devices'); }
+// Open the warehouse on a fresh stack: back returns to Me, never to this finished result.
+function viewPurchasedDevices() { void navReset('/pages/me/devices'); }
 // First paid order and the item is hardware (Cloud Share is not a device).
 function isFirstHardwareOrder(orderNo: string): boolean {
   return product.value?.productType !== "SHARE"

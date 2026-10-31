@@ -114,6 +114,12 @@ try {
   assert.ok(frames.every(frame=>!frame.buttonInset||frame.buttonInset.every(inset=>inset>=15)),'result controls need at least 16px side inset');
   assert.equal((await state()).payWrites,1);await page.getByRole('button',{name:'查看设备',exact:true}).click();
   await page.waitForURL(url=>url.hash.includes('/pages/me/devices'));await capture('06-existing-warehouse');
+  // The warehouse opens on a fresh stack: back goes to Me, never to the finished result.
+  await page.locator('.spv-back').first().click();
+  await page.waitForURL(url=>!url.hash.includes('/pages/me/devices'));
+  assert.ok(/\/pages\/(me\/me|tabs\/tabs)/.test(new URL(page.url()).hash),'back from the warehouse lands on Me: '+page.url());
+  assert.equal(await page.locator('.checkout-result').count(),0,'the finished result is not reopened');
+  await capture('06b-back-to-me');
   steps.push({id:'actual-app-journey',status:'pass',evidence:['Built APP ordinary checkout reads $1,299.00 (1 USD = 1 USDT) on the review, 1,299.00 USDT inside the wallet method sheet, and stays in dollars after closing it. Original order -> two PIN setup entries -> fresh third entry; incorrect PIN does not debit; one successful payment; congratulations with 36 particles, then rendered activation progress, then the activated check; View devices reaches the existing warehouse.','01-confirm-order.png','02-method.png','03-third-entry.png','motion.json','06-existing-warehouse.png']});
   await route('/pages/store/checkout?items='+encodeURIComponent(JSON.stringify([{productNo:'stellarbox-s1',quantity:2}])));
   for(const amount of await page.locator('.promotion .checkout-amount').all())assert.match(await amount.innerText(),/^\$\s*[\d,]+\.\d{2}$/);

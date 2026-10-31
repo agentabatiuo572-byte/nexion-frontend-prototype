@@ -271,7 +271,7 @@ import { useAuth } from "@/store/auth";
 import { trialReservesSlotNow } from "@/store/free-trial";
 import { confirm as uiConfirm, toast } from "@/store/ui";
 import { useSetPageHeader } from "@/composables/use-page-header";
-import { navTo, takeNavigationQuery } from "@/lib/route";
+import { navReset, navTo, takeNavigationQuery } from "@/lib/route";
 import { apiClient,orderApi,purchaseEligibilityApi, remoteApiEnabled, apiRuntimeConfig } from "@/api/runtime";
 import { advisorChatRoute } from "@/lib/advisor-chat-route";
 import { useConversations } from "@/store/conversations";
@@ -1014,8 +1014,9 @@ function goEarn() {
 }
 const purchaseCopy = useTrialPurchaseCopy();
 const trialLifecycle = useTrialLifecycleCopy();
+// Open the warehouse on a fresh stack: back returns to Me, never to this finished result.
 function goDevices() {
-  navTo("/pages/me/devices");
+  void navReset("/pages/me/devices");
 }
 const usdt = (value: number | string) => `${formatAmount(value)} USDT`;
 // Unpaid orders read in dollars (1 USD = 1 USDT); a settled wallet payment reads in USDT.

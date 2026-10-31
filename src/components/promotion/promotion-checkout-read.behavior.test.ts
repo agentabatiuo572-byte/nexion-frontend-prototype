@@ -80,7 +80,7 @@ function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items
   const authorization:PaymentPasswordAuthorization={paymentPassword:'583719',credentialVersion:1,attemptNo:'fixture-attempt'};
   const pin=vi.fn(async(_context:any,command:any,current:()=>boolean)=>current()?command(authorization):null);
   const eligibility=vi.fn().mockResolvedValue({eligible:true}),runtime=Vue.reactive({epoch:1}),sessionIdentity=Vue.reactive({revision:1});
-  const canonical=vi.fn().mockResolvedValue({id:'o1',status:'activated'}),navTo=vi.fn(),navBack=vi.fn();
+  const canonical=vi.fn().mockResolvedValue({id:'o1',status:'activated'}),navTo=vi.fn(),navBack=vi.fn(),navReset=vi.fn();
   const vouchers={remoteStatus:'ready',catalog:[] as {id:string;name:string}[],claimedUnused:[] as VoucherDef[],claimableVouchers:[] as {id:string;name:string;claimSurfaces:string[]}[],refreshRemote:vi.fn().mockResolvedValue(true),claimRemote:vi.fn().mockResolvedValue(true)};
   const modules:Record<string,unknown>={
     '@/lib/amount-display':{formatAmount,formatGroupedAmount},
@@ -101,7 +101,7 @@ function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items
     '@/i18n/use-t':{useT:()=>Vue.ref(zh)},'@/store/locale':{useLocaleStore:()=>locale},'@/store/app':{useApp:()=>adapters?.app??app},'@/store/auth':{useAuth:()=>auth},
     '@/store/voucher':{useVoucher:()=>vouchers},'@/mock/products':{getProduct},
     '@/store/product-catalog':{productCatalogState:catalog,productCatalogPresentation:presentation,refreshProductCatalog:refreshCatalog},
-    '@/lib/route':{navTo,navBack},'@/store/ui':{confirm,useUI:()=>({clearConfirmsBy})},
+    '@/lib/route':{navTo,navBack,navReset},'@/store/ui':{confirm,useUI:()=>({clearConfirmsBy})},
     '@/lib/promotion-checkout-session':{PromotionCheckoutSession,selectPromotionCheckoutRecord},
     '@/lib/keep-command-recovery':{readPendingKeepCommand:(account:string,productNo:string)=>parsePendingKeepCommand(keepHistory,account,productNo)},
     '@/store/tradein-sheet':{useTradeinSheet:()=>tradein},
@@ -123,7 +123,7 @@ function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items
   const amount={props:['value','currency','showCurrency'],setup:(props:any)=>()=>Vue.h('text',props.showCurrency===false?formatGroupedAmount(props.value):props.currency==='USD'?'$'+(formatGroupedAmount(props.value)==='-'?'—':formatGroupedAmount(props.value)):formatGroupedAmount(props.value)+' USDT')};
   const result={props:['state','productName','amount'],setup:(props:any,{slots}:Vue.SetupContext)=>()=>Vue.h('view',{'data-result':props.state},[props.productName,' ',formatGroupedAmount(props.amount)+' USDT',slots.default?.()])};
   const html=()=>renderToString(Vue.createSSRApp({components:{PromotionAction:passthrough,PromotionTerms:empty,RewardRows:empty,LiquidGlass:empty,NxSheet:empty,CheckoutPaymentSheet:empty,CheckoutAmount:amount,CheckoutResult:result},render:()=>render(Vue.proxyRefs({$slots:{},...Vue.toRefs(props),...view}),[])}));
-  return{view,exposed,api,save,key,app,fleet,props,auth,locale,vouchers,getProduct,catalog,presentation,refreshCatalog,html,confirm,clearConfirmsBy,pin,eligibility,runtime,sessionIdentity,authorization,canonical,navTo,navBack,tradein,setKeepHistory:(history:unknown)=>{keepHistory=history;},start:()=>Promise.all(mounted.map(fn=>fn())),saved:()=>rows[intent],failStorage:()=>{writable=false;}};
+  return{view,exposed,navReset,api,save,key,app,fleet,props,auth,locale,vouchers,getProduct,catalog,presentation,refreshCatalog,html,confirm,clearConfirmsBy,pin,eligibility,runtime,sessionIdentity,authorization,canonical,navTo,navBack,tradein,setKeepHistory:(history:unknown)=>{keepHistory=history;},start:()=>Promise.all(mounted.map(fn=>fn())),saved:()=>rows[intent],failStorage:()=>{writable=false;}};
 }
 
 const oldKeepIntent='keep|1156|sku|1|1299|1299|6';
@@ -477,14 +477,14 @@ it.each(['activated','inventory','provisioning'] as const)('PAID waits for canon
   read.resolve({id:'o1',status});await start;
   expect(page.view.resultState.value).toBe(status==='provisioning'?'processing':status);
   expect(page.api.pay).not.toHaveBeenCalled();expect(page.app.refreshRemoteFleet).toHaveBeenCalled();
-  page.view.viewDevices();expect(page.navTo).toHaveBeenCalledWith('/pages/me/devices');
+  page.view.viewDevices();expect(page.navReset).toHaveBeenCalledWith('/pages/me/devices');expect(page.navTo).not.toHaveBeenCalledWith('/pages/me/devices');
 });
 it('a failed or stale activation read cannot celebrate a paid receipt',async()=>{
   const paid={...receipt(),paymentStatus:'PAID' as const,orderStatus:'COMPLETED' as const};
   const page=screen({quote:quote(),order:paid,pending:null});page.api.findOrder.mockResolvedValue(paid);
   page.canonical.mockRejectedValueOnce(new Error('unavailable'));await page.start();
   expect(page.view.resultState.value).toBe('error');expect(page.api.pay).not.toHaveBeenCalled();
-  page.view.viewDevices();expect(page.navTo).toHaveBeenCalledWith('/pages/me/devices');
+  page.view.viewDevices();expect(page.navReset).toHaveBeenCalledWith('/pages/me/devices');expect(page.navTo).not.toHaveBeenCalledWith('/pages/me/devices');
   const read=deferred<{id:string;status:string}>();page.canonical.mockReturnValueOnce(read.promise);
   const retry=page.view.readActivation();await flush();page.exposed.hide();read.resolve({id:'o1',status:'activated'});await retry;
   expect(page.view.resultState.value).not.toBe('activated');expect(page.api.pay).not.toHaveBeenCalled();

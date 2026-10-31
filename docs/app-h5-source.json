@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-bug021",
+  "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-bug022",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "3f0a92b413b57ced32133baa1f7c68825bb28487",
-  "sourceRef": "3f0a92b413b57ced32133baa1f7c68825bb28487",
+  "sourceHead": "a3f104a94b84c071006e8ce291e4ab1c0f330570",
+  "sourceRef": "a3f104a94b84c071006e8ce291e4ab1c0f330570",
   "sourceRefKind": "commit",
-  "sourceTree": "402a6cfedd2b18dc333bd258d5cea10eb290f45c",
+  "sourceTree": "d56435c81e0f6b4ff8024f9a5d9501cdaac59f2c",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -853,10 +853,10 @@
       "mode": "100644"
     },
     "scripts/checkout-flow.h5.e2e.mjs": {
-      "sourceBlob": "cc3e54f31ca3f891f3b10b6408b91275dac5cc91",
-      "sourceSha256": "38385dd7487119f2f98bbc087f0d6f9f8cd9212c7598ad2923feaed9db8be85e",
-      "targetBlob": "cc3e54f31ca3f891f3b10b6408b91275dac5cc91",
-      "targetSha256": "38385dd7487119f2f98bbc087f0d6f9f8cd9212c7598ad2923feaed9db8be85e",
+      "sourceBlob": "8591211fdf43e72aaab78c5c8b14a9490fd65d74",
+      "sourceSha256": "7121d0b079e6afa749c255f2e97cb9bb825b717b5e82716a121c88ac284786f2",
+      "targetBlob": "8591211fdf43e72aaab78c5c8b14a9490fd65d74",
+      "targetSha256": "7121d0b079e6afa749c255f2e97cb9bb825b717b5e82716a121c88ac284786f2",
       "mode": "100644"
     },
     "scripts/chrome-baseline.mjs": {
@@ -6614,17 +6614,17 @@
       "mode": "100644"
     },
     "src/components/promotion/promotion-checkout-read.behavior.test.ts": {
-      "sourceBlob": "1011bb72829c33c5b142fc4d3d3dadf238ae1f30",
-      "sourceSha256": "ecc5e233ec462d5f6ab4de5fbf6336f3fea4c6faae93cc0f120bf230fca3474a",
-      "targetBlob": "1011bb72829c33c5b142fc4d3d3dadf238ae1f30",
-      "targetSha256": "ecc5e233ec462d5f6ab4de5fbf6336f3fea4c6faae93cc0f120bf230fca3474a",
+      "sourceBlob": "a0a65428e7df5cdfd7e5e4760124b69f758ba1e8",
+      "sourceSha256": "d9c28ef928766d5684d4a02e130e09fd4667ebc4afc78b2cb4ae8768638697f4",
+      "targetBlob": "a0a65428e7df5cdfd7e5e4760124b69f758ba1e8",
+      "targetSha256": "d9c28ef928766d5684d4a02e130e09fd4667ebc4afc78b2cb4ae8768638697f4",
       "mode": "100644"
     },
     "src/components/promotion/promotion-checkout.vue": {
-      "sourceBlob": "9202922ee61c8535d984011e6b1848f5de745f3a",
-      "sourceSha256": "774216bdefbcb616d319110500a5e4472c148130afa4b9079400dd1271c570ec",
-      "targetBlob": "9202922ee61c8535d984011e6b1848f5de745f3a",
-      "targetSha256": "774216bdefbcb616d319110500a5e4472c148130afa4b9079400dd1271c570ec",
+      "sourceBlob": "5280f2263b65c933fd883a461c48d33007aacae0",
+      "sourceSha256": "0d0b3e8c78dad8ca22d28e551576b39d1203bf926979423027d4af3c113c8e20",
+      "targetBlob": "5280f2263b65c933fd883a461c48d33007aacae0",
+      "targetSha256": "0d0b3e8c78dad8ca22d28e551576b39d1203bf926979423027d4af3c113c8e20",
       "mode": "100644"
     },
     "src/components/promotion/promotion-entry-autoplay.behavior.test.ts": {
@@ -14230,10 +14230,10 @@
       "mode": "100644"
     },
     "src/pages/store/checkout.vue": {
-      "sourceBlob": "709bfdc981bab956c45a16856c93607f3efe092a",
-      "sourceSha256": "68887642348f6ae3f72cb6f612b791676287ec255b30d8d06dc95ee6f2f6fa39",
-      "targetBlob": "709bfdc981bab956c45a16856c93607f3efe092a",
-      "targetSha256": "68887642348f6ae3f72cb6f612b791676287ec255b30d8d06dc95ee6f2f6fa39",
+      "sourceBlob": "537f001af9ec52102af8f3072f2732647d48e9ea",
+      "sourceSha256": "fd1e0d1aef2cd2a038909e5f395200057a43faba306b4966628899c7618067c2",
+      "targetBlob": "537f001af9ec52102af8f3072f2732647d48e9ea",
+      "targetSha256": "fd1e0d1aef2cd2a038909e5f395200057a43faba306b4966628899c7618067c2",
       "mode": "100644"
     },
     "src/pages/store/detail-loading-header.contract.test.ts": {
@@ -14321,24 +14321,24 @@
       "mode": "100644"
     },
     "src/pages/store/order-detail-runtime.behavior.test.ts": {
-      "sourceBlob": "3c07825af4de4f994a487c0659813e9ace468590",
-      "sourceSha256": "ddb880db5f2d36a31da2193b4e9741ece8ba4d12379d3b352f8a30b6a0c18cb8",
-      "targetBlob": "3c07825af4de4f994a487c0659813e9ace468590",
-      "targetSha256": "ddb880db5f2d36a31da2193b4e9741ece8ba4d12379d3b352f8a30b6a0c18cb8",
+      "sourceBlob": "0ba0ff690d3f8a65ea2dda289f5044f6526ac3f1",
+      "sourceSha256": "0d909676eaee189a539a6cf24786c622ac99f92f0f6bf4537689d4900d0a2345",
+      "targetBlob": "0ba0ff690d3f8a65ea2dda289f5044f6526ac3f1",
+      "targetSha256": "0d909676eaee189a539a6cf24786c622ac99f92f0f6bf4537689d4900d0a2345",
       "mode": "100644"
     },
     "src/pages/store/order-detail-server-truth.test.ts": {
-      "sourceBlob": "c08d3ea9774ae20f198f4734e93c762dcf174727",
-      "sourceSha256": "c27c2baef19c982eb8467e83386714c6920ceaee0bbfcba88e0d524a52ee1976",
-      "targetBlob": "c08d3ea9774ae20f198f4734e93c762dcf174727",
-      "targetSha256": "c27c2baef19c982eb8467e83386714c6920ceaee0bbfcba88e0d524a52ee1976",
+      "sourceBlob": "2bea37e62500675f83f1c35ac26dcd7970dcd2e5",
+      "sourceSha256": "4882e5a3645c794b7f9e3ffcadb770693c501de08b5a09e62025d14d67d4eb4d",
+      "targetBlob": "2bea37e62500675f83f1c35ac26dcd7970dcd2e5",
+      "targetSha256": "4882e5a3645c794b7f9e3ffcadb770693c501de08b5a09e62025d14d67d4eb4d",
       "mode": "100644"
     },
     "src/pages/store/order-detail.vue": {
-      "sourceBlob": "47f79bff0fb2eab3d63a6b7119ee13ab5cb46da2",
-      "sourceSha256": "6747d77bf94e2739b104115ffa4c9b5522a22d014b50192b44eaf565a6af0b23",
-      "targetBlob": "47f79bff0fb2eab3d63a6b7119ee13ab5cb46da2",
-      "targetSha256": "6747d77bf94e2739b104115ffa4c9b5522a22d014b50192b44eaf565a6af0b23",
+      "sourceBlob": "f265d63fef0c617538d8d80dd0693177d2cf3d4f",
+      "sourceSha256": "7cb71cce2fdf5bc236d5d33f9ee9cd34ef94773800e57235f45ef4f84860cb62",
+      "targetBlob": "f265d63fef0c617538d8d80dd0693177d2cf3d4f",
+      "targetSha256": "7cb71cce2fdf5bc236d5d33f9ee9cd34ef94773800e57235f45ef4f84860cb62",
       "mode": "100644"
     },
     "src/pages/store/orders-cold-session.test.ts": {

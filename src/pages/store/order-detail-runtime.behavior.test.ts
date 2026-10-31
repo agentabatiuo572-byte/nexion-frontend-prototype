@@ -56,9 +56,9 @@ const body = source.slice(source.indexOf('const id = ref("");'), source.indexOf(
   + source.slice(source.indexOf("const walletPaymentConfirmed"), source.indexOf("const isProvisioning"))
   + source.slice(source.indexOf("const needsRecovery"), source.indexOf("const STATUS_COLORS"))
   + source.slice(source.indexOf("async function offerWalletTopup"), source.indexOf("function goOrders"))
-  + source.slice(source.indexOf("const usdt ="), source.indexOf("const trialRewardText"))
+  + source.slice(source.indexOf("function goDevices()"), source.indexOf("const trialRewardText"))
   + source.slice(source.indexOf("function cleanup()"), source.indexOf("// ─── styles"));
-const js = ts.transpileModule(body + "\nreturn { order, summaryMoney, refundChannelLabel, showRemoteOrderLoading, showOrderNotFound, remoteOrderError, refreshOrder, handleWalletPayment, payingFromWallet, canPayFromWallet, cancellable, contactOrderSupport, recoverOrderAction, orderAction, resumePaymentAllowed, requestPendingPayment, runPaymentNoticeAction, paymentSheetOpen, paymentSheetAmount, paymentNotice, paymentNoticeReason, noticeCancelFailed, paymentResultVisible, paymentResultState, topupPendingOrder, pendingPaymentChecking, autoPayRequested };",
+const js = ts.transpileModule(body + "\nreturn { goDevices, order, summaryMoney, refundChannelLabel, showRemoteOrderLoading, showOrderNotFound, remoteOrderError, refreshOrder, handleWalletPayment, payingFromWallet, canPayFromWallet, cancellable, contactOrderSupport, recoverOrderAction, orderAction, resumePaymentAllowed, requestPendingPayment, runPaymentNoticeAction, paymentSheetOpen, paymentSheetAmount, paymentNotice, paymentNoticeReason, noticeCancelFailed, paymentResultVisible, paymentResultState, topupPendingOrder, pendingPaymentChecking, autoPayRequested };",
   { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 const disposals: (() => void)[] = [];
 async function settle() { for (let i = 0; i < 12; i++) await Promise.resolve(); await nextTick(); }
@@ -90,7 +90,7 @@ function harness(mode: "dev" | "prod" = "prod") {
     fmt:(message:string,values:Record<string,unknown>)=>message.replace(/\{(\w+)\}/g,(_,key)=>String(values[key])),formatPlainAmount,
     executePaymentWithPassword:authorize, checkoutFlowCopy, purchaseEligibilityApi:remote.purchaseEligibilityApi, orderPaymentRejection,
     beginOrderAction,readOrderAction,markOrderActionPaid,clearOrderAction,purchaseRecoveryCopy,paidOrderReceipt,readPaymentCommand,apiClient:{},
-    navTo: vi.fn(), takeNavigationQuery: () => "", detailNow: ref(Date.now()),
+    navTo: vi.fn(), navReset: vi.fn(), takeNavigationQuery: () => "", detailNow: ref(Date.now()),
     conversations: {}, advisorChatRoute: vi.fn().mockResolvedValue("/pages/support/chat?cid=ADVISOR-THREAD"),
     captureAccountScope: account.snapshot, isCurrentAccountScope: account.isCurrent,
     captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision,
@@ -99,7 +99,7 @@ function harness(mode: "dev" | "prod" = "prod") {
     onUnload: (fn: () => void) => hooks.unload.push(fn), onUnmounted: (fn: () => void) => hooks.unmount.push(fn), tickTimer: null };
   const scope = effectScope();
   const page = scope.run(() => new Function(...Object.keys(deps), js)(...Object.values(deps))) as {
-    order: ComputedRef<unknown>; summaryMoney: (value: number|string, showCurrency?: boolean) => string;
+    goDevices: () => void; order: ComputedRef<unknown>; summaryMoney: (value: number|string, showCurrency?: boolean) => string;
     refundChannelLabel: ComputedRef<string>; showRemoteOrderLoading: ComputedRef<boolean>;
     showOrderNotFound: ComputedRef<boolean>; remoteOrderError: Ref<boolean>;
     refreshOrder(): Promise<void>; handleWalletPayment(): Promise<void>; contactOrderSupport(): void;
@@ -115,7 +115,7 @@ function harness(mode: "dev" | "prod" = "prod") {
   const unload = () => hooks.unload.forEach(fn => fn());
   disposals.push(() => { unload(); scope.stop(); orders.$dispose(); });
   show();
-  return { page, requests, payments, request, orders, account, auth, app, toast, show, hide, unload, clipboard, readPaymentCommand,authorize,navTo: deps.navTo,
+  return { page, requests, payments, request, orders, account, auth, app, toast, show, hide, unload, clipboard, readPaymentCommand,authorize,navTo: deps.navTo,navReset: deps.navReset,
     load: (id: string) => hooks.load.forEach(fn => fn({ id })) };
 }
 beforeEach(() => {
@@ -279,6 +279,10 @@ describe('original pending order payment entry',()=>{
   it('blocks an expired original and never requests PIN or projects automatic cancellation',async()=>{
     const h=await pending(),opening=h.page.requestPendingPayment();await settle();h.requests[1].resolve(list([{...placed,expiresAt:Date.now()-1}]));await opening;
     expect(h.page.paymentNotice.value).toBe('blocked');expect(h.page.paymentSheetOpen.value).toBe(false);expect(h.orders.orders[0].status).toBe('placed');expect(h.authorize).not.toHaveBeenCalled();expect(h.payments).toHaveLength(0);
+  });
+  it('view devices opens the warehouse on a fresh stack so back returns to Me, not the result',async()=>{
+    const h=await pending();h.page.goDevices();
+    expect(h.navReset).toHaveBeenCalledExactlyOnceWith('/pages/me/devices');expect(h.navTo).not.toHaveBeenCalledWith('/pages/me/devices');
   });
   it('closes the method sheet before top-up and preserves the original order',async()=>{
     const h=await pending();h.page.paymentSheetOpen.value=true;h.page.topupPendingOrder();expect(h.page.paymentSheetOpen.value).toBe(false);expect(h.navTo).toHaveBeenCalledWith('/pages/me/wallet-topup');expect(h.orders.orders[0].id).toBe('ORD-OLD');
