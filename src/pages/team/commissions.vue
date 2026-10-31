@@ -2,7 +2,7 @@
   <AppChassis active="team">
     <RewardPageSurface>
     <view class="pb-6" style="color: var(--v5-ink)">
-      <SubPageHeader back="/pages/team/team" :title="t.headerTitles.teamCommissions" :subtitle="t.headerSubtitles.teamCommissions" />
+      <SubPageHeader back="/pages/team/team" :title="t.headerTitles.teamCommissions" />
 
       <view class="px-4" style="display: flex; flex-direction: column; gap: 12px">
         <EmptyState
@@ -73,7 +73,7 @@
                 <text v-if="e.status === 'cooling'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-warning)', marginTop: '2px' }">{{ coolingTag(e) }}</text>
                 <text v-else-if="e.status === 'unlocked'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-success)', marginTop: '2px' }">{{ t.commissions.readyTag }}</text>
                 <text v-else-if="e.status === 'withdrawn'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-3)', marginTop: '2px' }">{{ t.commissions.withdrawnTag }}</text>
-                <text v-else-if="e.status === 'frozen'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-2)', marginTop: '2px' }">{{ t.commissions.frozenTag }}</text>
+                <text v-else-if="e.status === 'frozen'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-brand-2)', marginTop: '2px' }">{{ t.commissions.frozenTag }}</text>
                 <text v-else-if="e.status === 'reversed'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-ink-4)', marginTop: '2px' }">{{ t.commissions.reversedTag }}</text>
                 <text v-else-if="e.status === 'rejected'" class="block" :style="{ fontSize: '12px', color: 'var(--v5-danger)', marginTop: '2px' }">{{ t.commissions.rejectedTag }}</text>
                 <text v-else-if="e.status === 'waiting_calculation'" class="block" style="font-size: 12px; color: var(--v5-warning)">{{ t.directReferral.waitingCalculation }}</text>
@@ -168,16 +168,16 @@ interface KindSpec {
   paths: string[];
 }
 const KIND: Record<CommissionKind, KindSpec> = {
-  direct_purchase: { color: "var(--v5-ink-2)", paths: ["M3 3h2l3 12h11l2-8H6", "M9 20h.01M18 20h.01"] },
-  direct_device_earning: { color: "var(--v5-ink-2)", paths: ["M4 3h16v14H4z", "M8 21h8M12 17v4"] },
-  unilevel: { color: "var(--v5-ink-2)", paths: ["M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8", "M22 21v-2a4 4 0 0 0-3-3.87", "M16 3.13a4 4 0 0 1 0 7.75"] },
-  binary: { color: "var(--v5-ink-2)", paths: ["M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z"] },
-  peer: { color: "var(--v5-ink-2)", paths: ["m11 17 2 2a1 1 0 1 0 3-3", "m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4", "M21 3v9h-9"] },
-  cultivation: { color: "var(--v5-ink-2)", paths: ["M7 20h10", "M10 20c5.5-2.5.8-6.4 3-10", "M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z", "M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"] },
-  leadership: { color: "var(--v5-ink-2)", paths: ["m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14"] },
-  promotion: { color: "var(--v5-ink-2)", paths: ["M12 3v18M5 10l7-7 7 7"] },
+  direct_purchase: { color: "var(--v5-brand)", paths: ["M3 3h2l3 12h11l2-8H6", "M9 20h.01M18 20h.01"] },
+  direct_device_earning: { color: "var(--v5-nex)", paths: ["M4 3h16v14H4z", "M8 21h8M12 17v4"] },
+  unilevel: { color: "var(--ui-device-ink)", paths: ["M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8", "M22 21v-2a4 4 0 0 0-3-3.87", "M16 3.13a4 4 0 0 1 0 7.75"] },
+  binary: { color: "var(--v5-warning)", paths: ["M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z"] },
+  peer: { color: "var(--v5-brand-2)", paths: ["m11 17 2 2a1 1 0 1 0 3-3", "m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4", "M21 3v9h-9"] },
+  cultivation: { color: "var(--v5-brand)", paths: ["M7 20h10", "M10 20c5.5-2.5.8-6.4 3-10", "M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z", "M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"] },
+  leadership: { color: "var(--v5-nex)", paths: ["m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14"] },
+  promotion: { color: "var(--v5-brand-2)", paths: ["M12 3v18M5 10l7-7 7 7"] },
   other: { color: "var(--v5-ink-2)", paths: ["M4 4h16v16H4z", "M8 12h8"] },
-  genesis: { color: "var(--v5-ink-2)", paths: ["M6 3h12l4 6-10 13L2 9z", "M11 3 8 9l4 13 4-13-3-6", "M2 9h20"] },
+  genesis: { color: "var(--v5-warning)", paths: ["M6 3h12l4 6-10 13L2 9z", "M11 3 8 9l4 13 4-13-3-6", "M2 9h20"] },
 };
 
 onMounted(() => {
@@ -295,7 +295,8 @@ function commissionAmountStyle(e: CommissionEvent, asset: "usdt" | "uvt"): CSSPr
         : "var(--v5-ink)";
   // Credited and pending money reads in the brand colour; settled-out or held rows stay neutral.
   const live = asset === "usdt" && color === "var(--v5-ink)" && ["unlocked", "cooling", "waiting_calculation"].includes(e.status);
-  return { fontSize: asset === "usdt" ? "15px" : "12px", fontWeight: asset === "usdt" ? 500 : 400, color: live ? "var(--v5-brand)" : asset === "uvt" ? "var(--v5-ink-3)" : color };
+  const uvt = e.status === "frozen" ? "var(--v5-brand-2)" : "var(--v5-ink-3)";
+  return { fontSize: asset === "usdt" ? "15px" : "12px", fontWeight: asset === "usdt" ? 500 : 400, color: live ? "var(--v5-brand)" : asset === "uvt" ? uvt : color };
 }
 
 function go(url: string) {
@@ -359,6 +360,7 @@ const filterOptions = computed(() => [
 .reward-income-summary > view > text:first-child::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; vertical-align: middle; background: var(--v5-brand); }
 .reward-income-summary > view + view > text:first-child::before { background: var(--v5-warning); }
 .reward-income-summary > view + view > text:last-child { color: var(--v5-warning); }
+.reward-income-summary > view:first-child > text:last-child { font-family: var(--font-metric); }
 .reward-income-lifetime__amounts > text + text::before { content: "· "; }
 .commission-split { display: flex; gap: 3px; height: 8px; margin-top: 14px; }
 .commission-split > view { min-width: 4px; border-radius: 999px; background: var(--v5-brand); }
