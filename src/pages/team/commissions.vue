@@ -16,7 +16,7 @@
         />
         <template v-if="!remoteApiEnabled || ledger !== null">
 
-        <RewardHero class="commission-overview" kind="ledger" panel :label="t.commissions.thisMonth">
+        <RewardHero class="commission-overview" kind="ledger" panel :label="designCopy.monthRewards">
           <text class="reward-amount"><text v-if="monthAmount.currency" class="reward-amount__currency">$</text>{{ monthAmount.integer }}<text v-if="monthAmount.fraction" class="reward-amount__fraction">.{{ monthAmount.fraction }}</text></text>
           <text class="block reward-income-uvt">{{ (monthTotals.nex ?? 0) > 0 && !visibility.hidden ? '+' : '' }}{{ assetTotal(monthTotals.nex, 'uvt') }}</text>
           <view v-if="settlementSplit" class="commission-split" aria-hidden="true"><view :style="{ flexGrow: settlementSplit.unlocked }" /><view :style="{ flexGrow: settlementSplit.cooling }" /></view>
@@ -32,7 +32,7 @@
               <text class="block reward-caption">{{ coolingOverviewText }}</text>
             </view>
           </view>
-          <view class="reward-income-lifetime"><text>{{ t.commissions.lifetime }}</text><view class="reward-income-lifetime__amounts"><text>{{ assetTotal(lifetimeTotals.usdt, 'usdt') }}</text><text>{{ assetTotal(lifetimeTotals.nex, 'uvt') }}</text></view></view>
+          <view class="reward-income-lifetime"><text>{{ designCopy.totalEarned }}</text><view class="reward-income-lifetime__amounts"><text>{{ assetTotal(lifetimeTotals.usdt, 'usdt') }}</text><text>{{ assetTotal(lifetimeTotals.nex, 'uvt') }}</text></view></view>
           <template #footer><view class="commission-overview__rules nx-commissions-focusable" role="link" tabindex="0" :aria-label="t.commissions.howItWorksEntry" @click="go('/pages/team/commissions-how')" @keydown.enter.prevent="go('/pages/team/commissions-how')" @keydown.space.prevent="go('/pages/team/commissions-how')"><text>{{ t.commissions.howItWorksEntry }}</text><text aria-hidden="true">›</text></view></template>
         </RewardHero>
 
@@ -112,6 +112,7 @@
 
 <script setup lang="ts">
 import { formatAmount, formatGroupedAmount } from "@/lib/amount-display";
+import { teamRedesignCopy } from "@/i18n/team-redesign";
 import { navTo } from "@/lib/route";
 import { ref, computed, watch, onMounted, type CSSProperties } from "vue";
 import { onShow } from "@dcloudio/uni-app";
@@ -137,6 +138,7 @@ const commission = useCommission();
 const app = useApp();
 const auth = useAuth();
 const locale = useLocaleStore();
+const designCopy = computed(() => teamRedesignCopy(locale.code));
 const visibility = useDataVisibility();
 const displayEnvironment = [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const;
 let environmentInvalidated = false;
@@ -246,14 +248,14 @@ function loadMoreEvents() {
 const coolingOverviewText = computed(() => {
   if (remoteApiEnabled) {
     const next = ledger.value?.aggregate.nextUnlockAt;
-    return next == null ? "—" : fmt(t.value.commissions.coolingTag, { n: Math.max(0, Math.ceil((next - Date.now()) / 86400000)) });
+    return next == null ? "—" : fmt(designCopy.value.earliestCredit, { n: Math.max(0, Math.ceil((next - Date.now()) / 86400000)) });
   }
   const next = events.value
     .filter((event) => event.status === "cooling" && Number.isFinite(event.unlockAt))
     .sort((a, b) => a.unlockAt - b.unlockAt)[0];
   if (!next) return remoteApiEnabled ? "—" : t.value.commissions.unlocksIn30d;
   const days = Math.max(0, Math.ceil((next.unlockAt - Date.now()) / 86400000));
-  return fmt(t.value.commissions.coolingTag, { n: days });
+  return fmt(designCopy.value.earliestCredit, { n: days });
 });
 
 const noKindText = computed(() =>

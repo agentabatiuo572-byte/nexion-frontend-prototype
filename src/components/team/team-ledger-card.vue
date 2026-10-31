@@ -4,7 +4,7 @@
       <text class="team-ledger__title">{{ copy.monthIncome }}</text>
       <DataVisibilityToggle />
       <view class="nx-team-commissions-link team-ledger__details" role="link" tabindex="0" @click="goCommissions" @keydown.enter.prevent="goCommissions" @keydown.space.prevent="goCommissions">
-        <text>{{ t.teamV3.viewDetails }}</text><text aria-hidden="true">›</text>
+        <text>{{ copy.details }}</text><text aria-hidden="true">›</text>
       </view>
     </view>
     <view class="team-ledger__amount tabular-nums"><text v-if="!visibility.hidden && monthUSDTParts" class="team-ledger__currency">{{ monthUSDTParts.prefix }}</text><text>{{ visibility.mask(intPart) }}</text><text v-if="!visibility.hidden && monthUSDTParts" class="team-ledger__fraction">.{{ fracPart }}</text></view>
@@ -24,8 +24,8 @@
           </template>
         </view>
         <view class="team-ledger__split">
-          <view class="team-ledger__label"><view class="team-ledger__dot" aria-hidden="true" /><text>{{ t.teamV3.directLabel }}</text><text class="team-ledger__value">{{ visibility.mask(hasAmounts ? formatUsd(directUSDT) : '—') }}</text></view>
-          <view class="team-ledger__label"><view class="team-ledger__dot team-ledger__dot--extended" aria-hidden="true" /><text>{{ t.teamV3.extendedLabel }}</text><text class="team-ledger__value">{{ visibility.mask(hasAmounts ? formatUsd(extendedUSDT) : '—') }}</text></view>
+          <view class="team-ledger__label"><view class="team-ledger__dot" aria-hidden="true" /><text>{{ copy.friendRewards }}</text><text class="team-ledger__value">{{ visibility.mask(hasAmounts ? formatUsd(directUSDT) : '—') }}</text></view>
+          <view class="team-ledger__label"><view class="team-ledger__dot team-ledger__dot--extended" aria-hidden="true" /><text>{{ copy.teamRewards }}</text><text class="team-ledger__value">{{ visibility.mask(hasAmounts ? formatUsd(extendedUSDT) : '—') }}</text></view>
         </view>
       </view>
       <!-- Feedback shares the composition cell, so a failure replaces it without a second row. -->

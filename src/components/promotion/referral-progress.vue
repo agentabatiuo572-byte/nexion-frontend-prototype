@@ -22,8 +22,9 @@
             <view class="referral-art referral-summary__art" aria-hidden="true"><CatalogMachineImage class="referral-gift" v-bind="referralImageProps(activity)" /></view>
             <text v-if="deadlineText(activity)" class="referral-deadline">{{ deadlineText(activity) }}</text>
             <view class="referral-count"><text class="referral-number">{{ visibility.mask(qualifyingCount(activity.activityId)) }}</text><text class="referral-caption">{{ copy.orderUnit }}{{ locale.code === 'zh' ? '' : ' · ' }}{{ copy.firstPurchaseCount }}</text></view>
+            <text class="referral-summary__rule">{{ copy.giftRule }}</text>
           </view>
-          <text class="referral-activity-title">{{ copy.rewardRecords }}</text>
+          <text class="referral-activity-title">{{ copy.myGifts }}</text>
           <view v-if="progressErrors[activity.activityId]" class="nx-inline-recovery"><text class="promotion-copy nx-inline-recovery__copy" role="alert">{{ t.promotion.error }}</text><NxButton class="referral-retry nx-inline-recovery__action" variant="text" size="medium" :busy="progressBusy[activity.activityId]" :label="t.promotion.retry" @click="loadProgress(activity.activityId,true)" /></view>
           <RewardRows v-else-if="progress[activity.activityId]?.ownRewards.length" :rewards="progress[activity.activityId].ownRewards" :value-mask="visibility.hidden ? visibility.mask('') : undefined" />
           <view v-else class="referral-empty" role="status">
@@ -154,6 +155,7 @@ onBeforeUnmount(()=>{alive=false;visible=false;stopProgressUpdates();generation+
 .referral-share { margin-top: var(--v5-space-2); box-shadow: 0 8px 24px color-mix(in srgb, var(--v5-brand) 30%, transparent); }
 .referral-summary__art { top: -6px; right: -10px; width: 132px; height: 132px; }
 .referral-summary > .referral-count { position: relative; margin-top: auto; }
+.referral-summary__rule { position: relative; font: 400 12px/16px var(--font-v5); color: var(--v5-ink-3); }
 .referral-details > .referral-rule-link { min-height: 48px; margin-top: 4px; border-top: 1px solid var(--v5-border); color: var(--v5-ink-2); font: 400 14px/20px var(--font-v5); }
 .referral-activity-title { display: block; margin-top: var(--v5-space-2); font: 600 14px/20px var(--font-v5); }
 .referral-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 0 12px; color: var(--v5-ink-3); font-size: var(--ui-type-list-subtitle); }

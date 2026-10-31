@@ -27,7 +27,7 @@
               </view>
             </view>
             <view class="rank-upcoming"><text class="rank-caption">{{ upcomingBenefitsTitle }}</text><view class="rank-perk-tags"><text v-for="perk in upcomingBenefits" :key="perk.key" class="rank-perk-tag">{{ perk.label }} {{ perk.value }}</text></view><text v-if="upcomingPeerNotice" class="rank-caption rank-upcoming__notice">{{ upcomingPeerNotice }}</text><view v-if="prog.next.unilevelDepth > 0" class="rank-scope-link" role="link" tabindex="0" @click="go('/pages/team/rank-how')" @keydown.enter.prevent="go('/pages/team/rank-how')"><text>{{ guideCopy.rewardScope }}</text><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg></view></view>
-            <NxButton class="rank-invite" variant="primary" :label="t.team.inviteFriends" @click="go('/pages/team/team?intent=share')"><text>{{ t.team.inviteFriends }}</text><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
+            <NxButton class="rank-invite" variant="primary" :label="designCopy.rankUpInvite" @click="go('/pages/team/team?intent=share')"><text>{{ designCopy.rankUpInvite }}</text><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
           </view>
         </view>
         <view v-if="rankAvailable" class="rank-ladder-section">
@@ -56,7 +56,8 @@
 </template>
 
 <script setup lang="ts">
-import { increasedRankBenefitKeys, rankBenefitIncreaseHeading, type RankBenefitKey } from '@/lib/team-rank-benefits';
+import { increasedRankBenefitKeys, type RankBenefitKey } from '@/lib/team-rank-benefits';
+import { teamRedesignCopy } from '@/i18n/team-redesign';
 import { teamRankProgress } from "@/lib/team-rank-progress";
 import { teamLogicCopy } from "@/i18n/team-logic-copy";
 import { formatAmount } from "@/lib/amount-display";
@@ -108,6 +109,7 @@ const previewData = computed(() => ({
   vDownlineCounts: vState.vDownlineCounts,
 }));
 const prog = computed(() => teamRankProgress(previewData.value, rankDefs.value));
+const designCopy = computed(() => teamRedesignCopy(locale.code));
 const nextRankLabel = computed(() => locale.code === "zh" ? "下一级" : locale.code === "vi" ? "Hạng kế" : "Next");
 const logicCopy = computed(() => teamLogicCopy(locale.code));
 const rankGapSummary = computed(() => [
@@ -224,7 +226,7 @@ function benefitItems(r: VRankDef): {key:RankBenefitKey;label:string;value:strin
 }
 const upcomingBenefitKeys = computed(() => increasedRankBenefitKeys(rankDefs.value.find(rank => rank.v === myRank.value), prog.value.next));
 const hasVisibleIncrease = computed(() => upcomingBenefitKeys.value?.some(key => key !== 'unilevelDepth'));
-const upcomingBenefitsTitle = computed(() => hasVisibleIncrease.value ? rankBenefitIncreaseHeading(locale.code) : copy.value.nextBenefits);
+const upcomingBenefitsTitle = computed(() => hasVisibleIncrease.value && prog.value.next ? fmt(designCopy.value.rankUpNew, { rank: `V${prog.value.next.v}` }) : copy.value.nextBenefits);
 const upcomingBenefits = computed(() => {
   if (!prog.value.next) return [];
   const items = benefitItems(prog.value.next);
