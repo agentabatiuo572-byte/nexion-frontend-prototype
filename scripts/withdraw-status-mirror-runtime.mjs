@@ -808,8 +808,10 @@ try {
     rt.apiClient.request = restore;
     delete globalThis.__withdrawStatusMirrorRenderRestore;
   });
+  // Risk refusals show the neutral outcome plus "contact support", never a risk category (copy audit 2026-10-29).
   check("⑤ 追踪页把原因渲染成业务话术(渲染面接得上生产面)",
-    /Unusual account activity|账户行为异常|Tài khoản có hoạt động bất thường/.test(view.text),
+    /提现未通过，请联系客服|This withdrawal wasn't approved\. Please contact support|Lệnh rút không được chấp thuận\. Vui lòng liên hệ hỗ trợ/.test(view.text)
+      && !/Unusual account activity|账户行为异常|Tài khoản có hoạt động bất thường/.test(view.text),
     view.text.replace(/\s+/g, " ").slice(0, 200));
   check("⑤ 🔴 页面上不出现原始枚举码(工程值禁直出)",
     !/RISK_HIT|risk-hit|TX_ORPHANED/.test(view.text), "页面出现了原始码");

@@ -80,7 +80,8 @@ export async function verifyBankWithdrawalPage(page, gotoProtected) {
     await gotoProtected("/pages/me/wallet-withdraw-bank");
     assert.equal(await page.getByTestId("bank-continue").getAttribute("aria-disabled"),"true","account routing still needs an explicit server contract");
     assert.equal(await page.getByTestId("bank-max").count(),0);
-    assert.match(await page.locator(".bank-withdraw").innerText(),/收款方式尚未确认|payout method has not been confirmed|Phương thức nhận tiền chưa được xác nhận/i);
+    // Wording from the 2026-10-29 copy audit (bankRoutingUnverified).
+    assert.match(await page.locator(".bank-withdraw").innerText(),/银行卡提现暂不可用|Bank withdrawals are unavailable right now|Rút về ngân hàng hiện chưa khả dụng/i);
     await page.evaluate(() => { window.__bankFixture.bankRoutingVerified=true; window.__bankFixture.quote.bankRoutingVerified=true; });
     assert.equal((await gotoProtected("/pages/me/wallet-withdraw-method")).landed,true);
     await page.waitForFunction(() => document.querySelector('[data-testid="withdraw-method-bank"]')?.getAttribute("aria-disabled")==="false");
@@ -92,7 +93,7 @@ export async function verifyBankWithdrawalPage(page, gotoProtected) {
     assert.equal(await page.getByRole("combobox").count(),0,"no prototype scenario selector in the app");
     await page.getByTestId("bank-max").click();
     await page.waitForFunction(() => document.querySelector('[data-testid="bank-amount"] input')?.value === "100");
-    assert.match(await page.getByTestId("bank-single-limit").innerText(),/20\.00.*5000\.00/);
+    assert.match(await page.getByTestId("bank-single-limit").innerText(),/20\.00.*5,000\.00/);
     await page.locator('[data-testid="bank-amount"] input').fill("5");
     await page.locator('[data-testid="bank-quote"]').press("Enter");
     assert.equal(await page.getByTestId("bank-quote").getAttribute("aria-disabled"),"true");
@@ -101,7 +102,7 @@ export async function verifyBankWithdrawalPage(page, gotoProtected) {
     await page.locator('[data-testid="bank-amount"] input').fill("100");
     await page.locator('[data-testid="bank-quote"]').click();
     await page.locator('[data-testid="bank-submit"]').waitFor();
-    assert.match(await page.locator(".bank-withdraw").innerText(),/2475000\.00/);
+    assert.match(await page.locator(".bank-withdraw").innerText(),/2,475,000\s*VND/);
     assert.equal(await page.getByTestId("bank-submit").getAttribute("aria-disabled"),"true");
     await page.getByTestId("bank-submit").press("Enter");
     assert.equal(await page.evaluate(()=>window.__bankFixture.submits),0,"confirmation is required");

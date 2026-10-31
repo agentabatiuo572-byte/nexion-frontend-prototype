@@ -89,7 +89,7 @@ export async function verifyBankBindingPage(page, gotoProtected) {
     await gotoProtected("/pages/me/wallet"); await gotoProtected("/pages/me/wallet-cards-new");
     // A bound account opens on its overview; changing it is overview -> new account -> review + SMS.
     await page.locator(".bound-summary").waitFor(); assert.equal(await account.count(),0);
-    assert.match(await page.locator(".bound-summary").innerText(), /20\d\d-\d\d-\d\d \d\d:\d\d:\d\d UTC\+7/);
+    assert.match(await page.locator(".bound-summary").innerText(), /20\d\d[-/]\d\d[-/]\d\d \d\d:\d\d:\d\d UTC\+7/);
     assert.doesNotMatch(await page.getByTestId("bank-account-binding").innerText(), /7 (days|天|ngày)/);
     await page.getByTestId("bank-change").press("Enter");
     assert.equal(await account.isEditable(),true);
@@ -120,7 +120,7 @@ export async function verifyBankBindingPage(page, gotoProtected) {
     // An unverified bank route cannot accept recipient details or create a binding.
     await gotoProtected("/pages/me/wallet"); await page.evaluate(()=>{window.__bindingFixture.beneficiary=null;window.__bindingFixture.routingVerified=false;});
     await gotoProtected("/pages/me/wallet-cards-new"); await page.locator(".error-note").waitFor();
-    assert.match(await page.locator(".error-note").innerText(),/payout method has not been confirmed|收款方式尚未确认|Phương thức nhận tiền chưa được xác nhận/i);
+    assert.match(await page.locator(".error-note").innerText(),/暂时无法绑定银行账户|Bank accounts can't be linked right now|Hiện chưa thể liên kết tài khoản ngân hàng/i); // routingUnverified, copy audit 2026-10-29
     assert.equal(await account.isEditable(),false); assert.equal(await holder.isEditable(),false);
     assert.equal(await submit.getAttribute("aria-disabled"),"true");
     await gotoProtected("/pages/me/wallet"); await page.evaluate(()=>{window.__bindingFixture.routingVerified=true;window.__bindingFixture.loadFails=true;});

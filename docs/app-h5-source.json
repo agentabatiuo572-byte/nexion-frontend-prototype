@@ -3,10 +3,10 @@
   "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-bug013",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "5cb5dbb9cf0915bc71b48f2a8ac2ab3723db964a",
-  "sourceRef": "5cb5dbb9cf0915bc71b48f2a8ac2ab3723db964a",
+  "sourceHead": "c0c51757f6bdaa77068aed531b0959350677416c",
+  "sourceRef": "c0c51757f6bdaa77068aed531b0959350677416c",
   "sourceRefKind": "commit",
-  "sourceTree": "515d6bc38608f1184170de55b7fe874cb9d9dd29",
+  "sourceTree": "030f6fb02366ec8584a17b7a36cbd89a0ffdf883",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -762,17 +762,17 @@
       "mode": "100644"
     },
     "scripts/bank-binding-runtime.mjs": {
-      "sourceBlob": "db37b367ed036443e282ec2253753dee3db85f4a",
-      "sourceSha256": "d35b7c3b67beba89734e5168f64f2efec06eb166a87ff247d3d521ff4e17b985",
-      "targetBlob": "db37b367ed036443e282ec2253753dee3db85f4a",
-      "targetSha256": "d35b7c3b67beba89734e5168f64f2efec06eb166a87ff247d3d521ff4e17b985",
+      "sourceBlob": "7a72823120f879343388efc9e73a3dc2f4541310",
+      "sourceSha256": "fd40b66729ec57da3f1f1a472f4b58e102f3ff2b8a78949d460903f21555db25",
+      "targetBlob": "7a72823120f879343388efc9e73a3dc2f4541310",
+      "targetSha256": "fd40b66729ec57da3f1f1a472f4b58e102f3ff2b8a78949d460903f21555db25",
       "mode": "100644"
     },
     "scripts/bank-withdrawal-runtime.mjs": {
-      "sourceBlob": "5ab47165d2bbda1093bd0fb7ef90389e5d5d7e77",
-      "sourceSha256": "a7199da6f84a642cf5a50716f739835fb51f0e62b1ae750d90ffcac9ad624ccc",
-      "targetBlob": "5ab47165d2bbda1093bd0fb7ef90389e5d5d7e77",
-      "targetSha256": "a7199da6f84a642cf5a50716f739835fb51f0e62b1ae750d90ffcac9ad624ccc",
+      "sourceBlob": "48a7990cd8e0993531b884907db5e965042d26e1",
+      "sourceSha256": "b3fee4971edcf74564f95752106e62ff4f4b017c0eda2508d229ba0f27bbf395",
+      "targetBlob": "48a7990cd8e0993531b884907db5e965042d26e1",
+      "targetSha256": "b3fee4971edcf74564f95752106e62ff4f4b017c0eda2508d229ba0f27bbf395",
       "mode": "100644"
     },
     "scripts/bare-template-content.behavior.test.mjs": {
@@ -3016,10 +3016,10 @@
       "mode": "100644"
     },
     "scripts/withdraw-status-mirror-runtime.mjs": {
-      "sourceBlob": "1c075455c631d4153f511949f5fc0944ac8dfc6d",
-      "sourceSha256": "401a0ec87043f9e51f135cfe6c3c2cbad8e5d75a6209aaf6095cd9d1fab8f36b",
-      "targetBlob": "1c075455c631d4153f511949f5fc0944ac8dfc6d",
-      "targetSha256": "401a0ec87043f9e51f135cfe6c3c2cbad8e5d75a6209aaf6095cd9d1fab8f36b",
+      "sourceBlob": "b3e7599f8d12196543d9d934a72ded32056f7fe5",
+      "sourceSha256": "b9c99ddd852a28a062c393e963e6de12f816d202e9251ad4daa53549c566da2f",
+      "targetBlob": "b3e7599f8d12196543d9d934a72ded32056f7fe5",
+      "targetSha256": "b9c99ddd852a28a062c393e963e6de12f816d202e9251ad4daa53549c566da2f",
       "mode": "100644"
     },
     "scripts/withdraw-terminal-reason-parity.test.mjs": {
