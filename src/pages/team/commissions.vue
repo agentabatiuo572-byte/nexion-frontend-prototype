@@ -17,8 +17,8 @@
         <template v-if="!remoteApiEnabled || ledger !== null">
 
         <RewardHero class="commission-overview" kind="ledger" panel :label="t.commissions.thisMonth">
-          <text class="reward-amount">{{ assetTotal(monthTotals.usdt, 'usdt') }}</text>
-          <text class="block reward-income-uvt">{{ assetTotal(monthTotals.nex, 'uvt') }}</text>
+          <text class="reward-amount"><text v-if="monthAmount.currency" class="reward-amount__currency">$</text>{{ monthAmount.integer }}<text v-if="monthAmount.fraction" class="reward-amount__fraction">.{{ monthAmount.fraction }}</text></text>
+          <text class="block reward-income-uvt">{{ (monthTotals.nex ?? 0) > 0 && !visibility.hidden ? '+' : '' }}{{ assetTotal(monthTotals.nex, 'uvt') }}</text>
           <view v-if="settlementSplit" class="commission-split" aria-hidden="true"><view :style="{ flexGrow: settlementSplit.unlocked }" /><view :style="{ flexGrow: settlementSplit.cooling }" /></view>
           <view class="reward-income-summary">
             <view>
@@ -33,7 +33,7 @@
             </view>
           </view>
           <view class="reward-income-lifetime"><text>{{ t.commissions.lifetime }}</text><view class="reward-income-lifetime__amounts"><text>{{ assetTotal(lifetimeTotals.usdt, 'usdt') }}</text><text>{{ assetTotal(lifetimeTotals.nex, 'uvt') }}</text></view></view>
-          <template #footer><view class="commission-overview__rules nx-commissions-focusable" role="link" tabindex="0" :aria-label="t.commissions.howItWorksEntry" @click="go('/pages/team/commissions-how')" @keydown.enter.prevent="go('/pages/team/commissions-how')" @keydown.space.prevent="go('/pages/team/commissions-how')"><text>{{ t.commissions.howItWorksEntry }}</text></view></template>
+          <template #footer><view class="commission-overview__rules nx-commissions-focusable" role="link" tabindex="0" :aria-label="t.commissions.howItWorksEntry" @click="go('/pages/team/commissions-how')" @keydown.enter.prevent="go('/pages/team/commissions-how')" @keydown.space.prevent="go('/pages/team/commissions-how')"><text>{{ t.commissions.howItWorksEntry }}</text><text aria-hidden="true">›</text></view></template>
         </RewardHero>
 
 
@@ -57,15 +57,15 @@
               class="flex items-center reward-income-event"
               :style="eventRowStyle(i === day.events.length - 1)"
             >
-              <view class="grid place-items-center shrink-0 reward-income-icon">
+              <view class="grid place-items-center shrink-0 reward-income-icon" :style="{ background: `color-mix(in srgb, ${KIND[e.kind].color} 16%, transparent)` }">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" :stroke="KIND[e.kind].color" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path v-for="(p, pi) in KIND[e.kind].paths" :key="pi" :d="p" /></svg>
               </view>
               <view class="flex-1 min-w-0">
                 <view class="flex items-center" style="gap: 6px">
-                  <text class="truncate" :style="{ fontSize: '13px', color: 'var(--v5-ink)' }">{{ e.sourceUserName }}</text>
+                  <text class="truncate" :style="{ fontSize: '14px', fontWeight: 500, color: 'var(--v5-ink)' }">{{ e.sourceUserName }}</text>
                   <text v-if="e.layer" class="font-mono-tabular" :style="e.layer === 1 ? directBadgeStyle : extendedBadgeStyle">{{ e.layer === 1 ? t.commissions.directBadge : t.commissions.extendedBadge }}</text>
                 </view>
-                <text class="block font-mono-tabular" :style="eventMetaStyle">{{ eventMeta(e) }}</text>
+                <text class="block" :style="eventMetaStyle">{{ eventMeta(e) }}</text>
               </view>
               <view class="text-right" style="max-width: 48%; overflow-wrap: anywhere">
                 <text v-if="e.amountUSDT > 0" class="block font-mono-tabular tabular-nums" :style="commissionAmountStyle(e, 'usdt')">{{ commissionAmountLabel(e) }}</text>
@@ -187,11 +187,26 @@ onShow(() => { if (remoteApiEnabled) void commission.refreshCanonicalEvents(); }
 
 const events = computed(() => remoteApiEnabled ? ledger.value?.events ?? [] : commission.events);
 const byKind = computed(() => remoteApiEnabled ? ledger.value?.aggregate.byKind ?? commission.byKind() : commission.byKind());
+// The month amount with a small grey currency sign and cents, like the team page hero.
+const monthAmount = computed(() => {
+  const text = assetTotal(monthTotals.value.usdt, 'usdt'), dot = text.lastIndexOf('.');
+  return text.startsWith('$') && dot > 0 ? { currency: '$', integer: text.slice(1, dot), fraction: text.slice(dot + 1) } : { currency: '', integer: text, fraction: '' };
+});
+// "Today" or the weekday beside each local date; weekday names avoid Intl so they survive without it.
+function dayLabel(ts: number): string {
+  const date = formatTrialDate(ts, dateLocale()), at = new Date(ts);
+  if (typeof ts !== "number" || !Number.isFinite(ts) || !Number.isFinite(at.getTime())) return date;
+  const now = new Date();
+  if (at.getFullYear() === now.getFullYear() && at.getMonth() === now.getMonth() && at.getDate() === now.getDate())
+    return `${locale.code === "zh" ? "今天" : locale.code === "vi" ? "Hôm nay" : "Today"} · ${date}`;
+  const days = locale.code === "zh" ? ["周日", "周一", "周二", "周三", "周四", "周五", "周六"] : locale.code === "vi" ? ["CN", "T2", "T3", "T4", "T5", "T6", "T7"] : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  return `${date} · ${days[at.getDay()]}`;
+}
 // Records group under their local date; the formatter falls back safely without Intl.
 const eventDays = computed(() => {
   const days: { key: string; label: string; events: CommissionEvent[] }[] = [];
   for (const e of filtered.value) {
-    const label = formatTrialDate(e.ts, dateLocale());
+    const label = dayLabel(e.ts);
     const day = days.find(item => item.key === label);
     if (day) day.events.push(e); else days.push({ key: label, label, events: [e] });
   }
@@ -278,7 +293,9 @@ function commissionAmountStyle(e: CommissionEvent, asset: "usdt" | "uvt"): CSSPr
       : e.status === "reversed"
         ? "var(--v5-ink-4)"
         : "var(--v5-ink)";
-  return { fontSize: asset === "usdt" ? "13px" : "12px", fontWeight: asset === "usdt" ? 600 : 400, color };
+  // Credited and pending money reads in the brand colour; settled-out or held rows stay neutral.
+  const live = asset === "usdt" && color === "var(--v5-ink)" && ["unlocked", "cooling", "waiting_calculation"].includes(e.status);
+  return { fontSize: asset === "usdt" ? "15px" : "12px", fontWeight: asset === "usdt" ? 500 : 400, color: live ? "var(--v5-brand)" : asset === "uvt" ? "var(--v5-ink-3)" : color };
 }
 
 function go(url: string) {
@@ -317,7 +334,7 @@ const extendedBadgeStyle: CSSProperties = {
   fontSize: "12px",
   fontWeight: 500,
   color: "var(--v5-ink-2)",
-  background: "var(--v5-surface)",
+  background: "color-mix(in srgb, var(--v5-ink) 8%, transparent)",
   padding: "0 4px",
   borderRadius: "4px",
 };
@@ -331,11 +348,18 @@ const filterOptions = computed(() => [
 </script>
 
 <style scoped>
-.commission-overview.reward-hero--panel { position: relative; box-sizing: border-box; padding: 20px; border-radius: 28px; background: radial-gradient(120% 90% at 85% 0%, color-mix(in srgb, var(--v5-brand) 10%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.commission-overview.reward-hero--panel { position: relative; box-sizing: border-box; border: 0; padding: 20px; border-radius: 28px; background: radial-gradient(120% 90% at 85% 0%, color-mix(in srgb, var(--v5-brand) 10%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
 .commission-overview :deep(.reward-hero__art) { display: none; }
 .commission-overview__rules { position: absolute; right: 12px; top: 10px; display: flex; align-items: center; justify-content: center; gap: 4px; box-sizing: border-box; min-width: 44px; min-height: 44px; padding: 0 10px; color: var(--v5-ink-2); font: 600 12px/16px var(--font-v5); isolation: isolate; }
 .commission-overview__rules::before { content: ""; position: absolute; inset: 8px 0; z-index: -1; border-radius: 999px; background: color-mix(in srgb, var(--v5-ink) 6%, transparent); }
 .reward-income-uvt { margin-top: 2px; font: 500 14px/18px var(--font-metric); color: var(--v5-brand); font-variant-numeric: tabular-nums; }
+.commission-overview .reward-amount { font: 600 44px/48px var(--font-amount); letter-spacing: -.03em; }
+.reward-amount__currency { margin-right: 2px; font-size: 18px; color: var(--v5-ink-3); }
+.reward-amount__fraction { color: var(--v5-ink-4); }
+.reward-income-summary > view > text:first-child::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; vertical-align: middle; background: var(--v5-brand); }
+.reward-income-summary > view + view > text:first-child::before { background: var(--v5-warning); }
+.reward-income-summary > view + view > text:last-child { color: var(--v5-warning); }
+.reward-income-lifetime__amounts > text + text::before { content: "· "; }
 .commission-split { display: flex; gap: 3px; height: 8px; margin-top: 14px; }
 .commission-split > view { min-width: 4px; border-radius: 999px; background: var(--v5-brand); }
 .commission-split > view + view { background: var(--v5-warning); }

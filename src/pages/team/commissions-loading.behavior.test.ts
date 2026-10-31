@@ -321,7 +321,8 @@ for (const [zone, localDate] of [["Asia/Tokyo", "2026-10-12"], ["Asia/Ho_Chi_Min
         expect(text(page.root)).toContain(`${copy.commissions.kind[kind]} · ${kind === "direct_purchase" ? copy.directReferral.order : copy.directReferral.receipt} REF-${kind} · ${copy.directReferral.device}: DEVICE-7`);
       }
       // P-42 groups records under their local date instead of repeating it on every row.
-      expect(all(page.root).filter(item => item.props.class === 'commission-day__label').map(text)).toEqual([shownDate]);
+      const labels = all(page.root).filter(item => item.props.class === 'commission-day__label').map(text);
+      expect(labels).toHaveLength(1); expect(labels[0].startsWith(shownDate)).toBe(true);
       expect(text(page.root)).not.toMatch(/Mon Oct|Invalid Date|NaN|GMT\+/);
     }
     expect(nativeLocale).not.toHaveBeenCalled();
@@ -536,7 +537,7 @@ test.each(['en', 'zh', 'vi'] as const)('T6 %s monthly and lifetime summaries kee
   await flush();
   const hero = all(page.root).find(n => n.props['data-component'] === 'hero')!;
   const lifetime = all(page.root).find(n => String(n.props.class).split(' ').includes('reward-income-lifetime'))!;
-  expect(text(hero)).toContain('$250.0040.00 UVT');
+  expect(text(hero)).toContain('$250.00+40.00 UVT');
   expect(text(lifetime)).toContain('$1250.0070.00 UVT');
   page.commission.eventsEvidence = { ...page.commission.eventsEvidence, aggregate: { monthUSDT: 0, monthNEX: 0, totalUSDT: 0, totalNEX: 0 } }; await flush();
   expect(text(hero)).toContain('$0.000.00 UVT');

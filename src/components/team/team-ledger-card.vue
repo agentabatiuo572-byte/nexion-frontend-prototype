@@ -17,10 +17,10 @@
       <!-- Lifetime composition stays open; data-state says whether its figures are current. -->
       <view class="team-ledger__breakdown" :class="{ 'is-hidden': (loading && !hasAmounts) || failed, 'is-unknown': !hasAmounts }" :data-state="failed ? 'failed' : loading ? 'loading' : hasAmounts ? 'ready' : 'unknown'" :aria-hidden="(loading && !hasAmounts) || failed">
         <view class="team-ledger__lifetime"><text>{{ copy.lifetimeBreakdown }} · {{ visibility.mask(hasAmounts ? contributors : '—') }} {{ t.teamV3.contributors }}</text><text class="team-ledger__lifetime-total">{{ visibility.mask(hasAmounts ? formatUsd(totalUSDTLifetime) : '—') }}</text></view>
-        <view class="team-ledger__bar" aria-hidden="true">
+        <view ref="barEl" class="team-ledger__bar" aria-hidden="true">
           <template v-if="!visibility.hidden && hasAmounts">
-          <view :style="{ width: directPct + '%', background: 'var(--v5-brand)' }" />
-          <view :style="{ width: extendedPct + '%', background: 'var(--ui-device-ink)' }" />
+          <view :style="{ width: barInView === false ? '0%' : directPct + '%', transition: barInView === false ? 'none' : PROGRESS_GROW_TRANSITION, background: 'var(--v5-brand)' }" />
+          <view :style="{ width: barInView === false ? '0%' : extendedPct + '%', transition: barInView === false ? 'none' : PROGRESS_GROW_TRANSITION, transitionDelay: barInView === false ? '0ms' : vizStagger(1), background: 'var(--ui-device-ink)' }" />
           </template>
         </view>
         <view class="team-ledger__split">
@@ -49,6 +49,7 @@ import { useLocaleStore } from '@/store/locale';
 import { teamRedesignCopy } from '@/i18n/team-redesign';
 import { useDataVisibility } from '@/store/data-visibility';
 import DataVisibilityToggle from '@/components/ui/data-visibility-toggle.vue';
+import { useScrollGrowProgress, PROGRESS_GROW_TRANSITION, vizStagger } from '@/composables/use-scroll-grow-progress';
 
 const props = withDefaults(defineProps<{
   available?: boolean;
@@ -69,6 +70,7 @@ const t = useT();
 const visibility = useDataVisibility();
 const locale = useLocaleStore();
 const copy = computed(() => teamRedesignCopy(locale.code));
+const { elRef: barEl, inView: barInView } = useScrollGrowProgress();
 const hasAmounts = computed(() => props.available);
 
 function retry() {

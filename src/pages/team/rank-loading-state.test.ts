@@ -159,7 +159,6 @@ describe('rank page canonical read and next-rank progress', () => {
     expect(publicRules).toContain('10%'); expect(publicRules).toContain('900.00 UVT');
 
     p.visibility.toggle(); await Vue.nextTick();
-    expect(nodes('rank-current-level').map(text)).toEqual(['••••']);
     expect(nodes('rank-current-name').map(text)).toEqual(['••••']);
     expect(all(nodes('rank-identity')[0]).some(n => n.props['data-rank-emblem'] !== undefined)).toBe(false);
     expect(nodes('rank-condition__current').map(text)).toEqual(Array(4).fill('••••'));
@@ -438,8 +437,8 @@ describe('rank page canonical read and next-rank progress', () => {
     const p = await page(locale, loaded), copy = dictionaries[locale];
     // App shows the V level only (APP-COPY-AUDIT D6); configured titles stay internal.
     expect(text(p.root)).not.toContain(locale === 'zh' ? '公开 8' : 'Published 8');
-    expect(all(p.root).filter(item => item.props.class === 'rank-current-level').map(text)).toEqual(['V8']);
-    expect(all(p.root).some(item => item.props['data-rank-emblem'] === 8 && item.props['data-size'] === 76)).toBe(true);
+    expect(all(p.root).filter(item => item.props.class === 'rank-current-name').map(text).join('')).toContain('V8');
+    expect(all(p.root).some(item => item.props['data-rank-emblem'] === 8 && item.props['data-size'] === 96)).toBe(true);
     expect(text(p.root)).not.toContain(copy.rank.next); expect(text(p.root)).not.toContain(copy.rank.upgradeCta);
     expect(text(p.root)).not.toContain(' / '); expect(text(p.root)).not.toContain('100%');
     expect(text(p.root)).not.toContain(copy.rank.needSelfBuy); expect(text(p.root)).not.toContain('V9');

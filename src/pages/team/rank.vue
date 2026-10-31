@@ -5,7 +5,7 @@
       <view class="rank-content">
         <view v-if="rankAvailable" class="rank-spotlight">
           <view class="rank-identity">
-            <view class="rank-identity__emblem"><TeamRankEmblem v-if="!visibility.hidden" :rank="myRank" :size="76" /><view v-else class="rank-private-emblem" aria-hidden="true">••••</view><text class="rank-current-level">{{ visibility.mask(`V${myRank}`) }}</text></view>
+            <view class="rank-identity__emblem"><TeamRankEmblem v-if="!visibility.hidden" :rank="myRank" :size="96" /><view v-else class="rank-private-emblem" aria-hidden="true">••••</view></view>
             <view class="rank-identity__copy"><text class="rank-caption">{{ t.rank.currentRank }}</text><text class="rank-current-name">{{ visibility.mask(rankLabel(myRank,locale.code,rankDefs)) }}</text></view>
           </view>
           <view v-if="prog.next" class="rank-next-progress rank-next-progress--summary">
@@ -13,7 +13,7 @@
             <view class="rank-rings">
             <view v-for="condition in nextConditions" :key="condition.key" class="rank-condition rank-condition--ring">
               <view class="rank-progress-track rank-ring" role="progressbar" :aria-label="condition.label" :aria-valuenow="visibility.hidden ? undefined : condition.percent" :aria-valuemin="0" :aria-valuemax="100" :aria-valuetext="`${visibility.mask(condition.values.split(' / ')[0])} / ${condition.values.split(' / ')[1]}`" :style="{ '--nx-viz-ring': visibility.hidden ? 0 : (condition.percent ?? 0) }"><view class="rank-ring__hole"><text class="rank-ring__value">{{ visibility.hidden || condition.percent === undefined ? '—' : condition.key.includes('directRefs') ? condition.values.replace(' / ', '/') : `${condition.percent}%` }}</text></view></view>
-              <view class="rank-condition__heading"><text class="rank-condition__name">{{ condition.displayLabel }}</text><view class="rank-condition__value"><text class="rank-condition__current">{{ visibility.mask(condition.values.split(' / ')[0]) }}</text><text class="rank-condition__target"> / {{ condition.values.split(' / ')[1] }}</text></view></view>
+              <view class="rank-condition__heading"><text class="rank-condition__name">{{ condition.displayLabel }}</text><view class="rank-condition__value"><text class="rank-condition__current">{{ visibility.mask(condition.compact.split(' / ')[0]) }}</text><text class="rank-condition__target"> / {{ condition.compact.split(' / ')[1] }}</text><text class="rank-sr">{{ visibility.mask(condition.values.split(' / ')[0]) }} / {{ condition.values.split(' / ')[1] }}</text></view></view>
               <text class="rank-condition__gap">{{ visibility.mask(condition.gap) }}</text>
             </view>
             </view>
@@ -159,6 +159,8 @@ const allConditions = computed(() => prog.value.rows
       label: `V${row.tier} · ${rankConditionsText(t.value, row.conditions, locale.code)}`,
       displayLabel: (row.tier < prog.value.next!.v ? `V${row.tier} · ` : '') + name,
       values: `${valueText(current)} / ${valueText(required)}`,
+      // Rings show bare numbers; the condition name above carries the unit.
+      compact: `${points ? valueText(current).split(' ')[0] : valueText(current)} / ${points ? valueText(required).split(' ')[0] : valueText(required)}`,
       gap: !known ? logicCopy.value.unknownProgress : row.gap ? rankGapText(t.value, row.gap, locale.code, rankDefs.value) : t.value.rank.done,
       percent: !known ? undefined : required === 0 ? 100 : Math.min(100, Math.max(0, Math.round(current! / required * 100))),
     };
@@ -335,4 +337,26 @@ const upcomingPeerNotice = computed(() => prog.value.next && prog.value.next.pee
 .rank-row-sub { margin-top:0;font:500 10px/12px var(--font-v5);text-align:center;white-space:nowrap; }
 .rank-ladder-row[data-status="locked"] .rank-row-heading :deep(.team-rank-emblem) { opacity:.55; }
 .rank-details { margin-top:12px;padding:20px;border-radius:28px;background:var(--v5-surface);box-shadow:inset 0 0 0 1px var(--v5-border); }
+/* P-42 round 2 */
+.rank-identity { margin-bottom:14px;padding-right:96px; }
+.rank-current-name { margin-top:0;font:700 36px/40px var(--font-metric);color:var(--v5-brand); }
+.rank-next-heading { position:absolute;top:20px;right:20px;display:flex;align-items:center;gap:4px;height:26px;padding:0 10px;border-radius:999px;background:color-mix(in srgb,var(--v5-ink) 6%,transparent); }
+.rank-next-heading .rank-next-title,.rank-next-heading .rank-caption { font:600 12px/16px var(--font-v5);color:var(--v5-ink-2); }
+.rank-condition--ring .rank-condition__gap { position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap; }
+.rank-condition--ring { position:relative; }
+.rank-sr { position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap; }
+.rank-upcoming { display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-top:14px;padding:10px 14px; }
+.rank-upcoming .rank-caption { color:var(--v5-ink-2); }
+.rank-upcoming .rank-perk-tags { margin-top:0; }
+.rank-upcoming .rank-perk-tag { min-height:0;padding:0;border:0;background:none;color:var(--v5-nex);font-weight:600; }
+.rank-upcoming .rank-scope-link { min-height:24px;margin:0 0 0 auto; }
+.rank-ladder-row + .rank-ladder-row::after { content:"";position:absolute;left:-6px;top:26px;width:6px;height:2px;background:var(--v5-surface-3); }
+.rank-ladder-row[data-status="done"] + .rank-ladder-row::after,.rank-ladder-row[data-status="current"]::after { background:var(--v5-brand); }
+.rank-ladder-row[data-status="done"] .rank-row-sub { color:var(--v5-ink-3); }
+.rank-perk-value { font:600 22px/26px var(--font-metric);color:var(--v5-brand); }
+.rank-perk + .rank-perk .rank-perk-value { color:var(--v5-nex); }
+.rank-reward-item { padding:14px;border-radius:16px;background:radial-gradient(120% 120% at 100% 0%,color-mix(in srgb,var(--v5-nex) 16%,transparent),transparent 60%),color-mix(in srgb,var(--v5-ink) 3%,transparent); }
+.rank-reward-summary { justify-content:space-between; }
+.rank-reward-title { font:600 13px/18px var(--font-v5);color:var(--v5-ink); }
+.rank-reward-amount { font:600 16px/20px var(--font-metric);color:var(--v5-nex); }
 </style>

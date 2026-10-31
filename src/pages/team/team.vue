@@ -1,7 +1,7 @@
 <template>
   <AppChassis active="team">
     <view class="pb-4" style="padding-top: 12px; color: var(--v5-ink)">
-      <view class="px-4" style="display: flex; flex-direction: column; gap: 24px">
+      <view class="px-4" style="display: flex; flex-direction: column; gap: 16px">
         <!-- This month ledger -->
         <TeamLedgerCard
           :available="ledgerVisible"
@@ -37,10 +37,9 @@
         <view class="nx-team-rank-link team-rank nx-viz-press" role="link" tabindex="0" :aria-label="t.team.rankBenefits" @click="go('/pages/team/rank')" @keydown.enter.prevent="go('/pages/team/rank')" @keydown.space.prevent="go('/pages/team/rank')">
           <view class="team-rank__header"><text class="team-rank__title">{{ designCopy.myRank }}</text><text class="team-rank__chev" aria-hidden="true">›</text></view>
           <view class="team-rank__identity">
-            <TeamRankEmblem v-if="!visibility.hidden && rankReadable" :rank="remoteApiEnabled ? rankPresentation : myRank" :size="48" />
-            <text class="team-rank__level">{{ visibility.mask(myRankDisplay) }}</text>
+            <TeamRankEmblem v-if="!visibility.hidden && rankReadable" :rank="remoteApiEnabled ? rankPresentation : myRank" :size="52" />
+            <view class="team-rank__copy"><text class="team-rank__level">{{ visibility.mask(myRankDisplay) }}</text><text class="team-rank__hint">{{ visibility.mask(rankGapText) }}</text></view>
           </view>
-          <text class="team-rank__hint">{{ visibility.mask(rankGapText) }}</text>
           <view v-if="rankBars.length" ref="rankBarsEl" class="team-rank__bars" aria-hidden="true">
             <view v-for="(bar, index) in rankBars" :key="bar.key" class="team-rank__bar"><text>{{ bar.label }}</text><view class="team-rank__track"><view :style="{ width: rankBarsInView === false || visibility.hidden || bar.percent === null ? '0%' : `${bar.percent}%`, transition: rankBarsInView === false ? 'none' : PROGRESS_GROW_TRANSITION, transitionDelay: rankBarsInView === false ? '0ms' : vizStagger(index) }" /></view></view>
           </view>
@@ -571,9 +570,10 @@ const teamSummaryStatus = computed(() => remoteApiEnabled ? network.remoteStatus
 .team-rank__header { display: flex; align-items: center; justify-content: space-between; min-height: 24px; gap: 4px; }
 .team-rank__title { font: 600 14px/20px var(--font-v5); }
 .team-rank__chev { font-size: 18px; color: var(--v5-ink-4); }
-.team-rank__identity { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.team-rank__identity { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.team-rank__copy { display: flex; flex-direction: column; min-width: 0; }
 .team-rank__level { font: 700 22px/26px var(--font-metric); color: var(--v5-brand); }
-.team-rank__hint { font: 400 12px/16px var(--font-v5); color: var(--v5-ink-3); overflow-wrap: anywhere; }
+.team-rank__hint { font: 400 11px/14px var(--font-v5); color: var(--v5-ink-3); overflow-wrap: anywhere; }
 .team-rank__bars { display: flex; flex-direction: column; gap: 6px; margin-top: auto; }
 .team-rank__bar { display: grid; grid-template-columns: minmax(28px, max-content) minmax(0, 1fr); align-items: center; gap: 6px; font: 400 10px/12px var(--font-v5); color: var(--v5-ink-3); }
 .team-rank__track { height: 4px; overflow: hidden; border-radius: 999px; background: var(--v5-surface-3); }

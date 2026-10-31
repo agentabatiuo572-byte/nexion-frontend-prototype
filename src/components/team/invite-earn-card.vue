@@ -168,7 +168,7 @@ onUnmounted(stopRuntimeRefresh);
 .invite-card__history,.invite-card__rules { position: relative; isolation: isolate; display: flex; align-items: center; justify-content: center; gap: 4px; min-width: 44px; min-height: 44px; padding: 0 10px; color: var(--v5-ink-2); font: 600 12px/16px var(--font-v5); cursor: pointer; white-space: nowrap; }
 .invite-card__history::before,.invite-card__rules::before { content: ''; position: absolute; inset: 8px 0; z-index: -1; border-radius: 999px; background: color-mix(in srgb, var(--v5-ink) 6%, transparent); }
 .invite-card__history svg { flex: 0 0 18px; }
-.nx-invite-body { display: flex; flex-direction: column; gap: var(--v5-space-4); }
+.nx-invite-body { display: flex; flex-direction: column; gap: var(--v5-space-4); margin-top: -12px; }
 .invite-card__reward { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: var(--v5-space-1); max-width: 62%; }
 .invite-card__reward-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; max-width: 100%; }
 .invite-card__amount { font: 600 40px/44px var(--font-amount); letter-spacing: -.03em; font-variant-numeric: tabular-nums; color: var(--v5-brand); }

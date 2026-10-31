@@ -5,13 +5,13 @@
       <view class="ss-grab" />
       <view class="ss-head"><text class="ss-head__t">{{ copy.inviteFriends }}</text><view class="ss-head__x" role="button" tabindex="0" :aria-label="t.ui.close" @click="emit('close')" @keydown.enter.prevent="emit('close')" @keydown.space.prevent="emit('close')"><LiquidGlass :radius="22" tone="control" /><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6" /></svg></view></view>
       <view class="ss-body">
-        <view class="ss-reward"><TeamArt kind="invite" :size="100" /><text class="ss-reward__t" :class="{ 'ss-reward__t--amount': rewardHint }">{{ rewardLineText }}</text><text v-if="rewardHint" class="ss-reward__hint">{{ rewardHint }}</text></view>
+        <view class="ss-reward"><TeamArt kind="invite" :size="100" /><view class="ss-reward__copy"><text class="ss-reward__t" :class="{ 'ss-reward__t--amount': rewardHint }">{{ rewardLineText }}</text><text v-if="rewardHint" class="ss-reward__hint">{{ rewardHint }}</text></view></view>
         <view v-if="statusMessage" class="ss-status" role="status" aria-live="polite" :aria-busy="loading"><text class="ss-status__text">{{ statusMessage }}</text><view v-if="!loading || retrying" class="ss-retry nx-frosted-button" role="button" :tabindex="loading ? -1 : 0" :aria-disabled="loading" :aria-busy="retrying" @click="retry" @keydown.enter.prevent="retry" @keydown.space.prevent="retry"><text>{{ t.share.retry }}</text></view></view>
         <view class="ss-actions">
           <view class="ss-code__copy" :class="{ 'ss-row--pending': loading }" role="button" :aria-label="t.share.copyCode" :tabindex="codeDisabled ? -1 : 0" :aria-disabled="codeDisabled" :aria-busy="channelBusy" @click="onCopyCode" @keydown.enter.prevent="onCopyCode" @keydown.space.prevent="onCopyCode"><text class="ss-code__label">{{ t.team.inviteShareCode }}</text><text class="ss-code__value">{{ referralCode || codePresentation || '—' }}</text><view class="ss-code__pill"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg><text>{{ t.share.copyCode }}</text></view></view>
           <view class="ss-grid">
             <template v-for="c in displayChannels" :key="c.key">
-            <view class="ss-ch" :class="{ 'ss-row--pending': loading }" role="button" :aria-label="channelMeta(c.key).label" :tabindex="channelDisabled(c) ? -1 : 0" :aria-busy="channelBusy" :aria-disabled="channelDisabled(c)" @click="onChannel(c)" @keydown.enter.prevent="onChannel(c)" @keydown.space.prevent="onChannel(c)"><view class="ss-row__icon" aria-hidden="true" v-html="channelMeta(c.key).svg" /><text class="ss-row__label">{{ channelMeta(c.key).label }}</text></view>
+            <view class="ss-ch" :class="{ 'ss-row--pending': loading }" role="button" :aria-label="channelMeta(c.key).label" :tabindex="channelDisabled(c) ? -1 : 0" :aria-busy="channelBusy" :aria-disabled="channelDisabled(c)" @click="onChannel(c)" @keydown.enter.prevent="onChannel(c)" @keydown.space.prevent="onChannel(c)"><view class="ss-row__icon" aria-hidden="true" v-html="channelMeta(c.key).svg" /><text class="ss-row__label">{{ channelMeta(c.key).label }}</text><text v-if="channelHint(c.key)" class="ss-ch__hint">{{ channelHint(c.key) }}</text></view>
             </template>
           </view>
           <view class="ss-rules-toggle ss-row" role="button" tabindex="0" :aria-label="copy.inviteRules" :aria-expanded="rulesOpen" aria-controls="share-invite-rules" @click="rulesOpen=!rulesOpen" @keydown.enter.prevent="rulesOpen=!rulesOpen" @keydown.space.prevent="rulesOpen=!rulesOpen"><svg class="ss-row__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 3h10l4 4v14H5ZM9 11h6M9 15h6" /></svg><text class="ss-row__label">{{ copy.inviteRules }}</text><text class="ss-row__arrow" aria-hidden="true">{{ rulesOpen ? '−' : '+' }}</text></view>
@@ -169,6 +169,13 @@ function icon(paths: string): string {
   return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
 }
 // 品牌名为专有名词(双语一致);sms/copy/poster/system 走 i18n。
+// One short line under the two local actions.
+function channelHint(key: ShareChannelKey): string {
+  const hints = locale.code === "zh" ? { poster: "带二维码，可保存", copy: "好友打开即可注册" }
+    : locale.code === "vi" ? { poster: "Có mã QR, lưu được", copy: "Bạn bè mở là đăng ký" }
+      : { poster: "With QR code, saveable", copy: "Friends sign up from it" };
+  return key === "poster" || key === "copy" ? hints[key] : "";
+}
 function channelMeta(key: ShareChannelKey): ChannelMeta {
   switch (key) {
     case "zalo":
@@ -184,7 +191,7 @@ function channelMeta(key: ShareChannelKey): ChannelMeta {
     case "x":
       return { label: "X", svg: icon('<path d="M4 4l16 16" /><path d="M20 4 4 20" />') };
     case "copy":
-      return { label: t.value.share.copyLink, svg: icon('<rect width="14" height="14" x="8" y="8" rx="2" ry="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />') };
+      return { label: t.value.share.copyLink, svg: icon('<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7" /><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" />') };
     case "poster":
       return { label: t.value.share.posterTitle, svg: icon('<rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />') };
     case "system":
@@ -249,10 +256,14 @@ useDialogA11y(computed(() => props.open), ".ss-root", () => emit("close"));
 /* P-42: reward strip, code card and two-column channel tiles. */
 .ss-reward { flex-direction:row !important;align-items:center !important;gap:14px !important;padding:14px 16px !important;margin-bottom:var(--ui-space-inset);border-radius:20px;background:radial-gradient(120% 120% at 0% 0%,color-mix(in srgb,var(--v5-brand) 14%,transparent),transparent 60%),color-mix(in srgb,var(--v5-ink) 3%,transparent);text-align:left !important; }
 .ss-reward :deep(.team-art) { --team-art-size:88px; flex:none; }
+.ss-reward__copy { display:flex;flex-direction:column;gap:2px;min-width:0; }
+.ss-reward__copy .ss-reward__t--amount { font:600 28px/34px var(--font-amount);color:var(--v5-brand);white-space:nowrap; }
+.ss-ch__hint { margin-top:-6px;font:400 12px/16px var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }
+.ss-sheet { border-radius:28px 28px 0 0; }
 .ss-actions { display:flex;flex-direction:column;gap:var(--ui-space-inset); }
 .ss-code__copy { display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px 16px;border-radius:20px;background:color-mix(in srgb,var(--v5-ink) 4%,transparent);box-shadow:inset 0 0 0 1px var(--v5-border);cursor:pointer; }
 .ss-code__label { font:400 12px/16px var(--font-v5);color:var(--v5-ink-3); }
-.ss-code__copy .ss-code__value { font:600 30px/36px var(--font-metric);letter-spacing:6px;color:var(--v5-ink);overflow-wrap:anywhere;text-align:center; }
+.ss-code__copy .ss-code__value { max-width:none;font:600 28px/36px var(--font-metric);letter-spacing:5px;white-space:nowrap;color:var(--v5-ink);overflow-wrap:anywhere;text-align:center; }
 .ss-code__pill { display:flex;align-items:center;gap:6px;min-height:36px;padding:0 16px;border-radius:999px;color:var(--v5-brand);font:600 13px/18px var(--font-v5);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--v5-brand) 45%,transparent); }
 .ss-code__copy[aria-disabled="true"]:not(.ss-row--pending) { opacity:.45;cursor:default; }
 .ss-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px; }
