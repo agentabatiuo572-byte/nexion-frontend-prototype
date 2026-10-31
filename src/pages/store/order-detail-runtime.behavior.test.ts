@@ -1,3 +1,5 @@
+import { selectedPurchasePaymentFixture } from '@/lib/selected-purchase-payment.test-helper';
+import type { PaymentPasswordAuthorization } from '@/api/payment-password-api';
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { computed, effectScope, nextTick, reactive, ref, watch } from "vue";
@@ -83,12 +85,13 @@ function harness(mode: "dev" | "prod" = "prod") {
   const toast = { warn: vi.fn() };
   const clipboard: Array<{ data: string; success: () => void; fail?: () => void }> = [];
   const readPaymentCommand=vi.fn().mockResolvedValue({status:'PROCESSING',canResumeSameKey:false});
-  const authorize=vi.fn(async(_context:unknown,command:(authorization:unknown)=>Promise<unknown>,current:()=>boolean)=>current()?command({paymentPassword:'039417',credentialVersion:1,attemptNo:'fixture-attempt'}):null);
+  const authorize=vi.fn(async(_context:unknown,command:(authorization:PaymentPasswordAuthorization)=>Promise<unknown>,current:()=>boolean)=>current()?command({paymentPassword:'039417',credentialVersion:1,attemptNo:'fixture-attempt'}):null);
+  const selection=selectedPurchasePaymentFixture(authorize);
   const deps = { ref, computed, watch, orders, auth, remoteApiEnabled: true, app, toast, apiRuntimeConfig: reactive({ environment: mode }), locale: reactive({ code: "en" }),
     uni: { setClipboardData: (args: typeof clipboard[number]) => clipboard.push(args) },
     t: ref(en), asApiError, orderApi: remote.orderApi, uiConfirm: vi.fn().mockResolvedValue(true),
     fmt:(message:string,values:Record<string,unknown>)=>message.replace(/\{(\w+)\}/g,(_,key)=>String(values[key])),formatPlainAmount,
-    executePaymentWithPassword:authorize, checkoutFlowCopy, purchaseEligibilityApi:remote.purchaseEligibilityApi, orderPaymentRejection,
+    executePaymentWithPassword:authorize, executeSelectedPurchase:selection.execute, checkoutFlowCopy, purchaseEligibilityApi:remote.purchaseEligibilityApi, orderPaymentRejection,
     beginOrderAction,readOrderAction,markOrderActionPaid,clearOrderAction,purchaseRecoveryCopy,paidOrderReceipt,readPaymentCommand,apiClient:{},
     navTo: vi.fn(), navReset: vi.fn(), takeNavigationQuery: () => "", detailNow: ref(Date.now()),
     conversations: {}, advisorChatRoute: vi.fn().mockResolvedValue("/pages/support/chat?cid=ADVISOR-THREAD"),
@@ -109,13 +112,15 @@ function harness(mode: "dev" | "prod" = "prod") {
     paymentSheetOpen:Ref<boolean>;paymentSheetAmount:Ref<number|string>;paymentNotice:Ref<string>;paymentNoticeReason:Ref<string>;noticeCancelFailed:Ref<boolean>;paymentResultVisible:Ref<boolean>;paymentResultState:Ref<string>;
     pendingPaymentChecking:Ref<boolean>;autoPayRequested:Ref<boolean>;
   };
+  const handleWalletPayment=page.handleWalletPayment;
+  page.handleWalletPayment=()=>{const pending=handleWalletPayment();selection.decide({method:'WALLET'});return pending;};
   hooks.load.forEach(fn => fn({ id: original.orderNo }));
   const show = () => hooks.show.forEach(fn => fn());
   const hide = () => hooks.hide.forEach(fn => fn());
   const unload = () => hooks.unload.forEach(fn => fn());
   disposals.push(() => { unload(); scope.stop(); orders.$dispose(); });
   show();
-  return { page, requests, payments, request, orders, account, auth, app, toast, show, hide, unload, clipboard, readPaymentCommand,authorize,navTo: deps.navTo,navReset: deps.navReset,
+  return { page, requests, payments, request, orders, account, auth, app, toast, show, hide, unload, clipboard, readPaymentCommand,authorize,selection,navTo: deps.navTo,navReset: deps.navReset,
     load: (id: string) => hooks.load.forEach(fn => fn({ id })) };
 }
 beforeEach(() => {
@@ -147,7 +152,7 @@ describe('original pending order payment entry',()=>{
     expect(h.page.pendingPaymentChecking.value).toBe(true);h.show();await settle();
     h.requests.slice(1).forEach(request=>request.resolve(list([placed])));await settle();
     eligibility.resolve({eligible:true,policies:[]});await settle();
-    expect(h.page.pendingPaymentChecking.value).toBe(false);expect(h.page.paymentSheetOpen.value).toBe(true);
+    expect(h.page.pendingPaymentChecking.value).toBe(false);expect(h.selection.state.open).toBe(true);expect(h.page.paymentSheetOpen.value).toBe(false);
     expect(h.requests).toHaveLength(1);
     expect(h.payments).toHaveLength(0);expect(h.authorize).not.toHaveBeenCalled();
   });
@@ -157,8 +162,8 @@ describe('original pending order payment entry',()=>{
     expect(h.page.pendingPaymentChecking.value).toBe(true);remote.productCatalogApi.catalog.mockResolvedValueOnce(catalog);
     await refreshProductCatalog(true);await settle();h.requests[1].resolve(list([placed]));await settle();
     eligibility.resolve({eligible:true,policies:[]});await settle();
-    expect(h.page.pendingPaymentChecking.value).toBe(false);expect(h.page.paymentSheetOpen.value).toBe(true);
-    expect(h.page.autoPayRequested.value).toBe(false);expect(h.requests).toHaveLength(2);expect(remote.purchaseEligibilityApi.get).toHaveBeenCalledTimes(2);
+    expect(h.page.pendingPaymentChecking.value).toBe(false);expect(h.selection.state.open).toBe(true);expect(h.page.paymentSheetOpen.value).toBe(false);
+    await h.selection.cancel();await settle();expect(h.selection.request).toHaveBeenCalledOnce();expect(h.page.autoPayRequested.value).toBe(false);expect(h.requests).toHaveLength(2);expect(remote.purchaseEligibilityApi.get).toHaveBeenCalledTimes(2);
     expect(h.payments).toHaveLength(0);expect(h.authorize).not.toHaveBeenCalled();
   });
   it('also resumes once when the replacement read finishes after the obsolete preflight',async()=>{
@@ -167,7 +172,7 @@ describe('original pending order payment entry',()=>{
     remote.productCatalogApi.catalog.mockResolvedValueOnce(catalog);await refreshProductCatalog(true);await settle();
     eligibility.resolve({eligible:true,policies:[]});await settle();expect(h.page.pendingPaymentChecking.value).toBe(false);
     expect(h.page.autoPayRequested.value).toBe(true);expect(h.page.paymentSheetOpen.value).toBe(false);
-    h.requests[1].resolve(list([placed]));await settle();expect(h.page.paymentSheetOpen.value).toBe(true);expect(h.page.autoPayRequested.value).toBe(false);
+    h.requests[1].resolve(list([placed]));await settle();expect(h.selection.state.open).toBe(true);expect(h.page.paymentSheetOpen.value).toBe(false);await h.selection.cancel();await settle();expect(h.selection.request).toHaveBeenCalledOnce();expect(h.page.autoPayRequested.value).toBe(false);
     expect(h.requests).toHaveLength(2);expect(remote.purchaseEligibilityApi.get).toHaveBeenCalledTimes(2);expect(h.payments).toHaveLength(0);
   });
   it('consumes the intent with a visible retry error when the new authoritative read fails',async()=>{
@@ -200,7 +205,7 @@ describe('original pending order payment entry',()=>{
     h.page.autoPayRequested.value=true;h.requests[0].resolve(list([placed]));await settle();
     const reread=h.page.refreshOrder();await settle();h.requests[1].resolve(list([placed]));await reread;
     eligibility.resolve({eligible:true,policies:[]});await settle();await settle();
-    expect(h.page.paymentSheetOpen.value).toBe(true);expect(h.page.autoPayRequested.value).toBe(false);expect(h.page.pendingPaymentChecking.value).toBe(false);
+    expect(h.selection.state.open).toBe(true);expect(h.page.paymentSheetOpen.value).toBe(false);await h.selection.cancel();await settle();expect(h.selection.request).toHaveBeenCalledOnce();expect(h.page.autoPayRequested.value).toBe(false);expect(h.page.pendingPaymentChecking.value).toBe(false);
     expect(h.requests).toHaveLength(2);expect(remote.purchaseEligibilityApi.get).toHaveBeenCalledOnce();expect(h.payments).toHaveLength(0);
   });
   it('does not let the former preflight completion unlock a newer visible attempt',async()=>{
@@ -211,15 +216,15 @@ describe('original pending order payment entry',()=>{
     expect(h.page.pendingPaymentChecking.value).toBe(true);oldEligibility.resolve({eligible:true,policies:[]});await old;
     expect(h.page.pendingPaymentChecking.value).toBe(true);expect(h.page.paymentSheetOpen.value).toBe(false);
     newEligibility.resolve({eligible:true,policies:[]});await current;
-    expect(h.page.pendingPaymentChecking.value).toBe(false);expect(h.page.paymentSheetOpen.value).toBe(true);
+    expect(h.page.pendingPaymentChecking.value).toBe(false);expect(h.selection.state.open).toBe(true);expect(h.page.paymentSheetOpen.value).toBe(false);
   });
-  it('reads the original, opens only its USDT wallet sheet, and does not charge or request PIN yet',async()=>{
+  it('reads the original, opens its unified method selection, and does not charge or request PIN yet',async()=>{
     const h=await pending(),opening=h.page.requestPendingPayment();await settle();
     expect(h.page.paymentSheetOpen.value).toBe(false);expect(h.requests).toHaveLength(2);
     h.requests[1].resolve(list([placed]));await opening;
-    expect(h.page.paymentSheetOpen.value).toBe(true);expect(h.page.paymentSheetAmount.value).toBe(19.9);
+    expect(h.selection.state.open).toBe(true);expect(h.page.paymentSheetOpen.value).toBe(false);expect(h.page.paymentSheetAmount.value).toBe(19.9);expect(h.selection.request).toHaveBeenCalledWith(expect.objectContaining({kind:'ORDER_PAY',amount:19.9,payload:{orderNo:placed.orderNo}}));
     expect(remote.purchaseEligibilityApi.get).toHaveBeenCalledExactlyOnceWith('cloud-share');
-    await settle();expect(h.requests).toHaveLength(2);expect(h.page.autoPayRequested.value).toBe(false);expect(h.page.pendingPaymentChecking.value).toBe(false);
+    await settle();expect(h.requests).toHaveLength(2);await h.selection.cancel();await settle();expect(h.selection.request).toHaveBeenCalledOnce();expect(h.page.autoPayRequested.value).toBe(false);expect(h.page.pendingPaymentChecking.value).toBe(false);
     expect(h.payments).toHaveLength(0);expect(h.authorize).not.toHaveBeenCalled();
   });
   it('blocks an authoritative overall F4B denial before method, PIN or payment',async()=>{
@@ -238,14 +243,14 @@ describe('original pending order payment entry',()=>{
     const opening=h.page.requestPendingPayment();await settle();
     h.requests[1].resolve(list([{...placed,orderType:'BUNDLE',quantity:2,itemCount:2,lineItems}]));await opening;
     expect(remote.purchaseEligibilityApi.get.mock.calls.map(call=>call[0]).sort()).toEqual(['cloud-share','stellarbox-s1']);
-    expect(h.page.paymentSheetOpen.value).toBe(outcome==='approved');
+    expect(h.selection.state.open).toBe(outcome==='approved');expect(h.page.paymentSheetOpen.value).toBe(false);
     expect(h.page.paymentNotice.value).toBe(outcome==='denied'?'blocked':outcome==='unreadable'?'query':'');
     expect(h.authorize).not.toHaveBeenCalled();expect(h.payments).toHaveLength(0);
   });
   it('follows an authoritative overall EITHER approval without recomputing a rejected subcondition',async()=>{
     const h=await pending();remote.purchaseEligibilityApi.get.mockResolvedValue({eligible:true,policies:[{policy:'E1',mode:'EITHER',eligible:false,conditions:[{kind:'rank',met:false}]},{policy:'F4B',mode:'EITHER',eligible:true,conditions:[{kind:'monthlyQuota',met:true}]}]});
     const opening=h.page.requestPendingPayment();await settle();h.requests[1].resolve(list([placed]));await opening;
-    expect(h.page.paymentSheetOpen.value).toBe(true);expect(h.page.paymentNotice.value).toBe('');expect(h.authorize).not.toHaveBeenCalled();expect(h.payments).toHaveLength(0);
+    expect(h.selection.state.open).toBe(true);expect(h.page.paymentSheetOpen.value).toBe(false);expect(h.page.paymentNotice.value).toBe('');expect(h.authorize).not.toHaveBeenCalled();expect(h.payments).toHaveLength(0);
   });
   it('keeps a known qualification failure in a small notice and leaves cancellation failure there to retry',async()=>{
     const h=await pending();remote.purchaseEligibilityApi.get.mockResolvedValue({eligible:false,policies:[{policy:'E1',eligible:false,conditions:[{kind:'rank',met:false}]}]});
@@ -293,7 +298,7 @@ describe('original pending order payment entry',()=>{
   });
   it('cannot submit after the original deadline passes while the PIN dialog is open',async()=>{
     const h=await pending(),gate=deferred<void>();
-    h.authorize.mockImplementation(async(_context,command,current)=>{await gate.promise;return current()?command({}):null;});
+    h.authorize.mockImplementation(async(_context,command,current)=>{await gate.promise;return current()?command({paymentPassword:'039417',credentialVersion:1,attemptNo:'expired-fixture-attempt'}):null;});
     const paying=h.page.handleWalletPayment();await settle();expect(h.payments).toHaveLength(0);
     h.orders.orders[0].expiresAt=Date.now()-1;gate.resolve();await paying;
     expect(h.payments).toHaveLength(0);expect(h.orders.orders[0].status).toBe('placed');expect(h.page.payingFromWallet.value).toBe(false);
@@ -311,7 +316,7 @@ describe('original pending order payment entry',()=>{
   });
   it.each(['closed','deadline','amount','quantity','hidden','account'] as const)('revalidates %s after PIN and before pay',async change=>{
     const h=await pending(),gate=deferred<void>();
-    h.authorize.mockImplementation(async(_context,command,current)=>{await gate.promise;return current()?command({}):null;});
+    h.authorize.mockImplementation(async(_context,command,current)=>{await gate.promise;return current()?command({paymentPassword:'039417',credentialVersion:1,attemptNo:'changed-fixture-attempt'}):null;});
     const paying=h.page.handleWalletPayment();await settle();
     if(change==='closed')h.orders.orders[0].status='cancelled';
     else if(change==='deadline')h.orders.orders[0].expiresAt=Date.now()-1;

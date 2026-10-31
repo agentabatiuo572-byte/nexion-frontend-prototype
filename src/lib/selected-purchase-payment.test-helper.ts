@@ -47,3 +47,9 @@ export function selectedPurchasePaymentFixture(pin: (context: PaymentPasswordCon
   return { execute, request, acknowledge, state, decide, finished, wallet: () => choose({ method: 'WALLET' }),
     external: (receipt: unknown) => choose({ method: 'EXTERNAL', receipt, commandKey: 'fixture-external-key', accountKey: 'fixture-account' }), cancel: () => choose(null) };
 }
+
+/** Legacy wallet scenarios explicitly choose wallet through the production selector. */
+export function walletSelectedPurchaseFixture(pin: Parameters<typeof selectedPurchasePaymentFixture>[0]) {
+  const selection=selectedPurchasePaymentFixture(pin);
+  return (...args: Parameters<typeof selection.execute>)=>{const pending=selection.execute(...args);selection.decide({method:'WALLET'});return pending;};
+}

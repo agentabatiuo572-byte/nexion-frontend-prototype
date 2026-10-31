@@ -863,7 +863,7 @@ async function requestPendingPayment(originalJustRead = false): Promise<void> {
     // local lock, but must never unlock a newer attempt after hide/re-entry.
     if (attempt === pendingPaymentSequence) {
       pendingPaymentChecking.value = false;
-      if (isCurrentDetailScope(scope) && (paymentSheetOpen.value || paymentResultVisible.value || paymentNotice.value || orderAction.value || orderCommandUnavailable.value)) {
+      if (isCurrentDetailScope(scope) && (paymentSheetOpen.value || payingFromWallet.value || paymentResultVisible.value || paymentNotice.value || orderAction.value || orderCommandUnavailable.value)) {
         autoPayRequested.value = false;
         pendingPaymentIntentAccount = '';
         pendingPaymentReadScope = null;
@@ -937,7 +937,7 @@ async function handleWalletPayment() {
             if (isCurrentDetailScope(scope)) { paymentNoticeReason.value = recoveryCopy.value.changed; paymentNotice.value = 'query'; }
             return null;
           }
-          const action=beginOrderAction(orders.currentAccountKey(),'pay',requestOrderNo,requestAmountUsdt);
+          const action=beginOrderAction(orders.currentAccountKey(),'pay',requestOrderNo,requestAmountUsdt,'WALLET');
           orderAction.value=action;resumePaymentAllowed.value=false;
           try {return await orderApi.pay(requestOrderNo,action.key,authorization);}
           catch(error){
@@ -948,7 +948,7 @@ async function handleWalletPayment() {
             throw error;
           }
         },
-        paymentOrderCurrent,{kind:'ORDER_PAY',payload:{orderNo:requestOrderNo},commandKey:()=>{const action=beginOrderAction(orders.currentAccountKey(),'pay',requestOrderNo,requestAmountUsdt);orderAction.value=action;return action.key;},parseReceipt:paidOrderReceipt});
+        paymentOrderCurrent,{kind:'ORDER_PAY',payload:{orderNo:requestOrderNo},commandKey:()=>{const action=beginOrderAction(orders.currentAccountKey(),'pay',requestOrderNo,requestAmountUsdt,'EXTERNAL');orderAction.value=action;return action.key;},parseReceipt:paidOrderReceipt});
       if (!receipt) return;
     if (!isCurrentDetailScope(scope)) return;
     if (receipt.orderNo !== requestOrderNo) {

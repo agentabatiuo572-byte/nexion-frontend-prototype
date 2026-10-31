@@ -1,3 +1,5 @@
+import { walletSelectedPurchaseFixture } from '@/lib/selected-purchase-payment.test-helper';
+import type { PaymentPasswordAuthorization } from '@/api/payment-password-api';
 import { ref } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ts from "typescript";
@@ -44,12 +46,14 @@ function harness() {
     orderId:ref<string|null>(null),remoteOrderFailure:ref<string|null>(null),voucher:{refreshRemote:vi.fn()},
     retireRemoteOrderKey: vi.fn(), navReplace: vi.fn().mockResolvedValue(true), asApiError,
     beginOrderAction, clearOrderAction, markOrderActionPaid,
-    executePaymentWithPassword: async (_context: unknown, command: (authorization: unknown) => Promise<unknown>, current: () => boolean) =>
+    executePaymentWithPassword: async (_context: unknown, command: (authorization: PaymentPasswordAuthorization) => Promise<unknown>, current: () => boolean) =>
       current() ? command({ paymentPassword: "039417", credentialVersion: 1, attemptNo: "ATTEMPT-1" }) : null,
     remoteTradeinRecoveryRequired: ref(false), remoteTradeinRecoveryError: ref(false),
     resumeServerOrder: vi.fn().mockResolvedValue(true),
     presentSettledPurchase: vi.fn(), isFirstHardwareOrder: vi.fn(() => false),
   };
+  const executeSelectedPurchase=walletSelectedPurchaseFixture(deps.executePaymentWithPassword);
+  Object.assign(deps,{executeSelectedPurchase,paidOrderReceipt:(raw:unknown)=>raw});
   const submit = new Function(...Object.keys(deps), compiled)(...Object.values(deps));
   return { ...deps, submit, order };
 }

@@ -2,7 +2,7 @@ import {readAccountRow,writeAccountRow} from '@/store/account-scoped-storage';
 import {requireCryptoUuid} from '@/lib/secure-command-id';
 
 const TABLE='nexgrid-order-action-accounts-v1';
-export type PendingOrderAction={kind:'pay'|'cancel';orderNo:string;key:string;amount:number|null;phase:'pending'|'paid'};
+export type PendingOrderAction={kind:'pay'|'cancel';orderNo:string;key:string;amount:number|null;phase:'pending'|'paid';paymentMethod?:'WALLET'|'EXTERNAL'};
 type ActionRow={actions:Record<string,PendingOrderAction>;paymentKeys?:Record<string,string>};
 
 export function readOrderAction(accountKey:string,orderNo:string):PendingOrderAction|null {
@@ -10,6 +10,7 @@ export function readOrderAction(accountKey:string,orderNo:string):PendingOrderAc
   const action=row?.actions?.[orderNo];
   if (!action) return null;
   if (action.orderNo!==orderNo || !['pay','cancel'].includes(action.kind) || typeof action.key!=='string'
+      || (action.paymentMethod!==undefined&&!['WALLET','EXTERNAL'].includes(action.paymentMethod))
       || (action.kind==='cancel'?action.key!==`order-cancel:${orderNo}`
         :action.key!==`wallet-pay:${orderNo}`&&!action.key.startsWith(`wallet-pay:${orderNo}:`))
       || !['pending','paid'].includes(action.phase) || (action.kind==='pay'&&(!Number.isFinite(action.amount)||action.amount!<0))
@@ -17,16 +18,19 @@ export function readOrderAction(accountKey:string,orderNo:string):PendingOrderAc
   return action;
 }
 
-export function beginOrderAction(accountKey:string,kind:PendingOrderAction['kind'],orderNo:string,amount:number|null):PendingOrderAction {
+export function beginOrderAction(accountKey:string,kind:PendingOrderAction['kind'],orderNo:string,amount:number|null,paymentMethod?:'WALLET'|'EXTERNAL'):PendingOrderAction {
   const current=readOrderAction(accountKey,orderNo);
   if (current) {
     if (current.kind!==kind || current.amount!==amount || current.phase==='paid') throw new Error('ORIGINAL_ORDER_COMMAND_UNRESOLVED');
-    return current;
+    if(current.paymentMethod==='EXTERNAL'&&paymentMethod==='WALLET')throw new Error('ORIGINAL_ORDER_COMMAND_UNRESOLVED');
   }
   const row=readAccountRow<ActionRow>(TABLE,accountKey,true);
-  const action:PendingOrderAction={kind,orderNo,key:kind==='pay'?(row?.paymentKeys?.[orderNo]??`wallet-pay:${orderNo}`):`order-cancel:${orderNo}`,amount,phase:'pending'};
+  const identity:PendingOrderAction=current??{kind,orderNo,key:kind==='pay'?(row?.paymentKeys?.[orderNo]??`wallet-pay:${orderNo}`):`order-cancel:${orderNo}`,amount,phase:'pending'};
+  const action=kind==='pay'&&paymentMethod?{...identity,paymentMethod}:identity;
+  if(current&&current.paymentMethod===action.paymentMethod)return current;
   if (!writeAccountRow(TABLE,accountKey,{actions:{...row?.actions,[orderNo]:action},paymentKeys:row?.paymentKeys})
-      || readOrderAction(accountKey,orderNo)?.key!==action.key) throw new Error('ACCOUNT_COMMAND_STORAGE_UNAVAILABLE');
+      || readOrderAction(accountKey,orderNo)?.key!==action.key
+      || readOrderAction(accountKey,orderNo)?.paymentMethod!==action.paymentMethod) throw new Error('ACCOUNT_COMMAND_STORAGE_UNAVAILABLE');
   return action;
 }
 
@@ -44,7 +48,7 @@ export function clearOrderAction(accountKey:string,orderNo:string,expectedKey:st
   const row=readAccountRow<ActionRow>(TABLE,accountKey,true),actions={...row?.actions};
   const paymentKeys={...row?.paymentKeys};
   // Only a terminal purchase-command rejection can retire a payment intent.
-  if (terminalRejection&&action.kind==='pay') paymentKeys[orderNo]=`wallet-pay:${orderNo}:${requireCryptoUuid()}`;
+  if (action.kind==='pay') paymentKeys[orderNo]=terminalRejection?`wallet-pay:${orderNo}:${requireCryptoUuid()}`:action.key;
   delete actions[orderNo];
   if (!writeAccountRow(TABLE,accountKey,{actions,paymentKeys}) || readOrderAction(accountKey,orderNo)) throw new Error('ACCOUNT_COMMAND_STORAGE_UNAVAILABLE');
 }

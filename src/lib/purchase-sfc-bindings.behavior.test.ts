@@ -4,6 +4,8 @@ import ts from 'typescript';
 import { parse } from '@vue/compiler-sfc';
 import promotionSource from '@/components/promotion/promotion-checkout.vue?raw';
 import checkoutSource from '@/pages/store/checkout.vue?raw';
+import detailSource from '@/pages/store/order-detail.vue?raw';
+import bundleSource from '@/pages/store/bundle.vue?raw';
 import capacitySource from '@/components/tradein-sheets.vue?raw';
 import { selectedPurchasePaymentFixture } from './selected-purchase-payment.test-helper';
 
@@ -69,6 +71,16 @@ function binding(kind: Kind, amount = 100, ordinaryOrder = false) {
 }
 
 const surfaces = [...kinds.map(kind => ({ kind, ordinaryOrder: false, label: kind })), { kind: 'ORDER_PAY' as const, ordinaryOrder: true, label: 'ORDINARY_ORDER_PAY' }];
+it.each([{name:'checkout',source:checkoutSource},{name:'order detail',source:detailSource},{name:'bundle',source:bundleSource}])('$name actual wallet and external callbacks persist explicit provenance on the same original key',({source})=>{
+  const ast=ts.createSourceFile('order.vue.ts',parse(source).descriptor.scriptSetup!.content,ts.ScriptTarget.Latest,true);
+  const calls:ts.CallExpression[]=[];
+  const visit=(node:ts.Node)=>{if(ts.isCallExpression(node)&&node.expression.getText(ast)==='beginOrderAction'&&node.arguments[1]?.getText(ast)==="'pay'")calls.push(node);ts.forEachChild(node,visit);};visit(ast);
+  expect(calls).toHaveLength(2);
+  const beginOrderAction=vi.fn(()=>({key:'original-key'}));
+  const deps={beginOrderAction,accountKey:'user:7',orders:{currentAccountKey:()=> 'user:7'},submissionScope:{accountKey:'user:7'},created:{orderNo:'ORDER-1',amountUsdt:39.8},requestOrderNo:'ORDER-1',requestAmountUsdt:39.8,command:{expectedAmountUsdt:39.8}};
+  for(const call of calls){const code=ts.transpileModule('return '+call.getText(ast),{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;expect(new Function(...Object.keys(deps),code)(...Object.values(deps)).key).toBe('original-key');}
+  expect(beginOrderAction.mock.calls).toEqual([['user:7','pay','ORDER-1',39.8,'WALLET'],['user:7','pay','ORDER-1',39.8,'EXTERNAL']]);
+});
 it.each(surfaces)('$label actual SFC binds wallet PIN, authoritative amount/payload and the original command key', async ({ kind, ordinaryOrder }) => {
   const h = binding(kind, 100, ordinaryOrder), pending = h.run();
   expect(h.selection.request).toHaveBeenCalledWith(expect.objectContaining({ kind, payload: h.payload, amount: kind === 'ORDER_PAY' && !ordinaryOrder ? '100' : 100 }));
@@ -82,6 +94,7 @@ it.each(surfaces)('$label actual SFC binds wallet PIN, authoritative amount/payl
     : kind === 'CAPACITY_REPLACE' ? [11, 'sku', 'original-business-key', h.quote, h.authorization]
     : ['sku', 'original-business-key', h.quote, h.authorization];
   expect(h.walletCommand).toHaveBeenCalledExactlyOnceWith(...expected);
+  if(ordinaryOrder)expect(h.key).toHaveBeenCalledExactlyOnceWith('user:7','pay','ORDER-ORIGINAL',100,'WALLET');
   expect(h.parseReceipt).not.toHaveBeenCalled(); expect(h.acceptExternal).not.toHaveBeenCalled();
 });
 it.each(surfaces.flatMap(surface => ['HDPAY_BANK', 'CREGIS_USDT_BSC'].map(method => ({ ...surface, method }))))('$label actual SFC accepts $method receipt without invoking PIN or the wallet command', async ({ kind, ordinaryOrder, method }) => {
@@ -89,6 +102,7 @@ it.each(surfaces.flatMap(surface => ['HDPAY_BANK', 'CREGIS_USDT_BSC'].map(method
   const context = h.selection.request.mock.calls[0][0];
   expect(context).toMatchObject({ kind, payload: h.payload });
   expect(context.commandKey!()).toBe(kind === 'TRADE_IN' ? 'e3-tradein:original-business-key' : 'original-business-key');
+  if(ordinaryOrder)expect(h.key).toHaveBeenCalledExactlyOnceWith('user:7','pay','ORDER-ORIGINAL',100,'EXTERNAL');
   const receipt = { ...h.receipt, paymentMethod: method };
   await h.selection.external(receipt); await pending;
   expect(h.pin).not.toHaveBeenCalled(); expect(h.walletCommand).not.toHaveBeenCalled();

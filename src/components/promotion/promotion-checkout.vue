@@ -509,13 +509,15 @@ async function cancelOrder():Promise<boolean>{
   const original=order.value!.orderNo;
   let verified=false;
   await run(async()=>{
-    await session.cancel();
-    if(!current())return;
-    // A cancel acknowledgement alone does not permit leaving. Read the same
-    // canonical order once more and preserve unresolved original commands.
-    await session.recover();
-    verified=true;
+    try{await session.cancel();}
+    finally{
+      if(current()){
+        // A late payment may win the server's order lock. Read the original outcome even after a lost/409 cancel response.
+        await session.recover();verified=true;
+      }
+    }
   });
+  if(current()&&visible.value&&!unknown.value&&order.value?.paymentStatus==='PAID'){error.value='';await readActivation();return false;}
   const cancelled=verified&&current()&&visible.value&&order.value?.orderNo===original&&!unknown.value&&['CANCELLED','EXPIRED'].includes(order.value.paymentStatus);
   if(!cancelled&&current())error.value=flowCopy.value.cancelFailed;
   return cancelled;
@@ -533,13 +535,15 @@ async function requestLeave():Promise<boolean>{
   leaving.value=true;paymentSheetOpen.value=false;
   try{
     const recovered=await recover();
-    if(!recovered||!current()||unknown.value||session.record.pending&&!session.retryOriginal)return false;
+    if(!recovered||!current()||unknown.value||session.record.pending&&!session.retryOriginal){if(current()&&visible.value)error.value=t.value.orders.resultReadback;return false;}
     if(!order.value)return !session.record.pending;
     if(order.value.paymentStatus!=='PENDING')return true;
     // Missing trusted time cannot turn an unresolved original order into a
     // successful cancellation. Keep it visible for an explicit read retry.
     if(payWindow.value===null){error.value=p.value.unknown;return false;}
-    return await cancelOrder();
+    const cancelled=await cancelOrder();
+    if(!cancelled&&current()&&visible.value&&session.record.order?.paymentStatus!=='PAID'&&!error.value)error.value=t.value.orders.resultReadback;
+    return cancelled;
   }finally{leaving.value=false;}
 }
 function allowAuxiliaryNavigation():Promise<boolean>{

@@ -108,6 +108,39 @@ describe('unified checkout payment and explicit back', () => {
     h.readPaymentCommand.mockResolvedValue({ status: 'PROCESSING', canResumeSameKey: false }); await h.run();
     expect(h.orders.cancelOrderRemote).not.toHaveBeenCalled(); expect(h.navBack).not.toHaveBeenCalled();
   });
+  it('NOT_SEEN with same-key permission releases only the active fence before atomic original-order cancellation',async()=>{
+    const h=leaving();h.readOrderAction.mockReturnValue({kind:'pay',key:'original-pay-key',paymentMethod:'WALLET'} as never);
+    h.readPaymentCommand.mockResolvedValue({status:'NOT_SEEN',canResumeSameKey:true});await h.run();
+    expect(h.readPaymentCommand).toHaveBeenCalledExactlyOnceWith(h.apiClient,'order-pay','original-pay-key');
+    expect(h.clearOrderAction).toHaveBeenCalledWith('a','ORDER-1','original-pay-key',false);
+    expect(h.clearOrderAction.mock.calls.some(call=>call[3]===true)).toBe(false);
+    expect(h.orders.cancelOrderRemote).toHaveBeenCalledExactlyOnceWith('ORDER-1');expect(h.navBack).toHaveBeenCalledOnce();
+  });
+  it('a failed original-order read after NOT_SEEN retains the active payment fence',async()=>{
+    const h=leaving();h.readOrderAction.mockReturnValue({kind:'pay',key:'original-pay-key',paymentMethod:'WALLET'} as never);
+    h.readPaymentCommand.mockResolvedValue({status:'NOT_SEEN',canResumeSameKey:true});h.orders.ensureRemoteOrder.mockRejectedValue(new Error('read offline'));
+    await h.run();expect(h.clearOrderAction).not.toHaveBeenCalled();expect(h.beginOrderAction).not.toHaveBeenCalled();
+    expect(h.orders.cancelOrderRemote).not.toHaveBeenCalled();expect(h.navBack).not.toHaveBeenCalled();expect(h.checkoutLeaveError.value).not.toBe('');
+  });
+  it.each(['activated','inventory'])('a payment winning the cancel race restores %s instead of reporting cancellation',async status=>{
+    const h=leaving();h.readOrderAction.mockReturnValue({kind:'pay',key:'original-pay-key',paymentMethod:'WALLET'} as never);
+    h.readPaymentCommand.mockResolvedValue({status:'NOT_SEEN',canResumeSameKey:true});
+    h.orders.cancelOrderRemote.mockImplementation(async()=>{h.orders.orders[0].status=status;return false;});await h.run();
+    expect(h.presentSettledPurchase).toHaveBeenCalledOnce();expect(h.orderId.value).toBe('ORDER-1');
+    expect(h.navBack).not.toHaveBeenCalled();expect(h.checkoutLeaveError.value).toBe('');
+  });
+  it.each([undefined,'EXTERNAL'])('NOT_SEEN cannot turn %s provenance into wallet cancellation',async paymentMethod=>{
+    const h=leaving();h.readOrderAction.mockReturnValue({kind:'pay',key:'original-pay-key',paymentMethod} as never);
+    h.readPaymentCommand.mockResolvedValue({status:'NOT_SEEN',canResumeSameKey:true});await h.run();
+    expect(h.clearOrderAction).not.toHaveBeenCalled();expect(h.orders.cancelOrderRemote).not.toHaveBeenCalled();expect(h.navBack).not.toHaveBeenCalled();
+    expect(h.checkoutLeaveError.value).not.toBe('');
+  });
+  it.each([['NOT_SEEN',false],['INDETERMINATE',false]] as const)('%s without permission preserves the payment fence',async(status,canResumeSameKey)=>{
+    const h=leaving();h.readOrderAction.mockReturnValue({kind:'pay',key:'original-pay-key'} as never);
+    h.readPaymentCommand.mockResolvedValue({status,canResumeSameKey});await h.run();
+    expect(h.clearOrderAction).not.toHaveBeenCalled();expect(h.orders.cancelOrderRemote).not.toHaveBeenCalled();
+    expect(h.navBack).not.toHaveBeenCalled();expect(h.checkoutLeaveError.value).not.toBe('');expect(h.checkoutLeaving.value).toBe(false);
+  });
   it('a paid readback shows its result instead of cancelling', async () => {
     const h = leaving(); h.orders.orders[0].status = 'activated'; await h.run();
     expect(h.orders.cancelOrderRemote).not.toHaveBeenCalled(); expect(h.presentSettledPurchase).toHaveBeenCalledOnce();

@@ -10,6 +10,97 @@ function setup() {
   return {session,api,save,key,current};
 }
 describe('promotion checkout original-command safety',()=>{
+  it('choosing external after a wallet refusal marks external and preserves the exact original key',async()=>{
+    const {api,save,key,current}=setup();
+    const session=new PromotionCheckoutSession({api,save,key,current},{quote,order,pending:{operation:'payOrder',targetId:'o1',key:'legacy-original-key',paymentMethod:'WALLET'}});
+    api.paymentCommand.mockResolvedValue({status:'NOT_SEEN',canResumeSameKey:true});await session.recover();
+    expect(session.externalPaymentKey()).toBe('legacy-original-key');
+    expect(session.record.pending).toMatchObject({key:'legacy-original-key',paymentMethod:'EXTERNAL'});
+    expect(session.canExecute('cancelOrder')).toBe(false);expect(key).not.toHaveBeenCalled();expect(api.pay).not.toHaveBeenCalled();
+  });
+  it('legacy missing provenance stays cancellation-closed until an explicit same-key wallet call establishes it',async()=>{
+    const {api,save,key,current}=setup();
+    const session=new PromotionCheckoutSession({api,save,key,current},{quote,order,pending:{operation:'payOrder',targetId:'o1',key:'legacy-original-key'}});
+    api.paymentCommand.mockResolvedValue({status:'NOT_SEEN',canResumeSameKey:true});await session.recover();
+    expect(session.canExecute('payOrder')).toBe(true);expect(session.canExecute('cancelOrder')).toBe(false);
+    api.pay.mockRejectedValueOnce(new Error('PAYMENT_PASSWORD_INCORRECT'));await expect(session.pay()).rejects.toThrow();
+    expect(api.pay).toHaveBeenCalledExactlyOnceWith('o1','legacy-original-key',undefined);
+    expect(session.record.pending).toMatchObject({key:'legacy-original-key',paymentMethod:'WALLET'});
+    await session.recover();expect(session.canExecute('cancelOrder')).toBe(true);
+    expect(key).not.toHaveBeenCalled();
+  });
+  it('an external pending payment cannot inherit wallet cancellation permission from legacy NOT_SEEN',async()=>{
+    const {session,api}=setup();await session.create();const original=session.externalPaymentKey();
+    expect(session.record.pending).toMatchObject({key:original,paymentMethod:'EXTERNAL'});
+    api.paymentCommand.mockResolvedValue({status:'NOT_SEEN',canResumeSameKey:true});await session.recover();
+    expect(session.canExecute('cancelOrder')).toBe(false);expect(session.canExecute('payOrder')).toBe(false);
+    await expect(session.cancel()).rejects.toThrow();await expect(session.pay()).rejects.toThrow();
+    expect(api.cancel).not.toHaveBeenCalled();expect(api.pay).not.toHaveBeenCalled();expect(session.record.pending?.key).toBe(original);
+  });
+  it('a rejected PIN followed by authoritative NOT_SEEN can cancel the original order without another payment key',async()=>{
+    const {session,api,key}=setup();
+    key.mockImplementation(intent=>intent.startsWith('cancelOrder:')?'original-cancel-key':intent.startsWith('payOrder:')?'original-pay-key':'original-create-key');
+    await session.create();api.pay.mockRejectedValueOnce(new Error('PAYMENT_PASSWORD_INCORRECT'));
+    await expect(session.pay()).rejects.toThrow('PAYMENT_PASSWORD_INCORRECT');
+    expect(session.canExecute('cancelOrder')).toBe(false);
+    api.paymentCommand.mockResolvedValue({status:'NOT_SEEN',canResumeSameKey:true});await session.recover();
+    expect(session.canExecute('cancelOrder')).toBe(true);
+    api.cancel.mockResolvedValue({...order,paymentStatus:'CANCELLED',orderStatus:'CANCELLED'});await session.cancel();
+    expect(api.paymentCommand).toHaveBeenCalledExactlyOnceWith('original-pay-key');
+    expect(api.pay).toHaveBeenCalledOnce();expect(api.cancel).toHaveBeenCalledExactlyOnceWith('o1','original-cancel-key');
+    expect(session.record).toMatchObject({order:{orderNo:'o1',paymentStatus:'CANCELLED'},pending:null,
+      previousPayment:{operation:'payOrder',targetId:'o1',key:'original-pay-key'}});
+    expect(key.mock.calls.filter(([intent])=>intent.startsWith('payOrder:'))).toEqual([['payOrder:o1']]);
+  });
+  it('an unknown cancellation after NOT_SEEN keeps both identities and reload retries only its original cancellation',async()=>{
+    const {session,api,key,save,current}=setup();
+    key.mockImplementation(intent=>intent.startsWith('cancelOrder:')?'cancel-original':'pay-original');
+    await session.create();api.pay.mockRejectedValueOnce(new Error('PAYMENT_PASSWORD_INCORRECT'));await expect(session.pay()).rejects.toThrow();
+    api.paymentCommand.mockResolvedValue({status:'NOT_SEEN',canResumeSameKey:true});await session.recover();
+    api.cancel.mockRejectedValueOnce(new Error('timeout'));await expect(session.cancel()).rejects.toThrow('timeout');
+    expect(session.record).toMatchObject({pending:{operation:'cancelOrder',targetId:'o1',key:'cancel-original'},previousPayment:{key:'pay-original'}});
+    const restored=new PromotionCheckoutSession({api,save,key,current},structuredClone(session.record));
+    api.command.mockResolvedValue({status:'NOT_FOUND'});await restored.recover();
+    expect(restored.canExecute('cancelOrder')).toBe(true);expect(restored.canExecute('payOrder')).toBe(false);
+    api.cancel.mockResolvedValue({...order,paymentStatus:'CANCELLED',orderStatus:'CANCELLED'});await restored.cancel();
+    expect(api.cancel.mock.calls.map(call=>call[1])).toEqual(['cancel-original','cancel-original']);
+    expect(api.pay).toHaveBeenCalledOnce();expect(api.paymentCommand).toHaveBeenCalledOnce();
+  });
+  it('NOT_SEEN cannot authorize cancellation when the original order is unreadable',async()=>{
+    const {session,api}=setup();await session.create();api.pay.mockRejectedValueOnce(new Error('PAYMENT_PASSWORD_INCORRECT'));await expect(session.pay()).rejects.toThrow();
+    api.paymentCommand.mockResolvedValue({status:'NOT_SEEN',canResumeSameKey:true});api.findOrder.mockResolvedValue(null as never);await session.recover();
+    expect(session.unknown).toBe(true);expect(session.canExecute('cancelOrder')).toBe(false);expect(api.cancel).not.toHaveBeenCalled();
+  });
+  it.each(['CANCELLED','EXPIRED','PAID'] as const)('unknown cancel + missing command accepts authoritative original %s without retrying payment',async paymentStatus=>{
+    const {session,api}=setup();await session.create();api.pay.mockRejectedValueOnce(new Error('PAYMENT_PASSWORD_INCORRECT'));await expect(session.pay()).rejects.toThrow();
+    api.paymentCommand.mockResolvedValue({status:'NOT_SEEN',canResumeSameKey:true});await session.recover();
+    api.cancel.mockRejectedValueOnce(new Error('timeout'));await expect(session.cancel()).rejects.toThrow();
+    api.command.mockResolvedValue({status:'NOT_FOUND'});api.findOrder.mockResolvedValue({...order,paymentStatus});await session.recover();
+    expect(session.record.order?.paymentStatus).toBe(paymentStatus);expect(session.record.pending).toBeNull();expect(session.confirmed).toBe(true);
+    expect(session.record.previousPayment?.key).toBe('durable-original-key');expect(api.pay).toHaveBeenCalledOnce();expect(api.cancel).toHaveBeenCalledOnce();
+  });
+  it('a later processing/read failure revokes the earlier NOT_SEEN cancellation permission',async()=>{
+    const {session,api}=setup();await session.create();api.pay.mockRejectedValueOnce(new Error('PAYMENT_PASSWORD_INCORRECT'));await expect(session.pay()).rejects.toThrow();
+    api.paymentCommand.mockResolvedValue({status:'NOT_SEEN',canResumeSameKey:true});await session.recover();expect(session.canExecute('cancelOrder')).toBe(true);
+    api.paymentCommand.mockResolvedValue({status:'PROCESSING',canResumeSameKey:false});await session.recover();
+    expect(session.canExecute('cancelOrder')).toBe(false);expect(session.record.pending?.key).toBe('durable-original-key');expect(api.cancel).not.toHaveBeenCalled();
+  });
+  it('a nonterminal cancel acknowledgement retains the original cancellation and payment identities',async()=>{
+    const {session,api,key}=setup();key.mockImplementation(intent=>intent.startsWith('cancelOrder:')?'cancel-key':'pay-key');
+    await session.create();api.pay.mockRejectedValueOnce(new Error('PAYMENT_PASSWORD_INCORRECT'));await expect(session.pay()).rejects.toThrow();
+    api.paymentCommand.mockResolvedValue({status:'NOT_SEEN',canResumeSameKey:true});await session.recover();
+    api.cancel.mockResolvedValue(order);await expect(session.cancel()).rejects.toThrow('ORDER_CANCELLATION_UNCONFIRMED');
+    expect(session.record).toMatchObject({pending:{operation:'cancelOrder',key:'cancel-key'},previousPayment:{operation:'payOrder',key:'pay-key'}});
+    expect(session.unknown).toBe(true);expect(session.canExecute('payOrder')).toBe(false);
+  });
+  it('a payment winning the server lock is recovered after cancellation409 without another debit',async()=>{
+    const {session,api}=setup();await session.create();api.pay.mockRejectedValueOnce(new Error('PAYMENT_PASSWORD_INCORRECT'));await expect(session.pay()).rejects.toThrow();
+    api.paymentCommand.mockResolvedValue({status:'NOT_SEEN',canResumeSameKey:true});await session.recover();
+    api.cancel.mockRejectedValue(new Error('ORDER_NOT_CANCELLABLE'));await expect(session.cancel()).rejects.toThrow();
+    api.command.mockResolvedValue({status:'FAILED',order:null});api.findOrder.mockResolvedValue({...order,paymentStatus:'PAID',orderStatus:'COMPLETED'});await session.recover();
+    expect(session.record).toMatchObject({order:{orderNo:'o1',paymentStatus:'PAID'},pending:null,previousPayment:{key:'durable-original-key'}});
+    expect(api.pay).toHaveBeenCalledOnce();expect(api.cancel).toHaveBeenCalledOnce();
+  });
   it.each([
     ['PROCESSING',false],['INDETERMINATE',false],['NOT_SEEN',false],
   ] as const)('payment %s never uses legacy NOT_FOUND to unlock another payment/cancellation',async(status,canResumeSameKey)=>{
@@ -29,11 +120,11 @@ describe('promotion checkout original-command safety',()=>{
     await session.recover();expect(session.record.order?.paymentStatus).toBe('PAID');
     expect(api.pay).toHaveBeenCalledOnce();expect(api.command).not.toHaveBeenCalled();
   });
-  it('only NOT_SEEN with permission enables an explicit same-key payment retry',async()=>{
+  it('only NOT_SEEN with permission enables a same-key payment retry or atomic original-order cancellation',async()=>{
     const {session,api}=setup();await session.create();api.pay.mockRejectedValueOnce(new Error('timeout'));
     await expect(session.pay()).rejects.toThrow();
     api.paymentCommand.mockResolvedValue({status:'NOT_SEEN',canResumeSameKey:true});await session.recover();
-    expect(session.canExecute('payOrder')).toBe(true);expect(session.canExecute('cancelOrder')).toBe(false);
+    expect(session.canExecute('payOrder')).toBe(true);expect(session.canExecute('cancelOrder')).toBe(true);
     expect(api.pay).toHaveBeenCalledOnce();await session.pay();
     expect(api.pay.mock.calls.map(call=>call[1])).toEqual(['durable-original-key','durable-original-key']);
   });

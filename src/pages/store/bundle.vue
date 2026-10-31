@@ -619,14 +619,14 @@ async function onCheckout() {
         const paid = await executeSelectedPurchase({amount:command.expectedAmountUsdt,currency:'USDT',summary:list.map(product=>product.name).join(', ')},
           async authorization=>{
             if(!paymentCurrent())return null;
-            const action=beginOrderAction(accountKey,'pay',created.orderNo,command.expectedAmountUsdt);paymentKey=action.key;
+            const action=beginOrderAction(accountKey,'pay',created.orderNo,command.expectedAmountUsdt,'WALLET');paymentKey=action.key;
             try{return await orderApi.pay(created.orderNo,action.key,authorization);}
             catch(error){
               if (/^PAYMENT_PASSWORD_(INCORRECT|LOCKED|VERSION_CONFLICT|NOT_CONFIGURED|REQUIRED)$/.test(asApiError(error).message))
                 clearOrderAction(accountKey,created.orderNo,action.key);
               throw error;
             }
-          },paymentCurrent,{kind:'ORDER_PAY',payload:{orderNo:created.orderNo},commandKey:()=>{const action=beginOrderAction(accountKey,'pay',created.orderNo,command.expectedAmountUsdt);paymentKey=action.key;return action.key;},parseReceipt:paidOrderReceipt});
+          },paymentCurrent,{kind:'ORDER_PAY',payload:{orderNo:created.orderNo},commandKey:()=>{const action=beginOrderAction(accountKey,'pay',created.orderNo,command.expectedAmountUsdt,'EXTERNAL');paymentKey=action.key;return action.key;},parseReceipt:paidOrderReceipt});
         if (!paid) return;
         if (!scopeIsCurrent()) return;
         if (paid.orderNo !== created.orderNo) throw new Error("BUNDLE_WALLET_PAYMENT_RECEIPT_INVALID");

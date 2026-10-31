@@ -1069,6 +1069,45 @@ it.each(['PENDING','PAID','CANCELLED','EXPIRED','REFUNDED'] as const)('only PAID
   expect(page.canonical).toHaveBeenCalledTimes(paymentStatus==='PAID'?1:0);
 });
 
+it('wrong PIN then PIN cancellation releases busy and back atomically cancels only the original NOT_SEEN order',async()=>{
+  const cancelled={...receipt(),paymentStatus:'CANCELLED',orderStatus:'CANCELLED'};
+  const page=screen({quote:quote(),order:receipt(),pending:null});
+  page.api.findOrder.mockResolvedValue(receipt());
+  page.api.cancel.mockResolvedValue(cancelled);
+  page.api.pay.mockRejectedValueOnce(new ApiError({kind:'business',status:422,message:'PAYMENT_PASSWORD_INCORRECT'}));
+  page.pin.mockImplementation(async(_context,command)=>{await expect(command(page.authorization)).rejects.toThrow('PAYMENT_PASSWORD_INCORRECT');return null;});
+  await page.start();await page.view.pay();await page.methodSelection.wallet();
+  expect(page.view.busy.value).toBe(false);expect(page.view.paymentConfirming.value).toBe(false);
+  expect(page.saved().pending).toMatchObject({operation:'payOrder',key:'original-key'});
+  page.api.findOrder.mockResolvedValueOnce(receipt()).mockResolvedValue(cancelled);
+  expect(await page.view.requestLeave()).toBe(true);
+  expect(page.api.paymentCommand).toHaveBeenCalledWith('original-key');expect(page.api.cancel).toHaveBeenCalledExactlyOnceWith('o1','original-key');
+  expect(page.api.pay).toHaveBeenCalledOnce();expect(page.saved()).toMatchObject({order:{orderNo:'o1',paymentStatus:'CANCELLED'},previousPayment:{key:'original-key'},pending:null});
+});
+it.each([['PROCESSING',false],['INDETERMINATE',false],['NOT_SEEN',false]] as const)('back preserves %s and displays original-result readback feedback',async(status,canResumeSameKey)=>{
+  const page=screen({quote:quote(),order:receipt(),pending:{operation:'payOrder',targetId:'o1',key:'original-pay-key'}});
+  page.api.paymentCommand.mockResolvedValue({status,canResumeSameKey});await page.start();
+  expect(await page.view.requestLeave()).toBe(false);expect(page.view.error.value).toBe(zh.orders.resultReadback);
+  expect(page.api.cancel).not.toHaveBeenCalled();expect(page.api.pay).not.toHaveBeenCalled();expect(page.navBack).not.toHaveBeenCalled();
+  expect(page.saved().pending?.key).toBe('original-pay-key');
+});
+it('a failed original command read blocks back visibly without replacing its key',async()=>{
+  const page=screen({quote:quote(),order:receipt(),pending:{operation:'payOrder',targetId:'o1',key:'original-pay-key'}});await page.start();
+  page.api.paymentCommand.mockRejectedValue(new Error('read offline'));
+  expect(await page.view.requestLeave()).toBe(false);expect(page.view.error.value).toBe(zh.orders.resultReadback);
+  expect(page.api.cancel).not.toHaveBeenCalled();expect(page.saved().pending?.key).toBe('original-pay-key');
+});
+it('cancellation409 recovers a payment that won the server race and shows activation instead of leaving',async()=>{
+  const paid={...receipt(),paymentStatus:'PAID',orderStatus:'COMPLETED'};
+  const page=screen({quote:quote(),order:receipt(),pending:{operation:'payOrder',targetId:'o1',key:'original-pay-key',paymentMethod:'WALLET'}});
+  page.api.findOrder.mockResolvedValueOnce(receipt()).mockResolvedValueOnce(receipt()).mockResolvedValue(paid);
+  page.api.cancel.mockRejectedValue(new ApiError({kind:'business',status:409,message:'ORDER_NOT_CANCELLABLE'}));
+  page.api.command.mockResolvedValue({status:'FAILED',order:null});await page.start();
+  expect(await page.view.requestLeave()).toBe(false);expect(page.saved().order?.paymentStatus).toBe('PAID');
+  expect(page.canonical).toHaveBeenCalled();expect(page.navBack).not.toHaveBeenCalled();expect(page.api.pay).not.toHaveBeenCalled();
+  expect(page.saved().previousPayment?.key).toBe('original-pay-key');
+});
+
 
 function ordinaryQuote(quantity=2,amount=quantity===2?'31.84':'15.92'):Quote {
   const subtotalUsdt=(quantity*19.9).toFixed(2),discountUsdt=(Number(subtotalUsdt)-Number(amount)).toFixed(2);

@@ -1764,10 +1764,12 @@ async function cancelCheckout() {
     const created = original;
     if (!created) return;
     const action = readOrderAction(scope.accountKey, created.orderNo);
+    let unseenPaymentKey: string | null = null;
     if (action?.kind === 'pay') {
       const outcome = await readPaymentCommand(apiClient, 'order-pay', action.key);
       if (!isCurrentCheckoutRoute(scope)) return;
       if (outcome.status === 'REJECTED') clearOrderAction(scope.accountKey, created.orderNo, action.key, true);
+      else if (outcome.status === 'NOT_SEEN' && outcome.canResumeSameKey && action.paymentMethod === 'WALLET') unseenPaymentKey = action.key;
       else if (outcome.status !== 'SUCCEEDED') throw new Error('ORIGINAL_ORDER_COMMAND_UNRESOLVED');
     }
     await orders.ensureRemoteOrder(created.orderNo);
@@ -1782,12 +1784,20 @@ async function cancelCheckout() {
     }
     if (order.status !== 'cancelled' && order.status !== 'expired') {
       if (order.status !== 'placed') throw new Error('ORIGINAL_ORDER_COMMAND_UNRESOLVED');
+      if (unseenPaymentKey) clearOrderAction(scope.accountKey, created.orderNo, unseenPaymentKey, false);
       const cancellation = beginOrderAction(scope.accountKey, 'cancel', created.orderNo, null);
       const cancelled = await orders.cancelOrderRemote(created.orderNo);
       if (!isCurrentCheckoutRoute(scope)) return;
-      if (!cancelled) throw new Error('ORDER_CANCELLATION_UNCONFIRMED');
+      if (!cancelled) {
+        const latest = orders.orders.find(item => item.id === created.orderNo);
+        if (latest?.status === 'activated' || latest?.status === 'inventory') {
+          clearOrderAction(scope.accountKey, created.orderNo, cancellation.key);
+          orderId.value = created.orderNo; presentSettledPurchase(false); return;
+        }
+        throw new Error('ORDER_CANCELLATION_UNCONFIRMED');
+      }
       clearOrderAction(scope.accountKey, created.orderNo, cancellation.key);
-    }
+    } else if (unseenPaymentKey) clearOrderAction(scope.accountKey, created.orderNo, unseenPaymentKey, false);
     forgetCheckoutOrder(scope.accountKey, scope.productNo, created.orderNo);
     retireRemoteOrderKey();
     createdCheckoutOrder.value = null;
@@ -2196,7 +2206,7 @@ async function submitRemoteOrder(): Promise<void> {
     const paid = await executeSelectedPurchase({amount:created.amountUsdt,currency:'USDT',summary:p.name},
       async authorization=>{
         if (!paymentCurrent()) return null;
-        const action=beginOrderAction(submissionScope.accountKey,'pay',created.orderNo,created.amountUsdt);
+        const action=beginOrderAction(submissionScope.accountKey,'pay',created.orderNo,created.amountUsdt,'WALLET');
         paymentKey=action.key;
         try {return await orderApi.pay(created.orderNo,action.key,authorization);}
         catch(error){
@@ -2205,7 +2215,7 @@ async function submitRemoteOrder(): Promise<void> {
           throw error;
         }
       },
-      paymentCurrent,{kind:'ORDER_PAY',payload:{orderNo:created.orderNo},commandKey:()=>{const action=beginOrderAction(submissionScope.accountKey,'pay',created.orderNo,created.amountUsdt);paymentKey=action.key;return action.key;},parseReceipt:paidOrderReceipt});
+      paymentCurrent,{kind:'ORDER_PAY',payload:{orderNo:created.orderNo},commandKey:()=>{const action=beginOrderAction(submissionScope.accountKey,'pay',created.orderNo,created.amountUsdt,'EXTERNAL');paymentKey=action.key;return action.key;},parseReceipt:paidOrderReceipt});
     if (!paid) { step.value='confirm'; return; }
     if (!scopeIsCurrent()) return;
     if (paid.orderNo !== created.orderNo) {

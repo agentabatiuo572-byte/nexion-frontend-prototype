@@ -1,3 +1,4 @@
+import { walletSelectedPurchaseFixture } from '@/lib/selected-purchase-payment.test-helper';
 import { ref } from 'vue';
 import { expect,it,vi } from 'vitest';
 import ts from 'typescript';
@@ -31,6 +32,8 @@ function page(){
     offerBundleWalletTopup:vi.fn(),refreshBundlePolicy:vi.fn(),refreshProductCatalog:vi.fn(),
     toast:{warn:vi.fn(),success:vi.fn(),error:vi.fn()},t:ref(zh),navTo:vi.fn(),BUNDLE_COMMAND_LEGACY_RECOVERY_REQUIRED:'legacy',
   };
+  const executeSelectedPurchase=walletSelectedPurchaseFixture(deps.executePaymentWithPassword);
+  Object.assign(deps,{executeSelectedPurchase,paidOrderReceipt:(raw:unknown)=>raw});
   const checkout=new Function('deps',`with(deps){${code};return onCheckout;}`)(deps);
   return{...deps,checkout,active,authorization};
 }

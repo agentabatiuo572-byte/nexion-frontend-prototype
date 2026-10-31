@@ -7,7 +7,8 @@ describe("wallet payment for a pending commerce order", () => {
   it("lets a placed remote order retry the idempotent wallet debit", () => {
     expect(detailSource).toContain("canPayFromWallet");
     expect(detailSource).toContain("orderApi.pay(");
-    expect(detailSource).toContain("beginOrderAction(orders.currentAccountKey(),'pay',requestOrderNo,requestAmountUsdt)");
+    expect(detailSource).toContain("beginOrderAction(orders.currentAccountKey(),'pay',requestOrderNo,requestAmountUsdt,'WALLET')");
+    expect(detailSource).toContain("beginOrderAction(orders.currentAccountKey(),'pay',requestOrderNo,requestAmountUsdt,'EXTERNAL')");
     expect(detailSource).toContain("orderApi.pay(requestOrderNo,action.key,authorization)");
     expect(commandFenceSource).toContain("`wallet-pay:${orderNo}`");
     expect(detailSource).toContain("adoptCommerceWallet");
@@ -24,8 +25,8 @@ describe("wallet payment for a pending commerce order", () => {
     expect(detailSource).toContain('@click.stop="requestPendingPayment()"');
     expect(detailSource).toContain('@keydown.enter.prevent.stop="requestPendingPayment()"');
     expect(detailSource).toContain('@keydown.space.prevent.stop="requestPendingPayment()"');
-    expect(detailSource).toContain('@confirm="handleWalletPayment"');
-    expect(detailSource).toContain('<CheckoutPaymentSheet');
+    expect(detailSource).toContain('void handleWalletPayment();');
+    expect(detailSource).toContain('await executeSelectedPurchase(');
   });
 
   it("fences payment and readback to the account that opened the detail", () => {
