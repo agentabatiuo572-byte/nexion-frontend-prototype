@@ -24,6 +24,11 @@ const valid = {
   comparisonConfig: [{ key: "phone", label: "Phone", dailyUsdt: 0.06, dailyNex: 10, sortOrder: 1 }],
 };
 const versions = { expectedBindingVersion: null, expectedPolicyVersion: 1, replacementConfirmed: false };
+const publicSignals: Record<string, unknown> = { ...valid.signals };
+delete publicSignals.gpu;
+const android = { ...valid, calibrationStatus: "MATCHED", calibrationMethod: "ANDROID_SOC_RANGE",
+  computeUnit: "platform", computeValue: 65.42, tops: 65.42, score: 65,
+  signals: { ...publicSignals, platform: "android" } };
 
 describe("onboarding calibration API", () => {
   it("reads nullable initial binding and rejects missing or invalid version metadata", async () => {
@@ -95,6 +100,32 @@ describe("onboarding calibration API", () => {
     expect(parseOnboardingCalibration(valid, "PRODUCTION")).toMatchObject({ source: "server", serverCanonical: true, sourceEnvironment: "PRODUCTION", runId: "", tier: 3, tops: 28.3 });
   });
 
+  it("accepts Android server-hidden hardware echoes on every calibration response path", async () => {
+    const request = vi.fn().mockResolvedValue(android);
+    const api = createOnboardingCalibrationApi({ request } as never);
+    for (const result of [await api.calibrate("device-a", valid.signals, 1, "calibration-key"),
+      await api.result("device-a"), await api.activate("device-a", 2, "phone-active-001", versions),
+      await api.defer("device-a", 2, "phone-defer-001")]) {
+      expect(result).toMatchObject({ calibrationStatus: "MATCHED", calibrationAvailable: true,
+        computeValue: 65.42, tops: 65.42, signals: { platform: "android", soc: "", gpu: "" } });
+      expect(result.signals).not.toHaveProperty("socIds");
+    }
+  });
+
+  it("rejects explicit invalid GPU echoes and still requires canonical identity and capability facts", () => {
+    for (const gpu of [null, false, 7, {}, [], "x".repeat(257)]) {
+      expect(() => parseOnboardingCalibration({ ...android, signals: { ...android.signals, gpu } }))
+        .toThrow("ONBOARDING_CALIBRATION_RESPONSE_INVALID");
+    }
+    for (const change of [{ userId: undefined }, { deviceId: "" }, { source: "client" }, { serverCanonical: false },
+      { activationStatus: "UNKNOWN" }, { calibrationStatus: "UNKNOWN" }, { computeValue: 0, tops: 0 },
+      { computeValue: NaN, tops: NaN }, { computeValue: Infinity, tops: Infinity }, { tops: 65.41 },
+      { tier: 0 }, { baseRateUsdt: 0 }]) {
+      expect(() => parseOnboardingCalibration({ ...android, ...change }), JSON.stringify(change))
+        .toThrow("ONBOARDING_CALIBRATION_RESPONSE_INVALID");
+    }
+  });
+
   it("rejects an environment/run mismatch", () => {
     expect(() => parseOnboardingCalibration({ ...valid, runId: "stale" }, "PRODUCTION")).toThrow();
     expect(() => parseOnboardingCalibration({ ...valid, sourceEnvironment: "SANDBOX", runId: "retired" })).toThrow();
@@ -104,7 +135,11 @@ describe("onboarding calibration API", () => {
     const pending = { ...valid, calibrationAvailable: false, calibrationStatus: "PENDING_VERIFICATION",
       pendingReason: "RULES_UNAVAILABLE", computeUnit: "platform", computeValue: null, ruleId: null, ruleVersion: 0,
       score: null, tier: null, tierName: null, tops: null, baseRateUsdt: null, baseRateNex: null, comparisonConfig: [] };
-    expect(parseOnboardingCalibration(pending)).toMatchObject({ calibrationStatus: "PENDING_VERIFICATION", calibrationAvailable: false, computeValue: null });
+    for (const platform of ["android", "ios"]) {
+      expect(parseOnboardingCalibration({ ...pending, signals: { ...publicSignals, platform } }))
+        .toMatchObject({ calibrationStatus: "PENDING_VERIFICATION", calibrationAvailable: false,
+          computeValue: null, signals: { platform, soc: "", gpu: "" } });
+    }
     expect(() => parseOnboardingCalibration({ ...pending, activationStatus: "ACTIVE" })).toThrow();
     expect(() => parseOnboardingCalibration({ ...valid, calibrationStatus: "PENDING_VERIFICATION", computeUnit: "platform", computeValue: null, ruleId: null, ruleVersion: 0 })).toThrow();
     const matched = { ...valid, calibrationStatus: "MATCHED", computeUnit: "platform", computeValue: 120.5,
@@ -117,7 +152,7 @@ describe("onboarding calibration API", () => {
   it("reads the stored iPhone allocation by model without needing the server-only range", () => {
     const iphone = { ...valid, calibrationStatus: "MATCHED", computeUnit: "platform", computeValue: 113.42, tops: 113.42, score: 113,
       tier: 5, ruleId: "ios-iphone-16-pro", ruleVersion: 4, calibrationMethod: "IOS_MODEL_RANGE", model: "iPhone 16 Pro",
-      signals: { ...valid.signals, platform: "ios", soc: "", memGB: null, cores: null, model: "iPhone17,1", brand: "Apple", gpu: "" } };
+      signals: { ...publicSignals, platform: "ios", memGB: null, cores: null, model: "iPhone17,1", brand: "Apple" } };
     const parsed = parseOnboardingCalibration(iphone);
     expect(parsed).toMatchObject({ computeValue: 113.42, iosModel: { method: "IOS_MODEL_RANGE", model: "iPhone 16 Pro" } });
     expect(JSON.stringify(parsed)).not.toMatch(/minComputeValue|maxComputeValue|OPERATOR_PRESET/);

@@ -175,7 +175,7 @@ function signals(value: unknown): CalibrationSignals {
     platform: row.platform == null ? "" : optionalText(row.platform, 32),
     soc: row.soc == null ? "" : optionalText(row.soc, 128),
     memGB: nullableNumber(row.memGB, 0, 128), cores: nullableBoundedInteger(row.cores, 1, 256), model: optionalText(row.model, 128), brand: optionalText(row.brand, 128),
-    gpu: optionalText(row.gpu, 256), pxDensity: nullableNumber(row.pxDensity, 1, 10_000), pingMs: nullableNumber(row.pingMs, 0, 5_000),
+    gpu: row.gpu === undefined ? "" : optionalText(row.gpu, 256), pxDensity: nullableNumber(row.pxDensity, 1, 10_000), pingMs: nullableNumber(row.pingMs, 0, 5_000),
     batteryLevel: nullableBoundedInteger(row.batteryLevel, 0, 100), charging: row.charging === null ? null : bool(row.charging), networkReachable: row.networkReachable === null ? null : bool(row.networkReachable),
     ...(row.osVersion == null ? {} : { osVersion: optionalText(row.osVersion, 32) }),
     ...(row.screenWidth == null ? {} : { screenWidth: boundedInteger(row.screenWidth, 1, 10_000) }),
