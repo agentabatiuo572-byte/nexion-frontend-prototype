@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-checkout-review",
+  "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-bug019",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "1493fce3ab7ff3e897e4636e4dd04c9d6b04277f",
-  "sourceRef": "1493fce3ab7ff3e897e4636e4dd04c9d6b04277f",
+  "sourceHead": "3e9c4176a96e331e6148925b8f2f41835c11fe96",
+  "sourceRef": "3e9c4176a96e331e6148925b8f2f41835c11fe96",
   "sourceRefKind": "commit",
-  "sourceTree": "742037dff119f16f9864be2960ff4c42661edbe5",
+  "sourceTree": "ec0c9d0a130ac0b7ef86e1328f1dc3d2b04c054a",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -97,10 +97,10 @@
       "mode": "100644"
     },
     ".gitignore": {
-      "sourceBlob": "64c1b0e471faa08561a6b612f6b39e7bf97762ad",
-      "sourceSha256": "1d78f1c5029fc5b33f9a3f4e9f4fc0ac31182a0b0e3a4e9985e74f8e6ed5990e",
-      "targetBlob": "64c1b0e471faa08561a6b612f6b39e7bf97762ad",
-      "targetSha256": "1d78f1c5029fc5b33f9a3f4e9f4fc0ac31182a0b0e3a4e9985e74f8e6ed5990e",
+      "sourceBlob": "ff6d083c29882a6955a3fd473979ee55f59c5b44",
+      "sourceSha256": "10d1666ebbf950b654e00962597d41dd92624a35013a7a0a53c8ee284abe5849",
+      "targetBlob": "ff6d083c29882a6955a3fd473979ee55f59c5b44",
+      "targetSha256": "10d1666ebbf950b654e00962597d41dd92624a35013a7a0a53c8ee284abe5849",
       "mode": "100644"
     },
     "PRD/H9-首页与网络展示配置-20261028.md": {
@@ -853,10 +853,10 @@
       "mode": "100644"
     },
     "scripts/checkout-flow.h5.e2e.mjs": {
-      "sourceBlob": "4554f9c4da14887fcaf41a509bec757888c109ba",
-      "sourceSha256": "ab944fd41e0e421c7674343a078e2e08e95d3076b371c84bcd8fef9fc87eaf05",
-      "targetBlob": "4554f9c4da14887fcaf41a509bec757888c109ba",
-      "targetSha256": "ab944fd41e0e421c7674343a078e2e08e95d3076b371c84bcd8fef9fc87eaf05",
+      "sourceBlob": "cc3e54f31ca3f891f3b10b6408b91275dac5cc91",
+      "sourceSha256": "38385dd7487119f2f98bbc087f0d6f9f8cd9212c7598ad2923feaed9db8be85e",
+      "targetBlob": "cc3e54f31ca3f891f3b10b6408b91275dac5cc91",
+      "targetSha256": "38385dd7487119f2f98bbc087f0d6f9f8cd9212c7598ad2923feaed9db8be85e",
       "mode": "100644"
     },
     "scripts/chrome-baseline.mjs": {
