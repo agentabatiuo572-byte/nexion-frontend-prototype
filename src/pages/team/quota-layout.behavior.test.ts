@@ -19,6 +19,7 @@ import { en } from '@/i18n/messages/en';
 import { vi as vietnamese } from '@/i18n/messages/vi';
 import type { TeamQuotaSnapshot } from '@/api/team-quota-api';
 import { rackPurchaseEligibility } from '@/components/store/purchase-eligibility.fixture';
+import { VIZ_RING_TRANSITION } from '@/composables/use-scroll-grow-progress';
 
 const dictionaries = { zh, en, vi: vietnamese };
 const snapshot = (): TeamQuotaSnapshot => ({ source: 'server', sourceEnvironment: 'PRODUCTION', runId: '', generatedAt: '2026-10-25T00:00:00Z',
@@ -32,6 +33,7 @@ const button = { default: Vue.defineComponent({ props: ['label', 'busy'], emits:
 const stop: Array<() => void> = [];
 afterEach(() => stop.splice(0).forEach(fn => fn()));
 function page(locale: keyof typeof dictionaries = 'en', product = '', intent = '') {
+  const inviteRingInView = Vue.ref(true);
   const show: Array<() => void> = [], hide: Array<() => void> = [], load: Array<(query: object) => void> = [];
   const navTo = vi.fn(), api = { snapshot: vi.fn(async () => snapshot()) }, refreshCatalog = vi.fn(async () => {});
   const retryEligibility = vi.fn(async () => false);
@@ -42,6 +44,7 @@ function page(locale: keyof typeof dictionaries = 'en', product = '', intent = '
   // UniApp image is native; preserve its attributes in the in-memory host.
   const adapted = source.replace(/<image\b/g, '<view data-native-image="true"');
   const p = mountEntry(adapted, {
+    '@/composables/use-scroll-grow-progress': { useScrollGrowProgress: () => ({ elRef: Vue.ref(null), inView: inviteRingInView }), VIZ_RING_TRANSITION },
     '@/lib/amount-display': { formatAmount }, '@/lib/finance-amount-display': { formatFinanceAmount }, '@/lib/product-media': { getProductMedia },
     '@/lib/route': { navTo, takeNavigationQuery: () => '' },
     '@dcloudio/uni-app': { onLoad: (fn: (q: object) => void) => load.push(fn), onShow: (fn: () => void) => show.push(fn), onHide: (fn: () => void) => hide.push(fn), onUnload: vi.fn() },
@@ -60,7 +63,7 @@ function page(locale: keyof typeof dictionaries = 'en', product = '', intent = '
     '@/store/v-rank': { useVRank: () => ({ myRank: 2 }) }, '@/store/config': { useConfig: () => ({}) }, '@/store/app': { useApp: () => app },
     '@/lib/team-p3-17-18-request-scope': requestScope, '@/lib/quota-perk': { isAnnualizedQuotaPerk },
   }); stop.push(p.unmount); load.forEach(fn => fn({ product, intent }));
-  return { ...p, app, api, navTo, catalogState, refreshCatalog, retryEligibility, tiers: () => all(p.root).filter(n => n.props['data-tier']),
+  return { ...p, app, api, navTo, catalogState, refreshCatalog, retryEligibility, inviteRingInView, tiers: () => all(p.root).filter(n => n.props['data-tier']),
     show: async () => { show.forEach(fn => fn()); await flush(); }, hide: async () => { hide.forEach(fn => fn()); await flush(); } };
 }
 it('opens exact product conditions as a read-only destination with all E1 and F4B facts', async () => {
@@ -72,6 +75,22 @@ it('opens exact product conditions as a read-only destination with all E1 and F4
   expect(p.api.snapshot).not.toHaveBeenCalled(); expect(p.navTo).not.toHaveBeenCalled();
   expect(all(p.root).find(n => n.props['data-back'])!.props['data-back']).toBe('/pages/me/devices');
 });
+it('replays the real invite ratio after viewport exit and keeps visible snapshot updates on the same ring', async () => {
+  const p = page(); p.inviteRingInView.value = false; await p.show();
+  const ring = p.nodes('quota-ring')[0];
+  expect(ring.props.style).toMatchObject({ '--nx-viz-ring': 0, transition: 'none' });
+  expect(String(ring.props.class)).not.toContain('nx-viz-sweep');
+  p.inviteRingInView.value = true; await flush();
+  expect(ring.props.style).toMatchObject({ '--nx-viz-ring': 50, transition: VIZ_RING_TRANSITION });
+  p.api.snapshot.mockResolvedValueOnce({ ...snapshot(), facts: { ...snapshot().facts, activeDirect: 3 } });
+  await p.show();
+  expect(p.nodes('quota-ring')[0]).toBe(ring);
+  expect(ring.props.style).toMatchObject({ '--nx-viz-ring': 75, transition: VIZ_RING_TRANSITION });
+  p.inviteRingInView.value = false; await flush();
+  expect(ring.props.style).toMatchObject({ '--nx-viz-ring': 0, transition: 'none' });
+  p.inviteRingInView.value = true; await flush();
+  expect(ring.props.style).toMatchObject({ '--nx-viz-ring': 75, transition: VIZ_RING_TRANSITION });
+});
 it.each(['zh', 'en', 'vi'] as const)('keeps %s focused product identity, stock and independent point conditions', async locale => {
   const p = page(locale, 'stellarrack-p1'); await p.show();
   expect(p.tiers()).toHaveLength(1);
@@ -80,8 +99,8 @@ it.each(['zh', 'en', 'vi'] as const)('keeps %s focused product identity, stock a
   expect(text(p.root)).not.toContain('Catalog product 1');
   expect(all(p.root).find(n => n.props['data-native-image'])!.props.src).toBe(getProductMedia('stellarrack-p1')!.src);
   expect(all(p.root).find(n => n.props['data-back'])!.props['data-back']).toBe('/pages/store/detail?id=stellarrack-p1');
-  const links = p.nodes('quota-route'); links[0].props.onClick(); expect(p.navTo).toHaveBeenLastCalledWith('/pages/team/rank');
-  links[1].props.onClick(); expect(p.navTo).toHaveBeenLastCalledWith('/pages/team/team?intent=share');
+  all(p.root).find(n => n.props['aria-label'] === dictionaries[locale].rank.conditionsLabel)!.props.onClick(); expect(p.navTo).toHaveBeenLastCalledWith('/pages/team/rank');
+  all(p.root).find(n => n.props['aria-label'] === dictionaries[locale].quota.inviteFriendsTitle)!.props.onClick(); expect(p.navTo).toHaveBeenLastCalledWith('/pages/team/team?intent=share');
   all(p.root).find(n => n.props['aria-label'] === dictionaries[locale].empty.devicesCta)!.props.onClick();
   expect(p.navTo).toHaveBeenLastCalledWith('/pages/store/store');
 });
@@ -137,7 +156,7 @@ it('retains the real tier layout while masking stock and qualification and disab
     './quota-condition-bar.vue': { default: Vue.defineComponent({ props: ['met', 'valueText'], setup: props => () => Vue.h('view', { 'data-met': props.met }, props.valueText) }) },
     '@/components/ui/nx-button.vue': { default: Vue.defineComponent({ props: ['label', 'disabled', 'busy'], emits: ['click'], setup: (props, { emit }) => () => Vue.h('view', { 'data-action-disabled': props.disabled, onClick: () => { if (!props.disabled) emit('click'); } }, props.label) }) },
     '@/i18n/use-t': { useT: () => Vue.ref(en) }, '@/i18n/format': { fmt }, '@/lib/brand-copy': { nexGridBrandText },
-    '@/lib/product-media': { getProductMedia }, '@/composables/use-scroll-grow-progress': { useScrollGrowProgress: () => ({ elRef: Vue.ref(null), inView: Vue.ref(true) }), PROGRESS_GROW_TRANSITION: 'none' },
+    '@/lib/product-media': { getProductMedia }, '@/composables/use-scroll-grow-progress': { useScrollGrowProgress: () => ({ elRef: Vue.ref(null), inView: Vue.ref(true) }), VIZ_RING_TRANSITION: 'none' },
   }, { pending: true, onNavigate: navigate, tier: { ...snapshot().tiers[0], name: 'Existing product', unlockKind: 'all',
     conditions: [{ kind: 'invites', label: 'Rank', current: 5, required: 1 }], perks: [] } });
   stop.push(p.unmount);
@@ -146,11 +165,12 @@ it('retains the real tier layout while masking stock and qualification and disab
   expect(all(p.root).find(n => n.props['data-met'] !== undefined)!.props['data-met']).toBe(false);
   const action = all(p.root).find(n => n.props['data-action-disabled'] !== undefined)!;
   expect(action.props['data-action-disabled']).toBe(true); action.props.onClick(); expect(navigate).not.toHaveBeenCalled();
-  const track = all(p.root).find(n => String(n.props.class).includes('quota-stock__track'))!;
-  expect(track.children[0].props.style).toMatchObject({ width: '0%', transition: 'none' });
+  const ring = p.nodes('quota-stock__ring')[0];
+  expect(ring.props.style).toMatchObject({ '--nx-viz-ring': 0, transition: 'none' });
 });
 
 it.each(['all', 'either'] as const)('unlocks %s tiers with no minimums while retaining sold-out feedback', async unlockKind => {
+  const stockInView = Vue.ref(false);
   const tier = Vue.reactive({ productId: 'stellarbox-pro', name: 'Stored product', price: 10, monthlyStock: 2,
     soldThisMonth: 0, unlockKind, conditions: [], perks: [], tint: '#fff' });
   const navigate = vi.fn();
@@ -160,14 +180,26 @@ it.each(['all', 'either'] as const)('unlocks %s tiers with no minimums while ret
     '@/store/locale': { useLocaleStore: () => ({ code: 'en' }) }, '@/i18n/network-reaudit': { networkReauditCopy },
     './quota-condition-bar.vue': slot, '@/components/ui/nx-button.vue': button,
     '@/i18n/use-t': { useT: () => Vue.ref(en) }, '@/i18n/format': { fmt }, '@/lib/product-media': { getProductMedia },
-    '@/composables/use-scroll-grow-progress': { useScrollGrowProgress: () => ({ elRef: Vue.ref(null), inView: Vue.ref(true) }), PROGRESS_GROW_TRANSITION: 'none' },
+    '@/composables/use-scroll-grow-progress': { useScrollGrowProgress: () => ({ elRef: Vue.ref(null), inView: stockInView }), VIZ_RING_TRANSITION },
   }, { tier, onNavigate: navigate });
   stop.push(p.unmount);
   expect(text(p.root)).toContain(en.quota.unlocked);
+  const ring = p.nodes('quota-stock__ring')[0];
+  expect(ring.props.style).toMatchObject({ '--nx-viz-ring': 0, transition: 'none' });
+  expect(String(ring.props.class)).not.toContain('nx-viz-sweep');
+  tier.soldThisMonth = 1; stockInView.value = true; await flush();
+  expect(ring.props.style).toMatchObject({ '--nx-viz-ring': 50, transition: VIZ_RING_TRANSITION });
+  tier.monthlyStock = 4; await flush();
+  expect(p.nodes('quota-stock__ring')[0]).toBe(ring);
+  expect(ring.props.style).toMatchObject({ '--nx-viz-ring': 25, transition: VIZ_RING_TRANSITION });
+  stockInView.value = false; await flush();
+  expect(ring.props.style).toMatchObject({ '--nx-viz-ring': 0, transition: 'none' });
+  stockInView.value = true; await flush();
+  expect(ring.props.style).toMatchObject({ '--nx-viz-ring': 25, transition: VIZ_RING_TRANSITION });
   const buy = all(p.root).find(n => n.props['aria-label'] === fmt(en.quota.buyCta, { name: tier.name }));
   expect(buy).toBeDefined(); buy!.props.onClick();
   expect(navigate).toHaveBeenCalledWith('/pages/store/detail?id=stellarbox-pro');
-  tier.soldThisMonth = 2; await flush();
+  tier.soldThisMonth = tier.monthlyStock; await flush();
   expect(text(p.root)).toContain(en.quota.stockUnavailable);
   expect(all(p.root).find(n => n.props['aria-label'] === fmt(en.quota.buyCta, { name: tier.name }))).toBeUndefined();
 });

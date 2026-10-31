@@ -8,7 +8,7 @@ import source from './unilevel.vue?raw';
 
 afterEach(() => vi.unstubAllGlobals());
 
-test.each(['zh', 'en', 'vi'] as const)('B08 %s global privacy updates expanded records while leaving settlement rules and source values intact', async locale => {
+test.each(['zh', 'en', 'vi'] as const)('B08 %s global privacy updates compact records while leaving settlement rules and source values intact', async locale => {
   vi.stubGlobal('uni', { getStorageSync: () => false, setStorageSync: vi.fn() });
   const visibility = useDataVisibility(createPinia());
   const records = [
@@ -20,7 +20,6 @@ test.each(['zh', 'en', 'vi'] as const)('B08 %s global privacy updates expanded r
   const before = structuredClone(snapshot), rules = policyFixture();
   const api = { snapshot: vi.fn().mockResolvedValue(snapshot), policy: vi.fn().mockResolvedValue(rules) };
   const page = await directPage({ locale, visibility, api }); await flush();
-  for (const item of all(page.root).filter(item => item.props['aria-controls'])) item.props.onClick();
   await flush(); await click(page.root, networkReauditCopy(locale).settlementDetails + '+');
   const publicOutput = () => [text(page.root), ...all(page.root).flatMap(item => Object.entries(item.props)
     .filter(([key]) => key.startsWith('aria-') || key === 'title').map(([, value]) => String(value)))].join('\n');
@@ -39,8 +38,8 @@ test.each(['zh', 'en', 'vi'] as const)('B08 %s global privacy updates expanded r
   expect(text(page.root)).toContain(`USDT ${dictionaries[locale].commissions.frozenTag} · UVT ${dictionaries[locale].commissions.reversedTag}`);
   expect(text(page.root)).toContain(dictionaries[locale].directReferral.recoveryPending);
   expect(text(details())).toBe(ruleText);
-  for (const record of records) expect(text(page.root)).toContain(record.sourceRef);
-  expect(all(page.root).filter(item => item.props['aria-controls']).map(item => item.props['aria-expanded'])).toEqual([true, true]);
+  for (const record of records) expect(text(page.root)).not.toContain(record.sourceRef);
+  expect(all(page.root).filter(item => item.props['aria-controls'])).toHaveLength(0);
   visibility.toggle(); await flush();
   expect(publicOutput()).toBe(shown);
   expect(snapshot).toEqual(before); expect(rules).toEqual(policyFixture());
@@ -56,9 +55,10 @@ test('B08 entering with privacy enabled masks zero-valued records and restores t
   const api = { snapshot: vi.fn().mockResolvedValue(snapshot), policy: vi.fn().mockResolvedValue(policyFixture()) };
   const page = await directPage({ visibility, api }); await flush();
   expect(text(page.root)).not.toContain('0.00');
-  expect(text(page.root)).toContain('$••••USDT•••• UVT');
+  const record = () => all(page.root).find(item => String(item.props.class).split(' ').includes('nx-direct-event'))!;
+  expect(text(record())).toContain('•••••••• UVT');
   visibility.toggle(); await flush();
-  expect(text(page.root)).toContain('$0.00USDT0.00 UVT');
+  expect(text(record())).toContain('$0.000.00 UVT');
   expect(text(page.root)).toContain(`1 ${dictionaries.en.directReferral.settlementGroups}`);
   expect(api.snapshot).toHaveBeenCalledTimes(1);
 });
@@ -77,7 +77,7 @@ test.each(['zh', 'en', 'vi'] as const)('019 source text buttons preserve query a
   expect(text(page.root)).toContain(teamRuleGuideCopy(locale).networkRule);
 });
 
-test('020 long names, signed amounts and separate currency statuses survive record expansion', async () => {
+test('020 compact rows keep long names, signed amounts and separate currency statuses without a per-record expander', async () => {
   const entry = { ...eventFixture('full-reference'), sourceUserName: 'A very long member name Nguyễn Thị Minh Anh', amountUSDT: -123456789.125,
     amountNEX: 987654321.5, status: 'unlocked', statusUSDT: 'frozen', statusNEX: 'reversed' };
   const page = await directPage({ api: { policy: vi.fn().mockResolvedValue(policyFixture()), snapshot: vi.fn().mockResolvedValue(snapshotFixture([entry])) } }); await flush();
@@ -85,15 +85,25 @@ test('020 long names, signed amounts and separate currency statuses survive reco
   expect(text(page.root)).toContain('$-123456789.13'); expect(text(page.root)).toContain('987654321.50 UVT');
   expect(text(page.root)).toContain(`USDT ${dictionaries.en.commissions.frozenTag} · UVT ${dictionaries.en.commissions.reversedTag}`);
   expect(text(page.root)).not.toContain(entry.sourceRef);
-  const toggle = all(page.root).find(node => node.props['aria-controls'] === 'unilevel-record-0')!;
-  toggle.props.onClick(); await flush();
-  expect(all(page.root).some(node => node.props.id === toggle.props['aria-controls'])).toBe(true);
-  expect(text(page.root)).toContain(entry.sourceRef);
+  expect(all(page.root).filter(node => node.props['aria-controls'])).toHaveLength(0);
 });
 
-test('019 has one explicit glass track and a separate 44px underline source row', () => {
+test('P41 groups the same calendar day in one card and keeps unknown dates separate', async () => {
+  const ts = new Date(2026, 9, 30, 9).getTime();
+  const events = [eventFixture('morning'), eventFixture('yesterday'), eventFixture('evening'), eventFixture('unknown')]
+    .map((event, index) => ({ ...event, ts: [ts, ts - 86400000, ts + 3600000, 0][index] }));
+  const page = await directPage({ api: { policy: vi.fn().mockResolvedValue(policyFixture()), snapshot: vi.fn().mockResolvedValue(snapshotFixture(events)) } }); await flush();
+  const days = all(page.root).filter(node => node.props.class === 'nx-unilevel-day-card');
+  expect(days).toHaveLength(3);
+  expect(text(days[0])).toContain('Member morning'); expect(text(days[0])).toContain('Member evening');
+  expect(text(days[0])).not.toContain('Member yesterday'); expect(text(days[1])).toContain('Member yesterday');
+  expect(text(days[2])).toContain('Member unknown');
+  expect(text(page.root)).not.toContain('1970');
+});
+
+test('019 has one explicit glass track and a separate 44px source chip row', () => {
   expect(source.match(/<GlassSegments\b/g)).toHaveLength(1);
   expect(source).toContain('layout="equal" surface="glass" selection="flat"');
-  expect(source).toContain('text-underline-offset: 8px');
+  expect(source).toMatch(/\.nx-unilevel-source--selected \{[^}]*background:/);
   expect(source).toMatch(/\.nx-unilevel-source \{ min-height: 44px/);
 });

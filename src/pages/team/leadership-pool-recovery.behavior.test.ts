@@ -16,7 +16,7 @@ import { leadershipMainRows } from '@/lib/leadership-pool-main';
 import { ApiError } from '@/api/errors';
 
 const cleanups: Array<() => void> = [];
-afterEach(() => cleanups.splice(0).forEach(dispose => dispose()));
+afterEach(() => { cleanups.splice(0).forEach(dispose => dispose()); vi.useRealTimers(); });
 function deferred() {
   let resolve!: (value: unknown) => void, reject!: (error: Error) => void;
   const promise = new Promise<unknown>((yes, no) => { resolve = yes; reject = no; });
@@ -40,6 +40,7 @@ function mount(language: 'zh' | 'en' | 'vi' = 'en') {
     '@/i18n/use-t': { useT: () => ref(dictionary) }, '@/i18n/format': { fmt },
     '@/i18n/network-reaudit': { networkReauditCopy }, '@/lib/amount-display': { formatAmount }, '@/lib/finance-amount-display': { formatFinanceAmount },
     '@/store/data-visibility': teamPrivacyFixture().dependency, '@/store/locale': { useLocaleStore: () => ({ code: language }) },
+    '@/composables/use-scroll-grow-progress': { useScrollGrowProgress: () => ({ elRef: ref(null), inView: ref(true) }), VIZ_RING_TRANSITION: '--nx-viz-ring 1400ms cubic-bezier(0.16, 1, 0.3, 1)' },
     '@/store/app': { useApp: () => app }, '@/store/auth': { useAuth: () => reactive({ isAuthenticated: true }) },
     '@/store/v-rank': { useVRank: () => ({ remoteReady: true, ladder: [], refreshCanonicalVRank: vi.fn() }) },
     '@/store/leadership-pool': { useLeadershipPool: () => ({}), V_VOTES: {}, POOL_TOP_N: 100 },
@@ -90,4 +91,15 @@ it('T2 retry does not allow a late previous-account response to replace the new 
   expect(text(page.root)).toContain('$999.00');
   expect(text(page.root)).not.toContain('$250.00');
   expect(text(page.root)).toContain('2026-W42+$15.00');
+});
+
+it('P41 calibrates the payout clock when a later read returns exactly three days from the current time', async () => {
+  vi.useFakeTimers();
+  const start = Date.parse('2026-10-30T08:00:00Z'); vi.setSystemTime(start);
+  const page = mount('zh'); page.show();
+  vi.setSystemTime(start + 1500);
+  page.reads[0].resolve({ ...snapshot(), nextPayoutAt: new Date(Date.now() + 3 * 86400000).toISOString() });
+  await flush();
+  expect(text(page.root)).toContain('3天后发放');
+  expect(text(page.root)).not.toContain('4天后发放');
 });

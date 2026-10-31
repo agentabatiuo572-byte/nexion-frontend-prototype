@@ -8,6 +8,7 @@ import { vi } from "@/i18n/messages/vi";
 import { fmt } from "@/i18n/format";
 import { formatAmount } from "@/lib/amount-display";
 import { formatComputePoints } from "@/i18n/compute-points";
+import { formatUsd } from "@/lib/usd-display";
 
 /**
  * zentao #206:团队页「本周领导池」的摘要行是**紧凑行**,却把整段错误说明
@@ -27,29 +28,31 @@ function binding(name: string, deps: string[]) {
 }
 
 describe("team page leadership-pool summary row stays compact", () => {
-  it("keeps A/B platform points separate from monetary rewards and leaves missing points unknown", () => {
-    const names = ["leftVolText", "rightVolText", "binaryMatchText"];
+  it("keeps the balance card monetary reward independent of platform points", () => {
+    // P-41 removes the crowded A/B summary line; the reward still uses its own money field.
+    const names = ["binaryMatchText"];
     const declarations = names.map(name => source.split("\n").find((line: string) => line.startsWith(`const ${name} = computed(`)));
     expect(declarations.every(Boolean)).toBe(true);
     const binary = ref<{ leftVol: number; rightVol: number; binaryMatch: number } | null>(null);
     const snapshot = ref<{ trackAComputePoints?: number; trackBComputePoints?: number } | null>(null);
     const commission = { get binarySnapshot() { return snapshot.value; } };
-    const text = new Function("computed", "binary", "formatAmount", "formatComputePoints", "remoteApiEnabled", "commission", "locale", `${declarations.join("\n")}; return { ${names.join(",")} };`)(computed, binary, formatAmount, formatComputePoints, true, commission, {code:"zh"});
-    expect(names.map(name => text[name].value)).toEqual(["—", "—", "—"]);
+    const text = new Function("computed", "binary", "formatUsd", `${declarations.join("\n")}; return { ${names.join(",")} };`)(computed, binary, formatUsd);
+    expect(text.binaryMatchText.value).toBe("—");
     binary.value = { leftVol: 0, rightVol: 0, binaryMatch: 0 };
     snapshot.value = {trackAComputePoints:0,trackBComputePoints:0};
-    expect(names.map(name => text[name].value)).toEqual(["0 算力点", "0 算力点", "$0.00"]);
+    expect(text.binaryMatchText.value).toBe("$0.00");
     binary.value = { leftVol: 125, rightVol: 75, binaryMatch: 7.5 };
     snapshot.value = {trackAComputePoints:1720,trackBComputePoints:1480};
-    expect(names.map(name => text[name].value)).toEqual(["1,720 算力点", "1,480 算力点", "$7.50"]);
+    expect(text.binaryMatchText.value).toBe("$7.50");
     snapshot.value = {};
-    expect(names.map(name => text[name].value)).toEqual(["—", "—", "$7.50"]);
+    expect(text.binaryMatchText.value).toBe("$7.50");
   });
 
   it("formats ordinary monetary summaries consistently without showing unavailable money", () => {
     const state = ref("ready"), unlocked = ref(false);
-    const primary = binding("leadershipPoolPrimary", ["computed", "remoteApiEnabled", "remotePoolState", "leadershipPoolUnlocked", "projectedPayout", "leadershipPoolTotal", "formatAmount"])
-      (computed, true, state, unlocked, ref(12.5), ref(0), formatAmount);
+    const readable = computed(() => state.value === 'ready');
+    const primary = binding("leadershipPoolPrimary", ["computed", "remotePoolReadable", "leadershipPoolUnlocked", "projectedPayout", "leadershipPoolTotal", "formatUsd"])
+      (computed, readable, unlocked, ref(12.5), ref(0), formatUsd);
     expect(primary.value).toBe("$0.00");
     unlocked.value = true; expect(primary.value).toBe("$12.50");
     for (const status of ["loading", "error", "hold"]) {
@@ -58,9 +61,9 @@ describe("team page leadership-pool summary row stays compact", () => {
   });
 
   it("uses the short hold state in the summary line, not the full explanation", () => {
-    const lineA = binding("leadershipPoolLineA", ["computed", "remoteApiEnabled", "remotePoolState", "t", "leadershipPoolUnlocked", "myVotes", "leadershipUnlockRank"]);
+    const lineA = binding("leadershipPoolLineA", ["computed", "remoteApiEnabled", "remotePoolReadable", "remotePoolState", "t", "leadershipPoolUnlocked", "myVotes", "leadershipUnlockRank"]);
     const state = ref("hold");
-    const build = (dict: unknown) => lineA(computed, true, state, ref(dict), ref(false), ref(0), ref(3));
+    const build = (dict: unknown) => lineA(computed, true, computed(() => state.value === 'ready'), state, ref(dict), ref(false), ref(0), ref(3));
     for (const [locale, dict] of [["zh-CN", zh], ["en-US", en], ["vi-VN", vi]] as const) {
       const text = build(dict).value;
       expect(text).toBe(dict.pool.settlementHoldShort);
@@ -72,18 +75,19 @@ describe("team page leadership-pool summary row stays compact", () => {
   });
 
   it("keeps the second segment data-only so the separator cannot dangle", () => {
-    const lineB = binding("leadershipPoolLineB", ["computed", "remoteApiEnabled", "remotePoolState", "leadershipPoolUnlocked", "myShare", "poolThisWeekText"]);
+    const lineB = binding("leadershipPoolLineB", ["computed", "remoteApiEnabled", "remotePoolReadable", "remotePoolState", "leadershipPoolUnlocked", "myShare", "poolThisWeekText", "visibility"]);
     for (const state of ["hold", "loading", "error"] as const) {
-      const value = lineB(computed, true, ref(state), ref(false), ref(0), ref("")).value;
+      const value = lineB(computed, true, ref(false), ref(state), ref(false), ref(0), ref(""), { mask: String }).value;
       expect(value, `state=${state} 时第二段必须为空`).toBe("");
     }
     // 就绪态仍要给出真实数据。
-    expect(lineB(computed, true, ref("ready"), ref(true), ref(0.1234), ref("")).value).toBe("12.34%");
+    expect(lineB(computed, true, ref(true), ref("ready"), ref(true), ref(0.1234), ref(""), { mask: String }).value).toBe("12.34%");
   });
 
   it("renders the separator only when both segments have content", () => {
-    // 渲染表达式必须按 lineB 是否存在决定是否拼接分隔符,而不是无条件输出「/」。
-    expect(source).toMatch(/leadershipPoolLineB\s*\?\s*`\$\{leadershipPoolLineA\}[^`]*\/[^`]*\$\{leadershipPoolLineB\}`\s*:\s*leadershipPoolLineA/);
+    // 分隔符只在票数（lineA）就绪时与它一起渲染；其余状态各占独立一行，不拼接分隔符。
+    expect(source).toMatch(/<template v-if="poolShareReady"> · <text[^>]*>\{\{ leadershipPoolLineA \}\}<\/text><\/template>/);
+    expect(source).toMatch(/<text v-if="!poolShareReady" class="team-bento__meta">\{\{ remotePoolReadable \? leadershipPoolLineB : leadershipPoolLineA \}\}<\/text>/);
   });
 
   it("keeps the full explanation available in all three locales for the detail page", () => {

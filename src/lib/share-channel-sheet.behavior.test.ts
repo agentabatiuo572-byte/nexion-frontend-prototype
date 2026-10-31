@@ -131,7 +131,11 @@ function mount(messages = en, throughEntry = false) {
     open: open.value, onClose: () => { open.value = false; }, onOpenPoster: poster,
   }) });
   app.use(getActivePinia()!); app.mount(root); shows.forEach(fn => fn()); unmounts.push(() => { hides.forEach(fn => fn()); app.unmount(); });
-  const control = (label: string) => all(root).find(entry => entry.props.role === "button" && (entry.props["aria-label"] === label || text(entry) === label));
+  // Sheet controls are looked up inside the open sheet; the invite card behind it reuses the same labels.
+  const control = (label: string) => {
+    const sheet = all(root).find(entry => String(entry.props.class ?? "").split(" ").includes("ss-root"));
+    return all(sheet ?? root).find(entry => entry.props.role === "button" && (entry.props["aria-label"] === label || text(entry) === label));
+  };
   return { root, open, poster, control, account, nodes: (className: string) => all(root).filter(entry => String(entry.props.class).split(" ").includes(className)) };
 }
 const copy: ShareChannelDef = { key: "copy", intentType: "copy", enabled: true };
@@ -204,7 +208,8 @@ describe("mounted invitation share sheet", () => {
     await s.control(messages.share.posterTitle)!.props.onClick();
     expect(s.poster).toHaveBeenCalledOnce();
     expect(runtime.shareEventApi.record).not.toHaveBeenCalled();
-    s.control(messages.share.cancel)!.props.onClick(); await flush();
+    // P-42 closes from the header button; the sheet has no separate cancel row.
+    s.control(messages.ui.close)!.props.onClick(); await flush();
     expect(s.nodes("ss-root")).toHaveLength(0);
   });
 

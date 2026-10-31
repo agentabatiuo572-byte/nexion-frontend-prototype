@@ -1,8 +1,8 @@
 <!--
-  Simulated iOS status bar for the H5 device-preview shell (clock + signal + wifi +
-  battery). Self-contained: computes its own height/visibility (real device height,
-  else the H5 device-preview simulated height) and drives its own clock. Renders only
-  inside the preview iframe (nx_device_inner=1); ~0 height + hidden on real desktop H5.
+  Shared gradient frost for the status-bar safe area. Native devices keep their
+  system indicators; only the H5 device-preview shell simulates clock/signal/wifi/
+  battery. Uses the real device height or preview height, and renders no overlay
+  when desktop H5 has no status-bar inset.
 
   Absolutely positioned at top:0 of the nearest positioned ancestor — AppChassis
   (.nx-chassis) and the bare full-screen chat page (.cp-root, position:fixed) both
@@ -10,7 +10,10 @@
   status bar instead of tucking their header under it.
 -->
 <template>
-  <view class="nx-statusbar" :style="{ height: barHeight + 'px' }">
+  <view v-if="barHeight > 0" class="nx-statusbar-material" :style="{ height: (barHeight + 40) + 'px' }" aria-hidden="true">
+    <view /><view /><view /><view />
+  </view>
+  <view v-if="barHeight > 0" class="nx-statusbar" :style="{ height: barHeight + 'px' }">
     <view v-if="showBar" class="nx-statusbar__inner" aria-hidden="true">
       <text class="nx-statusbar__time">{{ statusTime }}</text>
       <view class="nx-statusbar__icons">
@@ -62,9 +65,55 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   z-index: 110;
+  pointer-events: none;
+}
+/* The material continues below the safe area behind navigation (z50/z100).
+   Four successively shorter blur bands avoid a uniform blur ending at 54px. */
+.nx-statusbar-material {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+.nx-statusbar-material > view,
+.nx-statusbar-material::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.nx-statusbar-material > view:nth-child(1) {
+  backdrop-filter: blur(1px);
+  -webkit-backdrop-filter: blur(1px);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%);
+}
+.nx-statusbar-material > view:nth-child(2) {
+  backdrop-filter: blur(4px) saturate(125%);
+  -webkit-backdrop-filter: blur(4px) saturate(125%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 30%, transparent 85%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 30%, transparent 85%);
+}
+.nx-statusbar-material > view:nth-child(3) {
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 15%, transparent 70%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 15%, transparent 70%);
+}
+.nx-statusbar-material > view:nth-child(4) {
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 55%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 55%);
+}
+.nx-statusbar-material::after {
+  content: "";
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--v5-bg) 56%, transparent) 0%, color-mix(in srgb, var(--v5-bg) 28%, transparent) 40%, transparent 100%);
 }
 .nx-statusbar__inner {
   position: absolute;
+  z-index: 1;
   top: 13px;
   left: 28px;
   right: 28px;

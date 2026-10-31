@@ -1,6 +1,7 @@
 <!--
   SubPageHeader — sticky controls with independent round glass surfaces and a
-  bare title. The chassis view layer hides the title when content scrolls under
+  bare title. Blur the sampled scene before refraction so scrolling text cannot
+  compete with the navigation icons. The chassis view layer hides the title when content scrolls under
   it and restores it at the top. The row keeps its height and content spacing.
 
   The plain variant keeps the title bare and gives the back control its own
@@ -20,7 +21,7 @@
       @keydown.enter.prevent="onKeyboardActivate($event, goBack)" @keydown.space.prevent="onKeyboardActivate($event, goBack)"
     >
       <view class="spv-glass nx-design-glass">
-        <LiquidGlass :radius="22" tone="navigation" />
+        <LiquidGlass :radius="22" tone="navigation" :blur="8" />
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6" /></svg>
       </view>
     </view>
@@ -29,7 +30,7 @@
       <text v-if="subtitle" class="spv-sub">{{ subtitle }}</text>
     </view>
     <view v-if="actionLabel && action" class="spv-action" role="button" tabindex="0" :aria-label="actionLabel" @click="action" @keydown.enter.prevent="onKeyboardActivate($event, action)" @keydown.space.prevent="onKeyboardActivate($event, action)">
-      <view v-if="!design" class="spv-action-surface"><LiquidGlass :radius="18" /></view>
+      <view v-if="!design" class="spv-action-surface"><LiquidGlass :radius="18" :blur="8" /></view>
       <text>{{ actionLabel }}</text>
     </view>
     <view v-else-if="!plain && !design"
@@ -42,7 +43,7 @@
       @keydown.enter.prevent="onKeyboardActivate($event, goBell)" @keydown.space.prevent="onKeyboardActivate($event, goBell)"
     >
       <view class="spv-glass nx-design-glass">
-        <LiquidGlass :radius="22" tone="navigation" />
+        <LiquidGlass :radius="22" tone="navigation" :blur="8" />
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-2)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 1 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></svg>
         <view v-if="unread !== null && unread > 0" class="spv-belldot" />
       </view>
@@ -170,7 +171,7 @@ import LiquidGlass from "@/components/liquid-glass.vue";
 .spv--solid .spv-glass > .nx-liquid-glass { display: none; }
 .spv--solid .spv-glass > svg { stroke: var(--v5-ink); }
 :global([data-theme="light"] .spv--solid .spv-glass) { background: var(--v5-surface); box-shadow: 0 2px 6px rgba(23,31,45,.12); }
-.spv-action { position: relative; z-index: 1; min-height: 44px; min-width: 72px; max-width: 100%; box-sizing: border-box; padding: 0 4px; display: flex; align-items: center; justify-content: center; color: var(--v5-ink-2); font-size: 14px; font-weight: 500; line-height: 18px; border-radius: 22px; text-align: center; }
+.spv-action { position: relative; z-index: 1; min-height: 44px; min-width: 72px; max-width: 100%; box-sizing: border-box; margin-right: 6px; padding: 0 4px; display: flex; align-items: center; justify-content: center; color: var(--v5-ink-2); font-size: 14px; font-weight: 500; line-height: 18px; border-radius: 22px; text-align: center; }
 .spv-action-surface { position: absolute; inset: 4px 0; border-radius: 18px; pointer-events: none; }
 .spv-action > text { position: relative; z-index: 1; white-space: nowrap; }
 .spv-action:active { opacity: .75; transform: scale(.98); }

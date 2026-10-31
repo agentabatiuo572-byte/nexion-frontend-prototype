@@ -1,4 +1,5 @@
 import * as Vue from "vue";
+import { teamRedesignCopy } from '@/i18n/team-redesign';
 import { createPinia } from 'pinia';
 import { useDataVisibility } from '@/store/data-visibility';
 import { formatAmount, formatGroupedAmount } from "@/lib/amount-display";
@@ -88,7 +89,7 @@ async function mount(source: string, dependencies: Record<string, unknown>) {
     '@/lib/account-scope': { captureAccountScope: () => 1, isCurrentAccountScope: () => true },
     "@/lib/amount-display": { formatAmount, formatGroupedAmount },
     "@/i18n/network-reaudit": { networkReauditCopy },
-    "@/i18n/commission-filter-copy": { commissionFilterCopy },
+    "@/i18n/commission-filter-copy": { commissionFilterCopy }, "@/i18n/team-redesign": { teamRedesignCopy },
     "@/lib/trial-date": { formatTrialDate },
     vue: Vue, "@dcloudio/uni-app": { onHide: () => {}, onShow: (callback: () => void) => shows.push(callback) },
     "@/components/app-chassis.vue": { default: slot },
@@ -318,11 +319,12 @@ for (const [zone, localDate] of [["Asia/Tokyo", "2026-10-12"], ["Asia/Ho_Chi_Min
       const shownDate = language === "zh" ? localDate.replace(/-/g, "/") : language === "vi" ? `${localDate.slice(8)}/${localDate.slice(5, 7)}/${localDate.slice(0, 4)}` : `Oct ${Number(localDate.slice(8))}, 2026`;
       for (const kind of kinds) {
         const copy = dictionaries[language];
-        expect(text(page.root)).toContain(`${copy.commissions.kind[kind]} · ${kind === "direct_purchase" ? copy.directReferral.order : copy.directReferral.receipt} REF-${kind} · ${copy.directReferral.device}: DEVICE-7 · ${shownDate}`);
+        expect(text(page.root)).toContain(`${copy.commissions.kind[kind]} · ${kind === "direct_purchase" ? copy.directReferral.order : copy.directReferral.receipt} REF-${kind} · ${copy.directReferral.device}: DEVICE-7`);
       }
+      // P-42 groups records under their local date instead of repeating it on every row.
+      const labels = all(page.root).filter(item => item.props.class === 'commission-day__label').map(text);
+      expect(labels).toHaveLength(1); expect(labels[0].startsWith(shownDate)).toBe(true);
       expect(text(page.root)).not.toMatch(/Mon Oct|Invalid Date|NaN|GMT\+/);
-      expect(all(page.root).filter(item => item.props.style?.marginTop === "2px" && item.props.style?.fontSize === "12px")
-        .some(item => item.props.style.color === "var(--v5-ink-3)" && text(item).endsWith(shownDate))).toBe(true);
     }
     expect(nativeLocale).not.toHaveBeenCalled();
     expect(originalEvents.map(item => [item.ts, item.amountUSDT, item.amountNEX, item.status]))
@@ -342,7 +344,8 @@ test.each([NaN, Infinity, -Infinity, 8.64e15 + 1, -8.64e15 - 1, null, undefined,
         expect(page.commission.eventsStatus).toBe('loading');
         page.reads.at(-1)!.resolve(records); await flush();
       }
-      expect(text(page.root)).toContain(`${dictionaries[language].commissions.kind.direct_purchase} · —`);
+      expect(text(page.root)).toContain(dictionaries[language].commissions.kind.direct_purchase);
+      expect(all(page.root).filter(item => item.props.class === 'commission-day__label').map(text)).toEqual(['—']);
       expect(text(page.root)).not.toMatch(/Invalid Date|NaN|1970/);
     }
   },
@@ -535,7 +538,7 @@ test.each(['en', 'zh', 'vi'] as const)('T6 %s monthly and lifetime summaries kee
   await flush();
   const hero = all(page.root).find(n => n.props['data-component'] === 'hero')!;
   const lifetime = all(page.root).find(n => String(n.props.class).split(' ').includes('reward-income-lifetime'))!;
-  expect(text(hero)).toContain('$250.0040.00 UVT');
+  expect(text(hero)).toContain('$250.00+40.00 UVT');
   expect(text(lifetime)).toContain('$1250.0070.00 UVT');
   page.commission.eventsEvidence = { ...page.commission.eventsEvidence, aggregate: { monthUSDT: 0, monthNEX: 0, totalUSDT: 0, totalNEX: 0 } }; await flush();
   expect(text(hero)).toContain('$0.000.00 UVT');

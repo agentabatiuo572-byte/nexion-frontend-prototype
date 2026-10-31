@@ -102,8 +102,23 @@ test('existing retry actions remain reads, with no duplicate automatic dispatch 
     await p.locator('.wallet-recovery').filter({hasText:text}).locator('[role="button"]').click();
     assert.deepEqual(await p.evaluate(()=>window.meFixture.calls),expected);
   }
-  await p.locator('.wallet-withdrawal-activity').click();assert.ok((await p.evaluate(()=>window.meFixture.calls)).includes('nav:/pages/me/wallet-withdraw-tracking'));
+  assert.equal(await p.locator('.wallet-withdrawal-activity').count(),0);
   const metrics=await p.locator('[data-wallet-metric]').allTextContents();assert.ok(metrics.every(value=>!value.includes('$0.00')));assert.equal(metrics.length,4);
+ }finally{await p.close()}
+});
+test('My never renders withdrawal status cards or placeholders while wallet routes and earnings remain available',async()=>{
+ const p=await screen();try{
+  const base=await p.evaluate(()=>window.meFixture.anchors());
+  for(const status of ['submitted','review-pending','review-passed','processing','sent','confirmed','review-rejected','frozen','address-invalid','tx-failed','refunded',null]){
+   await p.evaluate(async status=>{const f=window.meFixture;f.app.primaryWithdrawal=status?{id:'WD-owned',amount:20,status,network:'BANK-VND',displaySubmittedAt:1792131060000}:null;await f.settle()},status);
+   assert.equal(await p.locator('.wallet-withdrawal-activity,.wallet-activity-row').count(),0);
+   assert.equal(await p.locator('[data-wallet-metric]').count(),4);
+   assert.deepEqual(await p.evaluate(()=>window.meFixture.anchors()),base);
+  }
+  await p.locator('.nx-wallet-actions [role="button"]').nth(1).click();
+  assert.ok((await p.evaluate(()=>window.meFixture.calls)).includes('nav:/pages/me/wallet-withdraw-method'));
+  assert.equal(await p.locator('.me-shortcuts').count(),1);
+  assert.ok(await p.locator('.wallet-overview-card').evaluate(node=>node.parentElement.nextElementSibling.classList.contains('me-shortcuts')));
  }finally{await p.close()}
 });
 test('cold unknown, ordinary pending, failures and subsequent recovery retain the static shell',async()=>{

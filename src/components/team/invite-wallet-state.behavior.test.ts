@@ -135,9 +135,10 @@ async function invitation(copy = en, initial: ReferralRewardSnapshot | null = sn
 beforeEach(() => { vi.stubGlobal('uni', { getStorageSync: () => undefined, setStorageSync: vi.fn() }); vi.useFakeTimers(); setActivePinia(createPinia()); });
 afterEach(() => { unmounts.splice(0).forEach(unmount => unmount()); setActivePinia(undefined); vi.useRealTimers(); vi.unstubAllGlobals(); });
 test.each([
-  { dictionary: zh, language: 'zh', label: '奖励' },
-  { dictionary: en, language: 'en', label: 'Rewards' },
-  { dictionary: vietnamese, language: 'vi', label: 'Thưởng' },
+  // P-42 labels the pill with the board's "reward records" wording.
+  { dictionary: zh, language: 'zh', label: '奖励记录' },
+  { dictionary: en, language: 'en', label: 'Reward records' },
+  { dictionary: vietnamese, language: 'vi', label: 'Lịch sử thưởng' },
 ])('033 $language receipt entry retains records, rules and retry through pointer and keyboard actions', async ({ dictionary, language, label }) => {
   const card = await invitation(dictionary, snapshot(true)), copy = teamRedesignCopy(language);
   const before = JSON.stringify(card.rewards.snapshot);
@@ -149,7 +150,7 @@ test.each([
   expect(icon.children.filter(child => child.tag === 'path')).toHaveLength(2);
 
   for (const activation of ['click', 'Enter', ' ']) {
-    for (const [entry, title] of [['invite-card__history', copy.rewardRecords], ['invite-card__rules', copy.inviteRules]]) {
+    for (const [entry, title] of [['invite-card__history', copy.inviteRecords], ['invite-card__rules', copy.inviteRules]]) {
       const target = find(card.root, entry);
       if (activation === 'click') target.props.onClick();
       else [target.props.onKeydown].flat().forEach(handler => handler({ key: activation, preventDefault: vi.fn() }));
@@ -207,7 +208,8 @@ test('033 localized header fits 320/360/390 with 44px controls in both themes an
               columnGap: getComputedStyle(document.querySelector('.invite-card__header')!).columnGap };
           });
           const { title, actions, reward, rules, icon, header } = geometry;
-          expect(title.right <= actions.x + 1 || title.bottom <= actions.y + 1).toBe(true);
+          // P-42 puts the record/rules pills above the title; they only must not overlap it.
+          expect(title.right <= actions.x + 1 || title.bottom <= actions.y + 1 || actions.bottom <= title.y + 1).toBe(true);
           expect(reward.right).toBeLessThanOrEqual(rules.x);
           for (const control of [reward, rules]) {
             expect(control.width).toBeGreaterThanOrEqual(44); expect(control.height).toBeGreaterThanOrEqual(44);

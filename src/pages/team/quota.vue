@@ -1,6 +1,6 @@
 <template>
   <AppChassis active="team">
-    <view class="quota-page">
+    <view class="quota-page nx-viz-motion">
       <SubPageHeader :back="conditionsOnly ? '/pages/me/devices' : focusedProductId ? `/pages/store/detail?id=${encodeURIComponent(focusedProductId)}` : '/pages/team/team'" :title="conditionsOnly ? t.store.purchaseEligibilityProductPolicy : t.quota.pageTitle" plain design />
       <view v-if="conditionsOnly" class="quota-content">
         <text class="quota-headline">{{ focusedProductName }}</text>
@@ -13,10 +13,12 @@
         <NxButton variant="secondary" :label="t.store.gateLockedCta" @click="go(focusedProductHref)"><text>{{ t.store.gateLockedCta }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
       </view>
       <view v-else class="quota-content">
-        <view class="quota-hero">
-          <view v-if="heroTier && focusedProductId" class="quota-hero__main"><view class="quota-hero__copy"><text class="quota-headline">{{ heroTier.name }}</text><text v-if="heroTier" class="quota-hero__price">{{ fmt(t.quota.priceLine, { price: formatFinanceAmount(heroTier.price) }) }}</text></view><image v-if="heroImage" :src="heroImage" mode="aspectFit" class="quota-hero__image" :alt="heroTier?.name" /><TeamArt v-else kind="members" :size="112" /></view>
-          <view class="quota-invite-count"><text>{{ t.quota.yourInvites }}</text><view><text class="quota-invite-count__number nx-num-metric">{{ visibility.mask(activeDirectText) }}</text><text class="quota-caption">{{ remoteApiEnabled && !remoteSnapshot ? visibility.mask('—') : fmt(t.quota.totalSuffix, { n: visibility.mask(directInvites) }) }}</text></view></view>
-          <text class="quota-body">{{ t.quota.heroBody }}</text>
+        <view class="quota-hero nx-viz-press">
+          <view v-if="heroTier && focusedProductId" class="quota-hero__main"><view class="quota-hero__copy"><text class="quota-headline">{{ heroTier.name }}</text><view class="quota-hero__price nx-num-amount"><text class="quota-price-symbol">$</text><text>{{ heroPriceParts[0] }}</text><text v-if="heroPriceParts[1]" class="quota-price-fraction">.{{ heroPriceParts[1] }}</text></view></view><image v-if="heroImage" :src="heroImage" mode="aspectFit" class="quota-hero__image" :alt="heroTier?.name" /><TeamArt v-else kind="members" :size="112" /></view>
+          <view class="quota-invite-count">
+            <view ref="inviteRingRef" class="quota-ring" :style="{ '--nx-viz-ring': inviteRingInView === false ? 0 : inviteRingPct, transition: inviteRingInView === false ? 'none' : VIZ_RING_TRANSITION }"><view class="quota-ring__hole nx-num-metric"><text class="quota-invite-count__number">{{ visibility.mask(activeDirectText) }}</text><text>{{ visibility.hidden ? '' : remoteApiEnabled && !remoteSnapshot ? '/—' : `/${directInvites}` }}</text></view></view>
+            <view class="quota-invite-count__copy"><text>{{ t.quota.yourInvites }}</text><text v-if="inviteStepText" class="quota-invite-count__step">{{ inviteStepText }}</text><text class="quota-body">{{ t.quota.heroBody }}</text></view>
+          </view>
         </view>
 
         <view v-if="remoteApiEnabled && remoteError" class="quota-state nx-inline-recovery" role="alert"><text class="quota-body nx-inline-recovery__copy">{{ auditCopy.quotaLoadError }}</text><NxButton class="nx-inline-recovery__action" variant="text" :label="t.store.catalogRetry" :busy="remoteRefreshing" @click="refreshRemoteQuota" /></view>
@@ -26,13 +28,17 @@
           <NxButton v-if="productCatalogState.status === 'error'" class="nx-inline-recovery__action" variant="text" :label="t.store.catalogRetry" @click="retryCatalog" />
         </view>
         <view v-if="quotaReady && !focusedTiers.length" class="quota-state" role="status"><text>{{ t.empty.listTitle }}</text></view>
+        <view v-if="focusedTiers.length" class="quota-devices-heading"><text class="quota-section-title">{{ t.quota.availableDevices }}</text><NxButton variant="link" size="small" :label="t.empty.devicesCta" @click="go('/pages/store/store')" /></view>
+        <!-- Tiers swipe sideways as large product cards (P-41). -->
+        <view v-if="focusedTiers.length" class="quota-carousel">
         <QuotaTierCard v-for="tier in focusedTiers" :key="tier.productId" :tier="tier" :pending="remoteApiEnabled && !remoteSnapshot" :action-blocked="!quotaReady" @navigate="go" />
+        </view>
 
         <view class="quota-footer">
-          <NxButton variant="secondary" :label="t.empty.devicesCta" @click="go('/pages/store/store')"><text>{{ t.empty.devicesCta }}</text><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></NxButton>
-          <view class="quota-route" role="link" tabindex="0" @click="go('/pages/team/rank')" @keydown.enter.prevent="go('/pages/team/rank')" @keydown.space.prevent="go('/pages/team/rank')"><text>{{ t.rank.conditionsLabel }}</text><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg></view>
-          <view class="quota-route" role="link" tabindex="0" @click="go('/pages/team/team?intent=share')" @keydown.enter.prevent="go('/pages/team/team?intent=share')" @keydown.space.prevent="go('/pages/team/team?intent=share')"><view><text>{{ t.quota.inviteFriendsTitle }}</text><text v-if="!remoteApiEnabled" class="quota-caption">{{ inviteHint }}</text></view><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></view>
+          <NxButton variant="secondary" :label="t.rank.conditionsLabel" @click="go('/pages/team/rank')" />
+          <NxButton variant="secondary" :label="t.quota.inviteFriendsTitle" @click="go('/pages/team/team?intent=share')" />
         </view>
+        <text v-if="!remoteApiEnabled" class="quota-caption quota-invite-hint">{{ inviteHint }}</text>
       </view>
     </view>
   </AppChassis>
@@ -69,6 +75,7 @@ import { useConfig } from "@/store/config";
 import { useApp } from "@/store/app";
 import { isCurrentTeamP31718Request, type TeamP31718Request } from "@/lib/team-p3-17-18-request-scope";
 import { isAnnualizedQuotaPerk } from "@/lib/quota-perk";
+import { useScrollGrowProgress, VIZ_RING_TRANSITION } from "@/composables/use-scroll-grow-progress";
 
 const t = useT();
 const visibility = useDataVisibility();
@@ -168,6 +175,21 @@ const inviteHint = computed(() => remoteApiEnabled ? "—" : fmt(t.value.quota.i
 const members = computed(() => network.members);
 const directInvites = computed(() => remoteApiEnabled ? remoteSnapshot.value?.facts.directInvites ?? "—" : members.value.filter((m) => m.layer === 1).length);
 const activeDirect = computed(() => remoteApiEnabled ? remoteSnapshot.value?.facts.activeDirect ?? 0 : members.value.filter((m) => m.layer === 1 && m.status === "active").length);
+const { elRef: inviteRingRef, inView: inviteRingInView } = useScrollGrowProgress();
+// Share of direct invites that are active, drawn as the hero ring (hidden data shows an empty ring).
+const inviteRingPct = computed(() => {
+  const total = directInvites.value;
+  return visibility.hidden || typeof total !== "number" || total <= 0 ? 0 : Math.min(100, activeDirect.value / total * 100);
+});
+// The next step reads from the same counts as the ring: invited friends who are not active yet.
+const inviteStepText = computed(() => {
+  const total = directInvites.value;
+  if (visibility.hidden || typeof total !== "number" || total <= 0 || (remoteApiEnabled && !remoteSnapshot.value)) return "";
+  const n = Math.max(0, total - activeDirect.value);
+  if (locale.code === "zh") return n > 0 ? `还有 ${n} 位好友未激活` : "邀请的好友已全部激活";
+  if (locale.code === "vi") return n > 0 ? `Còn ${n} người bạn chưa kích hoạt` : "Bạn bè đã mời đều đã kích hoạt";
+  return n > 0 ? `${n} invited ${n === 1 ? "friend is" : "friends are"} not active yet` : "All invited friends are active";
+});
 const activeDirectText = computed(() => remoteApiEnabled && !remoteSnapshot.value ? "—" : String(activeDirect.value));
 
 // Single source: tiers derive from the catalog products that carry a
@@ -311,29 +333,59 @@ function go(url: string) {
 }
 
 const heroTier = computed(() => focusedTiers.value[0]);
+const heroPriceParts = computed(() => formatFinanceAmount(heroTier.value?.price).split('.'));
 const heroImage = computed(() => heroTier.value ? getProductMedia(heroTier.value.productId)?.src ?? heroTier.value.imageUrl : undefined);
 const quotaReady = computed(() => !remoteApiEnabled || (catalogDisplayReady.value && remoteSnapshot.value !== null && !remoteRefreshing.value && !remoteError.value && productCatalogState.status === 'ready'));
 </script>
 
 <style scoped>
-.quota-page { color:var(--v5-ink);padding-bottom:28px; }.quota-content { padding:12px 20px 0; }
-.quota-hero { padding:var(--ui-space-inline) 0 26px;border-bottom:1px solid var(--v5-border); }.quota-hero__main { display:flex;align-items:center;gap:8px; }.quota-hero__copy { flex:1;min-width:0; }
+.quota-page { color:var(--v5-ink);padding-bottom:28px; }.quota-content { padding:var(--v5-space-3) var(--v5-space-5) 0; }
+.quota-hero { padding:var(--ui-space-inline) 0 26px;border-bottom:1px solid var(--v5-border); }.quota-hero__main { display:flex;align-items:center;gap:var(--v5-space-2); }.quota-hero__copy { flex:1;min-width:0; }
 .quota-eyebrow { display:block;margin-bottom:var(--ui-space-row-y);font:400 12px/1.5 var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }.quota-headline { display:block;font:600 var(--ui-type-page-title)/var(--ui-type-page-title-lh) var(--font-v5);letter-spacing:-.02em;overflow-wrap:anywhere; }.quota-hero__price { display:block;margin-top:var(--ui-space-row-y);font:500 var(--ui-type-profile)/var(--ui-type-profile-lh) var(--font-v5); }
-.quota-hero__image { flex:none;width:42%;height:128px;object-fit:contain; }.quota-invite-count { display:flex;justify-content:space-between;align-items:center;gap:var(--ui-space-inset);margin:18px 0;font:400 var(--ui-type-list-subtitle)/var(--ui-type-list-subtitle-lh) var(--font-v5);color:var(--v5-ink-2); }.quota-invite-count > view { display:flex;align-items:baseline;gap:8px;flex-wrap:wrap; }.quota-invite-count__number { font:600 var(--ui-type-wallet-amount)/var(--ui-type-wallet-amount-lh) var(--font-v5);color:var(--v5-ink); }
-.quota-body { display:block;margin-top:8px;font:400 var(--ui-type-list-subtitle)/1.7 var(--font-v5);color:var(--v5-ink-2);overflow-wrap:anywhere; }.quota-caption { display:block;font:400 12px/1.6 var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }
+.quota-hero__image { flex:none;width:42%;height:128px;object-fit:contain; }.quota-invite-count { display:flex;justify-content:space-between;align-items:center;gap:var(--ui-space-inset);margin:18px 0;font:400 var(--ui-type-list-subtitle)/var(--ui-type-list-subtitle-lh) var(--font-v5);color:var(--v5-ink-2); }.quota-invite-count > view { display:flex;align-items:baseline;gap:var(--v5-space-2);flex-wrap:wrap; }.quota-invite-count__number { font:600 var(--ui-type-wallet-amount)/var(--ui-type-wallet-amount-lh) var(--font-v5);color:var(--v5-ink); }
+.quota-body { display:block;margin-top:var(--v5-space-2);font:400 var(--ui-type-list-subtitle)/1.7 var(--font-v5);color:var(--v5-ink-2);overflow-wrap:anywhere; }.quota-caption { display:block;font:400 12px/1.6 var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }
 .quota-state { padding-block:28px;display:flex;flex-direction:column;gap:var(--ui-space-inset); }.quota-footer { margin-top:28px; }.quota-footer > :deep(.nx-button) { width:100%;box-sizing:border-box; }
-.quota-state.nx-inline-recovery { display:grid; align-items:center; gap:12px; }
+.quota-state.nx-inline-recovery { display:grid; align-items:center; gap:var(--v5-space-3); }
 .quota-route { display:flex;justify-content:space-between;align-items:center;gap:14px;padding:var(--ui-space-inset) 0;min-height:44px;font:500 var(--ui-type-list-subtitle)/1.6 var(--font-v5);color:var(--v5-ink-2);cursor:pointer; }.quota-route + .quota-route { border-top:1px solid var(--v5-border); }.quota-route > view { flex:1;min-width:0;overflow-wrap:anywhere; }.quota-route svg { flex:none; }.quota-route:focus-visible { outline:2px solid var(--v5-brand);outline-offset:3px; }
 /* Tiers are separate sections; conditions remain inside their owning product. */
 .quota-content :deep(.quota-tier) { padding: 26px 0; margin: 0; background: transparent; border: 0; border-bottom: 1px solid var(--v5-border); border-radius: 0; }
 .quota-content :deep(.quota-product__name) { font-size: var(--ui-type-subheading); line-height: var(--ui-type-subheading-lh); }
-.quota-content :deep(.quota-product__price) { font-size: var(--ui-type-list-subtitle); line-height: var(--ui-type-list-subtitle-lh); }
+.quota-content :deep(.quota-product__price) { font-size:18px; line-height:24px; }
 .quota-content :deep(.quota-product__qualification) { font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); }
 .quota-content :deep(.quota-product__image) { width: 64px; height: 72px; }
 .quota-content :deep(.quota-section-label) { font-size: var(--ui-type-list-title); line-height: var(--ui-type-list-title-lh); font-weight: 500; }
 .quota-content :deep(.quota-conditions) { padding-top: 18px; border-top: 1px solid var(--v5-border); }
-.quota-invite-count { align-items: flex-start; margin-top: 8px; }
+.quota-invite-count { align-items: flex-start; margin-top: var(--v5-space-2); }
 .quota-invite-count > view { justify-content: flex-end; text-align: right; max-width: 58%; overflow-wrap: anywhere; }
-.quota-invite-count > text { padding-top: 8px; flex: 1; }
-@media(max-width:374px) { .quota-content { padding-inline:16px; } .quota-hero__image { height:112px; } }
+.quota-invite-count > text { padding-top: var(--v5-space-2); flex: 1; }
+@media(max-width:374px) { .quota-content { padding-inline:var(--v5-space-4); } .quota-hero__image { height:112px; } }
+/* P-41: hero card with the invite ring; tiers as a horizontal carousel of tinted product cards. */
+.quota-hero { margin-top: var(--v5-space-1); padding: var(--v5-space-5); border: 0; border-radius: 28px; background: radial-gradient(120% 90% at 85% 0%, color-mix(in srgb, var(--v5-brand) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.quota-invite-count { align-items: center; }
+.quota-invite-count > .quota-ring { display:grid; place-items:center; align-items:center; justify-content:center; gap:0; max-width:none; text-align:initial; }
+.quota-ring { display: grid; place-items: center; flex: none; width: 72px; height: 72px; border-radius: 999px; background: conic-gradient(var(--v5-brand) calc(var(--nx-viz-ring) * 1%), var(--v5-surface-3) 0); }
+.quota-ring__hole { display:flex; align-items:center; justify-content:center; width:58px; height:58px; border-radius:999px; background:var(--v5-surface); font:600 17px/22px var(--font-metric); color:var(--v5-ink); white-space:nowrap; }
+.quota-ring__hole .quota-invite-count__number { font:inherit; }
+.quota-invite-count > .quota-invite-count__copy { display:block; flex:1; min-width:0; max-width:none; text-align:left; }
+.quota-invite-count__copy > text:first-child { font-weight:500; }
+.quota-invite-count .quota-body { margin-top:var(--v5-space-1); font-size:12px; line-height:1.6; }
+.quota-devices-heading { display:flex; align-items:center; justify-content:space-between; gap:var(--v5-space-3); margin-top:14px; }
+.quota-section-title { font:600 var(--ui-type-section)/var(--ui-type-section-lh) var(--font-v5); }
+.quota-invite-count__step { display:block; margin:2px 0; font:600 16px/22px var(--font-v5); color:var(--v5-ink); }
+.quota-hero > .quota-invite-count:last-child { margin-bottom:0; }
+.quota-hero > .quota-invite-count:first-child { margin-top:0; }
+.quota-footer { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--v5-space-3); margin-top:var(--v5-space-4); }
+.quota-invite-hint { margin-top:var(--v5-space-3); }
+.quota-hero__price { display:flex; align-items:baseline; font:550 24px/32px var(--font-amount); letter-spacing:-.03em; }
+.quota-price-symbol { margin-right:2px; font-size:12px; color:var(--v5-ink-3); }
+.quota-price-fraction { color:var(--v5-ink-3); }
+.quota-carousel { display: flex; gap: var(--ui-space-inline); margin: var(--ui-space-inset) -20px 0; padding: 0 var(--v5-space-5) var(--v5-space-1); overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: var(--v5-space-5); scrollbar-width: none; }
+.quota-carousel::-webkit-scrollbar { display: none; }
+.quota-content .quota-carousel :deep(.quota-tier) { flex: none; width: 260px; box-sizing: border-box; padding: var(--ui-space-inset); border: 0; border-radius: 28px; scroll-snap-align: start; background: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--v5-brand) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.quota-content .quota-carousel :deep(.quota-product) { flex-direction: column; align-items: flex-start; gap: var(--v5-space-2); }
+.quota-content .quota-carousel :deep(.quota-product__image) { align-self: center; width: 100%; height: 120px; }
+.quota-content .quota-carousel :deep(.quota-product__arrow) { display: none; }
+.quota-content .quota-carousel :deep(.quota-product__name) { font: 600 var(--ui-type-card-title)/var(--ui-type-card-title-lh) var(--font-v5); }
+.quota-content .quota-carousel :deep(.quota-conditions) { padding-top: var(--ui-space-inline); }
+@media (max-width: 374px) { .quota-carousel { margin-inline: -16px; padding-inline: var(--v5-space-4); } .quota-content .quota-carousel :deep(.quota-tier) { width: 248px; } }
 </style>

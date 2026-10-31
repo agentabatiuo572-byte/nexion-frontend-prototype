@@ -1,4 +1,5 @@
 import { teamPrivacyFixture } from './team-privacy.test-support';
+import * as vizMotion from '@/composables/use-scroll-grow-progress';
 import * as networkReaudit from "@/i18n/network-reaudit";
 import * as computePoints from "@/i18n/compute-points";
 import { displayNickname } from "@/lib/brand-copy";
@@ -111,6 +112,8 @@ async function mount(platform: "app" | "h5" = "app", canonicalNetwork?: ReturnTy
     vue: Vue, "@/components/svg-text": { default: SvgText },
     "@/components/app-chassis.vue": { default: slot },
     "@/components/sub-page-header.vue": { default: { render: () => Vue.h("view") } },
+    "@/components/glass-segments.vue": { default: { props: ['options', 'modelValue'], emits: ['select'], setup(props: any, { emit }: any) { return () => Vue.h('view', { role: 'tablist' }, props.options.map((option: any) => Vue.h('view', { role: 'tab', 'aria-selected': props.modelValue === option.value, onClick: () => emit('select', option.value) }, option.label))); } } },
+    "@/composables/use-scroll-grow-progress": vizMotion,
     "@/components/team/team-rank-emblem.vue": { default: { props: ["rank"], render: () => Vue.h("view") } },
     "@/i18n/use-t": { useT: () => t }, "@/i18n/format": { fmt },
     "@/store/network": { useNetwork: () => network }, "@/store/v-rank": { useVRank: () => rank },
@@ -165,13 +168,22 @@ test("APP projection groups direct/other members and preserves touch details, cl
   await Vue.nextTick();
   const groups = all(page.root).filter(item => hasClass(item, "network-member-group"));
   expect(groups).toHaveLength(2);
-  expect(text(groups[0])).toContain(en.network.badgeDirect);
-  expect(text(groups[1])).toContain(en.network.badgeExtended);
+  expect(text(page.root)).toContain(en.network.badgeDirect);
+  expect(text(page.root)).toContain(en.network.badgeExtended);
+  expect(style(groups[0]).display).not.toBe('none');
+  expect(style(groups[1]).display).toBe('none');
+  const groupTabs = all(page.root).filter(item => item.props.role === 'tab');
+  emit(groupTabs[1], 'onClick'); await Vue.nextTick();
+  expect(style(groups[0]).display).toBe('none');
+  expect(style(groups[1]).display).not.toBe('none');
   const members = page.controls().filter((item) => hasClass(item, "nx-net-node") && item.props["aria-label"].startsWith("Member "));
   expect(members).toHaveLength(3);
   expect(members.every((item) => item.tag === "view")).toBe(true);
-  expect(members[0].props["aria-label"]).toBe(`Member one · V2 · ${en.network.badgeDirect}`);
-  expect(members[2].props["aria-label"]).toBe(`Member three · V2 · ${en.network.badgeExtended}`);
+  expect(members[0].props["aria-label"]).toContain(`Member one · V2 · ${en.network.badgeDirect}`);
+  expect(members[0].props["aria-label"]).toContain(networkReaudit.networkReauditCopy('en').active);
+  expect(members[0].props["aria-label"]).toContain('320 compute pts');
+  expect(members[2].props["aria-label"]).toContain(`Member three · V2 · ${en.network.badgeExtended}`);
+  expect(members[2].props["aria-label"]).toContain('320 compute pts');
   expect(all(groups[0]).filter(item => hasClass(item, "network-member-pick"))).toHaveLength(2);
   expect(all(groups[1]).filter(item => hasClass(item, "network-member-pick"))).toHaveLength(1);
   emit(members[2], "onClick"); await Vue.nextTick();
@@ -197,7 +209,9 @@ test.each(["app", "h5"] as const)("%s preserves unavailable/error and confirmed 
   const page = await mount(platform);
   page.network.hasRemoteSnapshot = false; page.network.remoteStatus = "error"; page.rank.remoteReady = false;
   await Vue.nextTick();
-  expect(all(page.root).filter((item) => item.tag === "text" && hasClass(item, "tabular-nums") && text(item) === "—")).toHaveLength(3);
+  // The ring split, the member total and the three legend counts show unavailable, never zero.
+  expect(text(all(page.root).find((item) => hasClass(item, "network-overview__split"))!)).toBe("—");
+  expect(all(page.root).filter((item) => item.tag === "text" && hasClass(item, "nx-num-metric") && text(item) === "—")).toHaveLength(4);
   expect(text(page.root)).toContain(en.network.projectionErrorTitle);
   expect(page.self().props["aria-label"]).toContain("—");
   page.network.hasRemoteSnapshot = true; page.network.members = [member("kept", 1)];
@@ -215,7 +229,9 @@ test("mounted APP labels follow late rank and all three locale dictionaries", as
     const dictionary = { en, zh, vi: viMessages }[code];
     expect(page.self().props["aria-label"]).toBe(fmt(dictionary.network.selfNodeLabel, { n: "V3" }));
     expect(text(page.self())).toContain(dictionary.network.diagramYou);
-    expect(text(page.root)).toContain(dictionary.network.legendDirect);
+    // P-41 places status counts in the diagram legend and direct/extended labels in the member card.
+    expect(text(page.root)).toContain(dictionary.network.badgeDirect);
+    expect(text(page.root)).toContain(networkReaudit.networkReauditCopy(code).active);
     expect(page.self().props["aria-label"]).not.toContain("VV3");
   }
 });

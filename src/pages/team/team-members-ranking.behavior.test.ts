@@ -7,6 +7,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { mountEntry, all, text, flush, slot, type Host } from "@/lib/entry-review.test-support";
 import rosterSource from "@/components/team/team-roster-section.vue?raw";
 import leaderboardSource from "./leaderboard.vue?raw";
+import networkSource from "./network.vue?raw";
 import { displayNickname } from "@/lib/brand-copy";
 import { formatAmount } from "@/lib/amount-display";
 import { leaderboardPointsCopy } from "@/i18n/leaderboard-points-copy";
@@ -20,6 +21,7 @@ import { zh } from "@/i18n/messages/zh";
 import { vi as vietnamese } from "@/i18n/messages/vi";
 import type { NetworkMember } from "@/store/network";
 import type { TeamLeaderboardSnapshot } from "@/api/team-insights-api";
+import * as vizMotion from "@/composables/use-scroll-grow-progress";
 
 const dictionaries = { en, zh, vi: vietnamese };
 const disposers: Array<() => void> = [];
@@ -62,7 +64,9 @@ test.each(["en", "zh", "vi"] as const)("flat roster expands actual member facts 
   disposers.push(page.unmount);
   const triggers = () => page.nodes("member-trigger");
   expect(triggers().map(node => text(node).match(/Member (active|zero|unknown)/)?.[1])).toEqual(["active", "zero", "unknown"]);
-  expect(text(triggers()[1])).toContain(formatComputePoints(0, language));
+  const points = () => page.nodes('member-points').map(node => all(node).find(child => child.props['aria-label'])!);
+  expect(text(points()[1])).toBe('0');
+  expect(points()[1].props['aria-label']).toBe(formatComputePoints(0, language));
   expect(text(triggers()[2])).toContain("—");
   expect(page.nodes("member-details")).toHaveLength(0);
   press(triggers()[0]); await flush();
@@ -79,8 +83,44 @@ test.each(["en", "zh", "vi"] as const)("flat roster expands actual member facts 
   expect(text(page.root)).toContain(copy.tree.emptyDirect);
   state.members = [member("active", 10)]; await flush();
   expect(page.nodes("member-details")).toHaveLength(0);
-  press(page.nodes("roster-heading")[0]); await flush();
-  expect(triggers()).toHaveLength(0);
+});
+
+test.each(["en", "zh", "vi"] as const)("network legend counts real statuses and compact points retain accessible units in %s", async language => {
+  const copy = dictionaries[language], privacy = teamPrivacyFixture();
+  const network = Vue.reactive({ remoteStatus: 'ready', hasRemoteSnapshot: true,
+    members: [member('active', 320), member('zero', 0), { ...member('idle', null), status: 'idle', layer: 2 }, { ...member('offline', 40), status: 'offline', layer: 2 }],
+    ensureCanonicalNetwork: vi.fn(), refreshCanonicalNetwork: vi.fn(),
+  });
+  const dependencies: Record<string, unknown> = {
+    '@/store/data-visibility': privacy.dependency,
+    '@/store/network': { useNetwork: () => network },
+    '@/store/v-rank': { useVRank: () => ({ myRank: 2, remoteReady: true, ladder: [] }) },
+    '@/store/locale': { useLocaleStore: () => ({ code: language }) },
+    '@/i18n/use-t': { useT: () => Vue.ref(copy) },
+    '@/api/runtime': { remoteApiEnabled: true },
+    '@/composables/use-dialog-a11y': { useDialogA11y: vi.fn() },
+    '@dcloudio/uni-app': { onShow: vi.fn(), onHide: vi.fn() },
+  };
+  for (const match of parse(networkSource).descriptor.scriptSetup!.content.matchAll(/from\s+['"]([^'"]+)['"]/g)) {
+    const id = match[1];
+    if (id !== 'vue' && !(id in dependencies)) dependencies[id] = id.endsWith('.vue') ? slot : await vi.importActual(id);
+  }
+  const page = mountEntry(networkSource, dependencies); disposers.push(page.unmount);
+  const counts = () => page.nodes('network-legend__item').map(node => text(all(node).find(child => String(child.props.class).includes('nx-num-metric'))!));
+  expect(counts()).toEqual(['2', '1', '1']);
+  expect(page.nodes('network-legend__item').map(text)).toEqual(['active', 'idle', 'offline'].map((status, index) => networkReauditCopy(language)[status as 'active' | 'idle' | 'offline'] + [2, 1, 1][index]));
+  expect(page.nodes('network-members-card')).toHaveLength(2);
+  expect(page.nodes('network-member-points').map(text)).toEqual(['320', '0', '—', '40']);
+  expect(page.nodes('network-member-pick')[0].props['aria-label']).toContain(formatComputePoints(320, language));
+  press(page.nodes('network-member-pick')[0]); await flush();
+  expect(page.nodes('sheet-name').map(text)).toEqual(['Member active']);
+  privacy.visibility.toggle(); await flush();
+  expect(counts()).toEqual(['••••', '••••', '••••']);
+  expect(page.nodes('network-member-points').map(text)).toEqual(['••••', '••••', '••••', '••••']);
+  expect(page.nodes('network-member-pick')[0].props['aria-label']).not.toContain(formatComputePoints(320, language));
+  network.members = []; await flush(); privacy.visibility.toggle(); await flush();
+  expect(counts()).toEqual(['0', '0', '0']);
+  expect(page.nodes('network-empty').map(text)).toEqual([copy.tree.emptyDirect, copy.tree.emptyExtended]);
 });
 
 function snapshot(overrides: Partial<TeamLeaderboardSnapshot> = {}): TeamLeaderboardSnapshot {
@@ -99,7 +139,7 @@ test.each(["en", "zh", "vi"] as const)("ranking keeps server order, independent 
   const page = mountEntry(leaderboardSource, {
     "@/i18n/compute-points": { formatComputePoints }, "@/i18n/leaderboard-points-copy": { leaderboardPointsCopy },
     "@/components/ui/nx-button.vue": compileComponent(buttonSource, { "@/components/liquid-glass.vue": slot }),
-    "@/lib/amount-display": { formatAmount }, "@/lib/route": { navTo }, "@dcloudio/uni-app": { onShow: (fn: () => void) => shown.push(fn), onHide: vi.fn() },
+    "@/lib/amount-display": { formatAmount }, "@/lib/route": { navTo }, "@/composables/use-scroll-grow-progress": vizMotion, "@dcloudio/uni-app": { onShow: (fn: () => void) => shown.push(fn), onHide: vi.fn() },
     "@/components/app-chassis.vue": slot, "@/components/sub-page-header.vue": slot,
     "@/components/team/team-art.vue": slot, "@/components/team/team-rank-emblem.vue": slot,
     "@/lib/v-rank-copy": { rankLabel }, "@/store/data-visibility": teamPrivacyFixture().dependency, "@/store/locale": { useLocaleStore: () => ({ code: language }) },
@@ -122,10 +162,14 @@ test.each(["en", "zh", "vi"] as const)("ranking keeps server order, independent 
   expect(all(page.nodes("leader-podium")[0]).filter(node => node.props["data-rank"]).map(node => node.props["data-rank"])).toEqual([1, 2, 3]);
   expect(all(page.nodes("leader-flat")[0]).filter(node => node.props["data-rank"]).map(node => node.props["data-rank"])).toEqual([4]);
   expect(text(page.nodes("leader-row")[0])).toContain("Compute leader");
-  expect(text(page.nodes("leader-row")[0])).toContain(formatComputePoints(8125, language));
-  expect(text(page.nodes("leader-row")[1])).toContain(formatComputePoints(0, language));
+  const points = page.nodes('leader-points').map(node => all(node).find(child => child.props['aria-label'])!);
+  expect(text(points[0])).toBe(formatComputePoints(8125, language).split(' ')[0]);
+  expect(points[0].props['aria-label']).toBe(formatComputePoints(8125, language));
+  expect(text(points[1])).toBe('0');
+  expect(points[1].props['aria-label']).toBe(formatComputePoints(0, language));
   const invite = page.nodes("leader-share");
   expect(invite).toHaveLength(1);
+  expect(String(invite[0].props.class)).toContain('nx-button--primary');
   expect(text(invite[0])).toContain(dictionaries[language].leaderboard.cta.share);
   press(invite[0], " "); expect(navTo).toHaveBeenCalledExactlyOnceWith("/pages/team/team?intent=share");
   expect(text(page.root)).not.toContain(dictionaries[language].leaderboard.myRank.climb);

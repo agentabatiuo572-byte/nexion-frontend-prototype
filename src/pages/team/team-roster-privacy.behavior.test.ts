@@ -37,14 +37,13 @@ for (const language of ['en', 'zh', 'vi'] as const) test.each([null, 0, 87654])(
     expect(before).toContain(formatComputePoints(lifetime, language));
     expect(before).toContain('1234.50'); expect(before).toContain('V6');
     visibility.toggle(); await flush();
-    expect(text(p.nodes('roster-count')[0])).toBe('••••');
     expect(text(p.nodes('roster-subtitle')[0])).toBe('••••');
     expect(text(p.nodes('member-contribution')[0])).toBe('+$••••');
     expect(text(p.nodes('member-points')[0])).toContain('••••');
     const lifetimeRow = p.nodes('member-detail')[1];
     expect(text(lifetimeRow.children.at(-1)!)).toBe('••••');
     expect(text(p.root)).not.toContain('V6'); expect(text(p.root)).not.toContain('1234.50');
-    expect(all(p.root).filter(n => n.props['aria-expanded'] === true)).toHaveLength(2);
+    expect(all(p.root).filter(n => n.props['aria-expanded'] === true)).toHaveLength(1);
     expect(JSON.stringify(member)).toBe(raw);
     visibility.toggle(); await flush(); expect(text(p.root)).toBe(before);
   },

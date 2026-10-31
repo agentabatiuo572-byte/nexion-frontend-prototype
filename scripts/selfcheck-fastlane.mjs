@@ -972,9 +972,9 @@ function functionBody(src, opener) {
     //    「今天」的平台日口径本身没丢:日限计数与可再提时刻仍由本文件 §7 的边界固定靶
     //    (RESET-1 / RESET / RESET-DAY / RESET-DAY-1 四格 + platformDayIndex 非 UTC 日那格)守着。
 
-    check("🔴 钱包入口与追踪页读**主单**(优先最早的在途单),不读最新一笔",
-      walletSrc.includes("app.primaryWithdrawal") && trackSrc.includes("app.primaryWithdrawal")
-        && !/computed\(\(\) => app\.latestWithdrawal\)/.test(walletSrc)
+    check("🔴 My不展示提现状态卡,追踪页仍读主单(优先最早的在途单)",
+      !/primaryWithdrawal|latestWithdrawal|wallet-withdrawal-activity/.test(walletSrc)
+        && trackSrc.includes("app.primaryWithdrawal")
         && !/computed\(\(\) => app\.latestWithdrawal\)/.test(trackSrc));
     // 🔴 换址闸(更换提现地址前的在途单拦截)问**整张在途列表**,不问最新一笔 ——
     // 只看最新一笔时,一张在途单 + 一张更新的已到账单会把闸静默架空,

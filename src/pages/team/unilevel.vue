@@ -7,14 +7,12 @@
         <EmptyState v-if="remoteState === 'error'" kind="recoverable-error" :title="updateRequired ? t.directReferral.updateRequired : t.network.projectionErrorTitle" :desc="updateRequired ? t.directReferral.updateHint : t.network.projectionErrorDesc" :cta-label="t.network.retry" @cta="retryRemote" />
         <view v-else-if="remoteState !== 'ready' && !remoteSnapshot" role="status" aria-busy="true"><text>{{ t.network.projectionLoadingTitle }}</text></view>
         <template v-else-if="remoteSnapshot">
-          <RewardHero kind="members" panel>
-            <text class="block" style="font-size: var(--ui-type-section); font-weight: 600">{{ filter === 'device_earning' ? t.directReferral.deviceEarning : t.directReferral.purchaseTotal }}</text>
+          <RewardHero class="nx-unilevel-hero nx-viz-press" kind="members">
+            <text class="block nx-unilevel-hero-title">{{ filter === 'device_earning' ? t.directReferral.deviceEarning : t.directReferral.purchaseTotal }} · {{ visibility.mask(remoteGroupCount) }} {{ t.directReferral.settlementGroups }}</text>
             <view class="nx-royalty-totals" :class="{ 'nx-royalty-totals-large': wideAmount(remoteTotalUSDT) || wideAmount(remoteTotalNEX) }">
-              <view><text class="block font-display tabular-nums nx-direct-amount" :style="{ fontSize: amount(remoteTotalUSDT).length > 18 ? '20px' : '26px', fontWeight: 600, color: 'var(--v5-ink)' }">${{ amount(remoteTotalUSDT) }}</text></view>
-              <view><text class="block font-display tabular-nums nx-direct-amount" :style="{ fontSize: amount(remoteTotalNEX).length > 18 ? '20px' : '26px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ amount(remoteTotalNEX) }}</text><text>UVT</text></view>
+              <view><text class="block nx-num-amount nx-direct-amount nx-unilevel-main-amount"><text class="nx-unilevel-dollar">$</text>{{ totalAmountParts[0] }}<text v-if="totalAmountParts[1]" class="nx-unilevel-decimals">.{{ totalAmountParts[1] }}</text></text></view>
+              <view><text class="block font-display tabular-nums nx-direct-amount" :style="{ fontSize: amount(remoteTotalNEX).length > 18 ? '20px' : '26px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ visibility.mask(((remoteTotalNEX ?? 0) > 0 ? '+' : '') + formatAmount(remoteTotalNEX)) }}</text><text>UVT</text></view>
             </view>
-            <text class="block" style="margin-top: 8px; font-size: 12px; color: var(--v5-ink-3)">{{ visibility.mask(remoteGroupCount) }} {{ t.directReferral.settlementGroups }}</text>
-            <text class="block" style="margin-top: 6px; font-size: 12px; line-height: 1.6; color: var(--v5-ink-3)">{{ auditCopy.netSummary }}</text>
           </RewardHero>
         </template>
         <view class="nx-unilevel-filters">
@@ -24,27 +22,23 @@
           </view>
         </view>
         <view v-if="(remoteState === 'ready' || remoteState === 'loading') && remoteSnapshot" class="nx-unilevel-ledger">
-          <view v-for="(event, index) in remoteSnapshot.events" :key="event.id" class="nx-direct-event">
-            <view class="nx-unilevel-record-head">
-              <text class="nx-unilevel-member">{{ event.sourceUserName }}</text>
-              <view class="nx-unilevel-record-amounts">
-                <view class="nx-unilevel-currency-row"><text class="nx-direct-amount">${{ amount(event.amountUSDT) }}</text><text class="nx-unilevel-currency">USDT</text></view>
-                <text class="nx-direct-amount nx-unilevel-uvt">{{ amount(event.amountNEX) }} UVT</text>
+          <view v-for="day in eventDays" :key="day.key" class="nx-unilevel-day">
+            <text class="nx-unilevel-day-label">{{ day.label }}</text>
+            <view class="nx-unilevel-day-card">
+            <view v-for="event in day.events" :key="event.id" class="nx-direct-event nx-viz-press">
+                <view class="nx-unilevel-record-head">
+                  <view class="nx-unilevel-icon" :class="`nx-unilevel-icon--${filter}`" aria-hidden="true"><svg v-if="filter === 'device_earning'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z" /></svg><svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg></view>
+                  <view class="nx-unilevel-record-copy">
+                    <view class="nx-unilevel-member-line"><text class="nx-unilevel-member">{{ event.sourceUserName }}</text><text v-if="event.status !== 'unlocked' || ('statusUSDT' in event && event.statusUSDT !== event.statusNEX)" class="nx-royalty-status" :class="{ 'nx-royalty-status--cooling': event.status === 'cooling' }">{{ statusText(event) }}</text></view>
+                    <text class="nx-unilevel-source-label">{{ filter === 'device_earning' ? t.directReferral.deviceEarning : filter === 'direct' ? t.directReferral.purchase : t.directReferral.networkPurchase }} · {{ recordTime(event.ts) }}</text>
+                  </view>
+                  <view class="nx-unilevel-record-amounts">
+                    <text class="nx-direct-amount nx-unilevel-currency-row">{{ visibility.mask((event.amountUSDT > 0 ? '+' : '') + '$' + formatAmount(event.amountUSDT)) }}</text>
+                    <text class="nx-direct-amount nx-unilevel-uvt">{{ visibility.mask((event.amountNEX > 0 ? '+' : '') + formatAmount(event.amountNEX)) }} UVT</text>
+                  </view>
+                </view>
+                <text v-if="event.status === 'recovery_pending'" class="nx-unilevel-recovery nx-direct-amount">{{ fmt(auditCopy.pendingRecovery, { usdt: '$' + amount(event.recoveryPendingUSDT), uvt: amount(event.recoveryPendingNEX) }) }}</text>
               </view>
-            </view>
-            <view class="nx-unilevel-record-meta">
-              <text class="nx-unilevel-source-label">{{ filter === 'device_earning' ? t.directReferral.deviceEarning : filter === 'direct' ? t.directReferral.purchase : t.directReferral.networkPurchase }}</text>
-              <text class="nx-royalty-status">{{ statusText(event) }}</text>
-            </view>
-            <text class="nx-unilevel-event-time">{{ logicCopy.eventAt }}: {{ teamEventDate(event.ts, locale.code) }}</text>
-            <text v-if="event.status === 'recovery_pending'" class="nx-unilevel-recovery nx-direct-amount">{{ fmt(auditCopy.pendingRecovery, { usdt: '$' + amount(event.recoveryPendingUSDT), uvt: amount(event.recoveryPendingNEX) }) }}</text>
-            <view role="button" tabindex="0" class="nx-unilevel-focus nx-unilevel-details-toggle" :aria-expanded="expandedRecords.includes(event.id)" :aria-controls="'unilevel-record-' + index" @click="toggleRecord(event.id)" @keydown.enter.prevent="toggleRecord(event.id)" @keydown.space.prevent="toggleRecord(event.id)"><text>{{ expandedRecords.includes(event.id) ? auditCopy.hideDetails : auditCopy.recordDetails }}</text><svg :class="{ 'nx-unilevel-chevron-open': expandedRecords.includes(event.id) }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg></view>
-            <view v-if="expandedRecords.includes(event.id)" :id="'unilevel-record-' + index" class="nx-unilevel-details nx-unilevel-record-details">
-              <text class="block">{{ filter === 'device_earning' ? t.directReferral.receipt : t.directReferral.order }} · {{ sourceReference(event) }}</text>
-              <text v-if="'sourceDeviceId' in event && event.sourceDeviceId" class="block">{{ t.directReferral.device }}: {{ event.sourceDeviceId }}</text>
-              <text class="block">{{ t.directReferral.settlement }}: {{ event.id }}</text>
-              <text class="block">{{ logicCopy.settledAt }}: {{ logicCopy.dateUnavailable }}</text>
-              <text v-if="event.status === 'cooling' || ('statusUSDT' in event && event.statusUSDT === 'cooling') || ('statusNEX' in event && event.statusNEX === 'cooling')" class="block">{{ logicCopy.expectedUnlockAt }}: {{ teamEventDate(event.unlockAt, locale.code) }}</text>
             </view>
           </view>
           <EmptyState v-if="remoteSnapshot.totalRows === 0" kind="no-filter-results" :title="t.directReferral.empty" :desc="t.directReferral.emptyDesc" />
@@ -76,7 +70,6 @@
 
 <script setup lang="ts">
 import { teamLogicCopy } from "@/i18n/team-logic-copy";
-import { teamEventDate } from "@/lib/team-event-date";
 import { formatAmount } from "@/lib/amount-display";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { onShow } from "@dcloudio/uni-app";
@@ -109,12 +102,7 @@ const locale = useLocaleStore();
 const visibility = useDataVisibility();
 const logicCopy = computed(() => teamLogicCopy(locale.code));
 const auditCopy = computed(() => networkReauditCopy(locale.code));
-const expandedRecords = ref<string[]>([]);
 const showSettlementDetails = ref(false);
-function toggleRecord(id: string) {
-  expandedRecords.value = expandedRecords.value.includes(id)
-    ? expandedRecords.value.filter(value => value !== id) : [...expandedRecords.value, id];
-}
 const readEnvironment = [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const;
 let environmentInvalidated = false;
 watch(() => [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const, () => { environmentInvalidated = true; }, { flush: 'sync' });
@@ -178,7 +166,7 @@ function retryRemote() {
   void readCoalescer.run({ accountKey: app.accountKey, accountBindingEpoch: app.accountBindingEpoch, runtime: captureRuntimeRevision() }, loadRemote);
 }
 function invalidate(resetSnapshot = true) {
-  expandedRecords.value = []; showSettlementDetails.value = false;
+  showSettlementDetails.value = false;
   remoteRequest++; remoteSnapshot.value = null; policy.value = null; remoteState.value = "loading"; policyState.value = "loading"; remoteLoadMoreStatus.value = "idle";
   if (resetSnapshot) querySnapshotAt = null;
   readCoalescer = createScopedReadCoalescer();
@@ -212,6 +200,21 @@ const ruleDescription = computed(() => {
     : t.value.directReferral.originalPurchaseRule;
   return rule.enabled ? fmt(t.value.directReferral.rule, { rate: formatHowNumber(rule.totalRatePct, dateLocale()), usdt: formatHowNumber(rule.usdtSharePct, dateLocale()), nex: formatHowNumber(100 - rule.usdtSharePct, dateLocale()), days: rule.coolingDays }) : t.value.directReferral.disabled;
 });
+// Records grouped by local calendar day, newest group first (events arrive newest first).
+const eventDays = computed(() => {
+  const days: { key: string; label: string; events: (DirectReferralEvent | TeamUnilevelEvent)[] }[] = [];
+  (remoteSnapshot.value?.events ?? []).forEach(event => {
+    const date = new Date(event.ts);
+    const key = event.ts > 0 ? `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}` : 'unknown';
+    let day = days.find(day => day.key === key);
+    if (!day) {
+      day = { key, label: event.ts > 0 ? `${date.toLocaleDateString(dateLocale(), { month: "numeric", day: "numeric" })} · ${date.toLocaleDateString(dateLocale(), { weekday: "short" })}` : logicCopy.value.dateUnavailable, events: [] };
+      days.push(day);
+    }
+    day.events.push(event);
+  });
+  return days;
+});
 const periodOptions = computed(() => (["today", "week", "month", "all"] as const).map(value => ({ value, label: t.value.unilevel.periods[value] })));
 const filterOptions = computed(() => [
   { value: "direct", label: t.value.directReferral.purchase },
@@ -219,8 +222,9 @@ const filterOptions = computed(() => [
   { value: "device_earning", label: t.value.directReferral.deviceEarning },
 ] as const);
 function amount(value: number | null | undefined) { return visibility.mask(formatAmount(value)); }
+const totalAmountParts = computed(() => amount(remoteTotalUSDT.value).split('.'));
 function wideAmount(value: number) { return amount(value).length > 12; }
-function sourceReference(event: DirectReferralEvent | TeamUnilevelEvent) { return event.sourceRef ?? ("orderId" in event ? event.orderId : null) ?? "—"; }
+function recordTime(ts: number) { return ts > 0 ? new Date(ts).toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit', hour12: false }) : logicCopy.value.dateUnavailable; }
 function statusText(event: DirectReferralEvent | TeamUnilevelEvent) {
   const { statusUSDT, statusNEX } = event as TeamUnilevelEvent;
   return statusUSDT && statusNEX && statusUSDT !== statusNEX ? `USDT ${statusLabel(event, statusUSDT)} · UVT ${statusLabel(event, statusNEX)}` : statusLabel(event);
@@ -240,35 +244,45 @@ function openRules() { go('/pages/team/unilevel-how'); }
 
 <style scoped>
 .nx-direct-amount { overflow-wrap: anywhere; }
-.nx-royalty-totals { display: flex; flex-direction: column; gap: 4px; margin-top: var(--ui-space-row-y); }
-.nx-royalty-totals > view:first-child > text { font-size: 32px !important; }
+/* Hero (P-41): flat surface with a faint brand tint; USDT total in the amount font, UVT in metric. */
+:deep(.nx-unilevel-hero) { padding: var(--v5-space-5); border: 0; border-radius: 28px; background: radial-gradient(120% 90% at 85% 0%, color-mix(in srgb, var(--v5-brand) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.nx-unilevel-hero-title { font-size: 13px; line-height: 18px; font-weight: 500; color: var(--v5-ink-2); }
+:deep(.nx-unilevel-hero .reward-hero__art) { display: none; }
+.nx-royalty-totals { display: flex; flex-direction: column; gap: 2px; margin-top: var(--ui-space-row-y); }
+.nx-unilevel-main-amount { font-size: 40px; line-height: 48px; font-weight: 550; letter-spacing: -0.03em; }
+.nx-unilevel-dollar { margin-right: 2px; font-size: 22px; color: var(--v5-ink-3); }
+.nx-unilevel-decimals { color: var(--v5-ink-3); }
 .nx-royalty-totals > view + view { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
-.nx-royalty-totals > view + view > text:first-child { font-size: 16px !important; }
+.nx-royalty-totals > view + view > text { font-family: var(--font-metric); color: var(--v5-brand) !important; }
+.nx-royalty-totals > view + view > text { font-size: 14px !important; font-weight: 500 !important; }
+.nx-royalty-totals-large > view:first-child > text { font-size: 26px !important; line-height: 34px; }
 
-.nx-royalty-totals-large > view:first-child > text { font-size: 22px !important; }
-
-.nx-unilevel-filters { display: flex; flex-direction: column; gap: 8px; }
-.nx-unilevel-sources { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0 18px; padding: 0 4px; }
-.nx-unilevel-source { min-height: 44px; display: flex; align-items: center; max-width: 100%; padding: 10px 0; color: var(--v5-ink-3); font-size: 13px; line-height: 1.5; cursor: pointer; }
-.nx-unilevel-source--selected { color: var(--v5-brand); font-weight: 600; }
-.nx-unilevel-source--selected > text { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 8px; }
-.nx-unilevel-ledger { border-top: 1px solid var(--v5-border-strong); }
-.nx-direct-event { padding: 20px 0 6px; border-bottom: 1px solid var(--v5-border); }
-.nx-unilevel-record-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 12px; align-items: start; }
-.nx-unilevel-member { min-width: 0; color: var(--v5-ink); font-size: 15px; line-height: 1.5; font-weight: 600; overflow-wrap: anywhere; }
+.nx-unilevel-filters { display: flex; flex-direction: column; gap: var(--ui-space-inline); }
+.nx-unilevel-sources { display: flex; flex-wrap: wrap; gap: var(--v5-space-1); }
+.nx-unilevel-source { min-height: 44px; display: flex; align-items: center; max-width: 100%; padding: 0 var(--v5-space-3); border-radius: 999px; color: var(--v5-ink-3); font-size: 13px; line-height: 18px; font-weight: 500; cursor: pointer; }
+.nx-unilevel-source--selected { color: var(--v5-ink); background: color-mix(in srgb, var(--v5-ink) 10%, transparent); }
+.nx-unilevel-ledger { display: flex; flex-direction: column; gap: var(--ui-space-inset); }
+.nx-unilevel-day { display: flex; flex-direction: column; gap: var(--v5-space-2); }
+.nx-unilevel-day-label { padding: 0 var(--v5-space-1); font: 500 var(--ui-type-meta)/var(--ui-type-meta-lh) var(--font-v5); color: var(--v5-ink-4); }
+.nx-unilevel-day-card { padding: 0 var(--ui-space-inset); border-radius: var(--ui-radius-surface); background: var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.nx-direct-event { padding: 12px 0; }
+.nx-direct-event + .nx-direct-event { border-top: 1px solid var(--v5-border); }
+.nx-unilevel-record-head { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: var(--ui-space-inline); align-items: center; }
+.nx-unilevel-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px; color: var(--v5-brand); background: color-mix(in srgb, var(--v5-brand) 16%, transparent); }
+.nx-unilevel-icon--extended { color: var(--ui-device-ink); background: color-mix(in srgb, var(--ui-device-ink) 16%, transparent); }
+.nx-unilevel-icon--device_earning { color: var(--v5-nex); background: color-mix(in srgb, var(--v5-nex) 16%, transparent); }
+.nx-unilevel-record-copy { min-width: 0; }
+.nx-unilevel-member-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--v5-space-1) 6px; }
+.nx-unilevel-member { min-width: 0; color: var(--v5-ink); font: var(--ui-type-message-title-weight) var(--ui-type-message-title)/var(--ui-type-message-title-lh) var(--font-v5); overflow-wrap: anywhere; }
 .nx-unilevel-record-amounts { min-width: 0; text-align: right; font-variant-numeric: tabular-nums; }
-.nx-unilevel-currency-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: flex-end; gap: 2px 5px; font-size: 17px; line-height: 1.45; font-weight: 600; }
-.nx-unilevel-currency { font-size: 11px; font-weight: 500; color: var(--v5-ink-3); }
-.nx-unilevel-uvt { display: block; margin-top: 4px; color: var(--v5-ink-2); font-size: 13px; line-height: 1.5; }
-.nx-unilevel-record-meta { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 12px; align-items: baseline; margin-top: 12px; font-size: 12px; line-height: 1.6; }
-.nx-unilevel-source-label { color: var(--v5-ink-3); }
-.nx-royalty-status { text-align: right; color: var(--v5-ink-2); overflow-wrap: anywhere; }
-.nx-unilevel-event-time { display: block; margin-top: 8px; font-size: 12px; line-height: 1.6; color: var(--v5-ink-3); }
-.nx-unilevel-recovery { display: block; margin-top: 10px; color: var(--v5-ink-2); font-size: 12px; line-height: 1.6; }
-.nx-unilevel-chevron-open { transform: rotate(180deg); }
-.nx-unilevel-record-details { margin: 0 0 14px; padding: 12px; background: var(--v5-surface); border-radius: 12px; }
+.nx-unilevel-currency-row { display: block; font: 500 15px/20px var(--font-metric); color: var(--v5-brand); }
+.nx-unilevel-uvt { display: block; margin-top: 2px; color: var(--v5-ink-3); font: 500 12px/16px var(--font-metric); }
+.nx-unilevel-source-label { display: block; margin-top: 2px; color: var(--v5-ink-3); font-size: 12px; line-height: 18px; }
+.nx-royalty-status { display: inline-flex; align-items: center; min-height: 20px; padding: 0 6px; border-radius: 999px; background: color-mix(in srgb, var(--v5-ink) 8%, transparent); color: var(--v5-ink-2); font: 500 11px/16px var(--font-v5); overflow-wrap: anywhere; }
+.nx-royalty-status--cooling { color: var(--v5-warning); background: color-mix(in srgb, var(--v5-warning) 16%, transparent); }
+.nx-unilevel-recovery { display: block; margin: var(--v5-space-2) 0 0 48px; color: var(--v5-ink-2); font-size: 12px; line-height: 1.6; }
 .nx-unilevel-focus:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
-.nx-unilevel-details-toggle { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); color: var(--v5-ink-2); font-size: 12px; }
+.nx-unilevel-details-toggle { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); color: var(--v5-ink-3); font-size: 12px; }
 .nx-unilevel-details { color: var(--v5-ink-3); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
-.nx-unilevel-details > text { margin-bottom: 8px; }
+.nx-unilevel-details > text { margin-bottom: var(--v5-space-2); }
 </style>

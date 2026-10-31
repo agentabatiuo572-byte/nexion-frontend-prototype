@@ -49,11 +49,12 @@ test.each(['zh', 'en', 'vi'] as const)('R02 distinguishes qualification, availab
     '@/i18n/use-t': { useT: () => Vue.ref(copy) }, '@/i18n/format': { fmt },
     '@/lib/product-media': { getProductMedia }, '@/components/ui/nx-button.vue': slot,
     './quota-condition-bar.vue': slot, '@/lib/brand-copy': { nexGridBrandText: (name: string) => name },
-    '@/composables/use-scroll-grow-progress': { useScrollGrowProgress: () => ({ elRef: Vue.ref(null), inView: Vue.ref(true) }), PROGRESS_GROW_TRANSITION: '' },
+    '@/composables/use-scroll-grow-progress': { useScrollGrowProgress: () => ({ elRef: Vue.ref(null), inView: Vue.ref(true) }), PROGRESS_GROW_TRANSITION: '', VIZ_RING_TRANSITION: '' },
   });
   const show = (value: typeof tier) => renderToString(Vue.createSSRApp(card, { tier: value }));
   const restricted = await show(tier);
-  expect(restricted).toContain(fmt(copy.quota.priceLine, { price: formatFinanceAmount(tier.price) }));
+  expect(restricted.replace(/<[^>]*>/g, '')).toContain(fmt(copy.quota.priceLine, { price: formatFinanceAmount(tier.price) }));
+  expect(restricted).toContain('quota-price-fraction');
   expect(restricted).toContain(copy.store.purchaseEligibilityIneligible);
   expect(restricted).not.toContain(copy.quota.stockUnavailable);
   const qualified = { ...tier, conditions: [{ ...tier.conditions[0], current: 3 }] };
@@ -91,16 +92,20 @@ test('R12 reward currency keeps original credited, frozen, rejected and reversal
 
 test.each(['zh', 'en', 'vi'] as const)('R13 keeps real budget bounds, neutral presentation and V5 submission gate in %s', async language => {
   const shown: Array<() => void> = [], navTo = vi.fn();
-  const rank = Vue.reactive({ myRank: 2, remoteReady: true, ladder: [], refreshCanonicalVRank: vi.fn(async () => {}) });
+  const rank = Vue.reactive({ myRank: 2, remoteReady: true, ladder: [{ v: 0 }], refreshCanonicalVRank: vi.fn(async () => {}) });
   const policy = { defaultBudgetUsdt: 3000, buckets: ['venue', 'kol', 'print', 'dev'].map(id => ({ id, title: id, rule: 'Actual rule', range: '100-10000 USDT', minBudgetUsdt: 125.25, maxBudgetUsdt: 9876.5 })) };
   const api = { policy: vi.fn(async () => policy), latest: vi.fn(async () => ({ status: 'NONE' })), history: vi.fn(async () => []), submit: vi.fn() };
   // UniApp owns input v-model; adapt only that native element for the in-memory renderer.
   const nativeInput = { default: Vue.defineComponent({ props: ['modelValue', 'disabled'], setup: props => () => Vue.h('input', { disabled: props.disabled, value: props.modelValue }) }) };
-  const adapted = agentSource.replace('<script setup lang="ts">', '<script setup lang="ts">\nimport UniInput from "./network-test-input.vue";').replace(/<input\b/g, '<UniInput');
+  const nativePicker = { default: Vue.defineComponent({ props: ['value', 'disabled', 'mode'], setup: (props, { slots }) => () => Vue.h('date-picker', { disabled: props.disabled, value: props.value, mode: props.mode }, slots.default?.()) }) };
+  const adapted = agentSource.replace('<script setup lang="ts">', '<script setup lang="ts">\nimport UniInput from "./network-test-input.vue";\nimport UniDatePicker from "./network-test-picker.vue";').replace(/<input\b/g, '<UniInput').replace(/<picker\b/g, '<UniDatePicker').replace(/<\/picker>/g, '</UniDatePicker>');
   const page = mountEntry(adapted, {
+    '@/api/order-api': { subscribeRuntimeRevision: () => () => {} },
+    '@/composables/use-scroll-grow-progress': { useScrollGrowProgress: () => ({ elRef: Vue.ref(null), inView: Vue.ref(true) }), PROGRESS_GROW_TRANSITION: 'none', vizStagger: () => '0ms' },
     '@/i18n/team-logic-copy': { teamLogicCopy },
     '@/lib/ambassador-draft-session': { ...draftSession, ambassadorDraftCache: draftSession.createAmbassadorDraftCache() },
     './network-test-input.vue': nativeInput,
+    './network-test-picker.vue': nativePicker,
     '@/lib/amount-display': { formatAmount }, '@/lib/finance-amount-display': { formatFinanceAmount },
     '@/lib/route': { navTo }, '@dcloudio/uni-app': { onShow: (fn: () => void) => shown.push(fn), onHide: vi.fn(), onUnload: vi.fn() },
     '@/components/app-chassis.vue': slot, '@/components/sub-page-header.vue': slot, '@/components/team/v-badge.vue': slot,
@@ -120,22 +125,29 @@ test.each(['zh', 'en', 'vi'] as const)('R13 keeps real budget bounds, neutral pr
   shown.forEach(fn => fn()); await flush();
   expect(text(page.root).split('125.25–9,876.50 USDT')).toHaveLength(5);
   expect(text(page.root)).toContain(networkReauditCopy(language).budgetLabel);
-  const path = all(page.root).find(n => n.props.role === 'button' && text(n).includes(dictionaries[language].agent.pathCta))!;
-  expect(path.props.style.background).not.toBe('var(--v5-brand)'); path.props.onClick(); expect(navTo).toHaveBeenCalledWith('/pages/team/rank');
+  const path = all(page.root).find(n => n.props['aria-label'] === dictionaries[language].agent.pathCta)!;
+  path.props.onClick(); expect(navTo).toHaveBeenCalledWith('/pages/team/rank');
+  const form = page.nodes('agent-form')[0];
+  expect(form.props.style.display).toBe('none');
+  page.nodes('agent-preview')[0].props.onClick(); await flush();
+  expect(form.props.style.display).toBeUndefined();
   const ranges = all(page.root).filter(n => n.text === '125.25–9,876.50 USDT');
   expect(ranges).toHaveLength(4); ranges.forEach(n => expect(n.props.style.color).toBe('var(--v5-ink)'));
   const submit = page.nodes('agent-submit')[0];
   expect(submit.props['aria-disabled']).toBe('true');
   submit.props.onClick(); await flush(); expect(api.submit).not.toHaveBeenCalled();
   expect(all(page.root).filter(n => n.tag === 'input').every(n => n.props.disabled)).toBe(true);
+  expect(all(page.root).find(n => n.tag === 'date-picker')!.props).toMatchObject({ mode: 'date', disabled: true });
   expect(policy.buckets[0].minBudgetUsdt).toBe(125.25);
   rank.myRank = 5; await flush();
   expect(all(page.root).filter(n => n.tag === 'input').every(n => !n.props.disabled)).toBe(true);
+  expect(all(page.root).find(n => n.tag === 'date-picker')!.props.disabled).toBe(false);
   expect(api.submit).not.toHaveBeenCalled();
   rank.remoteReady = false; await flush();
   expect(text(page.root)).toContain(dictionaries[language].profile.rankUnavailable);
   expect(text(page.root)).not.toContain(dictionaries[language].agent.eligible);
   expect(all(page.root).filter(n => n.tag === 'input').every(n => n.props.disabled)).toBe(true);
+  expect(all(page.root).find(n => n.tag === 'date-picker')!.props.disabled).toBe(true);
   const unknownSubmit = all(page.root).find(n => n.props.role === 'button' && String(n.props.class).includes('agent-submit'))!;
   expect(unknownSubmit.props['aria-disabled']).toBe('true');
   unknownSubmit.props.onClick(); await flush();

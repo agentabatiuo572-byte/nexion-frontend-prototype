@@ -42,6 +42,7 @@ const ROUTES: Record<string, readonly string[]> = {
   "/pages/me/notifications": [],
   "/pages/me/security": [],
   "/pages/me/wallet-bills": [],
+  "/pages/me/wallet-withdraw-tracking": ["id"],
   "/pages/support/chat": ["cid"],
   "/pages/me/trial": [],
   "/pages/earn/device-detail": ["id"],
@@ -51,11 +52,12 @@ export function safePushRoute(value: unknown): value is string {
   const [path, query, extra] = value.split("?");
   const keys = Object.prototype.hasOwnProperty.call(ROUTES, path) ? ROUTES[path] : undefined;
   if (!keys || extra !== undefined) return false;
-  if (!query) return true;
+  if (!query) return path !== "/pages/me/wallet-withdraw-tracking";
   const seen = new Set<string>();
   return query.split("&").every(pair => {
     const [key, val, overflow] = pair.split("=");
     if (!keys.includes(key) || seen.has(key) || !val || overflow !== undefined || !/^[A-Za-z0-9_-]{1,128}$/.test(val)) return false;
+    if (path === "/pages/me/wallet-withdraw-tracking" && !/^WD-[A-Z0-9]{1,93}$/.test(val)) return false;
     seen.add(key); return true;
   });
 }

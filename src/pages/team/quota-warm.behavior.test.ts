@@ -56,7 +56,7 @@ async function page(code: keyof typeof dictionaries = 'en', kind = 'ineligible')
     '@/lib/finance-amount-display': { formatFinanceAmount }, '@/i18n/team-logic-copy': { teamLogicCopy }, '@/i18n/compute-points': { formatComputePoints },
     '@/store/data-visibility': visibilityDependency, '@/store/locale': { useLocaleStore: () => locale }, '@/i18n/network-reaudit': { networkReauditCopy }, '@/i18n/use-t': { useT: () => Vue.computed(() => dictionaries[locale.code]) }, '@/i18n/format': { fmt },
     '@/lib/brand-copy': { nexGridBrandText }, '@/lib/product-media': { getProductMedia },
-    '@/composables/use-scroll-grow-progress': { useScrollGrowProgress: () => ({ elRef: Vue.ref(null), inView: Vue.ref(true) }), PROGRESS_GROW_TRANSITION: 'none' },
+    '@/composables/use-scroll-grow-progress': { useScrollGrowProgress: () => ({ elRef: Vue.ref(null), inView: Vue.ref(true) }), PROGRESS_GROW_TRANSITION: 'none', VIZ_RING_TRANSITION: 'none' },
   };
   const buttons: Vue.ComponentInternalInstance[] = [];
   const button = component(buttonSource, { '@/components/liquid-glass.vue': slot });

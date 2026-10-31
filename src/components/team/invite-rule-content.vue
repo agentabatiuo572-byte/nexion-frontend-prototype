@@ -5,7 +5,6 @@
         <template v-if="state === 'ready'">
           <text class="invite-rules__label">{{ copy.inviteRulePerFriend }}</text>
           <text class="invite-rules__amount">{{ formatAmount(rulePresentation!.amount) }} UVT</text>
-          <text class="invite-rules__note">{{ fmt(copy.inviteRuleEffective, { date: effectiveDate }) }}</text>
         </template>
         <text v-else class="invite-rules__label">{{ loading ? t.team.rewardLoading : state === 'disabled' ? t.team.referralRewardsDisabled : copy.inviteRuleSummary }}</text>
         <view v-if="state === 'unavailable'" class="invite-rules-retry" role="button" tabindex="0" @click="retry" @keydown.enter.prevent="retry" @keydown.space.prevent="retry">{{ t.network.retry }}</view>
@@ -21,6 +20,7 @@
         </view>
       </view>
     </view>
+    <text v-if="state === 'ready'" class="invite-rules__note">{{ fmt(copy.inviteRuleEffective, { date: effectiveDate }) }}</text>
   </view>
 </template>
 <script setup lang="ts">
@@ -80,20 +80,22 @@ onMounted(() => {
 </script>
 <style scoped>
 /* Rule-guide roles (design system 4.7): overview card, then numbered steps. */
-.invite-rules-content { display: flex; flex-direction: column; gap: 16px; font-family: var(--font-v5); }
-.invite-rules__overview { display: flex; align-items: center; gap: 12px; padding: 20px; border-radius: 20px; background: var(--v5-surface-2); }
-.invite-rules__summary { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.invite-rules__label { display: block; color: var(--v5-ink-3); font-size: var(--ui-type-description); line-height: var(--ui-type-description-lh); font-weight: var(--ui-type-description-weight); }
-.invite-rules__amount { font-family: var(--font-amount); display: block; color: var(--v5-brand); font-size: var(--ui-type-hero-title); line-height: var(--ui-type-hero-title-lh); font-weight: var(--ui-type-hero-title-weight); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.invite-rules__note { display: block; margin-top: 4px; color: var(--v5-ink-3); font-size: var(--ui-type-note); line-height: var(--ui-type-note-lh); font-weight: var(--ui-type-note-weight); }
+.invite-rules-content { display: flex; flex-direction: column; gap: 18px; font-family: var(--font-v5); }
+.invite-rules__overview { display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-radius: 20px; background: radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, var(--v5-brand) 14%, transparent), transparent 60%), color-mix(in srgb, var(--v5-ink) 3%, transparent); }
+.invite-rules__summary { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; }
+.invite-rules__label { display: block; color: var(--v5-ink-2); font: 400 14px/20px var(--font-v5); }
+.invite-rules__amount { display: block; color: var(--v5-brand); font: 600 20px/24px var(--font-metric); }
+.invite-rules__note { display: block; color: var(--v5-ink-4); font: 400 12px/16px var(--font-v5); }
 .invite-rules__art { --team-art-size: 96px; height: 72px; }
-.invite-rules__steps { padding: 4px 20px; border-radius: 20px; background: var(--v5-surface-2); }
-.invite-rules__step { display: flex; gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--v5-border); }
-.invite-rules__step:last-child { border-bottom: 0; }
-.invite-rules__number { width: 24px; height: 24px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 999px; background: var(--v5-brand-soft); color: var(--v5-brand); font-size: 12px; line-height: 16px; font-weight: 500; font-variant-numeric: tabular-nums; }
-.invite-rules__step-copy { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.invite-rules__step-title { display: block; color: var(--v5-ink); font-size: var(--ui-type-subheading); line-height: var(--ui-type-subheading-lh); font-weight: var(--ui-type-subheading-weight); }
-.invite-rules__step-body { display: block; color: var(--v5-ink-3); font-size: var(--ui-type-description); line-height: var(--ui-type-description-lh); font-weight: var(--ui-type-description-weight); overflow-wrap: anywhere; }
+/* Numbered steps hang on one line like a timeline. */
+.invite-rules__steps { display: flex; flex-direction: column; padding: 4px 0; }
+.invite-rules__step { position: relative; display: flex; gap: 14px; padding-bottom: 20px; }
+.invite-rules__step:last-child { padding-bottom: 0; }
+.invite-rules__step:not(:last-child)::before { content: ""; position: absolute; left: 15px; top: 32px; bottom: 0; width: 2px; background: color-mix(in srgb, var(--v5-brand) 30%, transparent); }
+.invite-rules__number { width: 32px; height: 32px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 999px; background: var(--v5-brand); color: var(--v5-on-brand); font: 600 14px/1 var(--font-metric); }
+.invite-rules__step-copy { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.invite-rules__step-title { display: block; color: var(--v5-ink); font: 600 15px/32px var(--font-v5); }
+.invite-rules__step-body { display: block; margin-top: -4px; color: var(--v5-ink-3); font: 400 13px/20px var(--font-v5); }
 .invite-rules-retry { min-height: 44px; display: flex; align-items: center; color: var(--v5-brand); font: 600 13px/20px var(--font-v5); }
 .invite-rules-retry:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 </style>

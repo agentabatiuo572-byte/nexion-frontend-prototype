@@ -1,7 +1,7 @@
 <template>
   <AppChassis active="team">
     <view class="pb-4" style="padding-top: 12px; color: var(--v5-ink)">
-      <view class="px-4" style="display: flex; flex-direction: column; gap: 24px">
+      <view class="px-4" style="display: flex; flex-direction: column; gap: 16px">
         <!-- This month ledger -->
         <TeamLedgerCard
           :available="ledgerVisible"
@@ -34,13 +34,16 @@
         />
 
         <!-- My V-rank summary -->
-        <view class="nx-team-rank-link team-rank" role="link" tabindex="0" :aria-label="t.team.rankBenefits" @click="go('/pages/team/rank')" @keydown.enter.prevent="go('/pages/team/rank')" @keydown.space.prevent="go('/pages/team/rank')">
-          <view class="team-rank__header"><text class="team-rank__title">{{ designCopy.myRank }}</text><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></view>
-          <view class="team-rank__emblem">
-            <view class="team-rank__outline"><svg width="68" height="78" viewBox="0 0 68 78" fill="none" aria-hidden="true"><path d="M34 2 65 20v38L34 76 3 58V20Z" fill="var(--v5-surface)" stroke="var(--v5-ink-2)" stroke-width="2"/><path d="M34 6 61 22v34L34 72 7 56V22Z" stroke="var(--v5-brand)" stroke-opacity=".25"/></svg></view>
-            <text class="team-rank__level">{{ visibility.mask(myRankDisplay) }}</text>
+        <!-- Badge, the gap to the next rank and one bar per next-rank condition. -->
+        <view class="nx-team-rank-link team-rank nx-viz-press" role="link" tabindex="0" :aria-label="t.team.rankBenefits" @click="go('/pages/team/rank')" @keydown.enter.prevent="go('/pages/team/rank')" @keydown.space.prevent="go('/pages/team/rank')">
+          <view class="team-rank__header"><text class="team-rank__title">{{ designCopy.myRank }}</text><text class="team-rank__chev" aria-hidden="true">›</text></view>
+          <view class="team-rank__identity">
+            <TeamRankEmblem v-if="!visibility.hidden && rankReadable" :rank="remoteApiEnabled ? rankPresentation : myRank" :size="52" />
+            <view class="team-rank__copy"><text class="team-rank__level">{{ visibility.mask(myRankDisplay) }}</text><text class="team-rank__hint">{{ visibility.mask(rankGapText) }}</text></view>
           </view>
-          <text class="team-rank__hint">{{ designCopy.benefitsAndRewards }}</text>
+          <view v-if="rankBars.length" ref="rankBarsEl" class="team-rank__bars" aria-hidden="true">
+            <view v-for="(bar, index) in rankBars" :key="bar.key" class="team-rank__bar"><text>{{ bar.label }}</text><view class="team-rank__track"><view :style="{ width: rankBarsInView === false || visibility.hidden || bar.percent === null ? '0%' : `${bar.percent}%`, transition: rankBarsInView === false ? 'none' : PROGRESS_GROW_TRANSITION, transitionDelay: rankBarsInView === false ? '0ms' : vizStagger(index) }" /></view></view>
+          </view>
           <view v-if="vrank.remoteError" class="team-rank__status" role="status"><text>{{ t.rank.loadError }}</text><view class="team-rank__retry" role="button" tabindex="0" @click.stop="vrank.refreshCanonicalVRank()" @keydown.enter.stop.prevent="vrank.refreshCanonicalVRank()" @keydown.space.stop.prevent="vrank.refreshCanonicalVRank()">{{ t.rank.retry }}</view></view>
         </view>
 
@@ -48,92 +51,58 @@
 
         <ReferralProgress @share="inviteCard?.openShare()" />
 
-        <!-- Unified quick nav -->
-        <view class="nx-team-quick-panel" :style="quickPanelStyle">
-          <text class="team-section-title">{{ designCopy.rewardsSection }}</text>
-          <!-- Leaderboard -->
-          <view class="nx-team-leaderboard-link active:opacity-95" role="link" tabindex="0" :style="quickRowStyle" @click="go('/pages/team/leaderboard')">
-            <view :style="quickRowMainStyle">
-              <view :style="quickIconStyle('var(--v5-ink-2)')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0z" /></svg>
-              </view>
-              <view class="flex-1 min-w-0">
-                <text class="block" :style="quickRowTitleStyle">{{ t.teamV3.leaderboardCard.title }}</text>
-                <text class="block" :style="quickRowMetaStyle">{{ t.teamV3.leaderboardCard.subtitle }}</text>
+        <!-- Rewards: one card per reward with its own accent and mini visual (P-41) -->
+        <view>
+          <view class="team-section-head"><text class="team-section-title">{{ designCopy.rewardsSection }}</text><text class="team-section-meta">{{ locale.code === "zh" ? "本期" : locale.code === "vi" ? "Kỳ này" : "This period" }}</text></view>
+          <view ref="bentoEl" class="team-bento nx-viz-motion">
+            <view class="nx-team-leaderboard-link team-bento__card nx-viz-press team-bento__card--wide team-bento__card--gold" role="link" tabindex="0" @click="go('/pages/team/leaderboard')" @keydown.enter.prevent="go('/pages/team/leaderboard')">
+              <view class="team-bento__head"><view class="team-bento__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0z" /></svg></view><svg class="team-bento__chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg></view>
+              <view class="team-bento__podium" aria-hidden="true"><view v-for="(bar, index) in PODIUM_BARS" :key="index" :style="{ height: bentoInView === false ? '0px' : `${bar.height}px`, transition: bentoInView === false ? 'none' : VIZ_GROW_HEIGHT_TRANSITION, transitionDelay: bentoInView === false ? '0ms' : vizStagger(bar.order) }" /></view>
+              <view class="team-bento__foot">
+                <text class="team-bento__headline">{{ t.teamV3.leaderboardCard.subtitle }}</text>
+                <text class="team-bento__caption">{{ t.teamV3.leaderboardCard.title }} · <text class="team-bento__muted">{{ t.leaderboard.periods.week }}</text></text>
               </view>
             </view>
-            <view :style="quickRowValueWrapStyle">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+            <view class="nx-team-royalty-network-link team-bento__card nx-viz-press team-bento__card--brand" role="button" tabindex="0" :aria-label="t.teamV3.sevenLayerNetwork" @click="openReferralNetwork" @keydown.enter.prevent="openReferralNetwork">
+              <view class="team-bento__head"><view class="team-bento__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg></view><svg class="team-bento__chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg></view>
+              <view v-if="memberInitials.length" class="team-bento__avatars" aria-hidden="true">
+                <text v-for="(initial, index) in memberInitials" :key="index" class="team-bento__avatar">{{ initial }}</text>
+              </view>
+              <view class="team-bento__foot">
+                <text class="team-bento__value team-bento__value--count">{{ visibility.mask(totalMembersCountText) }}<text v-if="locale.code === 'zh' && !visibility.hidden" class="team-bento__unit">人</text></text>
+                <text class="team-bento__caption">{{ designCopy.teamRewards }} · <text class="team-bento__muted">{{ designCopy.memberCountLabel }}</text></text>
+              </view>
+            </view>
+            <view class="nx-team-binary-link team-bento__card nx-viz-press team-bento__card--cyan" role="link" tabindex="0" @click="go('/pages/team/binary')" @keydown.enter.prevent="go('/pages/team/binary')">
+              <view class="team-bento__head"><view class="team-bento__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z" /></svg></view><svg class="team-bento__chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg></view>
+              <view v-if="binary && !visibility.hidden" class="team-bento__split" aria-hidden="true"><view :style="{ width: bentoInView === false ? '0%' : `${binarySplit.left}%`, transition: bentoInView === false ? 'none' : PROGRESS_GROW_TRANSITION }" /><view :style="{ width: bentoInView === false ? '0%' : `${binarySplit.right}%`, transition: bentoInView === false ? 'none' : PROGRESS_GROW_TRANSITION, transitionDelay: bentoInView === false ? '0ms' : vizStagger(1) }" /></view>
+              <view class="team-bento__foot">
+                <text v-if="binaryAmountParts && !visibility.hidden" class="team-bento__value team-bento__amount nx-num-amount"><text class="team-bento__currency">{{ binaryAmountParts.prefix }}</text>{{ binaryAmountParts.integer }}<text class="team-bento__fraction">.{{ binaryAmountParts.fraction }}</text></text><text v-else class="team-bento__value team-bento__amount nx-num-amount">{{ visibility.mask(binaryMatchText) }}</text>
+                <text class="team-bento__caption">{{ designCopy.twoGroupRewards }} · <text class="team-bento__muted">{{ designCopy.estimated }}</text></text>
+              </view>
+            </view>
+            <view class="nx-team-leadership-pool-link team-bento__card nx-viz-press team-bento__card--wide team-bento__card--violet" role="link" tabindex="0" @click="go('/pages/team/leadership-pool')" @keydown.enter.prevent="go('/pages/team/leadership-pool')">
+              <view class="team-bento__head"><view class="team-bento__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14" /></svg></view><svg class="team-bento__chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg></view>
+              <view class="team-bento__pool">
+                <view class="team-bento__foot">
+                  <view class="team-estimate"><text v-if="leadershipPoolUnlocked && remotePoolReadable" class="team-estimate__label">{{ designCopy.estimated }}</text><text v-if="poolAmountParts && !visibility.hidden" class="team-bento__value team-bento__amount nx-num-amount"><text class="team-bento__currency">{{ poolAmountParts.prefix }}</text>{{ poolAmountParts.integer }}<text class="team-bento__fraction">.{{ poolAmountParts.fraction }}</text></text><text v-else class="team-bento__value team-bento__amount nx-num-amount">{{ visibility.mask(leadershipPoolPrimary) }}</text></view>
+                  <text class="team-bento__caption">{{ t.teamV3.weeklyPool }}<template v-if="poolShareReady"> · <text class="team-bento__muted">{{ leadershipPoolLineA }}</text></template></text>
+                  <text v-if="!poolShareReady" class="team-bento__meta">{{ remotePoolReadable ? leadershipPoolLineB : leadershipPoolLineA }}</text>
+                </view>
+                <view class="team-bento__ring" :class="{ 'team-bento__ring--capped': poolRingPct > 0 }" aria-hidden="true" :style="{ '--nx-viz-ring': bentoInView === false ? 0 : poolRingPct, transition: bentoInView === false ? 'none' : VIZ_RING_TRANSITION }"><view><text class="team-bento__ring-value nx-num-metric">{{ !remotePoolReadable ? "—" : poolShareReady ? leadershipPoolLineB : fmt(t.home.rankUnlockAt, { n: leadershipUnlockRank }) }}</text><text v-if="poolShareReady" class="team-bento__ring-label">{{ t.pool.myShare }}</text></view></view>
+              </view>
             </view>
           </view>
-
-          <view :style="quickDividerStyle" />
-
-          <!-- Royalty network -->
-          <view class="nx-team-royalty-network-link"   role="button" tabindex="0" :aria-label="t.teamV3.sevenLayerNetwork" :style="quickRowStyle" @click="openReferralNetwork">
-            <view :style="quickRowMainStyle">
-              <view :style="quickIconStyle('var(--v5-ink-2)')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-              </view>
-              <view class="flex-1 min-w-0">
-                <text class="block" :style="quickRowTitleStyle">{{ t.teamV3.sevenLayerNetwork }}</text>
-                <text class="block" :style="quickRowMetaStyle">{{ t.directReferral.purchase }} · {{ t.directReferral.networkPurchase }} · {{ t.directReferral.deviceEarning }}</text>
-              </view>
-            </view>
-            <view :style="quickRowValueWrapStyle">
-              <text class="font-display tabular-nums" :style="quickRowValueStyle">{{ visibility.mask(totalMembersCountText) }}</text>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-            </view>
-          </view>
-
-          <view :style="quickDividerStyle" />
-
-          <!-- Binary -->
-          <view class="nx-team-binary-link active:opacity-95" role="link" tabindex="0" :style="quickRowStyle" @click="go('/pages/team/binary')">
-            <view :style="quickRowMainStyle">
-              <view :style="quickIconStyle('var(--v5-ink-2)')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z" /></svg>
-              </view>
-              <view class="flex-1 min-w-0">
-                <text class="block" :style="quickRowTitleStyle">{{ t.teamV3.todayMatch }}</text>
-                <text class="block" :style="quickRowMetaStyle">A · {{ visibility.mask(leftVolText) }}  /  B · {{ visibility.mask(rightVolText) }}</text>
-              </view>
-            </view>
-            <view :style="quickRowValueWrapStyle">
-              <view class="team-estimate"><text class="team-estimate__label">{{ designCopy.estimated }}</text><text class="font-display tabular-nums" :style="quickRowValueStyle">{{ visibility.mask(binaryMatchText) }}</text></view>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-            </view>
-          </view>
-
-          <view :style="quickDividerStyle" />
-
-          <!-- Leadership pool -->
-          <view class="nx-team-leadership-pool-link active:opacity-95" role="link" tabindex="0" :style="quickRowStyle" @click="go('/pages/team/leadership-pool')">
-            <view :style="quickRowMainStyle">
-              <view :style="quickIconStyle('var(--v5-ink-2)')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14" /></svg>
-              </view>
-              <view class="flex-1 min-w-0">
-                <text class="block" :style="quickRowTitleStyle">{{ t.teamV3.weeklyPool }}</text>
-                <text class="block" :style="quickRowMetaStyle">{{ leadershipPoolLineB ? `${leadershipPoolLineA}  /  ${leadershipPoolLineB}` : leadershipPoolLineA }}</text>
-              </view>
-            </view>
-            <view :style="quickRowValueWrapStyle">
-              <view class="team-estimate"><text v-if="leadershipPoolUnlocked && remotePoolReadable" class="team-estimate__label">{{ designCopy.estimated }}</text><text class="font-display tabular-nums" :style="quickRowValueStyle">{{ visibility.mask(leadershipPoolPrimary) }}</text></view>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-            </view>
-          </view>
-
         </view>
 
         <view>
-        <text class="team-section-title">{{ designCopy.moreTools }}</text>
-        <NxListGroup class="team-tools">
-          <NxListRow :title="t.teamV3.hardwareQuota" :subtitle="t.teamV3.quotaSubtitle" @click="go('/pages/team/quota')"><template #leading><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 9 5v10l-9 5-9-5V7Z M3 7l9 5 9-5M12 12v10"/></svg></template></NxListRow>
-          <NxListRow :title="t.teamV3.ambassador" :subtitle="t.teamV3.ambassadorSubtitle" @click="go('/pages/team/agent')"><template #leading><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></template></NxListRow>
-          <NxListRow :title="t.teamV3.visualizations.influenceNetwork" :subtitle="t.teamV3.visualizations.orbitLiveMap" @click="go('/pages/team/network')"><template #leading><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="4" r="3"/><circle cx="4" cy="19" r="3"/><circle cx="20" cy="19" r="3"/><path d="m10.5 7-5 9m9-9 5 9M7 19h10"/></svg></template></NxListRow>
-          <NxListRow :title="t.teamV3.visualizations.genealogy" :subtitle="t.teamV3.visualizations.genealogySubtitle" @click="go('/pages/team/tree')"><template #leading><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M2 22v-3a7 7 0 0 1 14 0v3M16 3a4 4 0 0 1 0 8M22 22v-3a7 7 0 0 0-5-6.7"/></svg></template></NxListRow>
-        </NxListGroup>
+          <text class="team-section-title">{{ designCopy.moreTools }}</text>
+          <view class="team-tools">
+            <view class="team-tool" role="link" tabindex="0" :aria-label="t.teamV3.hardwareQuota" @click="go('/pages/team/quota')" @keydown.enter.prevent="go('/pages/team/quota')"><view class="team-tool__icon team-tool__icon--brand"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 9 5v10l-9 5-9-5V7Z M3 7l9 5 9-5M12 12v10"/></svg></view><text class="team-tool__label">{{ t.teamV3.hardwareQuota }}</text></view>
+            <view class="team-tool" role="link" tabindex="0" :aria-label="t.teamV3.ambassador" @click="go('/pages/team/agent')" @keydown.enter.prevent="go('/pages/team/agent')"><view class="team-tool__icon team-tool__icon--orange"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></view><text class="team-tool__label">{{ t.teamV3.ambassador }}</text></view>
+            <view class="team-tool" role="link" tabindex="0" :aria-label="t.teamV3.visualizations.influenceNetwork" @click="go('/pages/team/network')" @keydown.enter.prevent="go('/pages/team/network')"><view class="team-tool__icon team-tool__icon--cyan"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="4" r="3"/><circle cx="4" cy="19" r="3"/><circle cx="20" cy="19" r="3"/><path d="m10.5 7-5 9m9-9 5 9M7 19h10"/></svg></view><text class="team-tool__label">{{ t.teamV3.visualizations.influenceNetwork }}</text></view>
+            <view class="team-tool" role="link" tabindex="0" :aria-label="t.teamV3.visualizations.genealogy" @click="go('/pages/team/tree')" @keydown.enter.prevent="go('/pages/team/tree')"><view class="team-tool__icon team-tool__icon--violet"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg></view><text class="team-tool__label">{{ t.teamV3.visualizations.genealogy }}</text></view>
+          </view>
         </view>
       </view>
     </view>
@@ -141,8 +110,9 @@
 </template>
 
 <script setup lang="ts">
+import { useScrollGrowProgress, PROGRESS_GROW_TRANSITION, VIZ_GROW_HEIGHT_TRANSITION, VIZ_RING_TRANSITION, vizStagger } from "@/composables/use-scroll-grow-progress";
 import { runPassiveTabRead, invalidatePassiveTabRead, passiveTabReadScope } from "@/lib/passive-tab-read";
-import { formatUsd } from "@/lib/usd-display";
+import { formatUsd, formatUsdOverviewParts } from "@/lib/usd-display";
 import { formatComputePoints, sumComputePoints } from "@/i18n/compute-points";
 import ReferralProgress from '@/components/promotion/referral-progress.vue';
 import { navTo } from "@/lib/route";
@@ -151,14 +121,15 @@ import { onLoad, onShow, onHide } from "@/composables/use-tab-page-lifecycle";
 import { takeNavigationQuery } from "@/lib/route";
 import AppChassis from "@/components/tab-page-frame.vue";
 import { teamRedesignCopy } from '@/i18n/team-redesign';
-import NxListGroup from "@/components/ui/nx-list-group.vue";
-import NxListRow from "@/components/ui/nx-list-row.vue";
 import InviteEarnCard from "@/components/team/invite-earn-card.vue";
 import TeamLedgerCard from "@/components/team/team-ledger-card.vue";
+import TeamRankEmblem from "@/components/team/team-rank-emblem.vue";
+import { teamRankProgress } from "@/lib/team-rank-progress";
+import { useAuditUiCopy } from "@/i18n/audit-ui";
 import NetworkOrbBackdrop from "@/components/team/network-orb-backdrop.vue";
 import { useT } from "@/i18n/use-t";
 import { dateLocale, fmt } from "@/i18n/format";
-import { useVRank, nextRankProgress } from "@/store/v-rank";
+import { useVRank } from "@/store/v-rank";
 import { rankLabel } from "@/lib/v-rank-copy";
 import { useLocaleStore } from "@/store/locale";
 import { useNetwork } from "@/store/network";
@@ -179,6 +150,7 @@ const t = useT();
 const visibility = useDataVisibility();
 const app = useApp();
 const vrank = useVRank();
+const auditCopy = useAuditUiCopy();
 const locale = useLocaleStore();
 const network = useNetwork();
 const commission = useCommission();
@@ -261,15 +233,34 @@ const commissionAggregate = computed(() => ledgerPresentation.value ?? {
   totalUSDT: 0, totalNEX: 0, directUSDT: 0, extendedUSDT: 0, contributorCount: 0,
 });
 
-const rankInfo = computed(() =>
-  nextRankProgress({
-    myRank: vrank.myRank,
-    selfComputePoints: vrank.selfComputePoints,
-    directRefs: vrank.directRefs,
+const rankReadable = computed(() => !remoteApiEnabled || (rankPresentation.value !== null && vrank.remoteReady));
+const rankProgress = computed(() => teamRankProgress({
+  myRank: vrank.myRank,
+  selfComputePoints: vrank.selfComputePoints,
+  directRefs: vrank.directRefs,
   teamComputePoints: vrank.teamComputePoints,
   vDownlineCounts: vrank.vDownlineCounts,
-}, vrank.ladder),
-);
+}, vrank.ladder));
+const rankGapText = computed(() => {
+  if (!rankReadable.value) return designCopy.value.benefitsAndRewards;
+  const next = rankProgress.value.next;
+  if (!next) return t.value.home.rankTopTier;
+  return `${fmt(auditCopy.value.toRank, { rank: `V${next.v}` })}${locale.code === "zh" ? " " : " · "}${fmt(auditCopy.value.remainingConditions, { n: rankProgress.value.missing.length })}`;
+});
+// One short bar per condition of the next rank; unknown progress keeps an empty track.
+const rankBars = computed(() => {
+  const next = rankProgress.value.next;
+  if (!rankReadable.value || !next) return [];
+  const short = locale.code === "zh" ? { selfComputePoints: "自购", directRefs: "好友", teamComputePoints: "团队" }
+    : locale.code === "vi" ? { selfComputePoints: "Cá nhân", directRefs: "Bạn bè", teamComputePoints: "Nhóm" }
+      : { selfComputePoints: "Self", directRefs: "Friends", teamComputePoints: "Team" };
+  return rankProgress.value.rows.filter(row => row.tier === next.v).map(row => ({
+    key: row.key,
+    label: row.kind === "vDownlines" ? `V${row.vLevel}` : short[row.kind],
+    percent: row.status === "unknown" ? null : row.required === 0 ? 100 : Math.min(100, Math.round(row.current! / row.required * 100)),
+  }));
+});
+const { elRef: rankBarsEl, inView: rankBarsInView } = useScrollGrowProgress();
 
 const byLayerBuckets = computed(() => network.byLayer());
 const directCountText = computed(() => {
@@ -337,8 +328,7 @@ const binary = computed(() => {
   return { binaryMatch: match, leftVol: L, rightVol: R };
 });
 const binaryMatchText = computed(() => binary.value === null ? "—" : formatUsd(binary.value.binaryMatch));
-const leftVolText = computed(() => binary.value === null ? "—" : formatUsd(binary.value.leftVol));
-const rightVolText = computed(() => binary.value === null ? "—" : formatUsd(binary.value.rightVol));
+const binaryAmountParts = computed(() => binary.value === null ? null : formatUsdOverviewParts(binary.value.binaryMatch));
 
 const myVotes = computed(() => remoteApiEnabled ? remotePool.value?.myVotes ?? 0 : pool.myVotes(vrank.myRank));
 const leadershipUnlockRank = computed(() => remoteApiEnabled ? remotePool.value?.unlockRank ?? 3 : 3);
@@ -349,6 +339,7 @@ const leadershipPoolTotal = computed(() => remoteApiEnabled ? remotePool.value?.
 const leadershipPoolPrimary = computed(() =>
   !remotePoolReadable.value ? "—" : formatUsd(leadershipPoolUnlocked.value ? projectedPayout.value : leadershipPoolTotal.value),
 );
+const poolAmountParts = computed(() => !remotePoolReadable.value ? null : formatUsdOverviewParts(leadershipPoolUnlocked.value ? projectedPayout.value : leadershipPoolTotal.value));
 const leadershipPoolLineA = computed(() =>
   !remotePoolReadable.value ? (remotePoolState.value === "hold" ? t.value.pool.settlementHoldShort : remotePoolState.value === "loading" ? t.value.pool.loading : t.value.network.projectionErrorDesc) : leadershipPoolUnlocked.value ? `${visibility.mask(myVotes.value)} ${t.value.teamV3.votes}` : `V${leadershipUnlockRank.value}`,
 );
@@ -364,6 +355,25 @@ const poolThisWeekText = computed(() => {
 const leadershipPoolLineB = computed(() =>
   !remotePoolReadable.value ? "" : leadershipPoolUnlocked.value ? visibility.mask(`${(myShare.value * 100).toFixed(2)}%`) : poolThisWeekText.value,
 );
+
+// Mini visuals on the reward cards: member initials, the A/B volume split and my pool share.
+const memberInitials = computed(() => {
+  if (!networkReadable.value || visibility.hidden) return [];
+  const members = ([1, 2, 3, 4, 5, 6, 7] as const).flatMap(layer => byLayerBuckets.value[layer]);
+  const initials = members.slice(0, 3).map(member => member.name.trim().charAt(0).toUpperCase() || "•");
+  return members.length > 3 ? [...initials, `+${members.length - 3}`] : initials;
+});
+const binarySplit = computed(() => {
+  const left = binary.value?.leftVol ?? 0, right = binary.value?.rightVol ?? 0;
+  // Each side's share of the track, leaving room for the 3px gap.
+  return left + right > 0 ? { left: left / (left + right) * 98, right: right / (left + right) * 98 } : { left: 0, right: 0 };
+});
+// Decorative pedestals (2nd, 1st, 3rd); they rise 3rd → 2nd → 1st.
+const PODIUM_BARS = [{ height: 26, order: 1 }, { height: 40, order: 2 }, { height: 18, order: 0 }];
+const { elRef: bentoEl, inView: bentoInView } = useScrollGrowProgress();
+const poolShareReady = computed(() => remotePoolReadable.value && leadershipPoolUnlocked.value);
+const poolRingPct = computed(() => !visibility.hidden && remotePoolReadable.value && leadershipPoolUnlocked.value
+  ? Math.min(100, Math.max(0, myShare.value * 100)) : 0);
 
 function go(url: string) {
   navTo(url);
@@ -508,55 +518,6 @@ const rankPrizeValueStyle: CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-const quickPanelStyle: CSSProperties = { background: 'transparent', borderRadius: '0', boxShadow: 'none' };
-const quickRowStyle: CSSProperties = {
-  minHeight: "74px",
-  padding: "14px 0",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: "12px",
-};
-const quickRowMainStyle: CSSProperties = {
-  minWidth: 0,
-  flex: 1,
-  display: "flex",
-  alignItems: "center",
-  gap: "12px",
-};
-function quickIconStyle(color: string): CSSProperties {
-  return {
-    width: "36px",
-    height: "36px",
-    borderRadius: "12px",
-    display: "grid",
-    placeItems: "center",
-    flexShrink: 0,
-    background: "transparent",
-    color,
-  };
-}
-const quickRowTitleStyle: CSSProperties = { fontSize: "var(--ui-type-subheading)", fontWeight: "var(--ui-type-subheading-weight)", lineHeight: 1.2, color: "var(--v5-ink)" };
-const quickRowMetaStyle: CSSProperties = {
-  marginTop: "4px",
-  fontSize: "12px",
-  lineHeight: 1.35,
-  color: "var(--v5-ink-3)",
-  whiteSpace: "normal",
-};
-const quickRowValueWrapStyle: CSSProperties = {
-  flexShrink: 0,
-  display: "flex",
-  alignItems: "center",
-  gap: "8px",
-};
-const quickRowValueStyle: CSSProperties = { fontSize: "15px", fontWeight: 600, lineHeight: 1, color: "var(--v5-ink)", whiteSpace: "nowrap" };
-const quickRowValueWarnStyle: CSSProperties = { ...quickRowValueStyle, color: "var(--v5-warning-ink)" };
-const quickDividerStyle: CSSProperties = {
-  height: "1px",
-  marginLeft: "0",
-  background: "var(--v5-border)",
-};
 const toolGridStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
@@ -606,33 +567,89 @@ const teamSummaryStatus = computed(() => remoteApiEnabled ? network.remoteStatus
 </script>
 
 <style scoped>
+.team-rank { position: relative; overflow: hidden; display: flex; flex-direction: column; gap: var(--v5-space-2); min-width: 0; min-height: 176px; box-sizing: border-box; padding: var(--ui-space-inset); border-radius: 24px; background: radial-gradient(120% 90% at 85% 0%, color-mix(in srgb, var(--v5-brand) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.team-rank__header { display: flex; align-items: center; justify-content: space-between; min-height: 24px; gap: 4px; }
+.team-rank__title { font: 600 14px/20px var(--font-v5); }
+.team-rank__chev { font-size: 18px; color: var(--v5-ink-4); }
+.team-rank__identity { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.team-rank__copy { display: flex; flex-direction: column; min-width: 0; }
+.team-rank__level { font: 700 22px/26px var(--font-metric); color: var(--v5-brand); }
+.team-rank__hint { font: 400 11px/14px var(--font-v5); color: var(--v5-ink-3); overflow-wrap: anywhere; }
+.team-rank__bars { display: flex; flex-direction: column; gap: 6px; margin-top: auto; }
+.team-rank__bar { display: grid; grid-template-columns: minmax(28px, max-content) minmax(0, 1fr); align-items: center; gap: 6px; font: 400 10px/12px var(--font-v5); color: var(--v5-ink-3); }
+.team-rank__track { height: 4px; overflow: hidden; border-radius: 999px; background: var(--v5-surface-3); }
+.team-rank__track > view { height: 100%; border-radius: 999px; background: var(--v5-brand); }
 .team-overview-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: var(--ui-space-inline); align-items: stretch; }
-.team-rank { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 6px; min-width: 0; padding: var(--ui-space-inline); border: 1px solid var(--v5-border); border-radius: 22px; background: radial-gradient(ellipse at 50% 68%,color-mix(in srgb,var(--v5-brand) 7%,transparent),transparent 70%),var(--v5-surface); }
-.team-rank__header { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 32px; gap: 4px; }
-.team-rank__header > svg { flex-shrink: 0; color: var(--v5-ink-3); }
-.team-rank:active { opacity: .8; }
 .team-rank:focus-visible, .team-tool:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
-.team-rank__emblem { position: relative; display: grid; place-items: center; flex: none; width: 68px; height: 78px; }
-.team-rank__outline { position: absolute; inset: 0; }
-.team-rank__title { display: block; font: var(--ui-type-card-title-weight) var(--ui-type-card-title)/1.4 var(--font-v5); }
-.team-rank__level { position: relative; display: block; font: 600 24px/1.3 var(--font-v5); color: var(--v5-brand); }
 .team-rank__status { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px; font: 400 12px/1.4 var(--font-v5); color: var(--v5-ink-3); }
 .team-rank__retry { display: flex; align-items: center; min-height: 44px; padding: 0 6px; color: var(--v5-brand); }
-.team-rank__hint { display: block; margin-top: 4px; text-align: center; font: 400 12px/1.4 var(--font-v5); color: var(--v5-ink-3); }
 @media(max-width:359px) {
   .team-overview-grid :deep(.team-summary__header),.team-rank__header { min-height: 42px; }
 }
-.team-section-title { display: block; font: 600 var(--ui-type-section)/1.4 var(--font-v5); margin-bottom: 8px; }
-.team-tools { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: var(--ui-space-inset); background: transparent; border: 0; border-radius: 0; }
-.team-tools :deep(.nx-list-row) { padding-left: 0; padding-right: 0; min-width: 0; border: 0; }
-.team-tools :deep(.nx-list-row__subtitle) { font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); text-wrap: balance; overflow-wrap: normal; word-break:normal; }
-/* Two-column entry grid: approved compact density (10.2, as the four network entries). */
-.team-tools :deep(.nx-list-row__title) { font-size: var(--ui-type-list-subtitle); line-height: var(--ui-type-list-subtitle-lh); text-wrap: balance; overflow-wrap: normal; word-break:normal; }
-.team-tools :deep(.nx-list-row__leading) { width:24px; }
-@media(max-width:359px) { .team-tools { grid-template-columns:minmax(0,1fr); } }
+.team-section-title { display: block; font: 600 var(--ui-type-section)/1.4 var(--font-v5); margin-bottom: var(--v5-space-4); }
+.team-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--ui-space-inline); }
+.team-section-meta { font: 400 12px/1.4 var(--font-v5); color: var(--v5-ink-3); }
 .team-estimate { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
 .team-estimate__label { font: 400 11px/1.4 var(--font-v5); color: var(--v5-ink-3); }
-.team-tool :deep(svg) { color: var(--v5-brand); stroke: var(--v5-brand); }
-.team-tool :deep(svg:first-child) { flex-shrink: 0; }
-.nx-team-royalty-network-link:active { opacity: .7; }
+/* Reward cards (P-41): flat surface with a faint accent tint, accent icon and a mini visual. */
+.team-bento { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ui-space-inline); }
+.team-bento__card { --accent: var(--v5-brand); position: relative; display: flex; flex-direction: column; gap: var(--ui-space-inline); min-width: 0; min-height: 168px; box-sizing: border-box; padding: var(--ui-space-inset); overflow: hidden; border-radius: var(--ui-radius-surface); background: radial-gradient(120% 90% at 85% 0%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.team-bento__card--wide { grid-column: span 2; min-height: 132px; }
+.team-bento__card--gold { --accent: var(--v5-warning); }
+.team-bento__card--brand { --accent: var(--v5-brand); }
+.team-bento__card--cyan { --accent: var(--ui-device-ink); }
+.team-bento__card--violet { --accent: var(--v5-nex); }
+.team-bento__card:focus-visible, .team-tool:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
+.team-bento__head { display: flex; align-items: center; justify-content: space-between; }
+.team-bento__icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px; color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent); }
+.team-bento__chev { color: var(--v5-ink-4); }
+.team-bento__foot { display: flex; flex-direction: column; gap: 2px; margin-top: auto; min-width: 0; }
+.team-bento__headline { font: 600 var(--ui-type-hero-title)/var(--ui-type-hero-title-lh) var(--font-v5); }
+.team-bento__value { font: 500 22px/30px var(--font-metric); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.team-bento__amount { font-family: var(--font-amount); }
+.team-bento__value--count { font-size: 28px; line-height: 34px; }
+.team-bento__unit { margin-left: 6px; font: 400 13px/1 var(--font-v5); color: var(--v5-ink-3); }
+.team-bento__currency { font-size: 14px; }
+.team-bento__fraction { color: var(--v5-ink-3); }
+.team-bento__caption { font: 500 var(--ui-type-description)/18px var(--font-v5); color: var(--v5-ink); }
+.team-bento__muted { color: var(--v5-ink-3); }
+.team-bento__meta { font: var(--ui-type-meta-weight) var(--ui-type-meta)/var(--ui-type-meta-lh) var(--font-v5); color: var(--v5-ink-3); overflow-wrap: anywhere; }
+.team-bento__podium { position: absolute; right: var(--ui-space-inset); bottom: 14px; display: flex; align-items: flex-end; gap: var(--v5-space-1); }
+.team-bento__podium > view { width: 22px; border-radius: 6px 6px 2px 2px; }
+.team-bento__card--gold { display: grid; grid-template-columns: minmax(0, 1fr) 74px; gap: var(--v5-space-3); }
+.team-bento__card--gold .team-bento__head { grid-column: 1 / -1; }
+.team-bento__card--gold .team-bento__foot { grid-column: 1; grid-row: 2; align-self: end; }
+.team-bento__card--gold .team-bento__podium { position: static; grid-column: 2; grid-row: 2; align-self: end; height: 40px; }
+.team-bento__podium > view:nth-child(1) { background: linear-gradient(180deg, var(--v5-ink-2), color-mix(in srgb, var(--v5-ink-2) 25%, transparent)); }
+.team-bento__podium > view:nth-child(2) { background: linear-gradient(180deg, var(--v5-warning), color-mix(in srgb, var(--v5-warning) 25%, transparent)); }
+.team-bento__podium > view:nth-child(3) { background: linear-gradient(180deg, var(--v5-brand-2), color-mix(in srgb, var(--v5-brand-2) 25%, transparent)); }
+.team-bento__avatars { display: flex; }
+.team-bento__avatar { display: grid; place-items: center; min-width: 22px; height: 22px; margin-left: -6px; padding: 0 var(--v5-space-1); box-sizing: border-box; border-radius: 999px; background: var(--v5-brand); box-shadow: 0 0 0 2px var(--v5-surface); font: 600 10px/1 var(--font-v5); color: var(--v5-on-brand); }
+.team-bento__avatar:first-child { margin-left: 0; }
+.team-bento__avatar:nth-child(2) { background: var(--ui-device-ink); }
+.team-bento__avatar:nth-child(3) { background: var(--v5-warning); }
+.team-bento__avatar:nth-child(4) { background: var(--v5-ink-2); }
+.team-bento__split { display: flex; gap: 3px; }
+.team-bento__split > view { height: 8px; min-width: 0; border-radius: 999px; background: var(--ui-device-ink); }
+.team-bento__split > view:last-child { background: color-mix(in srgb, var(--ui-device-ink) 35%, transparent); }
+.team-bento__pool { display: grid; grid-template-columns: minmax(0, 1fr) 92px; align-items: end; gap: var(--v5-space-3); margin-top: auto; }
+.team-bento__ring { display: grid; place-items: center; width: 92px; height: 92px; border-radius: 999px; background: conic-gradient(var(--v5-nex) calc(var(--nx-viz-ring) * 1%), var(--v5-surface-3) 0); }
+/* Round arc ends, as on the pool page. */
+@supports (width: calc(sin(1deg) * 1px)) {
+  .team-bento__ring--capped { background: radial-gradient(circle at calc(50% + sin(calc(var(--nx-viz-ring) * 3.6deg)) * 42px) calc(50% - cos(calc(var(--nx-viz-ring) * 3.6deg)) * 42px), var(--v5-nex) 3.5px, transparent 4px), radial-gradient(circle at 50% 4px, var(--v5-nex) 3.5px, transparent 4px), conic-gradient(var(--v5-nex) calc(var(--nx-viz-ring) * 1%), var(--v5-surface-3) 0); }
+}
+.team-bento__ring > view { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 76px; height: 76px; padding: 0 var(--v5-space-1); box-sizing: border-box; border-radius: 999px; background: var(--v5-surface); text-align: center; }
+.team-bento__ring-value { font: 600 15px/18px var(--font-metric); color: var(--v5-nex); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.team-bento__ring-label { font: 500 11px/14px var(--font-v5); color: var(--v5-ink-3); }
+.team-bento__pool .team-estimate { align-items: flex-start; gap: 2px; }
+/* More tools: four glass icon buttons in one row. */
+.team-tools { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--v5-space-2); }
+.team-tool { display: flex; flex-direction: column; align-items: center; gap: var(--v5-space-2); min-width: 0; }
+.team-tool:active { opacity: .8; }
+.team-tool__icon { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 20px; background: linear-gradient(145deg, rgba(255,255,255,.07), transparent 40%, transparent 64%, rgba(255,255,255,.05)), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border), inset 0 3px 6px -2px rgba(255,255,255,.18); }
+.team-tool__icon--brand { color: var(--v5-brand); }
+.team-tool__icon--orange { color: var(--v5-brand-2); }
+.team-tool__icon--cyan { color: var(--ui-device-ink); }
+.team-tool__icon--violet { color: var(--v5-nex); }
+.team-tool__label { max-width: 100%; text-align: center; font: 500 var(--ui-type-meta)/var(--ui-type-meta-lh) var(--font-v5); color: var(--v5-ink-2); overflow-wrap: anywhere; }
 </style>

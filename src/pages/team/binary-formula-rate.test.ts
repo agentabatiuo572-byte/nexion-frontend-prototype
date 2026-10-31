@@ -13,6 +13,7 @@ import { vi } from "@/i18n/messages/vi";
 import { fmt } from "@/i18n/format";
 import { formatFinanceAmount } from "@/lib/finance-amount-display";
 import { formatComputePoints } from "@/i18n/compute-points";
+import { VIZ_GROW_HEIGHT_TRANSITION } from "@/composables/use-scroll-grow-progress";
 
 const source = readFileSync(new URL("./binary.vue", import.meta.url), "utf8");
 const start = source.indexOf("const formulaText = computed(");
@@ -129,7 +130,10 @@ describe("binary group volume and privacy", () => {
     const original = JSON.stringify(wings);
     const draw = () => renderToString(Vue.createSSRApp({ render: renderComparison, setup: () => ({
       visibility, wings, t: dict, locale: { code: locale }, formatFinanceAmount, formatComputePoints,
-      binaryCopy: { contributions: "A / B" }, contributionWidths: [100, 50], weakVol: 1400.125,
+      binaryCopy: { contributions: "A / B" }, contributionWidths: [100, 50], vizStagger: () => "0ms", weakVol: 1400.125,
+      comparisonInView: true, VIZ_GROW_HEIGHT_TRANSITION, pageState: { primary: 'ready' }, snapshot: {},
+      leftMonthVol: 2800.25, rightMonthVol: 1400.125, rateLabel: (13.75).toLocaleString(locale),
+      estimateText: dict.binary.estimate, estimateAmountParts: visibility.mask(formatFinanceAmount(192.52)).split('.'), go: () => {},
       wingMembersText: (n: number) => fmt(dict.binary.monthVolMembers, { n: visibility.mask(n) }),
       formulaText: "13.75% · $4,321.00", gapHintText: dict.binary.gapHint,
     }) }));
@@ -138,8 +142,10 @@ describe("binary group volume and privacy", () => {
     expect(shown).toContain(`$${formatFinanceAmount(1400.125)}`);
     expect(shown).not.toContain(formatComputePoints(17, locale));
     expect(shown).not.toContain(formatComputePoints(9200, locale));
-    expect(shown).toContain("width:100%");
-    expect(shown).toContain("width:50%");
+    expect(shown).toContain("height:100%");
+    expect(shown).toContain("height:50%");
+    expect(shown).toContain(`×${(13.75).toLocaleString(locale)}%`);
+    expect(shown).toContain(dict.binary.weakBadge); expect(shown).toContain(dict.binary.strongBadge);
 
     visibility.hidden = true;
     const hidden = await draw();

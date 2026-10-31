@@ -24,7 +24,7 @@ describe("withdrawal warning requires withdrawal intent", () => {
       expect(read(name), name).not.toMatch(/WithdrawalLockedWarning|showWithdrawalLocked|withdrawalLockedBody|MIN_WITHDRAWAL_USD/);
     }
     expect(read("../../components/me/wallet-card.vue")).toMatch(/href="\/pages\/me\/wallet-withdraw(?:-method)?"/);
-    expect(read("../../components/me/wallet-overview.vue")).toContain("/pages/me/wallet-withdraw");
+    expect(read("../../components/me/wallet-overview.vue")).not.toContain("/pages/me/wallet-withdraw");
   });
 
   it.each([10, 35])("checks the current minimum %s inside the real withdrawal handler", minimum => {

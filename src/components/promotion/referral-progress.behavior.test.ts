@@ -51,7 +51,7 @@ function mount() {
     '@/lib/promotion-entry': { isPromotionActive,promotionDisclosures: () => [] }, './promotion-terms.vue': { default: {} },
     '@/i18n/team-redesign': { teamRedesignCopy },
     '@/components/team/team-art.vue': { default: {} },
-    '@/components/ui/nx-button.vue': { default: {} },
+    '@/components/ui/nx-button.vue': { default: {} }, '@/components/ui/nx-sheet.vue': { default: {} },
     '@/components/catalog-machine-image.vue': { default: {} },
     '@/components/catalog-machine-image': { promotionMachineSlots },
     '@/mock/products': { getProduct:(id:string)=>products[id] },

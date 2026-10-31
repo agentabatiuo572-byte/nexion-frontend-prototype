@@ -18,10 +18,10 @@ test("purchase totals use unilevel once; the device tab has its own server-filte
   await flush();
   expect(snapshot).not.toHaveBeenCalled();
   expect(unilevel).toHaveBeenLastCalledWith("month", 1, 20, null, "direct");
-  expect(text(page.root)).toContain("$110.004100.00UVT");
+  expect(text(page.root)).toContain("$110.00+4100.00UVT");
   await click(page.root, "Friends' device earnings");
   expect(snapshot).toHaveBeenLastCalledWith("month", 1, 20, cutoff, "device_earning");
-  expect(text(page.root)).toContain("$0.3322.00UVT");
+  expect(text(page.root)).toContain("$0.33+22.00UVT");
   expect(text(page.root)).not.toContain("$600.00");
 });
 

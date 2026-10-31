@@ -111,6 +111,12 @@ describe("native push trust and lifecycle", () => {
     expect(h.request).toHaveBeenCalledWith(expect.objectContaining({ path: "/api/me/push-notifications/note-1/opened", method: "POST", body: { installationId: "test-install" } }));
     h.click(); await turn(); expect(h.port.navigate).toHaveBeenCalledOnce();
   });
+  it("opens the exact withdrawal returned by the authenticated notification resolver", async () => {
+    const h = harness(); await turn();
+    h.request.mockResolvedValueOnce({ notificationId: "note-1", route: "/pages/me/wallet-withdraw-tracking?id=WD-OWNED" });
+    h.click(); await turn();
+    expect(h.port.navigate).toHaveBeenCalledExactlyOnceWith("/pages/me/wallet-withdraw-tracking?id=WD-OWNED");
+  });
   it("keeps cold clicks pending until authenticated UI restoration finishes", async () => {
     const h = harness(false); let ready = false; h.port.canNavigate = () => ready;
     h.click(); await turn(); expect(h.request).not.toHaveBeenCalled();
@@ -299,8 +305,16 @@ describe("push input boundaries", () => {
     expect(pushNotificationId({ payload: '{"notificationId":"note-1"}', title: "ignored" })).toBe("note-1");
   });
   it.each(["https://untrusted.invalid", "uvel://pay", "/pages/me/wallet-withdraw?amount=5", "/pages/me/security?url=https://bad", "/pages/me/support?conversationId=x&conversationId=y", "/pages/me/support?conversationId=%2Fother", "__proto__", "/pages/me/security#bad", "/pages/login/login"])("rejects unsafe route %s", route => expect(safePushRoute(route)).toBe(false));
+  it.each(["", "?", "?id=", "?order=WD-OWNED", "?id=WD-OWNED&id=WD-OTHER", "?id=WD-OWNED&amount=5", "?id=%2Fother", "?id=WD-owned", "?id=WD-", "?id=WD_OWNED"])("rejects an ambiguous withdrawal push destination %s", query => {
+    expect(safePushRoute(`/pages/me/wallet-withdraw-tracking${query}`)).toBe(false);
+  });
+  it("accepts only the canonical withdrawal number length range", () => {
+    expect(safePushRoute("/pages/me/wallet-withdraw-tracking?id=WD-1")).toBe(true);
+    expect(safePushRoute(`/pages/me/wallet-withdraw-tracking?id=WD-${"A".repeat(93)}`)).toBe(true);
+    expect(safePushRoute(`/pages/me/wallet-withdraw-tracking?id=WD-${"A".repeat(94)}`)).toBe(false);
+  });
   it("allowlisted entry points exist in the actual page registry", () => {
-    for (const route of ["/pages/me/security", "/pages/me/notifications", "/pages/me/wallet-bills", "/pages/me/trial", "/pages/support/chat?cid=test-conversation", "/pages/earn/device-detail?id=test-device"]) {
+    for (const route of ["/pages/me/security", "/pages/me/notifications", "/pages/me/wallet-bills", "/pages/me/wallet-withdraw-tracking?id=WD-OWNED", "/pages/me/trial", "/pages/support/chat?cid=test-conversation", "/pages/earn/device-detail?id=test-device"]) {
       expect(safePushRoute(route)).toBe(true);
       expect(pages.pages.some(page => `/${page.path}` === route.split("?")[0])).toBe(true);
     }

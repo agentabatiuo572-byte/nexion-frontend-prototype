@@ -19,9 +19,9 @@ describe("wallet today earnings authority", () => {
     const code = ts.transpileModule(walletPage.slice(start, end), {
       compilerOptions: { target: ts.ScriptTarget.ES2022 },
     }).outputText;
-    const state = new Function("formatAmount", "computed", "app", "remoteApiEnabled", "resolveWalletTodayEarnings",
+    const state = new Function("formatAmount", "computed", "app", "remoteApiEnabled", "resolveWalletTodayEarnings", "visibility",
       `${code}\nreturn { todayEarningsText };`,
-    )(formatAmount, computed, app, true, resolveWalletTodayEarnings);
+    )(formatAmount, computed, app, true, resolveWalletTodayEarnings, { mask: String });
     const row = walletPage.slice(walletPage.indexOf('data-wallet-metric="today"'), walletPage.indexOf('data-wallet-metric="reviewing"'));
     const binding = row.match(/<text class="wallet-metric-amount[^>]*>\{\{(.*?)\}\}/)?.[1];
     if (!binding) throw new Error("Wallet Today text binding missing");
