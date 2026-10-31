@@ -13,7 +13,9 @@ const state=structuredClone(demoDefaults),routes=[],init=[];
 // An optional local handoff preserves demo conversations across a preview rebuild.
 if(process.env.DEMO_STATE_FILE)Object.assign(state,JSON.parse(await readFile(process.env.DEMO_STATE_FILE,'utf8')).state);
 let locale='zh';
-const checkoutFlow=process.env.DEMO_CHECKOUT_FLOW==='1'?createCheckoutFlowFixture(state,()=>locale):null;
+// Purchases need the payment PIN and order commands, so the preview models them
+// unless DEMO_CHECKOUT_FLOW=0.
+const checkoutFlow=process.env.DEMO_CHECKOUT_FLOW!=='0'?createCheckoutFlowFixture(state,()=>locale):null;
 const fixtureFor=(url,request)=>demoFixture(url,locale,state,request);
 const messages=createPrototypeMessages({state,fixtureFor});
 const realtime=createPrototypeRealtime({state,messages,fixtureFor});
