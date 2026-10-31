@@ -701,3 +701,129 @@ describe("actionable unread is never reconstructed from paginated rows", () => {
     store.bindAccount("default"); expect(store.actionableUnread).toBeNull();
   });
 });
+
+describe("independent server-filtered notification pages", () => {
+  const row = (id: number, kind = "wallet", readAt: number | null = null) => ({ id, kind, priority: "normal" as const,
+    title: String(id), body: "", ctaLabel: "", ctaHref: "", createdAt: id, readAt });
+  const page = (items: CanonicalNotificationPage["items"], nextCursor: string | null = null) => ({ items, unread: 203, nextCursor });
+
+  it("finishes a one-row finance category with one request despite hundreds of other notifications", async () => {
+    remote.notificationApi.page.mockResolvedValueOnce(page([row(7)]));
+    const store = useNotifications();
+    await store.selectCategory("finance");
+    await store.loadMoreRemote(); await store.loadMoreRemote();
+    expect(remote.notificationApi.page).toHaveBeenCalledExactlyOnceWith(undefined, undefined, "finance");
+    expect(store.items.map(item => item.id)).toEqual(["7"]);
+    expect(store.nextCursor).toBeNull(); expect(store.unread).toBe(203);
+  });
+
+  it("retains each category's historical rows and cursor on switches and head polls", async () => {
+    remote.notificationApi.page.mockResolvedValueOnce(page([row(5), row(4)], "4"))
+      .mockResolvedValueOnce(page([row(3)], "3"))
+      .mockResolvedValueOnce(page([row(8, "device")], "8"))
+      .mockResolvedValueOnce(page([row(6), row(5)], "5"));
+    const store = useNotifications();
+    await store.selectCategory("finance"); await store.loadMoreRemote();
+    await store.selectCategory("device");
+    expect(store.items.map(item => item.id)).toEqual(["8"]); expect(store.nextCursor).toBe("8");
+    await store.selectCategory("finance");
+    expect(remote.notificationApi.page).toHaveBeenCalledTimes(3);
+    expect(store.items.map(item => item.id)).toEqual(["5", "4", "3"]); expect(store.nextCursor).toBe("3");
+    await store.refreshRemote();
+    expect(store.items.map(item => item.id)).toEqual(["6", "5", "4", "3"]); expect(store.nextCursor).toBe("3");
+    await store.selectCategory("device"); expect(store.nextCursor).toBe("8");
+  });
+
+  it("never revives an exhausted category when polling, including after a failed head read", async () => {
+    remote.notificationApi.page.mockResolvedValueOnce(page([row(5)], "5"))
+      .mockResolvedValueOnce(page([row(4)]))
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce(page([row(6), row(5)], "5"));
+    const store = useNotifications();
+    await store.selectCategory("finance"); await store.loadMoreRemote();
+    await store.refreshRemote(); await store.refreshRemote();
+    expect(store.items.map(item => item.id)).toEqual(["6", "5", "4"]);
+    expect(store.nextCursor).toBeNull(); expect(store.loadingMore).toBe(false);
+  });
+
+  it("does not turn head polling into user pagination or discard a complete first-page history", async () => {
+    let finish!: (value: CanonicalNotificationPage) => void;
+    remote.notificationApi.page.mockResolvedValueOnce(page([row(5), row(4)]))
+      .mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+    const store = useNotifications(); await store.selectCategory("finance");
+    const polling = store.refreshRemote();
+    expect(store.loading).toBe(true); expect(store.loadingMore).toBe(false);
+    finish(page([row(6), row(5)], "5")); await polling;
+    expect(store.items.map(item => item.id)).toEqual(["6", "5", "4"]); expect(store.nextCursor).toBeNull();
+  });
+
+  it.each(["success", "failure"])("drops a late old-category %s without altering the selected category or global count", async outcome => {
+    let finish!: (value: CanonicalNotificationPage) => void;
+    let fail!: (cause: Error) => void;
+    remote.notificationApi.page.mockResolvedValueOnce(page([row(5)], "5"))
+      .mockReturnValueOnce(new Promise((resolve, reject) => { finish = resolve; fail = reject; }))
+      .mockResolvedValueOnce({ ...page([row(8, "device")]), unread: 7 });
+    const store = useNotifications(); await store.selectCategory("finance");
+    const older = store.loadMoreRemote(); await store.selectCategory("device");
+    if (outcome === "success") finish(page([row(4)])); else fail(new Error("old finance failed"));
+    await older;
+    expect(store.category).toBe("device"); expect(store.items.map(item => item.id)).toEqual(["8"]);
+    expect(store.unread).toBe(7); expect(store.error).toBeNull();
+    await store.selectCategory("finance"); expect(store.nextCursor).toBe("5");
+  });
+
+  it("coalesces duplicate pagination and retries the failed tail cursor in the same category", async () => {
+    let reject!: (cause: Error) => void;
+    remote.notificationApi.page.mockResolvedValueOnce(page([row(5)], "5"))
+      .mockReturnValueOnce(new Promise((_, fail) => { reject = fail; }))
+      .mockResolvedValueOnce(page([row(4)]));
+    const store = useNotifications(); await store.selectCategory("finance");
+    const older = store.loadMoreRemote(); await store.loadMoreRemote();
+    expect(store.loadingMore).toBe(true); expect(remote.notificationApi.page).toHaveBeenCalledTimes(2);
+    reject(new Error("offline")); await older;
+    expect(store.items.map(item => item.id)).toEqual(["5"]); expect(store.nextCursor).toBe("5");
+    await store.retryRemote();
+    expect(remote.notificationApi.page).toHaveBeenLastCalledWith("5", undefined, "finance");
+    expect(store.items.map(item => item.id)).toEqual(["5", "4"]); expect(store.nextCursor).toBeNull();
+  });
+
+  it("preserves known fallback category dots and updates a read in every cached occurrence", async () => {
+    remote.notificationApi.page.mockResolvedValueOnce(page([row(8, "device"), row(5)]))
+      .mockResolvedValueOnce(page([row(5)]));
+    const store = useNotifications(); await store.refreshRemote(); await store.selectCategory("finance");
+    expect(store.unreadByCategory).toMatchObject({ device: 1, finance: 1 });
+    await store.markRead("5"); await store.selectCategory("all");
+    expect(store.items.find(item => item.id === "5")?.readAt).not.toBeNull();
+    expect(store.unreadByCategory).toMatchObject({ device: 1, finance: 0 });
+  });
+
+  it("resets all cached categories on account rebind", async () => {
+    remote.notificationApi.page.mockResolvedValueOnce(page([row(5)], "5"))
+      .mockResolvedValueOnce(page([row(8, "device")]))
+      .mockResolvedValueOnce({ items: [], nextCursor: null, unread: 0 });
+    const store = useNotifications(); await store.selectCategory("finance"); await store.selectCategory("device");
+    store.bindAccount("account-b"); await Promise.resolve();
+    expect(store.category).toBe("all"); expect(store.items).toEqual([]); expect(store.nextCursor).toBeNull();
+    expect(store.unreadByCategory).toEqual({ finance: 0, device: 0, team: 0, rewards: 0, system: 0 });
+  });
+
+  it("invalidates all categories after an in-flight account-wide clear and refreshes the currently visible category", async () => {
+    const critical = { ...row(8, "device", 1), priority: "critical" as const };
+    let finish!: () => void;
+    remote.notificationApi.clearRead.mockReturnValueOnce(new Promise<void>(resolve => { finish = resolve; }));
+    remote.notificationApi.page.mockResolvedValueOnce(page([row(5, "wallet", 1), row(4)]))
+      .mockResolvedValueOnce(page([critical, row(7, "device", 1)]))
+      .mockResolvedValueOnce(page([critical]))
+      .mockResolvedValueOnce(page([row(4)]));
+    const store = useNotifications();
+    await store.selectCategory("finance"); await store.selectCategory("device"); await store.selectCategory("finance");
+    const clearing = store.clearRead(); await Promise.resolve();
+    await store.selectCategory("device"); finish(); await clearing;
+    expect(remote.notificationApi.page).toHaveBeenLastCalledWith(undefined, undefined, "device");
+    expect(store.items.map(item => item.id)).toEqual(["8"]); expect(store.items[0].priority).toBe("critical");
+    expect(store.unreadByCategory.finance).toBe(1);
+    await store.selectCategory("finance");
+    expect(remote.notificationApi.page).toHaveBeenLastCalledWith(undefined, undefined, "finance");
+    expect(store.items.map(item => item.id)).toEqual(["4"]);
+  });
+});

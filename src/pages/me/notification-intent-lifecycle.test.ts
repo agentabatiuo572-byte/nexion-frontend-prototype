@@ -34,7 +34,7 @@ function mount(remote = true, realQueue = false, navigationQuery = "", initialAc
   const hooks: Record<string, Array<(...args: any[]) => void>> = { load: [], show: [], hide: [], unmount: [], mounted: [] };
   const notifs = vue.reactive({
     items: [] as Array<{ id: string; kind: string; readAt: number | null }>, unread: 0, error: null as string | null, loading: false, nextCursor: null,
-    clearRead: vi.fn(async () => {}), refreshRemote: vi.fn(),
+    clearRead: vi.fn(async () => {}), refreshRemote: vi.fn(), selectCategory: vi.fn(),
     recordCta: vi.fn(() => action.promise), recordSwipeConversion: vi.fn(() => action.promise),
     markRead: vi.fn(() => read.promise), markAllRead: vi.fn(),
   });

@@ -91,13 +91,15 @@ test('only modeled commands ACK; create/reply/read use shared HTTP fixtures and 
   assert.equal(replay.code,0);assert.equal(replay.data.messages.length,written.data.messages.length);
   assert.equal((await command('conflict','reply','DEMO-SUPPORT-1',reply('reply-key','changed'),'reply-key')).code,409);
   assert.equal((await command('read','read','DEMO-SUPPORT-1',{lastSeenMessageId:1})).data.conversation.unreadCount,0);
+  // One account and one advisor keep one conversation: a new opening continues DEMO-SUPPORT-1.
   const created=await command('create','create',undefined,{conversationType:'SUPPORT',openingText:'new chat',clientMessageId:'create-key'},'create-key');
-  assert.equal(created.code,0);assert.equal(created.data.conversation.conversationNo,'DEMO-SUPPORT-2');
+  assert.equal(created.code,0);assert.equal(created.data.conversation.conversationNo,'DEMO-SUPPORT-1');
+  assert.equal(created.data.messages.length,written.data.messages.length+1);assert.equal(created.data.messages.at(-1).content,'new chat');
   const recovered=await http('/api/app/support/commands/create-key');
   assert.equal(recovered.data.resultType,'CONVERSATION');assert.deepEqual(recovered.data.result,created.data);
   assert.equal((await http('/api/app/support/commands/not-sent')).data,null);
   assert.equal((await http('/api/app/support/conversations/DEMO-SUPPORT-1/ticket',{})).status,409);
-  assert.equal((await detail()).data.messages.length,written.data.messages.length);
+  assert.equal((await detail()).data.messages.length,created.data.messages.length);
 });
 
 test('incoming scenario broadcasts a unique event after mutation; reads do not append it twice',async t=>{
@@ -159,6 +161,7 @@ test('actual realtime client/API reaches ready, reconciles events and recovers u
 
 test('unknown create across HTTP and WS retains one conversation and rejects changed-content replay',async t=>{
   await state({messageSendState:'unknown'});
+  const before=(await detail()).data.messages.length;
   const body={conversationType:'SUPPORT',openingText:'uncertain opening',clientMessageId:'unknown-create'};
   assert.equal((await http('/api/app/support/conversations',body,{'Idempotency-Key':'unknown-create'})).status,504);
   assert.equal((await http('/api/app/support/commands/unknown-create')).data,null);
@@ -167,8 +170,11 @@ test('unknown create across HTTP and WS retains one conversation and rejects cha
   assert.equal((await peer.next('ack')).result.code,409);
   peer.send({type:'command',requestId:'retry',operation:'create',body,idempotencyKey:'unknown-create'});
   assert.equal((await peer.next('ack')).result.code,0);
-  assert.equal((await http('/api/app/support/conversations/cursor')).data.total,2);
-  assert.equal((await http('/api/app/support/commands/unknown-create')).data.result.conversation.conversationNo,'DEMO-SUPPORT-2');
+  // The same advisor's conversation is continued once, never duplicated.
+  assert.equal((await http('/api/app/support/conversations/cursor')).data.total,1);
+  assert.equal((await http('/api/app/support/commands/unknown-create')).data.result.conversation.conversationNo,'DEMO-SUPPORT-1');
+  const after=(await detail()).data.messages;
+  assert.equal(after.length,before+1);assert.equal(after.filter(row=>row.content==='uncertain opening').length,1);
 });
 
 test('unrelated upgrade paths, external origins and malformed frames fail closed',async t=>{

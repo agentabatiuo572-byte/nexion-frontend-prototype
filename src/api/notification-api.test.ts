@@ -106,6 +106,26 @@ describe("notification unread summary contract", () => {
   });
 });
 
+describe("notification category pagination", () => {
+  it("sends a selected category before paging and accepts its last page with account-wide unread", async () => {
+    const request = vi.fn().mockResolvedValue({ items: [{ id: 7, kind: "wallet", priority: "normal", title: "Funds",
+      body: "", ctaLabel: "", ctaHref: "", createdAt: createdInstant, readAt: null }], nextCursor: null, unread: 203 });
+    const api = createNotificationApi({ request } as never);
+    expect(await api.page(undefined, 100, "finance")).toMatchObject({ nextCursor: null, unread: 203 });
+    expect(request).toHaveBeenLastCalledWith({ method: "GET", path: "/api/notifications?limit=100&category=finance" });
+    await api.page("7", 20, "finance");
+    expect(request).toHaveBeenLastCalledWith({ method: "GET", path: "/api/notifications?limit=20&category=finance&cursor=7" });
+  });
+
+  it("accepts an empty category while preserving legacy all-page consistency", async () => {
+    const request = vi.fn().mockResolvedValue({ items: [], nextCursor: null, unread: 1 });
+    const api = createNotificationApi({ request } as never);
+    expect(await api.page(undefined, undefined, "device")).toMatchObject({ items: [], unread: 1, nextCursor: null });
+    await expect(api.page()).rejects.toMatchObject({ message: "NOTIFICATION_PAGE_INCONSISTENT" });
+    expect(request).toHaveBeenLastCalledWith({ method: "GET", path: "/api/notifications?limit=100" });
+  });
+});
+
 
 describe("actionable notification authority", () => {
   const requestPage = (extra: Record<string, unknown>, cursor?: string) => createNotificationApi({

@@ -4,6 +4,7 @@ import type { PaymentMethodCard } from "@/api/payment-method-api";
 import type { CanonicalNotificationPage, NotificationActionResult } from "@/api/notification-api";
 
 const remote = vi.hoisted(() => ({
+  apiRuntimeConfig: { environment: "dev", baseUrl: "https://test.invalid" },
   remoteApiEnabled: true,
   paymentMethodApi: {
     list: vi.fn(),

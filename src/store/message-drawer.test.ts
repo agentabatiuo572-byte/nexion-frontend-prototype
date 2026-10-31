@@ -12,6 +12,7 @@ import bubbleSource from "@/components/support/support-bubble.vue?raw";
 
 installSupportStorage();
 const runtime = vi.hoisted(() => ({ remoteApiEnabled: true,
+  apiRuntimeConfig: { environment: "dev", baseUrl: "https://test.invalid" },
   notificationApi: { page: vi.fn(), markRead: vi.fn() },
   supportApi: { authorityRevision: vi.fn(), commandResult: vi.fn(),
     conversations: vi.fn(), conversationDismissals: vi.fn(),
@@ -121,6 +122,26 @@ describe("shared message center", () => {
     expect(runtime.notificationApi.page).toHaveBeenCalledTimes(2);
     center.stopRefresh(); await vi.advanceTimersByTimeAsync(30_000);
     expect(runtime.notificationApi.page).toHaveBeenCalledTimes(2);
+  });
+
+  it("polls the selected category after 15 seconds without reviving its exhausted tail", async () => {
+    const initial = notificationPage(203);
+    runtime.notificationApi.page.mockResolvedValueOnce({ ...initial, nextCursor: "1" })
+      .mockResolvedValueOnce({ ...initial, items: [], nextCursor: null })
+      .mockResolvedValue({ ...initial, nextCursor: "1" });
+    const notifications = useNotifications();
+    await notifications.selectCategory("finance"); await notifications.loadMoreRemote();
+    expect(notifications.nextCursor).toBeNull();
+    const center = useMessageDrawer(); center.startRefresh(); await flush();
+    expect(notifications.category).toBe("finance"); expect(notifications.nextCursor).toBeNull();
+    const before = runtime.notificationApi.page.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(14_999);
+    expect(runtime.notificationApi.page).toHaveBeenCalledTimes(before);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(runtime.notificationApi.page).toHaveBeenCalledTimes(before + 1);
+    expect(runtime.notificationApi.page).toHaveBeenLastCalledWith(undefined, undefined, "finance");
+    expect(notifications.items).toHaveLength(1); expect(notifications.nextCursor).toBeNull();
+    expect(center.totalUnread).toBe(203); expect(notifications.loadingMore).toBe(false);
   });
 
   it("rejects hidden responses and refreshes immediately when restored", async () => {

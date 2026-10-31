@@ -145,13 +145,20 @@ describe("message page header content contract", () => {
     expect(source).not.toContain("revealSections");
   });
 
-  it("keeps mark-all beside the count and bulk cleanup reachable in the feed", async () => {
+  it("keeps mark-all beside the count and bulk cleanup in the fixed page footer", async () => {
     const clear = all.find(node => hasClass(node, 'message-mark-all'))!;
     expect(source).not.toContain('message-secondary-actions');
     const management = all.find(node => hasClass(node, 'notification-management'))!;
     expect(management.loc.source).toContain('@click="confirmClearRead"');
     expect(management.loc.source).toContain('LiquidGlass');
     expect(elements(heading.children)).not.toContain(management);
+    const scroll = all.find(node => node.tag === 'scroll-view')!;
+    const fixedPage = all.find(node => hasClass(node, 'message-page'))!;
+    expect(elements(scroll.children)).not.toContain(management);
+    expect(fixedPage.children.indexOf(management)).toBeGreaterThan(fixedPage.children.indexOf(scroll));
+    expect(management.loc.source).toContain(`v-if="section === 'notifications'"`);
+    expect(descriptor.styles[1].content).toMatch(/\.notification-management\s*\{[^}]*flex-shrink:\s*0/);
+    expect(pageStyles).toContain('bottom: calc(env(safe-area-inset-bottom) + 34px)');
     expect(nav.loc.source).toContain("navTo('/pages/me/preferences')");
     expect(settingsSource).not.toContain('confirmClearRead');
     expect(elements(heading.children)).toContain(clear);
@@ -165,6 +172,12 @@ describe("message page header content contract", () => {
     expect(collapsed).toMatch(/class="message-button message-mark-all"[^>]*tabindex="-1"/);
     const status = elements(heading.children).find(node => attribute(node, 'role')?.type === 6 && (attribute(node, 'role') as { value?: { content: string } }).value?.content === 'status')!;
     expect(elements(status.children)).not.toContain(clear);
+  });
+
+  it("uses only pagination activity for the load-more label", () => {
+    const more = all.find(node => hasClass(node, 'message-more'))!;
+    expect(more.loc.source).toContain('notifs.loadingMore ? t.help.loadingMore : t.notifs.loadMore');
+    expect(more.loc.source).toContain('v-if="notifs.nextCursor"');
   });
 
   it("keeps the real unread summary while hiding unavailable batch actions", async () => {

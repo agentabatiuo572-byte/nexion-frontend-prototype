@@ -41,13 +41,13 @@
         </view>
         <view v-if="notifs.error" data-testid="notification-error" class="message-state" :class="{ 'message-state--inline': notifs.items.length > 0 }" role="alert"><text>{{ notifsErrorText }}</text><view class="message-button message-retry" role="button" :tabindex="notifs.loading ? -1 : 0" :aria-disabled="notifs.loading" :aria-label="t.ui.retry" @click="notifs.retryRemote()" @keydown.enter.prevent="notifs.retryRemote()" @keydown.space.prevent="notifs.retryRemote()"><text>{{ t.ui.retry }}</text></view></view>
         <view v-if="notifs.loading && !filtered.length" class="message-state" role="status" aria-live="polite"><text>{{ t.help.loadingMore }}</text></view>
-        <view v-if="notifs.nextCursor" class="message-more"><view class="message-button" role="button" :tabindex="notifs.loading ? -1 : 0" :aria-disabled="notifs.loading" :aria-label="t.notifs.loadMore" @click="notifs.loadMoreRemote()"><LiquidGlass :radius="22" /><text>{{ notifs.loading ? t.help.loadingMore : t.notifs.loadMore }}</text></view></view>
-        <view v-if="notifs.items.length || notifs.nextCursor" class="notification-management">
-          <view class="message-button" role="button" :tabindex="clearingRead || markingAll || notifs.loading ? -1 : 0" :aria-disabled="clearingRead || markingAll || notifs.loading" @click="confirmClearRead"><LiquidGlass :radius="22" /><text>{{ actionCopy.clearRead }}</text></view>
-        </view>
+        <view v-if="notifs.nextCursor" class="message-more"><view class="message-button" role="button" :tabindex="notifs.loading ? -1 : 0" :aria-disabled="notifs.loading" :aria-label="t.notifs.loadMore" @click="notifs.loadMoreRemote()"><LiquidGlass :radius="22" /><text>{{ notifs.loadingMore ? t.help.loadingMore : t.notifs.loadMore }}</text></view></view>
       </view>
       <view class="message-scroll-compensation" :style="{ height: headerCompensation + 'px' }" aria-hidden="true" />
       </scroll-view>
+      <view v-if="section === 'notifications'" class="notification-management">
+        <view class="message-button" role="button" :tabindex="clearingRead || markingAll || notifs.loading ? -1 : 0" :aria-disabled="clearingRead || markingAll || notifs.loading" @click="confirmClearRead" @keydown.enter.prevent="confirmClearRead" @keydown.space.prevent="confirmClearRead"><LiquidGlass :radius="22" /><text>{{ actionCopy.clearRead }}</text></view>
+      </view>
     </view>
     </template>
   </AppChassis>
@@ -168,7 +168,7 @@ function kindIcon(n: Notification) { return `<svg width="24" height="24" viewBox
 function countOf(id: Filter) { return id === "all" ? notifs.items.length : notifs.items.filter(n => notificationCategory(n) === id).length; }
 const filtered = computed(() => filter.value === "all" ? notifs.items : notifs.items.filter(n => notificationCategory(n) === filter.value));
 function filterLabel(id: Filter) { return id === "all" ? t.value.notifs.filterAll : t.value.notifs[categoryKeys[id]]; }
-const emptyTitle = computed(() => notifs.items.length === 0 ? t.value.notifs.emptyAllTitle : fmt(t.value.notifs.emptyFilterTitle, { filter: filterLabel(filter.value) }));
+const emptyTitle = computed(() => filter.value === "all" ? t.value.notifs.emptyAllTitle : fmt(t.value.notifs.emptyFilterTitle, { filter: filterLabel(filter.value) }));
 function directNotice(n: Notification) { return !!n.ctaHref && isDirectNotificationSummary(n.body); }
 function toggle(n: Notification) {
   if (directNotice(n)) { void onTap(n); return; }
@@ -343,6 +343,11 @@ function onMessageScroll(event: { detail: { scrollTop: number } }) {
 }
 function resetHeader() { headerState.value = createMessageHeaderState(); }
 watch(section, () => { resetHeader(); preserveSectionInH5(); });
+watch(filter, value => {
+  expandedId.value = null;
+  resetHeader();
+  void notifs.selectCategory(value);
+}, { immediate: true });
 </script>
 
 <style src="@/styles/message-center.css"></style>
@@ -350,7 +355,7 @@ watch(section, () => { resetHeader(); preserveSectionInH5(); });
 .message-recovery-title { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 .message-nav .message-summary-recovery { flex: 1; min-width: 0; margin: 0 8px; }
 .message-nav .message-summary-recovery .message-button { font: 600 13px/20px var(--font-v5); text-align: center; }
-.notification-management { display: flex; justify-content: flex-end; padding: 4px 0 8px; }
+.notification-management { display: flex; flex-shrink: 0; justify-content: flex-end; padding: 8px 0; }
 /* One glass rail, one flat moving selection; shared spring/drag behavior stays active. */
 .message-center .message-primary { height: 50px; box-sizing: border-box; padding: 3px; gap: 4px; border: 0; background: transparent; box-shadow: none; }
 .message-center .message-primary :deep(.nx-glass-backdrop) { --v5-liquid-shadow: 0 0 0 transparent; }

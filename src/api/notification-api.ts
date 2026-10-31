@@ -1,6 +1,9 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
 import { parseServerTimestamp } from "./server-time";
+import type { NotificationCategory } from "@/lib/notification-category";
+
+export type NotificationFilter = "all" | NotificationCategory;
 
 export type CanonicalNotificationPriority = "critical" | "high" | "normal" | "low";
 
@@ -34,7 +37,7 @@ export interface NotificationActionResult {
 }
 
 export interface NotificationApi {
-  page(cursor?: string, limit?: number): Promise<CanonicalNotificationPage>;
+  page(cursor?: string, limit?: number, category?: NotificationFilter): Promise<CanonicalNotificationPage>;
   markRead(notificationId: number): Promise<void>;
   markAllRead(): Promise<number>;
   clearRead(): Promise<number>;
@@ -167,15 +170,16 @@ function requiredKey(value: string): string {
 
 export function createNotificationApi(client: ApiClient): NotificationApi {
   return {
-    page: async (cursor, limit = 100) => {
+    page: async (cursor, limit = 100, category = "all") => {
       const params = new URLSearchParams({ limit: String(Math.max(1, Math.min(limit, 100))) });
+      if (category !== "all") params.set("category", category);
       const normalizedCursor = cursor?.trim() || "";
       if (normalizedCursor) params.set("cursor", normalizedCursor);
       const page = parsePage(await client.request({
         method: "GET",
         path: `/api/notifications?${params.toString()}`,
       }));
-      if (!normalizedCursor && page.nextCursor === null
+      if (category === "all" && !normalizedCursor && page.nextCursor === null
           && page.unread > page.items.filter((item) => item.readAt === null).length) {
         return invalid("NOTIFICATION_PAGE_INCONSISTENT");
       }
