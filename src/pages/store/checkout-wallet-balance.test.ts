@@ -35,7 +35,9 @@ describe("checkout wallet balance hint", () => {
   it("does not enter purchase confirmation until a wallet snapshot is readable", async () => {
     const readable=ref(false),confirm=vi.fn(),step=ref('confirm');
     const submit=new Function('quantitySwitching','remoteApiEnabled','checkoutWalletReadable','step','goConfirm','nextTick','requestConfirmPay',
-      extract('async function submitReview()', 'function selectPayment')+'\nreturn submitReview;')(ref(false),true,readable,step,()=>{},async()=>{},confirm);
+      'captureCheckoutRoute','trialQuoteUnavailable','trialQuoteScreenUnavailable',
+      extract('async function submitReview()', 'function selectPayment')+'\nreturn submitReview;')
+      (ref(false),true,readable,step,()=>{},async()=>{},confirm,()=>({}),ref(false),ref(false));
     await submit();expect(confirm).not.toHaveBeenCalled();
     readable.value=true;await submit();expect(confirm).toHaveBeenCalledOnce();
   });
@@ -46,7 +48,8 @@ describe("checkout wallet balance hint", () => {
       remoteWalletReceiptHasSnapshot: false,
       remoteFleetStatus: "ready",
     }));
-    expect(v.walletBalanceHint.value).toBe("USDT balance · 1299.00 USDT");
+    expect(v.walletBalanceHint.value).toBe("USDT balance · 1299.00");
+    expect(v.walletBalanceHint.value.match(/USDT/g)).toHaveLength(1);
   });
 
   it("states loading and unavailable instead of a stale number", () => {

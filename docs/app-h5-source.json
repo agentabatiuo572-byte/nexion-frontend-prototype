@@ -3,10 +3,10 @@
   "sourcePath": "D:\\WORKS\\PLAN\\.wt\\checkout-pin-integration-20261031",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "475a18dd41306af599404f043e56ab6575dd6a75",
-  "sourceRef": "475a18dd41306af599404f043e56ab6575dd6a75",
+  "sourceHead": "63bbcd8220ae7d6d4e2dc0a24e87c6590ea8db4b",
+  "sourceRef": "63bbcd8220ae7d6d4e2dc0a24e87c6590ea8db4b",
   "sourceRefKind": "commit",
-  "sourceTree": "84ae6e3dfc136e0d9ed847233ccfa9156abf0646",
+  "sourceTree": "0a911c1716767e9ea94e5d81929f34ac8756a6fb",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -14230,10 +14230,10 @@
       "mode": "100644"
     },
     "src/pages/store/checkout-wallet-balance.test.ts": {
-      "sourceBlob": "b6a0464757abb44d1278744fc7a0236194ddbad6",
-      "sourceSha256": "f3fb53add40e4679d854f3361563a7c06753764dfc2ab0d9690c28e38c6049d9",
-      "targetBlob": "b6a0464757abb44d1278744fc7a0236194ddbad6",
-      "targetSha256": "f3fb53add40e4679d854f3361563a7c06753764dfc2ab0d9690c28e38c6049d9",
+      "sourceBlob": "5c9f491e213ff280878b7849b61e44339fb7deb5",
+      "sourceSha256": "edf560f4635e94c72801db3250a89aab66060e8c18752cf6facc349ca014e0de",
+      "targetBlob": "5c9f491e213ff280878b7849b61e44339fb7deb5",
+      "targetSha256": "edf560f4635e94c72801db3250a89aab66060e8c18752cf6facc349ca014e0de",
       "mode": "100644"
     },
     "src/pages/store/checkout.vue": {
