@@ -197,7 +197,11 @@ function receiptSettlement(row: Record<string, unknown>): TrialConvertReceipt["s
 }
 
 export function parseTrialConvertReceipt(value: unknown): TrialConvertReceipt {
-  const row = record(value);
+  const row = record(value) ? { ...record(value)! } : null;
+  if (row && (row.paymentMethod === 'HDPAY_BANK' || row.paymentMethod === 'CREGIS_USDT_BSC') && typeof row.amountUsdt === 'string') {
+    if (!/^(0|[1-9]\d{0,11})(\.\d{1,6})?$/.test(row.amountUsdt)) return invalid();
+    row.amountUsdt = Number(row.amountUsdt);
+  }
   const orderNo = typeof row?.orderNo === "string" ? row.orderNo.trim() : "";
   const productNo = typeof row?.productNo === "string" ? row.productNo.trim() : "";
   const amountUsdt = finiteNumber(row?.amountUsdt);

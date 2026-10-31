@@ -120,6 +120,8 @@ export interface CanonicalTradeinQuote {
 }
 
 export interface CanonicalTradeinResult {
+  paymentMethod?: 'HDPAY_BANK' | 'CREGIS_USDT_BSC';
+  amountUsdt?: number;
   tradeinNo: string;
   orderNo: string;
   sourceDeviceId: number;
@@ -133,6 +135,8 @@ export interface CanonicalTradeinResult {
 }
 
 export interface CanonicalCapacityKeepResult {
+  paymentMethod?: 'HDPAY_BANK' | 'CREGIS_USDT_BSC';
+  amountUsdt?: number;
   operationNo: string;
   orderNo: string;
   targetDeviceId: number;
@@ -407,11 +411,33 @@ function quote(value: unknown): CanonicalTradeinQuote {
   return result;
 }
 
+function purchaseReceiptRecord(value: unknown): Record<string, unknown> {
+  const source = { ...record(value) };
+  if (source.paymentMethod === 'HDPAY_BANK' || source.paymentMethod === 'CREGIS_USDT_BSC') {
+    for (const key of ['amountUsdt', 'walletDebitUsdt', 'walletBalanceAfterUsdt', 'discountUsdt']) {
+      const raw = source[key];
+      if (typeof raw === 'string') {
+        if (!/^(0|[1-9]\d{0,11})(\.\d{1,6})?$/.test(raw)) return invalid();
+        source[key] = Number(raw);
+      }
+    }
+  }
+  return source;
+}
+function externalPurchaseFields(source: Record<string, unknown>): { paymentMethod?: 'HDPAY_BANK' | 'CREGIS_USDT_BSC'; amountUsdt?: number } {
+  if (source.paymentMethod !== 'HDPAY_BANK' && source.paymentMethod !== 'CREGIS_USDT_BSC') return {};
+  if (number(source.walletDebitUsdt) !== 0) return invalid();
+  return { paymentMethod: source.paymentMethod, amountUsdt: number(source.amountUsdt) };
+}
+export function purchasePrincipalUsdt(receipt: CanonicalTradeinResult | CanonicalCapacityKeepResult): number {
+  return receipt.paymentMethod ? receipt.amountUsdt! : receipt.walletDebitUsdt;
+}
 export function parseCanonicalTradeinResult(value: unknown): CanonicalTradeinResult {
-  const source = record(value);
+  const source = purchaseReceiptRecord(value);
   const targetDeviceStatus = source.targetDeviceStatus == null ? undefined : string(source.targetDeviceStatus).toUpperCase();
   if (targetDeviceStatus !== undefined && targetDeviceStatus !== "ACTIVE" && targetDeviceStatus !== "INACTIVE") return invalid();
   const parsed = {
+    ...externalPurchaseFields(source),
     tradeinNo: string(source.tradeinNo),
     orderNo: string(source.orderNo),
     sourceDeviceId: integer(source.sourceDeviceId, 1),
@@ -428,11 +454,12 @@ export function parseCanonicalTradeinResult(value: unknown): CanonicalTradeinRes
 }
 
 export function parseCanonicalCapacityKeepResult(value: unknown): CanonicalCapacityKeepResult {
-  const source = record(value);
+  const source = purchaseReceiptRecord(value);
   const deviceStatus = string(source.deviceStatus).toUpperCase();
   const orderStatus = string(source.orderStatus).toUpperCase();
   if (deviceStatus !== "ACTIVE" || orderStatus !== "COMPLETED") return invalid();
   return {
+    ...externalPurchaseFields(source),
     operationNo: string(source.operationNo),
     orderNo: string(source.orderNo),
     targetDeviceId: integer(source.targetDeviceId, 1),

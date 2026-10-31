@@ -5,7 +5,7 @@ import ts from "typescript";
 import source from "./tradein-sheets.vue?raw";
 import { zh } from "@/i18n/messages/zh";
 import { completeVerifiedMutation } from "@/domain/e20-capacity-coordinator";
-import { createDeviceE3Api } from "@/api/device-e3-api";
+import { createDeviceE3Api, purchasePrincipalUsdt } from "@/api/device-e3-api";
 import type { ApiClient } from "@/api/api-client";
 import { parsePendingKeepCommand } from "@/lib/keep-command-recovery";
 import { readPaymentCommand } from "@/api/payment-command-api";
@@ -58,7 +58,7 @@ it("recovers a pre-upgrade KEEP after a lost response using the stored key and p
     readAccountRow: vi.fn(table => table==='capacity-payment'?{pending}:{commands}),writeAccountRow:vi.fn((_table,_account,value)=>{pending=value.pending;return true;}),
     captureAccountScope: () => ({ accountKey: "user:7" }), isCurrentAccountScope: () => true,
     canonicalCapacityKey, deviceE3Api: createDeviceE3Api(transport as unknown as ApiClient), completeVerifiedMutation,
-    apiClient:transport,readPaymentCommand,parseCanonicalCapacityKeepResult,executePaymentWithPassword:vi.fn(),
+    apiClient:transport,readPaymentCommand,parseCanonicalCapacityKeepResult,purchasePrincipalUsdt,executePaymentWithPassword:vi.fn(),
     capacityRecovery:ref(null),capacityRecoveryBusy:ref(false),capacityResumeAllowed:ref(false),capacityRecoveryUnavailable:ref(false),recoveryCopy:ref({paymentPending:'Confirming'}),
     orderApi: { list: async () => ({ orders: [{ orderNo: "ORD-OLD", productNo: "stellarbox-pro-v2", orderType: "CAPACITY_KEEP",
       canonicalStatus: "activated", paymentStatus: "PAID", orderStatus: "COMPLETED", activationStatus: "ACTIVATED",

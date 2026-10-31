@@ -1,0 +1,81 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApiError } from '@/api/errors';
+const ports = vi.hoisted(() => ({ request: vi.fn(), account: 'user:1', rows: new Map<string, unknown>(), nav: vi.fn() }));
+vi.mock('@/api/runtime', () => ({ apiClient: { request: ports.request } }));
+vi.mock('./app', () => ({ useApp: () => ({ accountKey: ports.account }) }));
+vi.mock('@/lib/route', () => ({ navTo: ports.nav }));
+vi.mock('./account-scoped-storage', () => ({
+  readAccountRow: (table: string, account: string) => ports.rows.get(table + account) ?? null,
+  writeAccountRow: (table: string, account: string, value: unknown) => { ports.rows.set(table + account, structuredClone(value)); return true; },
+  acquireAccountCommandKey: () => 'synthetic-original-key', releaseAccountCommandKey: vi.fn(),
+}));
+const quote = { paymentQuoteId: 'Q-1', kind: 'ORDER_PAY', paymentMethod: 'CREGIS_USDT_BSC', network: 'BSC', subtotalUsdt: '100.00', channelFeeUsdt: '1.75', networkConfirmFeeUsdt: '0.25', totalUsdt: '102.00', feePolicyVersion: 1, expiresAt: '2099-01-01T00:00:00Z', fxRateVndPerUsdt: null, amountVnd: null };
+const intent = { ...quote, intentNo: 'PI-1', commandKey: 'business-original-key', status: 'AWAITING_PAYMENT', address: '0x' + '1'.repeat(40), paymentUrl: null, reason: '', receipt: null };
+const receipt = { orderNo: 'ORD-1', paymentNo: 'PAY-1', paymentStatus: 'PAID', orderStatus: 'COMPLETED', activationStatus: 'ACTIVATED', canonicalStatus: 'activated', amountUsdt: '100.000000', paymentSubtotalUsdt: '100.00', paymentMethod: 'CREGIS_USDT_BSC', walletBalanceAfterUsdt: null, idempotent: false, serverCanonical: true, source: 'server', sourceEnvironment: 'PRODUCTION', runId: '' };
+const context = () => ({ kind: 'ORDER_PAY' as const, payload: { orderNo: 'ORD-1' }, amount: 100, summary: 'Synthetic device', current: () => true, commandKey: () => 'business-original-key' });
+beforeEach(() => { vi.resetModules(); ports.request.mockReset(); ports.rows.clear(); ports.account = 'user:1'; ports.nav.mockReset(); });
+describe('durable external payment orchestration', () => {
+  it('selecting and confirming wallet never reads the external API or a PIN state', async () => {
+    const { requestPurchasePayment, usePurchasePayment } = await import('./purchase-payment');
+    const choice = requestPurchasePayment(context()); await usePurchasePayment().confirm();
+    expect(await choice).toEqual({ method: 'WALLET' }); expect(ports.request).not.toHaveBeenCalled();
+  });
+  it('persists the original business key before creating and resolves only after confirmed delivery', async () => {
+    const { requestPurchasePayment, usePurchasePayment, acknowledgePurchasePayment } = await import('./purchase-payment');
+    ports.request.mockResolvedValueOnce(quote).mockImplementationOnce(async request => {
+      expect(usePurchasePayment().pending()).toMatchObject([{ commandKey: 'business-original-key', paymentQuoteId: 'Q-1' }]);
+      expect(request.body).toEqual({ paymentQuoteId: 'Q-1' }); return intent;
+    }).mockResolvedValueOnce({ ...intent, status: 'DELIVERED', receipt });
+    const choice = requestPurchasePayment(context()), payment = usePurchasePayment();
+    await payment.select('CREGIS_USDT_BSC'); await payment.confirm();
+    expect(payment.state.open).toBe(true); expect(payment.state.intent?.status).toBe('AWAITING_PAYMENT');
+    await payment.query(); const outcome = await choice; expect(outcome).toMatchObject({ method: 'EXTERNAL', receipt });
+    expect(payment.pending()).toHaveLength(1); // Retained until the caller's own receipt validation succeeds.
+    if (outcome?.method === 'EXTERNAL') acknowledgePurchasePayment(outcome);
+    expect(payment.pending()).toEqual([]); expect(ports.request.mock.calls.filter(([request]) => request.method === 'POST' && request.path.endsWith('-intents'))).toHaveLength(1);
+    expect(JSON.stringify(ports.rows)).not.toMatch(/paymentPassword|credentialVersion|attemptNo/);
+  });
+  it('a lost create response survives close/reopen and lookup without another collection', async () => {
+    const { requestPurchasePayment, usePurchasePayment } = await import('./purchase-payment');
+    ports.request.mockResolvedValueOnce(quote).mockRejectedValueOnce(new ApiError({ kind: 'network', message: 'LOST_RESPONSE' }))
+      .mockResolvedValueOnce(intent);
+    const first = requestPurchasePayment(context()), payment = usePurchasePayment();
+    await payment.select('CREGIS_USDT_BSC'); await payment.confirm();
+    expect(payment.state.pending?.commandKey).toBe('business-original-key'); payment.close(); expect(await first).toBeNull();
+    const second = requestPurchasePayment(context());
+    await vi.waitFor(() => expect(payment.state.intent?.intentNo).toBe('PI-1'));
+    expect(ports.request.mock.calls.filter(([request]) => request.method === 'POST' && request.path.endsWith('-intents'))).toHaveLength(1);
+    expect(ports.request.mock.calls.at(-1)?.[0].path).toContain('commandKey=business-original-key');
+    payment.close(); expect(await second).toBeNull();
+  });
+  it('a late response cannot populate another account after leaving the payment', async () => {
+    const { requestPurchasePayment, usePurchasePayment } = await import('./purchase-payment');
+    let complete!: (value: unknown) => void;
+    ports.request.mockResolvedValueOnce(quote).mockImplementationOnce(() => new Promise(resolve => { complete = resolve; }));
+    const choice = requestPurchasePayment(context()), payment = usePurchasePayment(); await payment.select('CREGIS_USDT_BSC');
+    const creating = payment.confirm(); ports.account = 'user:2'; payment.close(); complete(intent); await creating;
+    expect(await choice).toBeNull(); expect(payment.pending()).toEqual([]);
+    ports.account = 'user:1'; expect(payment.pending()).toMatchObject([{ commandKey: 'business-original-key' }]);
+  });
+  it('rejects a receipt from a different original command without clearing the pending record', async () => {
+    const { requestPurchasePayment, usePurchasePayment } = await import('./purchase-payment');
+    ports.request.mockResolvedValueOnce(quote).mockResolvedValueOnce({ ...intent, commandKey: 'other-key', status: 'DELIVERED', receipt: { orderNo: 'OTHER' } });
+    const choice = requestPurchasePayment(context()), payment = usePurchasePayment(); await payment.select('CREGIS_USDT_BSC'); await payment.confirm();
+    expect(payment.state.error).toBe(true); expect(payment.pending()).toHaveLength(1); payment.close(); expect(await choice).toBeNull();
+  });
+  it('keeps a delivered malformed receipt recoverable and does not resolve a purchase', async () => {
+    const { requestPurchasePayment, usePurchasePayment } = await import('./purchase-payment');
+    ports.request.mockResolvedValueOnce(quote).mockResolvedValueOnce({ ...intent, status: 'DELIVERED', receipt: {} });
+    const choice = requestPurchasePayment(context()), payment = usePurchasePayment(); await payment.select('CREGIS_USDT_BSC'); await payment.confirm();
+    expect(payment.state.open).toBe(true); expect(payment.state.error).toBe(true); expect(payment.pending()).toMatchObject([{ intentNo: 'PI-1', commandKey: 'business-original-key' }]);
+    payment.close(); expect(await choice).toBeNull();
+  });
+  it('binds rounded external cents without modifying six-place business payloads', async () => {
+    const { requestPurchasePayment, usePurchasePayment } = await import('./purchase-payment');
+    ports.request.mockResolvedValueOnce({ ...quote, subtotalUsdt: '20.00', totalUsdt: '22.00' });
+    const payload = { orderNo: 'ORD-1', expectedPayableUsdt: 19.995 }, choice = requestPurchasePayment({ ...context(), amount: 19.995, payload });
+    const payment = usePurchasePayment(); await payment.select('CREGIS_USDT_BSC');
+    expect(payment.state.error).toBe(false); expect(ports.request.mock.calls[0]![0].body.payload.expectedPayableUsdt).toBe(19.995);
+    payment.close(); expect(await choice).toBeNull();
+  });
+});

@@ -128,7 +128,7 @@ describe("product catalog refresh", () => {
     expect(catalog.productCatalogPresentation.value).toBeNull();
   });
 
-  it.each(["Nexi" + "onBox Pro v2", "StellarBox Pro v2", "stellarbox Pro v2"])("presents %s under the current brand without changing the raw catalog or SKU", async (legacyName) => {
+  it.each(["Nexi" + "onBox Pro v2", "StellarBox Pro v2", "stellarbox Pro v2"])("presents the stored name %s verbatim without changing the raw catalog or SKU", async (legacyName) => {
     const snapshot = { products: [{ id: "stellarbox-pro-v2", name: legacyName }], source: "nx_product", sourceEnvironment: "PRODUCTION", runId: "", serverCanonical: true, revision: "brand" };
     mocks.catalog.mockResolvedValueOnce(snapshot);
     const catalog = await import("./product-catalog");
@@ -136,7 +136,7 @@ describe("product catalog refresh", () => {
     await catalog.refreshProductCatalog(true);
 
     expect(catalog.productCatalogPresentation.value?.products[0]).toMatchObject({
-      id: "stellarbox-pro-v2", name: "UVELBox Pro v2",
+      id: "stellarbox-pro-v2", name: legacyName, // published names are source-owned (689303fc)
     });
     expect(mocks.replace).toHaveBeenCalledWith(snapshot.products);
     expect(snapshot.products[0].name).toBe(legacyName);

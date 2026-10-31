@@ -235,7 +235,8 @@ import { useVRank } from "@/store/v-rank";
 import { useNetwork } from "@/store/network";
 import { acquireAccountCommandKey, readAccountRow, writeAccountRow } from "@/store/account-scoped-storage";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
-import { executePaymentWithPassword } from "@/lib/authorized-payment";
+import { executeSelectedPurchase } from "@/lib/selected-purchase-payment";
+import { paidOrderReceipt } from "@/api/order-api";
 import { orderPaymentRejection } from "@/lib/order-payment-rejection";
 import { beginOrderAction, readOrderAction, clearOrderAction, markOrderActionPaid } from "@/lib/order-command-fence";
 
@@ -587,10 +588,6 @@ async function onCheckout() {
         return;
       }
       const command = acquireBundleCommand(list, accountKey, quotedTotal);
-      if (app.user.usdtBalance + 0.000001 < command.expectedAmountUsdt) {
-        await offerBundleWalletTopup(command.expectedAmountUsdt);
-        return;
-      }
       let canonicalOrderCommitted = false;
       let paymentConfirmed = false;
       let confirmedOrderNo = "";
@@ -619,7 +616,7 @@ async function onCheckout() {
         const paymentCurrent=()=>scopeIsCurrent()&&bundleFingerprint(products.value)===bundleFingerprint(list)
           &&normalizeBundleExpectedAmountUsdt(total.value)===command.expectedAmountUsdt
           &&policy.value?.policyVersion===latestPolicy.policyVersion;
-        const paid = await executePaymentWithPassword({amount:command.expectedAmountUsdt,currency:'USDT',summary:list.map(product=>product.name).join(', ')},
+        const paid = await executeSelectedPurchase({amount:command.expectedAmountUsdt,currency:'USDT',summary:list.map(product=>product.name).join(', ')},
           async authorization=>{
             if(!paymentCurrent())return null;
             const action=beginOrderAction(accountKey,'pay',created.orderNo,command.expectedAmountUsdt);paymentKey=action.key;
@@ -629,7 +626,7 @@ async function onCheckout() {
                 clearOrderAction(accountKey,created.orderNo,action.key);
               throw error;
             }
-          },paymentCurrent);
+          },paymentCurrent,{kind:'ORDER_PAY',payload:{orderNo:created.orderNo},commandKey:()=>{const action=beginOrderAction(accountKey,'pay',created.orderNo,command.expectedAmountUsdt);paymentKey=action.key;return action.key;},parseReceipt:paidOrderReceipt});
         if (!paid) return;
         if (!scopeIsCurrent()) return;
         if (paid.orderNo !== created.orderNo) throw new Error("BUNDLE_WALLET_PAYMENT_RECEIPT_INVALID");

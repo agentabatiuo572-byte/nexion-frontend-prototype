@@ -50,7 +50,7 @@
               class="flex-1 min-w-0 tabular-nums"
               :style="amountInputStyle"
               type="text"
-              inputmode="decimal"
+              inputmode="numeric"
               :value="amount"
               placeholder="0.00"
               :disabled="creating || !fxUsable || dailyCapacityExhausted"
@@ -482,9 +482,9 @@ function onAmount(e: Event) {
   // 保留原输入；非法符号或超精度必须提示，不能静默变成另一笔金额。
   amount.value = (e as unknown as { detail?: { value?: string } }).detail?.value ?? "";
 }
-// 沿用两位充值精度，允许普通十进制编辑态「25.」和「.5」。
-const amountValid = computed(() => /^(?:\d+(?:\.\d{0,2})?|\.\d{1,2})$/.test(amount.value)
-  && Number.isFinite(Number(amount.value)));
+// User-entered top-up principal is a positive integer; purchase quotes and fees keep cents.
+const amountValid = computed(() => /^[1-9]\d*$/.test(amount.value)
+  && Number.isSafeInteger(Number(amount.value)));
 const amountNum = computed(() => amountValid.value ? Number(amount.value) : 0);
 const minDeposit = computed(() => remoteApiEnabled ? fx.minDepositUsdt : MIN_DEPOSIT_USDT);
 const maxDeposit = computed(() => remoteApiEnabled ? fx.maxDepositUsdt : BANK_MAX_DEPOSIT_USDT);

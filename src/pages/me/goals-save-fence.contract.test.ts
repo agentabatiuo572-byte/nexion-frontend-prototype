@@ -1,4 +1,5 @@
 import { formatAmount } from "@/lib/amount-display";
+import * as amountDisplay from "@/lib/amount-display";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // @ts-expect-error Vitest executes this structural contract in Node; the App tsconfig intentionally omits Node globals.
 import { readFileSync } from "node:fs";
@@ -15,12 +16,17 @@ import { nexGridBrandText } from "@/lib/brand-copy";
 
 const source = readFileSync(new URL("./goals.vue", import.meta.url), "utf8");
 
-function legacyNativePage() {
+async function legacyNativePage(initialStatus = "ready") {
   const context = createContext({ module: { exports: {} } });
+  const mounted: Array<() => void> = [];
   runInContext(`
     delete Array.prototype.at;
     this.goalsStore = {
       accountEpoch: 1, status: "ready", goals: [], lifetimeEarningsUsdt: 0,
+      readBindingEpoch: 0, readSuccessRevision: 0, readSuccessScope: null,
+      captureReadBinding() { return { accountKey: "user:3778", epoch: 1 }; },
+      async ensure() { if (this.status === "ready") { this.readSuccessRevision++; this.readSuccessScope = { accountKey: "user:3778", epoch: 1 }; } },
+      async refresh() { return this.ensure(); },
       recommendationStatus: "ready", recommendation: null,
       saves: [], recommendations: [], failNextSave: false,
       async setGoal(intent) {
@@ -42,8 +48,8 @@ function legacyNativePage() {
     this.exports = this.module.exports;
   `, context);
   context.require = (id: string) => {
-    if (id === "@/lib/amount-display") return { formatAmount };
-    if (id === "vue") return { ...Vue, onMounted: () => {}, onUnmounted: () => {} };
+    if (id === "@/lib/amount-display") return amountDisplay;
+    if (id === "vue") return { ...Vue, onMounted: (fn: () => void) => { mounted.push(fn); }, onUnmounted: () => {} };
     if (id === "@dcloudio/uni-app") return { onShow: () => {}, onHide: () => {} };
     if (id === "@/store/goals") return { useGoals: () => context.goalsStore };
     if (id === "@/store/ui") return { useUI: () => context.ui };
@@ -62,17 +68,21 @@ function legacyNativePage() {
     compilerOptions: { target: ts.ScriptTarget.ES2018, module: ts.ModuleKind.CommonJS, esModuleInterop: true },
   }).outputText;
   runInContext(implementation, context);
+  // The page confirms a current-account read before it shows figures or accepts a save.
+  context.goalsStore.status = initialStatus;
   const scope = Vue.effectScope();
   const page = scope.run(() => context.module.exports.default.setup({}, { expose() {} }));
+  mounted.forEach(fn => fn());
+  for (let i = 0; i < 6; i++) await Promise.resolve();
+  context.goalsStore.recommendations.length = 0;
   return { context, page, scope };
 }
 
 describe("native goal save without Array.at", () => {
-  it("does not describe unread earnings as zero while loading or after a failed read", () => {
+  it("does not describe unread earnings as zero while loading or after a failed read", async () => {
     for (const status of ["idle", "loading", "error", "ready"]) {
-      const { context, page, scope } = legacyNativePage();
+      const { page, scope } = await legacyNativePage(status);
       try {
-        context.goalsStore.status = status;
         const subtitle = page.heroSubLine.value;
         if (status === "ready") expect(subtitle).toContain("$0.00");
         else {
@@ -85,7 +95,7 @@ describe("native goal save without Array.at", () => {
   });
 
   it("confirms one saved goal, restores its term and shows success in the actual page script", async () => {
-    const { context, page, scope } = legacyNativePage();
+    const { context, page, scope } = await legacyNativePage();
     try {
       expect(runInContext("typeof [].at", context)).toBe("undefined");
       expect(context.goalsStore.goals.at).toBeUndefined();
@@ -108,7 +118,7 @@ describe("native goal save without Array.at", () => {
   });
 
   it("preserves a failed save intent for retry and then confirms success without duplicating the goal", async () => {
-    const { context, page, scope } = legacyNativePage();
+    const { context, page, scope } = await legacyNativePage();
     try {
       page.selectTarget(500);
       page.selectDays(30);
@@ -127,7 +137,7 @@ describe("native goal save without Array.at", () => {
   });
 
   it("maps a deletion failure to product copy without exposing the diagnostic", async () => {
-    const { context, page, scope } = legacyNativePage();
+    const { context, page, scope } = await legacyNativePage();
     try {
       await page.remove("goal-id");
       expect(context.ui.toasts).toEqual([{ kind: "warn", title: zh.goals.serverUnavailable }]);
@@ -135,7 +145,7 @@ describe("native goal save without Array.at", () => {
   });
 
   it("deletes the requested goal normally without adding an error toast", async () => {
-    const { context, page, scope } = legacyNativePage();
+    const { context, page, scope } = await legacyNativePage();
     try {
       const removed: string[] = [];
       context.goalsStore.remove = async (id: string) => { removed.push(id); };
@@ -146,7 +156,7 @@ describe("native goal save without Array.at", () => {
   });
 
   it("keeps a late deletion rejection out of the next account", async () => {
-    const { context, page, scope } = legacyNativePage();
+    const { context, page, scope } = await legacyNativePage();
     try {
       let reject!: (error: Error) => void;
       context.goalsStore.remove = () => new Promise((_resolve, fail) => { reject = fail; });
@@ -159,7 +169,7 @@ describe("native goal save without Array.at", () => {
   });
 
   it("does not turn a successful old-account deletion into a failure after switching accounts", async () => {
-    const { context, page, scope } = legacyNativePage();
+    const { context, page, scope } = await legacyNativePage();
     try {
       let resolve!: () => void;
       const removed: string[] = [];
@@ -177,7 +187,7 @@ describe("native goal save without Array.at", () => {
   });
 
   it("keeps a late save rejection out of the next account", async () => {
-    const { context, page, scope } = legacyNativePage();
+    const { context, page, scope } = await legacyNativePage();
     try {
       let reject!: (error: Error) => void;
       context.goalsStore.setGoal = () => new Promise((_resolve, fail) => { reject = fail; });
@@ -295,7 +305,7 @@ async function setup(){
   const account=Vue.reactive({accountKey:'A',accountBindingEpoch:1,earnings:{total:0}});
   const ui=useUI();const shows: Array<() => void>=[];const hides: Array<() => void>=[];
   const require=(id:string)=>{
-    if (id === "@/lib/amount-display") return { formatAmount };
+    if (id === "@/lib/amount-display") return amountDisplay;
     if(id==='vue')return Vue;
     if(id==='@dcloudio/uni-app')return{onShow:(fn:() => void)=>shows.push(fn),onHide:(fn:() => void)=>hides.push(fn)};
     if(id==='@/store/goals')return{useGoals:()=>store};

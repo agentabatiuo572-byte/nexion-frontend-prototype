@@ -136,7 +136,7 @@ export interface PaidOrderReceipt {
   activationStatus: "ACTIVATED";
   canonicalStatus: "activated";
   amountUsdt: number;
-  paymentMethod: "WALLET" | "VOUCHER";
+  paymentMethod: "WALLET" | "VOUCHER" | "HDPAY_BANK" | "CREGIS_USDT_BSC";
   walletBalanceAfterUsdt: number | null;
   idempotent: boolean;
   serverCanonical: true;
@@ -432,7 +432,11 @@ function cancelledOrder(value: unknown): CancelledOrder {
 }
 
 export function paidOrderReceipt(value: unknown): PaidOrderReceipt {
-  const source = record(value);
+  const source = { ...record(value) };
+  if ((source.paymentMethod === 'HDPAY_BANK' || source.paymentMethod === 'CREGIS_USDT_BSC') && typeof source.amountUsdt === 'string') {
+    if (!/^(0|[1-9]\d{0,11})(\.\d{1,6})?$/.test(source.amountUsdt)) return invalid();
+    source.amountUsdt = Number(source.amountUsdt);
+  }
   if (source.paymentStatus !== "PAID" || source.orderStatus !== "COMPLETED"
       || source.activationStatus !== "ACTIVATED" || source.canonicalStatus !== "activated"
       || source.serverCanonical !== true || source.source !== "server"
@@ -440,7 +444,8 @@ export function paidOrderReceipt(value: unknown): PaidOrderReceipt {
   const amountUsdt = finiteNumber(source.amountUsdt);
   if (amountUsdt < 0) return invalid();
   const paymentMethod = source.paymentMethod === "UVEL_WALLET" || source.paymentMethod === "WALLET"
-    ? "WALLET" : source.paymentMethod === "VOUCHER" ? "VOUCHER" : invalid();
+    ? "WALLET" : source.paymentMethod === "VOUCHER" ? "VOUCHER"
+      : source.paymentMethod === 'HDPAY_BANK' || source.paymentMethod === 'CREGIS_USDT_BSC' ? source.paymentMethod : invalid();
   if ((paymentMethod === "VOUCHER") !== (amountUsdt === 0)) return invalid();
   const walletBalanceAfterUsdt = paymentMethod === "WALLET"
     ? finiteNumber(source.walletBalanceAfterUsdt)

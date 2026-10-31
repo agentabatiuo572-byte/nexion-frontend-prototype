@@ -108,7 +108,7 @@ test.each(languages.flatMap(([locale, copy]) => [pausedPromo, activePromo, null]
     expect(text(find(root, "weekly-quest__countdown-value"))).toBe("3d 05h");
     expect(text(find(root, "weekly-quest__cta"))).toContain(copy.weeklyQuest.goComplete);
     expect(find(root, "weekly-quest__rate")).toBeUndefined();
-    expect(text(root)).not.toContain("UVELBox Pro");
+    expect(text(root)).not.toContain("StellarBox Pro");
     const card = find(root, "weekly-quest");
     expect(card.props["data-target-device"]).toBe("");
     expect(card.props["data-quest-category"]).toBe("social");
@@ -130,7 +130,7 @@ test.each(languages.flatMap(([locale, copy]) => [[], [{ ...quest, status: "CLAIM
   "$locale no available task preserves the active promo fallback", async ({ locale, copy, quests }) => {
     const original = JSON.stringify({ quests, activePromo });
     const { root, navTo } = await mount(locale, copy, quests, activePromo);
-    expect(text(find(root, "weekly-quest__subtitle"))).toBe("UVELBox Pro");
+    expect(text(find(root, "weekly-quest__subtitle"))).toBe("StellarBox Pro"); // stored target name, shown verbatim (689303fc)
     expect(text(find(root, "weekly-quest__reward-value"))).toBe("+1200.00");
     expect(text(find(root, "weekly-quest__multiplier"))).toBe("1.5×");
     expect(text(find(root, "weekly-quest__countdown-value"))).toBe("4d 12h");

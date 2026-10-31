@@ -1,5 +1,6 @@
 import type { OrderReceipt, Quote } from '../api/promotion-contracts';
 import type { PromotionApi, PromotionOperation } from '../api/promotion-api';
+import { parsePromotedOrder } from '../api/promotion-api';
 
 export interface PromotionPendingCommand { key: string; operation: PromotionOperation; targetId: string }
 export interface PromotionCheckoutRecord { quote: Quote | null; order: OrderReceipt | null; pending: PromotionPendingCommand | null; voucherId?:string|null; voucherMode?:'auto'|'manual'; leavePromptShown?:boolean; paymentIntentRevision?:number }
@@ -53,6 +54,20 @@ export class PromotionCheckoutSession {
     const q = this.record.quote;
     if (!q || q.eligibility !== 'ELIGIBLE' || this.record.order) throw new Error('QUOTE_NOT_CONFIRMABLE');
     await this.mutate(q.items.length > 1 ? 'createBundle' : 'createOrder', q.quoteId, key => this.ports.api.create(q, key,this.record.voucherId??null));
+  }
+  externalPaymentKey(): string {
+    const order = this.record.order;
+    if (!order || !this.confirmed || order.paymentStatus !== 'PENDING' || this.busy || this.unknown) throw new Error('ORDER_NOT_CONFIRMED');
+    const revision = this.record.paymentIntentRevision ?? 0;
+    const key = this.ports.key(`payOrder:${order.orderNo}${revision ? `:payment-intent:${revision}` : ''}`);
+    this.persist({ ...this.record, pending: { operation: 'payOrder', targetId: order.orderNo, key } });
+    this.unknown = true;
+    return key;
+  }
+  async acceptExternalPayment(raw: unknown): Promise<void> {
+    const order = parsePromotedOrder(raw);
+    if (order.paymentStatus !== 'PAID') throw new Error('EXTERNAL_PAYMENT_NOT_DELIVERED');
+    this.acceptOrder(order);
   }
   async pay(authorization?: import('@/api/payment-password-api').PaymentPasswordAuthorization): Promise<void> {
     const order = this.record.order;

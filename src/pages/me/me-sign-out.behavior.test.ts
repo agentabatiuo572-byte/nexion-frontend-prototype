@@ -110,7 +110,7 @@ describe("Security accepted deletion session cleanup", () => {
     const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn(), warn: vi.fn() }, navReset = vi.fn();
     const accountApi = { requestAccountDeletion: vi.fn(async () => ({ requestNo: "SYNTHETIC-REQUEST" })) };
     const run = entry({ auth, app, accountApi, authApi, sessionVault: vault,
-      securityBusy: { value: false }, securityPageFence: pageFence, securityPageVisible: true,
+      securityBusy: { value: false }, securityPageFence: pageFence, securityPageVisible: true, securityEnvironmentInvalidated: false,
       captureAccountScope: () => epoch.snapshot(), isCurrentAccountScope: (scope: ReturnType<typeof epoch.snapshot>) => epoch.isCurrent(scope),
       remoteApiEnabled: true, remoteSecurity: { value: {} }, deletionPending: { value: false },
       deletionPassword: { value: "SYNTHETIC-LOCAL-NOT-A-PASSWORD" }, deletionCommandKey: { value: "" },

@@ -6,6 +6,8 @@ import source from './tradein-sheets.vue?raw';
 import { acquireAccountCommandKey, readAccountRow, releaseAccountCommandKey, writeAccountRow } from '@/store/account-scoped-storage';
 import { zh } from '@/i18n/messages/zh';
 import type { CanonicalCapacityReplaceQuote } from '@/api/device-e3-api';
+import { purchasePrincipalUsdt } from '@/api/device-e3-api';
+import { selectedPurchasePaymentFixture } from '@/lib/selected-purchase-payment.test-helper';
 import { readPendingKeepCommand } from '@/lib/keep-command-recovery';
 import type { TradeinSheetState } from '@/store/tradein-sheet';
 
@@ -22,15 +24,17 @@ function page(storage=new Map<string,unknown>()){
   const deviceE3Api={capacityReplace:vi.fn().mockResolvedValue(replacement),capacityKeep:vi.fn(),replayCapacityKeep:vi.fn()};
   const readPaymentCommand=vi.fn().mockResolvedValue({status:'PROCESSING',canResumeSameKey:false});
   const executePaymentWithPassword=vi.fn(async(_context,command,current)=>current()?command({paymentPassword:'039417',credentialVersion:1,attemptNo:'fixture-attempt'}):null);
+  const methodSelection=selectedPurchasePaymentFixture(executePaymentWithPassword);
+  const executeSelectedPurchase=vi.fn((...args:any[])=>{const result=methodSelection.execute(...args);methodSelection.decide({method:'WALLET'});return result;});
   const completeVerifiedMutation=vi.fn(async steps=>steps.submit());
   const deps={ref,props,state,app:{accountKey:'account-a',devices:[]},captureAccountScope:()=>scope,isCurrentAccountScope:(value:unknown)=>value===scope,
-    acquireAccountCommandKey,readAccountRow,readPendingKeepCommand,releaseAccountCommandKey,writeAccountRow,deviceE3Api,readPaymentCommand,executePaymentWithPassword,completeVerifiedMutation,
+    acquireAccountCommandKey,readAccountRow,readPendingKeepCommand,releaseAccountCommandKey,writeAccountRow,deviceE3Api,readPaymentCommand,executePaymentWithPassword,executeSelectedPurchase,purchasePrincipalUsdt,completeVerifiedMutation,
     apiClient:{},parseCanonicalTradeinResult:(value:unknown)=>value,parseCanonicalCapacityKeepResult:(value:unknown)=>value,
     capacityCommandKey:ref(null),CAPACITY_COMMAND_TABLE:'nexgrid-e3-capacity-commands-accounts-v1',CAPACITY_RECOVERY_TABLE:'nexgrid-e3-capacity-payment-accounts-v1',
     capacityRecovery:ref(null),capacityRecoveryBusy:ref(false),capacityResumeAllowed:ref(false),capacityRecoveryUnavailable:ref(false),recoveryCopy:ref({paymentPending:'Confirming',rejected:'Declined'}),
     confirming:ref(false),toast:{warn:vi.fn(),success:vi.fn()},t:ref(zh),kindLabel:(value:string)=>value,fmt:(value:string)=>value,hide:vi.fn(),goDevices:vi.fn(),orders:{},orderApi:{}};
   const actual=new Function(...Object.keys(deps),code+';return {submitCanonicalCapacityReplacement,submitCanonicalKeepBuy,recoverCapacityPurchase};')(...Object.values(deps));
-  return {...deps,actual,storage,replacement,quote:{...quote}};
+  return {...deps,actual,storage,replacement,methodSelection,quote:{...quote}};
 }
 afterEach(()=>vi.unstubAllGlobals());
 describe('actual capacity purchase result recovery',()=>{

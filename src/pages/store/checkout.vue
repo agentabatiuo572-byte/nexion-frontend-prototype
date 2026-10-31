@@ -251,7 +251,6 @@
         <NxButton variant="primary" :disabled="checkoutWalletRefreshing || (remoteApiEnabled && !checkoutWalletReadable) || purchaseUnavailable || quantitySwitching || paymentFlowBusy || checkoutLeaving" :busy="checkoutWalletRefreshing || quantitySwitching || paymentFlowBusy || checkoutLeaving" :label="isCard ? t.store.coContinueToPayment : t.store.coPayNow" @click="submitReview" />
       </view>
     </template>
-    <CheckoutPaymentSheet :open="paymentSheetOpen" :amount="paymentSheetAmount" :balance="app.user.usdtBalance" :busy="paymentFlowBusy" @close="closePaymentSheet" @confirm="confirmPaymentSheet" @topup="closePaymentSheet(); navTo('/pages/me/wallet-topup')" />
     <NxSheet :open="checkoutLeaveError !== ''" :title="flowCopy.cancelFailed" @close="checkoutLeaveError = ''"><view class="checkout-exit-error"><text>{{ checkoutLeaveError }}</text><NxButton :label="t.store.catalogRetry" :busy="checkoutLeaving" @click="cancelCheckout" /></view></NxSheet>
     <NxSheet :open="paymentBlocked !== ''" :title="flowCopy.cannotPay" @close="paymentBlocked = ''"><view class="checkout-exit-error"><text>{{ paymentBlocked }}</text><NxButton :label="flowCopy.cancelOrder" :busy="checkoutLeaving" @click="paymentBlocked = ''; cancelCheckout()" /></view></NxSheet>
   </AppChassis>
@@ -320,7 +319,10 @@ import type { DeviceKind } from "@/store/types";
 import { confirm, toast, useUI } from "@/store/ui";
 import { deviceE3Api, orderApi, purchaseEligibilityApi, remoteApiEnabled } from "@/api/runtime";
 import { asApiError, isSettledRejection } from "@/api/errors";
-import { executePaymentWithPassword } from "@/lib/authorized-payment";
+import { executeSelectedPurchase } from "@/lib/selected-purchase-payment";
+import { paidOrderReceipt } from "@/api/order-api";
+import { parseTrialConvertReceipt } from "@/api/trial-api";
+import { purchasePrincipalUsdt } from "@/api/device-e3-api";
 import { beginOrderAction, clearOrderAction, markOrderActionPaid, readOrderAction } from "@/lib/order-command-fence";
 import { readPaymentCommand } from "@/api/payment-command-api";
 import { apiClient } from "@/api/runtime";
@@ -1405,10 +1407,8 @@ async function requestConfirmPay() {
   dialogsOpen += 1;
   try {
     paymentSheetAmount.value = amount;
-    paymentSheetOpen.value = true;
-    const accepted = await new Promise<boolean>(resolve => { settlePaymentSheet = resolve; });
     await nextTick();
-    if (!accepted || !isCurrentCheckoutRoute(scope) || ((!createdCheckoutOrder.value && !pendingCheckoutCreate.value) && trialQuoteScreenUnavailable.value) || step.value !== "confirm") return;
+    if (!isCurrentCheckoutRoute(scope) || ((!createdCheckoutOrder.value && !pendingCheckoutCreate.value) && trialQuoteScreenUnavailable.value) || step.value !== "confirm") return;
     if (amount !== netPrice.value + cardFee.value
         || (!createdCheckoutOrder.value && !pendingCheckoutCreate.value && !freeTrial.hasPendingConversion() && (reviewedTrialApplied !== trialView.value.applied
           || reviewedTrialQuoteVersion !== trialView.value.quoteVersion))) {
@@ -1484,7 +1484,7 @@ async function onConfirmPay() {
       }
       let conversion = await freeTrial.convert(p.id, quotedTotal, trialQuote.quoteVersion);
       if (conversion.reason === 'payment-required') {
-        const authorized = await executePaymentWithPassword({amount:quotedTotal,currency:'USDT',summary:p.name},
+        const authorized = await executeSelectedPurchase({amount:quotedTotal,currency:'USDT',summary:p.name},
           async authorization=>{
             if (!isCurrentCheckoutRoute(confirmationScope) || confirmedAmount!==netPrice.value+cardFee.value
                 || confirmedTrialQuoteVersion!==trialView.value.quoteVersion) return null;
@@ -1492,7 +1492,10 @@ async function onConfirmPay() {
           },
           ()=>isCurrentCheckoutRoute(confirmationScope)&&!trialQuoteScreenUnavailable.value
             &&confirmedAmount===netPrice.value+cardFee.value&&confirmedTrialApplied===trialView.value.applied
-            &&confirmedTrialQuoteVersion===trialView.value.quoteVersion);
+            &&confirmedTrialQuoteVersion===trialView.value.quoteVersion,
+          {kind:'TRIAL_CONVERT',payload:{productNo:p.id,expectedAmountUsdt:quotedTotal,quoteVersion:trialQuote.quoteVersion},
+            commandKey:()=>freeTrial.conversionPaymentKey(p.id,quotedTotal,trialQuote.quoteVersion),
+            parseReceipt:async raw=>{const receipt=parseTrialConvertReceipt(raw);const result=await freeTrial.convert(p.id,quotedTotal,trialQuote.quoteVersion);if(!result.ok||result.orderNo!==receipt.orderNo)throw new Error('TRIAL_CONVERT_RESULT_UNKNOWN');return result;}});
         if (!authorized) { confirming=false; return; }
         conversion = authorized;
       }
@@ -1903,11 +1906,13 @@ async function completeRemoteTradein(recovery: CheckoutTradeinRecovery, submissi
           try {
             const key = recovery.commandKey.replace("h7-order:", "e3-tradein:");
             if (!submitted) {
-              const paid = await executePaymentWithPassword({amount:recovery.tradeinQuote.payableUsdt,currency:'USDT',summary:product.value?.name??t.value.store.coConfirmPurchase},
+              const paid = await executeSelectedPurchase({amount:recovery.tradeinQuote.payableUsdt,currency:'USDT',summary:product.value?.name??t.value.store.coConfirmPurchase},
                 async authorization=>{
                   if (!authorizationIsCurrent()) return null;
                   return deviceE3Api.submit(recovery.tradeinQuote.sourceDeviceId,recovery.productNo,key,recovery.tradeinQuote,authorization);
-                },authorizationIsCurrent);
+                },authorizationIsCurrent,
+                {kind:'TRADE_IN',payload:{sourceDeviceId:reviewedQuote.sourceDeviceId,expectedSourceVersion:reviewedQuote.sourceRowVersion,targetProductNo:recovery.productNo,expectedPayableUsdt:reviewedQuote.payableUsdt,expectedDiscountUsdt:reviewedQuote.discountUsdt},
+                  commandKey:()=>recovery.commandKey.replace('h7-order:','e3-tradein:'),parseReceipt:parseCanonicalTradeinResult});
               if (!paid) {
                 if (newSubmission) {
                   finishCheckoutTradein(submissionScope.accountKey, recovery);
@@ -1946,7 +1951,7 @@ async function completeRemoteTradein(recovery: CheckoutTradeinRecovery, submissi
               || persisted.orderStatus.toUpperCase() !== "COMPLETED"
               || persisted.activationStatus.toUpperCase() !== (expectedActive ? "ACTIVATED" : "INVENTORY")
               || typeof persisted.amountUsdt !== "number"
-              || Math.abs(persisted.amountUsdt - submitted.walletDebitUsdt) > 0.000001
+              || Math.abs(persisted.amountUsdt - purchasePrincipalUsdt(submitted)) > 0.000001
               || Math.abs(persisted.discountUsdt - submitted.discountUsdt) > 0.000001) {
             throw new Error("E3_TRADEIN_READBACK_MISMATCH");
           }
@@ -2088,11 +2093,6 @@ async function submitRemoteOrder(): Promise<void> {
     step.value = "select-payment";
     return;
   }
-  if (app.user.usdtBalance + 0.000001 < quotedTotal) {
-    confirming = false;
-    await offerWalletTopup(quotedTotal, submissionScope);
-    return;
-  }
   const eligibility = createdCheckoutOrder.value || pendingCheckoutCreate.value ? 'eligible' : await refreshPurchaseEligibility(submissionScope);
   if (eligibility !== "eligible") {
     confirming = false;
@@ -2193,7 +2193,7 @@ async function submitRemoteOrder(): Promise<void> {
     const paymentCurrent = () => scopeIsCurrent()&&createdCheckoutOrder.value?.orderNo===created.orderNo
       &&createdCheckoutOrder.value.amountUsdt===created.amountUsdt&&reviewedTotal===netPrice.value
       &&(persisted.expiresAt===null || nowTick.value<persisted.expiresAt);
-    const paid = await executePaymentWithPassword({amount:created.amountUsdt,currency:'USDT',summary:p.name},
+    const paid = await executeSelectedPurchase({amount:created.amountUsdt,currency:'USDT',summary:p.name},
       async authorization=>{
         if (!paymentCurrent()) return null;
         const action=beginOrderAction(submissionScope.accountKey,'pay',created.orderNo,created.amountUsdt);
@@ -2205,7 +2205,7 @@ async function submitRemoteOrder(): Promise<void> {
           throw error;
         }
       },
-      paymentCurrent);
+      paymentCurrent,{kind:'ORDER_PAY',payload:{orderNo:created.orderNo},commandKey:()=>{const action=beginOrderAction(submissionScope.accountKey,'pay',created.orderNo,created.amountUsdt);paymentKey=action.key;return action.key;},parseReceipt:paidOrderReceipt});
     if (!paid) { step.value='confirm'; return; }
     if (!scopeIsCurrent()) return;
     if (paid.orderNo !== created.orderNo) {

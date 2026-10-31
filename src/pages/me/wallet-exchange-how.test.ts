@@ -100,6 +100,8 @@ function navigationStack(initial: Page[]) {
 }
 
 afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); });
+// Tab pages open through the retained tab host; a cold Back fallback to Me lands there.
+const ME_TAB = "/pages/tabs/tabs?target=%2Fpages%2Fme%2Fme";
 
 describe("actual exchange guide return navigation", () => {
   it("restores the existing exchange input and removes the guide before the next Back", () => {
@@ -152,7 +154,7 @@ describe("actual exchange guide return navigation", () => {
       expect(s.stack.at(-1)?.input).toBe("10");
       navBack("/pages/me/me");
     }
-    expect(s.stack).toEqual([{ route: "/pages/me/me" }]);
+    expect(s.stack).toEqual([{ route: mode === "warm" ? "/pages/me/me" : ME_TAB }]);
     expect(s.runtime.showToast).not.toHaveBeenCalled();
   });
 
@@ -164,7 +166,7 @@ describe("actual exchange guide return navigation", () => {
     expect(s.runtime.navigateTo).not.toHaveBeenCalled();
     expect(s.runtime.reLaunch).toHaveBeenLastCalledWith(expect.objectContaining({ url: "/pages/me/wallet-exchange" }));
     navBack("/pages/me/me");
-    expect(s.stack).toEqual([{ route: "/pages/me/me" }]);
+    expect(s.stack).toEqual([{ route: ME_TAB }]);
     expect(s.runtime.showToast).not.toHaveBeenCalled();
   });
 
@@ -188,8 +190,8 @@ describe("actual exchange guide return navigation", () => {
     const s = failedReturn(mode);
     s.runtime.redirectTo.mockImplementationOnce(options => options.fail?.());
     navBack("/me");
-    expect(s.stack).toEqual([{ route: "/pages/me/me" }]);
-    expect(s.runtime.reLaunch).toHaveBeenLastCalledWith(expect.objectContaining({ url: "/pages/me/me" }));
+    expect(s.stack).toEqual([{ route: ME_TAB }]);
+    expect(s.runtime.reLaunch).toHaveBeenLastCalledWith(expect.objectContaining({ url: ME_TAB }));
     expect(s.runtime.navigateTo).not.toHaveBeenCalled();
     expect(s.runtime.showToast).not.toHaveBeenCalled();
   });

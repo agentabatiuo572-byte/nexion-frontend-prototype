@@ -292,7 +292,8 @@ import { productCatalogState, refreshProductCatalog } from "@/store/product-cata
 import { isProductAvailable } from "@/store/product-availability";
 import { useOrders } from "@/store/orders";
 import { completeVerifiedMutation, handleNoActiveDeviceDecision } from "@/domain/e20-capacity-coordinator";
-import { executePaymentWithPassword } from "@/lib/authorized-payment";
+import { executeSelectedPurchase } from "@/lib/selected-purchase-payment";
+import { purchasePrincipalUsdt } from "@/api/device-e3-api";
 import { readPaymentCommand } from "@/api/payment-command-api";
 import { parseCanonicalTradeinResult,parseCanonicalCapacityKeepResult,type CanonicalTradeinResult,type CanonicalCapacityKeepResult } from "@/api/device-e3-api";
 import { purchaseRecoveryCopy } from "@/lib/purchase-recovery-copy";
@@ -1005,7 +1006,7 @@ const replaceView = computed(() => {
         name: s.canonicalCapacityQuote.sourceDeviceName ?? t.value.tradein.errReplaceUnavailable,
         earn: "—",
       }),
-      insufficient: !s.canonicalCapacityQuote.sufficientFunds,
+      insufficient: false, // The shared payment selector checks wallet balance; external methods remain available.
       replaceCta: fmt(t.value.tradein.replaceReplaceCta, { newKind: kindLabel(s.newKind) }),
       keepCta: fmt(t.value.tradein.replaceKeepCta, { newKind: kindLabel(s.newKind) }),
     };
@@ -1120,7 +1121,7 @@ async function runCanonicalCapacityPurchase(operation:'replace'|'keep',requested
       const current=()=>isCurrentAccountScope(scope)&&props.active&&(state.value.kind==='replace'||state.value.kind==='choice'||allowOriginalResume&&state.value.kind==='keep-recovery')
         &&(allowOriginalResume?readCapacityPending(scope.accountKey)?.intent===intent
           :state.value.kind==='replace'&&state.value.newKind===newKind&&!!state.value.canonicalCapacityQuote&&capacityIntent(operation,state.value.canonicalCapacityQuote)===requestedIntent);
-      receipt=await executePaymentWithPassword({amount:payable,currency:'USDT',summary},async authorization=>{
+      receipt=await executeSelectedPurchase({amount:payable,currency:'USDT',summary},async authorization=>{
         const saved=readCapacityPending(scope.accountKey);
         if (saved&&saved.intent!==intent) throw new Error('CAPACITY_ORIGINAL_UNRESOLVED');
         const key=saved?.key??canonicalCapacityKey(effectiveOperation,frozen!,scope.accountKey);
@@ -1130,11 +1131,14 @@ async function runCanonicalCapacityPurchase(operation:'replace'|'keep',requested
           ?deviceE3Api.capacityReplace(frozen!.sourceDeviceId!,target,key,frozen!,authorization)
           :allowOriginalResume?deviceE3Api.replayCapacityKeep(target,key,payable,authorization)
           :deviceE3Api.capacityKeep(target,key,frozen!,authorization);
-      },current);
+      },current,{kind:effectiveOperation==='replace'?'CAPACITY_REPLACE':'CAPACITY_KEEP',
+        payload:{targetProductNo:target,expectedPayableUsdt:payable,...(effectiveOperation==='replace'?{sourceDeviceId:frozen!.sourceDeviceId}: {})},
+        commandKey:()=>{const saved=readCapacityPending(scope.accountKey);const key=saved?.key??canonicalCapacityKey(effectiveOperation,frozen!,scope.accountKey);original=saved??{operation:effectiveOperation,intent,key,quote:frozen!};writeCapacityPending(scope.accountKey,original);return key;},
+        parseReceipt:raw=>effectiveOperation==='replace'?parseCanonicalTradeinResult(raw):parseCanonicalCapacityKeepResult(raw)});
       if (!receipt) return;
     }
     if (!isCurrentAccountScope(scope)||!original) return;
-    if (Math.abs(receipt.walletDebitUsdt-payable)>0.000001
+    if (Math.abs(purchasePrincipalUsdt(receipt)-payable)>0.000001
         || (effectiveOperation==='replace'&&(receipt as CanonicalTradeinResult).sourceDeviceId!==frozen!.sourceDeviceId))
       throw new Error('CAPACITY_RECEIPT_QUOTE_MISMATCH');
     if (effectiveOperation==='replace') await submitCanonicalCapacityReplacement(frozen!,target as DeviceKind,
@@ -1195,7 +1199,7 @@ async function submitCanonicalCapacityReplacement(
             || persisted.orderStatus.toUpperCase() !== "COMPLETED"
             || persisted.activationStatus.toUpperCase() !== "ACTIVATED"
             || typeof persisted.amountUsdt !== "number"
-            || Math.abs(persisted.amountUsdt - submitted.walletDebitUsdt) > 0.000001
+            || Math.abs(persisted.amountUsdt - purchasePrincipalUsdt(submitted)) > 0.000001
             || Math.abs(persisted.discountUsdt - submitted.discountUsdt) > 0.000001) {
           throw new Error("CAPACITY_REPLACEMENT_READBACK_MISMATCH");
         }
@@ -1372,7 +1376,7 @@ async function submitCanonicalKeepBuy(
             || persisted.targetDeviceId !== submitted.targetDeviceId
             || !persisted.targetDeviceInstanceNo
             || typeof persisted.amountUsdt !== "number"
-            || Math.abs(persisted.amountUsdt - submitted.walletDebitUsdt) > 0.000001
+            || Math.abs(persisted.amountUsdt - purchasePrincipalUsdt(submitted)) > 0.000001
             || Math.abs(persisted.discountUsdt) > 0.000001) {
           throw new Error("CAPACITY_KEEP_ORDER_READBACK_MISMATCH");
         }

@@ -28,12 +28,10 @@ function rendered(trial: ReturnType<typeof useFreeTrial>) {
   const banner = pageGate(pages["../components/trial-promo-banner.vue"] as string, "visible", trial, "isActive");
   return computed(() => me.value && banner.value);
 }
+// The Me page no longer renders a trial slot (UX audit 2026-10-25); the pending
+// skeleton contract (BUG 173) is the store's promoSlot, read the way the slot used to bind it.
 function meSkeleton(trial: ReturnType<typeof useFreeTrial>) {
-  const source = pages["../pages/me/me.vue"] as string;
-  const condition = source.match(/<view v-if="([^"]+)"[^>]*data-me-trial-state="pending"/)?.[1];
-  if (!condition) throw new Error("Me initial trial skeleton binding missing");
-  const evaluate = new Function("trial", "trialIsActive", `return ${condition};`);
-  return computed(() => evaluate(trial, trial.status === "active" || trial.status === "grace"));
+  return computed(() => !(trial.status === "active" || trial.status === "grace") && trial.promoSlot === "pending");
 }
 function refreshFromMe(trial: ReturnType<typeof useFreeTrial>): Promise<void> {
   const script = (pages["../pages/me/me.vue"] as string).match(/<script setup lang="ts">([\s\S]*?)<\/script>/)![1];
@@ -42,7 +40,8 @@ function refreshFromMe(trial: ReturnType<typeof useFreeTrial>): Promise<void> {
   const code = ts.transpileModule(fn.getText(ast) + ";return refreshRemoteTrial();", {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
   }).outputText;
-  return new Function("trial", code)(trial);
+  // Pass-through passive read: this suite checks the read order, not tab-read coalescing.
+  return new Function("trial", "runPassiveTabRead", code)(trial, (_key: string, read: () => Promise<boolean>) => read());
 }
 function bannerActions(trial: ReturnType<typeof useFreeTrial>, show: () => void) {
   const script = (pages["../components/trial-promo-banner.vue"] as string).match(/<script setup lang="ts">([\s\S]*?)<\/script>/)![1];

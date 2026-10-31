@@ -75,6 +75,7 @@
        polls + fires via store.show()) -->
   <MilestoneCelebration v-if="showBusinessOverlays" />
   <PaymentPasswordDialog v-if="showBusinessOverlays" />
+  <PurchasePaymentDialog v-if="showBusinessOverlays" :show-history="route.includes('store/orders') || route.includes('store/order-detail')" />
 </template>
 
 <script setup lang="ts">
@@ -84,6 +85,7 @@ import { useUI } from "@/store/ui";
 import { useT } from "@/i18n/use-t";
 import MilestoneCelebration from "@/components/milestone-celebration.vue";
 import PaymentPasswordDialog from "@/components/payment-password-dialog.vue";
+import PurchasePaymentDialog from "@/components/purchase-payment-dialog.vue";
 import { isStaticReviewRoute } from "@/lib/static-review-routes";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
 

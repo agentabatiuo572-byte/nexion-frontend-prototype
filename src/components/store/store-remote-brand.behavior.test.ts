@@ -60,22 +60,21 @@ async function view(component: ReturnType<typeof compiled>, copy: typeof en, pro
 
 for (const [locale, copy] of [["en", en], ["zh", zh], ["vi", vietnamese]] as const) {
   for (const theme of ["light", "dark"]) {
-    it(`${locale}/${theme}: brands the current-owned ladder label without rewriting the device`, async () => {
+    it(`${locale}/${theme}: shows the stored current-owned ladder name verbatim without rewriting the device`, async () => {
       const owned = { kind: "stellarbox-pro-v2", name: "NexGridBox Pro v2", activatedAt: 1, baseRate: 4, baseRateNEX: 2 };
       const authority = { ladder: [{ id: "phone", amount: null, widthPct: 0 }, { id: "pro", amount: { usd: 2, nex: 1 }, widthPct: 100 }] };
       const before = structuredClone({ owned, authority });
       const instance = await view(ladder, copy, { owned, authority });
       try {
         const html = `<main data-theme="${theme}">${await instance.html()}</main>`;
-        expect(html).toContain("UVELBox Pro v2");
-        expect(html).not.toContain("NexGridBox");
+        expect(html).toContain("NexGridBox Pro v2"); // published names are source-owned (689303fc)
         expect(html).toContain(copy.store.ladderYou);
         expect(html).toContain('aria-label="$4.00"');
         expect({ owned, authority }).toEqual(before);
       } finally { instance.close(); }
     });
 
-    it(`${locale}/${theme}: brands rotating purchase activity while preserving remote history and request`, async () => {
+    it(`${locale}/${theme}: shows rotating purchase activity with stored names while preserving remote history and request`, async () => {
       vi.useFakeTimers();
       const snapshot = { items: [
         { productName: "NexGridBox S1", occurredAt: "2026-10-18T03:00:00" },
@@ -89,13 +88,11 @@ for (const [locale, copy] of [["en", en], ["zh", zh], ["vi", vietnamese]] as con
         await instance.mount();
         let html = `<main data-theme="${theme}">${await instance.html()}</main>`;
         expect(html).toContain(copy.store.tickerBought);
-        expect(html).toContain("UVELBox S1");
-        expect(html).not.toContain("NexGridBox");
+        expect(html).toContain("NexGridBox S1");
         expect(html).toContain("2026-10-18 03:00:00");
         await vi.advanceTimersByTimeAsync(3400);
         html = await instance.html();
-        expect(html).toContain("UVELRack P1");
-        expect(html).not.toContain("StellarRack");
+        expect(html).toContain("StellarRack P1");
         expect(activity).toHaveBeenCalledExactlyOnceWith(8);
         expect(snapshot).toEqual(before);
       } finally { instance.close(); vi.useRealTimers(); }

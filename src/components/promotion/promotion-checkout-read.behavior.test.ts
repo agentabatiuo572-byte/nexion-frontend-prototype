@@ -18,6 +18,7 @@ import { asApiError,ApiError } from '@/api/errors';
 import { PromotionCheckoutSession,selectPromotionCheckoutRecord,type PromotionCheckoutRecord } from '@/lib/promotion-checkout-session';
 import { parsePendingKeepCommand } from '@/lib/keep-command-recovery';
 import type { PaymentPasswordAuthorization } from '@/api/payment-password-api';
+import { selectedPurchasePaymentFixture } from '@/lib/selected-purchase-payment.test-helper';
 import { projectServerNow } from '@/lib/server-deadline-clock';
 import { displayDeadline,localized,rewardSummary } from '@/lib/promotion-display';
 import { formatAmount,formatGroupedAmount } from '@/lib/amount-display';
@@ -79,6 +80,7 @@ function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items
   const confirm=vi.fn().mockResolvedValue(false),clearConfirmsBy=vi.fn();
   const authorization:PaymentPasswordAuthorization={paymentPassword:'583719',credentialVersion:1,attemptNo:'fixture-attempt'};
   const pin=vi.fn(async(_context:any,command:any,current:()=>boolean)=>current()?command(authorization):null);
+  const methodSelection=selectedPurchasePaymentFixture(pin);
   const eligibility=vi.fn().mockResolvedValue({eligible:true}),runtime=Vue.reactive({epoch:1}),sessionIdentity=Vue.reactive({revision:1});
   const canonical=vi.fn().mockResolvedValue({id:'o1',status:'activated'}),navTo=vi.fn(),navBack=vi.fn(),navReset=vi.fn();
   const vouchers={remoteStatus:'ready',catalog:[] as {id:string;name:string}[],claimedUnused:[] as VoucherDef[],claimableVouchers:[] as {id:string;name:string;claimSurfaces:string[]}[],refreshRemote:vi.fn().mockResolvedValue(true),claimRemote:vi.fn().mockResolvedValue(true)};
@@ -87,6 +89,7 @@ function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items
     '@/lib/checkout-review-amount':{formatCheckoutReviewAmount},
     '@/api/order-api':{captureRuntimeRevision:()=>({epoch:runtime.epoch}),isCurrentRuntimeRevision:(scope:{epoch:number})=>scope.epoch===runtime.epoch},
     '@/lib/authorized-payment':{executePaymentWithPassword:pin},
+    '@/lib/selected-purchase-payment':{executeSelectedPurchase:methodSelection.execute},
     '@/lib/order-payment-rejection':{orderPaymentRejection},
     '@/lib/checkout-flow-copy':{checkoutFlowCopy},
     '@/store/orders':{useOrders:()=>({ensureRemoteOrder:canonical})},
@@ -123,7 +126,7 @@ function screen(stored?:PromotionCheckoutRecord,input?:{activityId?:string;items
   const amount={props:['value','currency','showCurrency'],setup:(props:any)=>()=>Vue.h('text',props.showCurrency===false?formatGroupedAmount(props.value):props.currency==='USD'?'$'+(formatGroupedAmount(props.value)==='-'?'—':formatGroupedAmount(props.value)):formatGroupedAmount(props.value)+' USDT')};
   const result={props:['state','productName','amount'],setup:(props:any,{slots}:Vue.SetupContext)=>()=>Vue.h('view',{'data-result':props.state},[props.productName,' ',formatGroupedAmount(props.amount)+' USDT',slots.default?.()])};
   const html=()=>renderToString(Vue.createSSRApp({components:{PromotionAction:passthrough,PromotionTerms:empty,RewardRows:empty,LiquidGlass:empty,NxSheet:empty,CheckoutPaymentSheet:empty,CheckoutAmount:amount,CheckoutResult:result},render:()=>render(Vue.proxyRefs({$slots:{},...Vue.toRefs(props),...view}),[])}));
-  return{view,exposed,navReset,api,save,key,app,fleet,props,auth,locale,vouchers,getProduct,catalog,presentation,refreshCatalog,html,confirm,clearConfirmsBy,pin,eligibility,runtime,sessionIdentity,authorization,canonical,navTo,navBack,tradein,setKeepHistory:(history:unknown)=>{keepHistory=history;},start:()=>Promise.all(mounted.map(fn=>fn())),saved:()=>rows[intent],failStorage:()=>{writable=false;}};
+  return{view,exposed,navReset,api,save,key,app,fleet,props,auth,locale,vouchers,getProduct,catalog,presentation,refreshCatalog,html,confirm,clearConfirmsBy,pin,methodSelection,eligibility,runtime,sessionIdentity,authorization,canonical,navTo,navBack,tradein,setKeepHistory:(history:unknown)=>{keepHistory=history;},start:()=>Promise.all(mounted.map(fn=>fn())),saved:()=>rows[intent],failStorage:()=>{writable=false;}};
 }
 
 const oldKeepIntent='keep|1156|sku|1|1299|1299|6';
@@ -289,7 +292,7 @@ it('an order discount keeps the quoted amount through create, recovery and payme
   await page.start();expect(page.exposed.footer.value.amount).toBe('$799.00');
   await page.view.createOrder();expect(page.saved().order?.amountUsdt).toBe('799.000000');expect(page.saved().order?.rewards?.[0].reward.type).toBe('DISCOUNT_USDT');
   await page.view.recover();expect(page.exposed.footer.value.amount).toBe('$799.00');
-  await page.view.pay();await page.view.confirmPayment();
+  await page.view.pay();await page.methodSelection.wallet();
   expect(page.pin).toHaveBeenCalledWith(expect.objectContaining({amount:'799.000000',currency:'USDT'}),expect.any(Function),expect.any(Function));
   expect(page.api.pay).toHaveBeenCalledOnce();expect(page.saved().order?.paymentStatus).toBe('PAID');
 });
@@ -297,9 +300,9 @@ it('an order discount keeps the quoted amount through create, recovery and payme
 it('closing method selection preserves the order; confirming it requests PIN and pays the same order once',async()=>{
   const page=screen({quote:quote(),order:receipt(),pending:null});await page.start();
   await page.view.pay();expect(page.api.pay).not.toHaveBeenCalled();expect(page.saved().order?.paymentStatus).toBe('PENDING');
-  expect(page.view.paymentSheetOpen.value).toBe(true);expect(page.pin).not.toHaveBeenCalled();
-  page.view.paymentSheetOpen.value=false;expect(page.api.cancel).not.toHaveBeenCalled();
-  await page.view.pay();const pending=page.view.confirmPayment();await page.view.confirmPayment();await pending;
+  expect(page.methodSelection.state.open).toBe(true);expect(page.pin).not.toHaveBeenCalled();
+  await page.methodSelection.cancel();expect(page.api.cancel).not.toHaveBeenCalled();
+  await page.view.pay();const pending=page.methodSelection.wallet();await page.methodSelection.wallet();await pending;
   expect(page.pin).toHaveBeenCalledOnce();expect(page.confirm).not.toHaveBeenCalled();
   expect(page.api.pay).toHaveBeenCalledWith('o1','original-key',page.authorization);expect(page.saved().order?.paymentStatus).toBe('PAID');
 });
@@ -363,7 +366,7 @@ it('a directly opened paid order offers no new purchase action',async()=>{
 });
 it.each(['hide','account','expired'] as const)('a delayed PIN after %s cannot submit payment',async change=>{
   const page=screen({quote:quote(),order:receipt(),pending:null});await page.start();
-  const decision=deferred<boolean>();page.pin.mockImplementationOnce(async(_context,command,current)=>{await decision.promise;page.view.updateClock();return current()?command(page.authorization):null;});await page.view.pay();const pending=page.view.confirmPayment();
+  const decision=deferred<boolean>();page.pin.mockImplementationOnce(async(_context,command,current)=>{await decision.promise;page.view.updateClock();return current()?command(page.authorization):null;});await page.view.pay();const pending=page.methodSelection.wallet();
   if(change==='hide'){page.exposed.hide();expect(page.clearConfirmsBy).toHaveBeenCalledWith(expect.stringContaining('promotion-payment:'));}
   if(change==='account')page.app.accountBindingEpoch++;
   if(change==='expired')page.view.order.value.payBy='2026-10-07T00:00:00Z';
@@ -372,12 +375,12 @@ it.each(['hide','account','expired'] as const)('a delayed PIN after %s cannot su
 
 it('new items checkout opens the method sheet after one create action without submitting payment',async()=>{
   const page=screen();await page.start();await page.exposed.footer.value.action();
-  expect(page.api.create).toHaveBeenCalledOnce();expect(page.view.paymentSheetOpen.value).toBe(true);
+  expect(page.api.create).toHaveBeenCalledOnce();expect(page.methodSelection.state.open).toBe(true);
   expect(page.pin).not.toHaveBeenCalled();expect(page.api.pay).not.toHaveBeenCalled();
 });
 it('PIN cancellation retains the original pending order and never cancels or creates another',async()=>{
   const page=screen();await page.start();await page.view.createOrder();page.pin.mockResolvedValueOnce(null);
-  await page.view.confirmPayment();expect(page.saved().order?.orderNo).toBe('o1');
+  await page.methodSelection.wallet();expect(page.saved().order?.orderNo).toBe('o1');
   expect(page.saved().order?.paymentStatus).toBe('PENDING');expect(page.api.create).toHaveBeenCalledOnce();
   expect(page.api.pay).not.toHaveBeenCalled();expect(page.api.cancel).not.toHaveBeenCalled();
 });
@@ -387,7 +390,7 @@ it('pays the original multi-quantity and Cloud Share lines without requoting or 
   const page=screen({quote:q,order:original,pending:null});page.api.findOrder.mockResolvedValue(original);page.api.pay.mockResolvedValue({...original,paymentStatus:'PAID',orderStatus:'COMPLETED'});
   await page.start();await page.view.pay();
   expect(page.eligibility.mock.calls).toEqual([['sku'],['cloud-share']]);
-  await page.view.confirmPayment();expect(page.api.pay).toHaveBeenCalledOnce();
+  await page.methodSelection.wallet();expect(page.api.pay).toHaveBeenCalledOnce();
   expect(page.api.quote).not.toHaveBeenCalled();expect(page.api.create).not.toHaveBeenCalled();expect(page.saved().order?.amountUsdt).toBe(original.amountUsdt);
 });
 it.each(['CAPACITY_REPLACEMENT_REQUIRED','ORDER_PRODUCT_NOT_PAYABLE'])('a definitive %s refusal names the reason and offers original-order cancellation',async code=>{
@@ -397,7 +400,7 @@ it.each(['CAPACITY_REPLACEMENT_REQUIRED','ORDER_PRODUCT_NOT_PAYABLE'])('a defini
   const cancelled={...receipt(),paymentStatus:'CANCELLED',orderStatus:'CANCELLED'};
   page.api.cancel.mockResolvedValue(cancelled);page.api.paymentCommand.mockResolvedValue({status:'REJECTED',canResumeSameKey:false});
   page.api.findOrder.mockResolvedValueOnce(receipt()).mockResolvedValueOnce(cancelled);
-  await page.view.confirmPayment();
+  await expect(page.methodSelection.wallet()).rejects.toBe(failure);
   expect(page.confirm).toHaveBeenCalledWith(expect.objectContaining({title:checkoutFlowCopy('zh').cannotPay,message:orderPaymentRejection(failure,'zh'),confirmLabel:zh.promotion.cancelOrder}));
 });
 it.each(['account','hide','order','amount','expired'] as const)('a %s change during PIN prevents the payment command',async change=>{
@@ -410,16 +413,16 @@ it.each(['account','hide','order','amount','expired'] as const)('a %s change dur
     if(change==='expired')page.view.order.value.payBy='2026-10-07T00:00:00Z';
     return command(page.authorization);
   });
-  await page.view.confirmPayment();expect(page.api.pay).not.toHaveBeenCalled();expect(page.saved().pending).toBeNull();
+  await page.methodSelection.wallet();expect(page.api.pay).not.toHaveBeenCalled();expect(page.saved().pending).toBeNull();
 });
 it('an already sent unknown payment is read only and cannot send another payment',async()=>{
   const page=screen({quote:quote(),order:receipt(),pending:null});await page.start();await page.view.pay();
-  page.api.pay.mockRejectedValueOnce(new ApiError({kind:'network',message:'timeout'}));await page.view.confirmPayment();
-  page.api.paymentCommand.mockResolvedValue({status:'PROCESSING',canResumeSameKey:false});await page.view.recover();await page.view.pay();await page.view.confirmPayment();
+  const failure=new ApiError({kind:'network',message:'timeout'});page.api.pay.mockRejectedValueOnce(failure);await expect(page.methodSelection.wallet()).rejects.toBe(failure);
+  page.api.paymentCommand.mockResolvedValue({status:'PROCESSING',canResumeSameKey:false});await page.view.recover();await page.view.pay();await page.methodSelection.wallet();
   expect(page.api.paymentCommand).toHaveBeenCalled();expect(page.view.unknown.value).toBe(true);expect(page.api.pay).toHaveBeenCalledOnce();
 });
 it('top-up closes the method sheet while preserving the original pending order',async()=>{
-  const page=screen();await page.start();await page.view.createOrder();page.view.openWalletTopup();
+  const page=screen();await page.start();await page.view.createOrder();await page.methodSelection.cancel();page.view.openWalletTopup();
   expect(page.view.paymentSheetOpen.value).toBe(false);expect(page.navTo).toHaveBeenCalledWith('/pages/me/wallet-topup');
   expect(page.saved().order?.paymentStatus).toBe('PENDING');expect(page.api.cancel).not.toHaveBeenCalled();
   await expect(page.view.allowAuxiliaryNavigation()).resolves.toBe(true);
@@ -767,7 +770,7 @@ it('a canonical BF20-only S1 quote creates and pays 80 USDT without any promotio
   page.api.quote.mockResolvedValue(q);page.api.create.mockResolvedValue(order);page.api.pay.mockResolvedValue({...order,paymentStatus:'PAID',orderStatus:'COMPLETED'});
   await page.start();expect(page.exposed.footer.value).toMatchObject({amount:'$80.00',disabled:false});
   await page.view.createOrder();expect(page.api.create).toHaveBeenCalledWith(q,'original-key','BF20');
-  await page.view.confirmPayment();expect(page.api.pay).toHaveBeenCalledWith('o1','original-key',page.authorization);
+  await page.methodSelection.wallet();expect(page.api.pay).toHaveBeenCalledWith('o1','original-key',page.authorization);
   expect(page.saved().order).toMatchObject({amountUsdt:'80.000000',paymentStatus:'PAID',rewards:[]});
 });
 it.each(['INELIGIBLE','UNKNOWN'] as const)('BF20 must never override a selected promotion whose quote is %s',async eligibility=>{
@@ -786,7 +789,7 @@ it('loads the authoritative balance on entry and hides stale money until a faile
   expect(await page.html()).not.toContain(commerceCopy('zh').walletRefresh);
   await page.view.createOrder();expect(page.view.canPay.value).toBe(false);
   page.app.refreshRemoteFleet.mockImplementation(async()=>{page.app.user.usdtBalance=150;return true;});
-  await page.view.refreshWallet();expect(page.view.canPay.value).toBe(true);expect(await page.html()).toContain('150.00');
+  await page.view.refreshWallet();await page.methodSelection.cancel();expect(page.view.canPay.value).toBe(true);expect(await page.html()).toContain('150.00');
 });
 it('returning from top-up restores the rendered quote, wallet and create action after the hidden page rendered',async()=>{
   const page=screen(undefined,{activityId:''});await page.start();
@@ -840,7 +843,7 @@ it('returning after an account change cannot revive the hidden account checkout'
 });
 it('refreshes the post-payment balance and keeps a wallet read failure separate from the paid receipt',async()=>{
   const page=screen();await page.start();await page.view.createOrder();
-  page.app.refreshRemoteFleet.mockResolvedValueOnce(false);await page.view.confirmPayment();
+  page.app.refreshRemoteFleet.mockResolvedValueOnce(false);await page.methodSelection.wallet();
   expect(page.saved().order?.paymentStatus).toBe('PAID');expect(page.view.walletState.value).toBe('error');
   expect(page.api.pay).toHaveBeenCalledOnce();expect(await page.html()).not.toContain('150.00 USDT');
   page.api.findOrder.mockResolvedValue({...receipt(),paymentStatus:'PAID',orderStatus:'COMPLETED'});
@@ -866,8 +869,9 @@ it('a server-confirmed zero-pay voucher order remains executable without inventi
   const order={...receipt(q),amountUsdt:q.amountUsdt,payBy:q.expiresAt,rewards:[]};
   page.api.quote.mockResolvedValue(q);page.api.create.mockResolvedValue(order);
   page.api.pay.mockResolvedValue({...order,paymentStatus:'PAID',orderStatus:'COMPLETED'});
+  const pinDecision=deferred<boolean>();page.pin.mockImplementationOnce(async(_context,command,current)=>{await pinDecision.promise;return current()?command(page.authorization):null;});
   page.app.refreshRemoteFleet.mockResolvedValue(false);await page.start();await page.view.createOrder();
-  expect(page.view.canPay.value).toBe(true);await page.view.confirmPayment();
+  expect(page.methodSelection.request).not.toHaveBeenCalled();expect(page.pin).toHaveBeenCalledOnce();expect(page.api.pay).not.toHaveBeenCalled();pinDecision.resolve(true);await page.methodSelection.finished();
   expect(page.pin).toHaveBeenCalledOnce();expect(page.api.pay).toHaveBeenCalledWith('o1','original-key',page.authorization);expect(page.saved().order?.paymentStatus).toBe('PAID');
   expect(page.view.walletState.value).toBe('error');
 });
@@ -913,7 +917,7 @@ it.each([
   catalogRead.resolve(catalogSnapshot);await flush();expect(walletRemote.deviceE3Api.fleet).toHaveBeenCalledOnce();
   walletRead.resolve(walletFleet(10000));await initial;
   expect(page.view.walletState.value).toBe('ready');expect(app.user.usdtBalance).toBe(10000);
-  await page.view.createOrder();expect(page.view.canPay.value).toBe(true);
+  await page.view.createOrder();expect(page.methodSelection.state.open).toBe(true);walletRemote.deviceE3Api.fleet.mockResolvedValueOnce(walletFleet(10000));await page.methodSelection.cancel();expect(page.view.canPay.value).toBe(true);
   expect(await page.html()).toContain('10,000.00');expect(await page.html()).not.toContain(commerceCopy('zh').walletError);
 });
 it('does not join a pre-catalog fleet read even when that old read finishes after the current wallet',async()=>{
@@ -931,12 +935,12 @@ it('joins an in-flight current-scope lifecycle read but forces a fresh balance a
   walletRemote.deviceE3Api.fleet.mockReturnValueOnce(beforePay.promise).mockReturnValueOnce(afterPay.promise);
   const background=app.refreshRemoteFleet(),joined=page.view.refreshWallet(true);
   await flush();expect(walletRemote.deviceE3Api.fleet).toHaveBeenCalledTimes(2);
-  beforePay.resolve(walletFleet(150));await Promise.all([background,joined]);expect(page.view.canPay.value).toBe(true);
+  beforePay.resolve(walletFleet(150));await Promise.all([background,joined]);expect(page.view.walletState.value).toBe('ready');expect(page.methodSelection.state.open).toBe(true);expect(page.pin).not.toHaveBeenCalled();
   // A new background read was captured before payment; the mutation readback
   // must supersede it, rather than reusing its pre-payment balance.
   const stale=deferred<CanonicalE3Fleet>();walletRemote.deviceE3Api.fleet.mockReset().mockReturnValueOnce(stale.promise).mockReturnValueOnce(afterPay.promise);
-  const old=app.refreshRemoteFleet();const paid=page.view.confirmPayment();
-  await flush();expect(walletRemote.deviceE3Api.fleet).toHaveBeenCalledTimes(2);expect(page.view.walletState.value).toBe('loading');
+  const old=app.refreshRemoteFleet();const paid=page.methodSelection.wallet();
+  await vi.waitFor(()=>{expect(walletRemote.deviceE3Api.fleet).toHaveBeenCalledTimes(2);expect(page.view.walletState.value).toBe('loading');});
   afterPay.resolve(walletFleet(30));await paid;stale.resolve(walletFleet(150));await expect(old).resolves.toBe(false);
   expect(page.saved().order?.paymentStatus).toBe('PAID');expect(page.api.pay).toHaveBeenCalledOnce();
   expect(app.user.usdtBalance).toBe(30);expect(page.view.walletState.value).toBe('ready');
@@ -947,7 +951,7 @@ it('a real fleet failure remains locked until a successful explicit retry',async
   await page.view.createOrder();expect(app.remoteFleetHasSnapshot).toBe(false);expect(page.view.walletState.value).toBe('error');expect(page.view.canPay.value).toBe(false);
   await page.view.pay();expect(page.api.pay).not.toHaveBeenCalled();
   walletRemote.deviceE3Api.fleet.mockResolvedValueOnce(walletFleet(150));await page.view.refreshWallet();
-  expect(page.view.walletState.value).toBe('ready');expect(page.view.canPay.value).toBe(true);
+  expect(page.view.walletState.value).toBe('ready');await page.methodSelection.cancel();expect(page.view.canPay.value).toBe(true);
 });
 it('original-order recovery starts before a slow catalog and survives its failure',async()=>{
   const {page,catalogRead,walletRead}=walletRace({quote:quote(),order:receipt(),pending:null});
@@ -975,11 +979,14 @@ it.each([
   const page=screen();page.api.quote.mockResolvedValue(q);page.api.create.mockResolvedValue(original);page.api.findOrder.mockResolvedValue(original);
   page.api.pay.mockResolvedValue({...original,paymentStatus:'PAID',orderStatus:'COMPLETED'});
   await page.start();expect(page.exposed.footer.value.amount).toBe('$'+display);
-  await page.view.createOrder();await page.view.recover();
+  if(Number(amount)===0)page.pin.mockResolvedValueOnce(null);
+  await page.view.createOrder();if(Number(amount)===0)await page.methodSelection.finished();await page.view.recover();
   expect(page.exposed.footer.value.amount).toBe('$'+display);
   expect(await page.html()).toMatch(new RegExp('class="promotion-summary total"[^]*?\\$'+display.replace('.', '\\.')));
+  const pinDecision=deferred<boolean>();if(Number(amount)===0)page.pin.mockImplementationOnce(async(_context,command,current)=>{await pinDecision.promise;return current()?command(page.authorization):null;});
   await page.view.pay();expect(page.api.pay).not.toHaveBeenCalled();
-  expect(page.pin).not.toHaveBeenCalled();await page.view.confirmPayment();
+  if(Number(amount)===0){expect(page.methodSelection.request).not.toHaveBeenCalled();expect(page.pin).toHaveBeenCalledTimes(2);pinDecision.resolve(true);await page.methodSelection.finished();}
+  else{expect(page.pin).not.toHaveBeenCalled();await page.methodSelection.wallet();}
   expect(page.pin).toHaveBeenCalledWith(expect.objectContaining({amount,currency:'USDT'}),expect.any(Function),expect.any(Function));
   expect(page.api.pay).toHaveBeenCalledWith(original.orderNo,'original-key',page.authorization);
   expect(page.api.create.mock.calls[0][0].amountUsdt).toBe(amount);

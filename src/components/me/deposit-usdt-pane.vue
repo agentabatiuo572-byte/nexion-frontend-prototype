@@ -170,7 +170,7 @@
 <script setup lang="ts">
 import { formatAmount as formatBaseAmount } from "@/lib/amount-display";
 import { exactDepositAmount } from "@/api/cregis-deposit-api";
-const formatAmount = (value: number | string | null | undefined) => formatBaseAmount(value, 6);
+const formatAmount = (value: number | string | null | undefined) => formatBaseAmount(value, 2);
 import { ref, computed, onMounted, onUnmounted, watch, type CSSProperties } from "vue";
 import { onShow, onHide } from "@dcloudio/uni-app";
 import qrcode from "qrcode-generator";
@@ -253,8 +253,8 @@ type PaneDepositRecord = Omit<DepositRecord, "status"> & {
 };
 const serverRecords = ref<PaneDepositRecord[]>([]);
 const copied = ref(false);
-const minDeposit = ref<string | number | null>(MIN_DEPOSIT_USDT);
-const feeUsdt = ref<string | number | null>(0);
+const minDeposit = ref<string | number | null>(fundsServerEnabled ? null : MIN_DEPOSIT_USDT);
+const feeUsdt = ref<string | number | null>(fundsServerEnabled ? null : 0);
 const confirmations = ref(CHAIN_REQUIRED_CONFIRMATIONS["usdt-bep20"]);
 function refreshBankHistory(): void {
   if (fundsServerEnabled && remoteSessionReady.value && dep.currentAccountKey() === app.accountKey
@@ -278,12 +278,14 @@ function load(background = false) {
         const snapshot = await cregisDepositApi.address();
         if (generation !== loadGeneration || account !== app.accountKey
             || bindingEpoch !== app.accountBindingEpoch || !remoteSessionReady.value) return;
+        if (snapshot.enabled && (snapshot.minDepositUsdt == null || !Number.isSafeInteger(Number(snapshot.minDepositUsdt))
+            || Number(snapshot.minDepositUsdt) <= 0 || snapshot.feeUsdt == null || snapshot.confirmations == null)) throw new Error('CREGIS_DEPOSIT_POLICY_UNAVAILABLE');
         addressRefreshFailed.value = false;
         serverEnabled.value = snapshot.enabled;
         serverCreditEnabled.value = snapshot.creditEnabled === true;
         serverAddress.value = snapshot.enabled ? snapshot.address ?? "" : "";
-        minDeposit.value = snapshot.minDepositUsdt == null ? MIN_DEPOSIT_USDT : exactDepositAmount(snapshot.minDepositUsdt, snapshot.minDepositUsdtExact);
-        feeUsdt.value = snapshot.feeUsdt == null ? 0 : exactDepositAmount(snapshot.feeUsdt, snapshot.feeUsdtExact);
+        minDeposit.value = snapshot.minDepositUsdt == null ? null : exactDepositAmount(snapshot.minDepositUsdt, snapshot.minDepositUsdtExact);
+        feeUsdt.value = snapshot.feeUsdt == null ? null : exactDepositAmount(snapshot.feeUsdt, snapshot.feeUsdtExact);
         confirmations.value = snapshot.confirmations ?? CHAIN_REQUIRED_CONFIRMATIONS["usdt-bep20"];
         phase.value = !snapshot.enabled && snapshot.reason === "CREGIS_ADDRESS_PREPARING" ? "preparing" : "ready";
         if (phase.value === "preparing") {

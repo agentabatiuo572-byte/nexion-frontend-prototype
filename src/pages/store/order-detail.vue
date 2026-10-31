@@ -230,7 +230,6 @@
       </template>
     </view>
     <template #pageFixed>
-      <CheckoutPaymentSheet :open="paymentSheetOpen" :amount="paymentSheetAmount" :balance="app.user.usdtBalance" :busy="payingFromWallet" :error="paymentSheetError" @close="paymentSheetOpen = false" @confirm="handleWalletPayment" @topup="topupPendingOrder" />
       <view v-if="paymentNotice" class="pending-notice-mask">
         <view class="pending-order-notice" role="dialog" aria-modal="true" :aria-label="paymentNotice === 'query' ? pendingCopy.queryFailed : pendingCopy.cannotPay">
           <view class="pending-notice-head"><text class="pending-notice-title" tabindex="-1" role="heading">{{ paymentNotice === 'query' ? pendingCopy.queryFailed : pendingCopy.cannotPay }}</text><NxButton variant="text" :label="t.store.coCancel" :disabled="cancellingOrder" @click="paymentNotice = ''" /></view>
@@ -276,9 +275,9 @@ import { apiClient,orderApi,purchaseEligibilityApi, remoteApiEnabled, apiRuntime
 import { advisorChatRoute } from "@/lib/advisor-chat-route";
 import { useConversations } from "@/store/conversations";
 import { asApiError } from "@/api/errors";
-import { executePaymentWithPassword } from "@/lib/authorized-payment";
+import { executeSelectedPurchase } from "@/lib/selected-purchase-payment";
+import { paidOrderReceipt } from "@/api/order-api";
 import { readPaymentCommand } from '@/api/payment-command-api';
-import { paidOrderReceipt } from '@/api/order-api';
 import { beginOrderAction,readOrderAction,markOrderActionPaid,clearOrderAction,type PendingOrderAction } from '@/lib/order-command-fence';
 import { purchaseRecoveryCopy } from '@/lib/purchase-recovery-copy';
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
@@ -844,7 +843,7 @@ async function requestPendingPayment(originalJustRead = false): Promise<void> {
     }
     const walletReady = await refreshOrderWallet();
     if (!isCurrentDetailScope(scope)) return;
-    if (!walletReady) throw new Error('WALLET_READ_UNAVAILABLE');
+    // A wallet snapshot is optional for choosing an external payment method.
     if (!canPayFromWallet.value || liveOrder.value?.id !== original.id || liveOrder.value?.total !== original.total
         || liveOrder.value?.quantity !== original.quantity) {
       paymentNoticeReason.value = recoveryCopy.value.changed;
@@ -853,6 +852,7 @@ async function requestPendingPayment(originalJustRead = false): Promise<void> {
     }
     paymentSheetAmount.value = original.total;
     paymentSheetOpen.value = true;
+    void handleWalletPayment();
   } catch (error) {
     if (isCurrentDetailScope(scope)) {
       paymentNoticeReason.value = pendingCopy.value.queryFailed;
@@ -927,15 +927,11 @@ async function handleWalletPayment() {
     return items.length === requestItems.length && items.every((item, index) => item.productNo === requestItems[index].productNo && item.quantity === requestItems[index].quantity);
   }
   const receiptScope = app.captureRemoteAccountRequest();
-  if (app.user.usdtBalance + 0.000001 < requestAmountUsdt) {
-    await offerWalletTopup(requestAmountUsdt);
-    return;
-  }
   payingFromWallet.value = true;
   paymentSheetOpen.value = false;
   let paymentConfirmed = false;
   try {
-      const receipt = await executePaymentWithPassword({amount:requestAmountUsdt,currency:'USDT',summary:liveOrder.value?.productName??t.value.store.coConfirmPurchase},
+      const receipt = await executeSelectedPurchase({amount:requestAmountUsdt,currency:'USDT',summary:liveOrder.value?.productName??t.value.store.coConfirmPurchase},
         async authorization=>{
           if (!paymentOrderCurrent()) {
             if (isCurrentDetailScope(scope)) { paymentNoticeReason.value = recoveryCopy.value.changed; paymentNotice.value = 'query'; }
@@ -952,7 +948,7 @@ async function handleWalletPayment() {
             throw error;
           }
         },
-        paymentOrderCurrent);
+        paymentOrderCurrent,{kind:'ORDER_PAY',payload:{orderNo:requestOrderNo},commandKey:()=>{const action=beginOrderAction(orders.currentAccountKey(),'pay',requestOrderNo,requestAmountUsdt);orderAction.value=action;return action.key;},parseReceipt:paidOrderReceipt});
       if (!receipt) return;
     if (!isCurrentDetailScope(scope)) return;
     if (receipt.orderNo !== requestOrderNo) {
@@ -974,7 +970,7 @@ async function handleWalletPayment() {
     if (liveOrder.value?.status !== "activated") {
       throw new Error("WALLET_PAYMENT_ORDER_READBACK_MISMATCH");
     }
-    clearOrderAction(scope.accountScope.accountKey,requestOrderNo,orderAction.value!.key);orderAction.value=null;
+    if(orderAction.value)clearOrderAction(scope.accountScope.accountKey,requestOrderNo,orderAction.value.key);orderAction.value=null;
     void app.refreshRemoteFleet(receiptScope);
   } catch (error) {
     if (!isCurrentDetailScope(scope)) return;

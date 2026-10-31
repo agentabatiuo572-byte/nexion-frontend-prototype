@@ -4,11 +4,16 @@ import ts from 'typescript';
 import source from './checkout.vue?raw';
 import { en } from '@/i18n/messages/en';
 import { formatCheckoutReviewAmount } from '@/lib/checkout-review-amount';
+import { selectedPurchasePaymentFixture } from '@/lib/selected-purchase-payment.test-helper';
 
 const script = source.split('<script setup lang="ts">')[1].split('</script>')[0];
 const ast = ts.createSourceFile('checkout.ts', script, ts.ScriptTarget.Latest, true);
 function payment() {
   const scope = { accountKey: 'a', productNo: 's1', generation: 1 };
+  const authorization = { paymentPassword: '583719', credentialVersion: 1, attemptNo: 'checkout-flow-attempt' };
+  const wallet = vi.fn().mockResolvedValue({ orderNo: 'ORDER-1' });
+  const pin = vi.fn(async (_context: any, command: any, current: () => boolean) => current() ? command(authorization) : null);
+  const methodSelection = selectedPurchasePaymentFixture(pin);
   const deps = {
     createdCheckoutOrder: ref(null), pendingCheckoutCreate: ref(null),
     formatCheckoutReviewAmount,
@@ -19,9 +24,11 @@ function payment() {
     netPrice: ref(100), cardFee: ref(0), trialView: ref({ applied: false, quoteVersion: 1 }),
     freeTrial: { hasPendingConversion: () => false }, t: ref(en), toast: { warn: vi.fn() }, onConfirmPay: vi.fn(),
   };
+  deps.onConfirmPay.mockImplementation(() => methodSelection.execute({ amount: deps.netPrice.value + deps.cardFee.value, currency: 'USDT', summary: 'S1' },
+    wallet, () => true, { kind: 'ORDER_PAY', payload: { orderNo: 'ORDER-1' }, commandKey: () => 'original-order-key', parseReceipt: (raw: unknown) => raw }));
   const fragment = script.slice(script.indexOf('let purchaseConfirmationOpen ='), script.indexOf('async function onConfirmPay()'));
   const code = ts.transpileModule(fragment + ';return {requestConfirmPay,closePaymentSheet,confirmPaymentSheet,paymentSheetOpen,paymentSheetAmount,paymentFlowBusy,reviewMoney};', { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-  return { ...deps, scope, ...new Function(...Object.keys(deps), code)(...Object.values(deps)) };
+  return { ...deps, scope, wallet, pin, authorization, methodSelection, ...new Function(...Object.keys(deps), code)(...Object.values(deps)) };
 }
 function leaving() {
   const scope = { accountKey: 'a', productNo: 's1' };
@@ -43,33 +50,36 @@ function leaving() {
   return { ...deps, run: new Function(...Object.keys(deps), code)(...Object.values(deps)) };
 }
 describe('unified checkout payment and explicit back', () => {
-  it('keeps the review in dollars one to one while the sheet holds the wallet amount',async()=>{
+  it('keeps the review in dollars one to one while unified method selection holds the wallet amount',async()=>{
     const h=payment();expect(h.reviewMoney(100,false,true)).toBe('$100.00');expect(h.reviewMoney(5,true)).toBe('−5.00');
     const pending=h.requestConfirmPay();expect(h.paymentSheetAmount.value).toBe(100);expect(h.reviewMoney(100,false,true)).toBe('$100.00');
-    h.closePaymentSheet();await pending;expect(h.onConfirmPay).not.toHaveBeenCalled();
+    await nextTick();await nextTick();expect(h.methodSelection.state.open).toBe(true);
+    expect(h.methodSelection.request).toHaveBeenCalledWith(expect.objectContaining({ amount: 100, kind: 'ORDER_PAY' }));
+    await h.methodSelection.cancel();await pending;expect(h.wallet).not.toHaveBeenCalled();expect(h.pin).not.toHaveBeenCalled();
   });
-  it('passes the sheet amount through method confirmation once',async()=>{
-    const h=payment();let finish!:()=>void;h.onConfirmPay.mockReturnValueOnce(new Promise<void>(done=>{finish=done;}));
-    const pending=h.requestConfirmPay();h.confirmPaymentSheet();await nextTick();await nextTick();
-    expect(h.onConfirmPay).toHaveBeenCalledOnce();expect(h.paymentSheetAmount.value).toBe(100);finish();await pending;expect(h.paymentFlowBusy.value).toBe(false);
+  it('passes the reviewed amount through unified wallet confirmation once',async()=>{
+    const h=payment();let finish!:()=>void;h.wallet.mockReturnValueOnce(new Promise<void>(done=>{finish=done;}));
+    const pending=h.requestConfirmPay();await nextTick();await nextTick();const chosen=h.methodSelection.wallet();await nextTick();await nextTick();
+    expect(h.onConfirmPay).toHaveBeenCalledOnce();expect(h.wallet).toHaveBeenCalledExactlyOnceWith(h.authorization);expect(h.paymentSheetAmount.value).toBe(100);
+    finish();await Promise.all([chosen,pending]);expect(h.paymentFlowBusy.value).toBe(false);
   });
   it('opens method selection before any payment and closing preserves the draft', async () => {
-    const h = payment(); const pending = h.requestConfirmPay();
-    expect(h.paymentSheetOpen.value).toBe(true); expect(h.onConfirmPay).not.toHaveBeenCalled();
-    h.closePaymentSheet(); await pending;
-    expect(h.onConfirmPay).not.toHaveBeenCalled(); expect(h.step.value).toBe('confirm');
+    const h = payment(); const pending = h.requestConfirmPay();await nextTick();await nextTick();
+    expect(h.methodSelection.state.open).toBe(true); expect(h.wallet).not.toHaveBeenCalled();expect(h.pin).not.toHaveBeenCalled();
+    await h.methodSelection.cancel(); await pending;
+    expect(h.wallet).not.toHaveBeenCalled(); expect(h.step.value).toBe('confirm');
   });
   it('only method confirmation enters the existing PIN/command path once', async () => {
     const h = payment(); const first = h.requestConfirmPay(); await h.requestConfirmPay();
-    h.confirmPaymentSheet(); await first;
-    expect(h.onConfirmPay).toHaveBeenCalledOnce(); expect(h.paymentSheetOpen.value).toBe(false);
+    await h.methodSelection.wallet(); await first;
+    expect(h.onConfirmPay).toHaveBeenCalledOnce();expect(h.pin).toHaveBeenCalledOnce();expect(h.wallet).toHaveBeenCalledOnce();expect(h.methodSelection.request).toHaveBeenCalledOnce();expect(h.methodSelection.state.open).toBe(false);
   });
   it.each(['amount', 'account', 'quote'])('rejects a changed %s between sheet and password', async kind => {
     const h = payment(); const pending = h.requestConfirmPay();
     if (kind === 'amount') h.netPrice.value = 120;
     else if (kind === 'account') h.scope.generation++;
     else h.trialView.value.quoteVersion++;
-    h.confirmPaymentSheet(); await pending; expect(h.onConfirmPay).not.toHaveBeenCalled();
+    await pending; expect(h.onConfirmPay).not.toHaveBeenCalled();expect(h.methodSelection.request).not.toHaveBeenCalled();
   });
   it('back cancels the original pending order before leaving', async () => {
     const h = leaving(); await h.run();

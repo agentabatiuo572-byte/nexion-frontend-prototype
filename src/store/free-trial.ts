@@ -728,6 +728,14 @@ export const useFreeTrial = defineStore("freeTrial", () => {
     return { ok: true };
   }
 
+  function conversionPaymentKey(productNo: string, amount: number, quoteVersion?: string | null): string {
+    if (!remoteApiEnabled || !authorityClaimNo.value) throw new Error('TRIAL_CONVERT_CONTEXT_UNAVAILABLE');
+    const existing = readAccountRow<ConversionCommands>(CONVERT_COMMANDS_KEY, boundKey, true)?.commands ?? {};
+    const intents = Object.keys(existing);
+    const intent = JSON.stringify(quoteVersion ? [authorityClaimNo.value, productNo, amount, quoteVersion] : [authorityClaimNo.value, productNo, amount]);
+    if (intents.length && (intents.length !== 1 || intents[0] !== intent)) throw new Error('TRIAL_CONVERT_ORIGINAL_UNRESOLVED');
+    return acquireAccountCommandKey(CONVERT_COMMANDS_KEY, boundKey, intent, 'h2-convert');
+  }
   function hasPendingConversion(): boolean {
     if (!remoteApiEnabled) return false;
     try {
@@ -816,7 +824,7 @@ export const useFreeTrial = defineStore("freeTrial", () => {
   }
 
   return {
-    status, startedAt, expiresAt, graceEndsAt, finishedAt, hasPendingConversion,
+    status, startedAt, expiresAt, graceEndsAt, finishedAt, hasPendingConversion, conversionPaymentKey,
     shadowFrozenAtUSD, shadowFrozenAtNEX, legacyCardMigrated,
     authorityStatus, authorityError, authoritativeShadowUSD, authoritativeShadowNEX,
     authoritativeOffsetUSD, authoritativeRemainderUSD, authoritativePriceUSD, authoritativeQuote, authoritativeConversion,

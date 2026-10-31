@@ -109,7 +109,6 @@
       </template>
     </template>
     <slot v-if="order?.paymentStatus!=='PAID'" name="review-footer" />
-    <CheckoutPaymentSheet v-if="order?.amountUsdt!==undefined" :open="paymentSheetOpen" :amount="order.amountUsdt" :balance="walletState==='ready'?app.user.usdtBalance:undefined" :busy="busy||paymentConfirming" :error="error" @close="paymentSheetOpen=false" @confirm="confirmPayment" @topup="openWalletTopup" />
     <NxSheet :open="voucherOpen" :title="p.voucher" @close="voucherOpen=false">
       <view class="checkout-voucher-options" role="group" :aria-label="p.voucher">
         <PromotionAction class="promotion-action" role="button" tabindex="0" :aria-pressed="voucherId===null" @click="selectVoucher(null)" @keydown.enter.prevent="selectVoucher(null)" @keydown.space.prevent="selectVoucher(null)"><text>{{ p.noVoucher }}</text></PromotionAction>
@@ -159,7 +158,7 @@ import { registerCheckoutLeaveGuard } from '@/lib/promotion-leave-guard';
 import { readTrustedMonotonicNowMs,projectServerNow } from '@/lib/server-deadline-clock';
 import { displayDeadline,localized,rewardSummary } from '@/lib/promotion-display';
 import { promotionCheckoutHref } from '@/lib/promotion-entry';
-import { executePaymentWithPassword } from '@/lib/authorized-payment';
+import { executeSelectedPurchase } from '@/lib/selected-purchase-payment';
 import { orderPaymentRejection } from '@/lib/order-payment-rejection';
 import { checkoutFlowCopy } from '@/lib/checkout-flow-copy';
 import RewardRows from './reward-rows.vue';import PromotionTerms from './promotion-terms.vue';
@@ -304,7 +303,7 @@ async function loadOrderClock(){
   orderClock={serverNow:fleet.serverNow,at:sampledAt};updateClock();
 }
 const canCreate=computed(()=>current()&&visible.value&&auth.isAuthenticated&&!busy.value&&!unknown.value&&!keepRecoveryTarget.value&&completeTerms.value&&(quoteFresh.value||session.retryOriginal)&&quote.value?.eligibility==='ELIGIBLE'&&session.canExecute(quote.value.items.length>1?'createBundle':'createOrder'));
-const canPay=computed(()=>(Number(order.value?.amountUsdt)===0||walletState.value==='ready')&&!busy.value&&!unknown.value&&completeTerms.value&&session.confirmed&&order.value?.paymentStatus==='PENDING'&&payWindow.value===true&&session.canExecute('payOrder'));
+const canPay=computed(()=>!busy.value&&!unknown.value&&completeTerms.value&&session.confirmed&&order.value?.paymentStatus==='PENDING'&&payWindow.value===true&&session.canExecute('payOrder'));
 const canCancel=computed(()=>{revision.value;return !busy.value&&!unknown.value&&session.confirmed&&order.value?.paymentStatus==='PENDING'&&session.canExecute('cancelOrder');});
 const canStartNew=computed(()=>{revision.value;return !busy.value&&!unknown.value&&session.confirmed&&!session.record.pending&&!!order.value&&['PAID','CANCELLED','EXPIRED','REFUNDED'].includes(order.value.paymentStatus);});
 async function run(action:()=>Promise<void>){if(busy.value||!current())return;busy.value=true;error.value='';try{await action();}catch(cause){if(current()){
@@ -401,7 +400,7 @@ async function selectVoucher(id:string|null){
   try{session.selectVoucher(id);}catch{error.value=p.value.errorNote;return;}
   voucherId.value=id;voucherOpen.value=false;await loadQuote();
 }
-async function createOrder(){if(!current()||!visible.value||leaving.value||recoverKeepBeforeNewPurchase()||!canCreate.value)return;await run(()=>session.create());if(canPay.value&&current()&&visible.value)paymentSheetOpen.value=true;}
+async function createOrder(){if(!current()||!visible.value||leaving.value||recoverKeepBeforeNewPurchase()||!canCreate.value)return;await run(()=>session.create());if(canPay.value&&current()&&visible.value){paymentSheetOpen.value=true;void confirmPayment();}}
 const paymentDialogOwner=`promotion-payment:${Date.now()}:${Math.random()}`;
 async function pay(){
   updateClock();if(paymentEntryChecking.value||paymentConfirming.value||leaving.value||!visible.value||!current()||!canPay.value)return;
@@ -428,7 +427,7 @@ async function pay(){
       if(eligibility.some(item=>!item.eligible)){blocked=t.value.store.gateBlockedToast;error.value=blocked;return;}
       ready=true;
     });
-    if(ready&&entryCurrent()&&canPay.value)paymentSheetOpen.value=true;
+    if(ready&&entryCurrent()&&canPay.value){paymentSheetOpen.value=true;void confirmPayment();}
     else if(blocked&&entryCurrent()&&canCancel.value){
       const cancel=await confirm({title:flowCopy.value.cannotPay,message:blocked,confirmLabel:p.value.cancelOrder,cancelLabel:p.value.keep,owner:paymentDialogOwner});
       if(cancel&&entryCurrent())await cancelOrder();
@@ -450,7 +449,7 @@ async function confirmPayment(){
   let rejection='';
   try{
     await run(async()=>{
-      await executePaymentWithPassword({amount:amountUsdt,currency:'USDT',summary:expectedOrder.items?.map(item=>item.productName).join(', ')||t.value.store.coConfirmPurchase,
+      await executeSelectedPurchase({amount:amountUsdt,currency:'USDT',summary:expectedOrder.items?.map(item=>item.productName).join(', ')||t.value.store.coConfirmPurchase,
         details:expectedOrder.items?.map(item=>({name:item.productName,quantity:item.quantity}))},
         async authorization=>{
           try{
@@ -463,7 +462,7 @@ async function confirmPayment(){
             throw cause;
           }
         },
-        paymentCurrent);
+        paymentCurrent,{kind:'ORDER_PAY',payload:{orderNo},commandKey:()=>session.externalPaymentKey(),parseReceipt:async raw=>{await session.acceptExternalPayment(raw);}});
     });
     if(!readCurrent(generation))return;
     if(order.value?.paymentStatus==='PAID')await readActivation();
