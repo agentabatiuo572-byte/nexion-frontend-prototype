@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 /**
- * trial-check.mjs — behavior-parity test for the Home trial-sheet auto-push
- * (BEHAVIOR-PARITY #1, the one 主人 flagged). Fresh context (no cooldown):
- *   · Home: after the autoPushDelayMs(1500) the TrialClaimSheet (.tcs-root) auto-opens.
- *   · /me (non-home tab): NO auto-push (confirms it is Home-specific, not global).
+ * trial-check.mjs — the trial claim sheet opens only on a user action
+ * (UX audit 2026-10-25 B1: Home no longer auto-opens marketing sheets; trial
+ * lives in the single Home benefit slot). Fresh context (no cooldown), eligible
+ * trial with autoPushEnabled=true in config:
+ *   · Home and /me: after the old autoPushDelayMs(1500) the TrialClaimSheet
+ *     (.tcs-root) is still closed.
+ *   · Home: tapping the benefit slot's trial CTA opens the sheet.
  * Usage: node scripts/trial-check.mjs
  */
 import { chromium } from "playwright";
@@ -45,7 +48,7 @@ const eligibleTrial = {
     sourceEnvironment: "PRODUCTION",
     runId: "",
   },
-  paymentRail: "NEXION_USDT_WALLET",
+  paymentRail: "UVEL_USDT_WALLET",
   config: trialConfig,
 };
 const emptyVoucherState = {
@@ -55,7 +58,7 @@ const emptyVoucherState = {
   provenance: { source: "nx_growth_voucher", sourceEnvironment: "PRODUCTION", runId: "" },
 };
 
-async function check(route) {
+async function check(route, { tapHomeTrial = false } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 414, height: 896 }, colorScheme: "dark" });
   const page = await ctx.newPage();
   await page.addInitScript(() => {
@@ -79,25 +82,32 @@ async function check(route) {
   });
   await page.goto(directAppUrl(BASE, route), { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForTimeout(2600); // > 1500ms auto-push delay
-  const open = await page.evaluate(() => !!document.querySelector(".tcs-root, .tcs-panel"));
+  const sheetSelector = ".tcs-root, .tcs-panel";
+  const open = await page.evaluate((sel) => !!document.querySelector(sel), sheetSelector);
+  let openedByTap = null;
+  if (tapHomeTrial) {
+    const cta = page.locator('[data-home-section="benefits"] .nx-trial-hero .trial-cta').first();
+    await cta.click({ timeout: 10000 });
+    openedByTap = await page.waitForSelector(sheetSelector, { timeout: 5000 }).then(() => true, () => false);
+  }
   const runtimeIdentity = await collectUniAppRuntimeIdentity(page);
   const routeWitness = await collectDirectPageWitness(page, errors);
   await ctx.close();
-  return { route, sheetOpen: open, errors, runtimeIdentity, routeWitness };
+  return { route, sheetOpen: open, openedByTap, errors, runtimeIdentity, routeWitness };
 }
 
 const browser = await chromium.launch();
 try {
-  const home = await check("/#/pages/index/index");
+  const home = await check("/#/pages/index/index", { tapHomeTrial: true });
   const me = await check("/#/pages/me/me");
-  const autoPushOK = home.sheetOpen === true && me.sheetOpen === false;
-  console.log(JSON.stringify({ home, me, autoPushOK }, null, 2));
+  const userActionOnlyOK = home.sheetOpen === false && me.sheetOpen === false && home.openedByTap === true;
+  console.log(JSON.stringify({ home, me, userActionOnlyOK }, null, 2));
   assertNoRuntimeErrors([...home.errors, ...me.errors], "trial-check");
   assertUniAppRuntimeIdentity(home.runtimeIdentity, "trial-check home");
   assertUniAppRuntimeIdentity(me.runtimeIdentity, "trial-check me");
   assertDirectPageCoverage(home.route.slice(home.route.indexOf("#") + 1), home.routeWitness, "trial-check home");
   assertDirectPageCoverage(me.route.slice(me.route.indexOf("#") + 1), me.routeWitness, "trial-check me");
-  if (!autoPushOK) throw new Error("trial auto-push coverage failed: expected Home=true and Me=false");
+  if (!userActionOnlyOK) throw new Error("trial sheet coverage failed: expected no auto-open on Home or Me, and the Home trial CTA to open it");
   console.log("TRIAL-CHECK: PASS");
 } finally {
   await browser.close();

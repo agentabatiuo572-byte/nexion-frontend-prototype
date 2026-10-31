@@ -3,10 +3,10 @@
   "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-bug013",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "c0c51757f6bdaa77068aed531b0959350677416c",
-  "sourceRef": "c0c51757f6bdaa77068aed531b0959350677416c",
+  "sourceHead": "94f1b0e85ebe7dedbf8596c17791a368b1a382d4",
+  "sourceRef": "94f1b0e85ebe7dedbf8596c17791a368b1a382d4",
   "sourceRefKind": "commit",
-  "sourceTree": "030f6fb02366ec8584a17b7a36cbd89a0ffdf883",
+  "sourceTree": "c1242b44a3fb61241596fdb334b4bb838645fa85",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -2876,10 +2876,10 @@
       "mode": "100644"
     },
     "scripts/trial-check.mjs": {
-      "sourceBlob": "3f90999f83896696ac855f4725faf3df7056a4b3",
-      "sourceSha256": "35f738e7c7a6d3027e158f5e543635919521995946e8f34d5b2bec8937e6bb57",
-      "targetBlob": "3f90999f83896696ac855f4725faf3df7056a4b3",
-      "targetSha256": "35f738e7c7a6d3027e158f5e543635919521995946e8f34d5b2bec8937e6bb57",
+      "sourceBlob": "eb385acfc126086e01aad8895d31f20bf98f9ffa",
+      "sourceSha256": "07390760f63e90b7f4a73a1062249c0afbe77fc2453a28951bd598260e67213c",
+      "targetBlob": "eb385acfc126086e01aad8895d31f20bf98f9ffa",
+      "targetSha256": "07390760f63e90b7f4a73a1062249c0afbe77fc2453a28951bd598260e67213c",
       "mode": "100644"
     },
     "scripts/trial-lifecycle-runtime.mjs": {
