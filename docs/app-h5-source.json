@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\WORKS\\PLAN\\.wt\\payment-pin-20261030-app",
+  "sourcePath": "D:\\WORKS\\PLAN\\.wt\\checkout-pin-integration-20261031",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "a745a532aebc4e1b7c71fb7e359fddc8a5aaa519",
-  "sourceRef": "a745a532aebc4e1b7c71fb7e359fddc8a5aaa519",
+  "sourceHead": "475a18dd41306af599404f043e56ab6575dd6a75",
+  "sourceRef": "475a18dd41306af599404f043e56ab6575dd6a75",
   "sourceRefKind": "commit",
-  "sourceTree": "a4ba902bfc47424427cf8990ae989223b1bb85ff",
+  "sourceTree": "84ae6e3dfc136e0d9ed847233ccfa9156abf0646",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -118,17 +118,17 @@
       "mode": "100644"
     },
     "PRD/NexGrid_APP端开发落地规格.md": {
-      "sourceBlob": "f43d780a707c370cd32d5d52906115f83f8eb336",
-      "sourceSha256": "3cbfc7c07a01987e9d1a9d06bcce9b0ec023e19a1294ac003e446fc4866b0d36",
-      "targetBlob": "f43d780a707c370cd32d5d52906115f83f8eb336",
-      "targetSha256": "3cbfc7c07a01987e9d1a9d06bcce9b0ec023e19a1294ac003e446fc4866b0d36",
+      "sourceBlob": "1c77307cb41bb74002d2d63014c32ef1c0461547",
+      "sourceSha256": "812508a8b2e1967c79fb333396e3026f0b96bbe42be322edb95c181342d0a952",
+      "targetBlob": "1c77307cb41bb74002d2d63014c32ef1c0461547",
+      "targetSha256": "812508a8b2e1967c79fb333396e3026f0b96bbe42be322edb95c181342d0a952",
       "mode": "100644"
     },
     "PRD/NexGrid_产品功能架构设计文档_v3.7.md": {
-      "sourceBlob": "496b0a87956919985f008c8af90e5c4e09596ee6",
-      "sourceSha256": "e5dd0adf2bcff91c217f4b4062d219e79780cfb27f44f43312c357e643245c9b",
-      "targetBlob": "496b0a87956919985f008c8af90e5c4e09596ee6",
-      "targetSha256": "e5dd0adf2bcff91c217f4b4062d219e79780cfb27f44f43312c357e643245c9b",
+      "sourceBlob": "11f9891cf65ddd75ea2d4d485e19d83bdd259dad",
+      "sourceSha256": "aa115a79c3e19abe9da3bf8739eb3b1df4c2d41fa2a49038f9ddb3c97b1f3faf",
+      "targetBlob": "11f9891cf65ddd75ea2d4d485e19d83bdd259dad",
+      "targetSha256": "aa115a79c3e19abe9da3bf8739eb3b1df4c2d41fa2a49038f9ddb3c97b1f3faf",
       "mode": "100644"
     },
     "PRD/UVEL_Goals绑定返回恢复_20261027.md": {
@@ -272,17 +272,17 @@
       "mode": "100644"
     },
     "PRD/UVEL_算力激活队列与六槽_20261029.md": {
-      "sourceBlob": "42ad80e5e0f43c30a3f2a3d3c421e052fca5fa34",
-      "sourceSha256": "63e1f7853109eda73091966fe1dd18a5033e33da4c7ad490f39f34224c35a13f",
-      "targetBlob": "42ad80e5e0f43c30a3f2a3d3c421e052fca5fa34",
-      "targetSha256": "63e1f7853109eda73091966fe1dd18a5033e33da4c7ad490f39f34224c35a13f",
+      "sourceBlob": "ad5278bbcf39bf5a97b0d03d14120d10b4d9b7a9",
+      "sourceSha256": "634a7538c8a8a0591da3fe59d183a46f84aa79fa8799b65d5331713a82bbc295",
+      "targetBlob": "ad5278bbcf39bf5a97b0d03d14120d10b4d9b7a9",
+      "targetSha256": "634a7538c8a8a0591da3fe59d183a46f84aa79fa8799b65d5331713a82bbc295",
       "mode": "100644"
     },
     "PRD/UVEL_设备收益结算与Share展示_20261030.md": {
-      "sourceBlob": "bb35ef70ab906f1e4822e78249dcf7431b001aab",
-      "sourceSha256": "239b7ad689cb797e9eb77be5e9709b458caba550ec54297b3d9f5b450a68643e",
-      "targetBlob": "bb35ef70ab906f1e4822e78249dcf7431b001aab",
-      "targetSha256": "239b7ad689cb797e9eb77be5e9709b458caba550ec54297b3d9f5b450a68643e",
+      "sourceBlob": "26da30b85726471bbcb8e8b8c7ebf1f675fd3a09",
+      "sourceSha256": "6ce626640c253d888f906524e96803f7d2b631b4585daec7a4194c6103294d09",
+      "targetBlob": "26da30b85726471bbcb8e8b8c7ebf1f675fd3a09",
+      "targetSha256": "6ce626640c253d888f906524e96803f7d2b631b4585daec7a4194c6103294d09",
       "mode": "100644"
     },
     "PRD/UVEL_设计审查功能同步_20261026.md": {
@@ -489,10 +489,10 @@
       "mode": "100644"
     },
     "docs/前端产品更新日志.md": {
-      "sourceBlob": "40321d57fea33c9082d9b52d5c6399fb0779ea17",
-      "sourceSha256": "f6d6e513e931a72601e15b097da020fbb14648f75dac075fb511769232b34fd9",
-      "targetBlob": "40321d57fea33c9082d9b52d5c6399fb0779ea17",
-      "targetSha256": "f6d6e513e931a72601e15b097da020fbb14648f75dac075fb511769232b34fd9",
+      "sourceBlob": "1dbfc3479df753397fd06f56d73b50a560b3cf46",
+      "sourceSha256": "a4a751c282a2b2c7d4e4961e858bea5b21b931b1304f6792035838225143b8f1",
+      "targetBlob": "1dbfc3479df753397fd06f56d73b50a560b3cf46",
+      "targetSha256": "a4a751c282a2b2c7d4e4961e858bea5b21b931b1304f6792035838225143b8f1",
       "mode": "100644"
     },
     "index.html": {
@@ -850,6 +850,13 @@
       "sourceSha256": "547d1e6f2fb573c4fabe8a129c2e3ddc2522f9b8c6620d5db678f6a97ebf152d",
       "targetBlob": "c3ce19a1f623888861a75d8a8311da516e9b6d4b",
       "targetSha256": "547d1e6f2fb573c4fabe8a129c2e3ddc2522f9b8c6620d5db678f6a97ebf152d",
+      "mode": "100644"
+    },
+    "scripts/checkout-flow.h5.e2e.mjs": {
+      "sourceBlob": "db05f9fe0c2414d1c7c76afbc3b241c5c5c8b4a5",
+      "sourceSha256": "f1e8846f7d64f499b02f252aa71d75748475334a19888699551061a727c80da7",
+      "targetBlob": "db05f9fe0c2414d1c7c76afbc3b241c5c5c8b4a5",
+      "targetSha256": "f1e8846f7d64f499b02f252aa71d75748475334a19888699551061a727c80da7",
       "mode": "100644"
     },
     "scripts/chrome-baseline.mjs": {
@@ -1489,6 +1496,13 @@
       "targetSha256": "09f3d70c1eda5184bcc4f7efda1a1746e192f51c1ced7038faf8c6ed8cc5ac6f",
       "mode": "100644"
     },
+    "scripts/lib/checkout-flow-fixture.mjs": {
+      "sourceBlob": "40c37edede86b6cf60eacf61888f2af593af7660",
+      "sourceSha256": "4dfa12b5d478e4937b14a83b0be37b9f35350068a6a430b432021c135e8818ac",
+      "targetBlob": "40c37edede86b6cf60eacf61888f2af593af7660",
+      "targetSha256": "4dfa12b5d478e4937b14a83b0be37b9f35350068a6a430b432021c135e8818ac",
+      "mode": "100644"
+    },
     "scripts/lib/console-origin-filter.mjs": {
       "sourceBlob": "431a97ff94455d53c4dc413072ec5e193c031391",
       "sourceSha256": "0134aafccb3b2e97424eb3988e8f2a81009448f377a957e9d4af890b2ddfa861",
@@ -1658,10 +1672,10 @@
       "mode": "100644"
     },
     "scripts/lib/prototype-demo-data.mjs": {
-      "sourceBlob": "31d49a924194105a5c03fb688422d5e28b43213e",
-      "sourceSha256": "153bdb0a109172f71a293ac0dbfa0b56109dbf52fc78ecb0f988c0754e8faa6f",
-      "targetBlob": "31d49a924194105a5c03fb688422d5e28b43213e",
-      "targetSha256": "153bdb0a109172f71a293ac0dbfa0b56109dbf52fc78ecb0f988c0754e8faa6f",
+      "sourceBlob": "56d84d12de514f537ae3d37ac797c62745435c9d",
+      "sourceSha256": "d0c52d6b9e2e42cb5dc528b0a1e0e0dcd7c45875d58eb4683bf5efdba84ff28b",
+      "targetBlob": "56d84d12de514f537ae3d37ac797c62745435c9d",
+      "targetSha256": "d0c52d6b9e2e42cb5dc528b0a1e0e0dcd7c45875d58eb4683bf5efdba84ff28b",
       "mode": "100644"
     },
     "scripts/lib/prototype-demo-finance.mjs": {
@@ -2015,10 +2029,10 @@
       "mode": "100644"
     },
     "scripts/payment-pin-checkout.h5.e2e.mjs": {
-      "sourceBlob": "fb73f1ba62fef15e8e4b98de5dcaca499041d0eb",
-      "sourceSha256": "8e005535143a02a311a8e9ac057f45c3d2d388a28bde833cac9fa79503707210",
-      "targetBlob": "fb73f1ba62fef15e8e4b98de5dcaca499041d0eb",
-      "targetSha256": "8e005535143a02a311a8e9ac057f45c3d2d388a28bde833cac9fa79503707210",
+      "sourceBlob": "b499eee4f23fe510a9a78a41d4d6fd0fd1137c7c",
+      "sourceSha256": "7db300f2986fc061b83320dd78c36f3612d612fb8d82c1c5b7d1cbf65cfbf3b9",
+      "targetBlob": "b499eee4f23fe510a9a78a41d4d6fd0fd1137c7c",
+      "targetSha256": "7db300f2986fc061b83320dd78c36f3612d612fb8d82c1c5b7d1cbf65cfbf3b9",
       "mode": "100644"
     },
     "scripts/payment-pin-preview-fixture.mjs": {
@@ -2134,10 +2148,10 @@
       "mode": "100644"
     },
     "scripts/prototype-preview-server.mjs": {
-      "sourceBlob": "7971ee57148c6040d28149d5eaeedfd8879256b7",
-      "sourceSha256": "25efc94635598b09263cc7b863feb13e92a03e8e408510886e75bd8568beb51c",
-      "targetBlob": "7971ee57148c6040d28149d5eaeedfd8879256b7",
-      "targetSha256": "25efc94635598b09263cc7b863feb13e92a03e8e408510886e75bd8568beb51c",
+      "sourceBlob": "3db2d9d038e23d2e6398fbcc56426269394bce08",
+      "sourceSha256": "b9cd135526a94b5e17250d8e27137b6112573da9d3ae4a0fd364c583a4480ef4",
+      "targetBlob": "3db2d9d038e23d2e6398fbcc56426269394bce08",
+      "targetSha256": "b9cd135526a94b5e17250d8e27137b6112573da9d3ae4a0fd364c583a4480ef4",
       "mode": "100644"
     },
     "scripts/prototype-preview.html": {
@@ -2841,17 +2855,17 @@
       "mode": "100644"
     },
     "scripts/tradein-account-switch-contract.test.mjs": {
-      "sourceBlob": "81e31404ad5ce6f3c2ebcf93ae858c0df2b00bf6",
-      "sourceSha256": "fd7d1b76d297ee258e492d50996b7581981c7334feaf64af8561d059cfef96ec",
-      "targetBlob": "81e31404ad5ce6f3c2ebcf93ae858c0df2b00bf6",
-      "targetSha256": "fd7d1b76d297ee258e492d50996b7581981c7334feaf64af8561d059cfef96ec",
+      "sourceBlob": "58cdb1ee958b8f5dfd9d9c9de8dae8390d0f05f8",
+      "sourceSha256": "74e7209a79b12701ba1af118a75d5a81d9e4be31ca6fce09d57a345655e290c0",
+      "targetBlob": "58cdb1ee958b8f5dfd9d9c9de8dae8390d0f05f8",
+      "targetSha256": "74e7209a79b12701ba1af118a75d5a81d9e4be31ca6fce09d57a345655e290c0",
       "mode": "100644"
     },
     "scripts/tradein-remote-authority-contract.test.mjs": {
-      "sourceBlob": "3a0a141122eea4d540b30470da978ad2b93378fc",
-      "sourceSha256": "8f9e7bb167931f5b0708e85f77ac81d5a1cd251c403d424d4e79d793c85c2a40",
-      "targetBlob": "3a0a141122eea4d540b30470da978ad2b93378fc",
-      "targetSha256": "8f9e7bb167931f5b0708e85f77ac81d5a1cd251c403d424d4e79d793c85c2a40",
+      "sourceBlob": "449001392ffe80c1d2dbe33318a390498839f6f6",
+      "sourceSha256": "3b286bffd06f1f710eb7818bb585344ee62c4d818a9ac0c7f47019a413f02f55",
+      "targetBlob": "449001392ffe80c1d2dbe33318a390498839f6f6",
+      "targetSha256": "3b286bffd06f1f710eb7818bb585344ee62c4d818a9ac0c7f47019a413f02f55",
       "mode": "100644"
     },
     "scripts/trial-check.mjs": {
@@ -4955,10 +4969,10 @@
       "mode": "100644"
     },
     "src/components/app-chassis.vue": {
-      "sourceBlob": "2f2ea10b8f59581768dfd508a6878ffe720b33fb",
-      "sourceSha256": "91d52ff0e2ecefc502aab05fcfbe2876c3cd50b83780f3f86290e028792a5369",
-      "targetBlob": "2f2ea10b8f59581768dfd508a6878ffe720b33fb",
-      "targetSha256": "91d52ff0e2ecefc502aab05fcfbe2876c3cd50b83780f3f86290e028792a5369",
+      "sourceBlob": "6f9fa0043a8200ce309e98b8a43d1478d791baae",
+      "sourceSha256": "ddc5c641b6b963fbc7e55e3b47ad543e0478da54b0d69b5566218809065b0cd8",
+      "targetBlob": "6f9fa0043a8200ce309e98b8a43d1478d791baae",
+      "targetSha256": "ddc5c641b6b963fbc7e55e3b47ad543e0478da54b0d69b5566218809065b0cd8",
       "mode": "100644"
     },
     "src/components/audit-display-regression.test.ts": {
@@ -5043,6 +5057,41 @@
       "sourceSha256": "4dc341444a2e29af7436a09fbda1c7c7482d77f20805669ea37e5d89b91c2e5e",
       "targetBlob": "7ef485fdad2d7fa32e73901a553ba081f651b1a4",
       "targetSha256": "4dc341444a2e29af7436a09fbda1c7c7482d77f20805669ea37e5d89b91c2e5e",
+      "mode": "100644"
+    },
+    "src/components/checkout/CheckoutAmount.vue": {
+      "sourceBlob": "02fb297a01cf7a128257e1f4edc42813dca658c8",
+      "sourceSha256": "48e7cdd8c03d3f4c8b1fdfc112bb1b309e27542448a546530a861be0457fb276",
+      "targetBlob": "02fb297a01cf7a128257e1f4edc42813dca658c8",
+      "targetSha256": "48e7cdd8c03d3f4c8b1fdfc112bb1b309e27542448a546530a861be0457fb276",
+      "mode": "100644"
+    },
+    "src/components/checkout/CheckoutLegal.vue": {
+      "sourceBlob": "cd4b15ebd00f9932bf5d882e3ca00b430e1ec7a8",
+      "sourceSha256": "1c73d69048c53e770640dade9629baf3164257a6de640586a5f3c3dc25bf8391",
+      "targetBlob": "cd4b15ebd00f9932bf5d882e3ca00b430e1ec7a8",
+      "targetSha256": "1c73d69048c53e770640dade9629baf3164257a6de640586a5f3c3dc25bf8391",
+      "mode": "100644"
+    },
+    "src/components/checkout/CheckoutPaymentSheet.vue": {
+      "sourceBlob": "29446c95384ffc2a54027ce95e695c7bc3fc063b",
+      "sourceSha256": "ec44086926d4cf9b43d43e02ecbb2ae45479ad1122b89ff5fc880eb24c628f2e",
+      "targetBlob": "29446c95384ffc2a54027ce95e695c7bc3fc063b",
+      "targetSha256": "ec44086926d4cf9b43d43e02ecbb2ae45479ad1122b89ff5fc880eb24c628f2e",
+      "mode": "100644"
+    },
+    "src/components/checkout/CheckoutResult.vue": {
+      "sourceBlob": "cc515a26f061c357cb3fe71a1fa3b6631dc0e862",
+      "sourceSha256": "1bea48f0ddecd04cdc7eedc0f893b07a7faf192680374028fb11fc42c33b5071",
+      "targetBlob": "cc515a26f061c357cb3fe71a1fa3b6631dc0e862",
+      "targetSha256": "1bea48f0ddecd04cdc7eedc0f893b07a7faf192680374028fb11fc42c33b5071",
+      "mode": "100644"
+    },
+    "src/components/checkout/checkout-components.behavior.test.ts": {
+      "sourceBlob": "d45a728618669487c4b17e8059a97f36701a3da9",
+      "sourceSha256": "685d44a3e519a23824e956eaed29c256fd0d8ce7f2cb867dca45eaec28ba6736",
+      "targetBlob": "d45a728618669487c4b17e8059a97f36701a3da9",
+      "targetSha256": "685d44a3e519a23824e956eaed29c256fd0d8ce7f2cb867dca45eaec28ba6736",
       "mode": "100644"
     },
     "src/components/copy-code-button.vue": {
@@ -6495,10 +6544,10 @@
       "mode": "100644"
     },
     "src/components/payment-password-dialog.vue": {
-      "sourceBlob": "86f9a267d6611c423b7cc7adea33791b668a2c97",
-      "sourceSha256": "b887ca6dbf1e77eebb9160b2c2f1eea952b1c90783a51028fa574bbf9a26045b",
-      "targetBlob": "86f9a267d6611c423b7cc7adea33791b668a2c97",
-      "targetSha256": "b887ca6dbf1e77eebb9160b2c2f1eea952b1c90783a51028fa574bbf9a26045b",
+      "sourceBlob": "619dd8d0615cb7bd1b4e41b56ce08a5523567e7a",
+      "sourceSha256": "de0bddc05cbb069036abf3ce388d4fba47bd4bc27396556db6b3d989a191d524",
+      "targetBlob": "619dd8d0615cb7bd1b4e41b56ce08a5523567e7a",
+      "targetSha256": "de0bddc05cbb069036abf3ce388d4fba47bd4bc27396556db6b3d989a191d524",
       "mode": "100644"
     },
     "src/components/payment-password-input.vue": {
@@ -6529,11 +6578,18 @@
       "targetSha256": "9b99958c4d903122a902b6486453622ed180049b9ce2053929539328ac0e90c5",
       "mode": "100644"
     },
+    "src/components/promotion/order-rewards.behavior.test.ts": {
+      "sourceBlob": "7f77e30a2a6c0a4fd1266918ff89f4142f762650",
+      "sourceSha256": "5973858156288f15e270e7909a119f3f4d811f41a544227c4f0b0ed9db6997ef",
+      "targetBlob": "7f77e30a2a6c0a4fd1266918ff89f4142f762650",
+      "targetSha256": "5973858156288f15e270e7909a119f3f4d811f41a544227c4f0b0ed9db6997ef",
+      "mode": "100644"
+    },
     "src/components/promotion/order-rewards.vue": {
-      "sourceBlob": "6eacb5890908dfa5ec4ae8b4136ca1c6388996b5",
-      "sourceSha256": "6370014b27b19ef109b34012472ff663cedbbae8b15a821faefb941e4411bd94",
-      "targetBlob": "6eacb5890908dfa5ec4ae8b4136ca1c6388996b5",
-      "targetSha256": "6370014b27b19ef109b34012472ff663cedbbae8b15a821faefb941e4411bd94",
+      "sourceBlob": "654a30a2469a9b4b8a9436f8e9fb001fb739ba3a",
+      "sourceSha256": "6540b961bd088f3d7e11a2a886a8e870e5feef0d64c0aff50a6c47b39d58ed2a",
+      "targetBlob": "654a30a2469a9b4b8a9436f8e9fb001fb739ba3a",
+      "targetSha256": "6540b961bd088f3d7e11a2a886a8e870e5feef0d64c0aff50a6c47b39d58ed2a",
       "mode": "100644"
     },
     "src/components/promotion/promotion-action.vue": {
@@ -6551,17 +6607,17 @@
       "mode": "100644"
     },
     "src/components/promotion/promotion-checkout-read.behavior.test.ts": {
-      "sourceBlob": "a98949352d4ffc3590ea4e68233d5c6fe3c51b3b",
-      "sourceSha256": "1f2ce24aa0456d02b121e6b75318ecd991cc9f898b6790f7fc197a8315df08de",
-      "targetBlob": "a98949352d4ffc3590ea4e68233d5c6fe3c51b3b",
-      "targetSha256": "1f2ce24aa0456d02b121e6b75318ecd991cc9f898b6790f7fc197a8315df08de",
+      "sourceBlob": "93d61c0c4a6d1b045c22350f35adf7ef23d73987",
+      "sourceSha256": "65daabf3c7bb01b27783a9ce3cd3dc576207c1f07c78ea85e0cd11b48368c245",
+      "targetBlob": "93d61c0c4a6d1b045c22350f35adf7ef23d73987",
+      "targetSha256": "65daabf3c7bb01b27783a9ce3cd3dc576207c1f07c78ea85e0cd11b48368c245",
       "mode": "100644"
     },
     "src/components/promotion/promotion-checkout.vue": {
-      "sourceBlob": "b708a23da57bed527872db55e40ac82e59d42919",
-      "sourceSha256": "e8bc71432d603352272f530f2bc05f199838c4db7969fb5438ff6c26f423e8c6",
-      "targetBlob": "b708a23da57bed527872db55e40ac82e59d42919",
-      "targetSha256": "e8bc71432d603352272f530f2bc05f199838c4db7969fb5438ff6c26f423e8c6",
+      "sourceBlob": "40d2f53599459744fa10a8b7d1801b0635ca309b",
+      "sourceSha256": "e3408d7483099d354c25974b18cea04e55d4649c47c83289b9a0d47c354b72ef",
+      "targetBlob": "40d2f53599459744fa10a8b7d1801b0635ca309b",
+      "targetSha256": "e3408d7483099d354c25974b18cea04e55d4649c47c83289b9a0d47c354b72ef",
       "mode": "100644"
     },
     "src/components/promotion/promotion-entry-autoplay.behavior.test.ts": {
@@ -7481,6 +7537,13 @@
       "targetSha256": "56d3a155b3718ceafcf1ff7f7a920e37bdf105396b4fa201fa9909734ac721d7",
       "mode": "100644"
     },
+    "src/components/tradein-config-startup.behavior.test.ts": {
+      "sourceBlob": "bd9827c971437f4060c9bbde41cdbbb80f6164f5",
+      "sourceSha256": "22c42462248dcaa0895d857fb1425212d785672707ac0fb302133eb978ac200a",
+      "targetBlob": "bd9827c971437f4060c9bbde41cdbbb80f6164f5",
+      "targetSha256": "22c42462248dcaa0895d857fb1425212d785672707ac0fb302133eb978ac200a",
+      "mode": "100644"
+    },
     "src/components/tradein-keep-capacity.behavior.test.ts": {
       "sourceBlob": "d6ff87ec7a305a5f97257059d6fc570e6a305f41",
       "sourceSha256": "ed5231409d7626d7cec8c2afc55a49115b565b561006de5150282b21eb36ea52",
@@ -7502,11 +7565,18 @@
       "targetSha256": "89969611a583fdebc98005b5dce13b1dbef82154b2fc5ca15cbbfba486b53395",
       "mode": "100644"
     },
+    "src/components/tradein-query-concurrency.behavior.test.ts": {
+      "sourceBlob": "b8058da22e276b42256a1e2c80fffc50d0f34f51",
+      "sourceSha256": "92d6fb226098760c7ad83421b869642cd927e028909af78c072790a4ee5b1ad1",
+      "targetBlob": "b8058da22e276b42256a1e2c80fffc50d0f34f51",
+      "targetSha256": "92d6fb226098760c7ad83421b869642cd927e028909af78c072790a4ee5b1ad1",
+      "mode": "100644"
+    },
     "src/components/tradein-sheets.vue": {
-      "sourceBlob": "c6edcf0748f605b7d25c9ab43ec6484cb01d74af",
-      "sourceSha256": "5c65011292d00299094ec2bd57ba7b845234603a6ea3bae89a10d2fa1cffdeeb",
-      "targetBlob": "c6edcf0748f605b7d25c9ab43ec6484cb01d74af",
-      "targetSha256": "5c65011292d00299094ec2bd57ba7b845234603a6ea3bae89a10d2fa1cffdeeb",
+      "sourceBlob": "d6417eac7cf9880aff87d9d2f61cf96e7dae7f63",
+      "sourceSha256": "4cfc18da16aac7bfe0d2a4e476d7d7f1d1c40110c4e51e61642524fe8b673573",
+      "targetBlob": "d6417eac7cf9880aff87d9d2f61cf96e7dae7f63",
+      "targetSha256": "4cfc18da16aac7bfe0d2a4e476d7d7f1d1c40110c4e51e61642524fe8b673573",
       "mode": "100644"
     },
     "src/components/trial-claim-prerequisite.behavior.test.ts": {
@@ -8755,6 +8825,27 @@
       "targetSha256": "6944ae068140e244925aff0881d5b976079866f306e0b2502749656b9c1bedf5",
       "mode": "100644"
     },
+    "src/lib/checkout-create-recovery.test.ts": {
+      "sourceBlob": "fd186570ee648ba005aa7b331e93ec59b1d74b64",
+      "sourceSha256": "4a16d60d3efd58d3bc846b4384f3ed3ed07651824054eec9686ff701e77765ac",
+      "targetBlob": "fd186570ee648ba005aa7b331e93ec59b1d74b64",
+      "targetSha256": "4a16d60d3efd58d3bc846b4384f3ed3ed07651824054eec9686ff701e77765ac",
+      "mode": "100644"
+    },
+    "src/lib/checkout-create-recovery.ts": {
+      "sourceBlob": "20063fa2314a56acc70ebd7a3ec42a0168f3a932",
+      "sourceSha256": "7027a4f675486a05a547214034558e745a2c54cf910d9deae3c1964ceeed01b7",
+      "targetBlob": "20063fa2314a56acc70ebd7a3ec42a0168f3a932",
+      "targetSha256": "7027a4f675486a05a547214034558e745a2c54cf910d9deae3c1964ceeed01b7",
+      "mode": "100644"
+    },
+    "src/lib/checkout-flow-copy.ts": {
+      "sourceBlob": "6f4b0575230f89f6991613cfbcf99d219ef11975",
+      "sourceSha256": "13a05acfb2b5ba4667611428e781ea939d8ca837e3aa8960e4fca69897147890",
+      "targetBlob": "6f4b0575230f89f6991613cfbcf99d219ef11975",
+      "targetSha256": "13a05acfb2b5ba4667611428e781ea939d8ca837e3aa8960e4fca69897147890",
+      "mode": "100644"
+    },
     "src/lib/checkout-order-recovery.test.ts": {
       "sourceBlob": "a678cf14447e0021bf4e13340f52d73e9de63b24",
       "sourceSha256": "cc4306b419e3ccf19ce48a00de0916fbb814911b682ddb87b2d50c9e344c715b",
@@ -8767,6 +8858,34 @@
       "sourceSha256": "9f9b96870b3c4bb4fa54f826913844408dfd3414fd50e53cc9658e43679be35a",
       "targetBlob": "8af3d7f53f8454b01b5c6d1ba97c10757b85be80",
       "targetSha256": "9f9b96870b3c4bb4fa54f826913844408dfd3414fd50e53cc9658e43679be35a",
+      "mode": "100644"
+    },
+    "src/lib/checkout-purchase-check.test.ts": {
+      "sourceBlob": "6092d20d75f2fec8d82593094386f8d7f5970055",
+      "sourceSha256": "299ebce6df7feac62ff07d950a6d70f2c5b45991852a3bd5e2aa664e6cb4914a",
+      "targetBlob": "6092d20d75f2fec8d82593094386f8d7f5970055",
+      "targetSha256": "299ebce6df7feac62ff07d950a6d70f2c5b45991852a3bd5e2aa664e6cb4914a",
+      "mode": "100644"
+    },
+    "src/lib/checkout-purchase-check.ts": {
+      "sourceBlob": "98b5076b3c0d87a4166af119a19ed6d9856df912",
+      "sourceSha256": "0ac4760d632e74cb2b423393a4107c4145af8b5e4c825d5a3ad3c8e8da7503be",
+      "targetBlob": "98b5076b3c0d87a4166af119a19ed6d9856df912",
+      "targetSha256": "0ac4760d632e74cb2b423393a4107c4145af8b5e4c825d5a3ad3c8e8da7503be",
+      "mode": "100644"
+    },
+    "src/lib/checkout-review-amount.test.ts": {
+      "sourceBlob": "8a72719e071b64058984bcaf760313d80d9efeb5",
+      "sourceSha256": "148d7d64638c8452b8dcc7c3ad1c0ab199d31e60f1ddc77f42c4b22e70a549d7",
+      "targetBlob": "8a72719e071b64058984bcaf760313d80d9efeb5",
+      "targetSha256": "148d7d64638c8452b8dcc7c3ad1c0ab199d31e60f1ddc77f42c4b22e70a549d7",
+      "mode": "100644"
+    },
+    "src/lib/checkout-review-amount.ts": {
+      "sourceBlob": "9ee22b0f63ef7b3e17f00494e4352ded1482fb62",
+      "sourceSha256": "ea0b0b69a3829e77b0d476d71c9290c4a362751e6b02af4463fa984af65e25dd",
+      "targetBlob": "9ee22b0f63ef7b3e17f00494e4352ded1482fb62",
+      "targetSha256": "ea0b0b69a3829e77b0d476d71c9290c4a362751e6b02af4463fa984af65e25dd",
       "mode": "100644"
     },
     "src/lib/checkout-route-fence.test.ts": {
@@ -13984,6 +14103,13 @@
       "targetSha256": "2c990c9ab07d39d57b4ee8a980696943535a99d5232909aae7b6449f48391b55",
       "mode": "100644"
     },
+    "src/pages/store/bundle-payment-stock.behavior.test.ts": {
+      "sourceBlob": "f55b6254868c5ccc7503711d31d9639299a31bf5",
+      "sourceSha256": "7eb29a753c89699b8cdce69da917ea357f294240c47c087f69b8d7543667b59a",
+      "targetBlob": "f55b6254868c5ccc7503711d31d9639299a31bf5",
+      "targetSha256": "7eb29a753c89699b8cdce69da917ea357f294240c47c087f69b8d7543667b59a",
+      "mode": "100644"
+    },
     "src/pages/store/bundle-review.behavior.test.ts": {
       "sourceBlob": "f15fbcb1055f44b4af02deb938468fb840722ca8",
       "sourceSha256": "dc962e1fbacb14488e518ca057375501393b9cf217d759792c8544ba0cc9db51",
@@ -13992,17 +14118,17 @@
       "mode": "100644"
     },
     "src/pages/store/bundle.vue": {
-      "sourceBlob": "daeeb26d52e716bd4137ca5c859cfc91aba5ee9c",
-      "sourceSha256": "665d76f96eff4a92842a6b86ff582c90e919190965b4cb3b5547b5b2a594e6ad",
-      "targetBlob": "daeeb26d52e716bd4137ca5c859cfc91aba5ee9c",
-      "targetSha256": "665d76f96eff4a92842a6b86ff582c90e919190965b4cb3b5547b5b2a594e6ad",
+      "sourceBlob": "96f078c73d7ec4abbd850bbbaac08fb81e5f4418",
+      "sourceSha256": "1962f7e56ed2174474ee45f552bd7ea395f067a59917ccc37755f2130c36e760",
+      "targetBlob": "96f078c73d7ec4abbd850bbbaac08fb81e5f4418",
+      "targetSha256": "1962f7e56ed2174474ee45f552bd7ea395f067a59917ccc37755f2130c36e760",
       "mode": "100644"
     },
     "src/pages/store/checkout-capacity-recovery.behavior.test.ts": {
-      "sourceBlob": "dd7a8464535f683686f8a70174aa48b4798a10e6",
-      "sourceSha256": "df71614361aa03b45272ef06891ae00fe872d5dfd1c7065f1ec4efda5000b762",
-      "targetBlob": "dd7a8464535f683686f8a70174aa48b4798a10e6",
-      "targetSha256": "df71614361aa03b45272ef06891ae00fe872d5dfd1c7065f1ec4efda5000b762",
+      "sourceBlob": "8d6b82e0bb220cae3ba6f1b69962955350a009ce",
+      "sourceSha256": "77b2a44689a28652b0799351f5c0b1f1bf1bb14af389086a92b201b7df474f2d",
+      "targetBlob": "8d6b82e0bb220cae3ba6f1b69962955350a009ce",
+      "targetSha256": "77b2a44689a28652b0799351f5c0b1f1bf1bb14af389086a92b201b7df474f2d",
       "mode": "100644"
     },
     "src/pages/store/checkout-catalog-reload.behavior.test.ts": {
@@ -14012,25 +14138,39 @@
       "targetSha256": "59424f711396e525072e4882976dd18e202aa969d9cbd8e5fcadc65127bed614",
       "mode": "100644"
     },
+    "src/pages/store/checkout-flow.behavior.test.ts": {
+      "sourceBlob": "da451f37823fa2d59838eb1a93fae501d3b27a03",
+      "sourceSha256": "9595da17b3e48aeb2024327468a6161bb3466dd7b1ac055f26b71c4e7e201610",
+      "targetBlob": "da451f37823fa2d59838eb1a93fae501d3b27a03",
+      "targetSha256": "9595da17b3e48aeb2024327468a6161bb3466dd7b1ac055f26b71c4e7e201610",
+      "mode": "100644"
+    },
     "src/pages/store/checkout-hdpay.contract.test.ts": {
-      "sourceBlob": "55fd99069d80cd3c55e18b536a0f25080ea98976",
-      "sourceSha256": "bbfdb3acdb1d8284b0741ef6dbbfca19b85b0703b5a8ba90ba6c416fa89c0e34",
-      "targetBlob": "55fd99069d80cd3c55e18b536a0f25080ea98976",
-      "targetSha256": "bbfdb3acdb1d8284b0741ef6dbbfca19b85b0703b5a8ba90ba6c416fa89c0e34",
+      "sourceBlob": "22509160aec9c3b93c037adc74207c1a6a2a505c",
+      "sourceSha256": "15c34c87dc6c4c197b05f5cb4b2dbeaa8f76d8364657962bb2cee428edc79889",
+      "targetBlob": "22509160aec9c3b93c037adc74207c1a6a2a505c",
+      "targetSha256": "15c34c87dc6c4c197b05f5cb4b2dbeaa8f76d8364657962bb2cee428edc79889",
+      "mode": "100644"
+    },
+    "src/pages/store/checkout-initialization.behavior.test.ts": {
+      "sourceBlob": "ac7d52e474b051645549f3fa47a7037456deeb9f",
+      "sourceSha256": "42c5b559143c55b7de13857ff55afca82bc104156c277428a9574ea427c5eadf",
+      "targetBlob": "ac7d52e474b051645549f3fa47a7037456deeb9f",
+      "targetSha256": "42c5b559143c55b7de13857ff55afca82bc104156c277428a9574ea427c5eadf",
       "mode": "100644"
     },
     "src/pages/store/checkout-keep-recovery.behavior.test.ts": {
-      "sourceBlob": "55d8d01c9fea4721c609fb71791c6288d7dc3eba",
-      "sourceSha256": "2a15eea51b5e4314ecb790b209b87fb01e57bbbc0f5648abbf12f4560cc05644",
-      "targetBlob": "55d8d01c9fea4721c609fb71791c6288d7dc3eba",
-      "targetSha256": "2a15eea51b5e4314ecb790b209b87fb01e57bbbc0f5648abbf12f4560cc05644",
+      "sourceBlob": "04de794063a39f30a13746d6e621d71afd06cec3",
+      "sourceSha256": "8d9ff2d9f2b27c36c7dbe25ccf240cbfe331061bb2a797316177ccf6bac5d72c",
+      "targetBlob": "04de794063a39f30a13746d6e621d71afd06cec3",
+      "targetSha256": "8d9ff2d9f2b27c36c7dbe25ccf240cbfe331061bb2a797316177ccf6bac5d72c",
       "mode": "100644"
     },
     "src/pages/store/checkout-paid-response-recovery.test.ts": {
-      "sourceBlob": "9f165f40eaaaed45217662cb0c5c9959dba562aa",
-      "sourceSha256": "336498ea776d43424351431063586fe4baefb4b4cfb473bc3dd655b9f0f72c08",
-      "targetBlob": "9f165f40eaaaed45217662cb0c5c9959dba562aa",
-      "targetSha256": "336498ea776d43424351431063586fe4baefb4b4cfb473bc3dd655b9f0f72c08",
+      "sourceBlob": "3c3ebcf63c905e41308d6fa0a2ec4b6da9d1ae94",
+      "sourceSha256": "f3b94a8ba13624891995f1ede982318e9e010f13b09d454312320ef3a1a4e134",
+      "targetBlob": "3c3ebcf63c905e41308d6fa0a2ec4b6da9d1ae94",
+      "targetSha256": "f3b94a8ba13624891995f1ede982318e9e010f13b09d454312320ef3a1a4e134",
       "mode": "100644"
     },
     "src/pages/store/checkout-purchase-confirmation.test.ts": {
@@ -14041,10 +14181,10 @@
       "mode": "100644"
     },
     "src/pages/store/checkout-quantity.behavior.test.ts": {
-      "sourceBlob": "c3d3774f36f567c8b17c33df7cca4048760a3631",
-      "sourceSha256": "06ec6d5749c0a9a428656cc7967dc8191b7355782bf08d8c03a3db2ecb08e4cc",
-      "targetBlob": "c3d3774f36f567c8b17c33df7cca4048760a3631",
-      "targetSha256": "06ec6d5749c0a9a428656cc7967dc8191b7355782bf08d8c03a3db2ecb08e4cc",
+      "sourceBlob": "1eeb467a8870d286a2f6002f4f31a26fd6470d9d",
+      "sourceSha256": "4ce8d576737b5ed7865fd5c325ad64eda2810986545d78d60690e3ea317bd814",
+      "targetBlob": "1eeb467a8870d286a2f6002f4f31a26fd6470d9d",
+      "targetSha256": "4ce8d576737b5ed7865fd5c325ad64eda2810986545d78d60690e3ea317bd814",
       "mode": "100644"
     },
     "src/pages/store/checkout-remote-summary.contract.test.ts": {
@@ -14055,24 +14195,24 @@
       "mode": "100644"
     },
     "src/pages/store/checkout-tradein-inheritance.behavior.test.ts": {
-      "sourceBlob": "d9322e696b8c5b697c4562218555bcfa97a47c4a",
-      "sourceSha256": "f3b3ae13488a88c9a2a6cdaaafc7fa514ad92d4eb68fe8354ddac250eb664e5d",
-      "targetBlob": "d9322e696b8c5b697c4562218555bcfa97a47c4a",
-      "targetSha256": "f3b3ae13488a88c9a2a6cdaaafc7fa514ad92d4eb68fe8354ddac250eb664e5d",
+      "sourceBlob": "1ef285987ce2e4cf96b1393187f9cf6c8b84f685",
+      "sourceSha256": "f453f8b00ca0c0901b525fe58427515bf6eda1ce6a58190d5cd339d0d58d4490",
+      "targetBlob": "1ef285987ce2e4cf96b1393187f9cf6c8b84f685",
+      "targetSha256": "f453f8b00ca0c0901b525fe58427515bf6eda1ce6a58190d5cd339d0d58d4490",
       "mode": "100644"
     },
     "src/pages/store/checkout-tradein-readd.behavior.test.ts": {
-      "sourceBlob": "bf3a37bcdf314da2d00417a86691928aa5bb8c2d",
-      "sourceSha256": "67f7d09bf5c4be6b257df4d9500f8839294e3f27d343a8e9806fa744903a9353",
-      "targetBlob": "bf3a37bcdf314da2d00417a86691928aa5bb8c2d",
-      "targetSha256": "67f7d09bf5c4be6b257df4d9500f8839294e3f27d343a8e9806fa744903a9353",
+      "sourceBlob": "2b747d86344bd5545880e2d20fcf74efd7fd7f46",
+      "sourceSha256": "bf56c5636741b757ba2415eb205f1944c2f8b4b4dc81cdb22c2512c688c9223d",
+      "targetBlob": "2b747d86344bd5545880e2d20fcf74efd7fd7f46",
+      "targetSha256": "bf56c5636741b757ba2415eb205f1944c2f8b4b4dc81cdb22c2512c688c9223d",
       "mode": "100644"
     },
     "src/pages/store/checkout-trial-conversion.behavior.test.ts": {
-      "sourceBlob": "506cb477473226858d3d660bb18b55ab2e7a6e1a",
-      "sourceSha256": "f70e19dbdf23982471d75d975e74ffd2a2c4d790ea35ffc9dd58a8d0906974df",
-      "targetBlob": "506cb477473226858d3d660bb18b55ab2e7a6e1a",
-      "targetSha256": "f70e19dbdf23982471d75d975e74ffd2a2c4d790ea35ffc9dd58a8d0906974df",
+      "sourceBlob": "df6f3acd304958ea346ceba21654c5fc7960d36a",
+      "sourceSha256": "9f7fa08e519efd1f574e9ad2145fa67d1306efbc40e5403bc5d322f1562fcf97",
+      "targetBlob": "df6f3acd304958ea346ceba21654c5fc7960d36a",
+      "targetSha256": "9f7fa08e519efd1f574e9ad2145fa67d1306efbc40e5403bc5d322f1562fcf97",
       "mode": "100644"
     },
     "src/pages/store/checkout-trial-route.contract.test.ts": {
@@ -14083,10 +14223,10 @@
       "mode": "100644"
     },
     "src/pages/store/checkout-voucher-choice.behavior.test.ts": {
-      "sourceBlob": "005ea990a7f24009878368f67e881241386ec89f",
-      "sourceSha256": "1b094e1510d23d55efadc5292cd5f129809edb3cb69c1ba35f8e43ec65f63771",
-      "targetBlob": "005ea990a7f24009878368f67e881241386ec89f",
-      "targetSha256": "1b094e1510d23d55efadc5292cd5f129809edb3cb69c1ba35f8e43ec65f63771",
+      "sourceBlob": "711339f26fdfb0c43c75e61aeafd688e2e6f9dfb",
+      "sourceSha256": "536062de72700a4b79a65a6542a09d91115a08b21b8587538f154844b5ae9e1d",
+      "targetBlob": "711339f26fdfb0c43c75e61aeafd688e2e6f9dfb",
+      "targetSha256": "536062de72700a4b79a65a6542a09d91115a08b21b8587538f154844b5ae9e1d",
       "mode": "100644"
     },
     "src/pages/store/checkout-wallet-balance.test.ts": {
@@ -14097,10 +14237,10 @@
       "mode": "100644"
     },
     "src/pages/store/checkout.vue": {
-      "sourceBlob": "7a7e1eaf4a3389734ad5675cf9cab418a2695560",
-      "sourceSha256": "69a063edf0985af73d7cd30b0bcc8b11c3756e059b189ebf967802fb2ccc6a73",
-      "targetBlob": "7a7e1eaf4a3389734ad5675cf9cab418a2695560",
-      "targetSha256": "69a063edf0985af73d7cd30b0bcc8b11c3756e059b189ebf967802fb2ccc6a73",
+      "sourceBlob": "82ad32f579db640ef2ede8de59f9e0c9c3599c61",
+      "sourceSha256": "c580c5c57d81486d4a11cf7887a7d28a1c923a41e9929e46db2569ba0cefd85d",
+      "targetBlob": "82ad32f579db640ef2ede8de59f9e0c9c3599c61",
+      "targetSha256": "c580c5c57d81486d4a11cf7887a7d28a1c923a41e9929e46db2569ba0cefd85d",
       "mode": "100644"
     },
     "src/pages/store/detail-loading-header.contract.test.ts": {
@@ -14167,10 +14307,10 @@
       "mode": "100644"
     },
     "src/pages/store/order-detail-hdpay.contract.test.ts": {
-      "sourceBlob": "4389e153827d3ab05b009f73568933e361b557ed",
-      "sourceSha256": "0a1516d9ea5e04c6d09a1ca35622d070fe920b310b6d335674bedc485d5fdb85",
-      "targetBlob": "4389e153827d3ab05b009f73568933e361b557ed",
-      "targetSha256": "0a1516d9ea5e04c6d09a1ca35622d070fe920b310b6d335674bedc485d5fdb85",
+      "sourceBlob": "90c58286f33042a8cd34a9228db353a2f038aa0d",
+      "sourceSha256": "16657b191ff3ddcc6d882a30029991387d691b6b7fc4a676263ff1e333355383",
+      "targetBlob": "90c58286f33042a8cd34a9228db353a2f038aa0d",
+      "targetSha256": "16657b191ff3ddcc6d882a30029991387d691b6b7fc4a676263ff1e333355383",
       "mode": "100644"
     },
     "src/pages/store/order-detail-remote-state.contract.test.ts": {
@@ -14181,31 +14321,31 @@
       "mode": "100644"
     },
     "src/pages/store/order-detail-return.test.ts": {
-      "sourceBlob": "a09b96647d20957b2fc12e7d87b000cd52329cf9",
-      "sourceSha256": "80597f0003bd7668e7a8ae8d9d7a163729d629168290b503ce99a261017dbe31",
-      "targetBlob": "a09b96647d20957b2fc12e7d87b000cd52329cf9",
-      "targetSha256": "80597f0003bd7668e7a8ae8d9d7a163729d629168290b503ce99a261017dbe31",
+      "sourceBlob": "2bdaf898bfb26e7647b34d3e638c239e3e734454",
+      "sourceSha256": "67120169424847128f24a094c09b47aa8bb1266bb8c2b3db27622d1547560d21",
+      "targetBlob": "2bdaf898bfb26e7647b34d3e638c239e3e734454",
+      "targetSha256": "67120169424847128f24a094c09b47aa8bb1266bb8c2b3db27622d1547560d21",
       "mode": "100644"
     },
     "src/pages/store/order-detail-runtime.behavior.test.ts": {
-      "sourceBlob": "9059389f1b6560d9b265f7a498b35c50201020f0",
-      "sourceSha256": "422bce46835869f2887656c3a55369c0ad768e74d3d3ea5644964ac4791fd94d",
-      "targetBlob": "9059389f1b6560d9b265f7a498b35c50201020f0",
-      "targetSha256": "422bce46835869f2887656c3a55369c0ad768e74d3d3ea5644964ac4791fd94d",
+      "sourceBlob": "72f4dbd6b3ae9ac0ca5e9fcf695d6301b851654c",
+      "sourceSha256": "ef55464ba05dfb65d6159ed8aa2a8d161bd8958a3bbd1b5bb6dc247e5c62b299",
+      "targetBlob": "72f4dbd6b3ae9ac0ca5e9fcf695d6301b851654c",
+      "targetSha256": "ef55464ba05dfb65d6159ed8aa2a8d161bd8958a3bbd1b5bb6dc247e5c62b299",
       "mode": "100644"
     },
     "src/pages/store/order-detail-server-truth.test.ts": {
-      "sourceBlob": "155d2b25e0d76c396f6d6124130e22e9ff651446",
-      "sourceSha256": "885a63c0992ef5e8fe55e55f296ad17c1f8f7f443bb11b81a12b1b841d5423bf",
-      "targetBlob": "155d2b25e0d76c396f6d6124130e22e9ff651446",
-      "targetSha256": "885a63c0992ef5e8fe55e55f296ad17c1f8f7f443bb11b81a12b1b841d5423bf",
+      "sourceBlob": "2eddf3d080c17ba770b8810739ae8785cc462e8a",
+      "sourceSha256": "3ad6b97d5d701b49d4f87211c143a641ee64a07e46b0b60395bf10cb82a42913",
+      "targetBlob": "2eddf3d080c17ba770b8810739ae8785cc462e8a",
+      "targetSha256": "3ad6b97d5d701b49d4f87211c143a641ee64a07e46b0b60395bf10cb82a42913",
       "mode": "100644"
     },
     "src/pages/store/order-detail.vue": {
-      "sourceBlob": "41544e27b4a4580d6342beb996cd44904d01c634",
-      "sourceSha256": "a1808574df06eb06b6985354f4591c8c2d05d73304607c24e721c9c338eacffc",
-      "targetBlob": "41544e27b4a4580d6342beb996cd44904d01c634",
-      "targetSha256": "a1808574df06eb06b6985354f4591c8c2d05d73304607c24e721c9c338eacffc",
+      "sourceBlob": "738ffab1e16743ec360206275783f82d3b358d92",
+      "sourceSha256": "69efd6eda0c8954eb1ab0903cce80eb03dbb0363e477bff3540c0d2ac3780758",
+      "targetBlob": "738ffab1e16743ec360206275783f82d3b358d92",
+      "targetSha256": "69efd6eda0c8954eb1ab0903cce80eb03dbb0363e477bff3540c0d2ac3780758",
       "mode": "100644"
     },
     "src/pages/store/orders-cold-session.test.ts": {
@@ -14237,10 +14377,10 @@
       "mode": "100644"
     },
     "src/pages/store/orders-return.test.ts": {
-      "sourceBlob": "ba9545eb44ee92df44238d4ff1f65f39aa584d43",
-      "sourceSha256": "6c304d8c753718cceb9fb68197dec8ad6208130d67ea06c1fd4fb8d31fb9b1ba",
-      "targetBlob": "ba9545eb44ee92df44238d4ff1f65f39aa584d43",
-      "targetSha256": "6c304d8c753718cceb9fb68197dec8ad6208130d67ea06c1fd4fb8d31fb9b1ba",
+      "sourceBlob": "c6e0f4cc2190e6f2fac44f62dc79f12717f42b4e",
+      "sourceSha256": "dc1d468a00449d6f9223b4561f221a6d17814a15da9be2eccd25ab17d4dffe77",
+      "targetBlob": "c6e0f4cc2190e6f2fac44f62dc79f12717f42b4e",
+      "targetSha256": "dc1d468a00449d6f9223b4561f221a6d17814a15da9be2eccd25ab17d4dffe77",
       "mode": "100644"
     },
     "src/pages/store/orders-runtime-recovery.test.ts": {
@@ -14258,10 +14398,10 @@
       "mode": "100644"
     },
     "src/pages/store/orders.vue": {
-      "sourceBlob": "58b49506a35318c788f3ef46672d835663c1d029",
-      "sourceSha256": "7715a6629c3d0c2e172ba338798e3ce02b349d0ee8cc97dc64a2c2a7703a6334",
-      "targetBlob": "58b49506a35318c788f3ef46672d835663c1d029",
-      "targetSha256": "7715a6629c3d0c2e172ba338798e3ce02b349d0ee8cc97dc64a2c2a7703a6334",
+      "sourceBlob": "7b9aa924be26af8110e941d1e1dd48c6b8f00695",
+      "sourceSha256": "a899921b5aefb18e085c55875aa37842d09a559d0833841a2ae14d907cddf158",
+      "targetBlob": "7b9aa924be26af8110e941d1e1dd48c6b8f00695",
+      "targetSha256": "a899921b5aefb18e085c55875aa37842d09a559d0833841a2ae14d907cddf158",
       "mode": "100644"
     },
     "src/pages/store/product-truth.contract.test.ts": {

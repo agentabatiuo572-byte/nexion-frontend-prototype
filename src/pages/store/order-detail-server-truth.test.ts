@@ -1,4 +1,6 @@
 import { commerceOrderTitle, commerceCopy } from "@/lib/commerce-review";
+import { checkoutFlowCopy } from "@/lib/checkout-flow-copy";
+import { getProductMedia } from "@/lib/product-media";
 import { formatAmount } from "@/lib/amount-display";
 import { compile } from "@vue/compiler-dom";
 import { compileScript, parse } from "@vue/compiler-sfc";
@@ -89,6 +91,10 @@ async function detail(dataCenter: string | null, copy = en, status: CanonicalOrd
       onLoad: (callback: typeof onLoad) => { onLoad = callback; }, onShow: () => {}, onHide: () => {}, onUnload: () => {},
     };
     if (id === "@/lib/commerce-review") return {commerceOrderTitle,commerceCopy};
+    if (id === "@/lib/checkout-flow-copy") return {checkoutFlowCopy};
+    if (id === "@/lib/checkout-purchase-check") return {assertCheckoutPurchaseStock:vi.fn().mockResolvedValue(undefined),CheckoutPurchaseCheckError:class extends Error{}};
+    if (id === "@/lib/product-media") return {getProductMedia};
+    if (id === "@/composables/use-dialog-a11y") return {useDialogA11y:()=>{}};
     if (id === "@/lib/authorized-payment") return { executePaymentWithPassword: vi.fn(async (_context: unknown, command: (authorization: PaymentPasswordAuthorization) => Promise<unknown>, current: () => boolean) =>
       current() ? command({ paymentPassword: "039417", credentialVersion: 1, attemptNo: "fixture-attempt" }) : null) };
     if (id === "@/api/payment-command-api") return { readPaymentCommand };
@@ -134,6 +140,21 @@ async function rendered(view: Awaited<ReturnType<typeof detail>>["view"]) {
 }
 
 describe("BUG 381 canonical order data-center and activation truth", () => {
+  it('shows purchased units rather than the number of distinct SKU lines', async () => {
+    const { view, orders } = await detail('Cloud-Global');
+    Object.assign(orders.orders[0], { quantity: 2, itemCount: 1, total: 2598 });
+    expect(view.orderQuantity.value).toBe(2);
+    expect(await rendered(view)).toContain(`${en.orders.quantity}: 2`);
+    orders.orders[0].lineItems = [
+      { sku: 'stellarbox-s1', name: 'UVELBox S1', quantity: 2, unitPriceUsdt: 1299, lineAmountUsdt: 2598 },
+      { sku: 'cloud-share', name: 'Cloud Share', quantity: 3, unitPriceUsdt: 20, lineAmountUsdt: 60 },
+    ];
+    expect(view.orderQuantity.value).toBe(5);
+    const html = await rendered(view);
+    expect(html).toContain('2 × 1,299.00');
+    expect(html).not.toContain('$1,299.00');
+    expect(orders.orders[0].total).toBe(2598);
+  });
   it.each(['payment_failed','provisioning_failed','chargeback','expired'] as const)('offers read-only recovery for %s without unlocking payment or cancellation',async status=>{
     const {view}=await detail('Cloud-Global',en,status);
     const html=await rendered(view);

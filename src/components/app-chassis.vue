@@ -149,7 +149,7 @@
       <TrialClaimSheet />
       <VoucherClaimSheet />
       <SlotActionSheet />
-      <TradeinSheets :active="pageVisible" />
+      <TradeinSheets :active="pageVisible && hostVisible" />
       <LuckySpinSheet />
       <StickyCtaBar />
       <!-- 待支付浮动条:结算扫码步开出的那笔发票还没付,全站置顶提醒 + 一键回到同一笔。

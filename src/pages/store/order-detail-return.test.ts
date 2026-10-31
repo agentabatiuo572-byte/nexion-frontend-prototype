@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import ts from "typescript";
 import { ref } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { checkoutFlowCopy } from '@/lib/checkout-flow-copy';
 
 const listSource = readFileSync(new URL("./orders.vue", import.meta.url), "utf8");
 const detailSource = readFileSync(new URL("./order-detail.vue", import.meta.url), "utf8");
@@ -17,7 +18,7 @@ function list(from?: string, query = "") {
     listSource.indexOf("// Sticky chassis nav header"))
     + listSource.slice(listSource.indexOf("function goOrder("), listSource.indexOf("const remoteErrorStyle"));
   const page = new Function("ref", "onLoad", "takeNavigationQuery", "navTo",
-    `${transpile(body)}\nreturn { ordersBackHref, goOrder };`)(ref,
+    `${transpile(body)}\nreturn { ordersBackHref, goOrder, goOrderDetails };`)(ref,
     (callback: typeof load) => { load = callback; }, () => query, navTo);
   load(from ? { from } : {});
   return { page, navTo };
@@ -25,7 +26,7 @@ function list(from?: string, query = "") {
 
 function detail(options: Record<string, string> = {}, query = "") {
   let load: (options: Record<string, string>) => void = () => {};
-  let header: () => { backHref: string } = () => ({ backHref: "" });
+  let header: () => { backHref: string; title?: string } = () => ({ backHref: "" });
   const shows: (() => void)[] = [];
   const navTo = vi.fn();
   const body = detailSource.slice(detailSource.indexOf('const id = ref("");'),
@@ -37,11 +38,12 @@ function detail(options: Record<string, string> = {}, query = "") {
     takeNavigationQuery: () => query, onShow: (callback: () => void) => { shows.push(callback); },
     useSetPageHeader: (callback: typeof header) => { header = callback; }, navTo,
     remoteOrderAttempted: ref(false), remoteOrderError: ref(false), showRemoteOrderLoading: ref(false),
-    order: ref(null), t: ref({ orders: { title: "Orders", notFound: "Not found" } }),
+    order: ref<Record<string,unknown>|null>(null), t: ref({ orders: { title: "Orders", detailTitle: "Order details", notFound: "Not found" } }),
+    checkoutFlowCopy, locale: {code:'en'},
     refreshOrder: () => {}, refreshOrderWallet: () => {}, restoreOrderAction: vi.fn(), recoverOrderAction: vi.fn().mockResolvedValue(undefined) };
-  const page = new Function(...Object.keys(deps), `${transpile(body)}\nreturn { id, goOrders };`)(...Object.values(deps));
+  const page = new Function(...Object.keys(deps), `${transpile(body)}\nreturn { id, goOrders, showTrialResult, paymentResultVisible };`)(...Object.values(deps));
   load(options);
-  return { page, navTo, header, show: () => shows.forEach(callback => callback()) };
+  return { page, navTo, header, order:deps.order, show: () => shows.forEach(callback => callback()) };
 }
 
 function browser(hash: string) {
@@ -57,6 +59,17 @@ function browser(hash: string) {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("order detail return after a fresh page reconstruction", () => {
+  it('uses the shared setup title only during trial or payment results and restores the details title',()=>{
+    const h=detail({id:'ORD-1',result:'trial'});expect(h.header().title).toBe('Device setup');
+    h.page.showTrialResult.value=false;h.order.value={};expect(h.header().title).toBe('Order details');
+    h.page.paymentResultVisible.value=true;expect(h.header().title).toBe('Device setup');
+  });
+  it('opens a pending row as payment while its separate detail action keeps a read-only entry',()=>{
+    const h=list('me');const order={kind:'commerce',id:'ORD/A?',status:'placed'};
+    h.page.goOrder(order);expect(h.navTo).toHaveBeenLastCalledWith('/pages/store/order-detail?id=ORD%2FA%3F&from=me&pay=1');
+    h.page.goOrderDetails(order);expect(h.navTo).toHaveBeenLastCalledWith('/pages/store/order-detail?id=ORD%2FA%3F&from=me');
+    h.page.goOrder({...order,status:'activated'});expect(h.navTo).toHaveBeenLastCalledWith('/pages/store/order-detail?id=ORD%2FA%3F&from=me');
+  });
   it.each(["me", "store"])("carries %s from the list through detail refresh and both return controls", from => {
     const h = list(from);
     const orderNo = "ORDER /+?&";

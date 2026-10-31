@@ -106,7 +106,7 @@ function demoPhysicalSlots(url,locale,state,products,excludeOrderNo) {
     &&['ACTIVE','ONLINE','BUSY','RUNNING','OFFLINE'].includes(device.status)).length;
   // Static demoOrders() rows illustrate order states. Only actual session orders reserve slots.
   const reserved=(state.createdOrders||[])
-    .filter(order=>order.orderNo!==excludeOrderNo&&['placed','paid','provisioning'].includes(order.canonicalStatus))
+    .filter(order=>order.orderNo!==excludeOrderNo&&(state.checkoutNoPendingReservation?['paid','provisioning']:['placed','paid','provisioning']).includes(order.canonicalStatus))
     .reduce((total,order)=>total+order.lineItems.reduce((count,line)=>count+line.quantity,0),0);
   return {used:active+reserved,cap:fleet.slotCap};
 }

@@ -11,6 +11,8 @@ import { readPaymentCommand } from "@/api/payment-command-api";
 import { parseCanonicalTradeinResult } from "@/api/device-e3-api";
 import { executePaymentWithPassword } from "@/lib/authorized-payment";
 import { purchaseRecoveryCopy } from "@/lib/purchase-recovery-copy";
+import { readCheckoutCreate, rememberCheckoutCreate, forgetCheckoutCreate } from '@/lib/checkout-create-recovery';
+import { CheckoutPurchaseCheckError } from '@/lib/checkout-purchase-check';
 import { acquireAccountCommandKey, readAccountRow } from "@/store/account-scoped-storage";
 import { en } from "@/i18n/messages/en";
 
@@ -45,6 +47,9 @@ function checkout(active: boolean) {
   const target = { id: "33", activatedAt: active ? 1000 : null, activationUnconfirmed: false };
   const scope = { accountKey: "a", accountEpoch: 1, productNo: "stellarbox-pro", generation: 1 };
   const deps: Record<string, any> = {
+    createdCheckoutOrder: ref(null),
+    hasOriginalCheckout:ref(false), assertCheckoutPurchaseStock:vi.fn().mockResolvedValue(undefined), CheckoutPurchaseCheckError, paymentStockFailure:ref(null), flowCopy:ref({queryFailed:'retry'}),
+    pendingCheckoutCreate: ref(null), readCheckoutCreate, rememberCheckoutCreate, forgetCheckoutCreate,
     remoteApiEnabled: true, completeVerifiedMutation, asApiError, isSettledRejection, scope, isCurrentAccountScope: () => true,
     executePaymentWithPassword, readPaymentCommand, parseCanonicalTradeinResult, purchaseRecoveryCopy, locale: { code: "en" },
     apiClient: { request: vi.fn().mockImplementation(async (request: { path: string }) => ({ kind: "trade-in",
@@ -408,13 +413,14 @@ it.each(["a", "b"])("cookie bootstrap reads only bound account %s's recovery aft
   const watchNode = ast.statements.filter(ts.isExpressionStatement).map(node => node.expression)
     .filter(ts.isCallExpression).find(node => node.expression.getText(ast) === "watch"
       && node.arguments[0]?.getText(ast) === "[() => app.accountKey, () => app.accountBindingEpoch]")!;
-  const deps = { ...refreshed, resumeServerOrder, interceptFired: false, tradeinAvailable: ref(false),
-    keepCheckoutTarget: ref(null), keepCheckoutReadError: ref(false), promotionRoute: ref(null),
+  const deps = { ...refreshed, resumeServerOrder, initializeCheckout: resumeServerOrder, beginCheckoutRoute: () => refreshed.scope, interceptFired: false, tradeinAvailable: ref(false),
+    keepCheckoutTarget: ref(null), keepCheckoutReadError: ref(false),
     remoteCapacityGate: { reset: vi.fn() }, checkoutWalletRefreshSequence: 0, checkoutWalletRefreshing: ref(false),
     quantityReady: ref(false), clearRemotePurchaseEligibility: vi.fn(), remoteOrderFailure: ref(null),
     receiptWriteFailure: ref(null), receiptRetrying: ref(false), restoreReceiptRecovery: vi.fn(),
     remoteOrderCommandKey: { clear: vi.fn() }, activeSession: ref(null), dialogsOpen: 0,
-    checkoutRouteInitialized: true, pageAlive: true, pageVisible: true };
+    checkoutRouteInitialized: true, pageAlive: true, pageVisible: true,
+    settledResultReplay: ref(false), checkoutLeaveError: ref(''), checkoutLeaving: ref(false), closePaymentSheet: vi.fn() };
   const callback = new Function(...Object.keys(deps), `return ${watchNode.arguments[1].getText(ast)};`)(...Object.values(deps));
   refreshed.scope.accountKey = nextAccount; refreshed.scope.accountEpoch++;
   callback();

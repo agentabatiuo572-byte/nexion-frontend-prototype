@@ -5,7 +5,7 @@ import ts from 'typescript';
 import source from './checkout.vue?raw';
 import { validatePromotionItems } from '@/api/promotion-api';
 import { promotionCheckoutHref,voucherEntryContext } from '@/lib/promotion-entry';
-import { formatAmount as formatPlainAmount } from '@/lib/amount-display';
+import { formatGroupedAmount } from '@/lib/amount-display';
 import { zh } from '@/i18n/messages/zh';
 
 const ast=ts.createSourceFile('checkout.ts',parse(source).descriptor.scriptSetup!.content,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);
@@ -23,7 +23,8 @@ function screen(overrides:Record<string,unknown>={}) {
     quantitySwitching:ref(false),voucherSelecting:ref(false),confirming:false,purchaseConfirmationOpen:false,dialogsOpen:0,
     trialCheckoutSource:false,trialConversionMode:ref(false),trialQuoteUnavailable:ref(false),appliedTradeinView:ref(null),reAddingTradein:ref(false),
     remoteTradeinRecoveryRequired:ref(false),activeSession:ref(null),resumeSessionId:null,orderId:ref(null),
-    remoteOrderFailure:ref(null),receiptWriteFailure:ref(null),captureCheckoutRoute:()=>scope,
+    remoteOrderFailure:ref(null),receiptWriteFailure:ref(null),pendingCheckoutCreate:ref(null),createdCheckoutOrder:ref(null),captureCheckoutRoute:()=>scope,
+    remoteApiEnabled:true,checkoutWalletReadable:ref(true),checkoutCapacityRequired:ref(false),
     isCurrentCheckoutRoute:()=>current,resumeServerOrder:vi.fn().mockResolvedValue(false),
     readAccountRow:vi.fn(),REMOTE_CHECKOUT_COMMANDS_KEY:'commands',toast:{warn:vi.fn()},t:ref(zh),
     navReplace:vi.fn().mockResolvedValue(true),promotionCheckoutHref,
@@ -90,8 +91,8 @@ function routeScreen(overrides:Record<string,unknown>={}) {
     refreshServerProductPhase:vi.fn(async()=>true),getProduct:()=>({id:'cloud-share',productType:'SHARE',inventoryMode:'UNLIMITED'}),
     trialQuoteAt:()=>({applied:false}),mockServerNow:()=>0,isProductAvailable:()=>true,phase:ref('P1'),
     refreshPurchaseEligibility:vi.fn(async()=>'eligible'),resumePendingSession:vi.fn(),fireTradeinIntercept:vi.fn(),
-    quantityReady:ref(false),...overrides};
-  const code=ts.transpileModule('const load='+loadSource,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
+    quantityReady:ref(false),hasOriginalCheckout:ref(false),...overrides};
+  const code=declarations(['initializeCheckout'])+ts.transpileModule('const load='+loadSource,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
   return {...deps,load:new Function('deps',`with(deps){${code};return load;}`)(deps)};
 }
 it('routes a new single Share through the canonical ordinary quote after recovery checks',async()=>{
@@ -113,8 +114,8 @@ it.each([[{productNo:'sku',quantity:2}],[{productNo:'sku',quantity:1},{productNo
 it.each(['[]','[{"productNo":"sku","quantity":0}]','broken'])('rejects invalid items rather than purchasing a fallback SKU: %s',async items=>{
   const page=routeScreen();await page.load({items});expect(page.promotionRoute.value).toBeNull();expect(page.toast.warn).toHaveBeenCalled();
 });
-it.each([[1299,'1,299.00'],['999999999999.995','999,999,999,999.995'],[-1299.5,'-1,299.50'],[null,'-'],['0.004000','0.004']])('groups the displayed amount %s without rounding its effective precision', (input,expected)=>{
-  const display=new Function('formatPlainAmount',declarations(['formatAmount'])+';return formatAmount;')(formatPlainAmount);
+it.each([[1299,'1,299.00'],['999999999999.995','1,000,000,000,000.00'],[-1299.5,'-1,299.50'],[null,'-'],['0.004000','0.00']])('groups the displayed amount %s to the approved two decimals', (input,expected)=>{
+  const display=new Function('formatGroupedAmount',declarations(['formatAmount'])+';return formatAmount;')(formatGroupedAmount);
   expect(display(input)).toBe(expected);
 });
 

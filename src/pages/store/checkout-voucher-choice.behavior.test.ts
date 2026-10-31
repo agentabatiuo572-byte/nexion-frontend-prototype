@@ -18,6 +18,7 @@ function screen(rows:Record<string,any>={}) {
     quantitySwitching:ref(false),confirming:false,purchaseConfirmationOpen:false,dialogsOpen:0,
     remoteTradeinRecoveryRequired:ref(false),activeSession:ref(null),resumeSessionId:null,orderId:ref(null),
     remoteOrderFailure:ref(null),receiptWriteFailure:ref(null),
+    createdCheckoutOrder:ref(null),pendingCheckoutCreate:ref(null),
     captureCheckoutRoute:()=>({accountKey:app.accountKey,productNo:productId.value,epoch:app.accountBindingEpoch}),
     isCurrentCheckoutRoute:(scope:any)=>current&&scope.accountKey===app.accountKey&&scope.productNo===productId.value&&scope.epoch===app.accountBindingEpoch,
     resumeServerOrder:vi.fn().mockResolvedValue(false),REMOTE_CHECKOUT_COMMANDS_KEY:'commands',toast:{warn:vi.fn()},t:ref(zh),

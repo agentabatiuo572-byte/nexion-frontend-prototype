@@ -5,6 +5,8 @@ import source from "./checkout.vue?raw";
 import { ApiError, asApiError } from "@/api/errors";
 import { beginOrderAction, clearOrderAction, markOrderActionPaid, readOrderAction } from "@/lib/order-command-fence";
 import { en } from "@/i18n/messages/en";
+import { readCheckoutCreate, rememberCheckoutCreate, forgetCheckoutCreate } from '@/lib/checkout-create-recovery';
+import { CheckoutPurchaseCheckError } from '@/lib/checkout-purchase-check';
 
 const compiled = ts.transpileModule(source.slice(source.indexOf("async function submitRemoteOrder()"),
   source.indexOf("// ── 抵扣上下文")) + "\nreturn submitRemoteOrder;",
@@ -18,8 +20,12 @@ beforeEach(() => {
 
 function harness() {
   const order = { orderNo: "ORDER-1", productNo: "sku", quantity: 1, amountUsdt: 100, discountUsdt: 0,
-    paymentStatus: "PENDING", orderStatus: "PENDING_PAYMENT", activationStatus: "WAITING_PAYMENT", canonicalStatus: "placed" };
+    paymentStatus: "PENDING", orderStatus: "PENDING_PAYMENT", activationStatus: "WAITING_PAYMENT", canonicalStatus: "placed", expiresAt: Date.now()+900000, subtotalUsdt:100 };
   const deps = {
+    createdCheckoutOrder: ref(null),
+    hasOriginalCheckout:ref(false), assertCheckoutPurchaseStock:vi.fn().mockResolvedValue(undefined), CheckoutPurchaseCheckError, paymentStockFailure:ref(null), flowCopy:ref({queryFailed:'retry'}),
+    pendingCheckoutCreate: ref(null), readCheckoutCreate, rememberCheckoutCreate, forgetCheckoutCreate,
+    purchaseSubtotal: ref(100), voucherDiscount: ref(0), nowTick: ref(Date.now()),
     resumePendingRemoteTradein: async () => false,
     captureAccountScope: () => ({}), isCurrentAccountScope: () => true,
     app: { captureRemoteAccountRequest: () => ({}), user: { usdtBalance: 100 }, adoptCommerceWallet: vi.fn(), refreshRemoteFleet: vi.fn() },
@@ -49,6 +55,23 @@ function harness() {
 }
 
 describe("real checkout handler outcome recovery", () => {
+  it('rechecks stock after PIN and never starts a payment command when stock is gone', async () => {
+    const h=harness(); h.assertCheckoutPurchaseStock.mockRejectedValue(new CheckoutPurchaseCheckError('stock','sku'));
+    await h.submit();
+    expect(h.assertCheckoutPurchaseStock).toHaveBeenCalledExactlyOnceWith([{productNo:'sku',quantity:1}]);
+    expect(h.orderApi.pay).not.toHaveBeenCalled(); expect(readOrderAction('a','ORDER-1')).toBeNull();
+    expect(h.paymentStockFailure.value).toMatchObject({kind:'blocked'}); expect(h.navReplace).not.toHaveBeenCalled();
+  });
+  it('a catalogue read failure remains a safe retry, not an unknown payment', async () => {
+    const h=harness(); h.assertCheckoutPurchaseStock.mockRejectedValue(new CheckoutPurchaseCheckError('read'));
+    await h.submit();
+    expect(h.orderApi.pay).not.toHaveBeenCalled(); expect(readOrderAction('a','ORDER-1')).toBeNull();
+    expect(h.paymentStockFailure.value).toMatchObject({kind:'query'}); expect(h.navReplace).not.toHaveBeenCalled();
+  });
+  it('an original amount change during the stock await prevents the POST', async () => {
+    const h=harness(); h.assertCheckoutPurchaseStock.mockImplementation(async()=>{h.netPrice.value=90;});
+    await h.submit(); expect(h.orderApi.pay).not.toHaveBeenCalled(); expect(readOrderAction('a','ORDER-1')).toBeNull();
+  });
   it("successful payment replays the settled result and releases recovery only once the result shows",async()=>{
     const h=harness();
     h.app.adoptCommerceWallet.mockReturnValue(true);
@@ -85,7 +108,7 @@ describe("real checkout handler outcome recovery", () => {
     let resolveA!: (v: boolean) => void;
     const recover = vi.fn().mockReturnValueOnce(new Promise((r) => { resolveA = r; }))
       .mockResolvedValue(false);
-    const deps = { resumePendingRemoteTradein: async () => false, remoteApiEnabled: true, productId,
+    const deps = { pendingCheckoutCreate:ref(null), readCheckoutCreate, resumePendingRemoteTradein: async () => false, remoteApiEnabled: true, productId,
       captureCheckoutRoute: () => ({ accountKey: account.accountKey, accountEpoch: account.epoch, productNo: productId.value, generation: account.epoch }),
       isCurrentCheckoutRoute: (scope: { accountKey: string; accountEpoch: number; productNo: string }) => scope.accountKey === account.accountKey
         && scope.accountEpoch === account.epoch && scope.productNo === productId.value,

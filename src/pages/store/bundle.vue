@@ -235,6 +235,7 @@ import { useNetwork } from "@/store/network";
 import { acquireAccountCommandKey, readAccountRow, writeAccountRow } from "@/store/account-scoped-storage";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
 import { executePaymentWithPassword } from "@/lib/authorized-payment";
+import { assertCheckoutPurchaseStock, CheckoutPurchaseCheckError } from "@/lib/checkout-purchase-check";
 import { beginOrderAction, readOrderAction, clearOrderAction, markOrderActionPaid } from "@/lib/order-command-fence";
 
 const t = useT();
@@ -614,8 +615,13 @@ async function onCheckout() {
           return;
         }
         let paymentKey:string|null=null;
+        const paymentCurrent=()=>scopeIsCurrent()&&bundleFingerprint(products.value)===bundleFingerprint(list)
+          &&normalizeBundleExpectedAmountUsdt(total.value)===command.expectedAmountUsdt
+          &&policy.value?.policyVersion===latestPolicy.policyVersion;
         const paid = await executePaymentWithPassword({amount:command.expectedAmountUsdt,currency:'USDT',summary:list.map(product=>product.name).join(', ')},
           async authorization=>{
+            await assertCheckoutPurchaseStock(command.productNos.map(productNo=>({productNo,quantity:1})));
+            if(!paymentCurrent())return null;
             const action=beginOrderAction(accountKey,'pay',created.orderNo,command.expectedAmountUsdt);paymentKey=action.key;
             try{return await orderApi.pay(created.orderNo,action.key,authorization);}
             catch(error){
@@ -623,9 +629,7 @@ async function onCheckout() {
                 clearOrderAction(accountKey,created.orderNo,action.key);
               throw error;
             }
-          },()=>scopeIsCurrent()&&bundleFingerprint(products.value)===bundleFingerprint(list)
-            &&normalizeBundleExpectedAmountUsdt(total.value)===command.expectedAmountUsdt
-            &&policy.value?.policyVersion===latestPolicy.policyVersion);
+          },paymentCurrent);
         if (!paid) return;
         if (!scopeIsCurrent()) return;
         if (paid.orderNo !== created.orderNo) throw new Error("BUNDLE_WALLET_PAYMENT_RECEIPT_INVALID");
@@ -661,6 +665,11 @@ async function onCheckout() {
           retireBundleKey(list, accountKey, command.key);
         }
         if (!scopeIsCurrent()) return;
+        if (error instanceof CheckoutPurchaseCheckError) {
+          toast.warn(error.reason==='stock'?t.value.store.temporarilyOutOfStock:error.reason==='unavailable'?t.value.store.productUnavailable:t.value.store.purchaseEligibilityError);
+          if ((error.reason==='stock'||error.reason==='unavailable')&&createdOrderNo) navTo(`/pages/store/order-detail?id=${encodeURIComponent(createdOrderNo)}`);
+          return;
+        }
         if (paymentConfirmed) {
           toast.warn(t.value.orders.walletPaymentConfirmedRefreshPending);
           if (confirmedOrderNo) navTo(`/pages/store/order-detail?id=${encodeURIComponent(confirmedOrderNo)}`);

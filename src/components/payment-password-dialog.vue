@@ -15,9 +15,9 @@
         <text v-if="ui.notice" class="payment-pin-note" role="status">{{ t.paymentPin[ui.notice] }}</text>
         <view v-if="ui.context" class="payment-pin-summary">
           <text class="payment-pin-summary__name">{{ ui.context.summary }}</text>
-          <text class="payment-pin-summary__amount">{{ t.paymentPin.due }} {{ ui.context.amount }} {{ ui.context.currency }}</text>
+          <view class="payment-pin-summary__amount"><text>{{ t.paymentPin.due }}</text><CheckoutAmount v-if="ui.context.currency === 'USD' || ui.context.currency === 'USDT'" :value="ui.context.amount" :currency="ui.context.currency" /><text v-else>{{ formatGroupedAmount(ui.context.amount) }} <text class="payment-pin-note">{{ ui.context.currency }}</text></text></view>
           <view v-if="ui.context.details?.length" class="payment-pin-link" role="button" tabindex="0" :aria-expanded="expanded" @click="expanded = !expanded">{{ expanded ? t.paymentPin.hideDetails : t.paymentPin.details }}</view>
-          <view v-if="expanded" class="payment-pin-details"><view v-for="(item, index) in ui.context.details" :key="index"><text>{{ item.name }}<template v-if="item.quantity"> × {{ item.quantity }}</template><template v-if="item.amount !== undefined"> · {{ item.amount }} {{ ui.context.currency }}</template></text></view></view>
+          <view v-if="expanded" class="payment-pin-details"><view v-for="(item, index) in ui.context.details" :key="index"><text>{{ item.name }}<template v-if="item.quantity"> × {{ item.quantity }}</template><template v-if="item.amount !== undefined"> · {{ formatGroupedAmount(item.amount) }}</template></text></view></view>
         </view>
         <text v-if="ui.stage === 'loading'" class="payment-pin-note" role="status">{{ t.paymentPin.loading }}</text>
         <template v-else-if="ui.stage === 'pending'">
@@ -64,6 +64,8 @@
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { onHide, onShow } from "@dcloudio/uni-app";
 import PaymentPasswordInput from "@/components/payment-password-input.vue";
+import CheckoutAmount from '@/components/checkout/CheckoutAmount.vue';
+import { formatGroupedAmount } from '@/lib/amount-display';
 import { usePaymentPassword, simplePaymentPassword, validPaymentPassword } from "@/store/payment-password";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import { useT } from "@/i18n/use-t";
@@ -120,7 +122,7 @@ useDialogA11y(open, ".payment-pin-mask", pin.cancel, true, 5);
 .payment-pin-step { color: var(--v5-ink-3); font-size: var(--ui-type-meta); margin-top: var(--v5-space-2); }
 .payment-pin-summary { padding: var(--v5-space-3) 0; margin-bottom: var(--v5-space-1); border-top: 1px solid var(--v5-border); border-bottom: 1px solid var(--v5-border); }
 .payment-pin-summary__name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--ui-type-list-subtitle); }
-.payment-pin-summary__amount { display: block; margin-top: var(--v5-space-2); font-weight: 650; font-size: var(--ui-type-card-title); overflow-wrap: anywhere; }
+.payment-pin-summary__amount { display:flex; flex-wrap:wrap; align-items:baseline; gap:var(--v5-space-2); margin-top:var(--v5-space-2); font-weight:650; font-size:var(--ui-type-card-title); }
 .payment-pin-details { font-size: var(--ui-type-list-subtitle); line-height: 1.6; overflow-wrap: anywhere; }
 .payment-pin-primary { display: flex; align-items: center; justify-content: center; min-height: 48px; margin-top: var(--ui-space-row-y); padding: var(--v5-space-3) var(--v5-space-4); border-radius: var(--v5-radius-full); background: var(--v5-brand); color: var(--v5-on-brand); text-align: center; font-size: var(--ui-type-button); font-weight: 600; }
 .payment-pin-primary[aria-disabled="true"] { opacity: .45; }

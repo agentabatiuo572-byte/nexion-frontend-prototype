@@ -21,7 +21,7 @@ describe("wallet-only commerce checkout", () => {
 
   it("rechecks the account after eligibility before creating an order", () => {
     const eligibility = checkoutSource.indexOf("await refreshPurchaseEligibility(submissionScope)");
-    const create = checkoutSource.indexOf("const created = await orderApi.create(");
+    const create = checkoutSource.indexOf("await orderApi.create(", eligibility);
     const fence = checkoutSource.indexOf("if (!scopeIsCurrent())", eligibility);
     expect(eligibility).toBeGreaterThan(-1);
     expect(fence).toBeGreaterThan(eligibility);

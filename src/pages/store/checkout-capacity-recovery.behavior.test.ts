@@ -1,4 +1,4 @@
-import { computed, reactive, ref } from "vue";
+import { computed, nextTick, reactive, ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
 import ts from "typescript";
 import source from "./checkout.vue?raw";
@@ -12,7 +12,7 @@ import { vi as vietnamese } from "@/i18n/messages/vi";
 
 const script = source.split('<script setup lang="ts">')[1].split("</script>")[0];
 const ast = ts.createSourceFile("checkout.ts", script, ts.ScriptTarget.Latest, true);
-const functions = new Set(["fireTradeinIntercept", "retryCheckoutCapacity", "goConfirm", "reAddTradein", "onConfirmPay"]);
+const functions = new Set(["fireTradeinIntercept", "retryCheckoutCapacity", "goConfirm", "reAddTradein", "onConfirmPay", "submitReview"]);
 const variables = new Set(["targetOccupiesPhysicalSlot", "checkoutCapacityRequired", "checkoutCapacityMessage", "slotsFullText"]);
 const selected = ast.statements.filter(node =>
   ts.isFunctionDeclaration(node) ? functions.has(node.name?.text ?? "")
@@ -33,7 +33,9 @@ function checkout(messages = zh) {
   fence.begin(identity);
   const remoteCapacityGate = reactive(new RemoteCapacityGate());
   const deps = {
-    computed, fmt, remoteCapacityGate, remoteApiEnabled: true,
+    computed, nextTick, fmt, remoteCapacityGate, remoteApiEnabled: true,
+    quantityReady:ref(true),quantitySwitching:ref(false),checkoutWalletReadable:ref(true),requestConfirmPay:vi.fn(),
+    createdCheckoutOrder:ref(null),pendingCheckoutCreate:ref(null),
     captureCheckoutRoute: () => fence.capture(identity),
     isCurrentCheckoutRoute: (scope: ReturnType<typeof fence.capture>) => fence.isCurrent(scope, identity),
     t: ref(messages), app: { slotCap: 6, refreshRemoteFleet: vi.fn().mockResolvedValue(true) },
@@ -57,12 +59,37 @@ function checkout(messages = zh) {
       eligibility: vi.fn().mockResolvedValue({ eligible: false, sources: [] }) },
     resolveTradeinCheckoutPreflight, handleNoActiveDeviceDecision,
   };
-  const page = new Function(...Object.keys(deps), `let interceptFired = false, confirming = false, trialQuote, quotedTotal, voucherQuote, quotedTradeIn; ${code};
-    return {goConfirm, retryCheckoutCapacity, fireTradeinIntercept, reAddTradein, onConfirmPay, checkoutCapacityRequired, checkoutCapacityMessage};`)(...Object.values(deps));
+  const page = new Function(...Object.keys(deps), `let checkoutCapacityRead = null, interceptFired = false, confirming = false, trialQuote, quotedTotal, voucherQuote, quotedTradeIn; ${code};
+    return {goConfirm, retryCheckoutCapacity, fireTradeinIntercept, reAddTradein, onConfirmPay, submitReview, checkoutCapacityRequired, checkoutCapacityMessage};`)(...Object.values(deps));
   return { ...deps, page, leaveOrSwitchAccount() { fence.invalidate(); remoteCapacityGate.reset(); } };
 }
 
 describe("actual checkout capacity refusal and recovery", () => {
+  it('one payment tap joins an initial capacity read and opens methods only after availability is confirmed',async()=>{
+    const h=checkout(),read=deferred<ReturnType<typeof quote>>();h.deviceE3Api.capacityQuote.mockReturnValueOnce(read.promise);
+    const initial=h.page.fireTradeinIntercept(),tap=h.page.submitReview();
+    expect(h.requestConfirmPay).not.toHaveBeenCalled();expect(h.deviceE3Api.capacityQuote).toHaveBeenCalledOnce();
+    read.resolve(quote());await Promise.all([initial,tap]);
+    expect(h.step.value).toBe('confirm');expect(h.requestConfirmPay).toHaveBeenCalledOnce();expect(h.toast.warn).not.toHaveBeenCalled();
+  });
+  it('one payment tap retries a failed capacity read and continues without a second tap',async()=>{
+    const h=checkout();h.deviceE3Api.capacityQuote.mockRejectedValueOnce(new Error('offline'));await h.page.fireTradeinIntercept();
+    h.toast.warn.mockClear();await h.page.submitReview();
+    expect(h.deviceE3Api.capacityQuote).toHaveBeenCalledTimes(2);expect(h.requestConfirmPay).toHaveBeenCalledOnce();expect(h.toast.warn).not.toHaveBeenCalled();
+  });
+  it.each(['REPLACE_REQUIRED','NO_ACTIVE_DEVICE'] as const)('a payment tap cannot advance after a fresh %s refusal',async decision=>{
+    const h=checkout();h.deviceE3Api.capacityQuote.mockResolvedValueOnce(quote(decision));await h.page.submitReview();
+    expect(h.step.value).toBe('select-payment');expect(h.requestConfirmPay).not.toHaveBeenCalled();expect(h.remoteCapacityGate.decision).toBe(decision);
+  });
+  it('a failed read after the tap keeps retry feedback and cannot open payment methods',async()=>{
+    const h=checkout();h.deviceE3Api.capacityQuote.mockRejectedValueOnce(new Error('offline'));await h.page.submitReview();
+    expect(h.requestConfirmPay).not.toHaveBeenCalled();expect(h.toast.warn).toHaveBeenCalledWith(zh.store.coCapacityUnavailable);
+  });
+  it('a delayed capacity reply after leaving cannot open methods for the old page',async()=>{
+    const h=checkout(),read=deferred<ReturnType<typeof quote>>();h.deviceE3Api.capacityQuote.mockReturnValueOnce(read.promise);
+    const tap=h.page.submitReview();h.leaveOrSwitchAccount();read.resolve(quote());await tap;
+    expect(h.requestConfirmPay).not.toHaveBeenCalled();expect(h.step.value).toBe('select-payment');
+  });
   it.each([zh, en, vietnamese])("explains confirmed full slots and never advances ordinary payment", async messages => {
     const h = checkout(messages);
     h.deviceE3Api.capacityQuote.mockResolvedValue(quote("REPLACE_REQUIRED"));
@@ -80,11 +107,11 @@ describe("actual checkout capacity refusal and recovery", () => {
     expect(h.remoteCapacityGate.canConfirm(false)).toBe(false);
     h.deviceE3Api.capacityQuote.mockReturnValue(read.promise);
     const retry = h.page.retryCheckoutCapacity();
-    h.page.goConfirm(); await h.page.retryCheckoutCapacity();
+    h.page.goConfirm(); const joined=h.page.retryCheckoutCapacity();
     expect(h.toast.warn).toHaveBeenCalledExactlyOnceWith(zh.store.coCapacityChecking);
     expect(h.step.value).toBe("select-payment");
     expect(h.deviceE3Api.capacityQuote).toHaveBeenCalledOnce();
-    read.resolve(quote()); await retry;
+    read.resolve(quote()); await Promise.all([retry,joined]);
     h.page.goConfirm(); expect(h.step.value).toBe("confirm");
   });
 
@@ -113,11 +140,11 @@ describe("actual checkout capacity refusal and recovery", () => {
     h.deviceE3Api.eligibility.mockReturnValue(eligibility.promise);
     const first = h.page.retryCheckoutCapacity();
     await Promise.resolve();
-    await h.page.reAddTradein(); await h.page.retryCheckoutCapacity();
+    await h.page.reAddTradein(); const joined=h.page.retryCheckoutCapacity();
     expect(h.remoteCapacityGate.pending).toBe(true);
     expect(h.deviceE3Api.capacityQuote).toHaveBeenCalledOnce();
     expect(h.deviceE3Api.eligibility).toHaveBeenCalledOnce();
-    eligibility.resolve({ eligible: false, sources: [] }); await first;
+    eligibility.resolve({ eligible: false, sources: [] }); await Promise.all([first,joined]);
     expect(h.remoteCapacityGate.canConfirm(false)).toBe(true);
   });
 

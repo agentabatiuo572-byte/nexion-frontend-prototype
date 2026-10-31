@@ -13,10 +13,13 @@ import { en } from "@/i18n/messages/en";
 import { beginOrderAction,readOrderAction,markOrderActionPaid,clearOrderAction } from '@/lib/order-command-fence';
 import { purchaseRecoveryCopy } from '@/lib/purchase-recovery-copy';
 import { paidOrderReceipt } from '@/api/order-api';
+import { checkoutFlowCopy } from '@/lib/checkout-flow-copy';
+import { CheckoutPurchaseCheckError } from '@/lib/checkout-purchase-check';
+import { formatAmount as formatPlainAmount } from '@/lib/amount-display';
 
 const remote = vi.hoisted(() => ({ remoteApiEnabled: true,
   apiRuntimeConfig: { environment: "prod", baseUrl: "https://test.example" },
-  productCatalogApi: { catalog: vi.fn() }, orderApi: { list: vi.fn(), pay: vi.fn() } }));
+  productCatalogApi: { catalog: vi.fn() }, orderApi: { list: vi.fn(), pay: vi.fn() }, purchaseEligibilityApi:{get:vi.fn()} }));
 vi.mock("@/api/runtime", () => remote);
 const { useOrders } = await import("@/store/orders");
 const { prepareProductCatalog, refreshProductCatalog } = await import("@/store/product-catalog");
@@ -52,8 +55,9 @@ const body = source.slice(source.indexOf('const id = ref("");'), source.indexOf(
   + source.slice(source.indexOf("const walletPaymentConfirmed"), source.indexOf("const isProvisioning"))
   + source.slice(source.indexOf("const needsRecovery"), source.indexOf("const STATUS_COLORS"))
   + source.slice(source.indexOf("async function offerWalletTopup"), source.indexOf("function goOrders"))
+  + source.slice(source.indexOf("const usdt ="), source.indexOf("const trialRewardText"))
   + source.slice(source.indexOf("function cleanup()"), source.indexOf("// ─── styles"));
-const js = ts.transpileModule(body + "\nreturn { order, refundChannelLabel, showRemoteOrderLoading, showOrderNotFound, remoteOrderError, refreshOrder, handleWalletPayment, payingFromWallet, canPayFromWallet, cancellable, contactOrderSupport, recoverOrderAction, orderAction, resumePaymentAllowed };",
+const js = ts.transpileModule(body + "\nreturn { order, summaryMoney, refundChannelLabel, showRemoteOrderLoading, showOrderNotFound, remoteOrderError, refreshOrder, handleWalletPayment, payingFromWallet, canPayFromWallet, cancellable, contactOrderSupport, recoverOrderAction, orderAction, resumePaymentAllowed, requestPendingPayment, runPaymentNoticeAction, paymentSheetOpen, paymentSheetAmount, paymentNotice, paymentNoticeReason, noticeCancelFailed, paymentResultVisible, paymentResultState, topupPendingOrder, pendingPaymentChecking, autoPayRequested };",
   { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 const disposals: (() => void)[] = [];
 async function settle() { for (let i = 0; i < 12; i++) await Promise.resolve(); await nextTick(); }
@@ -78,11 +82,13 @@ function harness(mode: "dev" | "prod" = "prod") {
   const toast = { warn: vi.fn() };
   const clipboard: Array<{ data: string; success: () => void; fail?: () => void }> = [];
   const readPaymentCommand=vi.fn().mockResolvedValue({status:'PROCESSING',canResumeSameKey:false});
+  const assertCheckoutPurchaseStock=vi.fn().mockResolvedValue(undefined);
+  const authorize=vi.fn(async(_context:unknown,command:(authorization:unknown)=>Promise<unknown>,current:()=>boolean)=>current()?command({paymentPassword:'039417',credentialVersion:1,attemptNo:'fixture-attempt'}):null);
   const deps = { ref, computed, watch, orders, auth, remoteApiEnabled: true, app, toast, apiRuntimeConfig: reactive({ environment: mode }), locale: reactive({ code: "en" }),
     uni: { setClipboardData: (args: typeof clipboard[number]) => clipboard.push(args) },
     t: ref(en), asApiError, orderApi: remote.orderApi, uiConfirm: vi.fn().mockResolvedValue(true),
-    fmt:(message:string,values:Record<string,unknown>)=>message.replace(/\{(\w+)\}/g,(_,key)=>String(values[key])),formatPlainAmount:(value:unknown)=>String(value),
-    executePaymentWithPassword:async(_context:unknown,command:(authorization:unknown)=>Promise<unknown>,current:()=>boolean)=>current()?command({paymentPassword:'039417',credentialVersion:1,attemptNo:'fixture-attempt'}):null,
+    fmt:(message:string,values:Record<string,unknown>)=>message.replace(/\{(\w+)\}/g,(_,key)=>String(values[key])),formatPlainAmount,
+    executePaymentWithPassword:authorize, checkoutFlowCopy, purchaseEligibilityApi:remote.purchaseEligibilityApi, assertCheckoutPurchaseStock, CheckoutPurchaseCheckError,
     beginOrderAction,readOrderAction,markOrderActionPaid,clearOrderAction,purchaseRecoveryCopy,paidOrderReceipt,readPaymentCommand,apiClient:{},
     navTo: vi.fn(), takeNavigationQuery: () => "", detailNow: ref(Date.now()),
     conversations: {}, advisorChatRoute: vi.fn().mockResolvedValue("/pages/support/chat?cid=ADVISOR-THREAD"),
@@ -93,11 +99,15 @@ function harness(mode: "dev" | "prod" = "prod") {
     onUnload: (fn: () => void) => hooks.unload.push(fn), onUnmounted: (fn: () => void) => hooks.unmount.push(fn), tickTimer: null };
   const scope = effectScope();
   const page = scope.run(() => new Function(...Object.keys(deps), js)(...Object.values(deps))) as {
-    order: ComputedRef<unknown>; refundChannelLabel: ComputedRef<string>; showRemoteOrderLoading: ComputedRef<boolean>;
+    order: ComputedRef<unknown>; summaryMoney: (value: number|string, showCurrency?: boolean) => string;
+    refundChannelLabel: ComputedRef<string>; showRemoteOrderLoading: ComputedRef<boolean>;
     showOrderNotFound: ComputedRef<boolean>; remoteOrderError: Ref<boolean>;
     refreshOrder(): Promise<void>; handleWalletPayment(): Promise<void>; contactOrderSupport(): void;
     recoverOrderAction(retry?:boolean):Promise<void>;orderAction:Ref<unknown>;resumePaymentAllowed:Ref<boolean>;
     payingFromWallet: Ref<boolean>; canPayFromWallet: ComputedRef<boolean>; cancellable: ComputedRef<boolean>;
+    requestPendingPayment():Promise<void>;runPaymentNoticeAction():Promise<void>;topupPendingOrder():void;
+    paymentSheetOpen:Ref<boolean>;paymentSheetAmount:Ref<number|string>;paymentNotice:Ref<string>;paymentNoticeReason:Ref<string>;noticeCancelFailed:Ref<boolean>;paymentResultVisible:Ref<boolean>;paymentResultState:Ref<string>;
+    pendingPaymentChecking:Ref<boolean>;autoPayRequested:Ref<boolean>;
   };
   hooks.load.forEach(fn => fn({ id: original.orderNo }));
   const show = () => hooks.show.forEach(fn => fn());
@@ -105,7 +115,7 @@ function harness(mode: "dev" | "prod" = "prod") {
   const unload = () => hooks.unload.forEach(fn => fn());
   disposals.push(() => { unload(); scope.stop(); orders.$dispose(); });
   show();
-  return { page, requests, payments, request, orders, account, auth, app, toast, show, hide, unload, clipboard, readPaymentCommand,navTo: deps.navTo,
+  return { page, requests, payments, request, orders, account, auth, app, toast, show, hide, unload, clipboard, readPaymentCommand,authorize,stockCheck:assertCheckoutPurchaseStock,navTo: deps.navTo,
     load: (id: string) => hooks.load.forEach(fn => fn({ id })) };
 }
 beforeEach(() => {
@@ -113,10 +123,211 @@ beforeEach(() => {
   vi.stubGlobal('uni',{getStorageSync:(key:string)=>storage.get(key),setStorageSync:(key:string,value:unknown)=>storage.set(key,structuredClone(value))});
   remote.orderApi.list.mockReset();
   remote.orderApi.pay.mockReset();
+  remote.purchaseEligibilityApi.get.mockReset().mockResolvedValue({eligible:true,policies:[]});
   remote.productCatalogApi.catalog.mockReset();
   prepareProductCatalog();
 });
 afterEach(() => { disposals.splice(0).forEach(dispose => dispose());vi.unstubAllGlobals(); });
+
+describe('original pending order payment entry',()=>{
+  async function pending(){const h=harness();h.requests[0].resolve(list([placed]));await settle();return h;}
+  it('uses dollars before method selection and the real USDT amount after selection without changing the order',async()=>{
+    const h=await pending();
+    expect(h.page.summaryMoney(19.9)).toBe('$—');expect(h.page.summaryMoney(19.9,false)).toBe('—');
+    h.page.paymentSheetOpen.value=true;expect(h.page.summaryMoney(19.9)).toBe('19.90 USDT');
+    h.page.paymentSheetOpen.value=false;expect(h.page.summaryMoney(19.9)).toBe('$—');
+    expect(h.orders.orders[0].total).toBe(19.9);expect(h.payments).toHaveLength(0);
+  });
+  it('keeps paid receipt amounts in the actual payment currency',async()=>{
+    const h=harness();h.requests[0].resolve(list([original]));await settle();
+    expect(h.page.summaryMoney(19.9)).toBe('19.90 USDT');expect(h.payments).toHaveLength(0);
+  });
+  it('cold pay intent reaches the method sheet when an already visible page receives another onShow',async()=>{
+    const h=harness(),eligibility=deferred<{eligible:boolean;policies:[]}>();remote.purchaseEligibilityApi.get.mockReturnValueOnce(eligibility.promise);
+    h.page.autoPayRequested.value=true;h.requests[0].resolve(list([placed]));await settle();
+    expect(h.page.pendingPaymentChecking.value).toBe(true);h.show();await settle();
+    h.requests.slice(1).forEach(request=>request.resolve(list([placed])));await settle();
+    eligibility.resolve({eligible:true,policies:[]});await settle();
+    expect(h.page.pendingPaymentChecking.value).toBe(false);expect(h.page.paymentSheetOpen.value).toBe(true);
+    expect(h.requests).toHaveLength(1);
+    expect(h.payments).toHaveLength(0);expect(h.authorize).not.toHaveBeenCalled();
+  });
+  it('retains cold pay intent and consumes the newer authoritative read after the obsolete preflight settles',async()=>{
+    const h=harness(),eligibility=deferred<{eligible:boolean;policies:[]}>();remote.purchaseEligibilityApi.get.mockReturnValueOnce(eligibility.promise);
+    h.page.autoPayRequested.value=true;h.requests[0].resolve(list([placed]));await settle();
+    expect(h.page.pendingPaymentChecking.value).toBe(true);remote.productCatalogApi.catalog.mockResolvedValueOnce(catalog);
+    await refreshProductCatalog(true);await settle();h.requests[1].resolve(list([placed]));await settle();
+    eligibility.resolve({eligible:true,policies:[]});await settle();
+    expect(h.page.pendingPaymentChecking.value).toBe(false);expect(h.page.paymentSheetOpen.value).toBe(true);
+    expect(h.page.autoPayRequested.value).toBe(false);expect(h.requests).toHaveLength(2);expect(remote.purchaseEligibilityApi.get).toHaveBeenCalledTimes(2);
+    expect(h.payments).toHaveLength(0);expect(h.authorize).not.toHaveBeenCalled();
+  });
+  it('also resumes once when the replacement read finishes after the obsolete preflight',async()=>{
+    const h=harness(),eligibility=deferred<{eligible:boolean;policies:[]}>();remote.purchaseEligibilityApi.get.mockReturnValueOnce(eligibility.promise);
+    h.page.autoPayRequested.value=true;h.requests[0].resolve(list([placed]));await settle();
+    remote.productCatalogApi.catalog.mockResolvedValueOnce(catalog);await refreshProductCatalog(true);await settle();
+    eligibility.resolve({eligible:true,policies:[]});await settle();expect(h.page.pendingPaymentChecking.value).toBe(false);
+    expect(h.page.autoPayRequested.value).toBe(true);expect(h.page.paymentSheetOpen.value).toBe(false);
+    h.requests[1].resolve(list([placed]));await settle();expect(h.page.paymentSheetOpen.value).toBe(true);expect(h.page.autoPayRequested.value).toBe(false);
+    expect(h.requests).toHaveLength(2);expect(remote.purchaseEligibilityApi.get).toHaveBeenCalledTimes(2);expect(h.payments).toHaveLength(0);
+  });
+  it('consumes the intent with a visible retry error when the new authoritative read fails',async()=>{
+    const h=harness(),eligibility=deferred<{eligible:boolean;policies:[]}>();remote.purchaseEligibilityApi.get.mockReturnValueOnce(eligibility.promise);
+    h.page.autoPayRequested.value=true;h.requests[0].resolve(list([placed]));await settle();
+    remote.productCatalogApi.catalog.mockResolvedValueOnce(catalog);await refreshProductCatalog(true);await settle();h.requests[1].reject(new Error('read failed'));await settle();
+    eligibility.resolve({eligible:true,policies:[]});await settle();expect(h.page.pendingPaymentChecking.value).toBe(false);
+    expect(h.page.autoPayRequested.value).toBe(false);expect(h.page.paymentNotice.value).toBe('query');expect(h.page.paymentSheetOpen.value).toBe(false);expect(h.requests).toHaveLength(2);
+  });
+  it.each(['cancelled','activated'] as const)('uses the newer %s original as the terminal intent outcome',async status=>{
+    const h=harness(),eligibility=deferred<{eligible:boolean;policies:[]}>();remote.purchaseEligibilityApi.get.mockReturnValueOnce(eligibility.promise);
+    h.page.autoPayRequested.value=true;h.requests[0].resolve(list([placed]));await settle();remote.productCatalogApi.catalog.mockResolvedValueOnce(catalog);await refreshProductCatalog(true);await settle();
+    h.requests[1].resolve(list([status==='activated'?original:{...placed,canonicalStatus:'cancelled',paymentStatus:'CANCELLED',orderStatus:'CANCELLED'}]));await settle();
+    eligibility.resolve({eligible:true,policies:[]});await settle();expect(h.page.pendingPaymentChecking.value).toBe(false);expect(h.page.autoPayRequested.value).toBe(false);expect(h.page.paymentSheetOpen.value).toBe(false);
+    expect(status==='activated'?h.page.paymentResultVisible.value:h.page.paymentNotice.value==='blocked').toBe(true);expect(h.payments).toHaveLength(0);expect(remote.purchaseEligibilityApi.get).toHaveBeenCalledOnce();
+  });
+  it('does not replay a pending intent after the page is hidden',async()=>{
+    const h=harness(),eligibility=deferred<{eligible:boolean;policies:[]}>();remote.purchaseEligibilityApi.get.mockReturnValueOnce(eligibility.promise);
+    h.page.autoPayRequested.value=true;h.requests[0].resolve(list([placed]));await settle();remote.productCatalogApi.catalog.mockResolvedValueOnce(catalog);await refreshProductCatalog(true);await settle();h.requests[1].resolve(list([placed]));await settle();
+    h.hide();eligibility.resolve({eligible:true,policies:[]});await settle();expect(h.page.autoPayRequested.value).toBe(false);expect(h.page.paymentSheetOpen.value).toBe(false);expect(h.payments).toHaveLength(0);
+  });
+  it('does not transfer the former account payment intent to the new account read',async()=>{
+    const h=harness(),eligibility=deferred<{eligible:boolean;policies:[]}>();remote.purchaseEligibilityApi.get.mockReturnValueOnce(eligibility.promise);
+    h.page.autoPayRequested.value=true;h.requests[0].resolve(list([placed]));await settle();h.account.bind('b');h.auth.accountId='b';h.orders.bindAccount('b');await settle();
+    h.requests.at(-1)!.resolve(list([placed]));await settle();eligibility.resolve({eligible:true,policies:[]});await settle();
+    expect(h.page.autoPayRequested.value).toBe(false);expect(h.page.paymentSheetOpen.value).toBe(false);expect(h.payments).toHaveLength(0);expect(remote.purchaseEligibilityApi.get).toHaveBeenCalledOnce();
+  });
+  it('consumes a new same-scope read only once when the current preflight can already finish',async()=>{
+    const h=harness(),eligibility=deferred<{eligible:boolean;policies:[]}>();remote.purchaseEligibilityApi.get.mockReturnValueOnce(eligibility.promise);
+    h.page.autoPayRequested.value=true;h.requests[0].resolve(list([placed]));await settle();
+    const reread=h.page.refreshOrder();await settle();h.requests[1].resolve(list([placed]));await reread;
+    eligibility.resolve({eligible:true,policies:[]});await settle();await settle();
+    expect(h.page.paymentSheetOpen.value).toBe(true);expect(h.page.autoPayRequested.value).toBe(false);expect(h.page.pendingPaymentChecking.value).toBe(false);
+    expect(h.requests).toHaveLength(2);expect(remote.purchaseEligibilityApi.get).toHaveBeenCalledOnce();expect(h.stockCheck).toHaveBeenCalledOnce();expect(h.payments).toHaveLength(0);
+  });
+  it.each(['stock','unavailable','read','items'] as const)('checks current stock at pending entry and shows the %s outcome without method/PIN/payment',async reason=>{
+    const h=await pending();h.stockCheck.mockRejectedValue(new CheckoutPurchaseCheckError(reason));
+    const opening=h.page.requestPendingPayment();await settle();h.requests[1].resolve(list([placed]));await opening;
+    expect(h.stockCheck).toHaveBeenCalledExactlyOnceWith([{productNo:'cloud-share',quantity:1}]);expect(h.page.paymentSheetOpen.value).toBe(false);
+    expect(h.page.paymentNotice.value).toBe(reason==='stock'||reason==='unavailable'?'blocked':'query');expect(h.page.autoPayRequested.value).toBe(false);
+    expect(h.payments).toHaveLength(0);expect(h.authorize).not.toHaveBeenCalled();
+  });
+  it('does not let the former preflight completion unlock a newer visible attempt',async()=>{
+    const h=await pending(),oldEligibility=deferred<{eligible:boolean;policies:[]}>(),newEligibility=deferred<{eligible:boolean;policies:[]}>();
+    remote.purchaseEligibilityApi.get.mockReturnValueOnce(oldEligibility.promise).mockReturnValueOnce(newEligibility.promise);
+    const old=h.page.requestPendingPayment();await settle();h.requests[1].resolve(list([placed]));await settle();h.hide();h.show();await settle();h.requests[2].resolve(list([placed]));await settle();
+    const current=h.page.requestPendingPayment();await settle();h.requests[3].resolve(list([placed]));await settle();
+    expect(h.page.pendingPaymentChecking.value).toBe(true);oldEligibility.resolve({eligible:true,policies:[]});await old;
+    expect(h.page.pendingPaymentChecking.value).toBe(true);expect(h.page.paymentSheetOpen.value).toBe(false);
+    newEligibility.resolve({eligible:true,policies:[]});await current;
+    expect(h.page.pendingPaymentChecking.value).toBe(false);expect(h.page.paymentSheetOpen.value).toBe(true);
+  });
+  it('reads the original, opens only its USDT wallet sheet, and does not charge or request PIN yet',async()=>{
+    const h=await pending(),opening=h.page.requestPendingPayment();await settle();
+    expect(h.page.paymentSheetOpen.value).toBe(false);expect(h.requests).toHaveLength(2);
+    h.requests[1].resolve(list([placed]));await opening;
+    expect(h.page.paymentSheetOpen.value).toBe(true);expect(h.page.paymentSheetAmount.value).toBe(19.9);
+    expect(remote.purchaseEligibilityApi.get).toHaveBeenCalledExactlyOnceWith('cloud-share');expect(h.stockCheck).toHaveBeenCalledOnce();
+    await settle();expect(h.requests).toHaveLength(2);expect(h.page.autoPayRequested.value).toBe(false);expect(h.page.pendingPaymentChecking.value).toBe(false);
+    expect(h.payments).toHaveLength(0);expect(h.authorize).not.toHaveBeenCalled();
+  });
+  it('blocks an authoritative overall F4B denial before method, PIN or payment',async()=>{
+    const h=await pending();remote.purchaseEligibilityApi.get.mockResolvedValue({eligible:false,policies:[{policy:'F4B',eligible:false,conditions:[{kind:'monthlyQuota',met:false}]}]});
+    const opening=h.page.requestPendingPayment();await settle();h.requests[1].resolve(list([placed]));await opening;
+    expect(h.page.paymentSheetOpen.value).toBe(false);expect(h.page.paymentNotice.value).toBe('blocked');expect(h.stockCheck).not.toHaveBeenCalled();expect(h.authorize).not.toHaveBeenCalled();expect(h.payments).toHaveLength(0);
+  });
+  it.each(['denied','unreadable','approved'] as const)('checks every original legacy bundle SKU when the second line is %s',async outcome=>{
+    const h=await pending();
+    const lineItems=[{sku:'cloud-share',name:'Share',quantity:1,unitPriceUsdt:9.9,lineAmountUsdt:9.9},
+      {sku:'stellarbox-s1',name:'Box',quantity:1,unitPriceUsdt:10,lineAmountUsdt:10}];
+    remote.purchaseEligibilityApi.get.mockImplementation(async productNo=>{
+      if(productNo==='stellarbox-s1'&&outcome==='unreadable')throw new Error('read failed');
+      return {eligible:productNo!=='stellarbox-s1'||outcome==='approved',policies:[]};
+    });
+    const opening=h.page.requestPendingPayment();await settle();
+    h.requests[1].resolve(list([{...placed,orderType:'BUNDLE',quantity:2,itemCount:2,lineItems}]));await opening;
+    expect(remote.purchaseEligibilityApi.get.mock.calls.map(call=>call[0]).sort()).toEqual(['cloud-share','stellarbox-s1']);
+    expect(h.page.paymentSheetOpen.value).toBe(outcome==='approved');
+    expect(h.page.paymentNotice.value).toBe(outcome==='denied'?'blocked':outcome==='unreadable'?'query':'');
+    expect(h.stockCheck).toHaveBeenCalledTimes(outcome==='approved'?1:0);
+    expect(h.authorize).not.toHaveBeenCalled();expect(h.payments).toHaveLength(0);
+  });
+  it('follows an authoritative overall EITHER approval without recomputing a rejected subcondition',async()=>{
+    const h=await pending();remote.purchaseEligibilityApi.get.mockResolvedValue({eligible:true,policies:[{policy:'E1',mode:'EITHER',eligible:false,conditions:[{kind:'rank',met:false}]},{policy:'F4B',mode:'EITHER',eligible:true,conditions:[{kind:'monthlyQuota',met:true}]}]});
+    const opening=h.page.requestPendingPayment();await settle();h.requests[1].resolve(list([placed]));await opening;
+    expect(h.page.paymentSheetOpen.value).toBe(true);expect(h.page.paymentNotice.value).toBe('');expect(h.authorize).not.toHaveBeenCalled();expect(h.payments).toHaveLength(0);
+  });
+  it('keeps a known qualification failure in a small notice and leaves cancellation failure there to retry',async()=>{
+    const h=await pending();remote.purchaseEligibilityApi.get.mockResolvedValue({eligible:false,policies:[{policy:'E1',eligible:false,conditions:[{kind:'rank',met:false}]}]});
+    const opening=h.page.requestPendingPayment();await settle();h.requests[1].resolve(list([placed]));await opening;
+    expect(h.page.paymentNotice.value).toBe('blocked');expect(h.page.paymentSheetOpen.value).toBe(false);
+    const cancel=vi.spyOn(h.orders,'cancelOrderRemote').mockResolvedValue(false);
+    await h.page.runPaymentNoticeAction();expect(h.page.paymentNotice.value).toBe('blocked');expect(h.page.noticeCancelFailed.value).toBe(true);
+    await h.page.runPaymentNoticeAction();expect(cancel).toHaveBeenCalledTimes(2);expect(h.orders.orders[0].status).toBe('placed');
+  });
+  it('offers retry for a failed read without fabricating a restriction or cancellation',async()=>{
+    const h=await pending(),opening=h.page.requestPendingPayment();await settle();h.requests[1].reject(new Error('network'));await opening;
+    expect(h.page.paymentNotice.value).toBe('query');expect(h.page.paymentSheetOpen.value).toBe(false);expect(h.payments).toHaveLength(0);
+    expect(h.orders.orders[0].status).toBe('placed');
+  });
+  it('routes a promoted original back to its own command checkout, without using ordinary pay',async()=>{
+    const h=await pending(),opening=h.page.requestPendingPayment();await settle();h.requests[1].resolve(list([{...placed,promotionQuoteId:'QUOTE-ORIGINAL',subtotalUsdt:'19.900000',discountUsdt:'0.000000',amountUsdt:'19.900000'}]));await opening;
+    expect(h.navTo).toHaveBeenCalledExactlyOnceWith('/pages/store/checkout?orderNo=ORD-OLD');expect(h.page.paymentSheetOpen.value).toBe(false);expect(h.payments).toHaveLength(0);expect(h.authorize).not.toHaveBeenCalled();
+  });
+  it.each(['cancelled','expired'])('does not resume a %s promoted original',async status=>{
+    const h=await pending(),opening=h.page.requestPendingPayment();await settle();
+    h.requests[1].resolve(list([{...placed,promotionQuoteId:'QUOTE-ORIGINAL',subtotalUsdt:'19.900000',discountUsdt:'0.000000',amountUsdt:'19.900000',canonicalStatus:status,orderStatus:status.toUpperCase(),paymentStatus:status.toUpperCase()}]));await opening;
+    expect(h.navTo).not.toHaveBeenCalled();expect(h.page.paymentSheetOpen.value).toBe(false);expect(h.page.paymentNotice.value).toBe('blocked');
+    await h.page.handleWalletPayment();expect(h.authorize).not.toHaveBeenCalled();expect(h.payments).toHaveLength(0);
+  });
+  it('shows a paid promoted original as a result without restarting checkout',async()=>{
+    const h=await pending(),opening=h.page.requestPendingPayment();await settle();
+    h.requests[1].resolve(list([{...original,promotionQuoteId:'QUOTE-ORIGINAL',subtotalUsdt:'19.900000',discountUsdt:'0.000000',amountUsdt:'19.900000'}]));await opening;
+    expect(h.page.paymentResultVisible.value).toBe(true);expect(h.navTo).not.toHaveBeenCalled();
+    await h.page.handleWalletPayment();expect(h.authorize).not.toHaveBeenCalled();expect(h.payments).toHaveLength(0);
+  });
+  it('blocks an expired original and never requests PIN or projects automatic cancellation',async()=>{
+    const h=await pending(),opening=h.page.requestPendingPayment();await settle();h.requests[1].resolve(list([{...placed,expiresAt:Date.now()-1}]));await opening;
+    expect(h.page.paymentNotice.value).toBe('blocked');expect(h.page.paymentSheetOpen.value).toBe(false);expect(h.orders.orders[0].status).toBe('placed');expect(h.authorize).not.toHaveBeenCalled();expect(h.payments).toHaveLength(0);
+  });
+  it('closes the method sheet before top-up and preserves the original order',async()=>{
+    const h=await pending();h.page.paymentSheetOpen.value=true;h.page.topupPendingOrder();expect(h.page.paymentSheetOpen.value).toBe(false);expect(h.navTo).toHaveBeenCalledWith('/pages/me/wallet-topup');expect(h.orders.orders[0].id).toBe('ORD-OLD');
+  });
+  it('requires another review when the original amount changes after the sheet opened',async()=>{
+    const h=await pending();h.page.paymentSheetOpen.value=true;h.page.paymentSheetAmount.value=18;
+    await h.page.handleWalletPayment();expect(h.page.paymentSheetOpen.value).toBe(false);expect(h.page.paymentNotice.value).toBe('query');expect(h.authorize).not.toHaveBeenCalled();expect(h.payments).toHaveLength(0);
+  });
+  it('cannot submit after the original deadline passes while the PIN dialog is open',async()=>{
+    const h=await pending(),gate=deferred<void>();
+    h.authorize.mockImplementation(async(_context,command,current)=>{await gate.promise;return current()?command({}):null;});
+    const paying=h.page.handleWalletPayment();await settle();expect(h.payments).toHaveLength(0);
+    h.orders.orders[0].expiresAt=Date.now()-1;gate.resolve();await paying;
+    expect(h.payments).toHaveLength(0);expect(h.orders.orders[0].status).toBe('placed');expect(h.page.payingFromWallet.value).toBe(false);
+  });
+  it('awaits a fresh original-SKU stock check after PIN and before creating any payment command',async()=>{
+    const h=await pending(),stock=deferred<void>();h.stockCheck.mockReturnValue(stock.promise);
+    const paying=h.page.handleWalletPayment();await settle();
+    expect(h.authorize).toHaveBeenCalledOnce();expect(h.stockCheck).toHaveBeenCalledExactlyOnceWith([{productNo:'cloud-share',quantity:1}]);
+    expect(h.payments).toHaveLength(0);expect(h.page.orderAction.value).toBeNull();
+    stock.resolve();await settle();expect(h.payments).toHaveLength(1);
+    h.payments[0].reject(new Error('timeout'));await paying;
+  });
+  it.each(['stock','unavailable','read','items'] as const)('pre-submit %s result never pays and keeps the right small notice',async reason=>{
+    const h=await pending();h.stockCheck.mockRejectedValue(new CheckoutPurchaseCheckError(reason));
+    await h.page.handleWalletPayment();expect(h.payments).toHaveLength(0);expect(h.page.orderAction.value).toBeNull();
+    expect(h.page.paymentNotice.value).toBe(reason==='stock'||reason==='unavailable'?'blocked':'query');expect(h.orders.orders[0].status).toBe('placed');
+  });
+  it.each(['closed','deadline','amount','quantity','hidden','account'] as const)('revalidates %s after the stock read and before pay',async change=>{
+    const h=await pending(),stock=deferred<void>();h.stockCheck.mockReturnValue(stock.promise);
+    const paying=h.page.handleWalletPayment();await settle();
+    if(change==='closed')h.orders.orders[0].status='cancelled';
+    else if(change==='deadline')h.orders.orders[0].expiresAt=Date.now()-1;
+    else if(change==='amount')h.orders.orders[0].total=20;
+    else if(change==='quantity')h.orders.orders[0].quantity=2;
+    else if(change==='hidden')h.hide();
+    else {h.account.bind('b');h.auth.accountId='b';h.orders.bindAccount('b');}
+    stock.resolve();await paying;expect(h.payments).toHaveLength(0);expect(h.page.orderAction.value).toBeNull();
+  });
+});
 
 describe("real order detail after catalogue runtime invalidation", () => {
   it('restores an unresolved payment fence across hide/show and only queries the original command',async()=>{
@@ -146,6 +357,15 @@ describe("real order detail after catalogue runtime invalidation", () => {
     h.payments[1].reject(new Error('timeout'));await resumed;
     expect(h.request.mock.calls.filter(([args])=>(args as {method:string}).method==='POST').map(([args])=>(args as {idempotencyKey:string}).idempotencyKey))
       .toEqual([`wallet-pay:${original.orderNo}`,`wallet-pay:${original.orderNo}`]);
+  });
+  it.each(['cancelled','expired','paid','activated'])('a stale NOT_SEEN resume cannot pay after the authoritative original becomes %s',async status=>{
+    const h=harness();h.requests[0].resolve(list([placed]));await settle();
+    const paying=h.page.handleWalletPayment();await settle();h.payments[0].reject(new Error('timeout'));await paying;
+    h.readPaymentCommand.mockResolvedValue({status:'NOT_SEEN',canResumeSameKey:true});
+    const recovering=h.page.recoverOrderAction();await settle();h.requests.at(-1)!.resolve(list([placed]));await recovering;
+    expect(h.page.resumePaymentAllowed.value).toBe(true);h.orders.orders[0].status=status as 'cancelled'|'expired'|'paid'|'activated';
+    expect(h.page.canPayFromWallet.value).toBe(false);await h.page.handleWalletPayment();expect(h.payments).toHaveLength(1);
+    expect(h.page.orderAction.value).not.toBeNull();
   });
   it('only a terminal REJECTED result retires the old payment intent before a reviewed new payment',async()=>{
     const h=harness();h.requests[0].resolve(list([placed]));await settle();

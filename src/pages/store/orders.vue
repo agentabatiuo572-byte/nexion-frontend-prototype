@@ -58,11 +58,11 @@
               <text v-if="o.meta" class="block truncate" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 3px">{{ o.meta }}</text>
               <view class="flex items-center justify-between" style="margin-top: 6px">
                 <text style="font-size: 12px; color: var(--v5-ink-4)">{{ dateText(o.placedAt) }}</text>
-                <text class="tabular-nums" style="font-family: var(--font-v5); font-size: 13px; font-weight: 600; color: var(--v5-ink)">${{ formatAmount(o.total) }}</text>
+                <CheckoutAmount :value="o.total" currency="USDT" />
               </view>
-              <!-- Unpaid order: time left before auto-close, and the way back to payment (the detail page holds the pay action). -->
-              <view v-if="pendingCloseMinutes(o)" class="order-pending-footer" aria-hidden="true">
-                <text class="order-pending-footer__close">{{ fmt(t.orders.pendingCloseIn, { min: pendingCloseMinutes(o)! }) }}</text>
+              <view v-if="o.kind === 'commerce' && o.status === 'placed'" class="order-pending-footer">
+                <text v-if="pendingCloseMinutes(o)" class="order-pending-footer__close">{{ fmt(t.orders.pendingCloseIn, { min: pendingCloseMinutes(o)! }) }}</text>
+                <view class="order-pending-footer__details" role="button" tabindex="0" :aria-label="t.headerTitles.storeOrderDetail" @click.stop="goOrderDetails(o)" @keydown.enter.prevent.stop="goOrderDetails(o)" @keydown.space.prevent.stop="goOrderDetails(o)"><text>{{ t.headerTitles.storeOrderDetail }}</text></view>
                 <text class="order-pending-footer__pay">{{ t.orders.pendingContinue }} ›</text>
               </view>
             </view>
@@ -99,6 +99,7 @@ import { computed, ref, watch, onUnmounted, type CSSProperties } from "vue";
 import AppChassis from "@/components/app-chassis.vue";
 import EmptyState from "@/components/empty-state.vue";
 import GlassSegments from "@/components/glass-segments.vue";
+import CheckoutAmount from "@/components/checkout/CheckoutAmount.vue";
 import { useT } from "@/i18n/use-t";
 import { formatTrialDate } from "@/lib/trial-date";
 import { useOrders, type Order, type OrderStatus } from "@/store/orders";
@@ -362,6 +363,13 @@ function goStore() {
   navTo("/store");
 }
 function goOrder(order: OrderListItem) {
+  if (order.kind === 'commerce' && order.status === 'placed') {
+    navTo(`/pages/store/order-detail?id=${encodeURIComponent(order.id)}&from=${ordersBackHref.value === "/me" ? "me" : "store"}&pay=1`);
+    return;
+  }
+  goOrderDetails(order);
+}
+function goOrderDetails(order: OrderListItem) {
   navTo(order.kind === "genesis" ? "/pages/genesis/holder" : `/pages/store/order-detail?id=${encodeURIComponent(order.id)}&from=${ordersBackHref.value === "/me" ? "me" : "store"}`);
 }
 
@@ -431,7 +439,10 @@ function statusChipStyle(status: OrderStatus): CSSProperties {
 .orders-filters :deep(.nx-glass-option--selected) { color: var(--v5-ink); font-weight: 600; background: transparent; }
 .orders-filter__label { white-space: nowrap; font-size: 13.5px; line-height: 18px; font-weight: inherit; color: inherit; }
 .orders-filter__badge { min-width: 18px; height: 18px; box-sizing: border-box; margin-left: 6px; padding: 0 5px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: var(--v5-warning-ink); color: var(--v5-on-brand); font: 600 11px/18px var(--font-v5); }
-.order-pending-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--v5-border); }
+.order-pending-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--v5-border); }
+.order-pending-footer__details { display:flex; align-items:center; min-height:44px; color:var(--v5-ink-2); font:500 var(--ui-type-meta)/var(--ui-type-meta-lh) var(--font-v5); }
+.order-pending-footer__details:active { opacity:.7; }
+.order-pending-footer__details:focus-visible { outline:2px solid var(--v5-brand); outline-offset:2px; }
 .order-pending-footer__close { min-width: 0; color: var(--v5-warning-ink); font: 400 12px/16px var(--font-v5); overflow-wrap: anywhere; }
 .order-pending-footer__pay { flex: none; color: var(--v5-brand); font: 500 13px/18px var(--font-v5); }
 .orders-filter-empty { display: block; padding: 32px 16px; text-align: center; color: var(--v5-ink-3); font: 400 var(--ui-type-description)/var(--ui-type-description-lh) var(--font-v5); }

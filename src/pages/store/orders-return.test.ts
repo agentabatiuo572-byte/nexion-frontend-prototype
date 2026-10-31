@@ -41,7 +41,7 @@ describe("orders return origin", () => {
   });
   it("counts down only an unpaid order's live server deadline", () => {
     const fnStart = ordersSource.indexOf("const nowSeconds = useNow();");
-    const fnEnd = ordersSource.indexOf("\n}\n", fnStart) + 3;
+    const fnEnd = ordersSource.indexOf("\n}", fnStart) + 3;
     const code = ts.transpileModule(ordersSource.slice(fnStart, fnEnd), {
       compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
     }).outputText;

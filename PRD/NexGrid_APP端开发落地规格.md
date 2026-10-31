@@ -378,7 +378,7 @@ selectors:`selectActiveDevices/InactiveDevices/ActiveCount/ActivePhone`、`deriv
 - **首日 6 任务单项**:bind_bank_card +50/visit_earn +30/visit_store +50/...(§5.15.4)。
 - **Quest 层最大奖**:L1 Daily 100 NEX(streak +500)/L2 Weekly 3,000/L3 Monthly 10,000+勋章。
 - **Lucky Spin**:每日免费 1 次(UTC 日桶,`eventId×userId×spinDate` 计次)+Day-30 里程碑券;8 档 server RNG,概率和 100%;真实奖三护栏+兑付红线自动降级。
-- **设备激活槽位守卫（2026-10-30 更新）**:`activateDevice()` 守卫 `激活数 + 原有有效预留 < MAX_DEVICES=6`。Cloud Share、手机、PC 算力、Box、Rack 全部按实例各占一槽，同款多台分别计数；未激活、取消激活或已回收设备不占槽。取消 Cloud Share 免槽，取代 2026-08-25 相关规则；不改购买资格、收益与原有试用/订单预留规则。首页、赚取、仓库及选择弹窗共用该口径，满槽时所有型号均不能新增激活。
+- **设备激活槽位守卫**：`activateDevice()` 守卫 `激活数 + 有效真实预留 < MAX_DEVICES=6`。Cloud Share 按真实份数计槽，手机、PC 算力、Box、Rack 按实例各占一槽，同款多台分别计数；未激活、取消激活或已回收设备不占槽。未付订单不预占库存/槽位，已付待履约、有效试用及已承诺赠送的真实预留仍计入；付款未知先查原结果，不据未知释放。首页、赚取、仓库及选择弹窗共用该口径，满槽时所有型号均不能新增激活。
 - **任务中断宽限**:`INTERRUPT_GRACE_MS=30,000`(30s)、`INTERRUPT_MAX_RETRIES=5`(每 6s);窗口内续跑原任务,超时取消派新。
 
 ### 3.N 礼包/常量 — §13.3/§8.1.1
@@ -488,7 +488,7 @@ selectors:`selectActiveDevices/InactiveDevices/ActiveCount/ActivePhone`、`deriv
 
 建单、支付、取消按账号保存原意图与幂等键。结果未知先查原命令和订单；确认终态后才能发起新购买，不因重试生成另一笔付款。活动结束不阻断已存在订单和历史奖励回读；付款截止与普通订单状态由服务端控制。
 
-未付结账主动离开只提示一次，弹窗仅保留标题、一句真实活动提醒及继续购买/退出，内容应能在5秒内读懂。未建单仅在报价仍有效且符合资格时提醒限时赠礼；待支付订单仅在可信服务端时间确认付款期限未过时说明奖励限时预留与退出不取消订单，过期或无法确认时间则正常离页。赠品明细和真实截止时间保留在下单页。继续购买、ESC 或点遮罩均留在原页；退出执行原返回目标，离页不取消订单。明确取消订单走原取消确认及接口，结果未知查原单。支付、充值及原票据恢复不叠加营销挽留。
+结算确认页顶部返回：仅有报价草稿且没有未决创建时直接返回；已有可信且可取消的待付原单时，执行原取消命令，服务端确认取消后才退出，不增加营销挽留或二次取消确认。取消明确失败留同窗重试，未知在同窗查询原取消命令，不能同时付款或换键取消。关闭方式/PIN只回原确认页并保留待付；条款、充值等辅助导航不取消订单。未付不预占库存/槽位，付款已发送但未知时先恢复原付款，不补发取消或释放已成交占用。活动权益及截止仍按原单权威事实展示，不以过时的待付预留承诺放宽成交条件。
 
 2026-10-25（#649）：活动结算报价与待付款截止时间继续以服务端时间加单调经过时长判断。Android 原生运行层没有浏览器性能时钟时，使用包含休眠时长的系统开机单调时间；浏览器保留其性能时钟。一次运行选定后固定时间源，避免切换起点误判期限。无有效单调时间或读取失败仍禁止提交，不使用设备日期时间放宽有效期；真实到期禁用确认，重新取得有效报价后恢复。报价请求前采样、账号隔离、离页重取、后端建单/支付复核保持原合同。共享地址保护期与换绑频控同样不得因能力缺失或设备时间变化提前开放。
 
@@ -505,12 +505,13 @@ selectors:`selectActiveDevices/InactiveDevices/ActiveCount/ActivePhone`、`deriv
 转移:`idle→active`(`startWithCard`,守卫 `canStart()`:非 cooldown+phaseOpen+有卡)/ `active→grace`(activeEndsAt 到期)/ `grace→extended`(`shadowFrozenAtUSD≥$100` 弹 sheet)/ `{grace,extended}→redeemed`(attemptCharge 成功 或 redeemEarly)/ `→failed`(扣款失败)/ `{active,grace,extended}→cancelled`/ 终态经 `cooldownDays=30`→可再申请。
 约束:server 权威(时间/资格/推进/snapshot/PSP);redeemed 时 shadow 经 `computeTrialOffset` 拆 offsetUSD 抵购机款+remainderUSD 入余额+NEX 全额(snapshot 在 status 改前);failed/cancelled shadow 归零不入账;主动购买必二次确认。
 
-### 5.2 Checkout 结账(§7.3,7 步页面态)
-`select-payment→confirm→pay-instructions→awaiting→confirmed→activating→live`;链上 12s auto-detect/Card 提交 CVV;首单 confirmed 触发庆祝(`wasEmptyBeforeRef` 快照判定);**confirm→pay-instructions 不弹双确认**;PAN/CVV 永不持久;成功→`/store/orders/[id]`。
+### 5.2 Checkout 结账（§7.3）
+确认订单→原单/全行库存与每行服务端整体购买资格→可用方式→§4.6.6支付密码→PIN后付款前库存重查→原付款命令→原订单/设备权威读回。普通、活动/多件、原待付与旧组合入口使用相同前置门，保留各自 API、报价及幂等作用域。首次设置两次后清空，第三次新输入才授权；零应付权益购买同样验证。原待付不重新定价，异步读回后再次核对账号、原单、金额、商品行、期限和页面归属；读取失败、缺货、下架或资格拒绝不发付款请求，服务端仍在付款事务原子复核。
+
+确认页/未选方式默认美元 $；缺可靠美元绑定显示 $—，仍可选择方式。选择钱包并取得有效报价后，按原单真实 USDT 总额授权，手续费与网络费均为0；不将 amountUsdt 重贴 USD、固定1:1或启用退役通道。创建/支付/取消未知先查原命令；KEEP旧意图优先恢复，不换键重付。只有原单已激活才呈现进度/庆祝回放，处理中/库存/失败分别展示；查看设备进入现有`/pages/me/devices`。
 
 ### 5.3 Order 订单(§7.4/§12.3)
-已实现:`placed/paid(初始驻留)/provisioning/activated/cancelled`。**缺失态须 server 扩展**:`payment_failed/expired/refunded/chargeback/provisioning_failed`。
-转移:`placed→paid→provisioning→activated`(机房托管无物流);`placed→cancelled`(**仅 placed 可自助 cancelOrder**,非 placed no-op);`activated` 自动 `addDevice+回填 deviceId`。约束:server mint id;`/refund` MC+IK 单事务联动 D1 退款+D4 冲正+cumulativeDepositUsdt 核减;GMV 以 paid 去重,payment_failed 不计。
+服务端权威状态包括待付、已付、履约中、已入仓、已激活及取消、到期、支付/履约失败、退款和争议等终态，前端不按固定时间模拟推进。`placed`为真实待付，付款成功才转`paid`；已付不能自助取消，按原退款/支持合同处理。已关闭原单在详情、列表和奖励入口均不得继续支付；到期由后台自动关闭，前端只回查，不伪造`cancelled`。已付/激活读回失败保留原结果锁和查询出口，不重复付款或创建设备。server mint id；退款、账务冲正和GMV口径沿原事务合同。
 
 ### 5.4 Trade-in/Replace Sheet(§7.5,discriminated union 防双开)
 `{kind: none|choice|tradein|replace|block}`。checkout mount 触发:canTradeIn→`choice`;否则 activeCount≥MAX→`replace`;否则 `none`。composer 原子链(失败 rollback)。4 不变量:M1 原子 · M2 salvage 不入余额(`debitBalance(price−salvage)` 唯一接触余额)· M3 `confirmingRef` 防双击 · M4 generation lineage(`(old.generation??1)+1`);残值守卫 `ageMonths<minHoldingMonths(1)→0`。
@@ -526,7 +527,7 @@ selectors:`selectActiveDevices/InactiveDevices/ActiveCount/ActivePhone`、`deriv
 ### 5.7 Device 激活/库存(§11.1/§12.2)
 `activatedAt: null`(库存)↔`number`(在槽);辅 `pendingDeactivate`。actions:`addDevice`(入库无上限)/`activateDevice`(普通新增守卫为已确认 `slotsUsed < slotCap`，产品上限仍为6，返 bool)/`deactivateDevice`(清遥测+currentTask)/`scheduleDeactivation`(有任务则置 pendingDeactivate,等完成 tick 自动出槽)。2026-10-30 容量纠正：`pendingDeactivate=true` 仅表示等待停用，实际停用前仍为已激活 Online 且占一槽；必须在任务完成或合法强制停用后，权威激活事实变为未激活才释放，不得提前允许第七台。取消激活 UI 分支:无任务→confirm;有任务→3 选 sheet(等完成/强制/返回)。
 
-2026-10-30 权威容量投影：`GET /api/devices/earnings` 数据顶层、Home overview的`onboarding`均提供 `slotCap`、`reservedSlotCount`（有效订单预留）、`trialSlotCount`（有效试用预留）、`slotsUsed=C`，其中`C=N+有效订单预留+有效试用预留`；实际激活N由同一fleet真实激活实例统计，Home的`onboarding.activeDevices`继续为N。所有激活类型各计一槽，原`slotCap`上限保持。槽位条、空槽及普通新增容量守卫使用同一fleet epoch/revision接收的权威C，不能再叠加本地试用，也不能被Home独立旧快照覆盖；Online设备与任务执行依据实际激活实例N及各自执行资格，预留不生成设备、任务或收益。旧后端缺字段时兼容原有`N+已确认试用预留`计算，未知不当零、容量未确认时关闭新增动作。投影复用既有账号epoch/revision隔离，迟到响应不得跨账号或覆盖较新结果；原抵扣置换、试用预留交换及原交易恢复规则保持。详见[六槽专题](UVEL_算力激活队列与六槽_20261029.md)。
+2026-10-30 权威容量投影：`GET /api/devices/earnings` 数据顶层、Home overview的`onboarding`均提供 `slotCap`、`reservedSlotCount`（已付待履约/已承诺赠送的有效预留，不含未付订单）、`trialSlotCount`（有效试用预留）、`slotsUsed=C`，其中`C=N+已付待履约/赠送真实预留+有效试用预留`；实际激活N由同一fleet真实激活实例统计，Home的`onboarding.activeDevices`继续为N。所有激活类型各计一槽，原`slotCap`上限保持。槽位条、空槽及普通新增容量守卫使用同一fleet epoch/revision接收的权威C，不能再叠加本地试用，也不能被Home独立旧快照覆盖；Online设备与任务执行依据实际激活实例N及各自执行资格，预留不生成设备、任务或收益。旧后端缺字段时兼容原有`N+已确认试用预留`计算，未知不当零、容量未确认时关闭新增动作。投影复用既有账号epoch/revision隔离，迟到响应不得跨账号或覆盖较新结果；原抵扣置换、试用预留交换及原交易恢复规则保持。详见[六槽专题](UVEL_算力激活队列与六槽_20261029.md)。
 
 ### 5.8 Device 衰减曲线(§6.8,平滑非离散)
 按 `getMonthsOwned` 浮点月:月1-3 −4%/月4-8 −6%/月9-12+ **−23.7%**→22% floor(`MIN_EFFICIENCY=0.22`);豁免 phone/cloud-share;client 60s 重算(展示用非权威)。

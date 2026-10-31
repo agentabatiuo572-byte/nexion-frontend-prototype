@@ -1,11 +1,13 @@
 import { formatAmount } from "@/lib/amount-display";
-import { computed, reactive, ref } from "vue";
+import { computed, nextTick, reactive, ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
 import ts from "typescript";
 import source from "./checkout.vue?raw";
 import { en } from "@/i18n/messages/en";
 import { resolveTrialAt, accruedShadow, type TrialRowSnapshot } from "@/store/trial-boundary";
 import { DEFAULT_TRIAL_CONFIG, computeDiscountedPrice, computeTrialOffset, resolveTrialCheckoutProductId } from "@/store/trial-config";
+import { checkoutReviewAmount,formatCheckoutReviewAmount } from '@/lib/checkout-review-amount';
+import { CheckoutPurchaseCheckError } from '@/lib/checkout-purchase-check';
 
 describe("trial credit in the actual checkout quote", () => {
   it("keeps a confirmed checkout visible during revalidation without accepting initial, failed or rebound authority", () => {
@@ -14,8 +16,8 @@ describe("trial credit in the actual checkout quote", () => {
     const freeTrial = reactive({ authorityStatus:"ready", authorityServerState:"CANCELLED" as string|null,
       status:"ended", authoritativeOffsetUSD:0 as number|null, authoritativeRemainderUSD:0 as number|null, authoritativePriceUSD:1299 });
     const trialEarlyQuoteLapsed = ref(false);
-    const gates = new Function("computed", "remoteApiEnabled", "freeTrial", "trialEarlyQuoteLapsed", code + "return {screen:trialQuoteScreenUnavailable,action:trialQuoteUnavailable};")
-      (computed,true,freeTrial,trialEarlyQuoteLapsed);
+    const gates = new Function("computed", "remoteApiEnabled", "freeTrial", "trialEarlyQuoteLapsed", "hasOriginalCheckout", code + "return {screen:trialQuoteScreenUnavailable,action:trialQuoteUnavailable};")
+      (computed,true,freeTrial,trialEarlyQuoteLapsed,ref(false));
     const unavailable=gates.screen;
     expect(unavailable.value).toBe(false);
     freeTrial.authorityStatus="loading"; expect(unavailable.value).toBe(false);
@@ -30,7 +32,7 @@ describe("trial credit in the actual checkout quote", () => {
   it.each([499, 1999])("quotes the claim price rather than changed catalogue price %s", catalogPrice => {
     const subtotal = ts.transpileModule(source.slice(source.indexOf("const purchaseSubtotal ="), source.indexOf("const promoDiscount =")), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
     const net = ts.transpileModule(source.slice(source.indexOf("const netPrice ="), source.indexOf("// 异常4: credit")), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-    const deps = { computed, remoteApiEnabled: true, trialConversionMode: ref(true), freeTrial: { authoritativePriceUSD: 1299 }, product: ref({ price: catalogPrice }), appliedTradeinView: ref(null), voucherDiscount: ref(0), tradeinCredit: ref(0), promoDiscount: ref(20), trialOffsetView: ref({ offsetUSD: 5, earlyDiscountUSD: 0 }) };
+    const deps = { computed, createdCheckoutOrder:ref(null),pendingCheckoutCreate:ref(null),remoteApiEnabled: true, trialConversionMode: ref(true), freeTrial: { authoritativePriceUSD: 1299 }, product: ref({ price: catalogPrice }), appliedTradeinView: ref(null), voucherDiscount: ref(0), tradeinCredit: ref(0), promoDiscount: ref(20), trialOffsetView: ref({ offsetUSD: 5, earlyDiscountUSD: 0 }) };
     const result = new Function(...Object.keys(deps), subtotal + net + "return {subtotal:purchaseSubtotal.value,net:netPrice.value};")(...Object.values(deps));
     expect(result).toEqual({ subtotal: 1299, net: 1274 });
     deps.trialOffsetView.value.earlyDiscountUSD = 4;
@@ -94,6 +96,7 @@ function harness() {
   let current = true;
   const scope = { accountKey: "fixture-a", accountEpoch: 1, productNo: "stellarbox-s1", generation: 1 };
   const deps = {
+    createdCheckoutOrder:ref(null),pendingCheckoutCreate:ref(null),
     trialQuoteUnavailable: ref(false), trialQuoteScreenUnavailable: ref(false),
     ref, voucherSelecting:ref(false), remoteApiEnabled: true, checkoutWalletRefreshing: ref(false), step: ref("confirm"),
     captureCheckoutRoute: () => scope, isCurrentCheckoutRoute: () => current,
@@ -131,7 +134,7 @@ describe("real trial checkout refusal and recovery feedback", () => {
     const code=ts.transpileModule(source.slice(source.indexOf("async function submitReview()"),source.indexOf("function selectPayment(")),
       {compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
     let current=true; const step=ref("select-payment");
-    const deps={captureCheckoutRoute:()=>({epoch:1}),isCurrentCheckoutRoute:()=>current,trialQuoteUnavailable:ref(false),
+    const deps={createdCheckoutOrder:ref(null),pendingCheckoutCreate:ref(null),checkoutCapacityRequired:ref(false),captureCheckoutRoute:()=>({epoch:1}),isCurrentCheckoutRoute:()=>current,trialQuoteUnavailable:ref(false),
       trialQuoteScreenUnavailable:ref(false),freeTrial:{refreshRemote:vi.fn()},quantitySwitching:ref(false),remoteApiEnabled:true,
       checkoutWalletReadable:ref(true),step,goConfirm:()=>{step.value="confirm";},nextTick:async()=>{current=false;},requestConfirmPay:vi.fn()};
     const tap=new Function(...Object.keys(deps),code+"return submitReview;")(...Object.values(deps));
@@ -140,20 +143,19 @@ describe("real trial checkout refusal and recovery feedback", () => {
   it.each(["mode","version","poll"])("checks the trial state when the confirmation dialog outlives its %s", async change => {
     const code=ts.transpileModule(source.slice(source.indexOf("let purchaseConfirmationOpen = false;"),source.indexOf("async function onConfirmPay()")),
       { compilerOptions:{target:ts.ScriptTarget.ES2022} }).outputText;
-    let accept!: (value:boolean)=>void;
     const trialView=ref({applied:false,quoteVersion:null as string|null});
-    const deps={trialView,trialQuoteUnavailable:ref(false),trialQuoteScreenUnavailable:ref(false),voucherSelecting:ref(false),checkoutWalletRefreshing:ref(false),
+    const deps={ref,computed,nextTick,checkoutReviewAmount,formatCheckoutReviewAmount,CheckoutPurchaseCheckError,paymentStockFailure:ref(null),flowCopy:ref({queryFailed:'retry'}),createdCheckoutOrder:ref(null),pendingCheckoutCreate:ref(null),trialView,trialQuoteUnavailable:ref(false),trialQuoteScreenUnavailable:ref(false),voucherSelecting:ref(false),checkoutWalletRefreshing:ref(false),
       step:ref("confirm"),captureCheckoutRoute:()=>({}),isCurrentCheckoutRoute:()=>true,netPrice:ref(100),cardFee:ref(0),
       trialConversionMode:computed(()=>trialView.value.applied),freeTrial:{hasPendingConversion:()=>false},
       product:ref({name:"Device"}),t:ref(en),purchaseCopy:ref({}),confirmTotalText:ref("100.00"),trialCreditText:ref(""),
-      confirm:vi.fn(()=>new Promise<boolean>(resolve=>{accept=resolve;})),dialogOwner:"trial-review",fmt:(text:string)=>text,
+      dialogOwner:"trial-review",fmt:(text:string)=>text,
       onConfirmPay:vi.fn(),toast:{warn:vi.fn()}};
-    const pay=new Function(...Object.keys(deps),"let confirming=false,dialogsOpen=0;"+code+"return requestConfirmPay;")(...Object.values(deps));
-    const pending=pay();
+    const flow=new Function(...Object.keys(deps),"let confirming=false,dialogsOpen=0;"+code+"return {requestConfirmPay,confirmPaymentSheet};")(...Object.values(deps));
+    const pending=flow.requestConfirmPay();
     if(change==="mode")trialView.value.applied=true;
     else if(change==="version")trialView.value.quoteVersion="NEW";
     else deps.trialQuoteUnavailable.value=true;
-    accept(true); await pending;
+    flow.confirmPaymentSheet(); await pending;
     if(change==="poll") { expect(deps.onConfirmPay).toHaveBeenCalledOnce(); return; }
     expect(deps.onConfirmPay).not.toHaveBeenCalled(); expect(deps.toast.warn).toHaveBeenCalledWith(en.store.coTotalQuoteChanged);
     expect(deps.step.value).toBe("select-payment");

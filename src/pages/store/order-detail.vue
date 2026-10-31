@@ -41,25 +41,21 @@
       </view>
 
       <!-- FEAT-TRIAL05 purchase result: shown once right after a trial purchase. -->
-      <view v-else-if="order && showTrialResult" class="mx-4 trial-result" data-testid="trial-purchase-result">
-        <view class="trial-result-head">
-          <view class="grid place-items-center trial-result-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg></view>
-          <text class="trial-result-title" role="status">{{ purchaseCopy.resultTitle }}</text>
-          <text class="trial-result-body">{{ resultRunningText }}</text>
-        </view>
-        <view v-if="order.trialReward && (order.trialReward.usdt > 0 || order.trialReward.nex > 0)" class="trial-result-credit" role="group" :aria-label="purchaseCopy.resultCredited">
+      <view v-else-if="resultOrder && (showTrialResult || paymentResultVisible)" class="order-payment-result" data-testid="trial-purchase-result">
+        <CheckoutResult :state="paymentResultState" :product-name="commerceOrderTitle(resultOrder,locale.code)" :product-image="getProductMedia(resultOrder.productId)?.src" :amount="resultOrder.total" :error="paymentResultState === 'error' ? t.orders.refreshFailed : ''" @devices="goDevices" @retry="refreshOrder">
+        <text v-if="showTrialResult && paymentResultState === 'activated'" class="trial-result-body">{{ resultRunningText }}</text>
+        <view v-if="showTrialResult && resultOrder.trialReward && (resultOrder.trialReward.usdt > 0 || resultOrder.trialReward.nex > 0)" class="trial-result-credit" role="group" :aria-label="purchaseCopy.resultCredited">
           <text class="trial-result-credit-label">{{ purchaseCopy.resultCredited }}</text>
-          <view v-if="order.trialReward.usdt > 0" class="trial-result-row"><text>{{ purchaseCopy.resultUsdt }}</text><text class="trial-result-usdt">+{{ formatAmount(order.trialReward.usdt) }} USDT</text></view>
-          <view v-if="order.trialReward.nex > 0" class="trial-result-row"><text>{{ purchaseCopy.resultUvt }}</text><text class="trial-result-uvt">+{{ formatAmount(order.trialReward.nex) }} UVT</text></view>
+          <view v-if="resultOrder.trialReward.usdt > 0" class="trial-result-row"><text>{{ purchaseCopy.resultUsdt }}</text><text class="trial-result-usdt">+{{ formatAmount(resultOrder.trialReward.usdt) }} USDT</text></view>
+          <view v-if="resultOrder.trialReward.nex > 0" class="trial-result-row"><text>{{ purchaseCopy.resultUvt }}</text><text class="trial-result-uvt">+{{ formatAmount(resultOrder.trialReward.nex) }} UVT</text></view>
         </view>
-        <view class="trial-result-summary">
-          <view class="trial-result-line"><text>{{ purchaseCopy.resultPaid }}</text><text>{{ formatAmount(order.total) }} USDT</text></view>
-          <view v-if="orderSaved > 0" class="trial-result-line"><text>{{ purchaseCopy.resultSaved }}</text><text class="trial-result-saved">{{ formatAmount(orderSaved) }} USDT</text></view>
+        <view v-if="showTrialResult && orderSaved > 0" class="trial-result-summary">
+          <view class="trial-result-line"><text>{{ purchaseCopy.resultSaved }}</text><text class="trial-result-saved">{{ formatAmount(orderSaved) }} USDT</text></view>
         </view>
         <view class="trial-result-actions">
-          <view class="trial-result-primary active:scale-[0.98]" role="button" tabindex="0" :aria-label="purchaseCopy.resultDevices" @click="goDevices"><text>{{ purchaseCopy.resultDevices }}</text></view>
-          <view class="trial-result-secondary active:opacity-85" role="button" tabindex="0" :aria-label="purchaseCopy.resultOrder" @click="showTrialResult = false"><text>{{ purchaseCopy.resultOrder }}</text></view>
+          <view class="trial-result-secondary active:opacity-85" role="button" tabindex="0" :aria-label="purchaseCopy.resultOrder" @click="showTrialResult = false; paymentResultVisible = false"><text>{{ purchaseCopy.resultOrder }}</text></view>
         </view>
+        </CheckoutResult>
       </view>
 
       <template v-else-if="order">
@@ -95,7 +91,7 @@
         <view v-if="canBuyAgain" class="mx-4" style="margin-top: 12px">
           <view class="grid place-items-center" role="button" tabindex="0" :style="notFoundBtnStyle" @click="goStore" @keydown.enter.prevent="goStore" @keydown.space.prevent="goStore"><text>{{ t.promotion.buyAgain }}</text></view>
         </view>
-        <OrderRewards v-if="remoteApiEnabled && id" :order-no="id" />
+        <OrderRewards v-if="remoteApiEnabled && id" :order-no="id" :payment-allowed="order.status === 'placed' && !paymentExpired && !remoteOrderError && !remoteOrderRefreshing" />
 
         <!-- Activated → Earn jump -->
         <view v-if="order.status === 'activated'" class="nx-glass-card mx-4 rounded-2xl" :style="summaryCardStyle" style="margin-top: 12px">
@@ -117,27 +113,27 @@
           <view role="button" tabindex="0" :style="earnBtnStyle" @click="navTo('/pages/me/devices')" @keydown.enter.prevent="navTo('/pages/me/devices')"><text>{{ t.myDevices.inventoryTitle }} →</text></view>
         </view>
         <!-- Order summary -->
-        <view class="nx-glass-card mx-4 rounded-2xl" :style="summaryCardStyle" style="margin-top: 12px">
+        <view class="order-summary nx-glass-card mx-4 rounded-2xl" :style="summaryCardStyle" style="margin-top: 12px">
           <text class="block" :style="sectionLabelStyle">{{ t.orders.orderSummary }}</text>
           <DetailRow :label="t.orders.orderIdLabel" :value="order.id" mono copyable />
-          <DetailRow :label="t.orders.quantity" :value="`${order.itemCount ?? order.quantity}`" />
+          <DetailRow :label="t.orders.quantity" :value="`${orderQuantity}`" />
           <view v-if="order.lineItems?.length" style="margin: 8px 0; padding: 8px 0; border-top: 1px solid var(--v5-border); border-bottom: 1px solid var(--v5-border)">
             <view v-for="item in order.lineItems" :key="item.sku" class="flex items-center justify-between" style="padding: 4px 0; gap: 12px">
               <view class="flex-1 min-w-0">
                 <text class="block truncate" style="font-size: 12px; color: var(--v5-ink)">{{ (item.name) }}</text>
-                <text class="block tabular-nums" style="font-size: 12px; color: var(--v5-ink-4)">{{ item.sku }} · {{ item.quantity }} × ${{ formatAmount(item.unitPriceUsdt) }}</text>
+                <text class="block tabular-nums" style="font-size: 12px; color: var(--v5-ink-4)">{{ item.sku }} · {{ item.quantity }} × {{ summaryMoney(item.unitPriceUsdt, false) }}</text>
               </view>
-              <text class="shrink-0 tabular-nums" style="font-size: 12px; color: var(--v5-ink-2)">${{ formatAmount(item.lineAmountUsdt) }}</text>
+              <text class="shrink-0 tabular-nums" style="font-size: 12px; color: var(--v5-ink-2)">{{ summaryMoney(item.lineAmountUsdt, false) }}</text>
             </view>
           </view>
-          <DetailRow v-if="(order.itemCount ?? 1) === 1" :label="t.orders.unitPrice" :value="usdt(order.unitPrice)" />
-          <DetailRow :label="t.orders.subtotal" :value="usdt(order.subtotal)" />
-          <DetailRow v-if="order.discount > 0" :label="t.orders.discount" :value="`−${usdt(order.discount)}`" brand />
+          <DetailRow v-if="(order.itemCount ?? 1) === 1" :label="t.orders.unitPrice" :value="summaryMoney(order.unitPrice)" />
+          <DetailRow :label="t.orders.subtotal" :value="summaryMoney(order.subtotal)" />
+          <DetailRow v-if="order.discount > 0" :label="t.orders.discount" :value="`−${summaryMoney(order.discount)}`" brand />
           <!-- Trial conversion orders: each checkout discount on its own row (never folded into the voucher line). -->
-          <DetailRow v-if="(order.promoDiscountUSD ?? 0) > 0" :label="t.orders.trialDiscount" :value="`−${usdt(order.promoDiscountUSD ?? 0)}`" brand />
-          <DetailRow v-if="(order.trialOffsetUSD ?? 0) > 0" :label="t.orders.trialOffset" :value="`−${usdt(order.trialOffsetUSD ?? 0)}`" brand />
-          <DetailRow v-if="(order.earlyDiscountUSD ?? 0) > 0" :label="trialLifecycle.earlyDiscountLabel" :value="`−${usdt(order.earlyDiscountUSD ?? 0)}`" brand />
-          <DetailRow :label="order.trialReward ? purchaseCopy.orderPaid : t.orders.total" :value="usdt(order.total)" big />
+          <DetailRow v-if="(order.promoDiscountUSD ?? 0) > 0" :label="t.orders.trialDiscount" :value="`−${summaryMoney(order.promoDiscountUSD ?? 0)}`" brand />
+          <DetailRow v-if="(order.trialOffsetUSD ?? 0) > 0" :label="t.orders.trialOffset" :value="`−${summaryMoney(order.trialOffsetUSD ?? 0)}`" brand />
+          <DetailRow v-if="(order.earlyDiscountUSD ?? 0) > 0" :label="trialLifecycle.earlyDiscountLabel" :value="`−${summaryMoney(order.earlyDiscountUSD ?? 0)}`" brand />
+          <DetailRow :label="order.trialReward ? purchaseCopy.orderPaid : t.orders.total" :value="summaryMoney(order.total)" big />
           <DetailRow v-if="trialRewardText && order.status !== 'refunded'" :label="purchaseCopy.orderTrialReward" :value="trialRewardText" brand />
           <DetailRow v-if="order.closeReasonCode && CLOSED_STATUSES.includes(order.status)" :label="t.orders.closeReason" :value="t.orders.closeReasons[order.closeReasonCode]" />
           <template v-if="order.status === 'refunded'">
@@ -198,7 +194,7 @@
           <view class="flex flex-wrap gap-2 mt-3">
             <NxButton variant="secondary" size="small" :label="recoveryCopy.query" :busy="orderCommandQuerying" :disabled="payingFromWallet || cancellingOrder" @click="recoverOrderAction(false)" />
             <NxButton v-if="orderAction?.kind==='cancel'" variant="secondary" size="small" :label="recoveryCopy.retryCancel" :disabled="orderCommandQuerying || cancellingOrder" @click="recoverOrderAction(true)" />
-            <NxButton v-if="orderAction?.kind==='pay' && resumePaymentAllowed" size="small" :label="recoveryCopy.resume" :disabled="orderCommandQuerying || payingFromWallet" @click="handleWalletPayment" />
+            <NxButton v-if="orderAction?.kind==='pay' && resumePaymentAllowed && canPayFromWallet" size="small" :label="recoveryCopy.resume" :disabled="orderCommandQuerying || payingFromWallet" @click="handleWalletPayment" />
           </view>
         </view>
         <view v-if="pendingOrderActionsVisible" class="mx-4" style="margin-top: 12px; margin-bottom: 24px">
@@ -210,11 +206,11 @@
             tabindex="0"
             :aria-disabled="!canPayFromWallet || payingFromWallet ? 'true' : 'false'"
             :aria-label="t.store.coPayNow"
-            @click.stop="handleWalletPayment"
+            @click.stop="requestPendingPayment()"
 
-            @keydown.enter.prevent.stop="handleWalletPayment" @keydown.space.prevent.stop="handleWalletPayment"
+            @keydown.enter.prevent.stop="requestPendingPayment()" @keydown.space.prevent.stop="requestPendingPayment()"
           >
-            <text @click.stop="handleWalletPayment">{{ t.store.coPayNow }}</text>
+            <text>{{ pendingPaymentChecking ? pendingCopy.checking : t.orders.pendingContinue }}</text>
           </view>
           <view
             class="w-full grid place-items-center active:opacity-80"
@@ -233,6 +229,17 @@
         <view v-else style="height: 24px" />
       </template>
     </view>
+    <template #pageFixed>
+      <CheckoutPaymentSheet :open="paymentSheetOpen" :amount="paymentSheetAmount" :balance="app.user.usdtBalance" :busy="payingFromWallet" :error="paymentSheetError" @close="paymentSheetOpen = false" @confirm="handleWalletPayment" @topup="topupPendingOrder" />
+      <view v-if="paymentNotice" class="pending-notice-mask">
+        <view class="pending-order-notice" role="dialog" aria-modal="true" :aria-label="paymentNotice === 'query' ? pendingCopy.queryFailed : pendingCopy.cannotPay">
+          <view class="pending-notice-head"><text class="pending-notice-title" tabindex="-1" role="heading">{{ paymentNotice === 'query' ? pendingCopy.queryFailed : pendingCopy.cannotPay }}</text><NxButton variant="text" :label="t.store.coCancel" :disabled="cancellingOrder" @click="paymentNotice = ''" /></view>
+          <text class="pending-notice-body">{{ paymentNoticeReason }}</text>
+          <text v-if="noticeCancelFailed" class="pending-notice-error" role="alert">{{ pendingCopy.cancelFailed }}</text>
+          <NxButton :label="paymentNotice === 'query' ? pendingCopy.retry : orderAction?.kind === 'cancel' ? recoveryCopy.retryCancel : orderAction || orderCommandUnavailable ? recoveryCopy.query : liveOrder?.status === 'placed' ? pendingCopy.cancelOrder : pendingCopy.viewDetails" :busy="pendingPaymentChecking || cancellingOrder || orderCommandQuerying" @click="runPaymentNoticeAction" />
+        </view>
+      </view>
+    </template>
   </AppChassis>
 </template>
 
@@ -242,11 +249,17 @@ import { commerceOrderTitle, commerceCopy } from "@/lib/commerce-review";
 import { useLocaleStore } from "@/store/locale";
 import { formatAmount as formatPlainAmount } from "@/lib/amount-display";
 import OrderRewards from '@/components/promotion/order-rewards.vue';
-import { ref, computed, watch, onUnmounted, type CSSProperties } from "vue";
+import { ref, computed, watch, onUnmounted, nextTick, type CSSProperties } from "vue";
 import { onLoad, onShow, onHide, onUnload } from "@dcloudio/uni-app";
 import AppChassis from "@/components/app-chassis.vue";
 import NxButton from "@/components/ui/nx-button.vue";
 import DetailRow from "@/components/store/order-detail-row.vue";
+import CheckoutPaymentSheet from "@/components/checkout/CheckoutPaymentSheet.vue";
+import CheckoutResult from "@/components/checkout/CheckoutResult.vue";
+import { checkoutFlowCopy } from "@/lib/checkout-flow-copy";
+import { assertCheckoutPurchaseStock, CheckoutPurchaseCheckError } from '@/lib/checkout-purchase-check';
+import { useDialogA11y } from "@/composables/use-dialog-a11y";
+import { getProductMedia } from "@/lib/product-media";
 import { useT } from "@/i18n/use-t";
 import { useTrialPurchaseCopy } from "@/i18n/trial-purchase";
 import { fmt } from "@/i18n/format";
@@ -259,7 +272,7 @@ import { trialReservesSlotNow } from "@/store/free-trial";
 import { confirm as uiConfirm, toast } from "@/store/ui";
 import { useSetPageHeader } from "@/composables/use-page-header";
 import { navTo, takeNavigationQuery } from "@/lib/route";
-import { apiClient,orderApi, remoteApiEnabled, apiRuntimeConfig } from "@/api/runtime";
+import { apiClient,orderApi,purchaseEligibilityApi, remoteApiEnabled, apiRuntimeConfig } from "@/api/runtime";
 import { advisorChatRoute } from "@/lib/advisor-chat-route";
 import { useConversations } from "@/store/conversations";
 import { asApiError } from "@/api/errors";
@@ -279,13 +292,17 @@ const app = useApp();
 const auth = useAuth();
 
 const id = ref("");
+const autoPayRequested = ref(false);
+let pendingPaymentIntentAccount = '';
 // FEAT-TRIAL05: `?result=trial` (set by checkout) opens the purchase result once; the order view is one tap away.
 const showTrialResult = ref(false);
+const paymentResultVisible = ref(false);
 const orderOrigin = ref("");
 const ordersBackHref = ref("/store/orders");
 let detailMounted = true;
 let detailVisible = false;
 let detailEpoch = 0;
+let pendingPaymentSequence = 0;
 
 interface DetailRequestScope {
   pageEpoch: number;
@@ -315,6 +332,7 @@ onLoad((options) => {
   const queryMatchesOrder = Boolean(id.value) && queryIds.length === 1 && queryIds[0] === id.value;
   const from = o.from ?? (queryMatchesOrder && query.getAll("from").length === 1 ? query.get("from") : "");
   showTrialResult.value = (o.result ?? (queryMatchesOrder && query.getAll("result").length === 1 ? query.get("result") : "")) === "trial";
+  autoPayRequested.value = (o.pay ?? (queryMatchesOrder && query.getAll('pay').length === 1 ? query.get('pay') : '')) === '1';
   orderOrigin.value = from === "me" || from === "store" ? from : "";
   ordersBackHref.value = orderOrigin.value ? `/store/orders?from=${orderOrigin.value}` : "/store/orders";
   preserveOrderOriginInH5();
@@ -344,15 +362,18 @@ const remoteOrderRefreshing = ref(false);
 const remoteOrderAttempted = ref(false);
 let remoteOrderRefreshSequence = 0;
 let activeRemoteOrderScope: DetailRequestScope | null = null;
+let pendingPaymentReadScope: DetailRequestScope | null = null;
 const walletRefreshing = ref(false);
 let walletRefreshSequence = 0;
-async function refreshOrderWallet() {
-  if (!remoteApiEnabled) return;
+async function refreshOrderWallet(): Promise<boolean> {
+  if (!remoteApiEnabled) return true;
   const scope = captureDetailScope();
   const sequence = ++walletRefreshSequence;
   walletRefreshing.value = true;
   try {
-    await app.refreshRemoteFleet(scope.accountScope);
+    return await app.refreshRemoteFleet(scope.accountScope);
+  } catch {
+    return false;
   } finally {
     if (sequence === walletRefreshSequence) walletRefreshing.value = false;
   }
@@ -378,10 +399,23 @@ async function refreshOrder() {
     if (sequence === remoteOrderRefreshSequence && isCurrentDetailScope(scope)) {
       remoteOrderRefreshing.value = false;
       activeRemoteOrderScope = null;
+      if (autoPayRequested.value) {
+        if (remoteOrderError.value) {
+          autoPayRequested.value = false;
+          pendingPaymentIntentAccount = '';
+          pendingPaymentReadScope = null;
+          paymentNoticeReason.value = pendingCopy.value.queryFailed;
+          paymentNotice.value = 'query';
+        } else {
+          pendingPaymentReadScope = scope;
+          void requestPendingPayment(true);
+        }
+      }
     }
   }
 }
 onShow(() => {
+  if (detailVisible) return;
   detailMounted = true;
   detailVisible = true;
   detailEpoch += 1;
@@ -394,6 +428,12 @@ onShow(() => {
 onHide(() => {
   detailVisible = false;
   detailEpoch += 1;
+  paymentSheetOpen.value = false;
+  paymentNotice.value = '';
+  pendingPaymentChecking.value = false;
+  autoPayRequested.value = false;
+  pendingPaymentIntentAccount = '';
+  pendingPaymentReadScope = null;
 });
 
 const liveOrder = computed(() => orders.orders.find((o) => o.id === id.value));
@@ -401,11 +441,18 @@ const orderPresentation = ref<Order | null>(null);
 const orderEnvironmentInvalidated = ref(false);
 watch(() => apiRuntimeConfig?.environment, () => { orderEnvironmentInvalidated.value = true; orderPresentation.value = null; }, { flush: 'sync' });
 watch(() => [app.accountKey, app.accountBindingEpoch, auth.accountId, id.value, locale.code], () => { orderPresentation.value = null; }, { flush: 'sync' });
+watch(() => [app.accountKey, app.accountBindingEpoch, auth.accountId, id.value], () => {
+  paymentResultOrder.value = null; paymentResultVisible.value = false;
+  paymentSheetOpen.value = false; paymentNotice.value = '';
+  pendingPaymentChecking.value = false;
+  pendingPaymentReadScope = null;
+}, { flush: 'sync' });
 watch(liveOrder, value => {
   if (value && !orderEnvironmentInvalidated.value) orderPresentation.value = value;
 }, { immediate: true, flush: 'sync' });
 // Runtime invalidation still clears the shared store and every command uses liveOrder.
 const order = computed(() => orderEnvironmentInvalidated.value || remoteOrderError.value ? undefined : liveOrder.value ?? orderPresentation.value ?? undefined);
+const orderQuantity = computed(() => order.value?.lineItems?.reduce((total, item) => total + item.quantity, 0) ?? order.value?.quantity ?? 0);
 const refundChannelLabel = computed(() => order.value?.refundChannel === "WALLET"
   ? t.value.promotion.wallet : t.value.orders.refundDetailsUnavailable);
 const hasOrderId = computed(() => Boolean(id.value.trim()));
@@ -451,7 +498,7 @@ const fullyVoucherSettled = computed(() => order.value != null
 // stays in the summary card; a long id is not a page title. Getter form: falls
 // back to "not found" before the order loads / for a bad id.
 useSetPageHeader(() => ({
-  title: order.value
+  title: showTrialResult.value || paymentResultVisible.value ? checkoutFlowCopy(locale.code).resultTitle : order.value
     ? t.value.orders.detailTitle
     : (showRemoteOrderLoading.value || remoteOrderError.value ? t.value.orders.title : t.value.orders.notFound),
   backHref: ordersBackHref.value,
@@ -468,6 +515,12 @@ function startTick() {
   tickTimer = setInterval(() => {
     detailNow.value = Date.now();
     if (id.value) orders.advanceOrder(id.value, reservedSlots.value);
+    if (remoteApiEnabled && detailVisible && liveOrder.value?.status === 'placed'
+        && liveOrder.value.expiresAt != null && liveOrder.value.expiresAt <= detailNow.value
+        && !payingFromWallet.value && !cancellingOrder.value) {
+      paymentSheetOpen.value = false;
+      void refreshOrder();
+    }
   }, 3000);
 }
 startTick();
@@ -478,6 +531,18 @@ const currentIdx = computed(() => (order.value ? stages.value.indexOf(order.valu
 // Cancellable ONLY before payment settles ("placed"). Checkout settles to
 // "paid", so in practice no order rests at "placed" — kept faithful to source.
 const walletPaymentConfirmed = ref(false);
+const paymentSheetOpen = ref(false);
+const paymentSheetAmount = ref<number|string>(0);
+const paymentSheetError = ref('');
+const pendingPaymentChecking = ref(false);
+const paymentNotice = ref<''|'query'|'blocked'>('');
+const paymentNoticeReason = ref('');
+const noticeCancelFailed = ref(false);
+const paymentResultOrder = ref<Order|null>(null);
+const resultOrder = computed(() => order.value ?? paymentResultOrder.value);
+const pendingCopy = computed(() => checkoutFlowCopy(locale.code));
+const paymentResultState = computed<'activated'|'inventory'|'processing'|'error'>(() => remoteOrderError.value ? 'error' : resultOrder.value?.status === 'activated'
+  ? 'activated' : resultOrder.value?.status === 'inventory' ? 'inventory' : walletPaymentConfirmed.value || resultOrder.value?.status === 'paid' || resultOrder.value?.status === 'provisioning' ? 'processing' : 'error');
 const payingFromWallet = ref(false);
 const cancellingOrder = ref(false);
 const orderAction = ref<PendingOrderAction|null>(null);
@@ -562,6 +627,15 @@ const canPayFromWallet = computed(() => remoteApiEnabled
   && (!orderAction.value || (orderAction.value.kind==='pay'&&resumePaymentAllowed.value))
   && !walletRefreshing.value && !paymentExpired.value);
 const isProvisioning = computed(() => order.value?.status === "provisioning");
+useDialogA11y(computed(() => Boolean(paymentNotice.value)), '.pending-order-notice', () => { if (!cancellingOrder.value) paymentNotice.value = ''; }, true, 5);
+watch([cancellingOrder,orderCommandQuerying,pendingPaymentChecking], ([cancelling,querying,checking]) => {
+  if (!paymentNotice.value || cancelling || querying || checking) return;
+  void nextTick(() => {
+    if (typeof document === 'undefined' || !paymentNotice.value) return;
+    const notice = document.querySelector('.pending-order-notice');
+    if (notice && !notice.contains(document.activeElement)) notice.querySelector<HTMLElement>('.pending-notice-title')?.focus();
+  });
+});
 // Orders that closed without completing; their close reason is shown when the backend sent one.
 const CLOSED_STATUSES: OrderStatus[] = ['cancelled', 'expired', 'payment_failed', 'provisioning_failed', 'chargeback'];
 const needsRecovery = computed(() => !!order.value && ['payment_failed','provisioning_failed','chargeback','expired'].includes(order.value.status));
@@ -710,26 +784,167 @@ async function offerWalletTopup(requiredUsdt: number): Promise<void> {
   if (accepted && isCurrentDetailScope(scope)) navTo("/pages/me/wallet-topup");
 }
 
+/** Unpaid orders reserve no stock: read current stock at entry and again before pay. */
+async function requestPendingPayment(originalJustRead = false): Promise<void> {
+  if (!remoteApiEnabled || pendingPaymentChecking.value || payingFromWallet.value || cancellingOrder.value || orderCommandQuerying.value) return;
+  const scope = captureDetailScope();
+  if (originalJustRead && pendingPaymentIntentAccount && pendingPaymentIntentAccount !== scope.accountScope.accountKey) {
+    autoPayRequested.value = false;
+    pendingPaymentIntentAccount = '';
+    pendingPaymentReadScope = null;
+    return;
+  }
+  const attempt = ++pendingPaymentSequence;
+  autoPayRequested.value = true;
+  pendingPaymentIntentAccount = scope.accountScope.accountKey;
+  pendingPaymentReadScope = null;
+  pendingPaymentChecking.value = true;
+  paymentSheetError.value = '';
+  paymentNotice.value = '';
+  noticeCancelFailed.value = false;
+  try {
+    if (!originalJustRead) await refreshOrder();
+    if (!isCurrentDetailScope(scope)) return;
+    pendingPaymentReadScope = null;
+    if (remoteOrderError.value || remoteOrderRefreshing.value || !liveOrder.value) throw new Error('ORDER_READ_UNAVAILABLE');
+    let original = liveOrder.value;
+    restoreOrderAction();
+    if (orderAction.value || orderCommandUnavailable.value) {
+      await recoverOrderAction(false);
+      if (!isCurrentDetailScope(scope) || orderAction.value || orderCommandUnavailable.value) return;
+      if (!liveOrder.value) throw new Error('ORDER_READ_UNAVAILABLE');
+      original = liveOrder.value;
+    }
+    if (original.status === 'activated' || original.status === 'inventory' || original.status === 'paid' || original.status === 'provisioning') {
+      paymentResultVisible.value = true;
+      return;
+    }
+    if (original.status !== 'placed' || original.expiresAt == null || original.expiresAt <= Date.now()) {
+      paymentNoticeReason.value = original.status === 'placed' ? pendingCopy.value.expiredPending : pendingCopy.value.closed;
+      paymentNotice.value = 'blocked';
+      return;
+    }
+    if (original.promotionQuoteId) {
+      autoPayRequested.value = false;
+      pendingPaymentIntentAccount = '';
+      await navTo(`/pages/store/checkout?orderNo=${encodeURIComponent(original.id)}`);
+      return;
+    }
+    // The backend owns ALL/EITHER qualification semantics; do not recompute
+    // its overall decision from individual policy conditions.
+    const purchaseItems = original.lineItems?.map(item => ({ productNo: item.sku, quantity: item.quantity }))
+      ?? [{ productNo: original.productId, quantity: original.quantity }];
+    const eligibility = await Promise.all([...new Set(purchaseItems.map(item => item.productNo))]
+      .map(productNo => purchaseEligibilityApi.get(productNo)));
+    if (!isCurrentDetailScope(scope)) return;
+    if (eligibility.some(item => !item.eligible)) {
+      paymentNoticeReason.value = t.value.store.gateBlockedToast;
+      paymentNotice.value = 'blocked';
+      return;
+    }
+    await assertCheckoutPurchaseStock(purchaseItems);
+    if (!isCurrentDetailScope(scope)) return;
+    const walletReady = await refreshOrderWallet();
+    if (!isCurrentDetailScope(scope)) return;
+    if (!walletReady) throw new Error('WALLET_READ_UNAVAILABLE');
+    if (!canPayFromWallet.value || liveOrder.value?.id !== original.id || liveOrder.value?.total !== original.total
+        || liveOrder.value?.quantity !== original.quantity) {
+      paymentNoticeReason.value = recoveryCopy.value.changed;
+      paymentNotice.value = 'query';
+      return;
+    }
+    paymentSheetAmount.value = original.total;
+    paymentSheetOpen.value = true;
+  } catch (error) {
+    if (isCurrentDetailScope(scope)) {
+      paymentNoticeReason.value = error instanceof CheckoutPurchaseCheckError && error.reason === 'stock' ? t.value.store.temporarilyOutOfStock
+        : error instanceof CheckoutPurchaseCheckError && error.reason === 'unavailable' ? t.value.store.productUnavailable : pendingCopy.value.queryFailed;
+      paymentNotice.value = error instanceof CheckoutPurchaseCheckError && (error.reason === 'stock' || error.reason === 'unavailable') ? 'blocked' : 'query';
+    }
+  } finally {
+    // Data authority may expire during bootstrap; the attempt still owns its
+    // local lock, but must never unlock a newer attempt after hide/re-entry.
+    if (attempt === pendingPaymentSequence) {
+      pendingPaymentChecking.value = false;
+      if (isCurrentDetailScope(scope) && (paymentSheetOpen.value || paymentResultVisible.value || paymentNotice.value || orderAction.value || orderCommandUnavailable.value)) {
+        autoPayRequested.value = false;
+        pendingPaymentIntentAccount = '';
+        pendingPaymentReadScope = null;
+      }
+      // A newer authoritative read may have finished while this obsolete
+      // attempt was busy. Consume that read once; never start a retry timer.
+      if (autoPayRequested.value && pendingPaymentReadScope && isCurrentDetailScope(pendingPaymentReadScope)) void requestPendingPayment(true);
+    }
+  }
+}
+
+function topupPendingOrder(): void {
+  paymentSheetOpen.value = false;
+  void navTo('/pages/me/wallet-topup');
+}
+
+async function runPaymentNoticeAction(): Promise<void> {
+  if (pendingPaymentChecking.value || cancellingOrder.value || orderCommandQuerying.value) return;
+  if (paymentNotice.value === 'query') { await requestPendingPayment(); return; }
+  if (orderAction.value?.kind === 'pay' || orderCommandUnavailable.value) { await recoverOrderAction(false); return; }
+  const scope = captureDetailScope();
+  noticeCancelFailed.value = false;
+  if (orderAction.value?.kind === 'cancel') {
+    await recoverOrderAction(true);
+    if (!isCurrentDetailScope(scope)) return;
+    if (liveOrder.value?.status === 'cancelled') paymentNotice.value = '';
+    else noticeCancelFailed.value = true;
+    return;
+  }
+  if (!canCancelCurrentOrder()) { paymentNotice.value = ''; return; }
+  cancellingOrder.value = true;
+  try {
+    const cancelled = await orders.cancelOrderRemote(id.value);
+    if (!isCurrentDetailScope(scope)) return;
+    restoreOrderAction();
+    if (cancelled) paymentNotice.value = '';
+    else noticeCancelFailed.value = true;
+  } catch {
+    if (isCurrentDetailScope(scope)) { restoreOrderAction(); noticeCancelFailed.value = true; }
+  } finally { cancellingOrder.value = false; }
+}
+
 async function handleWalletPayment() {
   if (!canPayFromWallet.value || payingFromWallet.value || !liveOrder.value) return;
+  if (paymentSheetOpen.value && paymentSheetAmount.value !== liveOrder.value.total) {
+    paymentSheetOpen.value = false; paymentNoticeReason.value = recoveryCopy.value.changed; paymentNotice.value = 'query'; return;
+  }
   if (typeof liveOrder.value.total !== 'number') return; // Promoted orders resume through their original-command checkout above.
   const scope = captureDetailScope();
   const requestOrderNo = liveOrder.value.id;
   const requestAmountUsdt = liveOrder.value.total;
+  const requestItems = liveOrder.value.lineItems?.map(item => ({ productNo: item.sku, quantity: item.quantity }))
+    ?? [{ productNo: liveOrder.value.productId, quantity: liveOrder.value.quantity }];
+  function paymentOrderCurrent(): boolean {
+    const current = liveOrder.value;
+    if (!isCurrentDetailScope(scope) || !current || current.id !== requestOrderNo || current.total !== requestAmountUsdt
+        || current.status !== 'placed' || current.expiresAt == null || current.expiresAt <= Date.now()
+        || remoteOrderRefreshing.value || remoteOrderError.value || orderEnvironmentInvalidated.value) return false;
+    const items = current.lineItems?.map(item => ({ productNo: item.sku, quantity: item.quantity }))
+      ?? [{ productNo: current.productId, quantity: current.quantity }];
+    return items.length === requestItems.length && items.every((item, index) => item.productNo === requestItems[index].productNo && item.quantity === requestItems[index].quantity);
+  }
   const receiptScope = app.captureRemoteAccountRequest();
   if (app.user.usdtBalance + 0.000001 < requestAmountUsdt) {
     await offerWalletTopup(requestAmountUsdt);
     return;
   }
   payingFromWallet.value = true;
+  paymentSheetOpen.value = false;
   let paymentConfirmed = false;
   try {
-      const accepted = await uiConfirm({title:t.value.store.coConfirmPurchase,
-        message:fmt(t.value.store.coConfirmPurchaseMessage,{amount:formatAmount(requestAmountUsdt)}),
-        confirmLabel:t.value.store.coConfirmPayment,cancelLabel:t.value.store.coCancel});
-      if (!accepted || !isCurrentDetailScope(scope)) return;
       const receipt = await executePaymentWithPassword({amount:requestAmountUsdt,currency:'USDT',summary:liveOrder.value?.productName??t.value.store.coConfirmPurchase},
         async authorization=>{
+          await assertCheckoutPurchaseStock(requestItems);
+          if (!paymentOrderCurrent()) {
+            if (isCurrentDetailScope(scope)) { paymentNoticeReason.value = recoveryCopy.value.changed; paymentNotice.value = 'query'; }
+            return null;
+          }
           const action=beginOrderAction(orders.currentAccountKey(),'pay',requestOrderNo,requestAmountUsdt);
           orderAction.value=action;resumePaymentAllowed.value=false;
           try {return await orderApi.pay(requestOrderNo,action.key,authorization);}
@@ -741,14 +956,15 @@ async function handleWalletPayment() {
             throw error;
           }
         },
-        ()=>isCurrentDetailScope(scope)&&liveOrder.value?.id===requestOrderNo&&liveOrder.value?.total===requestAmountUsdt
-          &&liveOrder.value?.status==='placed'&&!paymentExpired.value);
+        paymentOrderCurrent);
       if (!receipt) return;
     if (!isCurrentDetailScope(scope)) return;
     if (receipt.orderNo !== requestOrderNo) {
       throw new Error("WALLET_PAYMENT_RECEIPT_ORDER_MISMATCH");
     }
     paymentConfirmed = true;
+    paymentResultOrder.value = liveOrder.value ?? null;
+    paymentResultVisible.value = true;
     markOrderActionPaid(scope.accountScope.accountKey,requestOrderNo);
     orderAction.value=readOrderAction(scope.accountScope.accountKey,requestOrderNo);
     walletPaymentConfirmed.value = true;
@@ -769,10 +985,16 @@ async function handleWalletPayment() {
     if (paymentConfirmed) {
       remoteOrderError.value = true;
       toast.warn(t.value.orders.walletPaymentConfirmedRefreshPending);
+    } else if (error instanceof CheckoutPurchaseCheckError) {
+      paymentNoticeReason.value = error.reason === 'stock' ? t.value.store.temporarilyOutOfStock
+        : error.reason === 'unavailable' ? t.value.store.productUnavailable : pendingCopy.value.queryFailed;
+      paymentNotice.value = error.reason === 'stock' || error.reason === 'unavailable' ? 'blocked' : 'query';
     } else if (asApiError(error).message === "ORDER_WALLET_INSUFFICIENT") {
       await offerWalletTopup(requestAmountUsdt);
     } else if (["ORDER_MONTHLY_QUOTA_PAUSED", "ORDER_MONTHLY_QUOTA_EXHAUSTED"].includes(asApiError(error).message)) {
-      toast.warn(t.value.quota.stockUnavailable);
+      paymentNoticeReason.value = t.value.quota.stockUnavailable;
+      paymentNotice.value = 'blocked';
+      await recoverOrderAction(false);
     } else if (asApiError(error).message === "ORDER_PAYMENT_EXPIRED") {
       toast.warn(t.value.orders.statusExpired);
       await orders.ensureRemoteOrder(requestOrderNo);
@@ -797,6 +1019,12 @@ function goDevices() {
   navTo("/pages/me/devices");
 }
 const usdt = (value: number | string) => `${formatAmount(value)} USDT`;
+function summaryMoney(value: number | string, showCurrency = true): string {
+  // Pending receipts currently contain only USDT. A dollar quote must be
+  // bound to this order before a numeric USD amount can be presented.
+  if (order.value?.status === 'placed' && !paymentSheetOpen.value && !payingFromWallet.value) return showCurrency ? '$—' : '—';
+  return showCurrency ? usdt(value) : formatAmount(value);
+}
 const trialRewardText = computed(() => {
   const reward = order.value?.trialReward;
   if (!reward || (reward.usdt <= 0 && reward.nex <= 0)) return "";
@@ -954,6 +1182,13 @@ const remoteErrorStyle: CSSProperties = {
 </style>
 
 <style scoped>
+.order-payment-result { display:flex; flex-direction:column; gap:var(--v5-space-3); }
+.order-summary :deep(.copy-code-button) { width:44px; height:44px; margin:0; }
+.pending-notice-mask { position:fixed; z-index:900; inset:0; display:flex; align-items:center; justify-content:center; padding:var(--nx-overlay-top) var(--v5-space-4) var(--nx-overlay-bottom); background:var(--v5-bg-color-mask); }
+.pending-order-notice { width:100%; max-width:344px; max-height:100%; overflow:auto; padding:var(--v5-space-5); border-radius:var(--v5-radius-xl); background:var(--v5-surface); color:var(--v5-ink); display:flex; flex-direction:column; gap:var(--v5-space-4); }
+.pending-notice-head { display:flex; align-items:center; justify-content:space-between; gap:var(--v5-space-3); font:600 var(--ui-type-subheading)/var(--ui-type-subheading-lh) var(--font-v5); }
+.pending-notice-body { font:400 var(--ui-type-body)/var(--ui-type-body-lh) var(--font-v5); color:var(--v5-ink-2); overflow-wrap:anywhere; }
+.pending-notice-error { font:400 var(--ui-type-meta)/var(--ui-type-meta-lh) var(--font-v5); color:var(--v5-danger); }
 .order-recovery-actions { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
 .order-recovery-actions > view { display:flex; align-items:center; justify-content:center; text-align:center; line-height:1.5; }
 

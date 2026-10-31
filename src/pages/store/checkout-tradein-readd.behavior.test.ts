@@ -52,7 +52,7 @@ function scenario() {
     app: { refreshRemoteFleet: vi.fn(async () => true) },
     handleNoActiveDeviceDecision: vi.fn(async ({ notify }: { notify: () => void }) => { notify(); }),
   };
-  const page = new Function(...Object.keys(deps), `let interceptFired=false; ${javascript}; return {reAddTradein,fireTradeinIntercept};`)(...Object.values(deps));
+  const page = new Function(...Object.keys(deps), `let checkoutCapacityRead=null, interceptFired=false; ${javascript}; return {reAddTradein,fireTradeinIntercept};`)(...Object.values(deps));
   return { result, deps, page, switchAccount() { identity.accountKey = "user:1058"; identity.accountEpoch++; },
     leave() { visible = false; fence.invalidate(); } };
 }

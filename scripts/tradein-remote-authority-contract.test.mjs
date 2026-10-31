@@ -41,7 +41,11 @@ test("share checkout never enters the physical-device trade-in capacity prefligh
 
 test("remote trade-in sheet revalidates eligibility and never previews local credit", () => {
   const source = read("src/components/tradein-sheets.vue");
-  assert.match(source, /deviceE3Api\.eligibility\(targetKind\)/);
+  const open = source.slice(source.indexOf("async function openTradeinQuote"), source.indexOf("function onChooseTradein"));
+  assert.match(open, /deviceE3Api\.quote\(Number\(oldDevice\.id\), targetKind\)/);
+  assert.match(open, /purchaseEligibilityApi\.get\(targetKind\)/);
+  assert.doesNotMatch(open, /deviceE3Api\.eligibility/);
+  assert.match(source, /deviceE3Api\.eligibility\(id\)/);
   assert.match(source, /remoteRetireEligibleTargets\.value\.has\(p\.id\)/);
   assert.match(source, /eligibility\.sources\.some\(\(candidate\) => candidate\.eligible/);
   assert.doesNotMatch(source, /remoteApiEnabled\s*\?\s*isProductAvailable\(p, phase\.value\)/);

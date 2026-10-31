@@ -10,7 +10,7 @@ import { zh } from "@/i18n/messages/zh";
 
 const ast = ts.createSourceFile("checkout.ts", parse(source).descriptor.scriptSetup!.content, ts.ScriptTarget.Latest, true);
 const functions = ast.statements.filter(node => ts.isFunctionDeclaration(node)
-  && ["recoverKeepBeforePurchase", "resumeServerOrder"].includes(node.name?.text ?? ""));
+  && ["recoverKeepBeforePurchase", "resumeServerOrder", "initializeCheckout"].includes(node.name?.text ?? ""));
 const loadNode = ast.statements.find(node => ts.isExpressionStatement(node) && ts.isCallExpression(node.expression)
   && node.expression.expression.getText(ast) === "onLoad") as ts.ExpressionStatement;
 const load = (loadNode.expression as ts.CallExpression).arguments[0].getText(ast);
@@ -19,6 +19,7 @@ const code = ts.transpileModule(`let serverOrderRecovery=null;${functions.map(no
 function screen(stored: unknown, target = "stellarbox-s1") {
   const productId = ref(target), scope = { accountKey: "user:7", accountEpoch: 1, productNo: target, generation: 1 };
   const deps = { app: { accountKey: "user:7" }, remoteApiEnabled: true, productId, keepCheckoutTarget: ref(null), keepCheckoutReadError: ref(false),
+    pendingCheckoutCreate: ref(null), createdCheckoutOrder: ref(null), hasOriginalCheckout: ref(false), readCheckoutCreate: () => null,
     readPendingKeepCommand: (account: string, sku: string) => parsePendingKeepCommand(stored, account, sku),
     tradein: { showKeepRecovery: vi.fn(), appliedTradein: null }, promotionRoute: ref(null), voucherEntryContext, validatePromotionItems,
     takeNavigationQuery: () => "", URLSearchParams, t: ref(zh), toast: { warn: vi.fn() }, navTo: vi.fn(), navReplace: vi.fn(),

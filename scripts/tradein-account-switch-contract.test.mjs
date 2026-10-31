@@ -37,14 +37,14 @@ test("a late checkout eligibility or capacity response cannot open account B's s
   assert.match(fence, /scope.generation === this.generation/);
 });
 
-test("a late trade-in eligibility or quote response cannot write account B's canonical quote", () => {
+test("a late trade-in purchase eligibility or quote response cannot write account B's canonical quote", () => {
   const sheets = read("src/components/tradein-sheets.vue");
   assert.match(sheets, /const requestScope = captureAccountScope\(\);/);
-  assert.match(sheets, /deviceE3Api\.eligibility\(targetKind\)[\s\S]{0,180}requestIsCurrent\(\)/);
+  assert.match(sheets, /purchaseEligibilityApi\.get\(targetKind\)\.catch\(\(\) => null\)/);
   assert.match(sheets, /deviceE3Api\.quote\(Number\(oldDevice\.id\), targetKind\)[\s\S]{0,180}requestIsCurrent\(\)/);
   assert.match(sheets, /requestIsCurrent\(\)[\s\S]{0,100}canonicalQuote\.value = null/);
   assert.match(sheets, /capacityQuote\(s\.targetKind\)[\s\S]{0,180}requestIsCurrent\(\)/);
-  assert.match(sheets, /watch\(\(\) => app\.accountKey,[\s\S]{0,420}loadCanonicalTradeinConfig\(\)/);
+  assert.match(sheets, /watch\(\[\(\) => app\.accountKey, \(\) => app\.accountBindingEpoch\],[\s\S]{0,520}loadCanonicalTradeinConfig\(\)/);
 });
 
 test("a superseded quote for source A cannot overwrite the later source B selection", () => {
@@ -52,7 +52,10 @@ test("a superseded quote for source A cannot overwrite the later source B select
   assert.match(sheets, /const quoteRequestGeneration = ref\(0\)/);
   assert.match(sheets, /const requestGeneration = \+\+quoteRequestGeneration\.value/);
   assert.match(sheets, /requestGeneration === quoteRequestGeneration\.value/);
-  assert.match(sheets, /if \(!requestIsCurrent\(\)\) return;[\s\S]{0,120}canonicalQuote\.value = quote/);
+  const open = sheets.slice(sheets.indexOf("async function openTradeinQuote"), sheets.indexOf("function onChooseTradein"));
+  const guard = open.indexOf("if (!requestIsCurrent()) return;");
+  assert.ok(guard >= 0 && guard < open.indexOf("canonicalQuote.value = quote"));
+  assert.match(open, /quote\.sourceRowVersion !== sourceRowVersion/);
 });
 
 test("capacity replacement suppresses stale account readback and notifications", () => {

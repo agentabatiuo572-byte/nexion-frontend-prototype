@@ -1,0 +1,61 @@
+import type { LocaleCode } from '@/i18n';
+
+const zh = {
+  paymentMethod: '选择支付方式', paymentTotal: '支付总额', wallet: '钱包', walletBalance: 'USDT 余额',
+  selected: '已选择', noFees: '钱包支付免手续费和网络费。', paymentHint: '下一步验证支付密码。',
+  confirmPayment: '确认支付', paying: '正在处理…', balanceUnavailable: '暂时无法读取余额，请重试。',
+  insufficientBalance: '钱包余额不足，请充值后重试。', topup: '充值钱包', legalLead: '支付前请阅读以下说明',
+  afterSalesShort: '售后说明', termsShort: '服务条款', riskShort: '风险提示',
+  device: '设备', resultTitle: '设备开通', deviceInventory: '设备仓库', paid: '支付成功', paidHint: '付款已确认，继续设备激活。',
+  activating: '正在激活', activatingHint: '正在准备你的设备…',
+  activated: '设备已激活', activatedHint: '设备已激活，可前往设备仓库查看。',
+  activationNext: '接下来为你激活', activationProgress: '正在完成设备开通', activationComplete: '已完成，可以查看设备',
+  inventory: '设备已入仓库', inventoryHint: '设备已加入仓库，可查看设备状态。',
+  processing: '正在开通设备', processingHint: '正在核对设备状态，请稍后再查询。',
+  resultError: '暂时无法读取设备状态', resultErrorHint: '请重试查询设备状态，无需重复付款。',
+  devices: '查看设备', paidAmount: '已付金额', orderAmount: '订单金额',
+  cannotPay: '暂时无法支付', query: '重新查询', retry: '重试', queryFailed: '暂时无法查询，请重试。',
+  checking: '正在查询…', cancelOrder: '取消订单', cancelFailed: '订单暂未取消，请重试。',
+  expiredPending: '支付期限已过，正在更新订单状态。', viewDetails: '查看详情', closed: '订单已结束，不能继续支付。',
+};
+type CheckoutFlowCopy = typeof zh;
+const en: CheckoutFlowCopy = {
+  paymentMethod: 'Payment method', paymentTotal: 'Payment total', wallet: 'Wallet', walletBalance: 'USDT balance',
+  selected: 'Selected', noFees: 'Wallet payments have no processing or network fees.', paymentHint: 'Next, verify your payment PIN.',
+  confirmPayment: 'Confirm payment', paying: 'Processing…', balanceUnavailable: 'Your balance could not be loaded. Please try again.',
+  insufficientBalance: 'Insufficient wallet balance. Top up and try again.', topup: 'Top up wallet', legalLead: 'Please read the following before paying.',
+  afterSalesShort: 'After-sales', termsShort: 'Terms', riskShort: 'Risk notice',
+  device: 'Device', resultTitle: 'Device setup', deviceInventory: 'Device inventory', paid: 'Payment successful', paidHint: 'Payment is confirmed. Continuing to device activation.',
+  activating: 'Activating device', activatingHint: 'Getting your device ready…',
+  activated: 'Device activated', activatedHint: 'Your device is activated. View it in device inventory.',
+  activationNext: 'Activation is next', activationProgress: 'Completing activation', activationComplete: 'Ready to view your device',
+  inventory: 'Device added to inventory', inventoryHint: 'Your device is in inventory. View its current status there.',
+  processing: 'Setting up your device', processingHint: 'Checking your device status. Please check again shortly.',
+  resultError: 'Device status could not be loaded', resultErrorHint: 'Try checking the device status again. Do not pay again.',
+  devices: 'View devices', paidAmount: 'Amount paid', orderAmount: 'Order amount',
+  cannotPay: 'Payment unavailable', query: 'Check again', retry: 'Try again', queryFailed: 'The check could not be completed. Please try again.',
+  checking: 'Checking…', cancelOrder: 'Cancel order', cancelFailed: 'The order has not been cancelled. Please try again.',
+  expiredPending: 'The payment deadline has passed. Updating the order status.', viewDetails: 'View details', closed: 'This order has ended and can no longer be paid.',
+};
+const vi: CheckoutFlowCopy = {
+  paymentMethod: 'Phương thức thanh toán', paymentTotal: 'Tổng tiền thanh toán', wallet: 'Ví', walletBalance: 'Số dư USDT',
+  selected: 'Đã chọn', noFees: 'Thanh toán bằng ví không có phí thanh toán hoặc phí mạng.', paymentHint: 'Tiếp theo, xác minh mã PIN thanh toán.',
+  confirmPayment: 'Xác nhận thanh toán', paying: 'Đang xử lý…', balanceUnavailable: 'Chưa thể tải số dư. Vui lòng thử lại.',
+  insufficientBalance: 'Số dư ví không đủ. Hãy nạp tiền rồi thử lại.', topup: 'Nạp tiền vào ví', legalLead: 'Vui lòng đọc thông tin dưới đây trước khi thanh toán.',
+  afterSalesShort: 'Hậu mãi', termsShort: 'Điều khoản', riskShort: 'Rủi ro',
+  device: 'Thiết bị', resultTitle: 'Thiết lập thiết bị', deviceInventory: 'Kho thiết bị', paid: 'Thanh toán thành công', paidHint: 'Đã xác nhận thanh toán. Tiếp tục kích hoạt thiết bị.',
+  activating: 'Đang kích hoạt', activatingHint: 'Đang chuẩn bị thiết bị cho bạn…',
+  activated: 'Thiết bị đã kích hoạt', activatedHint: 'Thiết bị đã được kích hoạt. Bạn có thể xem trong kho thiết bị.',
+  activationNext: 'Tiếp theo là kích hoạt', activationProgress: 'Đang hoàn tất kích hoạt', activationComplete: 'Đã sẵn sàng, hãy xem thiết bị',
+  inventory: 'Thiết bị đã vào kho', inventoryHint: 'Thiết bị đã có trong kho. Bạn có thể xem trạng thái hiện tại.',
+  processing: 'Đang thiết lập thiết bị', processingHint: 'Đang kiểm tra trạng thái thiết bị. Vui lòng kiểm tra lại sau.',
+  resultError: 'Chưa thể tải trạng thái thiết bị', resultErrorHint: 'Hãy kiểm tra lại trạng thái thiết bị. Không thanh toán lại.',
+  devices: 'Xem thiết bị', paidAmount: 'Đã thanh toán', orderAmount: 'Số tiền đơn hàng',
+  cannotPay: 'Chưa thể thanh toán', query: 'Kiểm tra lại', retry: 'Thử lại', queryFailed: 'Chưa thể kiểm tra. Vui lòng thử lại.',
+  checking: 'Đang kiểm tra…', cancelOrder: 'Hủy đơn hàng', cancelFailed: 'Đơn hàng chưa bị hủy. Vui lòng thử lại.',
+  expiredPending: 'Đã quá hạn thanh toán. Đang cập nhật trạng thái đơn hàng.', viewDetails: 'Xem chi tiết', closed: 'Đơn hàng đã kết thúc và không thể thanh toán tiếp.',
+};
+
+export function checkoutFlowCopy(locale: LocaleCode): CheckoutFlowCopy {
+  return locale === 'zh' ? zh : locale === 'vi' ? vi : en;
+}

@@ -6,12 +6,14 @@ import { installFormalProbeSession } from './lib/formal-probe-session.mjs';
 import { demoDefaults, demoFixture, demoOptions } from './lib/prototype-demo-data.mjs';
 import { createPrototypeMessages } from './lib/prototype-message-demo.mjs';
 import { createPrototypeRealtime } from './lib/prototype-realtime.mjs';
+import { createCheckoutFlowFixture } from './lib/checkout-flow-fixture.mjs';
 const root=path.resolve(process.env.DEMO_BUILD_ROOT||path.join(import.meta.dirname,'../dist/build/h5'));
 const port=Number(process.env.DEMO_PORT||5190);
 const state=structuredClone(demoDefaults),routes=[],init=[];
 // An optional local handoff preserves demo conversations across a preview rebuild.
 if(process.env.DEMO_STATE_FILE)Object.assign(state,JSON.parse(await readFile(process.env.DEMO_STATE_FILE,'utf8')).state);
 let locale='zh';
+const checkoutFlow=process.env.DEMO_CHECKOUT_FLOW==='1'?createCheckoutFlowFixture(state,()=>locale):null;
 const fixtureFor=(url,request)=>demoFixture(url,locale,state,request);
 const messages=createPrototypeMessages({state,fixtureFor});
 const realtime=createPrototypeRealtime({state,messages,fixtureFor});
@@ -24,6 +26,14 @@ const server=http.createServer(async(req,res)=>{
   try {
     const url=new URL(req.url,'http://127.0.0.1:'+server.address().port);
     res.setHeader('Cache-Control','no-store');
+    if(checkoutFlow&&url.pathname==='/__checkout/state'){
+      if(req.method==='POST'){
+        let raw='';for await(const chunk of req)raw+=chunk;const update=JSON.parse(raw||'{}');
+        if(update.resetPin){checkoutFlow.pin.state.password=null;checkoutFlow.pin.state.version=0;checkoutFlow.pin.state.attempts=5;checkoutFlow.pin.state.lockedUntil=null;}
+        if(typeof update.dropNextPayment==='boolean')checkoutFlow.pin.state.dropNextPayment=update.dropNextPayment;
+      }
+      return sendJson(res,{simulation:true,payWrites:checkoutFlow.pin.state.payWrites,configured:checkoutFlow.pin.state.password!==null,orders:state.createdOrders??[]});
+    }
     if(url.pathname==='/preview'){res.setHeader('Content-Type',mime['.html']);return res.end(await readFile(path.join(import.meta.dirname,'prototype-preview.html')));}
     if(url.pathname==='/__demo/state') {
       if(req.method==='POST') {
@@ -57,6 +67,12 @@ const server=http.createServer(async(req,res)=>{
     if(trustPage&&process.env.DEMO_TRUST_DOCUMENTS_DIR){res.setHeader('Content-Type','image/jpeg');return res.end(await readFile(path.join(process.env.DEMO_TRUST_DOCUMENTS_DIR,'pages',trustPage[1],`${trustPage[2]}.jpg`)));}
     if(url.pathname==='/api/app/support/attachments/demo-image/content'&&req.method==='GET'){res.setHeader('Content-Type','image/webp');return res.end(await readFile(path.join(root,'static/img/home-glass-20260928/s1.webp')));}
     if(/^\/(api|auth)\//.test(url.pathname)) {
+      if(checkoutFlow?.handles(url.pathname)){
+        let raw='';for await(const chunk of req)raw+=chunk;
+        const response=checkoutFlow.handle(url,{method:()=>req.method,headers:()=>req.headers,postDataJSON:()=>raw?JSON.parse(raw):{}});
+        if(response.drop){res.destroy();return;}
+        return sendJson(res,{code:response.status===200?0:response.status,message:response.message,data:response.data},response.status);
+      }
       if(url.pathname==='/auth/users/refresh')return sendJson(res,{code:0,message:'OK',data:{accessToken:'local-demo-token',refreshToken:null,tokenType:'Bearer',user:{userId:900001,countryCode:'+86',phone:'13800000000',nickname:'Alex',onboardingComplete:true}}});
       const modeledBankWrite=/^\/api\/(withdrawals\/bank\/(beneficiary(?:\/otp)?|quotes(?:\/BQ-[a-f0-9]{32}\/abandon)?|orders)|payout-addresses(?:\/otp\/send)?)$/.test(url.pathname);
       const realtimeTicket=req.method==='POST'&&url.pathname==='/api/app/support/realtime-ticket';

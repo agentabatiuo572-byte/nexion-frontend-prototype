@@ -1,17 +1,18 @@
 <!-- Checkout review presentation. Transaction quotes, confirmation and recovery remain server-authoritative. -->
 <template>
   <AppChassis active="store">
-    <template #pageTop><SubPageHeader class="checkout-header" design :back="checkoutBackHref" :title="auditCopy.review" /></template>
-    <PromotionCheckout class="checkout-promotion" v-if="promotionRoute" :key="app.accountKey+':'+app.accountBindingEpoch" ref="promotionCheckout" :activity-id="promotionRoute.activityId" :items="promotionRoute.items" :order-no="promotionRoute.orderNo" :voucher-id="promotionRoute.voucherId" :upgrade-activity-id="promotionRoute.upgradeActivityId">
+    <template #pageTop><SubPageHeader class="checkout-header" design :back="checkoutBackHref" :back-action="requestCheckoutBack" :title="checkoutResultVisible ? flowCopy.resultTitle : auditCopy.review" /></template>
+    <PromotionCheckout class="checkout-promotion" :class="{ 'checkout-promotion--result': checkoutResultVisible }" v-if="promotionRoute" :key="app.accountKey+':'+app.accountBindingEpoch" ref="promotionCheckout" :activity-id="promotionRoute.activityId" :items="promotionRoute.items" :order-no="promotionRoute.orderNo" :voucher-id="promotionRoute.voucherId" :upgrade-activity-id="promotionRoute.upgradeActivityId">
       <template #review-footer>
-        <view class="checkout-policy-notice" data-testid="checkout-policy-notice"><text>{{ policyHasDevice ? policyCopy.deviceScope+t.store.faq.refund.a : policyCopy.review }}</text><button class="checkout-policy-link" @click="purchasePolicyOpen=true">{{ policyCopy.entry }}</button></view>
-        <view class="checkout-legal"><text>{{ legalCopy.before }}</text><text class="checkout-legal-link" role="link" tabindex="0" @click="navTo('/pages/onboarding/terms')" @keydown.enter.prevent="navTo('/pages/onboarding/terms')">{{ auditCopy.terms }}</text><text>{{ legalCopy.join }}</text><text class="checkout-legal-link" role="link" tabindex="0" @click="navTo('/pages/me/risk-disclosure')" @keydown.enter.prevent="navTo('/pages/me/risk-disclosure')">{{ t.me.riskRow }}</text><text>{{ legalCopy.end }}</text></view>
-        <view class="checkout-cancel" role="button" tabindex="0" @click.stop="promotionCheckout?.back()" @keydown.enter.prevent.stop="promotionCheckout?.back()" @keydown.space.prevent.stop="promotionCheckout?.back()"><text>{{ t.store.coCancel }}</text></view>
+        <CheckoutLegal @navigate="openCheckoutLegal" />
       </template>
     </PromotionCheckout>
-    <view v-else class="checkout-content">
+    <view v-else class="checkout-content" :class="{ 'checkout-content--result': checkoutResultVisible }">
 
-      <view v-if="keepCheckoutTarget" class="text-center" role="status" style="padding:20px">
+      <view v-if="pendingCheckoutCreate && !createdCheckoutOrder && !paymentFlowBusy" class="checkout-exit-error" role="status">
+        <text>{{ t.store.coRecoverOriginalOrder }}</text><NxButton :label="t.store.catalogRetry" :busy="checkoutLeaving" @click="recoverCheckoutCreation" />
+      </view>
+      <view v-else-if="keepCheckoutTarget" class="text-center" role="status" style="padding:20px">
         <text class="block">{{ keepCheckoutReadError ? t.tradein.keepRecoveryReadError : t.tradein.keepRecoveryPending }}</text>
         <NxButton :label="t.tradein.keepRecoveryAction" @click="recoverKeepBeforePurchase([keepCheckoutTarget])" />
       </view>
@@ -44,7 +45,7 @@
       </view>
 
       <template v-else>
-        <view class="checkout-steps" :aria-label="auditCopy.review">
+        <view v-if="!remoteApiEnabled" class="checkout-steps" :aria-label="auditCopy.review">
           <view v-for="(s, i) in stepLabels" :key="s.key" :aria-current="i === stepDisplay ? 'step' : undefined">
             <view class="checkout-step-track"><view class="checkout-step-fill" :style="stepFillStyle(i)" /></view>
             <text class="checkout-step-label" :class="{ 'checkout-step-label--active': i <= stepDisplay }">{{ i + 1 }} {{ s.label }}</text>
@@ -53,7 +54,7 @@
 
         <view v-if="step === 'select-payment' || step === 'confirm'" class="checkout-product checkout-group">
           <view class="checkout-product-art"><image v-if="checkoutImage" :src="checkoutImage" mode="aspectFit" aria-hidden="true" @error="checkoutImageError" /></view>
-          <view class="checkout-product-copy"><text class="checkout-product-name">{{ (product.name) }}</text><text v-if="product.tagline" class="checkout-product-meta">{{ product.tagline }}</text><text class="checkout-product-price">&#36;{{ priceText }}</text></view>
+          <view class="checkout-product-copy"><text class="checkout-product-name">{{ (product.name) }}</text><text v-if="product.tagline" class="checkout-product-meta">{{ product.tagline }}</text><CheckoutAmount class="checkout-product-price" :value="reviewAmount(purchaseSubtotal)" :currency="reviewCurrency" /></view>
           <view class="checkout-quantity"><text class="checkout-product-meta">{{ t.store.coRowQuantity }}</text><view class="checkout-quantity-controls">
             <button class="checkout-quantity-button" disabled :aria-label="t.uiChrome.decreaseQty">−</button>
             <text class="checkout-quantity-value" aria-live="polite">1</text>
@@ -83,7 +84,7 @@
               <view class="checkout-option checkout-voucher" role="button" tabindex="0" :aria-expanded="voucherDetailsOpen" @click="voucherDetailsOpen = !voucherDetailsOpen" @keydown.enter.prevent="voucherDetailsOpen = !voucherDetailsOpen" @keydown.space.prevent="voucherDetailsOpen = !voucherDetailsOpen">
                 <view class="checkout-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9a2 2 0 0 0 0 6v3a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-3a2 2 0 0 0 0-6V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1z" /><path d="M14 6v2m0 3v2m0 3v2" /></svg></view>
                 <view class="checkout-option-copy"><text class="checkout-row-title">{{ t.voucher.checkoutRowLabel }}</text><text class="checkout-row-description">{{ remoteApiEnabled && trialConversionMode ? trialCopy.voucherUnavailable : hasVoucher ? auditCopy.autoApplyVoucher : !voucherAutomatic ? t.promotion.noVoucher : expiredVoucherForSku ? t.voucher.expiredNote : t.voucher.noneAvailable }}</text></view>
-                <text v-if="hasVoucher" class="checkout-discount">−{{ voucherDiscountText }} USDT</text><svg class="checkout-chevron" :class="{ 'checkout-chevron--open': voucherDetailsOpen }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
+                <text v-if="hasVoucher" class="checkout-discount">{{ reviewMoney(voucherDiscount, true) }}</text><svg class="checkout-chevron" :class="{ 'checkout-chevron--open': voucherDetailsOpen }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
               </view>
               <view v-if="voucherDetailsOpen" class="checkout-voucher-details">
                 <text v-if="voucherMatch" class="checkout-row-description checkout-voucher-match">{{ voucherMatch.def.name }}</text>
@@ -95,9 +96,9 @@
                 </view>
                 <view class="checkout-voucher-link" role="link" tabindex="0" @click="navTo('/pages/me/rewards-list?cat=voucher')"><text>{{ auditCopy.vouchers }}</text><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg></view>
               </view>
-              <view v-if="promoDiscount > 0" class="checkout-option"><view class="checkout-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12v9h16v-9M2 7h20v5H2zM12 7v14M12 7C3 8 4 0 8 2c3 1 4 5 4 5s1-4 4-5c4-2 5 6-4 5" /></svg></view><view class="checkout-option-copy"><text class="checkout-row-title">{{ promoRowLabel }}</text></view><text class="checkout-discount">−{{ promoDiscountText }} USDT</text></view>
-              <view v-if="trialOffsetView.offsetUSD > 0" class="checkout-option"><view class="checkout-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg></view><view class="checkout-option-copy"><text class="checkout-row-title">{{ t.store.coRowTrialOffset }}</text></view><text class="checkout-discount">−{{ trialOffsetText }} USDT</text></view>
-              <view v-if="trialOffsetView.earlyDiscountUSD > 0" class="checkout-option" data-testid="checkout-trial-early-discount"><view class="checkout-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" /></svg></view><view class="checkout-option-copy"><text class="checkout-row-title">{{ trialCopy.earlyDiscountLabel }}</text></view><text class="checkout-discount">−{{ trialEarlyDiscountText }} USDT</text></view>
+              <view v-if="promoDiscount > 0" class="checkout-option"><view class="checkout-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 12v9h16v-9M2 7h20v5H2zM12 7v14M12 7C3 8 4 0 8 2c3 1 4 5 4 5s1-4 4-5c4-2 5 6-4 5" /></svg></view><view class="checkout-option-copy"><text class="checkout-row-title">{{ promoRowLabel }}</text></view><text class="checkout-discount">{{ reviewMoney(promoDiscount, true) }}</text></view>
+              <view v-if="trialOffsetView.offsetUSD > 0" class="checkout-option"><view class="checkout-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg></view><view class="checkout-option-copy"><text class="checkout-row-title">{{ t.store.coRowTrialOffset }}</text></view><text class="checkout-discount">{{ reviewMoney(trialOffsetView.offsetUSD, true) }}</text></view>
+              <view v-if="trialOffsetView.earlyDiscountUSD > 0" class="checkout-option" data-testid="checkout-trial-early-discount"><view class="checkout-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z" /></svg></view><view class="checkout-option-copy"><text class="checkout-row-title">{{ trialCopy.earlyDiscountLabel }}</text></view><text class="checkout-discount">{{ reviewMoney(trialOffsetView.earlyDiscountUSD, true) }}</text></view>
               <!-- Trade-in remains a separate, reversible action, never a payment switch. -->
               <view v-if="hasTradein || removedTradein || tradeinAvailable" class="checkout-option checkout-tradein">
                 <view class="checkout-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 4-4 4 4 4M3 8h13m1 12 4-4-4-4M21 16H8" /></svg></view>
@@ -108,7 +109,7 @@
             </view>
           </view>
 
-          <view class="checkout-section">
+          <view v-if="!remoteApiEnabled" class="checkout-section">
             <view class="checkout-section-heading"><text>{{ t.store.coPaymentMethod }}</text></view>
             <view class="checkout-group" role="group" :aria-label="t.store.coPaymentMethod">
               <view v-for="m in PAYMENT_METHODS" :key="m.id" class="checkout-option checkout-payment" :class="{ 'checkout-payment--active': payment === m.id }" role="button" tabindex="0" :aria-pressed="payment === m.id" @click.stop="selectPayment(m.id)">
@@ -122,16 +123,16 @@
           <view class="checkout-section">
             <view class="checkout-section-heading"><text>{{ t.store.coReviewOrder }}</text></view>
             <view class="checkout-group checkout-fees">
-              <CheckoutRow :label="t.store.coRowSubtotal" :value="priceText + ' USDT'" class="checkout-fee" />
-              <CheckoutRow v-if="promoDiscount > 0" :label="promoRowLabel" :value="'−' + promoDiscountText + ' USDT'" class="checkout-fee checkout-fee--discount" />
-              <CheckoutRow v-if="trialOffsetView.offsetUSD > 0" :label="t.store.coRowTrialOffset" :value="'−' + trialOffsetText + ' USDT'" class="checkout-fee checkout-fee--discount" />
-              <CheckoutRow v-if="trialOffsetView.earlyDiscountUSD > 0" :label="trialCopy.earlyDiscountLabel" :value="'−' + trialEarlyDiscountText + ' USDT'" class="checkout-fee checkout-fee--discount" />
-              <CheckoutRow v-if="hasVoucher" :label="t.voucher.checkoutRowLabel" :value="'−' + voucherDiscountText + ' USDT'" class="checkout-fee checkout-fee--discount" />
-              <CheckoutRow v-if="hasTradein" :label="t.tradein.checkoutRowLabel" :value="'−' + tradeinCreditText + ' USDT'" class="checkout-fee checkout-fee--discount" />
-              <CheckoutRow v-if="isCard" :label="fmt(t.store.coRowCardFee, { rate: cardFeeRateLabel() })" :value="cardFeeText + ' USDT'" class="checkout-fee" />
+              <CheckoutRow :label="t.store.coRowSubtotal" :value="reviewMoney(purchaseSubtotal)" class="checkout-fee" />
+              <CheckoutRow v-if="promoDiscount > 0" :label="promoRowLabel" :value="reviewMoney(promoDiscount, true)" class="checkout-fee checkout-fee--discount" />
+              <CheckoutRow v-if="trialOffsetView.offsetUSD > 0" :label="t.store.coRowTrialOffset" :value="reviewMoney(trialOffsetView.offsetUSD, true)" class="checkout-fee checkout-fee--discount" />
+              <CheckoutRow v-if="trialOffsetView.earlyDiscountUSD > 0" :label="trialCopy.earlyDiscountLabel" :value="reviewMoney(trialOffsetView.earlyDiscountUSD, true)" class="checkout-fee checkout-fee--discount" />
+              <CheckoutRow v-if="hasVoucher" :label="t.voucher.checkoutRowLabel" :value="reviewMoney(voucherDiscount, true)" class="checkout-fee checkout-fee--discount" />
+              <CheckoutRow v-if="hasTradein" :label="t.tradein.checkoutRowLabel" :value="reviewMoney(tradeinCredit, true)" class="checkout-fee checkout-fee--discount" />
+              <CheckoutRow v-if="isCard" :label="fmt(t.store.coRowCardFee, { rate: cardFeeRateLabel() })" :value="reviewMoney(cardFee)" class="checkout-fee" />
               <CheckoutRow v-else-if="!remoteApiEnabled" :label="t.store.coRowNetworkFee" :value="t.store.coFeeFree" class="checkout-fee" />
               <CheckoutRow v-if="!remoteApiEnabled" :label="t.store.coRowShipping" :value="t.store.coShippingValue" class="checkout-fee" />
-              <CheckoutRow :label="t.store.coRowTotal" :value="confirmTotalText + ' USDT'" big class="checkout-fee checkout-fee--total" />
+              <view class="checkout-fee checkout-fee--total checkout-summary-total"><text>{{ flowCopy.paymentTotal }}</text><CheckoutAmount :value="reviewAmount(netPrice + cardFee)" :currency="reviewCurrency" /></view>
             </view>
             <view v-if="trialCreditText" class="checkout-trial-credit" data-testid="checkout-trial-credit">
               <text>{{ trialCopy.afterPurchaseLabel }}</text>
@@ -148,9 +149,7 @@
               </view>
             </view>
             <view v-else-if="!remoteApiEnabled && capped" class="checkout-note checkout-note--warning"><text>{{ slotsFullText }}</text></view>
-            <view class="checkout-policy-notice" data-testid="checkout-policy-notice"><text>{{ policyHasDevice ? policyCopy.deviceScope+t.store.faq.refund.a+(trialConversionMode ? purchaseCopy.refundClause : '') : policyCopy.review }}</text><button class="checkout-policy-link" @click="purchasePolicyOpen=true">{{ policyCopy.entry }}</button></view>
-            <view class="checkout-legal"><text>{{ legalCopy.before }}</text><text class="checkout-legal-link" role="link" tabindex="0" @click="navTo('/pages/onboarding/terms')" @keydown.enter.prevent="navTo('/pages/onboarding/terms')">{{ auditCopy.terms }}</text><text>{{ legalCopy.join }}</text><text class="checkout-legal-link" role="link" tabindex="0" @click="navTo('/pages/me/risk-disclosure')" @keydown.enter.prevent="navTo('/pages/me/risk-disclosure')">{{ t.me.riskRow }}</text><text>{{ legalCopy.end }}</text></view>
-            <view class="checkout-cancel" role="button" tabindex="0" @click.stop="cancelCheckout" @keydown.enter.prevent.stop="cancelCheckout" @keydown.space.prevent.stop="cancelCheckout"><text>{{ t.store.coCancel }}</text></view>
+            <CheckoutLegal @navigate="openCheckoutLegal" />
           </view>
         </template>
 
@@ -171,6 +170,8 @@
             <text>{{ t.store.coTrackOrder }}</text>
           </view>
         </view>
+
+        <CheckoutResult v-else-if="remoteApiEnabled && settledResultReplay" :state="checkoutResultState" :product-name="product.name" :product-image="checkoutImage ?? undefined" :amount="completedOrder?.total ?? netPrice" @devices="viewPurchasedDevices" @retry="refreshCheckoutResult" />
 
         <!-- === confirmed === -->
         <view v-else-if="step === 'confirmed'" class="nx-glass-card mx-4 rounded-2xl text-center relative overflow-hidden nx-pop-in" :style="centerCardStyle">
@@ -242,22 +243,32 @@
     </NxSheet>
     <template #pageFixed>
       <view v-if="promotionRoute && promotionCheckout?.footer" class="checkout-sticky">
-        <view class="checkout-sticky-copy"><text class="checkout-total">{{ promotionCheckout.footer.amount }}</text><text class="checkout-product-meta">{{ t.store.coRowTotal }}</text></view>
+        <view class="checkout-sticky-copy"><CheckoutAmount class="checkout-total" :value="promotionCheckout.footer.amountValue" :currency="promotionCheckout.footer.currency" /><text class="checkout-product-meta">{{ flowCopy.paymentTotal }}</text></view>
         <NxButton variant="primary" :disabled="promotionCheckout.footer.disabled" :label="promotionCheckout.footer.label" @click="promotionCheckout.footer.action" />
       </view>
-      <view v-if="!promotionRoute && !keepCheckoutTarget && !remoteTradeinRecoveryError && product && !trialQuoteScreenUnavailable && !receiptWriteFailure && (step === 'select-payment' || step === 'confirm')" class="checkout-sticky">
-        <view class="checkout-sticky-copy"><text class="checkout-total">{{ confirmTotalText }} USDT</text><text class="checkout-product-meta">{{ t.store.coRowTotal }}</text></view>
-        <NxButton variant="primary" :disabled="checkoutWalletRefreshing || (remoteApiEnabled && !checkoutWalletReadable) || purchaseUnavailable || quantitySwitching" :busy="checkoutWalletRefreshing || quantitySwitching" :label="isCard ? t.store.coContinueToPayment : t.store.coPayNow" @click="submitReview" />
+      <view v-if="!promotionRoute && !keepCheckoutTarget && !pendingCheckoutCreate && !remoteTradeinRecoveryError && product && !trialQuoteScreenUnavailable && !receiptWriteFailure && (step === 'select-payment' || step === 'confirm')" class="checkout-sticky">
+        <view class="checkout-sticky-copy"><CheckoutAmount class="checkout-total" :value="reviewAmount(netPrice + cardFee)" :currency="reviewCurrency" /><text class="checkout-product-meta">{{ flowCopy.paymentTotal }}</text></view>
+        <NxButton variant="primary" :disabled="checkoutWalletRefreshing || (remoteApiEnabled && !checkoutWalletReadable) || purchaseUnavailable || quantitySwitching || paymentFlowBusy || checkoutLeaving" :busy="checkoutWalletRefreshing || quantitySwitching || paymentFlowBusy || checkoutLeaving" :label="isCard ? t.store.coContinueToPayment : t.store.coPayNow" @click="submitReview" />
       </view>
     </template>
+    <CheckoutPaymentSheet :open="paymentSheetOpen" :amount="paymentSheetAmount" :balance="app.user.usdtBalance" :busy="paymentFlowBusy" @close="closePaymentSheet" @confirm="confirmPaymentSheet" @topup="closePaymentSheet(); navTo('/pages/me/wallet-topup')" />
+    <NxSheet :open="checkoutLeaveError !== ''" :title="flowCopy.cancelFailed" @close="checkoutLeaveError = ''"><view class="checkout-exit-error"><text>{{ checkoutLeaveError }}</text><NxButton :label="t.store.catalogRetry" :busy="checkoutLeaving" @click="cancelCheckout" /></view></NxSheet>
+    <NxSheet :open="paymentStockFailure !== null" :title="paymentStockFailure?.kind === 'blocked' ? flowCopy.cannotPay : flowCopy.queryFailed" @close="paymentStockFailure = null"><view class="checkout-exit-error"><text>{{ paymentStockFailure?.message }}</text><NxButton v-if="paymentStockFailure?.kind === 'blocked'" :label="flowCopy.cancelOrder" :busy="checkoutLeaving" @click="paymentStockFailure = null; cancelCheckout()" /><NxButton v-else :label="flowCopy.retry" @click="requestConfirmPay" /></view></NxSheet>
   </AppChassis>
 </template>
 
 <script setup lang="ts">
 import { formatAmount as formatPlainAmount, formatGroupedAmount } from "@/lib/amount-display";
+import { checkoutReviewAmount, formatCheckoutReviewAmount,type CheckoutReviewCurrency } from '@/lib/checkout-review-amount';
 import { ref, reactive, nextTick, computed, watch, onMounted, onUnmounted, type CSSProperties } from "vue";
 import NxButton from "@/components/ui/nx-button.vue";
 import NxSheet from "@/components/ui/nx-sheet.vue";
+import CheckoutAmount from '@/components/checkout/CheckoutAmount.vue';
+import CheckoutPaymentSheet from '@/components/checkout/CheckoutPaymentSheet.vue';
+import CheckoutResult from '@/components/checkout/CheckoutResult.vue';
+import CheckoutLegal from '@/components/checkout/CheckoutLegal.vue';
+import { checkoutFlowCopy } from '@/lib/checkout-flow-copy';
+import type { CreatedOrder } from '@/api/order-api';
 import { useAuditUiCopy } from "@/i18n/audit-ui";
 import { onHide, onLoad, onShow, onUnload, onBackPress } from "@dcloudio/uni-app";
 import PromotionCheckout from '@/components/promotion/promotion-checkout.vue';
@@ -285,8 +296,10 @@ import { voucherAppliesToSku } from "@/mock/vouchers";
 import { useApp } from "@/store/app";
 import { useOrders, type Order } from "@/store/orders";
 import { useAuth } from "@/store/auth";
-import { acquireAccountCommandKey, readAccountRow, writeAccountRow } from "@/store/account-scoped-storage";
+import { acquireAccountCommandKey, readAccountRow, writeAccountRow, releaseAccountCommandKey } from "@/store/account-scoped-storage";
 import { rememberCheckoutOrder, recoverCheckoutOrder, forgetCheckoutOrder, readCheckoutTradein, finishCheckoutTradein, type CheckoutTradeinRecovery } from "@/lib/checkout-order-recovery";
+import { readCheckoutCreate, rememberCheckoutCreate, forgetCheckoutCreate, type PendingCheckoutCreate } from '@/lib/checkout-create-recovery';
+import { assertCheckoutPurchaseStock, CheckoutPurchaseCheckError } from '@/lib/checkout-purchase-check';
 import { CheckoutRouteFence, type CheckoutRouteScope } from "@/lib/checkout-route-fence";
 import { postMoneyBill, postReceiptOnce, postReceiptOnly, reportStuckFunds, type ReceiptDraft } from "@/lib/money-receipt";
 import { useVoucher } from "@/store/voucher";
@@ -308,7 +321,7 @@ import { confirm, toast, useUI } from "@/store/ui";
 import { deviceE3Api, orderApi, purchaseEligibilityApi, remoteApiEnabled } from "@/api/runtime";
 import { asApiError, isSettledRejection } from "@/api/errors";
 import { executePaymentWithPassword } from "@/lib/authorized-payment";
-import { beginOrderAction, clearOrderAction, markOrderActionPaid } from "@/lib/order-command-fence";
+import { beginOrderAction, clearOrderAction, markOrderActionPaid, readOrderAction } from "@/lib/order-command-fence";
 import { readPaymentCommand } from "@/api/payment-command-api";
 import { apiClient } from "@/api/runtime";
 import { parseCanonicalTradeinResult } from "@/api/device-e3-api";
@@ -344,17 +357,19 @@ interface PaymentMethod {
 
 const t = useT();
 function formatAmount(value: Parameters<typeof formatPlainAmount>[0]): string {
-  // Preserve the effective precision of the payable in both the review and
-  // confirmation; the original amount remains authoritative for commands.
-  if (formatPlainAmount(value) === '-') return '-';
-  const [, sign, integer, fraction = '', exponent = '0'] = String(value).trim().match(/^([+-]?)(\d+)(?:\.(\d*))?(?:e([+-]?\d+))?$/i)!;
-  const digits = integer + fraction, point = integer.length + Number(exponent);
-  const whole = (point > 0 ? digits.slice(0, point).padEnd(point, '0') : '0').replace(/^0+(?=\d)/, '');
-  const tail = ((point < 0 ? '0'.repeat(-point) : '') + digits.slice(Math.max(point, 0))).replace(/0+$/, '').padEnd(2, '0');
-  return (sign === '-' && /[1-9]/.test(digits) ? '-' : '') + whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '.' + tail;
+  return formatGroupedAmount(value);
 }
 const locale = useLocaleStore();
+const flowCopy = computed(() => checkoutFlowCopy(locale.code));
+const createdCheckoutOrder = ref<CreatedOrder | null>(null);
+const pendingCheckoutCreate = ref<PendingCheckoutCreate | null>(null);
+const paymentStockFailure = ref<{ kind: 'blocked' | 'query'; message: string } | null>(null);
+const hasOriginalCheckout = computed(() => !!createdCheckoutOrder.value || !!pendingCheckoutCreate.value);
 const purchasePolicyOpen = ref(false);
+function openCheckoutLegal(kind: 'aftersales' | 'terms' | 'risk') {
+  if (kind === 'aftersales') purchasePolicyOpen.value = true;
+  else navTo(kind === 'terms' ? '/pages/onboarding/terms' : '/pages/me/risk-disclosure');
+}
 // Reuse the published store FAQ verbatim; this sheet introduces no refund or
 // warranty promises. Reward-specific recovery terms remain in PromotionTerms.
 const policyCopy = computed(() => locale.code === 'zh'
@@ -372,8 +387,9 @@ const app = useApp();
 const promotionRoute=ref<({activityId:string;items:PromotionItem[];orderNo?:string}&VoucherEntryContext)|null>(null);
 const keepCheckoutTarget = ref<string | null>(null), keepCheckoutReadError = ref(false);
 const promotionCheckout=ref<InstanceType<typeof PromotionCheckout>|null>(null);
+const checkoutResultVisible = computed(() => promotionRoute.value ? promotionCheckout.value?.resultVisible === true : remoteApiEnabled && settledResultReplay.value);
 const policyHasDevice=computed(()=>promotionRoute.value ? promotionCheckout.value?.hasDevicePolicy===true : !!product.value&&product.value.productType!=='SHARE');
-onBackPress(()=>promotionRoute.value ? (promotionCheckout.value?.back()??false) : false);
+onBackPress(options => { if (options.from === 'navigateBack') return false; requestCheckoutBack(); return true; });
 const auth = useAuth();
 const orders = useOrders();
 const voucher = useVoucher();
@@ -448,7 +464,7 @@ const walletBalanceHint = computed(() => {
     return checkoutWalletRefreshing.value || app.remoteFleetStatus === "idle" || app.remoteFleetStatus === "loading"
       ? t.value.help.loadingMore : t.value.wallet.fundsUnavailableTitle;
   }
-  return `${t.value.wallet.usdtBalance} · ${formatAmount(app.user.usdtBalance)} USDT`;
+  return `${t.value.wallet.usdtBalance} · ${formatAmount(app.user.usdtBalance)}`;
 });
 
 function checkoutRouteIdentity() {
@@ -566,6 +582,10 @@ onLoad(async (options) => {
   resumeSessionId = o.resume || null;
   const routeScope = beginCheckoutRoute();
   checkoutRouteInitialized = true;
+  await initializeCheckout(routeScope);
+});
+
+async function initializeCheckout(routeScope: CheckoutRouteScope): Promise<void> {
   activeCheckoutLoad = routeScope;
   try {
     // A durable server order is a recovery route, never a fresh purchase. It has
@@ -599,7 +619,7 @@ onLoad(async (options) => {
       setTimeout(() => { uni.showToast({ title: unavailableCopy, icon: "none", duration: 2600 }); }, 120);
       return;
     }
-    if (pp.inventoryMode === "FINITE" && (pp.stock ?? 0) <= 0) {
+    if (!hasOriginalCheckout.value && pp.inventoryMode === "FINITE" && (pp.stock ?? 0) <= 0) {
       dropResumeInvoice();
       const unavailableCopy = trialCheckoutSource ? t.value.store.trialProductUnavailable : t.value.store.temporarilyOutOfStock;
       if (trialCheckoutSource) navBack("/pages/me/trial");
@@ -647,7 +667,7 @@ onLoad(async (options) => {
       promotionRoute.value = { activityId: '', items: [{ productNo: pp.id, quantity: 1 }] };
       return;
     }
-    fireTradeinIntercept();
+    await fireTradeinIntercept();
   } finally {
     if (activeCheckoutLoad?.generation === routeScope.generation
       && activeCheckoutLoad.accountKey === routeScope.accountKey
@@ -656,7 +676,7 @@ onLoad(async (options) => {
       quantityReady.value = true;
     }
   }
-});
+}
 
 const catalogStatus = computed(() => productCatalogState.status);
 const product = computed<Product | undefined>(() => !productId.value || (remoteApiEnabled && catalogStatus.value !== "ready") ? undefined
@@ -748,7 +768,7 @@ function trialQuoteAt(now: number): TrialQuote {
 }
 
 /** 展示侧的那一次解析 —— 确认页渲染的每个数字都出自它。 */
-const trialView = computed(() => trialQuoteAt(nowTick.value));
+const trialView = computed(() => hasOriginalCheckout.value ? NO_TRIAL : trialQuoteAt(nowTick.value));
 // Until the claim snapshot has been read, an ordinary full-price order could
 // accidentally bypass an existing trial. Keep review/payment closed on that read.
 // An early quote past its original-term end is stale too: never show or pay a lapsed offer.
@@ -760,15 +780,15 @@ const trialQuoteIncomplete = computed(() => trialEarlyQuoteLapsed.value
   || ((freeTrial.status === "active" || freeTrial.status === "grace")
     && (freeTrial.authoritativeOffsetUSD === null || freeTrial.authoritativeRemainderUSD === null
       || freeTrial.authoritativePriceUSD === null)));
-const trialQuoteUnavailable = computed(() => remoteApiEnabled && (freeTrial.authorityStatus !== "ready" || trialQuoteIncomplete.value));
+const trialQuoteUnavailable = computed(() => remoteApiEnabled && !hasOriginalCheckout.value && (freeTrial.authorityStatus !== "ready" || trialQuoteIncomplete.value));
 // The 4s trial poll marks the authority loading while it re-reads. Keep the last confirmed quote on
 // screen meanwhile instead of swapping the page out (which also threw the scroll back to the top);
 // every action still waits on trialQuoteUnavailable.
-const trialQuoteScreenUnavailable = computed(() => remoteApiEnabled && ((freeTrial.authorityStatus !== "ready"
+const trialQuoteScreenUnavailable = computed(() => remoteApiEnabled && !hasOriginalCheckout.value && ((freeTrial.authorityStatus !== "ready"
   && !(freeTrial.authorityStatus === "loading" && freeTrial.authorityServerState !== null)) || trialQuoteIncomplete.value));
 const trialConversionMode = computed(() => trialView.value.applied);
-const purchaseSubtotal = computed(() => remoteApiEnabled && trialConversionMode.value
-  ? freeTrial.authoritativePriceUSD ?? 0 : product.value?.price ?? 0);
+const purchaseSubtotal = computed(() => createdCheckoutOrder.value?.subtotalUsdt ?? pendingCheckoutCreate.value?.subtotal
+  ?? (remoteApiEnabled && trialConversionMode.value ? freeTrial.authoritativePriceUSD ?? 0 : product.value?.price ?? 0));
 const promoDiscount = computed(() => trialView.value.promo);
 const trialOffsetView = computed(() => trialView.value);
 const promoDiscountText = computed(() => formatAmount(promoDiscount.value));
@@ -815,7 +835,7 @@ function canChangeVoucher():boolean {
     &&(step.value==='select-payment'||step.value==='confirm')
     &&!voucherSelecting.value&&!quantitySwitching.value&&!confirming&&!purchaseConfirmationOpen&&dialogsOpen===0
     &&!remoteTradeinRecoveryRequired.value&&!activeSession.value&&!resumeSessionId&&!orderId.value
-    &&!remoteOrderFailure.value&&!receiptWriteFailure.value;
+    &&!remoteOrderFailure.value&&!receiptWriteFailure.value&&!createdCheckoutOrder.value&&!pendingCheckoutCreate.value;
 }
 async function selectAutomaticVoucher(enabled:boolean):Promise<void> {
   if(!canChangeVoucher())return;
@@ -844,7 +864,7 @@ const voucherMatch = computed(() => {
   if (remoteApiEnabled && tradein.appliedTradein?.canonicalQuote) return null;
   return voucher.bestVoucherFor(p.id, p.price, trialConversionMode.value ? { stackWithTrial: true } : undefined);
 });
-const voucherDiscount = computed(() => voucherMatch.value?.discountUSD ?? 0);
+const voucherDiscount = computed(() => createdCheckoutOrder.value?.discountUsdt ?? pendingCheckoutCreate.value?.discount ?? voucherMatch.value?.discountUSD ?? 0);
 const hasVoucher = computed(() => voucherDiscount.value > 0);
 const voucherDiscountText = computed(() => formatAmount(voucherDiscount.value));
 
@@ -892,10 +912,7 @@ const tradeinCreditText = computed(() => formatAmount(tradeinCredit.value));
 const tradeinChipText = computed(() => {
   const ti = appliedTradeinView.value;
   if (!ti) return "";
-  return fmt(t.value.tradein.checkoutCreditChip, {
-    name: deviceName(t.value, ti.device),
-    credit: tradeinCreditText.value,
-  });
+  return deviceName(t.value, ti.device) + ' · ' + reviewMoney(tradeinCredit.value, true);
 });
 const tradeinPlacementText = computed(() => !appliedTradeinView.value ? ""
   : (appliedTradeinView.value.canonicalQuote ? appliedTradeinView.value.canonicalQuote.targetDeviceStatus === "ACTIVE"
@@ -932,6 +949,8 @@ async function reAddTradein() {
 }
 
 const netPrice = computed(() => {
+  if (createdCheckoutOrder.value) return createdCheckoutOrder.value.amountUsdt;
+  if (pendingCheckoutCreate.value) return pendingCheckoutCreate.value.amount;
   const canonical = remoteApiEnabled ? appliedTradeinView.value?.canonicalQuote ?? null : null;
   if (canonical) return canonical.payableUsdt;
   return Math.max(
@@ -973,11 +992,13 @@ const KNOWN_KINDS: DeviceKind[] = [
   "stellarrack-p2",
 ];
 let interceptFired = false;
+let checkoutCapacityRead: Promise<boolean | undefined> | null = null;
 const remoteCapacityGate = reactive(new RemoteCapacityGate());
 watch([() => app.accountKey, () => app.accountBindingEpoch], () => {
   interceptFired = false;
   tradeinAvailable.value = false;
   remoteCapacityGate.reset();
+  checkoutCapacityRead = null;
   checkoutWalletRefreshSequence += 1;
   checkoutWalletRefreshing.value = false;
   quantityReady.value = false;
@@ -988,6 +1009,13 @@ watch([() => app.accountKey, () => app.accountBindingEpoch], () => {
   // after the session has switched to account B.
   confirming = false;
   orderId.value = null;
+  createdCheckoutOrder.value = null;
+  pendingCheckoutCreate.value = null;
+  paymentStockFailure.value = null;
+  settledResultReplay.value = false;
+  checkoutLeaveError.value = '';
+  checkoutLeaving.value = false;
+  closePaymentSheet();
   remoteOrderFailure.value = null;
   receiptWriteFailure.value = null;
   receiptRetrying.value = false;
@@ -1001,9 +1029,10 @@ watch([() => app.accountKey, () => app.accountBindingEpoch], () => {
   // 正开着的确认框渲染的是上一个账号的商品名与金额 —— 一并收掉。
   if (dialogsOpen > 0) useUI().clearConfirmsBy(dialogOwner);
   step.value = "select-payment";
-  // Cookie restoration keeps this checkout mounted. Re-read the newly bound
-  // account's original result even when onLoad only saw the guest account.
-  if (remoteApiEnabled && checkoutRouteInitialized && pageAlive && pageVisible) void resumeServerOrder();
+  // Cookie restoration can invalidate onLoad's guest scope before its new-order
+  // gates run. Resume the same full read path for the newly bound account;
+  // initializeCheckout still recovers an original command before new quotes.
+  if (remoteApiEnabled && checkoutRouteInitialized && pageAlive && pageVisible) void initializeCheckout(beginCheckoutRoute());
 });
 async function fireTradeinIntercept(interactive = false): Promise<boolean | undefined> {
   if (interceptFired) return;
@@ -1026,7 +1055,7 @@ async function fireTradeinIntercept(interactive = false): Promise<boolean | unde
     // otherwise ordinary purchase, matching the prototype's local flow where
     // the absence of a trade-in candidate simply continues to payment.
     let eligibility: CanonicalTradeinEligibility | null = null;
-    return remoteCapacityGate.resolve(
+    checkoutCapacityRead = remoteCapacityGate.resolve(
       async () => {
         const result = await resolveTradeinCheckoutPreflight(
           deviceE3Api.eligibility(kind), deviceE3Api.capacityQuote(kind),
@@ -1076,6 +1105,7 @@ async function fireTradeinIntercept(interactive = false): Promise<boolean | unde
       if (!isCurrentCheckoutRoute(requestScope)) return;
       toast.warn(t.value.store.coCapacityUnavailable);
     });
+    return checkoutCapacityRead;
   }
   // Mock/demo keeps the isolated local eligibility composer.
   const { canTradeIn, tradeInSources, capped } = useDeviceEligibility(kind);
@@ -1096,7 +1126,7 @@ async function fireTradeinIntercept(interactive = false): Promise<boolean | unde
   return false;
 }
 async function retryCheckoutCapacity() {
-  if (remoteCapacityGate.pending) return;
+  if (remoteCapacityGate.pending) { await checkoutCapacityRead; return; }
   interceptFired = false;
   await fireTradeinIntercept();
 }
@@ -1143,7 +1173,17 @@ function presentSettledPurchase(firstHardwareOrder: boolean, onResultShown: (() 
   forgetSettledOrder = onResultShown;
   settledResultReplay.value = true;
   step.value = "confirmed";
+  // The authoritative result is now rendered by CheckoutResult. It owns only
+  // the presentation animation; JS timers never decide when its bar is full.
+  void nextTick(() => { if (pageAlive && settledResultReplay.value) { forgetSettledOrder?.(); forgetSettledOrder = null; } });
 }
+const checkoutResultState = computed(() => completedOrder.value?.status === 'activated' ? 'activated'
+  : completedOrder.value?.status === 'inventory' ? 'inventory' : 'processing');
+async function refreshCheckoutResult() {
+  if (!orderId.value) return;
+  await orders.ensureRemoteOrder(orderId.value);
+}
+function viewPurchasedDevices() { navTo('/pages/me/devices'); }
 // First paid order and the item is hardware (Cloud Share is not a device).
 function isFirstHardwareOrder(orderNo: string): boolean {
   return product.value?.productType !== "SHARE"
@@ -1204,7 +1244,7 @@ const cappedRaw = computed(() => (app.remoteSlotsUsed ?? app.activeSlotCount + r
 const checkoutCapacityRequired = computed(() => remoteApiEnabled && !trialConversionMode.value
   && !freeTrial.hasPendingConversion() && product.value?.productType !== "SHARE"
   && KNOWN_KINDS.includes(productId.value as DeviceKind));
-const checkoutCapacityMessage = computed(() => remoteCapacityGate.pending ? t.value.store.coCapacityChecking
+const checkoutCapacityMessage = computed(() => remoteCapacityGate.pending || !quantityReady.value ? t.value.store.coCapacityChecking
   : remoteCapacityGate.decision === "REPLACE_REQUIRED" ? slotsFullText.value
   : remoteCapacityGate.decision === "NO_ACTIVE_DEVICE" ? t.value.tradein.errNoActiveDevice
   : t.value.store.coCapacityUnavailable);
@@ -1258,6 +1298,14 @@ async function submitReview() {
     if (!ready || !isCurrentCheckoutRoute(scope)) return;
   }
   if (trialQuoteUnavailable.value || quantitySwitching.value || (remoteApiEnabled && !checkoutWalletReadable.value)) return;
+  // One tap joins the in-flight authority read (or retries its failed read),
+  // then continues only for this same checkout. No second tap or timed delay.
+  if (step.value === 'select-payment' && !createdCheckoutOrder.value && !pendingCheckoutCreate.value
+      && checkoutCapacityRequired.value && !remoteCapacityGate.canConfirm(Boolean(appliedTradeinView.value?.canonicalQuote))) {
+    await retryCheckoutCapacity();
+    if (!isCurrentCheckoutRoute(scope)) return;
+    if (!remoteCapacityGate.canConfirm(Boolean(appliedTradeinView.value?.canonicalQuote))) return;
+  }
   if (step.value === 'select-payment') { goConfirm(); await nextTick(); if (!isCurrentCheckoutRoute(scope)) return; }
   if (step.value === 'confirm') await requestConfirmPay();
 }
@@ -1331,8 +1379,20 @@ let quotedTradeIn: { deviceId: string } | null = null;
 let pendingVoucherRelease: string | null = null;
 
 let purchaseConfirmationOpen = false;
+const paymentSheetOpen = ref(false);
+const paymentSheetAmount = ref(0);
+const paymentFlowBusy = ref(false);
+const reviewCurrency = computed<CheckoutReviewCurrency>(() => paymentSheetOpen.value || paymentFlowBusy.value ? 'USDT' : 'USD');
+function reviewAmount(amount: Parameters<typeof checkoutReviewAmount>[0]) { return checkoutReviewAmount(amount, reviewCurrency.value); }
+function reviewMoney(amount: Parameters<typeof checkoutReviewAmount>[0], discount = false) { return formatCheckoutReviewAmount(amount, reviewCurrency.value, discount); }
+const checkoutLeaving = ref(false);
+let checkoutLeaveAttempt = 0;
+const checkoutLeaveError = ref('');
+let settlePaymentSheet: ((accepted: boolean) => void) | null = null;
+function closePaymentSheet() { paymentSheetOpen.value = false; settlePaymentSheet?.(false); settlePaymentSheet = null; }
+function confirmPaymentSheet() { paymentFlowBusy.value = true; paymentSheetOpen.value = false; settlePaymentSheet?.(true); settlePaymentSheet = null; }
 async function requestConfirmPay() {
-  if (trialQuoteUnavailable.value) return;
+  if (trialQuoteUnavailable.value && !createdCheckoutOrder.value && !pendingCheckoutCreate.value) return;
   if (voucherSelecting.value || purchaseConfirmationOpen || confirming || checkoutWalletRefreshing.value || step.value !== "confirm") return;
   const scope = captureCheckoutRoute();
   const amount = netPrice.value + cardFee.value;
@@ -1340,45 +1400,55 @@ async function requestConfirmPay() {
   const reviewedTrialQuoteVersion = trialView.value.quoteVersion;
   if (!Number.isFinite(amount) || amount < 0) return;
   purchaseConfirmationOpen = true;
+  paymentStockFailure.value = null;
   dialogsOpen += 1;
   try {
-    const trialDevice = trialConversionMode.value ? product.value?.name ?? "" : "";
-    const accepted = await confirm({
-      title: trialDevice ? fmt(purchaseCopy.value.confirmTitle, { device: trialDevice }) : t.value.store.coConfirmPurchase,
-      message: trialDevice
-        ? [fmt(purchaseCopy.value.confirmPay, { amount: confirmTotalText.value }),
-          ...(trialCreditText.value ? [fmt(purchaseCopy.value.confirmCredit, { rewards: trialCreditText.value })] : []),
-          purchaseCopy.value.confirmRun].join("\n")
-        : fmt(t.value.store.coConfirmPurchaseMessage, { amount: confirmTotalText.value }),
-      confirmLabel: t.value.store.coConfirmPayment,
-      cancelLabel: t.value.store.coCancel,
-      owner: dialogOwner,
-    });
-    if (!accepted || !isCurrentCheckoutRoute(scope) || trialQuoteScreenUnavailable.value || step.value !== "confirm") return;
+    paymentSheetAmount.value = amount;
+    paymentSheetOpen.value = true;
+    const accepted = await new Promise<boolean>(resolve => { settlePaymentSheet = resolve; });
+    await nextTick();
+    if (!accepted || !isCurrentCheckoutRoute(scope) || ((!createdCheckoutOrder.value && !pendingCheckoutCreate.value) && trialQuoteScreenUnavailable.value) || step.value !== "confirm") return;
     if (amount !== netPrice.value + cardFee.value
-        || (!freeTrial.hasPendingConversion() && (reviewedTrialApplied !== trialView.value.applied
+        || (!createdCheckoutOrder.value && !pendingCheckoutCreate.value && !freeTrial.hasPendingConversion() && (reviewedTrialApplied !== trialView.value.applied
           || reviewedTrialQuoteVersion !== trialView.value.quoteVersion))) {
       toast.warn(t.value.store.coTotalQuoteChanged);
       step.value = "select-payment";
       return;
     }
+    paymentFlowBusy.value = true;
     await onConfirmPay();
+  } catch (error) {
+    if (!(error instanceof CheckoutPurchaseCheckError)) throw error;
+    if (isCurrentCheckoutRoute(scope)) paymentStockFailure.value = {
+      kind: error.reason === 'stock' || error.reason === 'unavailable' ? 'blocked' : 'query',
+      message: error.reason === 'stock' ? t.value.store.temporarilyOutOfStock
+        : error.reason === 'unavailable' ? t.value.store.productUnavailable : flowCopy.value.queryFailed,
+    };
   } finally {
+    confirming = false;
+    paymentFlowBusy.value = false;
+    closePaymentSheet();
     purchaseConfirmationOpen = false;
     dialogsOpen = Math.max(0, dialogsOpen - 1);
   }
 }
 
 async function onConfirmPay() {
-  if (trialQuoteScreenUnavailable.value) return;
+  if (trialQuoteScreenUnavailable.value && !createdCheckoutOrder.value && !pendingCheckoutCreate.value) return;
   if (voucherSelecting.value || confirming || checkoutWalletRefreshing.value || step.value !== "confirm") return;
   confirming = true;
+  if (remoteApiEnabled && (createdCheckoutOrder.value || pendingCheckoutCreate.value)) {
+    quotedTotal = netPrice.value;
+    voucherQuote = { id: createdCheckoutOrder.value?.voucherId ?? pendingCheckoutCreate.value?.request.voucherId ?? null, discount: voucherDiscount.value };
+    await submitRemoteOrder();
+    return;
+  }
   const recoveryScope = captureCheckoutRoute();
   const confirmedAmount = netPrice.value + cardFee.value;
   const confirmedTrialApplied = trialView.value.applied;
   const confirmedTrialQuoteVersion = trialView.value.quoteVersion;
   if (remoteApiEnabled) {
-    const recovering = await resumeServerOrder(recoveryScope);
+    const recovering = createdCheckoutOrder.value ? false : await resumeServerOrder(recoveryScope);
     if (recovering || !isCurrentCheckoutRoute(recoveryScope)) { confirming = false; return; }
     // Background polls retain the reviewed page; only a fresh authority read can authorize payment.
     const trialReady = await freeTrial.refreshRemote();
@@ -1394,7 +1464,7 @@ async function onConfirmPay() {
     return;
   }
   trialQuote = trialView.value;
-  quotedTotal = +(netPrice.value + cardFee.value).toFixed(2);
+  quotedTotal = remoteApiEnabled ? netPrice.value + cardFee.value : +(netPrice.value + cardFee.value).toFixed(2);
   voucherQuote = { id: voucherMatch.value?.def.id ?? null, discount: voucherDiscount.value };
   quotedTradeIn = appliedTradeinView.value ? { deviceId: appliedTradeinView.value.device.id } : null;
   if (remoteApiEnabled) {
@@ -1421,7 +1491,12 @@ async function onConfirmPay() {
       let conversion = await freeTrial.convert(p.id, quotedTotal, trialQuote.quoteVersion);
       if (conversion.reason === 'payment-required') {
         const authorized = await executePaymentWithPassword({amount:quotedTotal,currency:'USDT',summary:p.name},
-          authorization=>freeTrial.convert(p.id,quotedTotal,trialQuote.quoteVersion,authorization),
+          async authorization=>{
+            await assertCheckoutPurchaseStock([{ productNo: p.id, quantity: 1 }]);
+            if (!isCurrentCheckoutRoute(confirmationScope) || confirmedAmount!==netPrice.value+cardFee.value
+                || confirmedTrialQuoteVersion!==trialView.value.quoteVersion) return null;
+            return freeTrial.convert(p.id,quotedTotal,trialQuote.quoteVersion,authorization);
+          },
           ()=>isCurrentCheckoutRoute(confirmationScope)&&!trialQuoteScreenUnavailable.value
             &&confirmedAmount===netPrice.value+cardFee.value&&confirmedTrialApplied===trialView.value.applied
             &&confirmedTrialQuoteVersion===trialView.value.quoteVersion);
@@ -1451,7 +1526,7 @@ async function onConfirmPay() {
     }
     // Existing orders/conversions recover above before capacity can reject a
     // fresh purchase, including a confirmation retained across page hide/show.
-    if (checkoutCapacityRequired.value && !remoteCapacityGate.canConfirm(Boolean(appliedTradeinView.value?.canonicalQuote))) {
+    if (!createdCheckoutOrder.value && checkoutCapacityRequired.value && !remoteCapacityGate.canConfirm(Boolean(appliedTradeinView.value?.canonicalQuote))) {
       confirming = false;
       toast.warn(checkoutCapacityMessage.value);
       step.value = "select-payment";
@@ -1643,8 +1718,98 @@ function releaseSessionOnLeave() {
   }
 }
 
-function cancelCheckout() {
-  navBack(product.value ? `/pages/store/detail?id=${product.value.id}` : "/store");
+function requestCheckoutBack() {
+  if (promotionRoute.value) { promotionCheckout.value?.back(); return; }
+  if (paymentSheetOpen.value) { closePaymentSheet(); return; }
+  void cancelCheckout();
+}
+async function recoverCheckoutCreation() {
+  const pendingCreate = pendingCheckoutCreate.value;
+  if (!pendingCreate || checkoutLeaving.value) return;
+  const scope = captureCheckoutRoute();
+  const attempt = ++checkoutLeaveAttempt;
+  checkoutLeaving.value = true;
+  try {
+    const created = await orderApi.create(pendingCreate.request);
+    if (!isCurrentCheckoutRoute(scope)) return;
+    rememberCheckoutOrder(scope.accountKey, { productNo: scope.productNo, orderNo: created.orderNo, intent: pendingCreate.intent, commandKey: pendingCreate.request.idempotencyKey });
+    createdCheckoutOrder.value = created;
+    orderId.value = created.orderNo;
+    forgetCheckoutCreate(scope.accountKey, pendingCreate);
+    pendingCheckoutCreate.value = null;
+    await navReplace(`/pages/store/order-detail?id=${encodeURIComponent(created.orderNo)}`);
+  } catch {
+    if (isCurrentCheckoutRoute(scope)) toast.warn(t.value.store.coRecoverOriginalOrder);
+  } finally {
+    if (attempt === checkoutLeaveAttempt) checkoutLeaving.value = false;
+  }
+}
+async function cancelCheckout() {
+  if (checkoutLeaving.value || paymentFlowBusy.value || confirming) return;
+  let original = createdCheckoutOrder.value;
+  const scope = captureCheckoutRoute();
+  const attempt = ++checkoutLeaveAttempt;
+  checkoutLeaving.value = true;
+  checkoutLeaveError.value = '';
+  try {
+    const pendingCreate = pendingCheckoutCreate.value ?? readCheckoutCreate(scope.accountKey, scope.productNo);
+    if ((!original && !pendingCreate) || settledResultReplay.value) { navBack(checkoutBackHref.value); return; }
+    pendingCheckoutCreate.value = pendingCreate;
+    if (!original && pendingCreate) {
+      // The existing API has no create-command GET. Replay only the exact
+      // persisted creation key/payload, then cancel that original order.
+      original = await orderApi.create(pendingCreate.request);
+      if (!isCurrentCheckoutRoute(scope)) return;
+      createdCheckoutOrder.value = original;
+      rememberCheckoutOrder(scope.accountKey, { productNo: scope.productNo, orderNo: original.orderNo, intent: pendingCreate.intent, commandKey: pendingCreate.request.idempotencyKey });
+      forgetCheckoutCreate(scope.accountKey, pendingCreate);
+      pendingCheckoutCreate.value = null;
+    }
+    const created = original;
+    if (!created) return;
+    const action = readOrderAction(scope.accountKey, created.orderNo);
+    if (action?.kind === 'pay') {
+      const outcome = await readPaymentCommand(apiClient, 'order-pay', action.key);
+      if (!isCurrentCheckoutRoute(scope)) return;
+      if (outcome.status === 'REJECTED') clearOrderAction(scope.accountKey, created.orderNo, action.key, true);
+      else if (outcome.status !== 'SUCCEEDED') throw new Error('ORIGINAL_ORDER_COMMAND_UNRESOLVED');
+    }
+    await orders.ensureRemoteOrder(created.orderNo);
+    if (!isCurrentCheckoutRoute(scope)) return;
+    const order = orders.orders.find(item => item.id === created.orderNo);
+    if (!order) throw new Error('ORDER_READBACK_UNAVAILABLE');
+    if (order.status === 'activated' || order.status === 'inventory') {
+      if (action?.kind === 'pay') clearOrderAction(scope.accountKey, created.orderNo, action.key);
+      orderId.value = created.orderNo;
+      presentSettledPurchase(false);
+      return;
+    }
+    if (order.status !== 'cancelled' && order.status !== 'expired') {
+      if (order.status !== 'placed') throw new Error('ORIGINAL_ORDER_COMMAND_UNRESOLVED');
+      const cancellation = beginOrderAction(scope.accountKey, 'cancel', created.orderNo, null);
+      const cancelled = await orders.cancelOrderRemote(created.orderNo);
+      if (!isCurrentCheckoutRoute(scope)) return;
+      if (!cancelled) throw new Error('ORDER_CANCELLATION_UNCONFIRMED');
+      clearOrderAction(scope.accountKey, created.orderNo, cancellation.key);
+    }
+    forgetCheckoutOrder(scope.accountKey, scope.productNo, created.orderNo);
+    retireRemoteOrderKey();
+    createdCheckoutOrder.value = null;
+    navBack(checkoutBackHref.value);
+  } catch (error) {
+    if (!original && pendingCheckoutCreate.value && isCurrentCheckoutRoute(scope) && isSettledRejection(error)) {
+      const pendingCreate = pendingCheckoutCreate.value;
+      forgetCheckoutCreate(scope.accountKey, pendingCreate);
+      releaseAccountCommandKey(REMOTE_CHECKOUT_COMMANDS_KEY, scope.accountKey, pendingCreate.intent, pendingCreate.request.idempotencyKey);
+      pendingCheckoutCreate.value = null;
+      navBack(checkoutBackHref.value);
+      return;
+    }
+    if (isCurrentCheckoutRoute(scope)) checkoutLeaveError.value = t.value.orders.resultReadback;
+  } finally {
+    // Hiding invalidates route writes, but must still release this attempt's UI.
+    if (attempt === checkoutLeaveAttempt) checkoutLeaving.value = false;
+  }
 }
 
 function canIncreaseCheckoutQuantity(): boolean {
@@ -1657,7 +1822,7 @@ function canIncreaseCheckoutQuantity(): boolean {
     && !trialCheckoutSource && !trialConversionMode.value && !appliedTradeinView.value
     && !reAddingTradein.value && !remoteTradeinRecoveryRequired.value
     && !activeSession.value && !resumeSessionId && !orderId.value
-    && !remoteOrderFailure.value && !receiptWriteFailure.value;
+    && !remoteOrderFailure.value && !receiptWriteFailure.value && !pendingCheckoutCreate.value;
 }
 
 async function increaseCheckoutQuantity(): Promise<void> {
@@ -1746,7 +1911,11 @@ async function completeRemoteTradein(recovery: CheckoutTradeinRecovery, submissi
             const key = recovery.commandKey.replace("h7-order:", "e3-tradein:");
             if (!submitted) {
               const paid = await executePaymentWithPassword({amount:recovery.tradeinQuote.payableUsdt,currency:'USDT',summary:product.value?.name??t.value.store.coConfirmPurchase},
-                authorization=>deviceE3Api.submit(recovery.tradeinQuote.sourceDeviceId,recovery.productNo,key,recovery.tradeinQuote,authorization),authorizationIsCurrent);
+                async authorization=>{
+                  await assertCheckoutPurchaseStock([{ productNo: recovery.productNo, quantity: 1 }]);
+                  if (!authorizationIsCurrent()) return null;
+                  return deviceE3Api.submit(recovery.tradeinQuote.sourceDeviceId,recovery.productNo,key,recovery.tradeinQuote,authorization);
+                },authorizationIsCurrent);
               if (!paid) {
                 if (newSubmission) {
                   finishCheckoutTradein(submissionScope.accountKey, recovery);
@@ -1872,6 +2041,10 @@ async function resumePendingRemoteTradein(scope: CheckoutRouteScope, navigate = 
 let serverOrderRecovery: { key: string; promise: Promise<boolean> } | null = null;
 function resumeServerOrder(routeScope = captureCheckoutRoute()): Promise<boolean> {
   if (!remoteApiEnabled || !isCurrentCheckoutRoute(routeScope)) return Promise.resolve(false);
+  pendingCheckoutCreate.value = readCheckoutCreate(routeScope.accountKey, routeScope.productNo);
+  // Unknown creation is an original-command recovery screen, before any new
+  // catalogue/stock/eligibility gate. Recovery requires an explicit user action.
+  if (pendingCheckoutCreate.value) return Promise.resolve(true);
   const key = JSON.stringify([routeScope.accountKey, routeScope.accountEpoch, routeScope.productNo, routeScope.generation]);
   if (serverOrderRecovery?.key === key) return serverOrderRecovery.promise;
   const promise = resumePendingRemoteTradein(routeScope, true).then(recovered => recovered ? true : recoverCheckoutOrder(routeScope.accountKey, routeScope.productNo, {
@@ -1913,7 +2086,7 @@ async function submitRemoteOrder(): Promise<void> {
   const walletReceiptScope = app.captureRemoteAccountRequest();
   const p = product.value;
   const requestedVoucherId = voucherQuote.id;
-  if (!p || purchaseUnavailable.value) {
+  if (!p || (!createdCheckoutOrder.value && !pendingCheckoutCreate.value && purchaseUnavailable.value)) {
     confirming = false;
     return;
   }
@@ -1928,7 +2101,7 @@ async function submitRemoteOrder(): Promise<void> {
     await offerWalletTopup(quotedTotal, submissionScope);
     return;
   }
-  const eligibility = await refreshPurchaseEligibility(submissionScope);
+  const eligibility = createdCheckoutOrder.value || pendingCheckoutCreate.value ? 'eligible' : await refreshPurchaseEligibility(submissionScope);
   if (eligibility !== "eligible") {
     confirming = false;
     if (eligibility === "ineligible" && scopeIsCurrent()) {
@@ -1943,8 +2116,8 @@ async function submitRemoteOrder(): Promise<void> {
     confirming = false;
     return;
   }
-  if (trialQuoteScreenUnavailable.value || trialView.value.applied || freeTrial.hasPendingConversion()
-      || reviewedTrialVersion !== trialView.value.quoteVersion || reviewedTotal !== netPrice.value + cardFee.value) {
+  if (!createdCheckoutOrder.value && !pendingCheckoutCreate.value && (trialQuoteScreenUnavailable.value || trialView.value.applied || freeTrial.hasPendingConversion()
+      || reviewedTrialVersion !== trialView.value.quoteVersion || reviewedTotal !== netPrice.value + cardFee.value)) {
     confirming = false;
     toast.warn(t.value.store.coTotalQuoteChanged);
     step.value = "select-payment";
@@ -1954,8 +2127,8 @@ async function submitRemoteOrder(): Promise<void> {
   let recoveryOrderNo: string | null = null;
   let paymentKey: string | null = null;
   try {
-    const tradeinContext = appliedTradeinView.value;
-    if (tradein.appliedTradein && !tradeinContext) {
+    const tradeinContext = hasOriginalCheckout.value ? null : appliedTradeinView.value;
+    if (!hasOriginalCheckout.value && tradein.appliedTradein && !tradeinContext) {
       throw new Error("E3_TRADEIN_QUOTE_REQUIRED");
     }
     if (tradeinContext) {
@@ -1966,20 +2139,28 @@ async function submitRemoteOrder(): Promise<void> {
       await completeRemoteTradein(recovery, submissionScope, true);
       return;
     }
-    const created = await orderApi.create({
-      productNo: p.id,
-      quantity: 1,
-      voucherId: requestedVoucherId,
-      idempotencyKey: remoteOrderKey(),
-    });
+    const existingOrder = createdCheckoutOrder.value;
+    const creation = pendingCheckoutCreate.value ?? {
+      request: { productNo: p.id, quantity: 1, voucherId: requestedVoucherId, idempotencyKey: remoteOrderKey() },
+      intent: remoteOrderIntent(), subtotal: purchaseSubtotal.value, discount: voucherDiscount.value, amount: reviewedTotal,
+    };
+    if (!existingOrder) {
+      rememberCheckoutCreate(submissionScope.accountKey, creation);
+      pendingCheckoutCreate.value = creation;
+    }
+    const created = existingOrder ?? await orderApi.create(creation.request);
     if (!scopeIsCurrent()) return;
+    createdCheckoutOrder.value = created;
     canonicalOrderCommitted = true;
     recoveryOrderNo = created.orderNo;
     // Persist the known server identity BEFORE payment. Refresh, lower balance,
     // consumed vouchers and full capacity must recover this order, not create another.
     rememberCheckoutOrder(orders.currentAccountKey(), {
-      productNo: p.id, orderNo: created.orderNo, intent: remoteOrderIntent(), commandKey: remoteOrderKey(),
+      productNo: p.id, orderNo: created.orderNo, intent: creation.intent, commandKey: creation.request.idempotencyKey,
     });
+    forgetCheckoutCreate(submissionScope.accountKey, creation);
+    pendingCheckoutCreate.value = null;
+    orderId.value = created.orderNo;
     const receipt = created.voucherRedemption;
     // A claimed voucher changes its UI state only after the order's explicit,
     // server-issued redemption receipt. Missing/mismatched receipts fail closed.
@@ -2011,9 +2192,19 @@ async function submitRemoteOrder(): Promise<void> {
       throw new Error("E20_CAPACITY_AVAILABLE_ORDER_READBACK_MISMATCH");
     }
     if (alreadySettled) { await resumeServerOrder(submissionScope); return; }
+    if (created.amountUsdt !== reviewedTotal) {
+      toast.warn(t.value.store.coTotalQuoteChanged);
+      step.value = 'confirm';
+      return;
+    }
     canonicalOrderCommitted = true;
+    const paymentCurrent = () => scopeIsCurrent()&&createdCheckoutOrder.value?.orderNo===created.orderNo
+      &&createdCheckoutOrder.value.amountUsdt===created.amountUsdt&&reviewedTotal===netPrice.value
+      &&(persisted.expiresAt===null || nowTick.value<persisted.expiresAt);
     const paid = await executePaymentWithPassword({amount:created.amountUsdt,currency:'USDT',summary:p.name},
       async authorization=>{
+        await assertCheckoutPurchaseStock([{ productNo: persisted.productNo, quantity: persisted.quantity }]);
+        if (!paymentCurrent()) return null;
         const action=beginOrderAction(submissionScope.accountKey,'pay',created.orderNo,created.amountUsdt);
         paymentKey=action.key;
         try {return await orderApi.pay(created.orderNo,action.key,authorization);}
@@ -2023,8 +2214,7 @@ async function submitRemoteOrder(): Promise<void> {
           throw error;
         }
       },
-      ()=>scopeIsCurrent()&&!trialQuoteScreenUnavailable.value&&reviewedTotal===netPrice.value+cardFee.value
-        &&!trialView.value.applied&&reviewedTrialVersion===trialView.value.quoteVersion);
+      paymentCurrent);
     if (!paid) { step.value='confirm'; return; }
     if (!scopeIsCurrent()) return;
     if (paid.orderNo !== created.orderNo) {
@@ -2057,6 +2247,13 @@ async function submitRemoteOrder(): Promise<void> {
     presentSettledPurchase(isFirstHardwareOrder(created.orderNo), () => forgetCheckoutOrder(accountKey, p.id, created.orderNo));
   } catch (error) {
     if (!scopeIsCurrent()) return;
+    if (error instanceof CheckoutPurchaseCheckError) {
+      paymentStockFailure.value = { kind: error.reason === 'stock' || error.reason === 'unavailable' ? 'blocked' : 'query',
+        message: error.reason === 'stock' ? t.value.store.temporarilyOutOfStock
+          : error.reason === 'unavailable' ? t.value.store.productUnavailable : flowCopy.value.queryFailed };
+      step.value = 'confirm';
+      return;
+    }
     if (error instanceof Error && error.message === 'PAYMENT_CANCELLED') { step.value='confirm'; return; }
     if (recoveryOrderNo) {
       // A timeout is not a failed purchase. The canonical order page reads the
@@ -2075,7 +2272,11 @@ async function submitRemoteOrder(): Promise<void> {
     const keepForReadback = apiError.kind === "network" || apiError.kind === "protocol"
       || (apiError.kind === "http" && (apiError.status ?? 0) >= 500)
       || apiError.message === "IDEMPOTENCY_RESULT_UNKNOWN";
-    if (!remoteTradeinRecoveryRequired.value && !keepForReadback && !canonicalOrderCommitted) retireRemoteOrderKey();
+    if (!remoteTradeinRecoveryRequired.value && !keepForReadback && !canonicalOrderCommitted) {
+      if (pendingCheckoutCreate.value) forgetCheckoutCreate(submissionScope.accountKey, pendingCheckoutCreate.value);
+      pendingCheckoutCreate.value = null;
+      retireRemoteOrderKey();
+    }
     if (remoteTradeinRecoveryRequired.value) remoteTradeinRecoveryError.value = true;
     if (apiError.message === "ACCOUNT_COMMAND_STORAGE_UNAVAILABLE") {
       toast.error(t.value.errors.txNotSavedTitle, t.value.errors.txNotSavedMsg);
@@ -2114,7 +2315,7 @@ function reassertTradeinContext() {
 onShow(() => {
   if(promotionRoute.value){promotionCheckout.value?.show();return;}
   pageVisible = true;
-  if (checkoutRouteInitialized && !activeCheckoutLoad) void resumeServerOrder();
+  if (checkoutRouteInitialized && !activeCheckoutLoad && !settledResultReplay.value && !createdCheckoutOrder.value) void resumeServerOrder();
   reassertTradeinContext();
   // 页面重新可见 → 先回灌磁盘:这张票若已在别处结算 / 取消,本页不能继续展示一张死票。
   if (activeSession.value) {
@@ -2133,6 +2334,7 @@ onShow(() => {
   restoreReceiptRecovery();
 });
 onHide(() => {
+  closePaymentSheet();
   purchasePolicyOpen.value = false;
   tradein.hide();
   if(promotionRoute.value){promotionCheckout.value?.hide();return;}
@@ -2140,6 +2342,7 @@ onHide(() => {
   invalidateCheckoutRoute();
   interceptFired = false;
   remoteCapacityGate.reset();
+  checkoutCapacityRead = null;
   if (dialogsOpen > 0) useUI().clearConfirmsBy(dialogOwner);
   // 页面被别的页压住(前向导航)时,让浮动条在上面那页露出这张发票;回来 onShow 再收起。
   if (activeSession.value && pending.viewingId === activeSession.value.id) pending.setViewing(null);
@@ -2159,7 +2362,7 @@ watch(step, async (s) => {
   // 不在十来处回弹点各写一遍。
   if ((s === "select-payment" || s === "confirm") && activeSession.value) dropActiveSession();
   if (settledResultReplay.value && (s === "confirmed" || s === "activating")) {
-    advanceTimer = setTimeout(() => { step.value = s === "confirmed" ? "activating" : "live"; }, s === "confirmed" ? 1500 : 3000);
+    // CheckoutResult advances its rendered phases on animationend.
     return;
   }
   if (s === "live" && settledResultReplay.value) {
@@ -2540,6 +2743,7 @@ function goTrack() {
 // 任何全局层都是在动别人的东西。
 function cleanup() {
   if (!pageAlive) return;
+  closePaymentSheet();
   clearAdvance();
   pageVisible = false;
   invalidateCheckoutRoute();
@@ -2713,6 +2917,7 @@ const receiptFailureCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-r
 <style scoped>
 .checkout-header { margin-bottom:0; }
 .checkout-content { color:var(--v5-ink); padding-top:8px; padding-bottom:120px; }
+.checkout-content--result { padding-block: 0; }
 .checkout-steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin:0 16px; }
 .checkout-step-track { height:3px; border-radius:999px; background:var(--v5-surface-3); }
 .checkout-step-fill { height:100%; border-radius:inherit; }
@@ -2766,7 +2971,7 @@ button.checkout-quantity-button::after {border:0;}
 .checkout-fee :deep(.tabular-nums) { text-align:right; flex-shrink:0; max-width:65%; overflow-wrap:anywhere; }
 .checkout-fee--discount :deep(.tabular-nums) { color:var(--v5-brand) !important; }
 .checkout-fee--total { margin-top:4px; padding-block:12px; min-height:55px; box-sizing:border-box; border-top:1px solid var(--v5-border); }
-.checkout-fee--total :deep(uni-text),.checkout-fee--total :deep(text) { color:var(--v5-ink) !important; font-weight:600; }
+.checkout-fee--total > text,.checkout-fee--total > uni-text { font-weight:600; }
 .checkout-fee--total :deep(.tabular-nums) { font-size:18px !important; }
 .checkout-note { display:block; margin:12px 2px 0; font:400 12.5px/1.6 var(--font-v5); color:var(--v5-ink-3); }
 .checkout-trial-credit { display:flex; justify-content:space-between; align-items:baseline; gap:var(--v5-space-3); margin-top:var(--v5-space-3); padding:var(--v5-space-3) var(--v5-space-4); border-radius:var(--v5-radius-m); background:color-mix(in srgb, var(--v5-brand) 10%, transparent); font-size:var(--ui-type-list-subtitle); line-height:var(--ui-type-list-subtitle-lh); font-weight:600; color:var(--v5-ink-2); }
@@ -2785,11 +2990,15 @@ button.checkout-policy-link::after { border:0; }
 .checkout-policy-title { display:block; margin-bottom:6px; color:var(--v5-ink); font-weight:600; }
 .checkout-policy-links { border-top:1px solid var(--v5-border); }
 .checkout-cancel { display:grid; place-items:center; min-height:44px; margin-top:4px; font:400 var(--ui-type-list-subtitle)/18px var(--font-v5); color:var(--v5-ink-3); cursor:pointer; }
-.checkout-sticky { position:absolute; bottom:0; left:0; right:0; z-index:36; display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:100px; padding:12px 16px calc(30px + env(safe-area-inset-bottom)); background:linear-gradient(180deg,color-mix(in srgb,var(--ui-ticket-top) 70%,transparent),color-mix(in srgb,var(--ui-ticket-bottom) 94%,transparent)); border-top:1px solid var(--v5-border-strong); box-shadow:inset 0 1px 0 var(--v5-border); backdrop-filter:blur(18px) saturate(160%); -webkit-backdrop-filter:blur(18px) saturate(160%); }
+.checkout-sticky { position:absolute; bottom:0; left:0; right:0; z-index:36; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--v5-space-3); min-height:100px; padding:var(--v5-space-3) var(--v5-space-4) calc(30px + env(safe-area-inset-bottom)); background:linear-gradient(180deg,color-mix(in srgb,var(--ui-ticket-top) 70%,transparent),color-mix(in srgb,var(--ui-ticket-bottom) 94%,transparent)); border-top:1px solid color-mix(in srgb,var(--v5-ink) 5%,transparent); backdrop-filter:blur(18px) saturate(160%); -webkit-backdrop-filter:blur(18px) saturate(160%); }
 .checkout-sticky-copy { min-width:0; }
-.checkout-total { display:block; font:600 20px/24px var(--font-amount); font-variant-numeric:tabular-nums; color:var(--v5-ink); overflow-wrap:anywhere; }
-.checkout-sticky :deep(.nx-button) { flex:none; width:164px; max-width:52%; min-height:48px; font-size:var(--ui-type-button); box-shadow:0 8px 22px color-mix(in srgb,var(--v5-brand) 30%,transparent),inset 0 1px 0 var(--v5-liquid-highlight); }
+.checkout-total { display:block; font:600 20px/24px var(--font-amount); font-variant-numeric:tabular-nums; color:var(--v5-ink); white-space:nowrap; }
+.checkout-sticky :deep(.nx-button) { flex:1 0 150px; min-width:150px; min-height:48px; font-size:var(--ui-type-button); box-shadow:0 8px 22px color-mix(in srgb,var(--v5-brand) 30%,transparent),inset 0 1px 0 var(--v5-liquid-highlight); }
+.checkout-summary-total { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:var(--v5-space-2); }
+.checkout-summary-total :deep(.checkout-amount) { font-size:var(--ui-type-section); }
+.checkout-exit-error { display:grid; gap:var(--v5-space-5); color:var(--v5-ink-2); line-height:1.6; }
 .checkout-promotion { padding:8px 16px 120px; color:var(--v5-ink); }
+.checkout-promotion--result { padding: 0; }
 .checkout-promotion :deep(.promotion-flat) { border:1px solid var(--v5-border); border-radius:22px; background:var(--ui-content-surface); padding:16px; }
 .checkout-promotion :deep(.promotion-summary) { min-height:40px; font-size:14px; }
 .checkout-promotion :deep(.promotion-summary.total) { min-height:55px; font-size:18px; }
