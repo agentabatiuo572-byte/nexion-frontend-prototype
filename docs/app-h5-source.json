@@ -3,10 +3,10 @@
   "sourcePath": "D:\\workspace\\worktrees\\pay1718-app-20261031",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "b38eff3a78df811c14d15aebaf83490d2a741f4a",
-  "sourceRef": "b38eff3a78df811c14d15aebaf83490d2a741f4a",
+  "sourceHead": "cb4e1592160a019c2660c487afe19033ce5ee698",
+  "sourceRef": "cb4e1592160a019c2660c487afe19033ce5ee698",
   "sourceRefKind": "commit",
-  "sourceTree": "59b1469d6e9327cf034b13aee4751e0ea7954c9b",
+  "sourceTree": "407c016414e71b7cf2fcf745171fd36cf9c05652",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -447,10 +447,17 @@
       "mode": "100644"
     },
     "docs/PRD/checkout-native-success-check-20261031.md": {
-      "sourceBlob": "4979096992044c52f3d0c7be6757919c9ef8b454",
-      "sourceSha256": "1a50b2fe2604a03dc6fe525651b92b616e3fef602f0fc97af1fadc026eb9a6b6",
-      "targetBlob": "4979096992044c52f3d0c7be6757919c9ef8b454",
-      "targetSha256": "1a50b2fe2604a03dc6fe525651b92b616e3fef602f0fc97af1fadc026eb9a6b6",
+      "sourceBlob": "e957876a47edbb074bf24e7c5d639ddb76cb73fc",
+      "sourceSha256": "df34bdfd5831416b9400f800d1243f639a898e51e26708004071f234c75708b8",
+      "targetBlob": "e957876a47edbb074bf24e7c5d639ddb76cb73fc",
+      "targetSha256": "df34bdfd5831416b9400f800d1243f639a898e51e26708004071f234c75708b8",
+      "mode": "100644"
+    },
+    "docs/PRD/payment-pin-keyboard-viewport-20261031.md": {
+      "sourceBlob": "afe2eb0bedb8ce2780b3ee6f5af9f3b4d23b0e3e",
+      "sourceSha256": "e920ca9c81dfc7dbc0527128b0d3194ad2228c9ebb7e8bac84d852265f6c619c",
+      "targetBlob": "afe2eb0bedb8ce2780b3ee6f5af9f3b4d23b0e3e",
+      "targetSha256": "e920ca9c81dfc7dbc0527128b0d3194ad2228c9ebb7e8bac84d852265f6c619c",
       "mode": "100644"
     },
     "docs/PRD/purchase-payment-snapshot-recovery-20261031.md": {
@@ -6600,17 +6607,24 @@
       "mode": "100644"
     },
     "src/components/payment-password-dialog.vue": {
-      "sourceBlob": "619dd8d0615cb7bd1b4e41b56ce08a5523567e7a",
-      "sourceSha256": "de0bddc05cbb069036abf3ce388d4fba47bd4bc27396556db6b3d989a191d524",
-      "targetBlob": "619dd8d0615cb7bd1b4e41b56ce08a5523567e7a",
-      "targetSha256": "de0bddc05cbb069036abf3ce388d4fba47bd4bc27396556db6b3d989a191d524",
+      "sourceBlob": "84df8498cf2fee7ed44a4c192991dc44f4ecd265",
+      "sourceSha256": "e1a6002dfff1e7313cee5009f972baba03e6db659d8711702857c8544f48d899",
+      "targetBlob": "84df8498cf2fee7ed44a4c192991dc44f4ecd265",
+      "targetSha256": "e1a6002dfff1e7313cee5009f972baba03e6db659d8711702857c8544f48d899",
+      "mode": "100644"
+    },
+    "src/components/payment-password-input.behavior.test.ts": {
+      "sourceBlob": "de3484fa5cad0c39a8109cb39b8797d7fbfe25ec",
+      "sourceSha256": "f7d4b38a570f081ba1262f27f3d296d56651a559ceca073d9c387155f5c01c12",
+      "targetBlob": "de3484fa5cad0c39a8109cb39b8797d7fbfe25ec",
+      "targetSha256": "f7d4b38a570f081ba1262f27f3d296d56651a559ceca073d9c387155f5c01c12",
       "mode": "100644"
     },
     "src/components/payment-password-input.vue": {
-      "sourceBlob": "988215c0fc1e97d399901d99e081f9d4059fdcd4",
-      "sourceSha256": "d4062acdfba8c27bdb34d039d9531d12994eb51be8dfea2555e8ee98359b0e75",
-      "targetBlob": "988215c0fc1e97d399901d99e081f9d4059fdcd4",
-      "targetSha256": "d4062acdfba8c27bdb34d039d9531d12994eb51be8dfea2555e8ee98359b0e75",
+      "sourceBlob": "d77d6d72a30cd21bf93308ec0a46116878ae8e2e",
+      "sourceSha256": "e0a2536bbb3aeacde25258a0dfb5fcdcc974aca6594e74dd4be4d7b72af00bf9",
+      "targetBlob": "d77d6d72a30cd21bf93308ec0a46116878ae8e2e",
+      "targetSha256": "e0a2536bbb3aeacde25258a0dfb5fcdcc974aca6594e74dd4be4d7b72af00bf9",
       "mode": "100644"
     },
     "src/components/pending-checkout-bar.vue": {
@@ -7969,6 +7983,20 @@
       "sourceSha256": "83a190049f18b79d0394d3aee905a987ceaa3b35965f98f8e44fc1eab8a956b8",
       "targetBlob": "d5fddebd7294c6e72de7ef107107602159884fad",
       "targetSha256": "83a190049f18b79d0394d3aee905a987ceaa3b35965f98f8e44fc1eab8a956b8",
+      "mode": "100644"
+    },
+    "src/composables/use-payment-pin-viewport.test.ts": {
+      "sourceBlob": "b6b7cc40d80dc87f56fa6b1e418901d7433cf96d",
+      "sourceSha256": "a2132233ba8824ce3178fef0746542f3020823fd8c9fbacb26c6c6c7a7177531",
+      "targetBlob": "b6b7cc40d80dc87f56fa6b1e418901d7433cf96d",
+      "targetSha256": "a2132233ba8824ce3178fef0746542f3020823fd8c9fbacb26c6c6c7a7177531",
+      "mode": "100644"
+    },
+    "src/composables/use-payment-pin-viewport.ts": {
+      "sourceBlob": "bb6d6233afa11a78606be3c653ce87164003e175",
+      "sourceSha256": "66d25d7e85293428ce0c297fc15e6cba1f0dfff57ef6c856672f1d3f7abc111a",
+      "targetBlob": "bb6d6233afa11a78606be3c653ce87164003e175",
+      "targetSha256": "66d25d7e85293428ce0c297fc15e6cba1f0dfff57ef6c856672f1d3f7abc111a",
       "mode": "100644"
     },
     "src/composables/use-product-image.test.ts": {

@@ -6,7 +6,7 @@
       </view>
     </view>
     <input class="payment-pin-input__control" type="text" :password="true" inputmode="numeric" pattern="[0-9]*" maxlength="6"
-      :value="modelValue" :disabled="disabled" :focus="autoFocus" :aria-label="label" autocomplete="off" :adjust-position="true"
+      :value="modelValue" :disabled="disabled" :focus="autoFocus" :aria-label="label" autocomplete="off" :adjust-position="adjustPosition !== false"
       @input="onInput" @focus="focused = true" @blur="focused = false" />
     <text class="payment-pin-input__status" aria-live="polite">{{ fmt(t.paymentPin.entered, { n: modelValue.length }) }}</text>
   </view>
@@ -15,7 +15,7 @@
 import { ref } from "vue";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
-const props = defineProps<{ modelValue: string; label: string; disabled?: boolean; autoFocus?: boolean }>();
+const props = withDefaults(defineProps<{ modelValue: string; label: string; disabled?: boolean; autoFocus?: boolean; adjustPosition?: boolean }>(), { adjustPosition: true });
 const emit = defineEmits<{ (event: "update:modelValue", value: string): void; (event: "complete", value: string): void }>();
 const t = useT();
 const focused = ref(false);

@@ -1,5 +1,5 @@
 <template>
-  <view v-if="ui.visible && active" class="payment-pin-mask" role="dialog" aria-modal="true" :aria-label="title">
+  <view v-if="ui.visible && active" class="payment-pin-mask" :style="viewportStyle" role="dialog" aria-modal="true" :aria-label="title">
     <view class="payment-pin-sheet" @click.stop>
       <view class="payment-pin-header">
         <text class="payment-pin-title" role="heading" aria-level="2" aria-live="polite">{{ title }}</text>
@@ -7,7 +7,7 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
         </view>
       </view>
-      <view class="payment-pin-body">
+      <view class="payment-pin-body" @touchmove.stop>
         <template v-if="ui.stage === 'setup'">
           <text class="payment-pin-note payment-pin-note--important">{{ t.paymentPin.firstNotice }}</text>
           <text v-if="ui.context" class="payment-pin-note">{{ t.paymentPin.continueNotice }}</text>
@@ -30,7 +30,7 @@
           <text class="payment-pin-note">{{ t.paymentPin.recoveryIntro }}</text>
           <template v-if="ui.challenge">
             <text class="payment-pin-phone">{{ ui.challenge.phoneMasked }}</text>
-            <input v-model="code" class="payment-pin-code" type="text" inputmode="numeric" maxlength="6" :disabled="ui.busy" :placeholder="t.paymentPin.code" :aria-label="t.paymentPin.code" autocomplete="one-time-code" />
+            <input v-model="code" class="payment-pin-code" type="text" inputmode="numeric" maxlength="6" :adjust-position="false" :disabled="ui.busy" :placeholder="t.paymentPin.code" :aria-label="t.paymentPin.code" autocomplete="one-time-code" />
             <view class="payment-pin-link" role="button" :tabindex="ui.busy || resendLeft ? -1 : 0" :aria-disabled="ui.busy || resendLeft > 0" @click="pin.sendChallenge">{{ t.paymentPin.resend }}<template v-if="resendLeft"> ({{ resendLeft }})</template></view>
             <view class="payment-pin-primary" role="button" :tabindex="ui.busy || !validCode ? -1 : 0" :aria-disabled="ui.busy || !validCode" @click="pin.verify(code)">{{ t.paymentPin.verify }}</view>
           </template>
@@ -40,7 +40,7 @@
         <template v-else>
           <text v-if="ui.stage !== 'pay'" class="payment-pin-step">{{ confirming ? t.paymentPin.stepTwo : t.paymentPin.stepOne }}</text>
           <text class="payment-pin-note">{{ confirming ? t.paymentPin.repeatDigits : t.paymentPin.sixDigits }}</text>
-          <PaymentPasswordInput :key="`${ui.stage}:${ui.revision}`" v-model="password" :label="title" :auto-focus="!ui.busy && !(ui.stage === 'pay' && !!ui.state?.lockedUntil)" :disabled="ui.busy || (ui.stage === 'pay' && !!ui.state?.lockedUntil)" @complete="complete" />
+          <PaymentPasswordInput :key="`${ui.stage}:${ui.revision}`" v-model="password" :label="title" :adjust-position="false" :auto-focus="!ui.busy && !(ui.stage === 'pay' && !!ui.state?.lockedUntil)" :disabled="ui.busy || (ui.stage === 'pay' && !!ui.state?.lockedUntil)" @complete="complete" />
           <template v-if="ui.stage === 'pay'">
             <text class="payment-pin-note">{{ Number(ui.context?.amount) === 0 ? t.paymentPin.autoConfirm : t.paymentPin.autoSubmit }}</text>
             <text v-if="pin.locked()" class="payment-pin-error" role="alert">{{ lockMessage }}</text>
@@ -68,12 +68,14 @@ import CheckoutAmount from '@/components/checkout/CheckoutAmount.vue';
 import { formatGroupedAmount } from '@/lib/amount-display';
 import { usePaymentPassword, simplePaymentPassword, validPaymentPassword } from "@/store/payment-password";
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
+import { usePaymentPinViewport } from '@/composables/use-payment-pin-viewport';
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
 import { navTo } from "@/lib/route";
 const pin = usePaymentPassword(); const ui = pin.ui; const t = useT();
 const active = ref(true); const password = ref(""); const code = ref(""); const expanded = ref(false);
 const open = computed(() => ui.visible && active.value);
+const viewportStyle = usePaymentPinViewport(open);
 const confirming = computed(() => ui.stage === "confirm" || ui.stage === "reset-confirm");
 const completePin = computed(() => validPaymentPassword(password.value));
 const canContinue = computed(() => !ui.busy && completePin.value && (confirming.value || !simplePaymentPassword(password.value)));
@@ -111,12 +113,13 @@ onUnmounted(() => { clearInterval(timer); if (typeof document !== "undefined") d
 useDialogA11y(open, ".payment-pin-mask", pin.cancel, true, 5);
 </script>
 <style scoped>
-.payment-pin-mask { position: fixed; z-index: 1700; inset: 0; display: flex; align-items: flex-end; justify-content: center; padding: var(--nx-overlay-top) var(--v5-space-3) var(--nx-overlay-bottom); background: var(--v5-bg-color-mask); }
-.payment-pin-sheet { width: 100%; max-width: 440px; max-height: calc(100dvh - var(--nx-overlay-top) - var(--nx-overlay-bottom)); overflow-y: auto; overscroll-behavior: contain; padding: var(--v5-space-5); background: var(--v5-surface); color: var(--v5-ink); border-radius: var(--v5-radius-m); box-shadow: 0 16px 48px var(--v5-bg-color-mask); }
-.payment-pin-header { display: flex; align-items: flex-start; gap: var(--v5-space-3); margin-bottom: var(--v5-space-4); }
+.payment-pin-mask { position: fixed; z-index: 1700; inset: 0; display: flex; align-items: flex-end; justify-content: center; box-sizing: border-box; overflow: hidden; padding: var(--nx-overlay-top) var(--v5-space-3) var(--nx-overlay-bottom); background: var(--v5-bg-color-mask); }
+.payment-pin-sheet { display: flex; flex-direction: column; width: 100%; max-width: 440px; max-height: 100%; min-height: 0; overflow: hidden; padding: var(--v5-space-5); background: var(--v5-surface); color: var(--v5-ink); border-radius: var(--v5-radius-m); box-shadow: 0 16px 48px var(--v5-bg-color-mask); }
+.payment-pin-header { flex: none; display: flex; align-items: flex-start; gap: var(--v5-space-3); margin-bottom: var(--v5-space-4); }
 .payment-pin-title { flex: 1; font-size: var(--ui-type-section); font-weight: 650; line-height: 1.4; overflow-wrap: anywhere; }
 .payment-pin-close { width: 44px; min-height: 44px; flex: 0 0 44px; margin-top: -10px; margin-right: -10px; display: flex; align-items: center; justify-content: center; color: var(--v5-ink-2); }
-.payment-pin-body { display: flex; flex-direction: column; gap: var(--v5-space-2); }
+.payment-pin-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; margin-inline: calc(-1 * var(--v5-space-2)); padding-inline: var(--v5-space-2); display: flex; flex-direction: column; gap: var(--v5-space-2); }
+.payment-pin-body > * { flex-shrink: 0; }
 .payment-pin-note { display: block; color: var(--v5-ink-2); font-size: var(--ui-type-list-subtitle); line-height: 1.65; }
 .payment-pin-note--important { color: var(--v5-ink); }
 .payment-pin-step { color: var(--v5-ink-3); font-size: var(--ui-type-meta); margin-top: var(--v5-space-2); }
