@@ -567,7 +567,7 @@ watch(() => app.accountBindingEpoch, () => {
 let createTimer: ReturnType<typeof setTimeout> | undefined;
 function createOrder(presetUsdt?: number) {
   const usdt = presetUsdt ?? amountNum.value;
-  if ((presetUsdt === undefined && !amountValid.value) || !Number.isFinite(usdt)
+  if ((presetUsdt === undefined && !amountValid.value) || !Number.isSafeInteger(usdt)
     || creating.value || readError.value || !fxUsable.value || usdt < minDeposit.value
     || usdt > maxDeposit.value || (dailyCapacityKnown.value && usdt > todayRemainingDeposit.value)) return;
   creating.value = true;
@@ -698,10 +698,15 @@ async function completeCreateOrder(usdt: number, expectedAccountKey: string) {
       // 曾仍传 "VIETQR_CREATE_FAILED",lib 改版后它从「极端边界才漏出」变成「每次失败必弹」。
     }, t.value.bankPane.createFailedNote);
 }
-/** 拒绝/过期态显式重试保留原金额；命令键与最终结果仍由 store 决定。 */
+/** 整数金额可显式重建；历史小数单保留原快照并返回整数输入，不创建新收款。 */
 function regen() {
   const it = intent.value;
   if (!it) return;
+  if (!Number.isSafeInteger(it.usdtAmount)) {
+    startNewTopup(); amount.value = "";
+    createError.value = t.value.bankPane.amountFormatError;
+    return;
+  }
   createOrder(it.usdtAmount);
 }
 async function finishCreditedFlow() {

@@ -306,9 +306,9 @@ test.each([zh, en, vietnamese])("a bounded CREATE provider reason is not shown a
   expect((flow.storage.read() as { pending: Record<string, unknown> }).pending[scope]).toBeUndefined();
 });
 
-test.each([zh, en, vietnamese])("a fresh pane parses the provider reason but does not render it", async messages => {
+test.each([zh, en, vietnamese])("a fresh pane reads a historical fractional snapshot and provider reason without a new create", async messages => {
   const view = pane("rejected", messages);
-  const original = view.dep.intents[0];
+  const original = { ...view.dep.intents[0], usdtAmount: 37.12, vndAmount: vndForUsdt(37.12, quoteRate) };
   const snapshot = { intentNo: original.intentId, usdtAmount: original.usdtAmount, fxRate: original.fxRate,
     vndAmount: original.vndAmount, status: original.status, expiresAt: new Date(original.expireAt).toISOString(),
     createdAt: new Date(original.createdAt).toISOString(), creditedUsdt: 0, feeVnd: 0, feeUsdt: 0, version: 1,
@@ -320,7 +320,7 @@ test.each([zh, en, vietnamese])("a fresh pane parses the provider reason but doe
       user: { userId: 7, countryCode: "+86", phone: "13800000007", nickname: "Test", onboardingComplete: true } }); return vault;
   })(), transport: { request } }));
   const rows = await api.listVietQrIntents(), readback = await api.getVietQrIntent(snapshot.intentNo);
-  expect(readback.providerReason).toBe(snapshot.providerReason);
+  expect(readback.providerReason).toBe(snapshot.providerReason); expect(readback.usdtAmount).toBe(37.12);
   const project = new Function("snapshot", `${storeScript}; return remoteVietQrIntent(snapshot);`);
   view.dep.intents = rows.map(item => project(item));
   expect(await view.html()).not.toContain(snapshot.providerReason);
@@ -405,8 +405,19 @@ test.each(["20.00", "20.", "20.001"])("recovery keeps the raw edited amount %s t
   expect(flow.storage.read()).toEqual(beforeReturn);
   expect(flow.requests).toHaveBeenCalledOnce();
   expect(returned.dep.intents).toEqual([]);
-  if (rawAmount === "20.001") {
+  if (rawAmount.includes(".")) {
     expect(returned.state.amountError).toMatchObject({ value: zh.bankPane.amountFormatError });
+    click(action(remounted.root, "nx-bank-create-cta")!);
+    await vi.advanceTimersByTimeAsync(600);
+    expect(flow.requests).toHaveBeenCalledOnce();
+    expect(flow.storage.read()).toEqual(beforeReturn);
+    (input(remounted.root)!.props.onInput as (event: unknown) => void)({ detail: { value: "20" } });
+    await Vue.nextTick();
+    click(action(remounted.root, "nx-bank-create-cta")!);
+    await vi.advanceTimersByTimeAsync(600); await Vue.nextTick();
+    expect(flow.requests).toHaveBeenCalledTimes(2);
+    expect(flow.requests.mock.calls[1][0].body).toMatchObject({ usdtAmount: 20 });
+    expect(returned.dep.bankRecoveryDraft).toBeNull();
   } else {
     click(action(remounted.root, "nx-bank-create-cta")!);
     await vi.advanceTimersByTimeAsync(600); await Vue.nextTick();

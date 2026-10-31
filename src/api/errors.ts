@@ -8,7 +8,7 @@ function validRetryAfterMs(value: unknown): value is number {
 }
 
 /** HTTP delta-seconds or HTTP-date; invalid/oversized hints are absent, never shortened. */
-export function parseRetryAfterMs(value: unknown, now = Date.now()): number | undefined {
+export function parseRetryAfterMs(value: unknown, nowMs?: number): number | undefined {
   if (typeof value !== 'string') return undefined;
   const text = value.trim();
   if (!text || text.length > 128) return undefined;
@@ -18,7 +18,10 @@ export function parseRetryAfterMs(value: unknown, now = Date.now()): number | un
   } else {
     // HTTP dates start with a weekday. Exclude numeric strings that Date.parse
     // would otherwise reinterpret as dates (negative/fractional/exponent values).
-    if (!/^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*(?:,|\s)/i.test(text) || !Number.isFinite(now)) return undefined;
+    if (!/^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*(?:,|\s)/i.test(text)) return undefined;
+    // Read the clock only for an HTTP-date hint; most responses carry no Retry-After.
+    const now = nowMs ?? Date.now();
+    if (!Number.isFinite(now)) return undefined;
     const deadline = Date.parse(text);
     if (!Number.isFinite(deadline)) return undefined;
     delay = Math.max(0, Math.ceil(deadline - now));

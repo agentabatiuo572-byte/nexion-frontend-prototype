@@ -120,7 +120,7 @@ async function pane(response: object, records: unknown[] | Promise<unknown[]> = 
       if (!(name in modules)) throw new Error(`Unexpected deposit dependency: ${name}`);
       return modules[name];
     }, {});
-    return { ...state, fmt, formatAmount: (v: number | string | null | undefined) => formatAmount(v, 6), fundsServerEnabled: true, CHAIN_DEPOSIT_FEE_USDT: depositsCore.CHAIN_DEPOSIT_FEE_USDT };
+    return { ...state, fmt, formatAmount: state.formatAmount, fundsServerEnabled: true, CHAIN_DEPOSIT_FEE_USDT: depositsCore.CHAIN_DEPOSIT_FEE_USDT };
   } });
   const root = node("root"); mounted.mount(root);
   cleanups.push(() => mounted.unmount());
@@ -438,14 +438,14 @@ test("a risk record with no historical credit does not substitute its gross tran
   expect(record.props.onClick).toBeUndefined();
 });
 
-test("Native display preserves six-decimal credit and transaction URL", async () => {
+test("Native display rounds to two places while preserving six-decimal credit and transaction URL", async () => {
   vi.stubGlobal("Intl", undefined);
   const nativeLocale = vi.spyOn(Number.prototype, "toLocaleString").mockImplementation(() => { throw new Error("NATIVE_LOCALE_UNAVAILABLE"); });
   try {
     const transfer = { ...rows[1], grossAmountUsdt: 10.123456, creditedUsdt: 9.123456 };
     const h = await pane({ ...address, creditEnabled: true }, [transfer]);
     const record = controls(h.root, "nx-dep-record-row")[0];
-    expect(nodesOf(record).filter(target => target.kind === "text").map(textOf)).toContain("9.123456");
+    expect(nodesOf(record).filter(target => target.kind === "text").map(textOf)).toContain("9.12");
     expect(h.text()).toContain("$10.00");
     expect(h.text()).toContain("1.00 USDT");
     expect((h.state.serverRecords as Vue.Ref<unknown[]>).value[0]).toMatchObject({
@@ -541,14 +541,15 @@ test.each([zh, en, vietnamese])("each pending deposit uses its own confirmation 
 });
 
 
-test("shows six decimal deposit rules and history and preserves large exact strings", async () => {
-  const h = await pane({ ...address, minDepositUsdt: 0.000001, feeUsdt: 0.004999 }, [
+test("shows integer minimum and two-place fees/history while preserving exact large transaction amounts", async () => {
+  const h = await pane({ ...address, minDepositUsdt: 1, feeUsdt: 0.004999 }, [
     { ...rows[1], grossAmountUsdt: 1.005001, creditedUsdt: 1.000002 },
     { ...rows[0], depositId: "CR-21", grossAmountUsdt: 1.005001, creditedUsdt: 0 },
     { ...rows[1], depositId: "CR-20", grossAmountUsdt: 999999999999, grossAmountUsdtExact: "999999999999.000001", creditedUsdt: 999999999999, creditedUsdtExact: "999999999999.000001" },
   ]);
-  expect(h.text()).toContain("0.000001"); expect(h.text()).toContain("0.004999");
-  expect(h.text()).toContain("1.000002"); expect(h.text()).toContain("1.005001"); expect(h.text()).toContain("999999999999.000001");
+  expect(h.text()).toContain("$1.00"); expect(h.text()).toContain("0.00 USDT");
+  expect(h.text()).toContain("1.00"); expect(h.text()).toContain("1.01"); expect(h.text()).toContain("999999999999.00");
+  expect((h.state.serverRecords as Vue.Ref<unknown[]>).value).toMatchObject([{ grossExact: "1.005001", creditedExact: "1.000002" }, {}, { grossExact: "999999999999.000001", creditedExact: "999999999999.000001" }]);
   const big = controls(h.root, "nx-dep-record-row").find(r => textOf(r).includes("CR-20"))!;
   (big.props.onClick as () => void)();
   expect(h.navTo.mock.calls[0][0]).toContain("amount=999999999999.000001");
@@ -573,7 +574,8 @@ test("history failure preserves verified address and existing records, then reco
   await vi.waitFor(() => expect(h.text()).toContain(zh.topupChrome.depositOpFailedNote));
   expect(controls(h.root, "nx-dep-qr-box")).toHaveLength(1);
   expect(controls(h.root, "nx-dep-record-row")).toHaveLength(1);
-  expect(h.text()).toContain("0.004999");
+  expect(h.text()).toContain("0.00 USDT");
+  expect(h.state.feeUsdt).toMatchObject({ value: "0.004999" });
   h.request.mockImplementation(async ({ path }) => path.startsWith("/api/deposits/address") ? address : []);
   (controls(h.root, "nx-dep-chain-history-retry")[0].props.onClick as () => void)();
   await vi.waitFor(() => expect(h.text()).toContain(zh.topupChrome.noDepositsYet));
@@ -606,4 +608,21 @@ test("background address failure withholds the address but preserves history and
   await vi.waitFor(() => expect(controls(h.root, "nx-dep-qr-box")).toHaveLength(1));
   expect(h.text()).not.toContain(zh.topupChrome.addrLoadFailed);
   expect(controls(h.root, "nx-dep-record-row")).toHaveLength(1);
+});
+
+
+test.each([{ minDepositUsdt: undefined }, { feeUsdt: undefined }, { minDepositUsdt: null }, { feeUsdt: null }, { minDepositUsdt: 1.5 }])('unknown or noninteger remote rules %j never substitute zero fee or minimum ten', async patch => {
+  const h = await pane({ ...address, ...patch });
+  expect(h.text()).toContain(zh.topupChrome.addrLoadFailed);
+  expect(controls(h.root, 'nx-dep-qr-box')).toHaveLength(0);
+  expect(h.text()).not.toContain('$10.00'); expect(h.text()).not.toContain('0.00 USDT');
+  expect((h.state.serverAddress as Vue.Ref<string>).value).toBe('');
+  expect(h.navTo).not.toHaveBeenCalled();
+});
+
+test('a remote integer minimum and explicit zero fee remain valid and display two decimal places', async () => {
+  const h = await pane({ ...address, minDepositUsdt: 37, feeUsdt: 0 });
+  expect(h.text()).toContain('$37.00'); expect(h.text()).toContain('0.00 USDT');
+  expect(controls(h.root, 'nx-dep-qr-box')).toHaveLength(1);
+  expect((h.state.minDeposit as Vue.Ref<string>).value).toBe('37');
 });

@@ -74,7 +74,7 @@ function formalEmptyResponse(url) {
   // An unavailable exchange read is not an empty history. Supply the complete
   // canonical response so this probe exercises the actual empty-list branch.
   if (url.pathname === "/api/exchange") {
-    const caps = { asset: "NEX", currency: "USDT", currentPrice: 0.125,
+    const caps = { asset: "UVT", currency: "USDT", currentPrice: 0.125,
       userDailyCapUsdt: 50, platformDailyCapUsdt: 20000, feePct: 0, feeMinUsdt: 0.5,
       minUsdt: 3, minNex: 42, queueMode: "QUEUE", swapEnabled: false,
       serverCanonical: true, source: "G2/G3 server configuration", sourceEnvironment: "PRODUCTION", runId: "" };
@@ -107,7 +107,7 @@ function formalEmptyResponse(url) {
     halted: false,
     status: "NOT_ELIGIBLE",
     reservedAllocation: 0,
-    reservedAllocationUnit: "NEX",
+    reservedAllocationUnit: "UVT",
     priorityRank: null,
     priorityTier: "NONE",
     policyVersion: "formal-empty-v1",

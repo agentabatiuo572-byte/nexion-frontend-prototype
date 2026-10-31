@@ -82,7 +82,8 @@ function find(node: Vue.VNode, predicate: (node: Vue.VNode) => boolean): Vue.VNo
 }
 
 function platform(signedIn = true) {
-  const signed = Vue.ref(signedIn), app = Vue.reactive({ accountKey: 'user:7', accountBindingEpoch: 1 });
+  // Home reports its visibility to the task-read scheduler on show/hide.
+  const signed = Vue.ref(signedIn), app = Vue.reactive({ accountKey: 'user:7', accountBindingEpoch: 1, setTaskReadPageVisible: vi.fn() });
   const list = vi.fn<(...args: unknown[]) => Promise<PublicPromotionPage>>().mockResolvedValue(page([activity()]));
   const referral = vi.fn().mockImplementation(async (id: string) => ({ activityId: id, qualifyingOrders: 1, ownRewards: [] }));
   const catalogApi = vi.fn<() => Promise<ProductCatalogSnapshot>>().mockResolvedValue(snapshot());

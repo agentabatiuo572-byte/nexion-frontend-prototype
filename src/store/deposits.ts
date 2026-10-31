@@ -1065,7 +1065,7 @@ export const useDeposits = defineStore("deposits", () => {
 
   async function createRemoteBankIntent(amount: number, rawExpectedAccountKey: string): Promise<DepositIntent | null> {
     if (!remoteApiEnabled) return null;
-    if (!Number.isFinite(amount) || amount <= 0) return null;
+    if (!Number.isSafeInteger(amount) || amount <= 0) return null;
     const expectedAccountKey = serverAccountKey;
     const expectedGeneration = remoteGeneration;
     if (normalizeAccountKey(rawExpectedAccountKey) !== expectedAccountKey) throw new Error("VIETQR_ACCOUNT_CHANGED");

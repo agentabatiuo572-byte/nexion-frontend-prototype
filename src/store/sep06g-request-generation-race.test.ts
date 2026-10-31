@@ -224,41 +224,36 @@ describe("Sep 06G same-account request generation fences", () => {
     expect(store.binarySnapshot).toBeNull();
   });
 
-  it("keeps the newer first page when an older same-account event refresh finishes last", async () => {
-    const older = deferred<ReturnType<typeof commissionPage>>();
-    const newer = deferred<ReturnType<typeof commissionPage>>();
-    commissionRuntime.teamInsightsApi.commissions
-      .mockReturnValueOnce(older.promise)
-      .mockReturnValueOnce(newer.promise);
+  // Same-scope refreshes coalesce onto the in-flight read (78c1cb3d), so an older same-account
+  // request can no longer finish after a newer one; cross-scope fences are covered above.
+  it("coalesces a concurrent same-account event refresh into one read", async () => {
+    const only = deferred<ReturnType<typeof commissionPage>>();
+    commissionRuntime.teamInsightsApi.commissions.mockReturnValueOnce(only.promise);
     const store = useCommission();
 
     const first = store.refreshCanonicalEvents();
     const second = store.refreshCanonicalEvents();
-    newer.resolve(commissionPage("newer-event", 1, 1));
-    await second;
-    older.resolve(commissionPage("older-event", 1, 1));
-    await first;
-
-    expect(store.events.map((item) => item.id)).toEqual(["newer-event"]);
-  });
-
-  it("keeps a newer same-account event success ready when the older request fails last", async () => {
-    const older = deferred<ReturnType<typeof commissionPage>>();
-    const newer = deferred<ReturnType<typeof commissionPage>>();
-    commissionRuntime.teamInsightsApi.commissions
-      .mockReturnValueOnce(older.promise)
-      .mockReturnValueOnce(newer.promise);
-    const store = useCommission();
-
-    const first = store.refreshCanonicalEvents();
-    const second = store.refreshCanonicalEvents();
-    newer.resolve(commissionPage("newer-event", 1, 1));
-    await second;
-    older.reject(new Error("older events failed"));
-    await first;
+    expect(commissionRuntime.teamInsightsApi.commissions).toHaveBeenCalledTimes(1);
+    only.resolve(commissionPage("newer-event", 1, 1));
+    await Promise.all([first, second]);
 
     expect(store.eventsStatus).toBe("ready");
     expect(store.events.map((item) => item.id)).toEqual(["newer-event"]);
+  });
+
+  it("settles every coalesced caller with the one failed read and sends no second request", async () => {
+    const only = deferred<ReturnType<typeof commissionPage>>();
+    commissionRuntime.teamInsightsApi.commissions.mockReturnValueOnce(only.promise);
+    const store = useCommission();
+
+    const first = store.refreshCanonicalEvents();
+    const second = store.refreshCanonicalEvents();
+    only.reject(new Error("events failed"));
+    const outcomes = await Promise.allSettled([first, second]);
+
+    expect(outcomes[0].status).toBe(outcomes[1].status);
+    expect(commissionRuntime.teamInsightsApi.commissions).toHaveBeenCalledTimes(1);
+    expect(store.eventsStatus).not.toBe("ready");
   });
 
   it("does not append a stale same-account load-more page after a newer first-page refresh", async () => {

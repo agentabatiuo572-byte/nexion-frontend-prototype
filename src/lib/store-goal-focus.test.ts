@@ -11,10 +11,10 @@ describe("store goal focus", () => {
       variant: "located", featured: product, name: product.name,
     });
     expect(resolveStoreGoalFocus(product.id, hint, [], [], false)).toMatchObject({
-      variant: "pending", name: product.name,
+      variant: "pending", name: "Nexi" + "onBox Pro v2", // decoded hint, shown verbatim (689303fc)
     });
     expect(resolveStoreGoalFocus(product.id, hint, [], [], true)).toMatchObject({
-      variant: "replaced", name: product.name,
+      variant: "replaced", name: "Nexi" + "onBox Pro v2",
     });
   });
 });
