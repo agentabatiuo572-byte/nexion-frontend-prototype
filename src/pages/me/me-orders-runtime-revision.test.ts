@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { advanceRuntimeRevision, subscribeRuntimeRevision } from "@/api/order-api";
 import { runRemoteOrdersRefresh } from "@/lib/remote-orders-refresh";
 import { binarySessionReady } from "@/lib/binary-session-ready";
+import { invalidatePassiveTabRead, passiveTabReadScope, runPassiveTabRead } from "@/lib/passive-tab-read";
 
 const source = readFileSync(new URL("./me.vue", import.meta.url), "utf8");
 function section(start: string, end: string) {
@@ -34,11 +35,12 @@ function page() {
   const loading = ref(false);
   const hasRead = ref(false);
   const deps = {
-    watch, subscribeRuntimeRevision, runRemoteOrdersRefresh, binarySessionReady,
+    watch, subscribeRuntimeRevision, runRemoteOrdersRefresh, binarySessionReady, invalidatePassiveTabRead, passiveTabReadScope, runPassiveTabRead,
     remoteApiEnabled: true, app: reactive({ accountKey: "user:607", accountBindingEpoch: 1 }),
     auth, sessionVault: { read: () => ({ user: { userId: 607 } }) },
     orders: { refreshRemote }, remoteOrdersLoading: loading, remoteOrdersFailed: failed,
     remoteSecurity: ref(null), remoteOrdersHasRead: hasRead,
+    refreshPaymentPassword: vi.fn(async () => {}),
     onShow: (callback: () => void) => hooks.show.push(callback),
     onHide: (callback: () => void) => hooks.hide.push(callback),
     onUnmounted: (callback: () => void) => hooks.dispose.push(callback),

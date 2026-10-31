@@ -49,10 +49,14 @@ function harness(page: Page, options: { remote?: boolean; recorded?: boolean } =
   const deps = {
     ...dayOnePageObservationFixture(reporter),
     remoteApiEnabled: options.remote ?? true,
-    app: { homeTruthStatus: "ready", remoteFleetStatus: "ready", homeTruth: {} as object | null, setTaskReadPageVisible: vi.fn() },
+    app: { homeTruthStatus: "ready", remoteFleetStatus: "ready", homeTruth: {} as object | null, setTaskReadPageVisible: vi.fn(), accountKey: "user:7" },
     catalogStatus: { value: "ready" },
     product: { value: { id: "stellarbox-s1", productType: "HARDWARE", price: 100, dailyEarn: 1 } },
-    genesis: { remotePublicReadState: "ready", syncRemote: vi.fn().mockResolvedValue(true) },
+    genesis: { remotePublicReadState: "ready", syncRemote: vi.fn().mockResolvedValue(true),
+      captureRemoteReadBinding: () => ({ accountKey: "user:7", epoch: 3 }), remotePublicSuccessRevision: 0, remoteAccountSuccessRevision: 0 },
+    // marketplace.vue ownership fence (one stable account/locale/environment owner).
+    marketOwner: { value: "owner" }, marketOwnerGeneration: 0, marketEnvironmentInvalidated: false,
+    publicReadOwner: { value: "" }, accountReadOwner: { value: "" },
     cfg: { refresh: vi.fn(async () => {}) },
     nextTick: vi.fn<() => Promise<void>>().mockResolvedValue(undefined),
     captureAccountScope: () => ({ ...currentScope }),
@@ -239,7 +243,8 @@ it("actual Genesis sync separates public readiness from account-only success and
     remoteListings: ref(), listingNoByTokenId: ref(), tokenIdFor: (id: string) => id,
     remoteEligibility: ref(), remoteEligibilityError: ref(), remotePublicError: ref(),
     remoteSupplyKnown: ref(), remoteRoyaltyPct: ref(), remoteAccountReadState: ref(),
-    remoteSecondaryCommandProtocol: ref(), nexListedAt: ref(),
+    remoteSecondaryCommandProtocol: ref(), nexListedAt: ref(), invalidateBeforePassiveTabRead: () => {},
+    remotePublicSuccessRevision: ref(0), remotePublicSuccessScope: ref(),
   };
   const js = ts.transpileModule(`
     const { ${Object.keys(deps).join(",")} } = deps;

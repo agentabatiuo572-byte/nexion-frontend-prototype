@@ -1,5 +1,6 @@
 import { formatUsd } from "@/lib/usd-display";
-import { formatWalletBillDecimal } from "@/lib/wallet-bill-display";
+import * as walletBillDisplay from "@/lib/wallet-bill-display";
+import * as amountDisplay from "@/lib/amount-display";
 import { platformDisplayText } from "@/lib/brand-copy";
 import * as Vue from "vue";
 import { compileScript, parse } from "@vue/compiler-sfc";
@@ -30,11 +31,14 @@ async function render(locale: keyof typeof dicts, rows: Bill[], ledgerBizNo = ""
     "@/lib/usd-display": { formatUsd },
     vue: Vue, "@dcloudio/uni-app": { onLoad: (fn: (options: { ledgerBizNo: string }) => void) => fn({ ledgerBizNo }), onShow: vi.fn(), onHide: vi.fn() },
     "@/components/app-chassis.vue": { default: chassis }, "@/components/empty-state.vue": { default: empty },
-    "@/components/sub-page-header.vue": { default: empty }, "@/components/me/bill-type-icon.vue": { default: empty },
+    "@/components/sub-page-header.vue": { default: empty }, "@/components/me/bill-type-icon.vue": { default: empty }, "@/components/copy-code-button.vue": { default: empty }, "@/components/liquid-glass.vue": { default: empty },
     "@/components/glass-segments.vue": { default: Vue.defineComponent(() => () => Vue.h("view", { "data-bill-tabs": "true" })) }, "@/i18n/use-t": { useT: () => Vue.ref(dicts[locale]) },
     "@/i18n/format": { dateLocale: () => locale, fmt: (text: string) => text },
-    "@/lib/wallet-bill-date": { walletBillMonthKey: () => "2026-10", walletBillMonthLabel: () => "October", walletBillTimeLabel: () => "12:00" },
-    "@/lib/wallet-bill-display": { resolveWalletBillMemo: () => "Reward", formatWalletBillDecimal }, "@/lib/rank-how-content": { formatHowNumber },
+    "@/lib/wallet-bill-date": { walletBillMonthKey: () => "2026-10", walletBillMonthLabel: () => "October", walletBillTimeLabel: () => "12:00",
+      walletBillClockLabel: () => "12:00", walletBillDayKey: () => "2026-10-05", walletBillDayLabel: () => "October 5" },
+    "@/lib/wallet-bill-display": { ...walletBillDisplay, resolveWalletBillMemo: () => "Reward" }, "@/lib/amount-display": amountDisplay,
+    "@/components/ui/nx-tag.vue": { default: empty }, "@/composables/use-dialog-a11y": { useDialogA11y: () => {} },
+    "@/store/data-visibility": { useDataVisibility: () => ({ hidden: false }) }, "@/lib/rank-how-content": { formatHowNumber },
     "@/composables/use-course-reward-titles": { useCourseRewardTitles: () => Vue.ref({}) },
     "@/store/bills": { useBills: () => ({ bills: rows, getLedger: () => pager }) },
     "@/store/app": { useApp: () => ({ accountBindingEpoch: 1, accountKey: "user:7" }) },
@@ -80,8 +84,8 @@ describe("wallet bills exact money render", () => {
           const row = fixture(exact, symbol, debit), before = JSON.stringify(row);
           const html = await render(locale, [row]);
           expect(JSON.stringify(row)).toBe(before);
-          expect(html).toContain(`${debit ? "-" : "+"}${formatted}`);
-          if (symbol === "USDT") expect(html).toContain(`${dicts[locale].bills.runningBalance}: ${formatted}`);
+          expect(html).toContain(`${debit ? "−" : "+"}${formatted}`);
+          if (symbol === "USDT") expect(html).toContain(`${dicts[locale].bills.runningBalance} ${formatted}`);
         }
       }
     }
@@ -94,7 +98,7 @@ describe("wallet bills exact money render", () => {
     expect(row.amountExact).toBeUndefined();
     const bill = { ...fixture("0.000001", "USDT"), amountExact: row.amountExact, balanceAfter: row.balanceAfter, balanceAfterExact: row.balanceAfterExact };
     const html = await render("en", [bill]);
-    expect(html).toContain("+&lt;0.0001"); expect(html).toContain(`${en.bills.runningBalance}: 1.00`);
+    expect(html).toContain("+&lt;0.0001"); expect(html).toContain(`${en.bills.runningBalance} 1.00`);
     expect(bill.amount).toBe(0.000001); expect(bill.balanceAfter).toBe(1.000001);
   });
 });

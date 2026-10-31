@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from "pinia";
 import ts from "typescript";
 import { computed, effectScope, nextTick, reactive, ref, watch, type Ref } from "vue";
 import { ApiError } from "@/api/errors";
-import { isConversationDeliveryAmbiguous } from '@/lib/conversation-delivery-policy';
+import { isConversationDeliveryAmbiguous, isConversationPeerChanged } from '@/lib/conversation-delivery-policy';
 import { isSupportAttachmentNotReady } from "@/api/support-api";
 import { fmt } from '@/i18n/format';
 import { MESSAGE_MAX_LENGTH, normalizeMessageText } from '@/lib/message-length-policy';
@@ -25,7 +25,7 @@ function extractChat(names: string[]) {
 }
 const sendPolicyDeps = { ApiError, fmt, MESSAGE_MAX_LENGTH, normalizeMessageText };
 function humanSendHarness(inputs: Record<string, unknown>) {
-  const deps = { ref, computed, ...sendPolicyDeps, isSupportAttachmentNotReady, isConversationDeliveryAmbiguous, t: ref(zh),
+  const deps = { ref, computed, ...sendPolicyDeps, isSupportAttachmentNotReady, isConversationDeliveryAmbiguous, isConversationPeerChanged, t: ref(zh),
     conversationSendLimiter: createConversationSendBudgets(), isAi: ref(false),
     chatDisposed: false, pageVisible: true, ...inputs };
   const code = extractChat(['localHumanSend', 'localHumanSequence', 'sendSuccessRevision', 'sendSuccessOwner', 'threadComposerKey', 'noteSendSuccess',

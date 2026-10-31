@@ -50,9 +50,9 @@ it.each(languages)("%s renders newcomer, inviter and generic rewards on all actu
           computed, true, records, ref(10), t, resolveWalletBillMemo, ref({}));
         expect(rewardView.value[0].memo).toBe(label);
         const bills = reactive({ summaryStatus: "ready", summary: { recentNexBills: [bill] } });
-        const nexView = new Function("computed", "remoteApiEnabled", "bills", "t", "resolveWalletBillMemo",
+        const nexView = new Function("computed", "remoteApiEnabled", "bills", "t", "resolveWalletBillMemo", "summaryForDisplay",
           code(nex, "const nexLedger = computed", "const pendingNex = computed") + ";return nexLedger;")(
-          computed, true, bills, t, resolveWalletBillMemo);
+          computed, true, bills, t, resolveWalletBillMemo, computed(() => bills.summary));
         expect(nexView.value).toEqual(asset === "UVT" ? [{ id: bill.id, ts: bill.ts, kind: "ledger", nex: 0.015, label }] : []);
         expect(records.value[0].memo).toBe("");
         expect(label).not.toMatch(/PRIVATE|REF-|NEWCOMER|INVITER/);

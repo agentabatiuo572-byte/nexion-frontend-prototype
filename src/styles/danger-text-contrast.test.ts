@@ -57,7 +57,7 @@ function onePath(source: Source, match: (node: ElementNode) => boolean) {
 const chassis = sfc("components/app-chassis.vue", [], { pullActive: false, isTabRoute: false, contentTop: 0, pendingBarInset: 0, contentBottom: 0 });
 const chassisPath = onePath(chassis, node => node.tag === "slot" && !attribute(node, "name"));
 const orders = sfc("pages/store/orders.vue", ["badge", "orderRowStyle", "statusChipStyle"], {
-  t: { value: { orders: {} } }, o: { status: "payment_failed" }, i: 0, orderList: [{}],
+  t: { value: { orders: {} } }, o: { status: "payment_failed" }, i: 0, orderList: [{}], filteredOrders: [{}],
 });
 const me = sfc("pages/me/me.vue");
 const security = sfc("pages/me/security.vue", ["cardStyle", "groupGap", "revokeAllRowStyle", "revokeAllLabelStyle"]);

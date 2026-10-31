@@ -52,9 +52,9 @@ describe("controlled referral commission direction", () => {
   it.each(languages)("keeps NEX activity's signed amount while rendering the debit memo in $locale", ({ messages, debit }) => {
     const bill = productionBill(row("OUT", "UVT"));
     const bills = reactive({ summaryStatus: "ready", summary: { recentNexBills: [bill] } });
-    const view = new Function("computed", "remoteApiEnabled", "bills", "t", "resolveWalletBillMemo",
+    const view = new Function("computed", "remoteApiEnabled", "bills", "t", "resolveWalletBillMemo", "summaryForDisplay",
       code(nexSource, "const nexLedger = computed", "const pendingNex = computed") + ";return nexLedger;")(
-      computed, true, bills, ref(messages), resolveWalletBillMemo,
+      computed, true, bills, ref(messages), resolveWalletBillMemo, computed(() => bills.summary),
     ) as { value: Array<{ id: string; ts: number; nex: number; label: string }> };
     expect(view.value[0]).toMatchObject({ id: bill.id, ts: bill.ts, nex: -64.95, label: debit });
   });
