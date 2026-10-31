@@ -748,7 +748,8 @@ export default chassisView;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 2px;
+  /* No extra inset: the 44px hit areas start at 12px, so each 36px glass circle sits on the 16px page margin like the tab header. */
+  padding: 0;
   border-radius: 28px;
 }
 .nx-navheader--capsule { box-shadow: 0 0 0 1px var(--v5-liquid-rim); }

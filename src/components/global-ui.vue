@@ -75,7 +75,7 @@
        polls + fires via store.show()) -->
   <MilestoneCelebration v-if="showBusinessOverlays" />
   <PaymentPasswordDialog v-if="showBusinessOverlays" />
-  <PurchasePaymentDialog v-if="showBusinessOverlays" :show-history="route.includes('store/orders') || route.includes('store/order-detail')" />
+  <PurchasePaymentDialog v-if="showBusinessOverlays" :show-history="route.includes('store/orders')" :show-resume="!route.includes('store/order-detail')" />
 </template>
 
 <script setup lang="ts">

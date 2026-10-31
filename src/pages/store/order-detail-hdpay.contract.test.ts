@@ -22,9 +22,8 @@ describe("wallet payment for a pending commerce order", () => {
   });
 
   it("keeps the wallet-payment CTA activatable from pointer and keyboard input", () => {
-    expect(detailSource).toContain('@click.stop="requestPendingPayment()"');
-    expect(detailSource).toContain('@keydown.enter.prevent.stop="requestPendingPayment()"');
-    expect(detailSource).toContain('@keydown.space.prevent.stop="requestPendingPayment()"');
+    // NxButton supplies the pointer, Enter and Space activation.
+    expect(detailSource).toMatch(/<NxButton[^>]*@click="requestPendingPayment\(\)"/);
     expect(detailSource).toContain('void handleWalletPayment();');
     expect(detailSource).toContain('await executeSelectedPurchase(');
   });
@@ -55,8 +54,7 @@ describe("wallet payment for a pending commerce order", () => {
     expect(detailSource).toContain("const cancelAttempt = ++cancelAttemptSequence;");
     expect(detailSource).toContain("if (!ok || !canCancelCurrentOrder() || !isCurrentDetailScope(scope) || !liveOrder.value) return;");
     expect(detailSource).toContain("if (cancelAttempt === cancelAttemptSequence) cancellingOrder.value = false;");
-    expect(detailSource).toContain('@keydown.enter.prevent.stop="handleCancel"');
-    expect(detailSource).toContain('@keydown.space.prevent.stop="handleCancel"');
+    expect(detailSource).toMatch(/<NxButton[^>]*:busy="cancellingOrder"[^>]*@click="handleCancel"/);
   });
 
   it("keeps ordinary cancellation available while quoted promotion orders use their own command flow", () => {

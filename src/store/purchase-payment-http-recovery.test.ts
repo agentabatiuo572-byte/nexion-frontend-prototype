@@ -57,7 +57,8 @@ describe.each(methods)('%s real HTTP envelope recovery', method => {
     expect(h.transport.mock.calls[2]![0]).toMatchObject({ method: 'GET', url: 'https://fixture.invalid/api/app/purchase-payment-intents?kind=ORDER_PAY&commandKey=original-business-key' });
     expect(h.payment.pending()).toEqual([]); expect(h.payment.state.pending).toBeNull(); expect(h.payment.state.quote).toBeNull();
     expect(ports.release).toHaveBeenCalledWith(expect.any(String), 'user:http-recovery', expect.any(String), 'original-business-key');
-    await h.payment.select(method); await h.payment.confirm();
+    // The refused quote is replaced automatically; no manual re-query.
+    await vi.waitFor(() => expect(h.payment.state.quote).toMatchObject({ paymentQuoteId: 'Q-http-2' })); await h.payment.confirm();
     const creates = h.transport.mock.calls.map(([request]) => request).filter(request => request.method === 'POST' && request.url.endsWith('-intents'));
     expect(creates).toHaveLength(2); expect(creates.map(request => request.headers['Idempotency-Key'])).toEqual(['original-business-key', 'original-business-key']);
     expect(creates.map(request => request.body)).toEqual([{ paymentQuoteId: 'Q-http-1' }, { paymentQuoteId: 'Q-http-2' }]);

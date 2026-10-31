@@ -2,7 +2,7 @@ import { commerceOrderTitle, commerceCopy } from "@/lib/commerce-review";
 import { checkoutFlowCopy } from "@/lib/checkout-flow-copy";
 import { orderPaymentRejection } from '@/lib/order-payment-rejection';
 import { getProductMedia } from "@/lib/product-media";
-import { formatAmount } from "@/lib/amount-display";
+import { formatAmount, formatGroupedAmount } from "@/lib/amount-display";
 import { compile } from "@vue/compiler-dom";
 import { compileScript, parse } from "@vue/compiler-sfc";
 import { renderToString } from "@vue/server-renderer";
@@ -137,6 +137,8 @@ async function rendered(view: Awaited<ReturnType<typeof detail>>["view"]) {
   app.component("AppChassis", Vue.defineComponent({ setup: (_, { slots }) => () => Vue.h("main", slots.default?.()) }));
   app.component("OrderRewards", Vue.defineComponent({ setup: () => () => Vue.h("div") }));
   app.component("DetailRow", Vue.defineComponent({ props: ["label", "value"], setup: (props) => () => Vue.h("div", `${props.label}: ${props.value}`) }));
+  // Same grouping helper as the real CheckoutAmount.
+  app.component("CheckoutAmount", Vue.defineComponent({ props: ["value", "currency"], setup: (props) => () => Vue.h("span", `${formatGroupedAmount(props.value)} ${props.currency}`) }));
   return renderToString(app);
 }
 
@@ -160,7 +162,10 @@ describe("BUG 381 canonical order data-center and activation truth", () => {
     const {view}=await detail('Cloud-Global',en,status);
     const html=await rendered(view);
     expect(html).toContain(en.orders.copyAndSupport);
-    expect(html).toContain(en.store.catalogRetry);
+    // A closed order offers support, not a manual resync; unpaid closures never show a data center.
+    expect(html).not.toContain(en.store.catalogRetry);
+    if (status==='payment_failed'||status==='expired') expect(html).not.toContain(`${en.orders.dataCenter}:`);
+    else expect(html).toContain(`${en.orders.dataCenter}:`);
     expect(view.canPayFromWallet.value).toBe(false);
     expect(view.cancellable.value).toBe(false);
     expect(view.canBuyAgain.value).toBe(status==='expired');

@@ -10,19 +10,41 @@
     <view style="color: var(--v5-ink)">
       <SubPageHeader back="/pages/me/me" :title="t.wallet.addFunds" :subtitle="t.wallet.topUp" />
 
+      <!-- Topping up for an unpaid order: what is missing, when the order closes, and the way back once funds arrive. -->
+      <view v-if="orderTopup" class="topup-order" :class="{ 'is-done': orderTopupLeft <= 0 }" role="status">
+        <view class="topup-order__t"><view class="topup-order__dot" aria-hidden="true" /><text>{{ orderTopupLeft > 0 ? payCopy.topupFor : payCopy.topupDone }}</text></view>
+        <text v-if="orderTopupLeft > 0 && balanceKnown" class="topup-order__d">{{ fillCopy(payCopy.topupNeed, { name: orderTopup.name }) }}<text class="topup-order__b">{{ formatGroupedAmount(orderTopupLeft) }} USDT</text>{{ payCopy.topupNeedTail }}</text>
+        <text v-else-if="orderTopupLeft <= 0" class="topup-order__d">{{ fillCopy(payCopy.topupEnough, { amt: formatGroupedAmount(app.user.usdtBalance) }) }}</text>
+        <view v-if="orderTopupLeft > 0 && orderCloseLeft !== null" class="topup-order__cd">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+          <text>{{ fillCopy(payCopy.topupCloses, { t: orderCloseLeft }) }}</text>
+        </view>
+      </view>
+
       <GlassSegments :label="t.wallet.chooseMethod" v-model="seg" :options="segmentOptions" style="margin: 0 16px 16px"  />
 
       <DepositUsdtPane v-if="seg === 'crypto'" />
       <DepositBankPane v-else-if="seg === 'bank'" />
       <TopupCardForm v-else @change-channel="seg = 'crypto'" />
+      <view v-if="orderFunded" style="height: 120px" />
     </view>
+    <!-- Once the order is covered, the way back is the page's main action, in the thumb zone (DS-30). -->
+    <template #pageFixed>
+      <view v-if="orderFunded" class="topup-sticky"><NxButton class="topup-sticky__btn" variant="primary" :label="payCopy.backToPay" @click="backToOrder" /></view>
+    </template>
   </AppChassis>
 </template>
 
 <script setup lang="ts">
 import { ref, nextTick, type CSSProperties, computed } from "vue";
 import { onLoad } from "@dcloudio/uni-app";
-import { takeNavigationQuery } from "@/lib/route";
+import { takeNavigationQuery, navTo } from "@/lib/route";
+import NxButton from "@/components/ui/nx-button.vue";
+import { useApp } from "@/store/app";
+import { useLocaleStore } from "@/store/locale";
+import { useVisibleInterval } from "@/composables/use-tab-page-lifecycle";
+import { purchasePaymentCopy, fillCopy } from "@/lib/purchase-payment-copy";
+import { formatGroupedAmount } from "@/lib/amount-display";
 import AppChassis from "@/components/app-chassis.vue";
 import SubPageHeader from "@/components/sub-page-header.vue";
 import TopupCardForm from "@/components/me/topup-card-form.vue";
@@ -42,7 +64,23 @@ onLoad((query) => {
   const channel = query?.channel ?? pending.get('channel');
   const allowed = segments.find(item => item.id === channel);
   if (allowed) seg.value = allowed.id;
+  const orderNo = query?.orderNo ?? pending.get('orderNo'), amount = Number(query?.amount ?? pending.get('amount')), deadline = Number(query?.deadline ?? pending.get('deadline'));
+  if (orderNo && Number.isFinite(amount) && amount > 0) orderTopup.value = { orderNo, amount, name: query?.name ?? pending.get('name') ?? '', deadlineAt: Number.isFinite(deadline) && deadline > 0 ? deadline : null };
 });
+const app = useApp();
+const payCopy = computed(() => purchasePaymentCopy(locale.code));
+const orderTopup = ref<{ orderNo: string; amount: number; name: string; deadlineAt: number | null } | null>(null);
+const topupNow = ref(Date.now());
+useVisibleInterval(() => { if (orderTopup.value) topupNow.value = Date.now(); }, 1000);
+// Until the wallet snapshot arrives the shortfall is unknown, so the banner shows only the order and its deadline.
+const balanceKnown = computed(() => Number.isFinite(app.user.usdtBalance) && app.user.usdtBalance >= 0 && app.remoteFleetHasSnapshot);
+const orderTopupLeft = computed(() => !orderTopup.value ? 0 : balanceKnown.value ? Math.max(0, orderTopup.value.amount - app.user.usdtBalance) : orderTopup.value.amount);
+const orderCloseLeft = computed(() => {
+  const left = orderTopup.value?.deadlineAt ? Math.max(0, Math.ceil((orderTopup.value.deadlineAt - topupNow.value) / 1000)) : null;
+  return left === null ? null : `${String(Math.floor(left / 60)).padStart(2, '0')}:${String(left % 60).padStart(2, '0')}`;
+});
+const orderFunded = computed(() => !!orderTopup.value && balanceKnown.value && orderTopupLeft.value <= 0);
+function backToOrder() { if (orderTopup.value) void navTo(`/pages/store/order-detail?id=${encodeURIComponent(orderTopup.value.orderNo)}&pay=1`); }
 function segLabel(id: Seg): string {
   const tc = t.value.topupChrome;
   if (id === "crypto") return tc.segUsdt;
@@ -68,6 +106,7 @@ function moveSeg(index: number, delta: number): void {
 }
 
 const t = useT();
+const locale = useLocaleStore();
 const dep = useDeposits();
 
 // ── styles ──
@@ -104,3 +143,15 @@ const segmentOptions = computed(() => segments.map(({ id }) => ({
   dimmed: id === "bank" && !dep.bankRailAvailable,
 })));
 </script>
+<style scoped>
+.topup-order { margin: 0 16px 16px; padding: var(--v5-space-4); border-radius: var(--ui-radius-surface); background: radial-gradient(240px 160px at 100% 0%, color-mix(in srgb, var(--v5-warning) 9%, transparent), transparent 72%), var(--v5-surface); }
+.topup-order.is-done { background: radial-gradient(240px 160px at 100% 0%, color-mix(in srgb, var(--v5-brand) 9%, transparent), transparent 72%), var(--v5-surface); }
+.topup-order__t { display: flex; align-items: center; gap: var(--v5-space-2); font: 500 var(--ui-type-list-title)/var(--ui-type-list-title-lh) var(--font-v5); color: var(--v5-ink); }
+.topup-order__dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--v5-warning); }
+.topup-order.is-done .topup-order__dot { background: var(--v5-brand); }
+.topup-order__d { display: block; margin-top: 6px; color: var(--v5-ink-3); font: var(--ui-type-description-weight) var(--ui-type-description)/var(--ui-type-description-lh) var(--font-v5); }
+.topup-order__b { font-weight: 500; color: var(--v5-ink); }
+.topup-order__cd { display: flex; align-items: center; gap: 6px; margin-top: var(--v5-space-2); color: var(--v5-warning); font: var(--ui-type-description-weight) var(--ui-type-description)/var(--ui-type-description-lh) var(--font-v5); }
+.topup-sticky { position: absolute; left: 0; right: 0; bottom: 0; z-index: 36; display: flex; padding: var(--v5-space-3) var(--v5-space-4) calc(30px + env(safe-area-inset-bottom)); background: linear-gradient(180deg, color-mix(in srgb, var(--ui-ticket-top) 70%, transparent), color-mix(in srgb, var(--ui-ticket-bottom) 94%, transparent)); border-top: 1px solid color-mix(in srgb, var(--v5-ink) 5%, transparent); backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%); }
+.topup-sticky__btn { display: flex; flex: 1; }
+</style>

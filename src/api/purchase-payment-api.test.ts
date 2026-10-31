@@ -80,3 +80,11 @@ it.each([['CREGIS_USDT_ERC20'], ['CREGIS_USDT_BSC'], { value: 'CREGIS_USDT_ERC20
   expect(() => parsePurchaseQuote({ ...quote(), paymentMethod, network: 'ERC20' })).toThrow('PURCHASE_PAYMENT_RESPONSE_INVALID');
   expect(() => parsePurchaseIntent({ ...intent(), paymentMethod, network: 'ERC20' })).toThrow('PURCHASE_PAYMENT_RESPONSE_INVALID');
 });
+it('reads which external channels are configured and refuses a malformed policy', async () => {
+  const request = vi.fn().mockResolvedValueOnce({ version: 3, channels: [{ paymentMethod: 'HDPAY_BANK', configured: true }, { paymentMethod: 'CREGIS_USDT_ERC20', configured: false }] })
+    .mockResolvedValueOnce({ channels: [{ paymentMethod: 'HDPAY_BANK', configured: 'yes' }] });
+  const api = createPurchasePaymentApi({ request } as unknown as ApiClient);
+  await expect(api.policy()).resolves.toEqual({ HDPAY_BANK: true, CREGIS_USDT_ERC20: false });
+  expect(request).toHaveBeenCalledWith({ path: '/api/app/purchase-payment-policy' });
+  await expect(api.policy()).rejects.toThrow('PURCHASE_PAYMENT_RESPONSE_INVALID');
+});

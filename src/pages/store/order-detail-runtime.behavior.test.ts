@@ -94,6 +94,8 @@ function harness(mode: "dev" | "prod" = "prod") {
     executePaymentWithPassword:authorize, executeSelectedPurchase:selection.execute, checkoutFlowCopy, purchaseEligibilityApi:remote.purchaseEligibilityApi, orderPaymentRejection,
     beginOrderAction,readOrderAction,markOrderActionPaid,clearOrderAction,purchaseRecoveryCopy,paidOrderReceipt,readPaymentCommand,apiClient:{},
     navTo: vi.fn(), navReset: vi.fn(), takeNavigationQuery: () => "", detailNow: ref(Date.now()),
+    // Declared outside the executed slices: no external payment underway, no hero image.
+    externalPayment: computed(() => false), heroImage: computed(() => undefined),
     conversations: {}, advisorChatRoute: vi.fn().mockResolvedValue("/pages/support/chat?cid=ADVISOR-THREAD"),
     captureAccountScope: account.snapshot, isCurrentAccountScope: account.isCurrent,
     captureRuntimeRevision, isCurrentRuntimeRevision, subscribeRuntimeRevision,

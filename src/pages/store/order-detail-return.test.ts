@@ -18,7 +18,7 @@ function list(from?: string, query = "") {
     listSource.indexOf("// Sticky chassis nav header"))
     + listSource.slice(listSource.indexOf("function goOrder("), listSource.indexOf("const remoteErrorStyle"));
   const page = new Function("ref", "onLoad", "takeNavigationQuery", "navTo",
-    `${transpile(body)}\nreturn { ordersBackHref, goOrder, goOrderDetails };`)(ref,
+    `${transpile(body)}\nreturn { ordersBackHref, goOrder, goOrderPayment };`)(ref,
     (callback: typeof load) => { load = callback; }, () => query, navTo);
   load(from ? { from } : {});
   return { page, navTo };
@@ -64,10 +64,10 @@ describe("order detail return after a fresh page reconstruction", () => {
     h.page.showTrialResult.value=false;h.order.value={};expect(h.header().title).toBe('Order details');
     h.page.paymentResultVisible.value=true;expect(h.header().title).toBe('Device setup');
   });
-  it('opens a pending row as payment while its separate detail action keeps a read-only entry',()=>{
+  it('opens every row as a read-only detail and payment only from the pending row button',()=>{
     const h=list('me');const order={kind:'commerce',id:'ORD/A?',status:'placed'};
-    h.page.goOrder(order);expect(h.navTo).toHaveBeenLastCalledWith('/pages/store/order-detail?id=ORD%2FA%3F&from=me&pay=1');
-    h.page.goOrderDetails(order);expect(h.navTo).toHaveBeenLastCalledWith('/pages/store/order-detail?id=ORD%2FA%3F&from=me');
+    h.page.goOrder(order);expect(h.navTo).toHaveBeenLastCalledWith('/pages/store/order-detail?id=ORD%2FA%3F&from=me');
+    h.page.goOrderPayment(order);expect(h.navTo).toHaveBeenLastCalledWith('/pages/store/order-detail?id=ORD%2FA%3F&from=me&pay=1');
     h.page.goOrder({...order,status:'activated'});expect(h.navTo).toHaveBeenLastCalledWith('/pages/store/order-detail?id=ORD%2FA%3F&from=me');
   });
   it.each(["me", "store"])("carries %s from the list through detail refresh and both return controls", from => {

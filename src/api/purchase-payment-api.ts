@@ -87,6 +87,16 @@ export function parsePurchaseIntent(value: unknown): PurchasePaymentIntent {
 export function createPurchasePaymentApi(client: ApiClient) {
   const base = '/api/app/purchase-payment';
   return {
+    /** Which external channels operations have configured; unlisted channels count as unavailable. */
+    async policy(): Promise<Partial<Record<ExternalPaymentMethod, boolean>>> {
+      const raw = object(await client.request({ path: `${base}-policy` }));
+      if (!Array.isArray(raw.channels)) throw invalid();
+      return Object.fromEntries(raw.channels.map(value => {
+        const row = object(value);
+        if (typeof row.paymentMethod !== 'string' || typeof row.configured !== 'boolean') throw invalid();
+        return [row.paymentMethod, row.configured];
+      }));
+    },
     async quote(kind: PurchaseKind, paymentMethod: ExternalPaymentMethod, payload: Record<string, unknown>) {
       return parsePurchaseQuote(await client.request({ method: 'POST', path: `${base}-quotes`, body: { kind, paymentMethod, payload } }));
     },

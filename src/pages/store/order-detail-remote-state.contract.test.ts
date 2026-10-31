@@ -6,7 +6,7 @@ describe("remote order detail presentation", () => {
     expect(detailSource).toContain('v-if="order.status === \'provisioning\'"');
     expect(detailSource).toContain('v-if="order.status === \'activated\'"');
     expect(detailSource).toContain("{{ activatedHint }}");
-    expect(detailSource).toContain('@click.stop="goEarn"');
+    expect(detailSource).toMatch(/<NxButton[^>]*@click="goEarn"/);
   });
 
   it("does not call a valid remote deep link missing while its scoped read is pending or failed", () => {

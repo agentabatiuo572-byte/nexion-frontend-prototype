@@ -7,6 +7,9 @@ const DEFAULT_PAYMENT_HOSTS = new Set([
   "c.gmobvfxllc.com",
 ]);
 
+/** Navigations the in-App bank payment page may load itself; anything else (bank app links) leaves the App. */
+export const hostedPaymentUrlPattern = `^https://(${[...DEFAULT_PAYMENT_HOSTS].map(host => host.replace(/\./g, "\\.")).join("|")})(:443)?([/?].*)?$`;
+
 export function validateHostedPaymentUrl(raw: string): string | null {
   try {
     const value = new URL(raw);

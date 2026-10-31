@@ -11,7 +11,12 @@ const zh = readFileSync(new URL("../../i18n/messages/zh.ts", import.meta.url), "
 const en = readFileSync(new URL("../../i18n/messages/en.ts", import.meta.url), "utf8");
 const vi = readFileSync(new URL("../../i18n/messages/vi.ts", import.meta.url), "utf8");
 
+// The order top-up banner's own imports; these cases exercise only the channel choice.
+const orderBanner = { '@/store/app': { useApp: () => ({ user: { usdtBalance: 0 }, remoteFleetHasSnapshot: false }) }, '@/store/locale': { useLocaleStore: () => ({ code: 'zh' }) },
+  '@/composables/use-tab-page-lifecycle': { useVisibleInterval: () => {} }, '@/lib/purchase-payment-copy': { purchasePaymentCopy: () => ({}), fillCopy: (text: string) => text },
+  '@/lib/amount-display': { formatGroupedAmount: String } };
 function setup(raw: string, dependencies: Record<string, unknown>) {
+  dependencies = { ...orderBanner, ...dependencies };
   const script = compileScript(parse(raw).descriptor, { id: 'topup-return' });
   const code = ts.transpileModule(script.content, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
   const output: any = {};
@@ -50,7 +55,7 @@ describe("USDT guide accuracy", () => {
     let load!: (query: unknown) => void;
     const state = setup(topupSource, {
       '@dcloudio/uni-app': { onLoad: (callback: typeof load) => { load = callback; } },
-      '@/lib/route': { takeNavigationQuery: () => '' }, '@/api/runtime': { remoteApiEnabled: remote },
+      '@/lib/route': { takeNavigationQuery: () => '', navTo: () => {} }, '@/api/runtime': { remoteApiEnabled: remote },
       '@/i18n/use-t': { useT: () => Vue.ref({}) }, '@/store/deposits': { useDeposits: () => ({}) },
     });
     load({ channel }); expect(state.seg.value).toBe(expected);
@@ -61,11 +66,27 @@ describe("USDT guide accuracy", () => {
     const takeNavigationQuery = vitest.fn(() => '?channel=crypto&address=untrusted&amount=999');
     const state = setup(topupSource, {
       '@dcloudio/uni-app': { onLoad: (callback: typeof load) => { load = callback; } },
-      '@/lib/route': { takeNavigationQuery }, '@/api/runtime': { remoteApiEnabled: true },
+      '@/lib/route': { takeNavigationQuery, navTo: () => {} }, '@/api/runtime': { remoteApiEnabled: true },
       '@/i18n/use-t': { useT: () => Vue.ref({}) }, '@/store/deposits': { useDeposits: () => ({}) },
     });
     load({}); expect(state.seg.value).toBe('crypto');
     expect(takeNavigationQuery).toHaveBeenCalledExactlyOnceWith('/pages/me/wallet-topup');
+  });
+
+  it('keeps the unpaid order in view and leads back to its payment once the balance covers it', () => {
+    let load!: (query: unknown) => void;
+    const navTo = vitest.fn(), app = Vue.reactive({ user: { usdtBalance: 820.64 }, remoteFleetHasSnapshot: true });
+    const state = setup(topupSource, {
+      '@dcloudio/uni-app': { onLoad: (callback: typeof load) => { load = callback; } },
+      '@/lib/route': { takeNavigationQuery: () => '', navTo }, '@/api/runtime': { remoteApiEnabled: true },
+      '@/i18n/use-t': { useT: () => Vue.ref({}) }, '@/store/deposits': { useDeposits: () => ({}) }, '@/store/app': { useApp: () => app },
+    });
+    load({ orderNo: 'ORD-1', amount: '1299', name: 'UVELBox S1' });
+    expect(state.orderTopupLeft.value).toBeCloseTo(478.36);
+    app.user.usdtBalance = 1320.64;
+    expect(state.orderTopupLeft.value).toBe(0);
+    state.backToOrder();
+    expect(navTo).toHaveBeenCalledWith('/pages/store/order-detail?id=ORD-1&pay=1');
   });
 
   it.each([zh, en, vi])("does not make a fixed network, timing, or recovery promise", (messages) => {

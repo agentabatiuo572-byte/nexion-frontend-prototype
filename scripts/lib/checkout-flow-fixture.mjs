@@ -1,6 +1,7 @@
 // Local frontend acceptance only. Never imported by src or deployed as a payment service.
 import {createPaymentPinFlowFixture} from './payment-pin-flow-fixture.mjs';
 import {demoFixture} from './prototype-demo-data.mjs';
+import {createPurchasePaymentPreviewFixture} from './purchase-payment-preview-fixture.mjs';
 
 export function createCheckoutFlowFixture(state, locale = () => 'zh') {
   state.checkoutNoPendingReservation = true;
@@ -9,7 +10,8 @@ export function createCheckoutFlowFixture(state, locale = () => 'zh') {
   pin.state.balance = state.walletBalance ?? 52800.64;
   const receipts = new Map();
   const ok = data => ({status:200,message:'OK',data});
-  const handles = path => /^\/api\/(orders(?:\/|$)|promotion-commands\/|app\/(security\/payment-password|payment-commands\/))/.test(path);
+  const external = createPurchasePaymentPreviewFixture(state, locale);
+  const handles = path => /^\/api\/(orders(?:\/|$)|promotion-commands\/|app\/(security\/payment-password|payment-commands\/))/.test(path) || external.handles(path);
   function handle(url, request) {
     const path = url.pathname, method = request.method(), key = request.headers()['idempotency-key'];
     if (path.startsWith('/api/app/security/payment-password') || path.startsWith('/api/app/payment-commands/')) return pin.handle(url, request);
@@ -19,6 +21,7 @@ export function createCheckoutFlowFixture(state, locale = () => 'zh') {
         Object.assign(order,{canonicalStatus:'expired',paymentStatus:'EXPIRED',orderStatus:'EXPIRED',activationStatus:'WAITING_PAYMENT',closeReasonCode:'PAYMENT_TIMEOUT'});
       }
     }
+    if (external.handles(path)) return external.handle(url, request);
     if (path === '/api/orders' && method === 'GET') return ok(demoFixture(url,locale(),state,request));
     if (path === '/api/orders/quote') return ok(demoFixture(url,locale(),state,request));
     if (['/api/orders','/api/orders/bundle'].includes(path) && method === 'POST') {

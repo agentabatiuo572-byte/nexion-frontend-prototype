@@ -19,10 +19,9 @@ const dateText = new Function("formatTrialDate", "dateLocale",
 )(formatTrialDate, () => "zh-CN") as (ts: number) => string;
 function detail(timeline: { status: string; ts: number }[]) {
   return new Function("formatTrialDateTime", "dateLocale", "order",
-    `${section(detailSource, "function eventFor(", "async function handleCancel(")}; return { dt, eventText };`,
+    `${section(detailSource, "function dt(", "async function handleCancel(")}; return { dt };`,
   )(formatTrialDateTime, () => "zh-CN", { value: { timeline } }) as {
     dt: (ts: number) => string;
-    eventText: (status: string) => string;
   };
 }
 
@@ -51,9 +50,7 @@ describe("BUG 412 order date consumers", () => {
 
       expect(dateText(placedAt)).toBe("2026/10/03");
       expect(view.dt(placedAt)).toBe(`2026/10/03 ${time}`);
-      expect(view.eventText("placed")).toBe(`2026/10/03 ${time}`);
-      expect(view.eventText("paid")).toBe(`2026/10/03 ${time.slice(0, -2)}32`);
-      expect(view.eventText("activated")).toBe("");
+      expect(view.dt(placedAt + 1000)).toBe(`2026/10/03 ${time.slice(0, -2)}32`);
       expect(dateText(midnight)).toBe(midnightDate);
       expect(view.dt(midnight)).toBe(`${midnightDate} ${midnightTime}`);
       expect(timeline[0].ts).toBe(placedAt);
@@ -68,19 +65,17 @@ describe("BUG 412 order date consumers", () => {
       const view = detail([{ status: "placed", ts: invalid }]);
       expect(dateText(invalid)).toBe("—");
       expect(view.dt(invalid)).toBe("—");
-      expect(view.eventText("placed")).toBe("—");
     }
     expect(dateText(0)).toBe("—");
     expect(detail([]).dt(0)).toBe("—");
   });
 
-  it("routes the list, all summary timestamps and the timeline through the numeric consumers", () => {
+  it("routes the list and all summary timestamps through the numeric consumers", () => {
     expect(listSource).toContain('import { formatTrialDate } from "@/lib/trial-date";');
     expect(detailSource).toContain('import { formatTrialDateTime } from "@/lib/trial-date";');
     expect(listSource).toContain("{{ dateText(o.placedAt) }}");
     for (const field of ["placedAt", "expiresAt", "paidAt", "activatedAt", "refundedAt"]) {
-      expect(detailSource).toContain(`{{ dt(order.${field}) }}`);
+      expect(detailSource).toContain(`dt(order.${field})`);
     }
-    expect(detailSource).toContain("{{ eventText(stage) }}");
   });
 });
