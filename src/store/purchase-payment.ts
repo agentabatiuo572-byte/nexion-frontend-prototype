@@ -101,7 +101,10 @@ async function submitOriginal() {
       // A definite HTTP/business refusal before an intent exists permits a new review;
       // ambiguous transport outcomes keep the original key and quote for read-only query.
       const cause = asApiError(error);
-      if (!pending.intentNo && cause.kind === 'business' && !/UNKNOWN|PROCESSING/.test(cause.message)) {
+      const rejectedQuote = cause.kind === 'http' && cause.status === cause.code
+        && (cause.status === 409 && ['PURCHASE_PAYMENT_FEE_POLICY_CHANGED', 'PURCHASE_PAYMENT_QUOTE_EXPIRED', 'PURCHASE_PAYMENT_PRICING_CHANGED'].includes(cause.message)
+          || cause.status === 503 && cause.message === 'PURCHASE_PAYMENT_FEES_NOT_CONFIGURED');
+      if (!pending.intentNo && (rejectedQuote || cause.kind === 'business' && !/UNKNOWN|PROCESSING/.test(cause.message))) {
         let existing: PurchasePaymentIntent | null;
         try { existing = await api.find(pending.kind, pending.commandKey); }
         catch { return; } // Keep the original identity when this recovery read also fails.

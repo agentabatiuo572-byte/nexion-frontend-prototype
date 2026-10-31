@@ -95,7 +95,7 @@ const quoteExpired = computed(() => !!s.quote && !s.pending && Date.parse(s.quot
 const canConfirm = computed(() => !s.busy && !s.loading && !s.error && !quoteExpired.value && (s.method === 'WALLET' ? walletEnough.value : !!s.quote));
 const intentMessage = computed(() => s.intent?.status === 'MANUAL_REVIEW' ? `${s.intent.fulfilmentStatus === 'DELIVERED' ? copy.value.delivered + '。' : ''}${copy.value.review}` : s.intent?.status === 'EXPIRED' ? copy.value.ended : copy.value.unknown);
 function amount(value: string | number) { return formatGroupedAmount(value); }
-function vnd(value: string | null) { return value ? Number(value).toLocaleString(locale.code === 'zh' ? 'zh-CN' : locale.code === 'vi' ? 'vi-VN' : 'en-US', { maximumFractionDigits: 0 }) : '—'; }
+function vnd(value: string | null) { return value ? BigInt(value).toLocaleString(locale.code === 'zh' ? 'zh-CN' : locale.code === 'vi' ? 'vi-VN' : 'en-US') : '—'; }
 function expiry(value: string) { return new Date(value).toLocaleTimeString(undefined, { hour12: false }); }
 function copyAddress() { if (s.intent?.address) uni.setClipboardData({ data: s.intent.address, success: () => toast.success(copy.value.copied) }); }
 function goSupport() { payment.close(); void navTo('/pages/me/support'); }

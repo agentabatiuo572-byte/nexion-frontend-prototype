@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-bug013",
+  "sourcePath": "D:\\workspace\\worktrees\\pay1718-app-20261031",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "26f6cf9a13f54cbb939261f431a87d41c0c76eb8",
-  "sourceRef": "26f6cf9a13f54cbb939261f431a87d41c0c76eb8",
+  "sourceHead": "08917b158537d906d9c1cf73e0bad0525c89a4dd",
+  "sourceRef": "08917b158537d906d9c1cf73e0bad0525c89a4dd",
   "sourceRefKind": "commit",
-  "sourceTree": "b1c571ad128b44f47de9e1cb217cb0b153938dd8",
+  "sourceTree": "38d4a1d5d37dcb19674ef245273b795f9a92ad12",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -6789,10 +6789,10 @@
       "mode": "100644"
     },
     "src/components/purchase-payment-dialog.vue": {
-      "sourceBlob": "95e35f7a3dbde456705816190dceff9f08974f9f",
-      "sourceSha256": "b5101a5e3ff95202dfef4d89752c537b14a6da242960aaab4ef398ff721e9a3b",
-      "targetBlob": "95e35f7a3dbde456705816190dceff9f08974f9f",
-      "targetSha256": "b5101a5e3ff95202dfef4d89752c537b14a6da242960aaab4ef398ff721e9a3b",
+      "sourceBlob": "38e03710fc96be295e1ef1ee81ce19ebe061797b",
+      "sourceSha256": "9aad73d66586dd714d436bb785b7c815190722b054c9acbe20a57d735da1517f",
+      "targetBlob": "38e03710fc96be295e1ef1ee81ce19ebe061797b",
+      "targetSha256": "9aad73d66586dd714d436bb785b7c815190722b054c9acbe20a57d735da1517f",
       "mode": "100644"
     },
     "src/components/server-captcha-slider.behavior.test.ts": {
@@ -16980,6 +16980,13 @@
       "targetSha256": "3a73f6981660bc834d2b89b079afc13a22c80b6ac96255044ea1d4fb25528e69",
       "mode": "100644"
     },
+    "src/store/purchase-payment-http-recovery.test.ts": {
+      "sourceBlob": "936aeb904dc2af486fa8902e3d71cf23e4f3bdce",
+      "sourceSha256": "92952381c20d1220bbea51fdf704ae33bd15b1a0480486b623c496d9904dc3a9",
+      "targetBlob": "936aeb904dc2af486fa8902e3d71cf23e4f3bdce",
+      "targetSha256": "92952381c20d1220bbea51fdf704ae33bd15b1a0480486b623c496d9904dc3a9",
+      "mode": "100644"
+    },
     "src/store/purchase-payment-precision.test.ts": {
       "sourceBlob": "14c51cca14ac1042847a35d0b5423e6cf6ca46c8",
       "sourceSha256": "4f3f0f7dcc6d860ce2fd519123b77356c0ec22bc2d51f05462135d7d4c7c0ff7",
@@ -16995,10 +17002,10 @@
       "mode": "100644"
     },
     "src/store/purchase-payment.ts": {
-      "sourceBlob": "f9a2faf591ce97064bf107b736fab63d730bbc06",
-      "sourceSha256": "9278de2342e5ceb6458aea1b5469e4e232f1fa4e6f762953fb2cf202ec4893bb",
-      "targetBlob": "f9a2faf591ce97064bf107b736fab63d730bbc06",
-      "targetSha256": "9278de2342e5ceb6458aea1b5469e4e232f1fa4e6f762953fb2cf202ec4893bb",
+      "sourceBlob": "05faaa4e62c28946fbe1d167b27b818269fe6873",
+      "sourceSha256": "62c4699b8b2e8c4b34e28d29df4ca1670c0702daf6572f35b5efe16bb4b777a7",
+      "targetBlob": "05faaa4e62c28946fbe1d167b27b818269fe6873",
+      "targetSha256": "62c4699b8b2e8c4b34e28d29df4ca1670c0702daf6572f35b5efe16bb4b777a7",
       "mode": "100644"
     },
     "src/store/quest-remote-catalog.test.ts": {
