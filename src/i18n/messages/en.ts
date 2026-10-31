@@ -1303,6 +1303,7 @@ trustReserve: "No verifiable reserve information available.",
     retireSubtitle: "Choose an upgrade for your {name}",
     retireTargetOption: "{name} · ${price} · ≈${net} after credit",
     retireEarlyTag: "Early upgrade",
+    retireNoTargets: "No upgrade targets are available right now",
     // Trade-in confirm (proceeds to checkout)
     sheetTitle: "Trade in your {from} → {to}",
     sheetOldDeviceLabel: "Trading in",

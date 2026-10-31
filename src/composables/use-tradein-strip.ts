@@ -1,4 +1,4 @@
-import { computed, ref, watch } from "vue";
+import { computed, nextTick, onScopeDispose, ref, watch } from "vue";
 import { formatAmount } from "@/lib/amount-display";
 import { useT } from "@/i18n/use-t";
 import { fmt } from "@/i18n/format";
@@ -12,10 +12,10 @@ import { isDeviceTaskBlocked } from "@/mock/eligibility";
 import { getMonthsSince, isTradeInTargetAvailable } from "@/store/product-phase";
 import { useProductPhase } from "@/composables/use-product-phase";
 import type { Device } from "@/store/types";
-import { deviceE3Api, remoteApiEnabled } from "@/api/runtime";
+import { apiRuntimeConfig, deviceE3Api, remoteApiEnabled } from "@/api/runtime";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
 import { isProductAvailable } from "@/store/product-availability";
-import { refreshProductCatalog } from "@/store/product-catalog";
+import { productCatalogState, refreshProductCatalog } from "@/store/product-catalog";
 
 // ── FEAT-DEV02 升级置换条 ──────────────────────────────────────────────
 // 设备仓库行与赚取页设备操作面板共用同一资格判定与 retire 入口。
@@ -30,62 +30,105 @@ export function useTradeinStrip(enabled: () => boolean = () => true) {
   // 上架节奏门(FEAT-DEV02b):未正式上架且不在抢先购窗口的 SKU 不算升级目标。
   const phase = useProductPhase();
   const monthsSinceJoin = computed(() => getMonthsSince(app.user.joinedAt));
-  const remoteEligibleSourceIds = ref<Set<number>>(new Set());
-  const remoteEligibilityReady = ref(!remoteApiEnabled);
-  const remoteEligibilityQuotes = ref<Map<number, number>>(new Map());
+  const remoteEligibilityRows = ref(new Map<number, {
+    sourceKey: string; request: number; target: string; price: number;
+    quote?: number; quoteRequest: number; earnings: number | undefined;
+    account: ReturnType<typeof captureAccountScope>; context: string;
+  }>());
   let remoteEligibilityRequest = 0;
+  let remoteEligibilityContext = "";
+  let remoteEligibilityMounted = true;
 
-  async function refreshRemoteTradeinEligibility(): Promise<void> {
-    if (!remoteApiEnabled) return;
-    const accountKey = app.accountKey;
-    const scope = captureAccountScope();
-    const request = ++remoteEligibilityRequest;
-    const current = () => request === remoteEligibilityRequest
-      && accountKey === app.accountKey && isCurrentAccountScope(scope);
-    remoteEligibilityReady.value = false;
-    remoteEligibleSourceIds.value = new Set();
-    remoteEligibilityQuotes.value = new Map();
+  function remoteEligibilitySourceKey(device: Device): string {
+    return JSON.stringify([device.id, device.rowVersion, device.kind, device.productCode,
+      device.activatedAt, device.activationUnconfirmed, device.pendingDeactivate,
+      Boolean(device.currentTask), device.paidPriceUsdt]);
+  }
+  function remoteEligibilityContextKey(): string {
+    return JSON.stringify([app.accountKey, app.accountBindingEpoch, apiRuntimeConfig.environment,
+      apiRuntimeConfig.baseUrl, productCatalogState.status, productCatalogState.revision, phase.value]);
+  }
+  function remoteEligibilityRowCurrent(id: number, row: NonNullable<ReturnType<typeof remoteEligibilityRows.value.get>>): boolean {
+    const device = app.devices.find(device => Number(device.id) === id);
+    return remoteEligibilityMounted && enabled() && isCurrentAccountScope(row.account)
+      && row.context === remoteEligibilityContextKey() && productCatalogState.status === "ready"
+      && remoteEligibilityRows.value.get(id)?.request === row.request
+      && !!device && row.sourceKey === remoteEligibilitySourceKey(device);
+  }
+  async function refreshRemoteTradeinQuote(id: number): Promise<void> {
+    const row = remoteEligibilityRows.value.get(id);
+    if (!row?.target || !remoteEligibilityRowCurrent(id, row)) return;
+    const device = app.devices.find(device => Number(device.id) === id)!;
+    row.earnings = device.cumulativeEarningsUsdt;
+    row.quote = undefined;
+    const request = ++row.quoteRequest;
+    const target = row.target;
     try {
-      if (!(await refreshProductCatalog(true)) || !current()) return;
-      const targets = PRODUCTS.filter((product) => isProductAvailable(product, phase.value));
-      const snapshots = await Promise.all(targets.map((product) => deviceE3Api.eligibility(product.id)));
-      if (!current()) return;
-      // Preview the lowest-priced eligible upgrade; checkout still obtains its own final quote.
-      const sourceTargets = new Map<number, string>();
-      for (const snapshot of snapshots.filter((item) => item.enabled && item.eligible)
-        .sort((a, b) => (a.targetPriceUsdt ?? Infinity) - (b.targetPriceUsdt ?? Infinity))) {
-        for (const source of snapshot.sources) {
-          if (source.eligible && !sourceTargets.has(source.sourceDeviceId)) {
-            sourceTargets.set(source.sourceDeviceId, snapshot.targetProductNo);
-          }
-        }
-      }
-      remoteEligibleSourceIds.value = new Set(sourceTargets.keys());
-      remoteEligibilityReady.value = true;
-      const quotes = await Promise.allSettled([...sourceTargets].map(async ([sourceId, target]) => ({
-        sourceId, quote: await deviceE3Api.quote(sourceId, target),
-      })));
-      if (!current()) return;
-      remoteEligibilityQuotes.value = new Map(quotes.flatMap((result) => result.status === "fulfilled"
-        && result.value.quote.sourceDeviceId === result.value.sourceId
-        && result.value.quote.targetProductNo === sourceTargets.get(result.value.sourceId)
-        ? [[result.value.sourceId, result.value.quote.discountUsdt] as const] : []));
-    } catch {
-      if (current()) remoteEligibleSourceIds.value = new Set();
+      const quote = await deviceE3Api.quote(id, target);
+      if (remoteEligibilityRowCurrent(id, row) && request === row.quoteRequest && target === row.target
+          && quote.sourceDeviceId === id && quote.targetProductNo === target
+          && quote.sourceRowVersion === device.rowVersion) row.quote = quote.discountUsdt;
+    } catch { /* The authorized entry remains usable; an unknown preview stays “—”. */ }
+  }
+  async function refreshRemoteTradeinEligibility(sourceIds = app.devices.map(device => Number(device.id))): Promise<void> {
+    if (!remoteApiEnabled || !enabled() || !remoteEligibilityMounted || sourceIds.length === 0) return;
+    const request = ++remoteEligibilityRequest;
+    const account = captureAccountScope();
+    const context = remoteEligibilityContextKey();
+    for (const device of app.devices.filter(device => sourceIds.includes(Number(device.id)))) {
+      remoteEligibilityRows.value.set(Number(device.id), { sourceKey: remoteEligibilitySourceKey(device),
+        request, target: "", price: Infinity, quoteRequest: 0, earnings: device.cumulativeEarningsUsdt, account, context });
     }
+    // The catalog store already shares current/in-flight reads for this account and environment.
+    if (!(await refreshProductCatalog())) return;
+    const rows = sourceIds.flatMap(id => {
+      const row = remoteEligibilityRows.value.get(id);
+      return row?.request === request && remoteEligibilityRowCurrent(id, row) ? [{ id, row }] : [];
+    });
+    if (rows.length === 0) return;
+    await Promise.allSettled(PRODUCTS.filter(product => isProductAvailable(product, phase.value)).map(async product => {
+      const snapshot = await deviceE3Api.eligibility(product.id);
+      if (!snapshot.enabled || !snapshot.eligible || snapshot.targetProductNo !== product.id) return;
+      await Promise.allSettled(rows.map(async ({ id, row }) => {
+        if (!remoteEligibilityRowCurrent(id, row) || !snapshot.sources.some(source => source.sourceDeviceId === id && source.eligible)
+            || row.target && (snapshot.targetPriceUsdt ?? Infinity) >= row.price) return;
+        // Publish this row immediately; a cheaper authorized target may replace its preview later.
+        row.target = product.id;
+        row.price = snapshot.targetPriceUsdt ?? Infinity;
+        await refreshRemoteTradeinQuote(id);
+      }));
+    }));
   }
 
   watch(
-    () => enabled() && JSON.stringify([app.accountKey, app.devices.map((device) => [
-      device.id, device.activatedAt, device.pendingDeactivate, Boolean(device.currentTask),
-      device.cumulativeEarningsUsdt,
-    ])]),
+    () => enabled() && JSON.stringify([remoteEligibilityContextKey(), app.devices.map(remoteEligibilitySourceKey)]),
     (value, _previous, onCleanup) => {
-      onCleanup(() => { remoteEligibilityRequest++; });
-      if (value) void refreshRemoteTradeinEligibility();
+      let current = true;
+      onCleanup(() => { current = false; });
+      const context = remoteEligibilityContextKey();
+      if (!value || context !== remoteEligibilityContext) remoteEligibilityRows.value = new Map();
+      remoteEligibilityContext = context;
+      if (!value || !remoteApiEnabled) return;
+      const devices = new Map(app.devices.map(device => [Number(device.id), device]));
+      for (const [id, row] of remoteEligibilityRows.value) {
+        const device = devices.get(id);
+        if (!device || row.sourceKey !== remoteEligibilitySourceKey(device)) remoteEligibilityRows.value.delete(id);
+      }
+      // Account bindings finish synchronously after app.bindAccount; read in the next tick.
+      void nextTick(() => {
+        if (current) return refreshRemoteTradeinEligibility([...devices.keys()].filter(id => !remoteEligibilityRows.value.has(id)));
+      });
     },
-    { immediate: true },
+    { immediate: true, flush: "sync" },
   );
+  watch(() => enabled() && app.devices.map(device => [device.id, device.cumulativeEarningsUsdt]), () => {
+    if (!remoteApiEnabled) return;
+    for (const device of app.devices) {
+      const row = remoteEligibilityRows.value.get(Number(device.id));
+      if (row?.target && row.earnings !== device.cumulativeEarningsUsdt) void refreshRemoteTradeinQuote(Number(device.id));
+    }
+  }, { flush: "sync" });
+  onScopeDispose(() => { remoteEligibilityMounted = false; remoteEligibilityRows.value = new Map(); });
 
   function tradeinStrip(d: Device): {
     tradeinCreditText?: string;
@@ -94,11 +137,12 @@ export function useTradeinStrip(enabled: () => boolean = () => true) {
     tradeinDisabledText?: string;
   } {
     if (remoteApiEnabled) {
-      if (!remoteEligibilityReady.value || !remoteEligibleSourceIds.value.has(Number(d.id))) return {};
+      const row = remoteEligibilityRows.value.get(Number(d.id));
+      if (!row?.target || !remoteEligibilityRowCurrent(Number(d.id), row)) return {};
       return {
         tradeinCtaLabel: t.value.tradein.stripCta,
         tradeinCreditText: t.value.tradein.remoteQuoteCreditLabel,
-        tradeinQuoteAmount: remoteEligibilityQuotes.value.get(Number(d.id)),
+        tradeinQuoteAmount: row.quote,
       };
     }
     if (!DEFAULT_TRADEIN_CONFIG.enabled) return {};

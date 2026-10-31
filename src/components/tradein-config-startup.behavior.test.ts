@@ -34,16 +34,20 @@ function page() {
   const mount: (() => void)[] = [];
   const deviceE3Api = {
     tradeinConfig: vi.fn().mockResolvedValue(enabledConfig),
-    eligibility: vi.fn().mockResolvedValue({ eligible: true, sources: [{ eligible: true, sourceDeviceId: 1209 }] }),
+    eligibility: vi.fn(targetProductNo => Promise.resolve({ enabled: true, eligible: true, targetProductNo,
+      sources: [{ eligible: true, sourceDeviceId: 1209 }] })),
     quote: vi.fn((_: number, target: string) => Promise.resolve({ sourceDeviceId: 1209, sourceRowVersion: 3,
       targetProductNo: target, payableUsdt: 3000 })),
   };
   const deps = { ...passive, computed, ref, watch, nextTick, app, state, props, apiRuntimeConfig, deviceE3Api,
     remoteApiEnabled: true, purchaseMounted: true, remoteRetireRequest: 0,
-    canonicalTradeinConfig: ref<any>(null), canonicalQuote: ref(null), capacityCommandKey: ref(null),
+    purchaseOpeningRead: null, purchaseReturn: null,
+    canonicalTradeinConfig: ref<any>(null), canonicalTradeinConfigStatus: ref("loading"),
+    canonicalQuote: ref(null), canonicalQuoteOrigin: ref(null), capacityCommandKey: ref(null),
     quoteRequestGeneration: ref(0), quoteLoading: ref(false),
     remoteRetireEligibleTargets: ref(new Set<string>()), remoteRetirePayables: ref(new Map<string, number>()),
-    remoteRetireTargetsReady: ref(false), productCatalogState: reactive({ status: "ready" }),
+    remoteRetirePending: ref(false), remoteRetireLoadError: ref(false), remoteRetireOrigin: ref(null),
+    productCatalogState: reactive({ status: "ready" }), refreshProductCatalog: vi.fn(),
     PRODUCTS: [{ id: "stellarrack-p1", price: 4499 }],
     captureAccountScope: () => account.snapshot(), isCurrentAccountScope: (scope: ReturnType<typeof account.snapshot>) => account.isCurrent(scope),
     onMounted: (callback: () => void) => mount.push(callback),

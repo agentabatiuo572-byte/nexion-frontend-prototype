@@ -1286,6 +1286,7 @@ trustReserve: "暂无可核验的储备资料。",
     retireSubtitle: "选择 {name} 的升级目标",
     retireTargetOption: "{name} · ${price} · 抵后约 ${net}",
     retireEarlyTag: "抢先升级",
+    retireNoTargets: "当前暂无可用的升级目标",
     // 置换确认(去结算)
     sheetTitle: "用 {from} 换 {to}",
     sheetOldDeviceLabel: "置换旧机",

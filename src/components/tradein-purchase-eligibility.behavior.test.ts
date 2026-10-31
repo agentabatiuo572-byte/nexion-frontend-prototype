@@ -45,6 +45,8 @@ function page(recovery: unknown = null) {
     applyTradein: vi.fn(), showRetireBlock: vi.fn() };
   const captureAccountScope = () => ({ accountKey: app.accountKey, epoch: app.accountBindingEpoch });
   const deps = { computed, ref, watch, props, state, app, canonicalQuote, sheet, remoteApiEnabled: true,
+    apiRuntimeConfig: reactive({ environment: "dev", baseUrl: "https://test.invalid" }),
+    canonicalQuoteOrigin: ref({ environment: "dev", baseUrl: "https://test.invalid" }),
     purchaseEligibilityApi, readCheckoutTradein, resolvePurchaseEligibilityMessage, t: ref(zh), confirming: ref(false),
     tradeinView: ref({ ctaText: "Confirm · checkout" }), quoteRequestGeneration: ref(0), quoteLoading: ref(false),
     captureAccountScope, isCurrentAccountScope: (scope: ReturnType<typeof captureAccountScope>) =>

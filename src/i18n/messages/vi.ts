@@ -1301,6 +1301,7 @@ trustReserve: "Chưa có thông tin dự trữ có thể xác minh.",
     retireSubtitle: "Chọn thiết bị nâng cấp cho {name}",
     retireTargetOption: "{name} · ${price} · còn ≈${net} sau khi trừ",
     retireEarlyTag: "Nâng cấp sớm",
+    retireNoTargets: "Hiện chưa có thiết bị nâng cấp khả dụng",
     // Trade-in confirm (proceeds to checkout)
     sheetTitle: "Đổi {from} của bạn → {to}",
     sheetOldDeviceLabel: "Máy đem đổi",
