@@ -1,4 +1,5 @@
 import { teamLogicCopy } from '@/i18n/team-logic-copy';
+import { teamRedesignCopy } from '@/i18n/team-redesign';
 import { increasedRankBenefitKeys, rankBenefitIncreaseHeading } from '@/lib/team-rank-benefits';
 import { teamRankProgress } from '@/lib/team-rank-progress';
 import * as Vue from 'vue';
@@ -93,7 +94,7 @@ async function page(locale: Locale = 'en', initial?: ReturnType<typeof facts>) {
   const shows: Array<() => void> = [];
   const dependencies: Record<string, unknown> = {
     '@/lib/team-rank-benefits': { increasedRankBenefitKeys, rankBenefitIncreaseHeading },
-    '@/i18n/team-logic-copy': { teamLogicCopy }, '@/lib/team-rank-progress': { teamRankProgress },
+    '@/i18n/team-logic-copy': { teamLogicCopy }, '@/lib/team-rank-progress': { teamRankProgress }, '@/i18n/team-redesign': { teamRedesignCopy },
     '@/lib/amount-display': { formatAmount },
     vue: Vue, '@/lib/route': { navTo }, '@/lib/brand-copy': { platformDisplayText },
     '@/lib/rank-entitlement-label': { isEntitlementVRankReward, rankEntitlementLabel },
@@ -285,7 +286,8 @@ describe('rank page canonical read and next-rank progress', () => {
   it('opens the existing share flow from both rank invitation actions', async () => {
     const loaded = facts(); loaded.ladder[1].conditions = { directRefs: 3 };
     const p = await page('en', loaded);
-    const actions = all(p.root).filter(item => item.props.onClick && text(item) === en.team.inviteFriends);
+    // The spotlight action reads as the board's rank-up invite; the action row keeps the plain label.
+    const actions = all(p.root).filter(item => item.props.onClick && [en.team.inviteFriends, teamRedesignCopy('en').rankUpInvite].includes(text(item)));
     expect(actions).toHaveLength(2);
     for (const action of actions) {
       action.props.onClick();
@@ -472,7 +474,8 @@ it.each(['zh', 'en', 'vi'] as const)('R1-TV05 shows only published increases in 
   const p = await page(locale, loaded), copy = dictionaries[locale];
   const upcoming = () => all(p.root).find(item => item.props.class === 'rank-upcoming')!;
   const full = () => all(p.root).find(item => item.props.id === 'rank-details-3')!;
-  expect(text(upcoming())).toContain(rankBenefitIncreaseHeading(locale));
+  // P-42 names the next rank in the heading instead of the generic "new or improved" line.
+  expect(text(upcoming())).toContain(fmt(teamRedesignCopy(locale).rankUpNew, { rank: 'V3' }));
   expect(text(p.root)).not.toMatch(/L1[–-]L\d|收益层级/);
   expect(text(upcoming())).toContain(rankGuideCopy(locale).rewardScope);
   expect(text(full())).toContain(rankGuideCopy(locale).rewardScope);

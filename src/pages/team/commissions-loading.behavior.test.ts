@@ -1,4 +1,5 @@
 import * as Vue from "vue";
+import { teamRedesignCopy } from '@/i18n/team-redesign';
 import { createPinia } from 'pinia';
 import { useDataVisibility } from '@/store/data-visibility';
 import { formatAmount, formatGroupedAmount } from "@/lib/amount-display";
@@ -88,7 +89,7 @@ async function mount(source: string, dependencies: Record<string, unknown>) {
     '@/lib/account-scope': { captureAccountScope: () => 1, isCurrentAccountScope: () => true },
     "@/lib/amount-display": { formatAmount, formatGroupedAmount },
     "@/i18n/network-reaudit": { networkReauditCopy },
-    "@/i18n/commission-filter-copy": { commissionFilterCopy },
+    "@/i18n/commission-filter-copy": { commissionFilterCopy }, "@/i18n/team-redesign": { teamRedesignCopy },
     "@/lib/trial-date": { formatTrialDate },
     vue: Vue, "@dcloudio/uni-app": { onHide: () => {}, onShow: (callback: () => void) => shows.push(callback) },
     "@/components/app-chassis.vue": { default: slot },

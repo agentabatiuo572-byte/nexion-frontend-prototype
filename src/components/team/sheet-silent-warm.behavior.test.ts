@@ -59,5 +59,5 @@ it('keeps fixed rule conditions and record labels when a new scope has no data',
  const rules=await screen(rulesSource);rules.rewards.snapshot=null;rules.rewards.loading=true;rules.app.accountBindingEpoch++;await flush();
  expect(text(rules.root)).toContain(teamRedesignCopy('en').inviteRuleSteps[0].body);expect(text(rules.root)).toContain(teamRedesignCopy('en').inviteRuleSteps[2].body);expect(text(rules.root)).not.toContain('0.02');
  const records=await screen(recordsSource,en,{open:true,mode:'records'});records.rewards.snapshot=null;records.rewards.loading=true;records.app.accountBindingEpoch++;await flush();
- expect(text(records.root)).toContain(teamRedesignCopy('en').totalEarned);expect(text(records.root)).toContain(teamRedesignCopy('en').recentRewards);expect(text(records.root)).toContain('—');expect(records.nodes('invite-detail__record')).toHaveLength(0);
+ expect(text(records.root)).toContain(teamRedesignCopy('en').totalInviteRewards);expect(text(records.root)).toContain(teamRedesignCopy('en').recentRewards);expect(text(records.root)).toContain('—');expect(records.nodes('invite-detail__record')).toHaveLength(0);
 });
