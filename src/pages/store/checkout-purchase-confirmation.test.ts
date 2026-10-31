@@ -1,13 +1,12 @@
-import { computed, ref } from "vue";
+import { computed, nextTick, ref } from "vue";
 import { describe, expect, it, vi } from "vitest";
 import ts from "typescript";
 import source from "./checkout.vue?raw";
 import { formatAmount as formatPlainAmount } from "@/lib/amount-display";
-import { fmt } from "@/i18n/format";
+import { formatCheckoutReviewAmount } from "@/lib/checkout-review-amount";
 import { zh } from "@/i18n/messages/zh";
-import { en } from "@/i18n/messages/en";
-import { vi as vietnamese } from "@/i18n/messages/vi";
 
+// The real checkout confirmation handler: payment sheet open → user accepts or closes → pay.
 const handler = ts.transpileModule(source.slice(source.indexOf("let purchaseConfirmationOpen = false;"),
   source.indexOf("async function onConfirmPay()")), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 const amountCode = ts.transpileModule(source.slice(source.indexOf('function formatAmount('), source.indexOf('const locale = useLocaleStore();')),
@@ -16,72 +15,80 @@ const formatAmount = new Function('formatPlainAmount', amountCode + ';return for
 const totalCode = ts.transpileModule(source.slice(source.indexOf('const confirmTotalText ='), source.indexOf('const paymentLabel =')),
   { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 
-function screen(messages = zh) {
+function screen() {
   let current = true;
-  let accept!: (value: boolean) => void;
-  const deps = { voucherSelecting: ref(false),
-    checkoutWalletRefreshing: ref(false), step: ref("confirm"), netPrice: ref(50), cardFee: ref(0),
+  const deps = {
+    ref, nextTick, formatCheckoutReviewAmount,
+    trialQuoteUnavailable: ref(false), trialQuoteScreenUnavailable: ref(false),
+    createdCheckoutOrder: ref(null), pendingCheckoutCreate: ref(null),
+    voucherSelecting: ref(false), checkoutWalletRefreshing: ref(false), step: ref("confirm"),
+    netPrice: ref(50), cardFee: ref(0), paymentBlocked: ref(""),
+    trialView: ref({ applied: false, quoteVersion: 1 }), freeTrial: { hasPendingConversion: () => false },
     captureCheckoutRoute: () => ({}), isCurrentCheckoutRoute: () => current,
-    t: ref(messages), formatAmount, fmt, dialogOwner: "test-checkout",
-    confirm: vi.fn(() => new Promise<boolean>(resolve => { accept = resolve; })),
-    onConfirmPay: vi.fn().mockResolvedValue(undefined), toast: { warn: vi.fn() },
+    t: ref(zh), toast: { warn: vi.fn() },
+    onConfirmPay: vi.fn().mockResolvedValue(undefined),
   };
-  const confirmTotalText = new Function('computed','netPrice','cardFee','formatPlainAmount','formatAmount',totalCode+';return confirmTotalText;')(computed,deps.netPrice,deps.cardFee,formatPlainAmount,formatAmount);
-  const pay = new Function(...Object.keys(deps),'confirmTotalText',
-    `let confirming = false, dialogsOpen = 0; ${handler}; return requestConfirmPay;`)(...Object.values(deps),confirmTotalText);
-  return { ...deps, pay, accept: (value: boolean) => accept(value), leave: () => { current = false; } };
+  const api = new Function(...Object.keys(deps),
+    `let confirming = false, dialogsOpen = 0; ${handler};
+     return { requestConfirmPay, confirmPaymentSheet, closePaymentSheet, paymentSheetOpen, paymentSheetAmount, paymentFlowBusy };`)(...Object.values(deps));
+  return { ...deps, ...api, leave: () => { current = false; } };
 }
 
 describe("checkout purchase confirmation", () => {
-  it('keeps the legacy cent-settled card total free of binary float noise', async () => {
-    const page=screen();page.netPrice.value=0.1;page.cardFee.value=0.2;
-    const pending=page.pay();expect(page.confirm).toHaveBeenCalledWith(expect.objectContaining({message:fmt(zh.store.coConfirmPurchaseMessage,{amount:'0.30'})}));
-    page.accept(false);await pending;
-  });
-  it.each([[0,'0.00'],[0.000001,'0.000001'],[0.004,'0.004'],[0.009,'0.009'],[0.01,'0.01'],[1.234567,'1.234567']])('discloses the effective precision of %s USDT before payment', async (amount, display) => {
-    const page = screen();page.netPrice.value = amount as number;
-    const pending = page.pay();
-    expect(page.confirm).toHaveBeenCalledWith(expect.objectContaining({message: fmt(zh.store.coConfirmPurchaseMessage, { amount: display })}));
-    expect(page.netPrice.value).toBe(amount);
-    page.accept(false);await pending;expect(page.onConfirmPay).not.toHaveBeenCalled();
+  it("keeps the legacy cent-settled card total free of binary float noise", () => {
+    const netPrice = ref(0.1), cardFee = ref(0.2);
+    const total = new Function('computed', 'netPrice', 'cardFee', 'formatPlainAmount', 'formatAmount', totalCode + ';return confirmTotalText;')(computed, netPrice, cardFee, formatPlainAmount, formatAmount);
+    expect(total.value).toBe("0.30");
   });
 
-  it.each([zh, en, vietnamese])("shows the exact two-decimal amount and pays only after acceptance", async messages => {
-    const page = screen(messages);
-    const pending = page.pay();
-    expect(page.confirm).toHaveBeenCalledWith(expect.objectContaining({
-      message: fmt(messages.store.coConfirmPurchaseMessage, { amount: "50.00" }),
-      confirmLabel: messages.store.coConfirmPayment, cancelLabel: messages.store.coCancel,
-    }));
+  it.each([0, 0.000001, 0.004, 1.234567])("hands the exact amount %s to the payment sheet and pays nothing on close", async amount => {
+    const page = screen(); page.netPrice.value = amount;
+    const pending = page.requestConfirmPay();
+    expect(page.paymentSheetOpen.value).toBe(true);
+    expect(page.paymentSheetAmount.value).toBe(amount);
+    page.closePaymentSheet(); await pending;
     expect(page.onConfirmPay).not.toHaveBeenCalled();
-    await page.pay();
-    expect(page.confirm).toHaveBeenCalledOnce();
-    page.accept(true); await pending;
+    expect(page.paymentSheetOpen.value).toBe(false);
+  });
+
+  it("pays only after the sheet is confirmed and ignores a second request while it is open", async () => {
+    const page = screen();
+    const pending = page.requestConfirmPay();
+    expect(page.onConfirmPay).not.toHaveBeenCalled();
+    await page.requestConfirmPay();
+    page.confirmPaymentSheet(); await pending;
     expect(page.onConfirmPay).toHaveBeenCalledOnce();
+    expect(page.paymentFlowBusy.value).toBe(false);
+    expect(page.paymentSheetOpen.value).toBe(false);
   });
 
   it("cancels without payment and allows another explicit attempt", async () => {
-    const page = screen(); const first = page.pay(); page.accept(false); await first;
+    const page = screen(); const first = page.requestConfirmPay(); page.closePaymentSheet(); await first;
     expect(page.onConfirmPay).not.toHaveBeenCalled(); expect(page.step.value).toBe("confirm");
-    const second = page.pay(); page.accept(true); await second;
+    const second = page.requestConfirmPay(); page.confirmPaymentSheet(); await second;
     expect(page.onConfirmPay).toHaveBeenCalledOnce();
   });
 
   it.each(["route", "amount", "step"])("rejects a stale %s confirmation", async change => {
-    const page = screen(); const pending = page.pay();
+    const page = screen(); const pending = page.requestConfirmPay();
     if (change === "route") page.leave();
     if (change === "amount") page.netPrice.value = 51;
     if (change === "step") page.step.value = "select-payment";
-    page.accept(true); await pending;
+    page.confirmPaymentSheet(); await pending;
     expect(page.onConfirmPay).not.toHaveBeenCalled();
-    if (change === "amount") expect(page.toast.warn).toHaveBeenCalledWith(zh.store.coTotalQuoteChanged);
+    if (change === "amount") {
+      expect(page.toast.warn).toHaveBeenCalledWith(zh.store.coTotalQuoteChanged);
+      expect(page.step.value).toBe("select-payment");
+    }
   });
 
   it("preserves payment failures instead of claiming success", async () => {
     const page = screen(); page.onConfirmPay.mockRejectedValue(new Error("unavailable"));
-    const pending = page.pay(); page.accept(true);
+    const pending = page.requestConfirmPay(); page.confirmPaymentSheet();
     await expect(pending).rejects.toThrow("unavailable");
-    const retry = page.pay(); page.accept(false); await retry;
-    expect(page.confirm).toHaveBeenCalledTimes(2);
+    expect(page.paymentFlowBusy.value).toBe(false);
+    const retry = page.requestConfirmPay();
+    expect(page.paymentSheetOpen.value).toBe(true);
+    page.closePaymentSheet(); await retry;
   });
 });

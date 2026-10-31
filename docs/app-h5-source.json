@@ -3,10 +3,10 @@
   "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-bug013",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "1bfaae025ff45f4abb45435a20afa0677e2c637d",
-  "sourceRef": "1bfaae025ff45f4abb45435a20afa0677e2c637d",
+  "sourceHead": "c791d271767eda3793738551a21df76f5ae90ffd",
+  "sourceRef": "c791d271767eda3793738551a21df76f5ae90ffd",
   "sourceRefKind": "commit",
-  "sourceTree": "dbf82d9c4fcd4340655e0011286b4a256d96cf94",
+  "sourceTree": "37a9824bec341205228735dec6d904a27ce6126a",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -7930,10 +7930,10 @@
       "mode": "100644"
     },
     "src/composables/use-product-phase.test.ts": {
-      "sourceBlob": "de4c7ebb75d766da3f28d1aac3e662ee5edff351",
-      "sourceSha256": "ea6312da6ee56d8022e4b7fb76c9149c3a1a0c2547a62cbaacc84dc0a24d18a2",
-      "targetBlob": "de4c7ebb75d766da3f28d1aac3e662ee5edff351",
-      "targetSha256": "ea6312da6ee56d8022e4b7fb76c9149c3a1a0c2547a62cbaacc84dc0a24d18a2",
+      "sourceBlob": "37214779db73e6254b131f82378b77c71e9a26e0",
+      "sourceSha256": "767c52fc39fb1672ed65a4964044d06e26c1ef0cefede6871fc216c0ca111bba",
+      "targetBlob": "37214779db73e6254b131f82378b77c71e9a26e0",
+      "targetSha256": "767c52fc39fb1672ed65a4964044d06e26c1ef0cefede6871fc216c0ca111bba",
       "mode": "100644"
     },
     "src/composables/use-product-phase.ts": {
@@ -11213,10 +11213,10 @@
       "mode": "100644"
     },
     "src/lib/share-channel-account-scope.behavior.test.ts": {
-      "sourceBlob": "0f9e8c8b0e9b0375bf1fb51ba1e40e078e2741a2",
-      "sourceSha256": "e850a721e7dd7e40b0dcc6fbe5dbd71957e61f6c78d6baa5a7672d5a1a48f326",
-      "targetBlob": "0f9e8c8b0e9b0375bf1fb51ba1e40e078e2741a2",
-      "targetSha256": "e850a721e7dd7e40b0dcc6fbe5dbd71957e61f6c78d6baa5a7672d5a1a48f326",
+      "sourceBlob": "fee74bf242f862d73974b302125c7f4ee1bf6515",
+      "sourceSha256": "58765026fee753f210f7e3b1792fc322e12a29a78a027c0a231351e31acb443c",
+      "targetBlob": "fee74bf242f862d73974b302125c7f4ee1bf6515",
+      "targetSha256": "58765026fee753f210f7e3b1792fc322e12a29a78a027c0a231351e31acb443c",
       "mode": "100644"
     },
     "src/lib/share-channel-sheet.behavior.test.ts": {
@@ -12893,10 +12893,10 @@
       "mode": "100644"
     },
     "src/pages/me/help-category-filter.test.ts": {
-      "sourceBlob": "c399e762f013d17d49560dd49bd396d798fe4806",
-      "sourceSha256": "979104646b3a07e90f93de237acb4d9861374e8b5ddb4e8ef0b7e4f840fd5f8b",
-      "targetBlob": "c399e762f013d17d49560dd49bd396d798fe4806",
-      "targetSha256": "979104646b3a07e90f93de237acb4d9861374e8b5ddb4e8ef0b7e4f840fd5f8b",
+      "sourceBlob": "abe82c60182a730f8f8cc5f41696b6694a7a7ffa",
+      "sourceSha256": "8e976783e72189260558f50f77dd30a49ea4f32eb1f47e3670af53e5623da724",
+      "targetBlob": "abe82c60182a730f8f8cc5f41696b6694a7a7ffa",
+      "targetSha256": "8e976783e72189260558f50f77dd30a49ea4f32eb1f47e3670af53e5623da724",
       "mode": "100644"
     },
     "src/pages/me/help-faq-empty.test.ts": {
@@ -12921,17 +12921,17 @@
       "mode": "100644"
     },
     "src/pages/me/help-faq-reload-scope.test.ts": {
-      "sourceBlob": "1a29cbbabee4dc2350dbb53280a1bb63065fe4b0",
-      "sourceSha256": "7bdafaf39d8cb9563c15c6409df34d3cd1a9ba7307fa324c8eb0252afe562021",
-      "targetBlob": "1a29cbbabee4dc2350dbb53280a1bb63065fe4b0",
-      "targetSha256": "7bdafaf39d8cb9563c15c6409df34d3cd1a9ba7307fa324c8eb0252afe562021",
+      "sourceBlob": "f7890cc75394e38caa130cde12262072deacafb1",
+      "sourceSha256": "18a02c5cbfa8d14dff63e6585b96b0e737456ce62dfc484d071bf0c78aea5ec6",
+      "targetBlob": "f7890cc75394e38caa130cde12262072deacafb1",
+      "targetSha256": "18a02c5cbfa8d14dff63e6585b96b0e737456ce62dfc484d071bf0c78aea5ec6",
       "mode": "100644"
     },
     "src/pages/me/help-faq-search-target.test.ts": {
-      "sourceBlob": "0ac8a80240861cae89d31b0cc0de6bbff8c24d73",
-      "sourceSha256": "9a3670f2838774201fa4e679588ddce2bea821b248453eb7a07b78a1dc2143d9",
-      "targetBlob": "0ac8a80240861cae89d31b0cc0de6bbff8c24d73",
-      "targetSha256": "9a3670f2838774201fa4e679588ddce2bea821b248453eb7a07b78a1dc2143d9",
+      "sourceBlob": "0ab6d2e2629532e9fdc6ab79e9748b1b873a4544",
+      "sourceSha256": "2aaa5f8699ef8b721798918c16574cc2bb9e3e8598e77a1dfc681a487caede43",
+      "targetBlob": "0ab6d2e2629532e9fdc6ab79e9748b1b873a4544",
+      "targetSha256": "2aaa5f8699ef8b721798918c16574cc2bb9e3e8598e77a1dfc681a487caede43",
       "mode": "100644"
     },
     "src/pages/me/help-remote-recovery.test.ts": {
@@ -13649,10 +13649,10 @@
       "mode": "100644"
     },
     "src/pages/me/wallet-withdraw-bank-reload.behavior.test.ts": {
-      "sourceBlob": "3922eb4624b71cbe4af55779506dac7e6ac1e7b9",
-      "sourceSha256": "1b9fd2897709670b611a33d3999f0248692c5b2687731e7316debb5a5db6ccf9",
-      "targetBlob": "3922eb4624b71cbe4af55779506dac7e6ac1e7b9",
-      "targetSha256": "1b9fd2897709670b611a33d3999f0248692c5b2687731e7316debb5a5db6ccf9",
+      "sourceBlob": "91561997b1a6108ee9a05ff170ab10179431be7f",
+      "sourceSha256": "94c8b859e23f820b29a1dec3030388d58f27d7539a7b231fe32659ab5d1ad27c",
+      "targetBlob": "91561997b1a6108ee9a05ff170ab10179431be7f",
+      "targetSha256": "94c8b859e23f820b29a1dec3030388d58f27d7539a7b231fe32659ab5d1ad27c",
       "mode": "100644"
     },
     "src/pages/me/wallet-withdraw-bank.vue": {
@@ -14167,10 +14167,10 @@
       "mode": "100644"
     },
     "src/pages/store/checkout-purchase-confirmation.test.ts": {
-      "sourceBlob": "c9774484f7f43932896c1ec1b315c0af7eff3b77",
-      "sourceSha256": "56f5029e559c5b20a5e0a8047e9372f4d297d291e577c68fae36e07fb9b62e73",
-      "targetBlob": "c9774484f7f43932896c1ec1b315c0af7eff3b77",
-      "targetSha256": "56f5029e559c5b20a5e0a8047e9372f4d297d291e577c68fae36e07fb9b62e73",
+      "sourceBlob": "085a7c74947a48913baf10c3e99d0594cf3e38bc",
+      "sourceSha256": "b1ede664b2cf7a39185810a6d127b1e53e602a6fbc771cb89fa04c8c7945ca28",
+      "targetBlob": "085a7c74947a48913baf10c3e99d0594cf3e38bc",
+      "targetSha256": "b1ede664b2cf7a39185810a6d127b1e53e602a6fbc771cb89fa04c8c7945ca28",
       "mode": "100644"
     },
     "src/pages/store/checkout-quantity.behavior.test.ts": {
@@ -14286,10 +14286,10 @@
       "mode": "100644"
     },
     "src/pages/store/finite-share-stock.behavior.test.ts": {
-      "sourceBlob": "a3f74a3f14c8c7698c522321f3f3c91cc4ab2189",
-      "sourceSha256": "c5d96bf23e6666606295dde48dd40b08099f3ca5c9c149f37ace4fd64066ac11",
-      "targetBlob": "a3f74a3f14c8c7698c522321f3f3c91cc4ab2189",
-      "targetSha256": "c5d96bf23e6666606295dde48dd40b08099f3ca5c9c149f37ace4fd64066ac11",
+      "sourceBlob": "fbebafd9bbc7e8816de5ec0c20caa82b7cca07b0",
+      "sourceSha256": "ea087fba7a97be7825c1fa8331505c8ed91a6d2da37e403553c4f4ae3209c959",
+      "targetBlob": "fbebafd9bbc7e8816de5ec0c20caa82b7cca07b0",
+      "targetSha256": "ea087fba7a97be7825c1fa8331505c8ed91a6d2da37e403553c4f4ae3209c959",
       "mode": "100644"
     },
     "src/pages/store/order-date-consumers.test.ts": {
@@ -14419,10 +14419,10 @@
       "mode": "100644"
     },
     "src/pages/store/store-bundle-entry.behavior.test.ts": {
-      "sourceBlob": "fedc6e8a59ada308c6031af9e1b9267330171a3f",
-      "sourceSha256": "0e65835d4c72722547af6d31c589f35f0a82ed1d5ae8fef8b6d41ed76a1244ff",
-      "targetBlob": "fedc6e8a59ada308c6031af9e1b9267330171a3f",
-      "targetSha256": "0e65835d4c72722547af6d31c589f35f0a82ed1d5ae8fef8b6d41ed76a1244ff",
+      "sourceBlob": "9cbdb8fbe01508623522e5ccb2341e543e014cad",
+      "sourceSha256": "a0507b2c1a5911aa57c728b0137794b406e6610def3e80cd7600e64ecf56afe6",
+      "targetBlob": "9cbdb8fbe01508623522e5ccb2341e543e014cad",
+      "targetSha256": "a0507b2c1a5911aa57c728b0137794b406e6610def3e80cd7600e64ecf56afe6",
       "mode": "100644"
     },
     "src/pages/store/store.vue": {
@@ -16778,10 +16778,10 @@
       "mode": "100644"
     },
     "src/store/payout-address-remote-scope.test.ts": {
-      "sourceBlob": "ebff9cf5b3a4a1d466f257851e518ca23eafb321",
-      "sourceSha256": "cfb9bc62ad76dca3823efc5e66ee1630ff679732605c939170f8f97d4d95bbee",
-      "targetBlob": "ebff9cf5b3a4a1d466f257851e518ca23eafb321",
-      "targetSha256": "cfb9bc62ad76dca3823efc5e66ee1630ff679732605c939170f8f97d4d95bbee",
+      "sourceBlob": "b3fb19a4cdcacf1a5b1b3f5d989a4c2025f7ddea",
+      "sourceSha256": "a7f16ad71b8b3f402671f9964ed7086c624c1726c3c92623beddc7781465612a",
+      "targetBlob": "b3fb19a4cdcacf1a5b1b3f5d989a4c2025f7ddea",
+      "targetSha256": "a7f16ad71b8b3f402671f9964ed7086c624c1726c3c92623beddc7781465612a",
       "mode": "100644"
     },
     "src/store/payout-address.ts": {

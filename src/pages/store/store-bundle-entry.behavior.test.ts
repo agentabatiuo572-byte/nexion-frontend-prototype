@@ -26,7 +26,7 @@ const voucherSource = setup.statements.filter(node =>
   (ts.isVariableStatement(node) && node.declarationList.declarations.some(d => voucherBindings.has(d.name.getText(setup))))
   || (ts.isFunctionDeclaration(node) && node.name?.text === "openStoreVouchers"),
 ).map(node => node.getText(setup)).join("\n");
-const createVoucherPresentation = new Function("computed", "voucher", "voucherClaimSheet", "navTo", "voucherBenefitSummary", "voucherSupportsSurface",
+const createVoucherPresentation = new Function("computed", "voucher", "voucherClaimSheet", "navTo", "voucherBenefitSummary", "voucherSupportsSurface", "remoteApiEnabled",
   ts.transpileModule(voucherSource, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText
   + "; return { voucherClaimable, voucherOffers, voucherBenefit, openStoreVouchers };",
 );
@@ -47,8 +47,11 @@ function nodes(value: unknown): Vue.VNode[] {
 function page(overrides: Record<string, unknown> = {}) {
   const navTo = vi.fn();
   const voucherClaimSheet = { show: vi.fn() };
-  const voucher = overrides.voucher ?? { claimableVouchers: [], claimedUnused: [] };
-  const voucherPresentation = createVoucherPresentation(Vue.computed, voucher, voucherClaimSheet, navTo, voucherBenefitSummary, voucherSupportsSurface);
+  const local = (overrides.voucher ?? { claimableVouchers: [], claimedUnused: [] }) as { claimableVouchers: Array<{ id: string }>; claimedUnused: Array<{ id: string }> };
+  // Production runs remote (remoteApiEnabled is true): project the fixture into the server-confirmed presentation rows.
+  const voucher = { ...local, remoteStatus: "ready", presentationClaimable: local.claimableVouchers,
+    presentationOffers: [...new Map([...local.claimableVouchers, ...local.claimedUnused].map(offer => [offer.id, offer])).values()] };
+  const voucherPresentation = createVoucherPresentation(Vue.computed, voucher, voucherClaimSheet, navTo, voucherBenefitSummary, voucherSupportsSurface, true);
   const context = Vue.proxyRefs({
     t: zh, navTo, activityId: "", activity: null, voucherContext: {}, publicOnly: false,
     auditCopy, fmt, fmtMoney, ...voucherPresentation,

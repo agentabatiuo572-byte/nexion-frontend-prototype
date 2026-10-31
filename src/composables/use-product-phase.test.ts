@@ -3,7 +3,7 @@ import { computed } from "vue";
 import { PHASES } from "@/store/product-phase";
 import { serverProductPhaseState } from "@/store/server-product-phase";
 
-const remote = vi.hoisted(() => ({ remoteApiEnabled: true, productPhaseApi: { current: vi.fn(() => new Promise(() => {})) } }));
+const remote = vi.hoisted(() => ({ remoteApiEnabled: true, apiRuntimeConfig: { environment: "dev", baseUrl: "" }, productPhaseApi: { current: vi.fn(() => new Promise(() => {})) } }));
 vi.mock("@/api/runtime", () => remote);
 vi.mock("@/store/app", () => ({ useApp: () => ({ user: { joinedAt: Date.now() } }) }));
 

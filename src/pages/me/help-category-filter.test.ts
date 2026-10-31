@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { computed, ref } from 'vue';
 import { describe, expect, it } from 'vitest';
+import { platformDisplayText } from '@/lib/brand-copy';
 const source = readFileSync(new URL('./help.vue', import.meta.url), 'utf8');
 const start = source.indexOf('const filtered = computed(');
 const end = source.indexOf('const emptyResults', start);
@@ -15,7 +16,7 @@ describe('Help Center categories from PC M4', () => {
       {id:'4',category:'future-category',question:'future',answer:'help'},
     ]);
     const query = ref(''); const cat = ref('payments');
-    const result = new Function('computed','faqs','query','cat','requestedFaqId',code)(computed,faqs,query,cat,ref(''));
+    const result = new Function('computed','faqs','query','cat','requestedFaqId','platformDisplayText',code)(computed,faqs,query,cat,ref(''),platformDisplayText);
     expect(result.value.map((row: {id:string}) => row.id)).toEqual(['1','2']);
     query.value='DAILY'; expect(result.value.map((row: {id:string}) => row.id)).toEqual(['1']);
     query.value='missing'; expect(result.value).toEqual([]);
@@ -23,7 +24,7 @@ describe('Help Center categories from PC M4', () => {
   });
   for (const [category, group] of [['general','getting-started'],['account','getting-started'],['other','getting-started'],['withdrawal','payments'],['deposit','payments'],['hardware','devices'],['genesis','devices'],['earnings','earnings'],['technical','technical']]) {
     it(`${category} is visible in ${group}`, () => {
-      const result = new Function('computed','faqs','query','cat','requestedFaqId',code)(computed,ref([{id:'1',category,question:'question',answer:'answer'}]),ref(''),ref(group),ref(''));
+      const result = new Function('computed','faqs','query','cat','requestedFaqId','platformDisplayText',code)(computed,ref([{id:'1',category,question:'question',answer:'answer'}]),ref(''),ref(group),ref(''),platformDisplayText);
       expect(result.value).toHaveLength(1);
     });
   }

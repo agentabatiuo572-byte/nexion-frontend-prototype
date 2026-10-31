@@ -8,7 +8,7 @@ import ts from "typescript";
 import cardRaw from "../../components/store/product-card.vue?raw";
 import detailRaw from "./detail.vue?raw";
 import { zh } from "@/i18n/messages/zh";
-import { fmt } from "@/i18n/format";
+import * as i18nFormat from "@/i18n/format";
 import { nexGridBrandText } from "@/lib/brand-copy";
 import { catalogProductImageUrl, productTierCode } from "@/lib/product-image";
 import { localizedDatacenterValue, productCopy, specRow, specText } from "@/lib/product-copy";
@@ -79,7 +79,8 @@ async function mountPair(product: Product,promotion?:PublicPromotion) {
   const openSnapshot: PurchaseEligibilitySnapshot = {
     productNo: current.id, eligible: true, decisionCode: "ELIGIBLE", evaluatedAt: 1,
     source: PURCHASE_ELIGIBILITY_SOURCE, sourceEnvironment: "PRODUCTION", runId: null, serverCanonical: true,
-    policies: [{ policy: "E1", eligible: true, decisionCode: "ELIGIBLE", mode: "ALL", conditions: [] }],
+    policies: [{ policy: "E1", eligible: true, decisionCode: "ELIGIBLE", mode: "ALL", conditions: [] },
+      { policy: "F4B", eligible: true, decisionCode: "F4B_NOT_CONFIGURED", mode: "ALL", conditions: [] }],
   };
   const eligibility = Vue.ref<{ status: PurchaseEligibilityRequestStatus; eligible: boolean; snapshot: PurchaseEligibilitySnapshot | null }>({ status: "ready", eligible: true, snapshot: openSnapshot });
   const catalogState = Vue.reactive({ status: "ready" });
@@ -97,13 +98,14 @@ async function mountPair(product: Product,promotion?:PublicPromotion) {
     "@/lib/day-one-page-observation": dayOnePageObservationFixture(),
     vue: Vue,
     "@/i18n/use-t": { useT: () => Vue.ref(zh) }, "@/store/locale": { useLocaleStore: () => ({ code: "zh" }) },
-    "@/i18n/format": { fmt }, "@/lib/brand-copy": { nexGridBrandText },
+    "@/i18n/format": i18nFormat, "@/lib/brand-copy": { nexGridBrandText },
     "@/lib/product-copy": { localizedDatacenterValue, productCopy, specRow, specText },
     "@/lib/product-image": { catalogProductImageUrl, productTierCode },
     "@/composables/use-product-image": { useProductImage: (source: () => string | undefined) => ({ imageSrc: Vue.computed(() => source() ?? null), imageError: () => {} }) },
     "@/lib/route": { navTo, takeNavigationQuery: () => "" },
     "@/api/runtime": { remoteApiEnabled: true, sessionVault: { read: () => ({ user: { userId: 7101 } }) },
       dayOnePageObservationApi: { s1Roi: forbiddenNetwork }, h3ObservationApi: { productInterest: forbiddenNetwork } },
+    "@/store/earn-config": { prepareEarnConfig: () => {}, useEarnConfig: () => ({ refresh: async () => true, taskPricing: Vue.ref(null) }) },
     "@/store/product-catalog": { productCatalogState: catalogState, productCatalogPresentation: presentation, refreshProductCatalog: async () => true },
     "@/store/purchase-eligibility": { useRemotePurchaseEligibility: () => ({ eligibility, retry: vi.fn() }) },
     "@/composables/use-scroll-grow-progress": { useScrollGrowProgress: () => ({ elRef: Vue.ref(null), inView: Vue.ref(false) }) },
@@ -122,7 +124,8 @@ async function mountPair(product: Product,promotion?:PublicPromotion) {
     "@/store/sticky-cta-bar": { useStickyCTA: () => ({ activate: () => {}, show: (value: Record<string, unknown>) => { cta.value = value; }, hide: () => { cta.value = null; } }) },
     "@/mock/phone-tiers": { getPhoneTierYields: () => [] },
     "@/lib/store-upgrade": { activePhoneDailyRate: () => 0, storeYieldMultiplier: () => 0 },
-    "@/store/app": { useApp: () => Vue.reactive({ accountKey: "user:7101", accountBindingEpoch: 0, remoteFleetHasSnapshot: false }) },
+    "@/store/app": { useApp: () => Vue.reactive({ accountKey: "user:7101", accountBindingEpoch: 0, remoteFleetHasSnapshot: false,
+      captureRemoteAccountRequest: () => ({}), refreshRemoteFleet: async () => true }) },
     "@/store/server-product-phase": { refreshServerProductPhase: async () => true },
     "@/store/ui": { toast: { error: toastError } },
     "@/lib/account-scope": { captureAccountScope: () => ({}), isCurrentAccountScope: () => true },

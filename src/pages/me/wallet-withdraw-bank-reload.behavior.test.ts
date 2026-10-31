@@ -61,6 +61,8 @@ const config = { enabled: true, banks: [], unresolvedIntent: null, bankSelection
   capacity: { maxWithdrawableUsdt: 80, dailyRemainingCount: 2, dailyLimitCount: 3,
     dailyCountResetAt: "2026-10-06T00:00:00Z", withdrawalEnabled: true } };
 const cleanups: Array<() => void> = [];
+// The real control is aria-disabled; the static shell before config arrives is an inert, aria-hidden stand-in with no handler.
+const unusable = (target: { props: Record<string, any> }) => target.props["aria-disabled"] === true || (target.props["aria-hidden"] === "true" && !target.props.onClick);
 async function settle() { for (let i = 0; i < 6; i++) { await Promise.resolve(); await Vue.nextTick(); } }
 
 function mount(options: { params?: Record<string, unknown>; hash?: string; bootstrap?: boolean;
@@ -98,6 +100,7 @@ function mount(options: { params?: Record<string, unknown>; hash?: string; boots
     "@/lib/rank-how-content": { formatHowNumber },
     vue: Vue, "@dcloudio/uni-app": Object.fromEntries(["onLoad", "onShow", "onHide", "onUnload"].map(name => [name, (fn: typeof invalidateRuntime) => { hooks[name] = fn; }])),
     "@/components/app-chassis.vue": { default: presentation }, "@/components/sub-page-header.vue": { default: { render: () => null } },
+    "@/components/copy-code-button.vue": { default: { render: () => null } },
     "@/i18n/use-t": { useT: () => Vue.ref(en) }, "@/i18n/format": { dateLocale: () => "en-US" },
     "@/store/app": { useApp: () => app }, "@/api/runtime": { apiClient: { request } },
     "@/api/order-api": { captureRuntimeRevision: () => runtimeRevision, isCurrentRuntimeRevision: (value: number) => value === runtimeRevision,
@@ -134,7 +137,7 @@ describe("bank order tracking reload", () => {
     if (boundary === "account") s.app.accountKey = "user:8"; else s.app.accountBindingEpoch++;
     s.show(); await settle();
     expect(s.text()).not.toContain("****1234");
-    expect(s.find("bank-continue")!.props["aria-disabled"]).toBe(true);
+    expect(unusable(s.find("bank-continue")!)).toBe(true);
   });
 
   it.each(["success", "failure"])("keeps a canonical new-scope read after an A-B-A transition despite the old %s", async outcome => {
@@ -150,7 +153,7 @@ describe("bank order tracking reload", () => {
     await settle(); expect(s.text()).toContain("****9999"); expect(s.text()).not.toContain("****7777");
     expect(s.text()).not.toContain(en.bankWithdrawal.error);
     s.show(); await settle(); expect(s.text()).toContain("****9999");
-    expect(s.find("bank-continue")!.props["aria-disabled"]).toBe(true);
+    expect(unusable(s.find("bank-continue")!)).toBe(true);
   });
 
   it.each([401, 403])("drops retained config on a current %s without making unknown actions usable", async status => {
@@ -158,7 +161,7 @@ describe("bank order tracking reload", () => {
     s.request.mockRejectedValueOnce(new ApiError({ kind: "http", status, message: "DENIED" }));
     s.show(); await settle();
     expect(s.text()).not.toContain("****1234"); expect(s.text()).toContain(en.bankWithdrawal.error);
-    expect(s.find("bank-continue")!.props["aria-disabled"]).toBe(true);
+    expect(unusable(s.find("bank-continue")!)).toBe(true);
     expect(s.find("bank-quote")).toBeUndefined();
     s.request.mockImplementationOnce(() => new Promise(() => {})); s.show(); await settle();
     expect(s.text()).not.toContain("****1234");
@@ -167,18 +170,18 @@ describe("bank order tracking reload", () => {
     const s = mount({ deferredConfig: true }); s.show(); await settle();
     for (const label of [en.bankWithdrawal.recipientTitle, en.bankWithdrawal.recipientSubtitle, en.bankWithdrawal.continueWithdrawal]) expect(s.text()).toContain(label);
     expect(s.text()).not.toContain("****1234"); expect(s.text()).not.toContain(en.bankWithdrawal.unboundNotice);
-    expect(s.find("bank-continue")!.props["aria-disabled"]).toBe(true);
+    expect(unusable(s.find("bank-continue")!)).toBe(true);
     expect(s.find("bank-continue")!.props.onClick).toBeUndefined(); expect(s.find("bank-amount")).toBeUndefined();
     s.release(config); await settle(); expect(s.text()).toContain("****1234");
     let fail!: (cause: Error) => void;
     s.request.mockImplementationOnce(() => new Promise((_resolve, reject) => { fail = reject; }));
     s.show(); await settle();
     expect(s.text()).toContain("****1234"); expect(s.text()).not.toContain(en.bankWithdrawal.loading);
-    expect(s.find("bank-continue")!.props["aria-disabled"]).toBe(true);
+    expect(unusable(s.find("bank-continue")!)).toBe(true);
     s.find("bank-continue")!.props.onClick(); await settle(); expect(s.find("bank-amount")).toBeUndefined();
     fail(new Error("unavailable")); await settle();
     expect(s.text()).toContain(en.bankWithdrawal.error); expect(s.text()).toContain(en.bankWithdrawal.recipientTitle);
-    expect(s.text()).not.toContain("****1234"); expect(s.find("bank-continue")!.props["aria-disabled"]).toBe(true);
+    expect(s.text()).not.toContain("****1234"); expect(unusable(s.find("bank-continue")!)).toBe(true);
     expect(s.request.mock.calls.every(([input]) => !input.method || input.method === "GET")).toBe(true);
   });
   it("silently reads a retained order but keeps cold loading and a real failure", async () => {
@@ -208,7 +211,7 @@ describe("bank order tracking reload", () => {
     s.show(); await settle(); expect(s.text()).toContain("****1234");
     s.app.accountBindingEpoch++; await settle(); expect(s.text()).not.toContain("****1234");
     completions[0](config); await settle(); expect(s.text()).not.toContain("****1234");
-    expect(s.find("bank-continue")!.props["aria-disabled"]).toBe(true);
+    expect(unusable(s.find("bank-continue")!)).toBe(true);
     completions[1]({ ...config, beneficiary: null }); await settle();
     expect(s.text()).toContain(en.bankWithdrawal.unboundNotice); expect(s.text()).not.toContain("****1234");
     expect(s.find("bank-continue")).toBeUndefined(); expect(s.find("bank-quote")).toBeUndefined();

@@ -1,4 +1,5 @@
 import { computed, effectScope, nextTick, reactive, ref, watch } from "vue";
+import { platformDisplayText } from "@/lib/brand-copy";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ts from "typescript";
 import page from "./help.vue?raw";
@@ -34,16 +35,15 @@ function setup(accountKey = "default", targetId = "target") {
   const scope = createRemoteAccountEpoch(accountKey);
   const api = { faqPage: vi.fn() };
   const hooks: Record<string, (options?: { faqId: string }) => void> = {};
-  const syncBotAccountScope = vi.fn();
   const effects = effectScope();
-  const value = effects.run(() => new Function("ref", "computed", "watch", "supportApi", "remoteAccountScope", "locale", "app", "onShow", "syncBotAccountScope", "onLoad", "readPublishedFaqPages",
+  const value = effects.run(() => new Function("ref", "computed", "watch", "supportApi", "remoteAccountScope", "locale", "app", "onShow", "onLoad", "readPublishedFaqPages", "platformDisplayText",
     `${source}; return {faqs, filtered, openId, query, faqLoadError, faqLoading, faqPageNum, canLoadMoreFaqs, requestedFaqId, selectCategory, onSearch};`)(
-    ref, computed, watch, api, scope, locale, app, (callback: () => void) => { hooks.show = callback; }, syncBotAccountScope,
-    (callback: (options?: { faqId: string }) => void) => { hooks.load = callback; }, readPublishedFaqPages,
+    ref, computed, watch, api, scope, locale, app, (callback: () => void) => { hooks.show = callback; },
+    (callback: (options?: { faqId: string }) => void) => { hooks.load = callback; }, readPublishedFaqPages, platformDisplayText,
   ))!;
   cleanups.push(() => effects.stop());
   hooks.load({ faqId: targetId });
-  return { app, locale, api, value, syncBotAccountScope, show: () => hooks.show(), bind: (key: string) => {
+  return { app, locale, api, value, show: () => hooks.show(), bind: (key: string) => {
     app.accountBindingEpoch += 1;
     app.accountKey = key;
     scope.bind(key);
@@ -121,7 +121,6 @@ describe("Help FAQ account and locale fences remain active", () => {
     current.resolve(result([faq("current")], 20)); await settle();
     expect(s.value.filtered.value.map((item: { id: string }) => item.id)).toEqual(["current"]);
     expect(s.value.query.value).toBe("");
-    expect(s.syncBotAccountScope).toHaveBeenCalledTimes(3);
   });
 
   it.each([false, true])("clears the locale projection and rejects the late prior locale (failure=%s)", async failure => {

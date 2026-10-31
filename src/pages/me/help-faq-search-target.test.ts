@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import ts from "typescript";
 import page from "./help.vue?raw";
 import { readPublishedFaqPages } from "@/lib/published-faq-pages";
+import { platformDisplayText } from "@/lib/brand-copy";
 
 const start = page.indexOf("const faqs = ref");
 const end = page.indexOf("const emptyResults", start);
@@ -17,10 +18,10 @@ function setup(targetId: string) {
   const api = { faqPage: vi.fn() };
   const locale = reactive({ code: "zh" });
   const value = new Function("ref", "computed", "supportApi", "remoteAccountScope", "locale", "onShow",
-    "syncBotAccountScope", "onLoad", "readPublishedFaqPages",
+    "syncBotAccountScope", "onLoad", "readPublishedFaqPages", "platformDisplayText",
     `${source}; return {loadFaqs, filtered, openId, query, faqLoadError, requestedFaqId, selectCategory, onSearch};`)(
     ref, computed, api, { snapshot: () => 1, isCurrent: () => true }, locale, () => {}, () => {},
-    (callback: (options: { faqId: string }) => void) => callback({ faqId: targetId }), readPublishedFaqPages,
+    (callback: (options: { faqId: string }) => void) => callback({ faqId: targetId }), readPublishedFaqPages, platformDisplayText,
   );
   return { value, api, locale };
 }

@@ -4,6 +4,7 @@ import type { PayoutAddressOtpChallenge, PayoutAddressRow, PayoutAddressSnapshot
 
 const remote = vi.hoisted(() => ({
   apiRuntimeConfig: { environment: "prod", mode: "prod" },
+  apiRuntimeClientOrigin: { environment: "prod", baseUrl: "" },
   remoteApiEnabled: false,
   sandboxRunCurrent: true,
   payoutAddressServerEnabled: true,
