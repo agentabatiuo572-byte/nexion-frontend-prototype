@@ -15,7 +15,7 @@
         <view v-for="item in items" :key="item.productNo" class="promotion-row checkout-product-line">
           <view class="checkout-product-art"><image v-if="getProduct(item.productNo)?.imageUrl" :src="getProduct(item.productNo)!.imageUrl" class="promotion-image" mode="aspectFit" aria-hidden="true" /></view>
           <view class="promotion-grow"><text class="checkout-item-name">{{ selectedItemName(item) }}</text><text class="promotion-copy">{{ p.quantity }} · {{ item.quantity }}</text>
-            <CheckoutAmount v-if="displayQuote||order" class="checkout-line-price" :value="reviewAmount(itemSubtotal(item))" :currency="reviewCurrency" />
+            <CheckoutAmount v-if="displayQuote||order" class="checkout-line-price" :value="itemSubtotal(item)" currency="USD" />
           </view>
           <view class="checkout-item-quantity" :aria-label="selectedItemName(item)+' · '+p.quantity">
             <view class="checkout-item-quantity-button" data-testid="checkout-item-decrease" role="button" :tabindex="canChangeQuantity(item.productNo,-1)?0:-1" :aria-disabled="!canChangeQuantity(item.productNo,-1)" :aria-label="t.uiChrome.decreaseQty" @click="changeQuantity(item.productNo,-1)" @keydown.enter.prevent="changeQuantity(item.productNo,-1,$event)" @keydown.space.prevent="changeQuantity(item.productNo,-1,$event)">−</view>
@@ -83,9 +83,9 @@
       <view v-if="summary" class="checkout-section" data-testid="checkout-fees">
         <text class="checkout-section-heading">{{ t.store.coReviewOrder }}</text>
         <view class="checkout-group checkout-fees">
-          <view class="promotion-summary"><text>{{ p.subtotal }}</text><CheckoutAmount :value="reviewAmount(summary.subtotalUsdt)" :currency="reviewCurrency" /></view>
+          <view class="promotion-summary"><text>{{ p.subtotal }}</text><CheckoutAmount :value="summary.subtotalUsdt" currency="USD" /></view>
           <view class="promotion-summary"><text>{{ p.discount }}</text><text class="checkout-discount-value">{{ formatDiscount(summary.discountUsdt) }}</text></view>
-          <view class="promotion-summary total"><text>{{ p.total }}</text><CheckoutAmount :value="reviewAmount(summary.amountUsdt)" :currency="reviewCurrency" /></view>
+          <view class="promotion-summary total"><text>{{ p.total }}</text><CheckoutAmount :value="summary.amountUsdt" currency="USD" /></view>
         </view>
         <view v-if="order ? order.paymentStatus==='PENDING'&&order.payBy : promotion?.endsAt" class="promotion-row"><text aria-hidden="true">◷</text><view class="promotion-grow"><text class="promotion-copy">{{ order ? p.payBy : p.deadline }}</text><text class="promotion-copy">{{ displayDeadline(order?.payBy??promotion!.endsAt,locale.code) }}</text></view></view>
       </view>
@@ -125,7 +125,7 @@
 </template>
 <script setup lang="ts">
 import { formatGroupedAmount as formatAmount } from "@/lib/amount-display";
-import { checkoutReviewAmount, formatCheckoutReviewAmount,type CheckoutReviewCurrency } from '@/lib/checkout-review-amount';
+import { formatCheckoutReviewAmount } from '@/lib/checkout-review-amount';
 import { commerceCopy } from '@/lib/commerce-review';
 import PromotionAction from '@/components/promotion/promotion-action.vue';
 import NxSheet from '@/components/ui/nx-sheet.vue';
@@ -160,12 +160,12 @@ import { readTrustedMonotonicNowMs,projectServerNow } from '@/lib/server-deadlin
 import { displayDeadline,localized,rewardSummary } from '@/lib/promotion-display';
 import { promotionCheckoutHref } from '@/lib/promotion-entry';
 import { executePaymentWithPassword } from '@/lib/authorized-payment';
-import { assertCheckoutPurchaseStock,CheckoutPurchaseCheckError } from '@/lib/checkout-purchase-check';
+import { orderPaymentRejection } from '@/lib/order-payment-rejection';
 import { checkoutFlowCopy } from '@/lib/checkout-flow-copy';
 import RewardRows from './reward-rows.vue';import PromotionTerms from './promotion-terms.vue';
 const props=defineProps<{activityId:string;items:PromotionItem[];orderNo?:string;voucherId?:string;upgradeActivityId?:string}>();
 function formatDiscount(value: Parameters<typeof formatAmount>[0]): string {
-  return formatCheckoutReviewAmount(value, reviewCurrency.value, true);
+  return formatCheckoutReviewAmount(value, 'USD', { discount: true });
 }
 function getProduct(id:string){void productCatalogState.status;return readProduct(id);}
 const t=useT(),p=computed(()=>t.value.promotion),locale=useLocaleStore(),app=useApp(),auth=useAuth(),voucher=useVoucher(),orders=useOrders();
@@ -217,8 +217,6 @@ function itemSubtotal(item:{productNo:string;quantity:number;subtotalUsdt?:strin
 const promotion=shallowRef<PublicPromotion|null>(null),loading=ref(true),busy=ref(false),error=ref(''),termsOpen=ref(false);
 const paymentSheetOpen=ref(false),paymentConfirming=ref(false),leaving=ref(false);
 const paymentEntryChecking=ref(false);
-const reviewCurrency=computed<CheckoutReviewCurrency>(()=>paymentSheetOpen.value||paymentConfirming.value?'USDT':'USD');
-function reviewAmount(amount:Parameters<typeof checkoutReviewAmount>[0]){return checkoutReviewAmount(amount,reviewCurrency.value);}
 const eventVoucherId=props.voucherId?.trim()??'';
 const eventVoucherStatus=ref<'loading'|'claimable'|'available'|'unavailable'>('loading');
 const voucherId=ref(session.record.voucherId??(openedOriginal?null:eventVoucherId||null));const selectedVoucherName=computed(()=>voucher.catalog.find(v=>v.id===voucherId.value)?.name??p.value.noVoucher);
@@ -310,7 +308,8 @@ const canPay=computed(()=>(Number(order.value?.amountUsdt)===0||walletState.valu
 const canCancel=computed(()=>{revision.value;return !busy.value&&!unknown.value&&session.confirmed&&order.value?.paymentStatus==='PENDING'&&session.canExecute('cancelOrder');});
 const canStartNew=computed(()=>{revision.value;return !busy.value&&!unknown.value&&session.confirmed&&!session.record.pending&&!!order.value&&['PAID','CANCELLED','EXPIRED','REFUNDED'].includes(order.value.paymentStatus);});
 async function run(action:()=>Promise<void>){if(busy.value||!current())return;busy.value=true;error.value='';try{await action();}catch(cause){if(current()){
-  if(cause instanceof CheckoutPurchaseCheckError)error.value=cause.reason==='stock'?t.value.store.temporarilyOutOfStock:cause.reason==='unavailable'?t.value.store.productUnavailable:flowCopy.value.queryFailed;
+  const rejection=orderPaymentRejection(cause,locale.code);
+  if(rejection)error.value=rejection;
   else{const message=asApiError(cause).message;error.value=message==='PROMOTION_NOT_ELIGIBLE_OR_UNAVAILABLE'?p.value.disabledNote:message.includes('CAPACITY_UNAVAILABLE')?p.value.capacityUnavailable:message==='PROMOTION_ACCOUNT_UNAVAILABLE'?p.value.accountUnavailable:message.includes('QUOTE_EXPIRED')||message.includes('QUOTE_INPUT_CHANGED')?p.value.quoteExpired:message.includes('INSUFFICIENT')?p.value.balanceInsufficient:p.value.errorNote;}
 }}finally{if(current()){busy.value=false;revision.value++;updateClock();}}}
 async function loadQuote(){
@@ -422,16 +421,10 @@ async function pay(){
     let ready=false,blocked='';
     await run(async()=>{
       const items=(expectedOrder.items??[]).map(({productNo,quantity})=>({productNo,quantity}));
-      const [eligibility]=await Promise.all([
-        Promise.all([...new Set(items.map(item=>item.productNo))].map(productNo=>purchaseEligibilityApi.get(productNo)))
-          .catch(cause=>{throw new CheckoutPurchaseCheckError('read',undefined,cause);}),
-        assertCheckoutPurchaseStock(items).catch(cause=>{
-          if(cause instanceof CheckoutPurchaseCheckError&&(cause.reason==='stock'||cause.reason==='unavailable'))
-            blocked=cause.reason==='stock'?t.value.store.temporarilyOutOfStock:t.value.store.productUnavailable;
-          throw cause;
-        }),
-      ]);
+      const eligibility=await Promise.all([...new Set(items.map(item=>item.productNo))].map(productNo=>purchaseEligibilityApi.get(productNo)))
+        .catch(()=>null);
       updateClock();if(!entryCurrent()||payWindow.value!==true)return;
+      if(!eligibility){error.value=flowCopy.value.queryFailed;return;}
       if(eligibility.some(item=>!item.eligible)){blocked=t.value.store.gateBlockedToast;error.value=blocked;return;}
       ready=true;
     });
@@ -461,14 +454,12 @@ async function confirmPayment(){
         details:expectedOrder.items?.map(item=>({name:item.productName,quantity:item.quantity}))},
         async authorization=>{
           try{
-            await assertCheckoutPurchaseStock((expectedOrder.items??[]).map(({productNo,quantity})=>({productNo,quantity})));
             updateClock();if(!paymentCurrent())return;
             await session.pay(authorization);
           }
           catch(cause){
             const failure=asApiError(cause);
-            if(cause instanceof CheckoutPurchaseCheckError){if(cause.reason==='stock'||cause.reason==='unavailable')rejection=failure.message;}
-            else if(failure.kind==='business'&&!failure.message.startsWith('PAYMENT_PASSWORD_'))rejection=failure.message;
+            if(failure.kind==='business'&&!failure.message.startsWith('PAYMENT_PASSWORD_'))rejection=failure.message;
             throw cause;
           }
         },
@@ -589,7 +580,7 @@ watch(busy,value=>{if(!value&&refreshOnIdle){refreshOnIdle=false;if(visible.valu
 const footer = computed(() => {
   if (loading.value || !auth.isAuthenticated || unknown.value || keepRecoveryTarget.value) return null;
   const rawAmount = order.value?.amountUsdt ?? displayQuote.value?.amountUsdt;
-  const currency=reviewCurrency.value,amount=formatCheckoutReviewAmount(rawAmount,currency),amountValue=reviewAmount(rawAmount);
+  const currency='USD' as const,amount=formatCheckoutReviewAmount(rawAmount,currency,{unit:true}),amountValue=rawAmount;
   if (order.value?.paymentStatus === 'PENDING') return { amount, amountValue, currency, label: p.value.pay, disabled: rawAmount==null||!canPay.value||leaving.value||paymentConfirming.value||paymentEntryChecking.value, action: pay };
   if (!order.value) return { amount, amountValue, currency, label: p.value.confirmOrder, disabled: rawAmount==null||!canCreate.value||leaving.value, action: createOrder };
   return null;

@@ -1,5 +1,6 @@
 import { commerceOrderTitle, commerceCopy } from "@/lib/commerce-review";
 import { checkoutFlowCopy } from "@/lib/checkout-flow-copy";
+import { orderPaymentRejection } from '@/lib/order-payment-rejection';
 import { getProductMedia } from "@/lib/product-media";
 import { formatAmount } from "@/lib/amount-display";
 import { compile } from "@vue/compiler-dom";
@@ -92,7 +93,7 @@ async function detail(dataCenter: string | null, copy = en, status: CanonicalOrd
     };
     if (id === "@/lib/commerce-review") return {commerceOrderTitle,commerceCopy};
     if (id === "@/lib/checkout-flow-copy") return {checkoutFlowCopy};
-    if (id === "@/lib/checkout-purchase-check") return {assertCheckoutPurchaseStock:vi.fn().mockResolvedValue(undefined),CheckoutPurchaseCheckError:class extends Error{}};
+    if (id === "@/lib/order-payment-rejection") return {orderPaymentRejection};
     if (id === "@/lib/product-media") return {getProductMedia};
     if (id === "@/composables/use-dialog-a11y") return {useDialogA11y:()=>{}};
     if (id === "@/lib/authorized-payment") return { executePaymentWithPassword: vi.fn(async (_context: unknown, command: (authorization: PaymentPasswordAuthorization) => Promise<unknown>, current: () => boolean) =>

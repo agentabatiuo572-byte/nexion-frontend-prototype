@@ -3,8 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import ts from 'typescript';
 import source from './checkout.vue?raw';
 import { en } from '@/i18n/messages/en';
-import { CheckoutPurchaseCheckError } from '@/lib/checkout-purchase-check';
-import { checkoutReviewAmount,formatCheckoutReviewAmount } from '@/lib/checkout-review-amount';
+import { formatCheckoutReviewAmount } from '@/lib/checkout-review-amount';
 
 const script = source.split('<script setup lang="ts">')[1].split('</script>')[0];
 const ast = ts.createSourceFile('checkout.ts', script, ts.ScriptTarget.Latest, true);
@@ -12,8 +11,8 @@ function payment() {
   const scope = { accountKey: 'a', productNo: 's1', generation: 1 };
   const deps = {
     createdCheckoutOrder: ref(null), pendingCheckoutCreate: ref(null),
-    checkoutReviewAmount,formatCheckoutReviewAmount,
-    CheckoutPurchaseCheckError, paymentStockFailure:ref(null), flowCopy:ref({queryFailed:'retry'}),
+    formatCheckoutReviewAmount,
+    paymentBlocked:ref(''), flowCopy:ref({queryFailed:'retry'}),
     ref, computed, nextTick, dialogsOpen: 0, trialQuoteUnavailable: ref(false), trialQuoteScreenUnavailable: ref(false),
     voucherSelecting: ref(false), confirming: false, checkoutWalletRefreshing: ref(false), step: ref('confirm'),
     captureCheckoutRoute: () => ({ ...scope }), isCurrentCheckoutRoute: (value: typeof scope) => value.generation === scope.generation,
@@ -21,7 +20,7 @@ function payment() {
     freeTrial: { hasPendingConversion: () => false }, t: ref(en), toast: { warn: vi.fn() }, onConfirmPay: vi.fn(),
   };
   const fragment = script.slice(script.indexOf('let purchaseConfirmationOpen ='), script.indexOf('async function onConfirmPay()'));
-  const code = ts.transpileModule(fragment + ';return {requestConfirmPay,closePaymentSheet,confirmPaymentSheet,paymentSheetOpen,paymentSheetAmount,paymentFlowBusy,reviewCurrency,reviewAmount,reviewMoney};', { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  const code = ts.transpileModule(fragment + ';return {requestConfirmPay,closePaymentSheet,confirmPaymentSheet,paymentSheetOpen,paymentSheetAmount,paymentFlowBusy,reviewMoney};', { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
   return { ...deps, scope, ...new Function(...Object.keys(deps), code)(...Object.values(deps)) };
 }
 function leaving() {
@@ -44,15 +43,15 @@ function leaving() {
   return { ...deps, run: new Function(...Object.keys(deps), code)(...Object.values(deps)) };
 }
 describe('unified checkout payment and explicit back', () => {
-  it('shows the amount in dollars before selecting a wallet and the unchanged USDT amount while selected',async()=>{
-    const h=payment();expect(h.reviewCurrency.value).toBe('USD');expect(h.reviewAmount(100)).toBe(100);expect(h.reviewMoney(100)).toBe('$100.00');
-    const pending=h.requestConfirmPay();expect(h.reviewCurrency.value).toBe('USDT');expect(h.reviewAmount(100)).toBe(100);expect(h.reviewMoney(100)).toBe('100.00 USDT');
-    h.closePaymentSheet();await pending;expect(h.reviewCurrency.value).toBe('USD');expect(h.reviewMoney(100)).toBe('$100.00');expect(h.onConfirmPay).not.toHaveBeenCalled();
+  it('keeps the review in dollars one to one while the sheet holds the wallet amount',async()=>{
+    const h=payment();expect(h.reviewMoney(100,false,true)).toBe('$100.00');expect(h.reviewMoney(5,true)).toBe('−5.00');
+    const pending=h.requestConfirmPay();expect(h.paymentSheetAmount.value).toBe(100);expect(h.reviewMoney(100,false,true)).toBe('$100.00');
+    h.closePaymentSheet();await pending;expect(h.onConfirmPay).not.toHaveBeenCalled();
   });
-  it('keeps the selected USDT currency through method confirmation and resets after PIN cancellation',async()=>{
+  it('passes the sheet amount through method confirmation once',async()=>{
     const h=payment();let finish!:()=>void;h.onConfirmPay.mockReturnValueOnce(new Promise<void>(done=>{finish=done;}));
-    const pending=h.requestConfirmPay();h.confirmPaymentSheet();expect(h.reviewCurrency.value).toBe('USDT');await nextTick();await nextTick();
-    expect(h.onConfirmPay).toHaveBeenCalledOnce();expect(h.paymentSheetAmount.value).toBe(100);finish();await pending;expect(h.reviewCurrency.value).toBe('USD');
+    const pending=h.requestConfirmPay();h.confirmPaymentSheet();await nextTick();await nextTick();
+    expect(h.onConfirmPay).toHaveBeenCalledOnce();expect(h.paymentSheetAmount.value).toBe(100);finish();await pending;expect(h.paymentFlowBusy.value).toBe(false);
   });
   it('opens method selection before any payment and closing preserves the draft', async () => {
     const h = payment(); const pending = h.requestConfirmPay();

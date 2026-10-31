@@ -6,8 +6,7 @@ import source from "./checkout.vue?raw";
 import { en } from "@/i18n/messages/en";
 import { resolveTrialAt, accruedShadow, type TrialRowSnapshot } from "@/store/trial-boundary";
 import { DEFAULT_TRIAL_CONFIG, computeDiscountedPrice, computeTrialOffset, resolveTrialCheckoutProductId } from "@/store/trial-config";
-import { checkoutReviewAmount,formatCheckoutReviewAmount } from '@/lib/checkout-review-amount';
-import { CheckoutPurchaseCheckError } from '@/lib/checkout-purchase-check';
+import { formatCheckoutReviewAmount } from '@/lib/checkout-review-amount';
 
 describe("trial credit in the actual checkout quote", () => {
   it("keeps a confirmed checkout visible during revalidation without accepting initial, failed or rebound authority", () => {
@@ -144,7 +143,7 @@ describe("real trial checkout refusal and recovery feedback", () => {
     const code=ts.transpileModule(source.slice(source.indexOf("let purchaseConfirmationOpen = false;"),source.indexOf("async function onConfirmPay()")),
       { compilerOptions:{target:ts.ScriptTarget.ES2022} }).outputText;
     const trialView=ref({applied:false,quoteVersion:null as string|null});
-    const deps={ref,computed,nextTick,checkoutReviewAmount,formatCheckoutReviewAmount,CheckoutPurchaseCheckError,paymentStockFailure:ref(null),flowCopy:ref({queryFailed:'retry'}),createdCheckoutOrder:ref(null),pendingCheckoutCreate:ref(null),trialView,trialQuoteUnavailable:ref(false),trialQuoteScreenUnavailable:ref(false),voucherSelecting:ref(false),checkoutWalletRefreshing:ref(false),
+    const deps={ref,computed,nextTick,formatCheckoutReviewAmount,paymentBlocked:ref(''),flowCopy:ref({queryFailed:'retry'}),createdCheckoutOrder:ref(null),pendingCheckoutCreate:ref(null),trialView,trialQuoteUnavailable:ref(false),trialQuoteScreenUnavailable:ref(false),voucherSelecting:ref(false),checkoutWalletRefreshing:ref(false),
       step:ref("confirm"),captureCheckoutRoute:()=>({}),isCurrentCheckoutRoute:()=>true,netPrice:ref(100),cardFee:ref(0),
       trialConversionMode:computed(()=>trialView.value.applied),freeTrial:{hasPendingConversion:()=>false},
       product:ref({name:"Device"}),t:ref(en),purchaseCopy:ref({}),confirmTotalText:ref("100.00"),trialCreditText:ref(""),

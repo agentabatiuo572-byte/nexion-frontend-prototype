@@ -121,19 +121,19 @@
             <view v-for="item in order.lineItems" :key="item.sku" class="flex items-center justify-between" style="padding: 4px 0; gap: 12px">
               <view class="flex-1 min-w-0">
                 <text class="block truncate" style="font-size: 12px; color: var(--v5-ink)">{{ (item.name) }}</text>
-                <text class="block tabular-nums" style="font-size: 12px; color: var(--v5-ink-4)">{{ item.sku }} · {{ item.quantity }} × {{ summaryMoney(item.unitPriceUsdt, false) }}</text>
+                <text class="block tabular-nums" style="font-size: 12px; color: var(--v5-ink-4)">{{ item.sku }} · {{ item.quantity }} × {{ summaryMoney(item.unitPriceUsdt) }}</text>
               </view>
-              <text class="shrink-0 tabular-nums" style="font-size: 12px; color: var(--v5-ink-2)">{{ summaryMoney(item.lineAmountUsdt, false) }}</text>
+              <text class="shrink-0 tabular-nums" style="font-size: 12px; color: var(--v5-ink-2)">{{ summaryMoney(item.lineAmountUsdt) }}</text>
             </view>
           </view>
           <DetailRow v-if="(order.itemCount ?? 1) === 1" :label="t.orders.unitPrice" :value="summaryMoney(order.unitPrice)" />
-          <DetailRow :label="t.orders.subtotal" :value="summaryMoney(order.subtotal)" />
+          <DetailRow :label="t.orders.subtotal" :value="summaryMoney(order.subtotal, true)" />
           <DetailRow v-if="order.discount > 0" :label="t.orders.discount" :value="`−${summaryMoney(order.discount)}`" brand />
           <!-- Trial conversion orders: each checkout discount on its own row (never folded into the voucher line). -->
           <DetailRow v-if="(order.promoDiscountUSD ?? 0) > 0" :label="t.orders.trialDiscount" :value="`−${summaryMoney(order.promoDiscountUSD ?? 0)}`" brand />
           <DetailRow v-if="(order.trialOffsetUSD ?? 0) > 0" :label="t.orders.trialOffset" :value="`−${summaryMoney(order.trialOffsetUSD ?? 0)}`" brand />
           <DetailRow v-if="(order.earlyDiscountUSD ?? 0) > 0" :label="trialLifecycle.earlyDiscountLabel" :value="`−${summaryMoney(order.earlyDiscountUSD ?? 0)}`" brand />
-          <DetailRow :label="order.trialReward ? purchaseCopy.orderPaid : t.orders.total" :value="summaryMoney(order.total)" big />
+          <DetailRow :label="order.trialReward ? purchaseCopy.orderPaid : t.orders.total" :value="summaryMoney(order.total, true)" big />
           <DetailRow v-if="trialRewardText && order.status !== 'refunded'" :label="purchaseCopy.orderTrialReward" :value="trialRewardText" brand />
           <DetailRow v-if="order.closeReasonCode && CLOSED_STATUSES.includes(order.status)" :label="t.orders.closeReason" :value="t.orders.closeReasons[order.closeReasonCode]" />
           <template v-if="order.status === 'refunded'">
@@ -257,7 +257,7 @@ import DetailRow from "@/components/store/order-detail-row.vue";
 import CheckoutPaymentSheet from "@/components/checkout/CheckoutPaymentSheet.vue";
 import CheckoutResult from "@/components/checkout/CheckoutResult.vue";
 import { checkoutFlowCopy } from "@/lib/checkout-flow-copy";
-import { assertCheckoutPurchaseStock, CheckoutPurchaseCheckError } from '@/lib/checkout-purchase-check';
+import { orderPaymentRejection } from '@/lib/order-payment-rejection';
 import { useDialogA11y } from "@/composables/use-dialog-a11y";
 import { getProductMedia } from "@/lib/product-media";
 import { useT } from "@/i18n/use-t";
@@ -784,7 +784,7 @@ async function offerWalletTopup(requiredUsdt: number): Promise<void> {
   if (accepted && isCurrentDetailScope(scope)) navTo("/pages/me/wallet-topup");
 }
 
-/** Unpaid orders reserve no stock: read current stock at entry and again before pay. */
+/** Re-read the original order and its eligibility before the payment sheet opens; the server rechecks everything at pay. */
 async function requestPendingPayment(originalJustRead = false): Promise<void> {
   if (!remoteApiEnabled || pendingPaymentChecking.value || payingFromWallet.value || cancellingOrder.value || orderCommandQuerying.value) return;
   const scope = captureDetailScope();
@@ -842,8 +842,6 @@ async function requestPendingPayment(originalJustRead = false): Promise<void> {
       paymentNotice.value = 'blocked';
       return;
     }
-    await assertCheckoutPurchaseStock(purchaseItems);
-    if (!isCurrentDetailScope(scope)) return;
     const walletReady = await refreshOrderWallet();
     if (!isCurrentDetailScope(scope)) return;
     if (!walletReady) throw new Error('WALLET_READ_UNAVAILABLE');
@@ -857,9 +855,8 @@ async function requestPendingPayment(originalJustRead = false): Promise<void> {
     paymentSheetOpen.value = true;
   } catch (error) {
     if (isCurrentDetailScope(scope)) {
-      paymentNoticeReason.value = error instanceof CheckoutPurchaseCheckError && error.reason === 'stock' ? t.value.store.temporarilyOutOfStock
-        : error instanceof CheckoutPurchaseCheckError && error.reason === 'unavailable' ? t.value.store.productUnavailable : pendingCopy.value.queryFailed;
-      paymentNotice.value = error instanceof CheckoutPurchaseCheckError && (error.reason === 'stock' || error.reason === 'unavailable') ? 'blocked' : 'query';
+      paymentNoticeReason.value = pendingCopy.value.queryFailed;
+      paymentNotice.value = 'query';
     }
   } finally {
     // Data authority may expire during bootstrap; the attempt still owns its
@@ -940,7 +937,6 @@ async function handleWalletPayment() {
   try {
       const receipt = await executePaymentWithPassword({amount:requestAmountUsdt,currency:'USDT',summary:liveOrder.value?.productName??t.value.store.coConfirmPurchase},
         async authorization=>{
-          await assertCheckoutPurchaseStock(requestItems);
           if (!paymentOrderCurrent()) {
             if (isCurrentDetailScope(scope)) { paymentNoticeReason.value = recoveryCopy.value.changed; paymentNotice.value = 'query'; }
             return null;
@@ -985,21 +981,24 @@ async function handleWalletPayment() {
     if (paymentConfirmed) {
       remoteOrderError.value = true;
       toast.warn(t.value.orders.walletPaymentConfirmedRefreshPending);
-    } else if (error instanceof CheckoutPurchaseCheckError) {
-      paymentNoticeReason.value = error.reason === 'stock' ? t.value.store.temporarilyOutOfStock
-        : error.reason === 'unavailable' ? t.value.store.productUnavailable : pendingCopy.value.queryFailed;
-      paymentNotice.value = error.reason === 'stock' || error.reason === 'unavailable' ? 'blocked' : 'query';
-    } else if (asApiError(error).message === "ORDER_WALLET_INSUFFICIENT") {
-      await offerWalletTopup(requestAmountUsdt);
-    } else if (["ORDER_MONTHLY_QUOTA_PAUSED", "ORDER_MONTHLY_QUOTA_EXHAUSTED"].includes(asApiError(error).message)) {
-      paymentNoticeReason.value = t.value.quota.stockUnavailable;
-      paymentNotice.value = 'blocked';
-      await recoverOrderAction(false);
-    } else if (asApiError(error).message === "ORDER_PAYMENT_EXPIRED") {
-      toast.warn(t.value.orders.statusExpired);
-      await orders.ensureRemoteOrder(requestOrderNo);
     } else {
-      restoreOrderAction();toast.warn(recoveryCopy.value.paymentPending);
+      // A definitive refusal leaves the order unpaid: retire this payment key so
+      // the next attempt is a new command, and give the reason, not "confirming".
+      const message = asApiError(error).message;
+      const rejection = orderPaymentRejection(error, locale.code);
+      if ((rejection || message === "ORDER_WALLET_INSUFFICIENT") && orderAction.value?.kind === 'pay') {
+        clearOrderAction(scope.accountScope.accountKey, requestOrderNo, orderAction.value.key, true);
+        orderAction.value = null;
+      }
+      if (message === "ORDER_WALLET_INSUFFICIENT") {
+        await offerWalletTopup(requestAmountUsdt);
+      } else if (rejection) {
+        paymentNoticeReason.value = rejection;
+        paymentNotice.value = 'blocked';
+        if (message === "ORDER_NOT_PAYABLE" || message === "ORDER_PAYMENT_EXPIRED") await orders.ensureRemoteOrder(requestOrderNo);
+      } else {
+        restoreOrderAction();toast.warn(recoveryCopy.value.paymentPending);
+      }
     }
   } finally {
     // This handler owns the private lock; stale results still finish its attempt.
@@ -1019,9 +1018,11 @@ function goDevices() {
   navTo("/pages/me/devices");
 }
 const usdt = (value: number | string) => `${formatAmount(value)} USDT`;
-function summaryMoney(value: number | string, showCurrency = true): string {
-  if (order.value?.status === 'placed' && !paymentSheetOpen.value && !payingFromWallet.value) return showCurrency ? '$' + formatAmount(value) : formatAmount(value);
-  return showCurrency ? usdt(value) : formatAmount(value);
+// Unpaid orders read in dollars (1 USD = 1 USDT); a settled wallet payment reads in USDT.
+// Only subtotal and total rows carry the unit.
+function summaryMoney(value: number | string, unit = false): string {
+  if (!unit) return formatAmount(value);
+  return order.value?.paidAt == null ? `$${formatAmount(value)}` : usdt(value);
 }
 const trialRewardText = computed(() => {
   const reward = order.value?.trialReward;

@@ -6,7 +6,7 @@ import { ApiError, asApiError } from "@/api/errors";
 import { beginOrderAction, clearOrderAction, markOrderActionPaid, readOrderAction } from "@/lib/order-command-fence";
 import { en } from "@/i18n/messages/en";
 import { readCheckoutCreate, rememberCheckoutCreate, forgetCheckoutCreate } from '@/lib/checkout-create-recovery';
-import { CheckoutPurchaseCheckError } from '@/lib/checkout-purchase-check';
+import { orderPaymentRejection } from '@/lib/order-payment-rejection';
 
 const compiled = ts.transpileModule(source.slice(source.indexOf("async function submitRemoteOrder()"),
   source.indexOf("// ── 抵扣上下文")) + "\nreturn submitRemoteOrder;",
@@ -23,7 +23,7 @@ function harness() {
     paymentStatus: "PENDING", orderStatus: "PENDING_PAYMENT", activationStatus: "WAITING_PAYMENT", canonicalStatus: "placed", expiresAt: Date.now()+900000, subtotalUsdt:100 };
   const deps = {
     createdCheckoutOrder: ref(null),
-    hasOriginalCheckout:ref(false), assertCheckoutPurchaseStock:vi.fn().mockResolvedValue(undefined), CheckoutPurchaseCheckError, paymentStockFailure:ref(null), flowCopy:ref({queryFailed:'retry'}),
+    hasOriginalCheckout:ref(false), orderPaymentRejection, locale:{code:'en' as const}, paymentBlocked:ref(''), flowCopy:ref({queryFailed:'retry'}),
     pendingCheckoutCreate: ref(null), readCheckoutCreate, rememberCheckoutCreate, forgetCheckoutCreate,
     purchaseSubtotal: ref(100), voucherDiscount: ref(0), nowTick: ref(Date.now()),
     resumePendingRemoteTradein: async () => false,
@@ -55,22 +55,24 @@ function harness() {
 }
 
 describe("real checkout handler outcome recovery", () => {
-  it('rechecks stock after PIN and never starts a payment command when stock is gone', async () => {
-    const h=harness(); h.assertCheckoutPurchaseStock.mockRejectedValue(new CheckoutPurchaseCheckError('stock','sku'));
-    await h.submit();
-    expect(h.assertCheckoutPurchaseStock).toHaveBeenCalledExactlyOnceWith([{productNo:'sku',quantity:1}]);
-    expect(h.orderApi.pay).not.toHaveBeenCalled(); expect(readOrderAction('a','ORDER-1')).toBeNull();
-    expect(h.paymentStockFailure.value).toMatchObject({kind:'blocked'}); expect(h.navReplace).not.toHaveBeenCalled();
+  it('pays without a client stock read; the server owns stock at pay time', async () => {
+    const h=harness(); h.app.adoptCommerceWallet.mockReturnValue(true);
+    h.orderApi.pay.mockResolvedValue({orderNo:'ORDER-1',paymentMethod:'WALLET',walletBalanceAfterUsdt:0});
+    await h.submit(); expect(h.orderApi.pay).toHaveBeenCalledOnce();
   });
-  it('a catalogue read failure remains a safe retry, not an unknown payment', async () => {
-    const h=harness(); h.assertCheckoutPurchaseStock.mockRejectedValue(new CheckoutPurchaseCheckError('read'));
+  it.each([['CAPACITY_REPLACEMENT_REQUIRED','slots are full'],['ORDER_PRODUCT_NOT_PAYABLE','not on sale'],['COMMERCE_PAYMENT_EMERGENCY_STOPPED','maintenance']])(
+    'a definitive %s refusal states its reason and retires the payment key without navigating', async (code,reason) => {
+    const h=harness(); h.orderApi.pay.mockRejectedValue(new ApiError({kind:'business',message:code,status:409,code:409}));
     await h.submit();
-    expect(h.orderApi.pay).not.toHaveBeenCalled(); expect(readOrderAction('a','ORDER-1')).toBeNull();
-    expect(h.paymentStockFailure.value).toMatchObject({kind:'query'}); expect(h.navReplace).not.toHaveBeenCalled();
+    expect(h.paymentBlocked.value).toContain(reason); expect(h.step.value).toBe('confirm');
+    expect(readOrderAction('a','ORDER-1')).toBeNull(); expect(h.navReplace).not.toHaveBeenCalled();
+    expect(h.toast.warn).not.toHaveBeenCalledWith(en.store.coRecoverOriginalOrder);
   });
-  it('an original amount change during the stock await prevents the POST', async () => {
-    const h=harness(); h.assertCheckoutPurchaseStock.mockImplementation(async()=>{h.netPrice.value=90;});
-    await h.submit(); expect(h.orderApi.pay).not.toHaveBeenCalled(); expect(readOrderAction('a','ORDER-1')).toBeNull();
+  it('an insufficient wallet after the order exists offers top-up instead of order recovery', async () => {
+    const h=harness(); h.orderApi.pay.mockRejectedValue(new ApiError({kind:'business',message:'ORDER_WALLET_INSUFFICIENT',status:409,code:409}));
+    await h.submit();
+    expect(h.offerWalletTopup).toHaveBeenCalledOnce(); expect(h.paymentBlocked.value).toBe('');
+    expect(readOrderAction('a','ORDER-1')).toBeNull(); expect(h.navReplace).not.toHaveBeenCalled();
   });
   it("successful payment replays the settled result and releases recovery only once the result shows",async()=>{
     const h=harness();

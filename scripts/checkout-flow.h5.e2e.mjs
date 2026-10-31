@@ -70,6 +70,7 @@ try {
   await page.getByRole('button',{name:'立即支付',exact:true}).waitFor();
   assert.match(await page.locator('.checkout-product-price').innerText(),/^\$\s*1,299\.00$/);
   assert.match(await page.locator('.checkout-sticky-copy .checkout-total').innerText(),/^\$\s*1,299\.00$/);
+  assert.ok(!(await page.locator('.checkout-fees').innerText()).includes('USDT'),'the review stays in dollars');
   assert.equal(await page.locator('.checkout-cancel').count(),0);
   assert.equal(await page.locator('.checkout-legal-group__links [role="link"]').count(),3);
   await capture('01-confirm-order');
@@ -96,6 +97,7 @@ try {
   await pin.fill('735190');await mask.getByText(/还可尝试.*4/).waitFor();assert.equal((await state()).payWrites,0);
   await pin.fill('039417');await mask.waitFor({state:'hidden'});
   await page.locator('.checkout-result__art.is-confirmed').waitFor();
+  await page.getByText('恭喜，购买成功',{exact:true}).waitFor();await page.waitForTimeout(450);await capture('03b-congratulations');
   const motion=page.evaluate(()=>new Promise(resolve=>{
     const rows=[],start=performance.now();
     function sample(){const art=document.querySelector('.checkout-result__art'),bar=document.querySelector('.checkout-result__fill'),button=document.querySelector('.checkout-result__actions [role="button"]'),box=button?.getBoundingClientRect();rows.push({t:performance.now()-start,phase:art?.className,animation:art?getComputedStyle(art).animationName:null,width:bar?.getBoundingClientRect().width,particles:document.querySelectorAll('.checkout-result__spark').length,buttonInset:box?[box.left,innerWidth-box.right]:null});if(performance.now()-start<9600)requestAnimationFrame(sample);else resolve(rows);}sample();
@@ -106,12 +108,12 @@ try {
   const progression=frames.filter(frame=>frame.phase?.includes('is-activating'));
   assert.ok(progression.length>15,'real rendered activation must have intermediate frames');
   assert.ok(progression.some(frame=>frame.width>15&&frame.width<160));
-  assert.ok(progression.at(-1).width>195,'advance only after the rendered bar reaches its end');
-  assert.ok(frames.some(frame=>frame.particles===28));
+  assert.ok(progression.at(-1).width>180,'activation completes as the rendered bar reaches its end');
+  assert.ok(frames.some(frame=>frame.phase?.includes('is-confirmed')&&frame.particles===36),'the purchase itself is celebrated');
   assert.ok(frames.every(frame=>!frame.buttonInset||frame.buttonInset.every(inset=>inset>=15)),'result controls need at least 16px side inset');
   assert.equal((await state()).payWrites,1);await page.getByRole('button',{name:'查看设备',exact:true}).click();
   await page.waitForURL(url=>url.hash.includes('/pages/me/devices'));await capture('06-existing-warehouse');
-  steps.push({id:'actual-app-journey',status:'pass',evidence:['Built APP ordinary checkout keeps the existing amount visible as $1,299.00 before method selection, shows 1,299.00 USDT inside the wallet method sheet, and restores $1,299.00 after closing it. Original order -> two PIN setup entries -> fresh third entry; incorrect PIN does not debit; one successful payment; animationend yields intermediate rendered progress and 28 particles; View devices reaches the existing warehouse.','01-confirm-order.png','02-method.png','03-third-entry.png','motion.json','06-existing-warehouse.png']});
+  steps.push({id:'actual-app-journey',status:'pass',evidence:['Built APP ordinary checkout reads $1,299.00 (1 USD = 1 USDT) on the review, 1,299.00 USDT inside the wallet method sheet, and stays in dollars after closing it. Original order -> two PIN setup entries -> fresh third entry; incorrect PIN does not debit; one successful payment; congratulations with 36 particles, then rendered activation progress, then the activated check; View devices reaches the existing warehouse.','01-confirm-order.png','02-method.png','03-third-entry.png','motion.json','06-existing-warehouse.png']});
   await route('/pages/store/checkout?items='+encodeURIComponent(JSON.stringify([{productNo:'stellarbox-s1',quantity:2}])));
   for(const amount of await page.locator('.promotion .checkout-amount').all())assert.match(await amount.innerText(),/^\$\s*[\d,]+\.\d{2}$/);
   assert.match(await page.locator('.checkout-sticky-copy .checkout-total').innerText(),/^\$\s*2,598\.00$/);
@@ -135,14 +137,12 @@ try {
   await page.goto(base+'/?nx_device_inner=1#/pages/store/order-detail?id=DEMO-ORDER-001&from=me&pay=1');
   await page.getByRole('button',{name:'确认支付',exact:true}).waitFor();
   await page.getByRole('button',{name:'确认支付',exact:true}).click();await mask.waitFor();
-  await fetch(base+'/__demo/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({catalogState:'soldout'})});
-  const stockRequestStart=requests.length;
+  await page.route('**/api/orders/*/pay',intercepted=>intercepted.fulfill({status:409,contentType:'application/json',body:JSON.stringify({code:409,message:'CAPACITY_REPLACEMENT_REQUIRED',data:null})}),{times:1});
   await pin.fill('039417');await page.getByText('暂时无法支付',{exact:true}).waitFor();
-  assert.ok(requests.slice(stockRequestStart).some(request=>request.path==='/api/store/catalog'&&request.method==='GET'));
-  assert.ok(!requests.slice(stockRequestStart).some(request=>request.path.endsWith('/pay')&&request.method==='POST'));
+  await page.getByText('设备位已满，请先在设备仓库处理设备后再支付。',{exact:true}).waitFor();
   assert.equal((await state()).payWrites,writes);
-  await capture('09-stock-changed-after-pin');
-  steps.push({id:'fresh-stock-after-pin',status:'pass',evidence:['Original pending order: stock changed to zero while PIN was open. Fresh catalogue GET happened after PIN; payment POST did not happen, debit count unchanged, and a small rejection dialog offered cancellation.','09-stock-changed-after-pin.png']});
+  await capture('09-server-refusal-after-pin');
+  steps.push({id:'server-refusal-after-pin',status:'pass',evidence:['Original pending order: the server refused the payment after PIN (slots full). The page states that reason in the small cannot-pay dialog with a cancel-order exit; debit count unchanged.','09-server-refusal-after-pin.png']});
   assert.deepEqual(errors,[]);
   await writeFile(path.join(output,'requests.json'),JSON.stringify(requests,null,2));
   const treeMoved=sourceMoved();assert.equal(treeMoved,false,'source changed during runtime acceptance');

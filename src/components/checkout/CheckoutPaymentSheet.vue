@@ -8,7 +8,6 @@
         <view class="checkout-payment__wallet-copy"><text class="checkout-payment__wallet-title">{{ copy.wallet }}</text><text class="checkout-payment__label">{{ copy.walletBalance }} · {{ balanceText }}</text></view>
         <svg class="checkout-payment__selected" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>
       </view>
-      <text class="checkout-payment__note">{{ copy.noFees }}</text>
     </view>
     <template #footer>
       <view class="checkout-payment__footer">
@@ -55,7 +54,6 @@ function confirm() { if (!canConfirm.value) return; submitted.value = true; emit
 .checkout-payment__wallet-title { display: block; margin-bottom: var(--v5-space-1); color: var(--v5-ink); font: var(--ui-type-list-title-weight) var(--ui-type-list-title)/var(--ui-type-list-title-lh) var(--font-v5); }
 .checkout-payment__icon, .checkout-payment__selected { flex: none; width: 24px; height: 24px; color: var(--v5-brand); }
 .checkout-payment__note { display: block; color: var(--v5-ink-2); font: var(--ui-type-description-weight) var(--ui-type-description)/var(--ui-type-description-lh) var(--font-v5); }
-.checkout-payment > .checkout-payment__note { margin-top: var(--v5-space-4); }
 .checkout-payment__footer { display: grid; gap: var(--v5-space-3); }
 .checkout-payment__error { color: var(--v5-danger); font: var(--ui-type-body-weight) var(--ui-type-body)/var(--ui-type-body-lh) var(--font-v5); }
 </style>

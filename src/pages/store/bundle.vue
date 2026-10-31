@@ -214,6 +214,7 @@ import { useSetPageHeader } from "@/composables/use-page-header";
 // 🔴 zentao #244:线上模式必须问**服务端**资格,本地门仅 mock 用 —— 与 detail.vue 同一口径。
 import { purchaseEligibilityStore } from "@/store/purchase-eligibility";
 import { isProductAvailable } from "@/store/product-availability";
+import { useLocaleStore } from "@/store/locale";
 import { useProductPhase } from "@/composables/use-product-phase";
 import { productCatalogState, refreshProductCatalog } from "@/store/product-catalog";
 import { bundleCatalogReady } from "@/store/bundle-catalog-guard";
@@ -235,7 +236,7 @@ import { useNetwork } from "@/store/network";
 import { acquireAccountCommandKey, readAccountRow, writeAccountRow } from "@/store/account-scoped-storage";
 import { captureAccountScope, isCurrentAccountScope } from "@/lib/account-scope";
 import { executePaymentWithPassword } from "@/lib/authorized-payment";
-import { assertCheckoutPurchaseStock, CheckoutPurchaseCheckError } from "@/lib/checkout-purchase-check";
+import { orderPaymentRejection } from "@/lib/order-payment-rejection";
 import { beginOrderAction, readOrderAction, clearOrderAction, markOrderActionPaid } from "@/lib/order-command-fence";
 
 const t = useT();
@@ -620,7 +621,6 @@ async function onCheckout() {
           &&policy.value?.policyVersion===latestPolicy.policyVersion;
         const paid = await executePaymentWithPassword({amount:command.expectedAmountUsdt,currency:'USDT',summary:list.map(product=>product.name).join(', ')},
           async authorization=>{
-            await assertCheckoutPurchaseStock(command.productNos.map(productNo=>({productNo,quantity:1})));
             if(!paymentCurrent())return null;
             const action=beginOrderAction(accountKey,'pay',created.orderNo,command.expectedAmountUsdt);paymentKey=action.key;
             try{return await orderApi.pay(created.orderNo,action.key,authorization);}
@@ -665,9 +665,12 @@ async function onCheckout() {
           retireBundleKey(list, accountKey, command.key);
         }
         if (!scopeIsCurrent()) return;
-        if (error instanceof CheckoutPurchaseCheckError) {
-          toast.warn(error.reason==='stock'?t.value.store.temporarilyOutOfStock:error.reason==='unavailable'?t.value.store.productUnavailable:t.value.store.purchaseEligibilityError);
-          if ((error.reason==='stock'||error.reason==='unavailable')&&createdOrderNo) navTo(`/pages/store/order-detail?id=${encodeURIComponent(createdOrderNo)}`);
+        // A definitive refusal leaves the order unpaid; its detail page reads the
+        // rejected command back and offers cancel or a fresh payment.
+        const rejection = createdOrderNo && !paymentConfirmed ? orderPaymentRejection(error, useLocaleStore().code) : null;
+        if (rejection) {
+          toast.warn(rejection);
+          navTo(`/pages/store/order-detail?id=${encodeURIComponent(createdOrderNo)}`);
           return;
         }
         if (paymentConfirmed) {

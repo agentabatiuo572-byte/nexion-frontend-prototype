@@ -54,7 +54,7 @@
 
         <view v-if="step === 'select-payment' || step === 'confirm'" class="checkout-product checkout-group">
           <view class="checkout-product-art"><image v-if="checkoutImage" :src="checkoutImage" mode="aspectFit" aria-hidden="true" @error="checkoutImageError" /></view>
-          <view class="checkout-product-copy"><text class="checkout-product-name">{{ (product.name) }}</text><text v-if="product.tagline" class="checkout-product-meta">{{ product.tagline }}</text><CheckoutAmount class="checkout-product-price" :value="reviewAmount(purchaseSubtotal)" :currency="reviewCurrency" /></view>
+          <view class="checkout-product-copy"><text class="checkout-product-name">{{ (product.name) }}</text><text v-if="product.tagline" class="checkout-product-meta">{{ product.tagline }}</text><CheckoutAmount class="checkout-product-price" :value="purchaseSubtotal" currency="USD" /></view>
           <view class="checkout-quantity"><text class="checkout-product-meta">{{ t.store.coRowQuantity }}</text><view class="checkout-quantity-controls">
             <button class="checkout-quantity-button" disabled :aria-label="t.uiChrome.decreaseQty">−</button>
             <text class="checkout-quantity-value" aria-live="polite">1</text>
@@ -123,7 +123,7 @@
           <view class="checkout-section">
             <view class="checkout-section-heading"><text>{{ t.store.coReviewOrder }}</text></view>
             <view class="checkout-group checkout-fees">
-              <CheckoutRow :label="t.store.coRowSubtotal" :value="reviewMoney(purchaseSubtotal)" class="checkout-fee" />
+              <CheckoutRow :label="t.store.coRowSubtotal" :value="reviewMoney(purchaseSubtotal, false, true)" class="checkout-fee" />
               <CheckoutRow v-if="promoDiscount > 0" :label="promoRowLabel" :value="reviewMoney(promoDiscount, true)" class="checkout-fee checkout-fee--discount" />
               <CheckoutRow v-if="trialOffsetView.offsetUSD > 0" :label="t.store.coRowTrialOffset" :value="reviewMoney(trialOffsetView.offsetUSD, true)" class="checkout-fee checkout-fee--discount" />
               <CheckoutRow v-if="trialOffsetView.earlyDiscountUSD > 0" :label="trialCopy.earlyDiscountLabel" :value="reviewMoney(trialOffsetView.earlyDiscountUSD, true)" class="checkout-fee checkout-fee--discount" />
@@ -132,7 +132,7 @@
               <CheckoutRow v-if="isCard" :label="fmt(t.store.coRowCardFee, { rate: cardFeeRateLabel() })" :value="reviewMoney(cardFee)" class="checkout-fee" />
               <CheckoutRow v-else-if="!remoteApiEnabled" :label="t.store.coRowNetworkFee" :value="t.store.coFeeFree" class="checkout-fee" />
               <CheckoutRow v-if="!remoteApiEnabled" :label="t.store.coRowShipping" :value="t.store.coShippingValue" class="checkout-fee" />
-              <view class="checkout-fee checkout-fee--total checkout-summary-total"><text>{{ flowCopy.paymentTotal }}</text><CheckoutAmount :value="reviewAmount(netPrice + cardFee)" :currency="reviewCurrency" /></view>
+              <view class="checkout-fee checkout-fee--total checkout-summary-total"><text>{{ flowCopy.paymentTotal }}</text><CheckoutAmount :value="netPrice + cardFee" currency="USD" /></view>
             </view>
             <view v-if="trialCreditText" class="checkout-trial-credit" data-testid="checkout-trial-credit">
               <text>{{ trialCopy.afterPurchaseLabel }}</text>
@@ -247,19 +247,19 @@
         <NxButton variant="primary" :disabled="promotionCheckout.footer.disabled" :label="promotionCheckout.footer.label" @click="promotionCheckout.footer.action" />
       </view>
       <view v-if="!promotionRoute && !keepCheckoutTarget && !pendingCheckoutCreate && !remoteTradeinRecoveryError && product && !trialQuoteScreenUnavailable && !receiptWriteFailure && (step === 'select-payment' || step === 'confirm')" class="checkout-sticky">
-        <view class="checkout-sticky-copy"><CheckoutAmount class="checkout-total" :value="reviewAmount(netPrice + cardFee)" :currency="reviewCurrency" /><text class="checkout-product-meta">{{ flowCopy.paymentTotal }}</text></view>
+        <view class="checkout-sticky-copy"><CheckoutAmount class="checkout-total" :value="netPrice + cardFee" currency="USD" /><text class="checkout-product-meta">{{ flowCopy.paymentTotal }}</text></view>
         <NxButton variant="primary" :disabled="checkoutWalletRefreshing || (remoteApiEnabled && !checkoutWalletReadable) || purchaseUnavailable || quantitySwitching || paymentFlowBusy || checkoutLeaving" :busy="checkoutWalletRefreshing || quantitySwitching || paymentFlowBusy || checkoutLeaving" :label="isCard ? t.store.coContinueToPayment : t.store.coPayNow" @click="submitReview" />
       </view>
     </template>
     <CheckoutPaymentSheet :open="paymentSheetOpen" :amount="paymentSheetAmount" :balance="app.user.usdtBalance" :busy="paymentFlowBusy" @close="closePaymentSheet" @confirm="confirmPaymentSheet" @topup="closePaymentSheet(); navTo('/pages/me/wallet-topup')" />
     <NxSheet :open="checkoutLeaveError !== ''" :title="flowCopy.cancelFailed" @close="checkoutLeaveError = ''"><view class="checkout-exit-error"><text>{{ checkoutLeaveError }}</text><NxButton :label="t.store.catalogRetry" :busy="checkoutLeaving" @click="cancelCheckout" /></view></NxSheet>
-    <NxSheet :open="paymentStockFailure !== null" :title="paymentStockFailure?.kind === 'blocked' ? flowCopy.cannotPay : flowCopy.queryFailed" @close="paymentStockFailure = null"><view class="checkout-exit-error"><text>{{ paymentStockFailure?.message }}</text><NxButton v-if="paymentStockFailure?.kind === 'blocked'" :label="flowCopy.cancelOrder" :busy="checkoutLeaving" @click="paymentStockFailure = null; cancelCheckout()" /><NxButton v-else :label="flowCopy.retry" @click="requestConfirmPay" /></view></NxSheet>
+    <NxSheet :open="paymentBlocked !== ''" :title="flowCopy.cannotPay" @close="paymentBlocked = ''"><view class="checkout-exit-error"><text>{{ paymentBlocked }}</text><NxButton :label="flowCopy.cancelOrder" :busy="checkoutLeaving" @click="paymentBlocked = ''; cancelCheckout()" /></view></NxSheet>
   </AppChassis>
 </template>
 
 <script setup lang="ts">
 import { formatAmount as formatPlainAmount, formatGroupedAmount } from "@/lib/amount-display";
-import { checkoutReviewAmount, formatCheckoutReviewAmount,type CheckoutReviewCurrency } from '@/lib/checkout-review-amount';
+import { formatCheckoutReviewAmount } from '@/lib/checkout-review-amount';
 import { ref, reactive, nextTick, computed, watch, onMounted, onUnmounted, type CSSProperties } from "vue";
 import NxButton from "@/components/ui/nx-button.vue";
 import NxSheet from "@/components/ui/nx-sheet.vue";
@@ -299,7 +299,7 @@ import { useAuth } from "@/store/auth";
 import { acquireAccountCommandKey, readAccountRow, writeAccountRow, releaseAccountCommandKey } from "@/store/account-scoped-storage";
 import { rememberCheckoutOrder, recoverCheckoutOrder, forgetCheckoutOrder, readCheckoutTradein, finishCheckoutTradein, type CheckoutTradeinRecovery } from "@/lib/checkout-order-recovery";
 import { readCheckoutCreate, rememberCheckoutCreate, forgetCheckoutCreate, type PendingCheckoutCreate } from '@/lib/checkout-create-recovery';
-import { assertCheckoutPurchaseStock, CheckoutPurchaseCheckError } from '@/lib/checkout-purchase-check';
+import { orderPaymentRejection } from '@/lib/order-payment-rejection';
 import { CheckoutRouteFence, type CheckoutRouteScope } from "@/lib/checkout-route-fence";
 import { postMoneyBill, postReceiptOnce, postReceiptOnly, reportStuckFunds, type ReceiptDraft } from "@/lib/money-receipt";
 import { useVoucher } from "@/store/voucher";
@@ -363,7 +363,8 @@ const locale = useLocaleStore();
 const flowCopy = computed(() => checkoutFlowCopy(locale.code));
 const createdCheckoutOrder = ref<CreatedOrder | null>(null);
 const pendingCheckoutCreate = ref<PendingCheckoutCreate | null>(null);
-const paymentStockFailure = ref<{ kind: 'blocked' | 'query'; message: string } | null>(null);
+// A definitive server refusal of this payment: shown with its reason and a cancel-order exit.
+const paymentBlocked = ref('');
 const hasOriginalCheckout = computed(() => !!createdCheckoutOrder.value || !!pendingCheckoutCreate.value);
 const purchasePolicyOpen = ref(false);
 function openCheckoutLegal(kind: 'aftersales' | 'terms' | 'risk') {
@@ -1011,7 +1012,7 @@ watch([() => app.accountKey, () => app.accountBindingEpoch], () => {
   orderId.value = null;
   createdCheckoutOrder.value = null;
   pendingCheckoutCreate.value = null;
-  paymentStockFailure.value = null;
+  paymentBlocked.value = '';
   settledResultReplay.value = false;
   checkoutLeaveError.value = '';
   checkoutLeaving.value = false;
@@ -1173,8 +1174,8 @@ function presentSettledPurchase(firstHardwareOrder: boolean, onResultShown: (() 
   forgetSettledOrder = onResultShown;
   settledResultReplay.value = true;
   step.value = "confirmed";
-  // The authoritative result is now rendered by CheckoutResult. It owns only
-  // the presentation animation; JS timers never decide when its bar is full.
+  // CheckoutResult renders the authoritative result and owns only its
+  // presentation timing; the order status alone decides success.
   void nextTick(() => { if (pageAlive && settledResultReplay.value) { forgetSettledOrder?.(); forgetSettledOrder = null; } });
 }
 const checkoutResultState = computed(() => completedOrder.value?.status === 'activated' ? 'activated'
@@ -1382,9 +1383,8 @@ let purchaseConfirmationOpen = false;
 const paymentSheetOpen = ref(false);
 const paymentSheetAmount = ref(0);
 const paymentFlowBusy = ref(false);
-const reviewCurrency = computed<CheckoutReviewCurrency>(() => paymentSheetOpen.value || paymentFlowBusy.value ? 'USDT' : 'USD');
-function reviewAmount(amount: Parameters<typeof checkoutReviewAmount>[0]) { return checkoutReviewAmount(amount, reviewCurrency.value); }
-function reviewMoney(amount: Parameters<typeof checkoutReviewAmount>[0], discount = false) { return formatCheckoutReviewAmount(amount, reviewCurrency.value, discount); }
+// The review page stays in dollars; the payment sheet shows the chosen method's currency.
+function reviewMoney(amount: Parameters<typeof formatCheckoutReviewAmount>[0], discount = false, unit = false) { return formatCheckoutReviewAmount(amount, 'USD', { discount, unit }); }
 const checkoutLeaving = ref(false);
 let checkoutLeaveAttempt = 0;
 const checkoutLeaveError = ref('');
@@ -1400,7 +1400,7 @@ async function requestConfirmPay() {
   const reviewedTrialQuoteVersion = trialView.value.quoteVersion;
   if (!Number.isFinite(amount) || amount < 0) return;
   purchaseConfirmationOpen = true;
-  paymentStockFailure.value = null;
+  paymentBlocked.value = '';
   dialogsOpen += 1;
   try {
     paymentSheetAmount.value = amount;
@@ -1417,13 +1417,6 @@ async function requestConfirmPay() {
     }
     paymentFlowBusy.value = true;
     await onConfirmPay();
-  } catch (error) {
-    if (!(error instanceof CheckoutPurchaseCheckError)) throw error;
-    if (isCurrentCheckoutRoute(scope)) paymentStockFailure.value = {
-      kind: error.reason === 'stock' || error.reason === 'unavailable' ? 'blocked' : 'query',
-      message: error.reason === 'stock' ? t.value.store.temporarilyOutOfStock
-        : error.reason === 'unavailable' ? t.value.store.productUnavailable : flowCopy.value.queryFailed,
-    };
   } finally {
     confirming = false;
     paymentFlowBusy.value = false;
@@ -1492,7 +1485,6 @@ async function onConfirmPay() {
       if (conversion.reason === 'payment-required') {
         const authorized = await executePaymentWithPassword({amount:quotedTotal,currency:'USDT',summary:p.name},
           async authorization=>{
-            await assertCheckoutPurchaseStock([{ productNo: p.id, quantity: 1 }]);
             if (!isCurrentCheckoutRoute(confirmationScope) || confirmedAmount!==netPrice.value+cardFee.value
                 || confirmedTrialQuoteVersion!==trialView.value.quoteVersion) return null;
             return freeTrial.convert(p.id,quotedTotal,trialQuote.quoteVersion,authorization);
@@ -1912,7 +1904,6 @@ async function completeRemoteTradein(recovery: CheckoutTradeinRecovery, submissi
             if (!submitted) {
               const paid = await executePaymentWithPassword({amount:recovery.tradeinQuote.payableUsdt,currency:'USDT',summary:product.value?.name??t.value.store.coConfirmPurchase},
                 async authorization=>{
-                  await assertCheckoutPurchaseStock([{ productNo: recovery.productNo, quantity: 1 }]);
                   if (!authorizationIsCurrent()) return null;
                   return deviceE3Api.submit(recovery.tradeinQuote.sourceDeviceId,recovery.productNo,key,recovery.tradeinQuote,authorization);
                 },authorizationIsCurrent);
@@ -2203,7 +2194,6 @@ async function submitRemoteOrder(): Promise<void> {
       &&(persisted.expiresAt===null || nowTick.value<persisted.expiresAt);
     const paid = await executePaymentWithPassword({amount:created.amountUsdt,currency:'USDT',summary:p.name},
       async authorization=>{
-        await assertCheckoutPurchaseStock([{ productNo: persisted.productNo, quantity: persisted.quantity }]);
         if (!paymentCurrent()) return null;
         const action=beginOrderAction(submissionScope.accountKey,'pay',created.orderNo,created.amountUsdt);
         paymentKey=action.key;
@@ -2247,14 +2237,18 @@ async function submitRemoteOrder(): Promise<void> {
     presentSettledPurchase(isFirstHardwareOrder(created.orderNo), () => forgetCheckoutOrder(accountKey, p.id, created.orderNo));
   } catch (error) {
     if (!scopeIsCurrent()) return;
-    if (error instanceof CheckoutPurchaseCheckError) {
-      paymentStockFailure.value = { kind: error.reason === 'stock' || error.reason === 'unavailable' ? 'blocked' : 'query',
-        message: error.reason === 'stock' ? t.value.store.temporarilyOutOfStock
-          : error.reason === 'unavailable' ? t.value.store.productUnavailable : flowCopy.value.queryFailed };
+    if (error instanceof Error && error.message === 'PAYMENT_CANCELLED') { step.value='confirm'; return; }
+    // A definitive refusal leaves the pending order unpaid; retire its payment key
+    // so a later attempt is a new command, and say why instead of "confirming".
+    const rejection = orderPaymentRejection(error, locale.code);
+    const walletShort = recoveryOrderNo && asApiError(error).message === "ORDER_WALLET_INSUFFICIENT";
+    if (rejection || walletShort) {
+      if (recoveryOrderNo && paymentKey) clearOrderAction(submissionScope.accountKey, recoveryOrderNo, paymentKey, true);
       step.value = 'confirm';
+      if (walletShort) await offerWalletTopup(quotedTotal, submissionScope);
+      else paymentBlocked.value = rejection!;
       return;
     }
-    if (error instanceof Error && error.message === 'PAYMENT_CANCELLED') { step.value='confirm'; return; }
     if (recoveryOrderNo) {
       // A timeout is not a failed purchase. The canonical order page reads the
       // current status and the persisted original command before allowing another action.

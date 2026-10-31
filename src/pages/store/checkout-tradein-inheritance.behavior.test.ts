@@ -12,7 +12,6 @@ import { parseCanonicalTradeinResult } from "@/api/device-e3-api";
 import { executePaymentWithPassword } from "@/lib/authorized-payment";
 import { purchaseRecoveryCopy } from "@/lib/purchase-recovery-copy";
 import { readCheckoutCreate, rememberCheckoutCreate, forgetCheckoutCreate } from '@/lib/checkout-create-recovery';
-import { CheckoutPurchaseCheckError } from '@/lib/checkout-purchase-check';
 import { acquireAccountCommandKey, readAccountRow } from "@/store/account-scoped-storage";
 import { en } from "@/i18n/messages/en";
 
@@ -48,7 +47,7 @@ function checkout(active: boolean) {
   const scope = { accountKey: "a", accountEpoch: 1, productNo: "stellarbox-pro", generation: 1 };
   const deps: Record<string, any> = {
     createdCheckoutOrder: ref(null),
-    hasOriginalCheckout:ref(false), assertCheckoutPurchaseStock:vi.fn().mockResolvedValue(undefined), CheckoutPurchaseCheckError, paymentStockFailure:ref(null), flowCopy:ref({queryFailed:'retry'}),
+    hasOriginalCheckout:ref(false), paymentBlocked:ref(''), orderPaymentRejection:()=>null, flowCopy:ref({queryFailed:'retry'}),
     pendingCheckoutCreate: ref(null), readCheckoutCreate, rememberCheckoutCreate, forgetCheckoutCreate,
     remoteApiEnabled: true, completeVerifiedMutation, asApiError, isSettledRejection, scope, isCurrentAccountScope: () => true,
     executePaymentWithPassword, readPaymentCommand, parseCanonicalTradeinResult, purchaseRecoveryCopy, locale: { code: "en" },

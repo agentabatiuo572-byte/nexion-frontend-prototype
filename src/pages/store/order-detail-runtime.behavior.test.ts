@@ -14,7 +14,8 @@ import { beginOrderAction,readOrderAction,markOrderActionPaid,clearOrderAction }
 import { purchaseRecoveryCopy } from '@/lib/purchase-recovery-copy';
 import { paidOrderReceipt } from '@/api/order-api';
 import { checkoutFlowCopy } from '@/lib/checkout-flow-copy';
-import { CheckoutPurchaseCheckError } from '@/lib/checkout-purchase-check';
+import { orderPaymentRejection } from '@/lib/order-payment-rejection';
+import { ApiError } from '@/api/errors';
 import { formatAmount as formatPlainAmount } from '@/lib/amount-display';
 
 const remote = vi.hoisted(() => ({ remoteApiEnabled: true,
@@ -82,13 +83,12 @@ function harness(mode: "dev" | "prod" = "prod") {
   const toast = { warn: vi.fn() };
   const clipboard: Array<{ data: string; success: () => void; fail?: () => void }> = [];
   const readPaymentCommand=vi.fn().mockResolvedValue({status:'PROCESSING',canResumeSameKey:false});
-  const assertCheckoutPurchaseStock=vi.fn().mockResolvedValue(undefined);
   const authorize=vi.fn(async(_context:unknown,command:(authorization:unknown)=>Promise<unknown>,current:()=>boolean)=>current()?command({paymentPassword:'039417',credentialVersion:1,attemptNo:'fixture-attempt'}):null);
   const deps = { ref, computed, watch, orders, auth, remoteApiEnabled: true, app, toast, apiRuntimeConfig: reactive({ environment: mode }), locale: reactive({ code: "en" }),
     uni: { setClipboardData: (args: typeof clipboard[number]) => clipboard.push(args) },
     t: ref(en), asApiError, orderApi: remote.orderApi, uiConfirm: vi.fn().mockResolvedValue(true),
     fmt:(message:string,values:Record<string,unknown>)=>message.replace(/\{(\w+)\}/g,(_,key)=>String(values[key])),formatPlainAmount,
-    executePaymentWithPassword:authorize, checkoutFlowCopy, purchaseEligibilityApi:remote.purchaseEligibilityApi, assertCheckoutPurchaseStock, CheckoutPurchaseCheckError,
+    executePaymentWithPassword:authorize, checkoutFlowCopy, purchaseEligibilityApi:remote.purchaseEligibilityApi, orderPaymentRejection,
     beginOrderAction,readOrderAction,markOrderActionPaid,clearOrderAction,purchaseRecoveryCopy,paidOrderReceipt,readPaymentCommand,apiClient:{},
     navTo: vi.fn(), takeNavigationQuery: () => "", detailNow: ref(Date.now()),
     conversations: {}, advisorChatRoute: vi.fn().mockResolvedValue("/pages/support/chat?cid=ADVISOR-THREAD"),
@@ -115,7 +115,7 @@ function harness(mode: "dev" | "prod" = "prod") {
   const unload = () => hooks.unload.forEach(fn => fn());
   disposals.push(() => { unload(); scope.stop(); orders.$dispose(); });
   show();
-  return { page, requests, payments, request, orders, account, auth, app, toast, show, hide, unload, clipboard, readPaymentCommand,authorize,stockCheck:assertCheckoutPurchaseStock,navTo: deps.navTo,
+  return { page, requests, payments, request, orders, account, auth, app, toast, show, hide, unload, clipboard, readPaymentCommand,authorize,navTo: deps.navTo,
     load: (id: string) => hooks.load.forEach(fn => fn({ id })) };
 }
 beforeEach(() => {
@@ -131,16 +131,15 @@ afterEach(() => { disposals.splice(0).forEach(dispose => dispose());vi.unstubAll
 
 describe('original pending order payment entry',()=>{
   async function pending(){const h=harness();h.requests[0].resolve(list([placed]));await settle();return h;}
-  it('uses dollars before method selection and the real USDT amount after selection without changing the order',async()=>{
+  it('reads an unpaid order in dollars one to one with the unit only on totals',async()=>{
     const h=await pending();
-    expect(h.page.summaryMoney(19.9)).toBe('$19.90');expect(h.page.summaryMoney(19.9,false)).toBe('19.90');
-    h.page.paymentSheetOpen.value=true;expect(h.page.summaryMoney(19.9)).toBe('19.90 USDT');
-    h.page.paymentSheetOpen.value=false;expect(h.page.summaryMoney(19.9)).toBe('$19.90');
+    expect(h.page.summaryMoney(19.9,true)).toBe('$19.90');expect(h.page.summaryMoney(19.9)).toBe('19.90');
+    h.page.paymentSheetOpen.value=true;expect(h.page.summaryMoney(19.9,true)).toBe('$19.90');
     expect(h.orders.orders[0].total).toBe(19.9);expect(h.payments).toHaveLength(0);
   });
-  it('keeps paid receipt amounts in the actual payment currency',async()=>{
+  it('keeps paid receipt totals in the actual payment currency',async()=>{
     const h=harness();h.requests[0].resolve(list([original]));await settle();
-    expect(h.page.summaryMoney(19.9)).toBe('19.90 USDT');expect(h.payments).toHaveLength(0);
+    expect(h.page.summaryMoney(19.9,true)).toBe('19.90 USDT');expect(h.page.summaryMoney(19.9)).toBe('19.90');expect(h.payments).toHaveLength(0);
   });
   it('cold pay intent reaches the method sheet when an already visible page receives another onShow',async()=>{
     const h=harness(),eligibility=deferred<{eligible:boolean;policies:[]}>();remote.purchaseEligibilityApi.get.mockReturnValueOnce(eligibility.promise);
@@ -202,14 +201,7 @@ describe('original pending order payment entry',()=>{
     const reread=h.page.refreshOrder();await settle();h.requests[1].resolve(list([placed]));await reread;
     eligibility.resolve({eligible:true,policies:[]});await settle();await settle();
     expect(h.page.paymentSheetOpen.value).toBe(true);expect(h.page.autoPayRequested.value).toBe(false);expect(h.page.pendingPaymentChecking.value).toBe(false);
-    expect(h.requests).toHaveLength(2);expect(remote.purchaseEligibilityApi.get).toHaveBeenCalledOnce();expect(h.stockCheck).toHaveBeenCalledOnce();expect(h.payments).toHaveLength(0);
-  });
-  it.each(['stock','unavailable','read','items'] as const)('checks current stock at pending entry and shows the %s outcome without method/PIN/payment',async reason=>{
-    const h=await pending();h.stockCheck.mockRejectedValue(new CheckoutPurchaseCheckError(reason));
-    const opening=h.page.requestPendingPayment();await settle();h.requests[1].resolve(list([placed]));await opening;
-    expect(h.stockCheck).toHaveBeenCalledExactlyOnceWith([{productNo:'cloud-share',quantity:1}]);expect(h.page.paymentSheetOpen.value).toBe(false);
-    expect(h.page.paymentNotice.value).toBe(reason==='stock'||reason==='unavailable'?'blocked':'query');expect(h.page.autoPayRequested.value).toBe(false);
-    expect(h.payments).toHaveLength(0);expect(h.authorize).not.toHaveBeenCalled();
+    expect(h.requests).toHaveLength(2);expect(remote.purchaseEligibilityApi.get).toHaveBeenCalledOnce();expect(h.payments).toHaveLength(0);
   });
   it('does not let the former preflight completion unlock a newer visible attempt',async()=>{
     const h=await pending(),oldEligibility=deferred<{eligible:boolean;policies:[]}>(),newEligibility=deferred<{eligible:boolean;policies:[]}>();
@@ -226,14 +218,14 @@ describe('original pending order payment entry',()=>{
     expect(h.page.paymentSheetOpen.value).toBe(false);expect(h.requests).toHaveLength(2);
     h.requests[1].resolve(list([placed]));await opening;
     expect(h.page.paymentSheetOpen.value).toBe(true);expect(h.page.paymentSheetAmount.value).toBe(19.9);
-    expect(remote.purchaseEligibilityApi.get).toHaveBeenCalledExactlyOnceWith('cloud-share');expect(h.stockCheck).toHaveBeenCalledOnce();
+    expect(remote.purchaseEligibilityApi.get).toHaveBeenCalledExactlyOnceWith('cloud-share');
     await settle();expect(h.requests).toHaveLength(2);expect(h.page.autoPayRequested.value).toBe(false);expect(h.page.pendingPaymentChecking.value).toBe(false);
     expect(h.payments).toHaveLength(0);expect(h.authorize).not.toHaveBeenCalled();
   });
   it('blocks an authoritative overall F4B denial before method, PIN or payment',async()=>{
     const h=await pending();remote.purchaseEligibilityApi.get.mockResolvedValue({eligible:false,policies:[{policy:'F4B',eligible:false,conditions:[{kind:'monthlyQuota',met:false}]}]});
     const opening=h.page.requestPendingPayment();await settle();h.requests[1].resolve(list([placed]));await opening;
-    expect(h.page.paymentSheetOpen.value).toBe(false);expect(h.page.paymentNotice.value).toBe('blocked');expect(h.stockCheck).not.toHaveBeenCalled();expect(h.authorize).not.toHaveBeenCalled();expect(h.payments).toHaveLength(0);
+    expect(h.page.paymentSheetOpen.value).toBe(false);expect(h.page.paymentNotice.value).toBe('blocked');expect(h.authorize).not.toHaveBeenCalled();expect(h.payments).toHaveLength(0);
   });
   it.each(['denied','unreadable','approved'] as const)('checks every original legacy bundle SKU when the second line is %s',async outcome=>{
     const h=await pending();
@@ -248,7 +240,6 @@ describe('original pending order payment entry',()=>{
     expect(remote.purchaseEligibilityApi.get.mock.calls.map(call=>call[0]).sort()).toEqual(['cloud-share','stellarbox-s1']);
     expect(h.page.paymentSheetOpen.value).toBe(outcome==='approved');
     expect(h.page.paymentNotice.value).toBe(outcome==='denied'?'blocked':outcome==='unreadable'?'query':'');
-    expect(h.stockCheck).toHaveBeenCalledTimes(outcome==='approved'?1:0);
     expect(h.authorize).not.toHaveBeenCalled();expect(h.payments).toHaveLength(0);
   });
   it('follows an authoritative overall EITHER approval without recomputing a rejected subcondition',async()=>{
@@ -303,21 +294,20 @@ describe('original pending order payment entry',()=>{
     h.orders.orders[0].expiresAt=Date.now()-1;gate.resolve();await paying;
     expect(h.payments).toHaveLength(0);expect(h.orders.orders[0].status).toBe('placed');expect(h.page.payingFromWallet.value).toBe(false);
   });
-  it('awaits a fresh original-SKU stock check after PIN and before creating any payment command',async()=>{
-    const h=await pending(),stock=deferred<void>();h.stockCheck.mockReturnValue(stock.promise);
-    const paying=h.page.handleWalletPayment();await settle();
-    expect(h.authorize).toHaveBeenCalledOnce();expect(h.stockCheck).toHaveBeenCalledExactlyOnceWith([{productNo:'cloud-share',quantity:1}]);
-    expect(h.payments).toHaveLength(0);expect(h.page.orderAction.value).toBeNull();
-    stock.resolve();await settle();expect(h.payments).toHaveLength(1);
-    h.payments[0].reject(new Error('timeout'));await paying;
+  it.each([['CAPACITY_REPLACEMENT_REQUIRED','slots are full'],['ORDER_PRODUCT_NOT_PAYABLE','not on sale'],['ORDER_MONTHLY_QUOTA_EXHAUSTED','quota']])('a definitive %s refusal names the reason, retires the key and keeps the order',async(code,reason)=>{
+    const h=await pending(),paying=h.page.handleWalletPayment();await settle();
+    h.payments[0].reject(new ApiError({kind:'business',message:code,status:409,code:409}));await paying;
+    expect(h.page.paymentNotice.value).toBe('blocked');expect(h.page.paymentNoticeReason.value).toContain(reason);
+    expect(h.page.orderAction.value).toBeNull();expect(h.orders.orders[0].status).toBe('placed');
   });
-  it.each(['stock','unavailable','read','items'] as const)('pre-submit %s result never pays and keeps the right small notice',async reason=>{
-    const h=await pending();h.stockCheck.mockRejectedValue(new CheckoutPurchaseCheckError(reason));
-    await h.page.handleWalletPayment();expect(h.payments).toHaveLength(0);expect(h.page.orderAction.value).toBeNull();
-    expect(h.page.paymentNotice.value).toBe(reason==='stock'||reason==='unavailable'?'blocked':'query');expect(h.orders.orders[0].status).toBe('placed');
+  it('an insufficient wallet refusal offers top-up and retires the key',async()=>{
+    const h=await pending(),paying=h.page.handleWalletPayment();await settle();
+    h.payments[0].reject(new ApiError({kind:'business',message:'ORDER_WALLET_INSUFFICIENT',status:409,code:409}));await paying;
+    expect(h.page.orderAction.value).toBeNull();expect(h.page.paymentNotice.value).toBe('');
   });
-  it.each(['closed','deadline','amount','quantity','hidden','account'] as const)('revalidates %s after the stock read and before pay',async change=>{
-    const h=await pending(),stock=deferred<void>();h.stockCheck.mockReturnValue(stock.promise);
+  it.each(['closed','deadline','amount','quantity','hidden','account'] as const)('revalidates %s after PIN and before pay',async change=>{
+    const h=await pending(),gate=deferred<void>();
+    h.authorize.mockImplementation(async(_context,command,current)=>{await gate.promise;return current()?command({}):null;});
     const paying=h.page.handleWalletPayment();await settle();
     if(change==='closed')h.orders.orders[0].status='cancelled';
     else if(change==='deadline')h.orders.orders[0].expiresAt=Date.now()-1;
@@ -325,7 +315,7 @@ describe('original pending order payment entry',()=>{
     else if(change==='quantity')h.orders.orders[0].quantity=2;
     else if(change==='hidden')h.hide();
     else {h.account.bind('b');h.auth.accountId='b';h.orders.bindAccount('b');}
-    stock.resolve();await paying;expect(h.payments).toHaveLength(0);expect(h.page.orderAction.value).toBeNull();
+    gate.resolve();await paying;expect(h.payments).toHaveLength(0);expect(h.page.orderAction.value).toBeNull();
   });
 });
 

@@ -58,7 +58,7 @@
               <text v-if="o.meta" class="block truncate" style="font-size: 12px; color: var(--v5-ink-3); margin-top: 3px">{{ o.meta }}</text>
               <view class="flex items-center justify-between" style="margin-top: 6px">
                 <text style="font-size: 12px; color: var(--v5-ink-4)">{{ dateText(o.placedAt) }}</text>
-                <CheckoutAmount :value="o.total" currency="USDT" />
+                <CheckoutAmount :value="o.total" :currency="o.kind === 'commerce' && o.paidAt == null ? 'USD' : 'USDT'" />
               </view>
               <view v-if="o.kind === 'commerce' && o.status === 'placed'" class="order-pending-footer">
                 <text v-if="pendingCloseMinutes(o)" class="order-pending-footer__close">{{ fmt(t.orders.pendingCloseIn, { min: pendingCloseMinutes(o)! }) }}</text>

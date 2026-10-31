@@ -22,7 +22,7 @@ function page(){
     refreshPurchaseEligibility:vi.fn().mockResolvedValue('eligible'),resumePendingSession:vi.fn(),fireTradeinIntercept:vi.fn().mockResolvedValue(false),
     quantityReady:ref(false),interceptFired:false,tradeinAvailable:ref(false),remoteCapacityGate:{reset:vi.fn()},checkoutCapacityRead:null,
     checkoutWalletRefreshSequence:0,checkoutWalletRefreshing:ref(false),clearRemotePurchaseEligibility:vi.fn(),
-    confirming:false,orderId:ref(null),createdCheckoutOrder:ref(null),pendingCheckoutCreate:ref(null),paymentStockFailure:ref(null),
+    confirming:false,orderId:ref(null),createdCheckoutOrder:ref(null),pendingCheckoutCreate:ref(null),paymentBlocked:ref(''),
     settledResultReplay:ref(false),checkoutLeaveError:ref(''),checkoutLeaving:ref(false),closePaymentSheet:vi.fn(),remoteOrderFailure:ref(null),
     receiptWriteFailure:ref(null),receiptRetrying:ref(false),restoreReceiptRecovery:vi.fn(),remoteTradeinRecoveryRequired:ref(false),
     remoteTradeinRecoveryError:ref(false),remoteTradeinRecoveryBusy:ref(false),remoteOrderCommandKey:{clear:vi.fn()},activeSession:ref(null),

@@ -16,13 +16,13 @@ afterEach(() => { disposals.splice(0).forEach(dispose => dispose()); vi.useRealT
 
 // Run each complete production SFC setup and template. Only the locale store,
 // browser/native lifecycle and imported child components are adapters.
-function screen(source: string, input: Record<string, unknown>, options: { reduced?: boolean; locale?: LocaleCode; slot?: string } = {}) {
+function screen(source: string, input: Record<string, unknown>, options: { reduced?: boolean; locale?: LocaleCode; slot?: string; noMatchMedia?: boolean } = {}) {
   const descriptor = parse(source).descriptor;
   const mounted: Array<() => void> = [], unmounted: Array<() => void> = [], hidden: Array<() => void> = [], shown: Array<() => void> = [];
   const listeners = new Map<string, () => void>(), locale = Vue.reactive({ code: options.locale ?? 'zh' });
   const mq = { matches: !!options.reduced, addEventListener: vi.fn(), removeEventListener: vi.fn() };
   const document = { hidden: false, addEventListener: vi.fn((name: string, callback: () => void) => listeners.set(name, callback)), removeEventListener: vi.fn() };
-  vi.stubGlobal('window', { matchMedia: () => mq }); vi.stubGlobal('document', document);
+  vi.stubGlobal('window', options.noMatchMedia ? {} : { matchMedia: () => mq }); vi.stubGlobal('document', document);
   const modules: Record<string, unknown> = {
     vue: { ...Vue, onMounted: (fn: () => void) => mounted.push(fn), onBeforeUnmount: (fn: () => void) => unmounted.push(fn) },
     '@/store/locale': { useLocaleStore: () => locale },
@@ -127,23 +127,21 @@ describe('authoritative checkout result presentation', () => {
     expect(body.children.at(-1).children.some((node: any) => node.children === 'Parent-owned order benefits')).toBe(true);
     expect(nodes.indexOf(body)).toBeLessThan(nodes.findIndex(node => node.props?.class === 'checkout-result__actions'));
   });
-  it('waits for the actual scoped CSS events, including a slow paint, before celebrating', () => {
+  it('congratulates the purchase, then plays activation, then completes on timers alone', () => {
     vi.useFakeTimers(); const s = screen(resultSource, { state: 'activated' }); s.start();
-    expect(s.view.phase.value).toBe('confirmed'); vi.advanceTimersByTime(20000); expect(s.view.phase.value).toBe('confirmed');
-    s.view.onVisualEnd(s.animation('checkout-device-breathe')); expect(s.view.phase.value).toBe('confirmed');
-    s.view.onVisualEnd(s.animation('checkout-confirmed-hold')); expect(s.view.phase.value).toBe('activating');
-    vi.advanceTimersByTime(20000); expect(s.view.phase.value).toBe('activating'); expect(s.view.celebrating.value).toBe(false);
-    s.view.onProgressEnd(s.animation('checkout-activation-fill')); expect(s.view.phase.value).toBe('complete'); expect(s.view.celebrating.value).toBe(true);
-    expect(s.tree().filter(node => String(node.props?.class).includes('checkout-result__spark'))).toHaveLength(28);
+    const zh = checkoutFlowCopy('zh');
+    expect(s.view.phase.value).toBe('confirmed'); expect(s.view.title.value).toBe(zh.paid); expect(s.view.celebrating.value).toBe(true);
+    expect(s.tree().filter(node => String(node.props?.class).includes('checkout-result__spark'))).toHaveLength(36);
+    vi.advanceTimersByTime(2000); expect(s.view.phase.value).toBe('activating'); expect(s.view.title.value).toBe(zh.activating);
+    vi.advanceTimersByTime(2999); expect(s.view.phase.value).toBe('activating');
+    vi.advanceTimersByTime(1); expect(s.view.phase.value).toBe('complete'); expect(s.view.title.value).toBe(zh.activated);
+    expect(s.view.popped.value).toBe(true); expect(s.view.celebrating.value).toBe(false);
   });
-  it('shows the devices action only after activation presentation completes under the latest approved flow', () => {
-    const s = screen(resultSource, { state: 'activated' }); s.start();
-    expect(s.tree().find(node => node.type?.name === 'NxButton' && node.props.label === checkoutFlowCopy('zh').devices)).toBeUndefined();
-    s.view.onVisualEnd(s.animation('checkout-confirmed-hold'));
-    expect(s.tree().find(node => node.type?.name === 'NxButton' && node.props.label === checkoutFlowCopy('zh').devices)).toBeUndefined();
-    s.view.onProgressEnd(s.animation('checkout-activation-fill'));
-    s.tree().find(node => node.type?.name === 'NxButton' && node.props.label === checkoutFlowCopy('zh').devices).props.onClick();
-    expect(s.emit.mock.calls).toEqual([['devices']]);
+  it('shows the devices action only after activation presentation completes', () => {
+    vi.useFakeTimers(); const s = screen(resultSource, { state: 'activated' }); s.start();
+    const devices = () => s.tree().find(node => node.type?.name === 'NxButton' && node.props.label === checkoutFlowCopy('zh').devices);
+    expect(devices()).toBeUndefined(); vi.advanceTimersByTime(2000); expect(devices()).toBeUndefined();
+    vi.advanceTimersByTime(3000); devices().props.onClick(); expect(s.emit.mock.calls).toEqual([['devices']]);
   });
   it('offers a query and neutral inventory destination for an unsettled or failed result', () => {
     for (const state of ['processing', 'error']) {
@@ -153,28 +151,21 @@ describe('authoritative checkout result presentation', () => {
       buttons.forEach(button => button.props.onClick()); expect(s.emit.mock.calls).toEqual([['retry'], ['devices']]);
     }
   });
-  it('accepts the native animation detail and ignores unrelated child animation cancellation', () => {
-    const s = screen(resultSource, { state: 'activated' }); s.start();
-    s.view.onVisualEnd({ detail: s.animation('checkout-confirmed-hold') });
-    s.view.onMotionCancel(s.animation('checkout-device-breathe')); expect(s.view.phase.value).toBe('activating');
-    s.view.onProgressEnd({ detail: s.animation('checkout-activation-fill') });
-    s.view.onMotionCancel(s.animation('checkout-orbit-spin')); expect(s.view.celebrating.value).toBe(true);
+  it('congratulates an inventory purchase without an activation stage', () => {
+    vi.useFakeTimers(); const s = screen(resultSource, { state: 'inventory' }); s.start();
+    expect(s.view.phase.value).toBe('confirmed'); expect(s.view.title.value).toBe(checkoutFlowCopy('zh').paid);
+    expect(s.view.description.value).toBe(checkoutFlowCopy('zh').paidInventoryHint);
+    vi.advanceTimersByTime(2000); expect(s.view.phase.value).toBe('complete'); expect(s.view.title.value).toBe(checkoutFlowCopy('zh').inventory);
+    expect(s.tree().some(node => String(node.props?.class).includes('checkout-result__progress'))).toBe(false);
   });
-  it('handles real uni-view normalization that drops animationName and ignores child bubbles', () => {
-    const s = screen(resultSource, { state: 'activated' }); s.start();
-    const owner = (name: string) => ({ dataset: { checkoutAnimation: name } });
-    s.view.onVisualEnd({ type: 'animationend', target: { dataset: {} }, currentTarget: owner('checkout-confirmed-hold'), detail: {} });
-    expect(s.view.phase.value).toBe('confirmed');
-    s.view.onVisualEnd({ type: 'animationend', target: owner('checkout-confirmed-hold'), currentTarget: owner('checkout-confirmed-hold'), detail: {} });
-    expect(s.view.phase.value).toBe('activating');
-    s.view.onProgressEnd({ type: 'animationend', target: owner('checkout-activation-fill'), currentTarget: owner('checkout-activation-fill'), detail: {} });
-    expect(s.view.phase.value).toBe('complete'); expect(s.view.celebrating.value).toBe(true);
+  it('finishes statically after hiding without becoming trapped', () => {
+    vi.useFakeTimers(); const s = screen(resultSource, { state: 'activated' }); s.start(); vi.advanceTimersByTime(2000);
+    s.hidden.forEach(fn => fn()); expect(s.view.phase.value).toBe('complete'); expect(s.view.celebrating.value).toBe(false);
+    s.shown.forEach(fn => fn()); vi.advanceTimersByTime(10000); expect(s.view.phase.value).toBe('complete');
   });
-  it('finishes statically after hiding or a cancelled stage without becoming trapped', () => {
-    const s = screen(resultSource, { state: 'activated' }); s.start();
-    s.view.onVisualEnd(s.animation('checkout-confirmed-hold')); s.view.onMotionCancel(s.animation('checkout-activation-fill'));
-    expect(s.view.phase.value).toBe('complete'); expect(s.view.celebrating.value).toBe(false);
-    s.hidden.forEach(fn => fn()); s.shown.forEach(fn => fn()); expect(s.view.phase.value).toBe('complete');
+  it('plays the presentation when the renderer has no media query', () => {
+    vi.useFakeTimers(); const s = screen(resultSource, { state: 'activated' }, { noMatchMedia: true }); s.start();
+    expect(s.view.phase.value).toBe('confirmed'); expect(s.view.celebrating.value).toBe(true);
   });
   it('renders a static success for reduced motion and responds when that preference changes', () => {
     const reduced = screen(resultSource, { state: 'activated' }, { reduced: true }); reduced.start();
@@ -183,15 +174,16 @@ describe('authoritative checkout result presentation', () => {
     normal.mq.matches = true; normal.mq.addEventListener.mock.calls[0][1]();
     expect(normal.view.phase.value).toBe('complete'); expect(normal.view.celebrating.value).toBe(false);
   });
-  it('never turns inventory, processing or an error into activation success, and stops on a true state change', async () => {
-    for (const state of ['inventory', 'processing', 'error']) {
+  it('never turns processing or an error into success, and stops on a true state change', async () => {
+    vi.useFakeTimers();
+    for (const state of ['processing', 'error']) {
       const s = screen(resultSource, { state }); s.start();
       expect(s.tree().some(node => String(node.props?.class).includes('checkout-result__progress'))).toBe(false);
       expect(s.view.title.value).not.toBe(checkoutFlowCopy('zh').activated); expect(s.view.celebrating.value).toBe(false);
     }
     const s = screen(resultSource, { state: 'processing' }); s.start(); s.props.state = 'activated'; await Vue.nextTick();
     expect(s.view.phase.value).toBe('confirmed'); s.props.state = 'error'; await Vue.nextTick();
-    s.view.onVisualEnd(s.animation('checkout-confirmed-hold')); expect(s.view.phase.value).toBe('complete');
+    vi.advanceTimersByTime(10000); expect(s.view.phase.value).toBe('complete');
     expect(s.view.celebrating.value).toBe(false); expect(s.view.title.value).toBe(checkoutFlowCopy('zh').resultError);
     s.props.state = 'activated'; await Vue.nextTick(); expect(s.view.phase.value).toBe('complete');
   });
