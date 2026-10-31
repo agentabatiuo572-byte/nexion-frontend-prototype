@@ -15,6 +15,33 @@ const receipt = { orderNo: 'ORD-1', paymentNo: 'PAY-1', paymentStatus: 'PAID', o
 const context = () => ({ kind: 'ORDER_PAY' as const, payload: { orderNo: 'ORD-1' }, amount: 100, summary: 'Synthetic device', current: () => true, commandKey: () => 'business-original-key' });
 beforeEach(() => { vi.resetModules(); ports.request.mockReset(); ports.rows.clear(); ports.account = 'user:1'; ports.nav.mockReset(); });
 describe('durable external payment orchestration', () => {
+  it('shows a bank refund review after delivery for both the active flow and original-intent recovery', async () => {
+    const frozen = { ...quote, paymentMethod: 'HDPAY_BANK', network: 'VND_BANK', networkConfirmFeeUsdt: '0.00',
+      totalUsdt: '101.75', amountVnd: '2543750', fxRateVndPerUsdt: '25000' };
+    const original = { ...intent, ...frozen, address: null, paymentUrl: 'https://api.hdpayadmin.com/pay/original' };
+    const reviewed = { ...original, status: 'MANUAL_REVIEW', reason: 'PAYMENT_REFUNDED_REVIEW', fulfilmentStatus: 'DELIVERED',
+      receipt: { ...receipt, paymentMethod: 'HDPAY_BANK' } };
+    const { requestPurchasePayment, usePurchasePayment } = await import('./purchase-payment');
+    const payment = usePurchasePayment();
+    ports.request.mockResolvedValueOnce(frozen).mockResolvedValueOnce(original).mockResolvedValueOnce(reviewed);
+    let resolved = false;
+    const choice = requestPurchasePayment(context());
+    void choice.then(() => { resolved = true; });
+    await payment.select('HDPAY_BANK'); await payment.confirm(); await payment.query();
+    expect(payment.state.notice).toBe('review');
+    expect(payment.state.open).toBe(true);
+    expect(payment.state.pending?.businessDelivered).toBe(true);
+    expect(resolved).toBe(false);
+    const saved = payment.state.pending!;
+    payment.close(); expect(await choice).toBeNull();
+    ports.request.mockResolvedValueOnce(reviewed);
+    await payment.resume(saved);
+    expect(payment.state.notice).toBe('review');
+    expect(payment.state.open).toBe(true);
+    expect(payment.state.intent?.fulfilmentStatus).toBe('DELIVERED');
+    expect(ports.request.mock.calls.filter(([request]) => request.method === 'POST' && request.path.endsWith('-intents'))).toHaveLength(1);
+    payment.close();
+  });
   it('reloads an HDPAY intent with its original FX/raw amount/rounding without a quote or a second POST', async () => {
     const frozen = { ...quote, paymentMethod: 'HDPAY_BANK', network: 'VND_BANK', networkConfirmFeeUsdt: '0.00', totalUsdt: '101.75',
       fxRateVndPerUsdt: '25000.123456', amountVnd: '2543763', businessAmountUsdt: '99.995000', roundingAdjustmentUsdt: '0.005000' };

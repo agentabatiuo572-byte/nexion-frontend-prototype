@@ -8,6 +8,7 @@ import { clearOrderAction, readOrderAction } from '@/lib/order-command-fence';
 import { navTo } from '@/lib/route';
 import { formatAmount } from '@/lib/amount-display';
 import { validatePurchasePaymentReceipt } from '@/lib/purchase-payment-receipt';
+import { purchasePaymentTiming } from '@/lib/purchase-payment-timing';
 
 /** `orderNo`, `deadlineAt` and `image` only feed the payment screens; `reorder` runs after a timed-out order. */
 export type PurchasePaymentContext = { kind: PurchaseKind; payload: Record<string, unknown>; amount: number | string; summary: string; current: () => boolean; commandKey?: () => string;
@@ -21,7 +22,7 @@ export type PurchaseStep = 'methods' | 'network' | 'bank';
 export type PurchaseNotice = '' | 'reminder' | 'timeShort' | 'timeout' | 'bankFailed' | 'review' | 'late' | 'delivery' | 'leave' | 'changed';
 const TABLE = 'uvel-purchase-payment-accounts-v1', KEYS = 'uvel-purchase-payment-keys-accounts-v1';
 const POLL_MS = 5000, POLL_BACKOFF = [5000, 10000, 20000, 30000], SHORT_DEADLINE_MS = 5 * 60000;
-const REVIEW_REASONS = ['PAYMENT_AMOUNT_MISMATCH', 'PAYMENT_MULTIPLE_ARRIVALS', 'PAYMENT_BEFORE_ALLOCATION', 'PAYMENT_REORG_REVIEW'];
+const REVIEW_REASONS = ['PAYMENT_AMOUNT_MISMATCH', 'PAYMENT_MULTIPLE_ARRIVALS', 'PAYMENT_BEFORE_ALLOCATION', 'PAYMENT_REORG_REVIEW', 'PAYMENT_TIME_UNVERIFIED', 'PAYMENT_REFUNDED_REVIEW'];
 const api = createPurchasePaymentApi(apiClient);
 const state = reactive({ open: false, accountKey: '', summary: '', amount: '' as string | number, method: 'WALLET' as PurchaseMethod,
   step: 'methods' as PurchaseStep, kind: 'ORDER_PAY' as PurchaseKind, orderNo: '', image: '', deadlineAt: null as number | null,
@@ -67,14 +68,16 @@ function accept(intent: PurchasePaymentIntent, pending: PendingExternal) {
   const known = { ...pending, paymentMethod: intent.paymentMethod, network: intent.network,
     intentNo: intent.intentNo, lastStatus: intent.status, businessDelivered: intent.status === 'DELIVERED' || intent.fulfilmentStatus === 'DELIVERED' };
   save(known); state.pending = known; state.intent = intent; state.method = intent.paymentMethod;
+  if (intent.deadlineAt) state.deadlineAt = Date.parse(intent.deadlineAt);
   if (intent.status === 'DELIVERED' || intent.fulfilmentStatus === 'DELIVERED') {
     const payload = JSON.parse(known.fingerprint)[1] as Record<string, unknown>;
     validatePurchasePaymentReceipt(known.kind, payload, intent.receipt, intent);
-    if (intent.status === 'MANUAL_REVIEW' && context === null) return;
-    finish({ method: 'EXTERNAL', receipt: intent.receipt, commandKey: known.commandKey, accountKey: state.accountKey });
-    return;
+    if (intent.status === 'DELIVERED') {
+      finish({ method: 'EXTERNAL', receipt: intent.receipt, commandKey: known.commandKey, accountKey: state.accountKey });
+      return;
+    }
   }
-  if (intent.status !== 'AWAITING_PAYMENT') state.cashier = false;
+  if (!purchasePaymentTiming(intent, Date.now(), state.deadlineAt).canPay) state.cashier = false;
   else if (openCashierOnReady && intent.paymentUrl) { openCashierOnReady = false; state.cashier = true; }
   // A failed bank attempt ends that intent; the backend reports it as EXPIRED with this reason.
   if (intent.status === 'EXPIRED') state.notice = intent.reason === 'PAYMENT_FAILED' ? 'bankFailed' : 'timeout';
@@ -104,6 +107,7 @@ async function loadPolicy() {
 function available(method: PurchaseMethod) { return method === 'WALLET' || !state.policy || state.policy[method] === true; }
 async function select(method: PurchaseMethod, step?: PurchaseStep) {
   if (state.busy || state.pending || !context) return;
+  if (state.deadlineAt !== null && state.deadlineAt <= Date.now()) { state.notice = 'changed'; return; }
   if (step) state.step = step;
   if (method !== state.method) quoteFailures = 0;
   state.method = method; state.quote = null; state.error = false; state.retrying = false; state.unavailable = false;
@@ -117,6 +121,7 @@ async function select(method: PurchaseMethod, step?: PurchaseStep) {
     if (!owns(version, accountKey)) return;
     if (quote.kind !== expected.kind || quote.paymentMethod !== method || formatAmount(quote.subtotalUsdt) !== formatAmount(expected.amount) || !expected.current()) throw new Error('PURCHASE_CONTEXT_CHANGED');
     state.quote = quote; quoteFailures = 0;
+    if (quote.deadlineAt) state.deadlineAt = Date.parse(quote.deadlineAt);
     // Swap in a fresh quote 30 s before this one lapses.
     // (setTimeout fires at once beyond 2^31-1 ms, so far-off expiries are capped.)
     quoteTimer = setTimeout(() => { if (owns(version, accountKey)) void select(method); }, Math.min(2147483647, Math.max(1000, Date.parse(quote.expiresAt) - Date.now() - 30000)));
@@ -193,6 +198,7 @@ async function confirm() {
   state.notice = '';
   if (state.method === 'WALLET') { finish({ method: 'WALLET' }); return; }
   const quote = state.quote;
+  if (quote?.deadlineAt && Date.parse(quote.deadlineAt) <= Date.now()) { state.notice = 'changed'; return; }
   if (!quote || Date.parse(quote.expiresAt) <= Date.now()) { void select(state.method); return; }
   const scope = fingerprint(context);
   const commandKey = context.commandKey?.() ?? acquireAccountCommandKey(KEYS, state.accountKey, scope, 'purchase');
@@ -256,7 +262,7 @@ export function usePurchasePayment() {
   return { state, select, choose, proceed, confirm, query, submitOriginal, restart, loadPolicy, close: () => finish(null),
     back: () => choose('WALLET'), available,
     notify: (notice: PurchaseNotice) => { state.notice = notice; },
-    openCashier: () => { if (state.intent?.paymentUrl && state.intent.status === 'AWAITING_PAYMENT') state.cashier = true; },
+    openCashier: () => { if (state.intent?.paymentUrl && purchasePaymentTiming(state.intent, Date.now(), state.deadlineAt).canPay) state.cashier = true; },
     closeCashier: () => { state.cashier = false; paused = false; if (!state.busy) void query(); },
     pause: () => { paused = true; clearTimeout(pollTimer); pollTimer = undefined; },
     wake: () => { paused = false; if (state.open && state.pending && !state.busy && !settled(state.intent)) void (state.unavailable ? submitOriginal() : query()); },

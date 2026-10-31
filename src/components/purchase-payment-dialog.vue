@@ -150,10 +150,11 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" /><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" /></svg>
           </view>
         </view>
-        <view v-if="payLeft !== null" class="pp-cd" :class="{ 'is-urgent': urgent }">
+        <view v-if="payLeft !== null && !confirming" class="pp-cd" :class="{ 'is-urgent': urgent }">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
           <text>{{ fill(urgent ? (isBank ? copy.urgentBank : copy.urgent) : (isBank ? copy.payWithinBank : copy.payWithin), { t: clock(payLeft) }) }}</text>
         </view>
+        <text v-if="confirming" class="pp-note" role="status">{{ copy.confirmWait }}</text>
         <text class="pp-hero__meta">{{ s.summary }}<template v-if="s.orderNo"> · {{ copy.orderNo }} <text class="pp-mono">{{ s.orderNo }}</text></template></text>
       </view>
 
@@ -163,7 +164,7 @@
           <text class="pp-wait__t">{{ waitTitle }}<template v-if="urgent && ready"> · <text class="pp-wait__em">{{ copy.urgentTag }}</text></template></text>
           <text v-if="ready && !s.error" class="pp-wait__s">{{ urgent ? copy.urgentHint : isBank ? copy.waitingBank : copy.waitingUsdt }}</text>
         </view>
-        <template v-if="!isBank">
+        <template v-if="!isBank && ready">
           <view class="pp-card__top"><text class="pp-card__t">{{ copy.address }}</text><text class="pp-tag">{{ networkName }}</text></view>
           <view v-if="qrImage" class="pp-qr"><image class="pp-qr__img" :src="qrImage" mode="aspectFit" :aria-label="copy.addressQr" /></view>
           <text v-if="ready" class="pp-cap">{{ copy.scan }}</text>
@@ -241,6 +242,7 @@ import { usePurchasePayment } from '@/store/purchase-payment';
 import { useApp } from '@/store/app';
 import { useLocaleStore } from '@/store/locale';
 import { purchasePaymentCopy, fillCopy as fill } from '@/lib/purchase-payment-copy';
+import { purchasePaymentTiming } from '@/lib/purchase-payment-timing';
 import { formatGroupedAmount } from '@/lib/amount-display';
 import { hostedPaymentUrlPattern, validateHostedPaymentUrl } from '@/lib/hosted-payment';
 import { h5DevicePreviewStatusBarHeight } from '@/lib/device-preview';
@@ -272,11 +274,11 @@ const rounded = computed(() => !!s.quote?.roundingAdjustmentUsdt && Number(s.quo
 const fees = computed(() => s.intent ?? s.quote);
 const isBank = computed(() => (s.intent?.paymentMethod ?? s.pending?.paymentMethod) === 'HDPAY_BANK');
 const received = computed(() => s.intent?.status === 'FUNDS_CONFIRMED');
-const ready = computed(() => s.intent?.status === 'AWAITING_PAYMENT' && (isBank.value ? !!s.intent.paymentUrl : !!s.intent.address));
+const ready = computed(() => timing.value.canPay && (isBank.value ? !!s.intent?.paymentUrl : !!s.intent?.address));
 const networkName = computed(() => s.intent?.paymentMethod === 'CREGIS_USDT_ERC20' ? copy.value.erc20 : copy.value.bep20);
 const methodName = computed(() => isBank.value ? copy.value.bank : networkName.value);
 const pageTitle = computed(() => received.value ? copy.value.resultTitle : isBank.value ? copy.value.bankTitle : copy.value.usdtPage);
-const cashierUrl = computed(() => s.intent?.paymentUrl ? validateHostedPaymentUrl(s.intent.paymentUrl) ?? '' : '');
+const cashierUrl = computed(() => timing.value.canPay && s.intent?.paymentUrl ? validateHostedPaymentUrl(s.intent.paymentUrl) ?? '' : '');
 const qrImage = computed(() => { if (!s.intent?.address || !ready.value) return ''; const qr = qrcode(0, 'M'); qr.addData(s.intent.address); qr.make(); return qr.createDataURL(6, 1); });
 
 const now = ref(Date.now());
@@ -284,13 +286,13 @@ useVisibleInterval(() => { if (active.value && s.open) now.value = Date.now(); }
 const deadlineLeft = computed(() => s.deadlineAt === null ? null : Math.max(0, s.deadlineAt - now.value));
 const quoteLeft = computed(() => s.quote ? Math.max(0, Date.parse(s.quote.expiresAt) - now.value) : null);
 // The payment page counts to whichever closes first: the intent or the order.
-const payLeft = computed(() => {
-  const ends = [s.intent ? Date.parse(s.intent.expiresAt) : NaN, s.deadlineAt ?? NaN].filter(Number.isFinite);
-  return ends.length ? Math.max(0, Math.min(...ends) - now.value) : null;
-});
+const timing = computed(() => purchasePaymentTiming(s.intent, now.value, s.deadlineAt));
+const payLeft = computed(() => timing.value.left);
+const confirming = computed(() => timing.value.confirming);
 const urgent = computed(() => payLeft.value !== null && payLeft.value < URGENT_MS);
 const waitTone = computed(() => s.error ? 'var(--v5-warning)' : urgent.value && ready.value ? 'var(--v5-danger)' : 'var(--v5-brand)');
-const waitTitle = computed(() => s.error ? copy.value.offline : ready.value ? copy.value.waiting : copy.value.creating);
+const waitTitle = computed(() => s.error ? copy.value.offline : confirming.value ? copy.value.confirming : ready.value ? copy.value.waiting : copy.value.creating);
+watch(() => timing.value.canPay, (canPay) => { if (!canPay && s.cashier) payment.closeCashier(); });
 
 type Notice = { title: string; body: string; primary: string; secondary?: string; icon: 'alert' | 'clock' | 'shield' | 'failed' | 'info'; tone: 'warning' | 'danger' | 'brand' | 'neutral'; onPrimary: () => void; onSecondary: () => void };
 const dismiss = () => payment.notify('');

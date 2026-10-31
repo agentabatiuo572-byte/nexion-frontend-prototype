@@ -1,5 +1,6 @@
 // Purchase payment copy. Never name a payment provider or its domain in the App.
 const zh = {
+  confirming: '付款确认中', confirmWait: '付款时间已结束，正在确认截止前的付款，请勿再次转账或重复付款。',
   title: '选择支付方式', closesIn: '剩 {t} 订单自动关闭', orderNo: '订单号', methodLabel: '付款方式', close: '关闭', back: '返回',
   wallet: '钱包余额', walletAvailable: '可用 {amt} USDT', walletUnavailable: '暂时无法读取余额，可选择其他方式', short: '余额不足，还差 {amt} USDT', topup: '去充值',
   bank: '银行卡支付', bankHint: '跳转支付页面，用银行 App 付款', usdt: 'USDT', usdtHint: '使用外部钱包转账', unavailable: '暂不可用，请选择其他方式',
@@ -26,8 +27,8 @@ const zh = {
   paidAmount: '实付金额', paidMethod: '付款方式', product: '商品', leaveOk: '可以离开此页，开通结果会通知你', viewOrder: '查看订单',
   leaveTitle: '付款还在进行中', leaveBody: '离开后可在订单详情继续付款，请勿重复付款。', continuePay: '继续付款', leave: '离开',
   bankFailedTitle: '银行付款未成功', bankFailed: '可以重新付款或换一种方式。', retryPay: '重新付款', switchMethod: '换支付方式',
-  timeoutTitle: '付款超时，订单已取消', timeout: '未在截止时间内收到付款，商品和优惠券已退回。如已付款，请联系客服核对。',
-  timeoutOtherTitle: '付款超时', timeoutOther: '未在截止时间内收到付款，本次付款已关闭。如已付款，请联系客服核对。', reorder: '重新下单', ok: '知道了',
+  timeoutTitle: '付款超时，订单已取消', timeout: '订单已超过付款时间并取消。如已付款，请勿重复付款，联系客服核对。',
+  timeoutOtherTitle: '付款超时', timeoutOther: '本次付款已超过截止时间并关闭。如已付款，请勿重复付款，联系客服核对。', reorder: '重新下单', ok: '知道了',
   reviewTitle: '付款正在确认中', reviewMismatch: '付款金额与订单不一致，客服会协助处理，请勿再次付款。', reviewOther: '这笔付款还需要一点时间确认，客服会协助处理，请勿再次付款。',
   lateTitle: '收到一笔逾期付款', late: '订单已超时关闭，客服会协助处理这笔付款。',
   deliveryTitle: '设备开通遇到问题', delivery: '已收到付款，客服会协助完成开通。', support: '联系客服',
@@ -36,6 +37,7 @@ const zh = {
   resume: '有一笔付款进行中', view: '查看付款进度', review: '付款正在确认中', ended: '本次付款已结束', delivered: '付款已完成',
 };
 const en: typeof zh = {
+  confirming: 'Confirming your payment', confirmWait: 'The payment window has ended. We are checking payments sent before the deadline. Do not send another payment.',
   title: 'Payment method', closesIn: 'Order closes in {t}', orderNo: 'Order no.', methodLabel: 'Pay with', close: 'Close', back: 'Back',
   wallet: 'Wallet balance', walletAvailable: '{amt} USDT available', walletUnavailable: 'Balance unavailable. Choose another method.', short: 'Insufficient balance. {amt} USDT short', topup: 'Top up',
   bank: 'Bank card payment', bankHint: 'Pay on the payment page with your banking app', usdt: 'USDT', usdtHint: 'Transfer from an external wallet', unavailable: 'Unavailable. Choose another method.',
@@ -62,8 +64,8 @@ const en: typeof zh = {
   paidAmount: 'Amount paid', paidMethod: 'Paid with', product: 'Item', leaveOk: 'You can leave this page. We will notify you when setup is done.', viewOrder: 'View order',
   leaveTitle: 'Payment in progress', leaveBody: 'You can continue from the order details later. Please do not pay twice.', continuePay: 'Continue paying', leave: 'Leave',
   bankFailedTitle: 'Bank payment failed', bankFailed: 'Try again or choose another method.', retryPay: 'Pay again', switchMethod: 'Change method',
-  timeoutTitle: 'Payment timed out. Order cancelled', timeout: 'No payment arrived before the deadline. Stock and vouchers have been returned. If you already paid, contact support.',
-  timeoutOtherTitle: 'Payment timed out', timeoutOther: 'No payment arrived before the deadline, so this payment has closed. If you already paid, contact support.', reorder: 'Order again', ok: 'OK',
+  timeoutTitle: 'Payment timed out. Order cancelled', timeout: 'The payment deadline has passed and the order is cancelled. If you already paid, do not pay again. Contact support to check your payment.',
+  timeoutOtherTitle: 'Payment timed out', timeoutOther: 'The payment deadline has passed and this payment has closed. If you already paid, do not pay again. Contact support to check your payment.', reorder: 'Order again', ok: 'OK',
   reviewTitle: 'Confirming your payment', reviewMismatch: 'The amount paid does not match the order. Support will help sort it out. Please do not pay again.', reviewOther: 'This payment needs a little more time to confirm. Support will help. Please do not pay again.',
   lateTitle: 'Late payment received', late: 'The order had already closed. Support will help you with this payment.',
   deliveryTitle: 'Device setup issue', delivery: 'Your payment arrived. Support will help finish the setup.', support: 'Contact support',
@@ -72,6 +74,7 @@ const en: typeof zh = {
   resume: 'A payment is in progress', view: 'View payment', review: 'Confirming your payment', ended: 'This payment has ended', delivered: 'Payment completed',
 };
 const vi: typeof zh = {
+  confirming: 'Đang xác nhận thanh toán', confirmWait: 'Đã hết thời gian thanh toán. Chúng tôi đang kiểm tra khoản tiền gửi trước hạn. Vui lòng không thanh toán thêm.',
   title: 'Phương thức thanh toán', closesIn: 'Đơn tự đóng sau {t}', orderNo: 'Mã đơn', methodLabel: 'Thanh toán bằng', close: 'Đóng', back: 'Quay lại',
   wallet: 'Số dư ví', walletAvailable: 'Khả dụng {amt} USDT', walletUnavailable: 'Chưa đọc được số dư. Vui lòng chọn cách khác.', short: 'Số dư không đủ, còn thiếu {amt} USDT', topup: 'Nạp tiền',
   bank: 'Thanh toán thẻ ngân hàng', bankHint: 'Mở trang thanh toán và trả bằng app ngân hàng', usdt: 'USDT', usdtHint: 'Chuyển từ ví bên ngoài', unavailable: 'Tạm không khả dụng, vui lòng chọn cách khác',
@@ -98,8 +101,8 @@ const vi: typeof zh = {
   paidAmount: 'Số tiền đã trả', paidMethod: 'Phương thức', product: 'Sản phẩm', leaveOk: 'Bạn có thể rời trang này, chúng tôi sẽ báo khi kích hoạt xong', viewOrder: 'Xem đơn hàng',
   leaveTitle: 'Thanh toán đang diễn ra', leaveBody: 'Bạn có thể tiếp tục trong chi tiết đơn hàng. Vui lòng không thanh toán lại.', continuePay: 'Tiếp tục thanh toán', leave: 'Rời đi',
   bankFailedTitle: 'Thanh toán ngân hàng không thành công', bankFailed: 'Bạn có thể thanh toán lại hoặc chọn cách khác.', retryPay: 'Thanh toán lại', switchMethod: 'Đổi phương thức',
-  timeoutTitle: 'Quá hạn thanh toán, đơn đã hủy', timeout: 'Chưa nhận được thanh toán trước hạn. Hàng và voucher đã được hoàn lại. Nếu bạn đã thanh toán, vui lòng liên hệ hỗ trợ.',
-  timeoutOtherTitle: 'Quá hạn thanh toán', timeoutOther: 'Chưa nhận được thanh toán trước hạn nên lần thanh toán này đã đóng. Nếu bạn đã thanh toán, vui lòng liên hệ hỗ trợ.', reorder: 'Đặt lại', ok: 'Đã hiểu',
+  timeoutTitle: 'Quá hạn thanh toán, đơn đã hủy', timeout: 'Đã hết thời hạn thanh toán và đơn đã hủy. Nếu bạn đã thanh toán, vui lòng không trả lại lần nữa và liên hệ hỗ trợ để kiểm tra.',
+  timeoutOtherTitle: 'Quá hạn thanh toán', timeoutOther: 'Đã hết thời hạn và lần thanh toán này đã đóng. Nếu bạn đã thanh toán, vui lòng không trả lại lần nữa và liên hệ hỗ trợ để kiểm tra.', reorder: 'Đặt lại', ok: 'Đã hiểu',
   reviewTitle: 'Đang xác nhận thanh toán', reviewMismatch: 'Số tiền đã trả không khớp với đơn. Bộ phận hỗ trợ sẽ giúp bạn xử lý, vui lòng không thanh toán lại.', reviewOther: 'Khoản thanh toán này cần thêm thời gian để xác nhận. Bộ phận hỗ trợ sẽ giúp bạn, vui lòng không thanh toán lại.',
   lateTitle: 'Đã nhận khoản thanh toán trễ hạn', late: 'Đơn đã đóng do quá hạn. Bộ phận hỗ trợ sẽ giúp bạn xử lý khoản thanh toán này.',
   deliveryTitle: 'Kích hoạt thiết bị gặp sự cố', delivery: 'Đã nhận thanh toán. Bộ phận hỗ trợ sẽ giúp bạn hoàn tất kích hoạt.', support: 'Liên hệ hỗ trợ',

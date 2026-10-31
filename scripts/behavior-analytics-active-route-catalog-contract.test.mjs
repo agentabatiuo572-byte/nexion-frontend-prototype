@@ -8,13 +8,14 @@ const pages = JSON.parse(readFileSync(new URL("../src/pages.json", import.meta.u
 // 原先兄弟仓写死 `../nexion-backend`,连 NEXGRID_BACKEND_ROOT 都不认;缺仓时整条目录门 ENOENT。
 const { root: backendRoot, missing: backendMissing } = resolveSiblingRepo("nexion-backend", "NEXGRID_BACKEND_ROOT");
 // Published migration checksums are immutable. New routes belong in additive migrations.
-const migrationPaths = [
-  "20260811_l6_h5_active_route_catalog.sql",
-  "20260915_l6_bank_withdrawal_route.sql",
-  "20260916_l6_withdrawal_method_route.sql",
-  "20261008_l6_promotion_reward_routes.sql",
-  "20261029_l6_trust_document_routes.sql",
-].map((name) => resolve(backendRoot, "scripts", "migrations", name));
+function catalogMigrations() {
+  const installer = readFileSync(resolve(backendRoot, "scripts", "apply_startup_schema_migrations.ps1"), "utf8");
+  const names = [...installer.matchAll(/scripts\\migrations\\([^"\r\n]+\.sql)/g)].map(([, name]) => name);
+  assert.equal(new Set(names).size, names.length, "startup migrations must be registered once");
+  const baseline = names.indexOf("20260811_l6_h5_active_route_catalog.sql");
+  assert.ok(baseline >= 0, "the active catalog baseline must remain registered");
+  return names.slice(baseline).map((name) => readFileSync(resolve(backendRoot, "scripts", "migrations", name), "utf8"));
+}
 
 function manifestRoutes() {
   // The native container reports its active business route, never a sixth analytics page.
@@ -22,13 +23,26 @@ function manifestRoutes() {
 }
 
 function catalogRoutes(sql) {
-  return [...sql.matchAll(/^(?:VALUES )?\('(\/pages\/[^']+)'[^\n]*\),?\r?$/gm)]
-    .map(([, route]) => route)
-    .sort();
+  const active = new Map();
+  for (const [statement] of sql.matchAll(/(?:INSERT INTO|UPDATE)\s+nx_behavior_page_catalog\b[\s\S]*?;/gi)) {
+    if (/^INSERT/i.test(statement)) {
+      assert.match(statement, /ON DUPLICATE KEY UPDATE[\s\S]*tracked=1[\s\S]*is_deleted=0/);
+      const rows = [...statement.matchAll(/\('(\/pages\/[^']+)'[^\n]*?\)/g)];
+      assert.ok(rows.length > 0, "catalog inserts must expose their literal routes");
+      for (const [, route] of rows) active.set(route, true);
+    } else {
+      assert.match(statement, /SET tracked=0,is_deleted=0,[\s\S]*WHERE route IN \(/);
+      for (const [, route] of statement.matchAll(/'(\/pages\/[^']+)'/g)) {
+        assert.ok(active.has(route), `retirement must retain an existing row: ${route}`);
+        active.set(route, false);
+      }
+    }
+  }
+  return [...active].filter(([, tracked]) => tracked).map(([route]) => route).sort();
 }
 
 test("every normalized UniApp business page route has one tracked backend catalog row", { skip: backendMissing }, () => {
-  const migration = migrationPaths.map((file) => readFileSync(file, "utf8")).join("\n");
+  const migration = catalogMigrations().join("\n");
   assert.deepEqual(catalogRoutes(migration), manifestRoutes());
   assert.match(migration, /ON DUPLICATE KEY UPDATE[\s\S]*tracked=1[\s\S]*is_deleted=0/);
 });

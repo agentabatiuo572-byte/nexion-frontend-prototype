@@ -29,7 +29,8 @@ async function opened(deadlineAt?: number | null) {
 describe('automatic external payment', () => {
   it.each([
     ['EXPIRED', 'PAYMENT_TIMEOUT', 'timeout'], ['EXPIRED', 'PAYMENT_FAILED', 'bankFailed'], ['MANUAL_REVIEW', 'PAYMENT_AMOUNT_MISMATCH', 'review'],
-    ['MANUAL_REVIEW', 'PAYMENT_MULTIPLE_ARRIVALS', 'review'], ['MANUAL_REVIEW', 'PAYMENT_LATE_REVIEW', 'late'], ['MANUAL_REVIEW', 'PURCHASE_PAYMENT_DELIVERY_BLOCKED', 'delivery'],
+    ['MANUAL_REVIEW', 'PAYMENT_MULTIPLE_ARRIVALS', 'review'], ['MANUAL_REVIEW', 'PAYMENT_TIME_UNVERIFIED', 'review'],
+    ['MANUAL_REVIEW', 'PAYMENT_REFUNDED_REVIEW', 'review'], ['MANUAL_REVIEW', 'PAYMENT_LATE_REVIEW', 'late'], ['MANUAL_REVIEW', 'PURCHASE_PAYMENT_DELIVERY_BLOCKED', 'delivery'],
   ])('%s/%s ends in the %s notice and stops reading', async (status, reason, notice) => {
     const { payment } = await opened();
     ports.request.mockResolvedValueOnce(quote()).mockResolvedValueOnce(intent('AWAITING_PAYMENT')).mockResolvedValueOnce(intent(status, reason));
