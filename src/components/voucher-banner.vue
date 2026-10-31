@@ -12,7 +12,7 @@
           <text v-if="!hasClaimed">{{ copy.claimToUse }}</text>
           <view v-else class="vb-claimed">
             <text>{{ t.voucher.bannerClaimed }}</text><text aria-hidden="true"> · </text>
-            <view class="vb-use-link" role="link" tabindex="0" @click.stop="useVoucherNow" @keydown.enter.stop.prevent="useVoucherNow" @keydown.space.stop.prevent="useVoucherNow"><text>{{ t.voucher.bannerUse }}</text><text aria-hidden="true"> →</text></view>
+            <view class="vb-use-link" role="link" tabindex="0" @click.stop="useVoucherNow" @keydown.enter.stop.prevent="useVoucherNow"><text>{{ t.voucher.bannerUse }}</text><text aria-hidden="true"> →</text></view>
           </view>
         </view>
       </view>

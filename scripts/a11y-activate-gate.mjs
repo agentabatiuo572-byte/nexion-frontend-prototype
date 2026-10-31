@@ -39,8 +39,10 @@ const segmentsSource = existsSync(SEGMENTS) ? readFileSync(SEGMENTS, "utf8") : "
  * (禁了原生 button 就丢掉了它白送的键盘语义)是同一个坑,只是换了标签名。
  */
 const NATIVE = new Set(["button", "input", "select", "textarea", "a", "form"]);
-/** label 是表单代理:自身没有 handler 也能把激活转发给内部控件(已实景验证 uni-label 亦然)。 */
-const FORM_PROXY = new Set(["label"]);
+/** label 是表单代理:自身没有 handler 也能把激活转发给内部控件(已实景验证 uni-label 亦然)。
+ *  picker 自带激活:uni-h5 的 <uni-picker> 根节点内置 onClick → _show,模板上看不到 handler,
+ *  但平台层对它合成的 click 会打开选择器。它仍须自己写 role + tabindex(见上方 NATIVE 注释),这里只免「死控件」判定。 */
+const FORM_PROXY = new Set(["label", "picker"]);
 
 const findings = { A: [], B: [], C: [], D: [], E: [], F: [], G: [] };
 const LABEL = {
@@ -260,7 +262,9 @@ for (const file of files) {
       else if (!mods.includes(".prevent")) findings.C.push(`${at} <${t.tag}> @keydown.${k[3]} 缺 .prevent`);
     }
     // 裸 keydown:修饰符判据看不见,回查 handler 名在 script 里是否调了 preventDefault。
-    for (const k of a.matchAll(BARE_KEY_RE)) {
+    // 只判可激活 role 的元素:平台层只给它们合成 click(行为测试「没有可激活 role 的元素不被激活」),
+    // 无 role 的容器上挂 keydown(如音频解锁)不会双触发,反而不能 preventDefault —— 会吞掉层内输入框的按键。
+    for (const k of roleOk ? a.matchAll(BARE_KEY_RE) : []) {
       const body = k[1].trim();
       // 带参调用也要能取到函数名:`onRowKeydown($event, x, i)` → onRowKeydown。
       // 只认无参标识符会把它判成"取不到函数名"→ 回落到查 body 里有没有 preventDefault → 必然误报。

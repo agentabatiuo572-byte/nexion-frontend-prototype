@@ -39,7 +39,7 @@
           <text v-if="accountNotice !== 'ready'" class="hint warn-text" data-testid="bank-binding-status">{{ accountStatus }}</text>
         </view>
         <template v-if="changeLocked">
-          <view class="glass-action" role="button" tabindex="-1" aria-disabled="true" data-testid="bank-change"><LiquidGlass :radius="24" tone="control" /><text>{{ c.locked }}</text></view>
+          <view class="glass-action is-locked" data-testid="bank-change"><LiquidGlass :radius="24" tone="control" /><text>{{ c.locked }}</text></view>
           <text class="hint">{{ c.lockedReason }}</text>
           <view class="link-row" role="link" tabindex="0" @click="goWithdraw" @keydown.enter.prevent="goWithdraw"><text>{{ c.viewWithdrawal }}</text><text aria-hidden="true">›</text></view>
         </template>
@@ -147,6 +147,7 @@ import { bankAccountNotice } from "@/lib/bank-withdrawal-state";
 import { navReplace, navTo } from "@/lib/route";
 import { requireAccountPhone } from "@/lib/require-account-phone";
 import { useFinanceReviewCopy } from "@/lib/finance-review-copy";
+import { useDialogA11y } from "@/composables/use-dialog-a11y";
 
 const props = defineProps<{ active: boolean; returnTo: string }>();
 const t = useT(), c = computed(() => t.value.bankBinding), app = useApp();
@@ -210,6 +211,7 @@ function submitChange() {
   void form.submit(state.phase !== "uncertain");
 }
 function cancelReview() { review.value = null; focusTestId("bank-bind-continue"); }
+useDialogA11y(computed(() => review.value !== null), ".review-sheet-root", cancelReview);
 function confirmBinding() {
   const checked = review.value;
   if (!checked) return;
@@ -298,7 +300,7 @@ function goWithdraw() { navTo("/pages/me/wallet-withdraw-bank"); }
 .submit.ready:active { transform: scale(.98); }
 /* Neutral glass L (03 §3.1). */
 .glass-action { position: relative; isolation: isolate; display: grid; place-items: center; min-height: 48px; border-radius: 24px; color: var(--v5-ink); font: var(--ui-type-button-weight) var(--ui-type-button)/var(--ui-type-button-lh) var(--font-v5); cursor: pointer; }
-.glass-action[aria-disabled="true"] { opacity: .5; cursor: default; }
+.glass-action[aria-disabled="true"], .glass-action.is-locked { opacity: .5; cursor: default; }
 .glass-action > text { position: relative; z-index: 1; }
 .footnote { padding: 0 4px; }
 .footnote-row { display: flex; gap: 8px; padding: 0 4px; color: var(--v5-ink-3); font: 400 var(--ui-type-note)/var(--ui-type-note-lh) var(--font-v5); }

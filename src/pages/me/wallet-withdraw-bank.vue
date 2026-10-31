@@ -90,13 +90,13 @@
         <text class="intro">{{ formStep === 'amount' ? c.amountHint : c.recipientSubtitle }}</text>
         <template v-if="formStep === 'account'">
           <view class="account-card"><text class="muted">{{ c.recipientTitle }}</text><text class="account-number">—</text><text class="bank-name">—</text></view>
-          <view class="action primary" role="button" tabindex="-1" data-testid="bank-continue" :aria-disabled="true"><text>{{ c.continueWithdrawal }}</text></view>
+          <view class="action primary is-placeholder" aria-hidden="true" data-testid="bank-continue"><text>{{ c.continueWithdrawal }}</text></view>
         </template>
         <template v-else>
           <text class="field-label">{{ c.totalDebit }} · USDT</text>
-          <view class="amount-input"><input data-testid="bank-amount" type="text" inputmode="decimal" disabled placeholder="—" :aria-label="c.amount" /><view class="use-max" role="button" tabindex="-1" aria-disabled="true"><text>{{ c.all }}</text></view></view>
+          <view class="amount-input"><input data-testid="bank-amount" type="text" inputmode="decimal" disabled placeholder="—" :aria-label="c.amount" /><view class="use-max is-placeholder" aria-hidden="true"><text>{{ c.all }}</text></view></view>
           <view class="notice"><text>{{ c.feeIncluded }}</text></view>
-          <view class="action primary" role="button" tabindex="-1" data-testid="bank-quote" :aria-disabled="true"><text>{{ c.quote }}</text></view>
+          <view class="action primary is-placeholder" aria-hidden="true" data-testid="bank-quote"><text>{{ c.quote }}</text></view>
           <view class="action secondary" role="button" tabindex="0" :aria-disabled="busy" @click="goBack"><text>{{ c.backToAccount }}</text></view>
         </template>
         <view v-if="error" class="action secondary" role="button" tabindex="0" data-testid="bank-refresh" :aria-disabled="busy" @click="load" @keydown.enter.prevent="load" @keydown.space.prevent="load"><text>{{ c.reload }}</text></view>
@@ -333,7 +333,7 @@ onUnload(() => { alive = false; visible = false; stopTimer(); stopRuntime(); rev
 .action { min-height: 50px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 12px 20px; border-radius: 999px; font-size: var(--ui-type-button); font-weight: 600; cursor: pointer; box-sizing: border-box; }
 .primary { background: var(--v5-brand); color: var(--v5-on-brand); margin-top: 24px; }
 .secondary { background: var(--v5-surface-2); color: var(--v5-ink); margin-top: 12px; }
-[aria-disabled="true"] { opacity: .4; cursor: default; }
+[aria-disabled="true"], .is-placeholder { opacity: .4; cursor: default; }
 .action:focus-visible, .use-max:focus-visible, .consent:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 .field-label { display: block; font-size: 12px; color: var(--v5-ink-2); margin: 18px 0 6px; }
 .amount-input { display: flex; align-items: center; gap: 8px; border: 1px solid var(--v5-border-strong); border-radius: 12px; padding: 8px 12px; }

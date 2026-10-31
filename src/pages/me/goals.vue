@@ -84,7 +84,7 @@
       <view v-if="recommendationWarmDisplay" class="mx-4" :style="recCardStyle">
         <text class="block" :style="recHeaderStyle">{{ t.goals.recHeader }}</text>
         <text class="block" :style="recPathStyle">{{ recommendationWarmDisplay }}</text>
-        <view class="inline-flex items-center" :style="recCtaStyle" role="button" tabindex="-1" aria-disabled="true" :aria-label="t.goals.shopCta"><text :style="recCtaLabelStyle">{{ t.goals.shopCta }}</text><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg></view>
+        <view class="inline-flex items-center" :style="recCtaStyle" aria-hidden="true"><text :style="recCtaLabelStyle">{{ t.goals.shopCta }}</text><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg></view>
       </view>
       <view v-else-if="editorHasSnapshot && target > 0 && remoteApiEnabled && goalsStore.recommendationStatus === 'loading'" class="nx-glass-card mx-4" :style="recCardStyle">
         <text class="block" :style="recHeaderStyle">{{ t.goals.recHeader }}</text>

@@ -3,7 +3,7 @@
     <view class="team-ledger__header">
       <text class="team-ledger__title">{{ copy.monthIncome }}</text>
       <DataVisibilityToggle />
-      <view class="nx-team-commissions-link team-ledger__details" role="link" tabindex="0" @click="goCommissions" @keydown.enter.prevent="goCommissions" @keydown.space.prevent="goCommissions">
+      <view class="nx-team-commissions-link team-ledger__details" role="link" tabindex="0" @click="goCommissions" @keydown.enter.prevent="goCommissions">
         <text>{{ copy.details }}</text><text aria-hidden="true">›</text>
       </view>
     </view>

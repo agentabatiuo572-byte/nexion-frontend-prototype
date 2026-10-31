@@ -10,7 +10,7 @@
         <view class="nx-wallet-symbol" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M20 7H5a2 2 0 0 1 0-4h13v4M3 5v14a2 2 0 0 0 2 2h15V7M20 12h-5v5h5" /></svg></view>
         <text class="nx-wallet-title">{{ t.me.myWallet }}</text>
         <DataVisibilityToggle />
-        <view class="nx-wallet-heading-link" data-me-action="wallet-bills" role="link" tabindex="0" :aria-label="t.me.walletBillsShort" @click="goBills" @keydown.enter.prevent="goBills" @keydown.space.prevent="goBills">
+        <view class="nx-wallet-heading-link" data-me-action="wallet-bills" role="link" tabindex="0" :aria-label="t.me.walletBillsShort" @click="goBills" @keydown.enter.prevent="goBills">
         <text v-if="compact" class="nx-wallet-heading-bills">{{ t.me.walletBillsShort }}</text>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
         </view>

@@ -147,6 +147,7 @@ const results = [
   // 死控件:有身份、能聚焦、却没有任何激活 handler。本层还会先 preventDefault 再打空,
   // 连 Space 翻页都被吃掉 —— 用户得到"看起来能按、按了绝对没反应"。
   redtestTemplate("A 死控件(有 role+tabindex 无 handler)", "A", `  <view role="button" tabindex="0">dead</view>`),
+  greentestTemplate("A picker 自带激活不算死控件", `  <picker mode="date" role="button" tabindex="0" aria-label="date" @change="noop"><view>d</view></picker>`, "function noop() {}"),
   // 解析器被吞元素必须阻断:属性里的未平衡引号会让状态机跨过后续标签。
   // 未闭合的引号会让状态机一路吃到下一个引号,把中间的元素整个吞掉 —— 正是"扫得少所以全绿"。
   redtestTemplate("D 解析基数不符(元素被静默吞掉)", "D", `  <view :style="unclosed><text>x</text></view>`),
@@ -162,6 +163,8 @@ const results = [
   redtestVisible("F 额外分支不冒认有限分支", "F", `state === 'error' ? 'alert' : other ? 'button' : 'status'`, `<view :role="state === 'error' ? 'alert' : other ? 'button' : 'status'">state</view>`),
   redtestTemplate("C keydown 缺 .prevent", "C", `  <view role="button" tabindex="0" @click="noop" @keydown.enter="noop">x</view>`),
   redtestTemplate("C keyup 上的 .prevent 拦不住 keydown 层", "C", `  <view role="button" tabindex="0" @click="noop" @keyup.enter.prevent="noop">x</view>`),
+  redtestTemplate("C 可激活控件上的裸 keydown 无 preventDefault", "C", `  <view role="button" tabindex="0" @click="noop" @keydown="noop">x</view>`),
+  greentestTemplate("C 无 role 容器上的裸 keydown 不判", `  <view @keydown="noop">x</view>`, "function noop() {}"),
   // 弹层没接焦点管理:遮罩只拦指针不拦键盘,打开后 Tab 会走到背景(那里有花钱的按钮)。
   redtestTemplate("G 弹层无焦点管理", "G", `  <view v-if="open" style="position: fixed; inset: 0">panel</view>`),
   redtestTemplate("E 悬空 aria 引用", "E", `  <view role="button" tabindex="0" aria-describedby="nope" @click="noop">x</view>`),
