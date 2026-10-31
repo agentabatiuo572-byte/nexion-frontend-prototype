@@ -33,7 +33,8 @@
           @retry="network.refreshCanonicalNetwork()"
         />
 
-        <!-- My V-rank summary: badge, the gap to the next rank and one bar per next-rank condition. -->
+        <!-- My V-rank summary -->
+        <!-- Badge, the gap to the next rank and one bar per next-rank condition. -->
         <view class="nx-team-rank-link team-rank nx-viz-press" role="link" tabindex="0" :aria-label="t.team.rankBenefits" @click="go('/pages/team/rank')" @keydown.enter.prevent="go('/pages/team/rank')" @keydown.space.prevent="go('/pages/team/rank')">
           <view class="team-rank__header"><text class="team-rank__title">{{ designCopy.myRank }}</text><text class="team-rank__chev" aria-hidden="true">›</text></view>
           <view class="team-rank__identity">
