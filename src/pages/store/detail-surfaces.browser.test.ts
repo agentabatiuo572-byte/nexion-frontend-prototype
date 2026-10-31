@@ -122,14 +122,15 @@ async function fixture(page: Page, raw: string, language: "zh" | "en" | "vi", th
 async function glassFacts(page: Page) {
   return page.evaluate(() => {
     const bar = document.querySelector(".scb-bar")!, root = getComputedStyle(bar), decoration = getComputedStyle(bar, "::before");
-    const nested = Array.from(document.querySelectorAll(".scb-quantity .nx-liquid-glass")).map(glass => {
+    // NxButton now uses the shared frosted surface; saved historical markup uses LiquidGlass.
+    const nested = Array.from(document.querySelectorAll(".scb-quantity .nx-frosted-button, .scb-quantity .nx-liquid-glass")).map(glass => {
       let count = 0;
       for (let node = glass.parentElement; node; node = node.parentElement) if (getComputedStyle(node).backdropFilter !== "none") count++;
       return count;
     });
     const aura = document.querySelector('.nx-glass-card > [aria-hidden]')!;
     return { rootBlur: root.backdropFilter, decorationBlur: decoration.backdropFilter,
-      decorationBackground: decoration.backgroundImage, decorationEvents: decoration.pointerEvents,
+      decorationBackground: decoration.backgroundImage, decorationColor: decoration.backgroundColor, decorationEvents: decoration.pointerEvents,
       transform: root.transform, filter: root.filter, clipPath: root.clipPath,
       buttonGlassCount: nested.length, buttonBackdropAncestors: nested,
       auraFilter: getComputedStyle(aura).filter, auraAnimation: getComputedStyle(aura).animationName };
@@ -164,7 +165,8 @@ for (const width of [320, 390]) for (const language of ["zh", "en", "vi"] as con
       expect(facts).toMatchObject({ rootBlur: "none", decorationBlur: "blur(22px) saturate(1.8)", decorationEvents: "none",
         transform: "none", filter: "none", clipPath: "none", buttonGlassCount: 2, buttonBackdropAncestors: [0, 0],
         auraFilter: "none", auraAnimation: "none" });
-      expect(facts.decorationBackground).toContain("rgba(");
+      expect(facts.decorationBackground).toBe("none");
+      expect(facts.decorationColor).toMatch(/(?:,|\/)\s*0\.76\)$/);
       const bar = page.locator(".scb-outer"), before = await bar.boundingBox();
       await capture(page, `detail-${width}-${language}-${theme}`);
       for (const scroll of [170, 330, 510, 700, 510, 330, 170, 0]) {

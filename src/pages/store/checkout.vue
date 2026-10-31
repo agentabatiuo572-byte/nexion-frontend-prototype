@@ -12,33 +12,33 @@
       <view v-if="pendingCheckoutCreate && !createdCheckoutOrder && !paymentFlowBusy" class="checkout-exit-error" role="status">
         <text>{{ t.store.coRecoverOriginalOrder }}</text><NxButton :label="t.store.catalogRetry" :busy="checkoutLeaving" @click="recoverCheckoutCreation" />
       </view>
-      <view v-else-if="keepCheckoutTarget" class="text-center" role="status" style="padding:20px">
+      <view v-else-if="keepCheckoutTarget" class="text-center" role="status" style="padding:var(--v5-space-5)">
         <text class="block">{{ keepCheckoutReadError ? t.tradein.keepRecoveryReadError : t.tradein.keepRecoveryPending }}</text>
         <NxButton :label="t.tradein.keepRecoveryAction" @click="recoverKeepBeforePurchase([keepCheckoutTarget])" />
       </view>
-      <view v-else-if="remoteTradeinRecoveryError" class="text-center" role="status" style="padding:20px">
-        <text class="block" style="font-size:13px;color:var(--v5-ink-2);margin-bottom:12px">{{ t.tradein.recoveryPending }}</text>
+      <view v-else-if="remoteTradeinRecoveryError" class="text-center" role="status" style="padding:var(--v5-space-5)">
+        <text class="block" style="font-size:13px;color:var(--v5-ink-2);margin-bottom:var(--v5-space-3)">{{ t.tradein.recoveryPending }}</text>
         <NxButton :label="t.store.catalogRetry" :busy="remoteTradeinRecoveryBusy" @click="resumePendingRemoteTradein(captureCheckoutRoute(), true, true)" />
       </view>
-      <view v-else-if="catalogStatus === 'loading'" class="text-center" style="padding: 20px">
-        <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); margin-bottom: 12px">{{ t.store.catalogLoadingTitle }}</text>
+      <view v-else-if="catalogStatus === 'loading'" class="text-center" style="padding: var(--v5-space-5)">
+        <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); margin-bottom: var(--v5-space-3)">{{ t.store.catalogLoadingTitle }}</text>
       </view>
 
-      <view v-else-if="catalogStatus === 'error'" class="text-center" style="padding: 20px">
-        <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); margin-bottom: 12px">{{ t.store.catalogErrorTitle }}</text>
+      <view v-else-if="catalogStatus === 'error'" class="text-center" style="padding: var(--v5-space-5)">
+        <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); margin-bottom: var(--v5-space-3)">{{ t.store.catalogErrorTitle }}</text>
         <view class="inline-flex items-center justify-center active:opacity-90" :style="notFoundBtnStyle" role="button" tabindex="0" @click.stop="goStore">
           <text>{{ t.store.coBackToStore }}</text>
         </view>
       </view>
 
-      <view v-else-if="trialQuoteScreenUnavailable" class="text-center" role="status" style="padding: 24px 16px">
+      <view v-else-if="trialQuoteScreenUnavailable" class="text-center" role="status" style="padding: var(--v5-space-6) var(--v5-space-4)">
         <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3)">{{ freeTrial.authorityStatus === 'loading' ? t.trial.entryChecking : t.trial.entryUnavailable }}</text>
         <NxButton variant="secondary" :label="t.trial.entryRetry" :busy="freeTrial.authorityStatus === 'loading'" @click="freeTrial.refreshRemote(true)" />
       </view>
 
       <!-- Product not found -->
-      <view v-else-if="!product" class="text-center" style="padding: 20px">
-        <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); margin-bottom: 12px">{{ t.store.coProductNotFound }}</text>
+      <view v-else-if="!product" class="text-center" style="padding: var(--v5-space-5)">
+        <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); margin-bottom: var(--v5-space-3)">{{ t.store.coProductNotFound }}</text>
         <view class="inline-flex items-center justify-center active:opacity-90" :style="notFoundBtnStyle" role="button" tabindex="0" @click.stop="goStore">
           <text>{{ t.store.coBackToStore }}</text>
         </view>
@@ -71,7 +71,7 @@
         <view v-if="receiptWriteFailure && !activeSession" class="nx-glass-card mx-4 rounded-2xl text-center nx-step-in" :style="receiptFailureCardStyle">
           <text class="block" :style="centerTitleStyle">{{ t.errors.billMissingTitle }}</text>
           <text class="block" style="margin-top: 6px; font-size: 12px; line-height: 1.5; color: var(--v5-ink-3)">{{ t.errors.billMissingMsg }}</text>
-          <view class="inline-flex items-center justify-center active:opacity-80" :style="doneBtnStyle" role="button" tabindex="0" style="margin-top: 16px" :aria-disabled="receiptRetrying" @click.stop="retryReceiptWrite">
+          <view class="inline-flex items-center justify-center active:opacity-80" :style="doneBtnStyle" role="button" tabindex="0" style="margin-top: var(--v5-space-4)" :aria-disabled="receiptRetrying" @click.stop="retryReceiptWrite">
             <text>{{ receiptRetrying ? t.store.catalogLoadingTitle : t.store.catalogRetry }}</text>
           </view>
         </view>
@@ -165,7 +165,7 @@
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
           </view>
           <text class="block" :style="centerTitleStyle">{{ remoteOrderFailure ? t.tradein.errPurchaseFailed : t.store.coAwaiting }}</text>
-          <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3); line-height: 1.4; padding: 0 8px">{{ remoteOrderFailure ? t.store.coRecoverOriginalOrder : remoteApiEnabled ? t.store.coAwaitingServer : isCard ? t.store.coAwaitingCard : t.store.coAwaitingChain }}</text>
+          <text class="block" style="margin-top: var(--v5-space-1); font-size: 12px; color: var(--v5-ink-3); line-height: 1.4; padding: 0 8px">{{ remoteOrderFailure ? t.store.coRecoverOriginalOrder : remoteApiEnabled ? t.store.coAwaitingServer : isCard ? t.store.coAwaitingCard : t.store.coAwaitingChain }}</text>
           <view v-if="orderId" class="inline-flex items-center justify-center active:opacity-80" :style="doneBtnStyle" role="button" tabindex="0" style="margin-top: 14px" :aria-label="t.store.coTrackOrder" @click.stop="goTrack">
             <text>{{ t.store.coTrackOrder }}</text>
           </view>
@@ -181,10 +181,10 @@
               <view class="mx-auto grid place-items-center nx-pop-in" :style="medalStyle">
                 <text style="font-size: 26px">🏅</text>
               </view>
-              <text class="block" :style="centerTitleStyle" style="margin-top: 12px">{{ t.store.firstOrderTitle }}</text>
-              <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-2); line-height: 1.4">{{ t.store.firstOrderBody }}</text>
+              <text class="block" :style="centerTitleStyle" style="margin-top: var(--v5-space-3)">{{ t.store.firstOrderTitle }}</text>
+              <text class="block" style="margin-top: var(--v5-space-1); font-size: 12px; color: var(--v5-ink-2); line-height: 1.4">{{ t.store.firstOrderBody }}</text>
               <!-- No server grants a first-hardware reward, so the achievement line stays in the local demo only. -->
-              <view v-if="!remoteApiEnabled" class="inline-flex items-center justify-center" style="margin-top: 8px; gap: 4px; font-size: 12px; color: var(--v5-brand)">
+              <view v-if="!remoteApiEnabled" class="inline-flex items-center justify-center" style="margin-top: var(--v5-space-2); gap: var(--v5-space-1); font-size: 12px; color: var(--v5-brand)">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.34 12 22l2.06-7.66L22 12l-7.94-2.34L12 2 9.94 9.66 2 12z" /></svg>
                 <text>{{ t.store.firstOrderAchievement }}</text>
               </view>
@@ -195,7 +195,7 @@
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
             </view>
             <text class="block" :style="centerTitleStyle" style="color: var(--v5-brand)">{{ t.store.coPaymentConfirmed }}</text>
-            <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ t.store.coConfirmedSub }}</text>
+            <text class="block" style="margin-top: var(--v5-space-1); font-size: 12px; color: var(--v5-ink-3)">{{ t.store.coConfirmedSub }}</text>
           </template>
         </view>
 
@@ -205,11 +205,11 @@
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
           </view>
           <text class="block" :style="centerTitleStyle">{{ t.store.coActivating }}</text>
-          <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3)">{{ activatingSubText }}</text>
-          <view class="mx-auto rounded-full overflow-hidden" style="margin-top: 16px; max-width: 200px; height: 6px; background: var(--v5-surface-2)">
+          <text class="block" style="margin-top: var(--v5-space-1); font-size: 12px; color: var(--v5-ink-3)">{{ activatingSubText }}</text>
+          <view class="mx-auto rounded-full overflow-hidden" style="margin-top: var(--v5-space-4); max-width: 200px; height: 6px; background: var(--v5-surface-2)">
             <view class="h-full nx-progress-fill" style="background: var(--v5-brand)" />
           </view>
-          <view v-if="orderId" class="inline-flex items-center justify-center active:opacity-80" :style="doneBtnStyle" role="button" tabindex="0" style="margin-top: 16px" :aria-label="t.store.coTrackOrder" @click.stop="goTrack">
+          <view v-if="orderId" class="inline-flex items-center justify-center active:opacity-80" :style="doneBtnStyle" role="button" tabindex="0" style="margin-top: var(--v5-space-4)" :aria-label="t.store.coTrackOrder" @click.stop="goTrack">
             <text>{{ t.store.coTrackOrder }}</text>
           </view>
         </view>
@@ -220,8 +220,8 @@
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--v5-brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" /><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" /><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" /><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" /></svg>
           </view>
           <text class="block" :style="liveTitleStyle">{{ completedOrderTitle }}</text>
-          <text class="block" style="margin-top: 4px; font-size: 12px; color: var(--v5-ink-3); line-height: 1.45; padding: 0 4px">{{ orderPlacedBody }}</text>
-          <view class="flex" style="margin-top: 20px; gap: 8px">
+          <text class="block" style="margin-top: var(--v5-space-1); font-size: 12px; color: var(--v5-ink-3); line-height: 1.45; padding: 0 4px">{{ orderPlacedBody }}</text>
+          <view class="flex" style="margin-top: var(--v5-space-5); gap: var(--v5-space-2)">
             <view class="flex-1 grid place-items-center active:opacity-90" :style="trackBtnStyle" role="button" tabindex="0" :aria-label="t.store.coTrackOrder" @click.stop="goTrack">
               <text @click.stop="goTrack">{{ t.store.coTrackOrder }}</text>
             </view>
@@ -2806,7 +2806,7 @@ const changePayBtnStyle: CSSProperties = {
 };
 const centerCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
   background: "var(--nx-glass-fill)",
-  padding: "24px",
+  padding: "var(--v5-space-6)",
 };
 // awaiting / activating / confirmed-check spinner — brand 15% (source).
 const spinnerWrapStyle: CSSProperties = {
@@ -2846,7 +2846,7 @@ const liveCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", b
   // uses --v5-surface (not the source's hardcoded #0F0F0F) for dual-theme safety.
   background:
     "var(--nx-glass-fill)",
-  padding: "24px",
+  padding: "var(--v5-space-6)",
 };
 const liveTitleStyle: CSSProperties = {
   marginTop: "16px",
@@ -2873,7 +2873,7 @@ const doneBtnStyle: CSSProperties = {
   fontSize: "13px",
 };
 const receiptFailureCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-radius)", boxShadow: "var(--nx-glass-edge)",
-  padding: "24px 20px",
+  padding: "var(--v5-space-6) var(--v5-space-5)",
   background: "var(--nx-glass-fill)",
 };
 
@@ -2918,21 +2918,21 @@ const receiptFailureCardStyle: CSSProperties = { borderRadius: "var(--nx-glass-r
 .checkout-header { margin-bottom:0; }
 .checkout-content { color:var(--v5-ink); padding-top:8px; padding-bottom:120px; }
 .checkout-content--result { padding-block: 0; }
-.checkout-steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin:0 16px; }
+.checkout-steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--v5-space-2); margin:0 16px; }
 .checkout-step-track { height:3px; border-radius:999px; background:var(--v5-surface-3); }
 .checkout-step-fill { height:100%; border-radius:inherit; }
-.checkout-step-label { display:block; margin-top:8px; font:400 12.5px/18px var(--font-v5); color:var(--v5-ink-3); }
+.checkout-step-label { display:block; margin-top:var(--v5-space-2); font:400 12.5px/18px var(--font-v5); color:var(--v5-ink-3); }
 .checkout-step-label--active { color:var(--v5-brand); font-weight:600; }
 .checkout-group { position:relative; overflow:hidden; border:1px solid var(--v5-border); border-radius:22px; background:var(--ui-content-surface); }
-.checkout-product { display:flex; align-items:center; gap:12px; min-height:90px; margin:20px 16px 0; padding:10px 16px; }
+.checkout-product { display:flex; align-items:center; gap:var(--v5-space-3); min-height:90px; margin:var(--v5-space-5) var(--v5-space-4) 0; padding:10px 16px; }
 .checkout-product-art { display:grid; place-items:center; flex:none; width:68px; height:68px; border-radius:16px; overflow:hidden; background:radial-gradient(60% 30% at 50% 84%,color-mix(in srgb,var(--ui-lime-soft) 35%,transparent),transparent 70%),linear-gradient(180deg,var(--ui-content-surface-3),var(--ui-content-surface-2)); }
 .checkout-product-art image { width:74px; height:74px; }
 .checkout-product-copy { flex:1; min-width:0; }
 .checkout-product-name { display:block; font:500 var(--ui-type-list-title)/20px var(--font-v5); overflow-wrap:anywhere; }
 .checkout-product-meta { display:block; margin-top:2px; font:400 var(--ui-type-list-subtitle)/18px var(--font-v5); color:var(--v5-ink-3); }
-.checkout-product-price { display:block; margin-top:4px; font:600 15px/20px var(--font-v5); font-variant-numeric:tabular-nums; }
+.checkout-product-price { display:block; margin-top:var(--v5-space-1); font:600 15px/20px var(--font-v5); font-variant-numeric:tabular-nums; }
 .checkout-quantity { flex:none; text-align:center; }
-.checkout-quantity-controls { display:flex; align-items:center; margin-top:4px; border:1px solid var(--v5-border); border-radius:999px; background:var(--ui-content-surface-2); }
+.checkout-quantity-controls { display:flex; align-items:center; margin-top:var(--v5-space-1); border:1px solid var(--v5-border); border-radius:999px; background:var(--ui-content-surface-2); }
 .checkout-quantity-button { display:grid; place-items:center; width:44px; min-height:44px; border-radius:999px; font:400 18px/20px var(--font-v5); cursor:pointer; }
 .checkout-quantity-button[aria-disabled="true"],.checkout-quantity-button[disabled] { opacity:.35; cursor:default; }
 button.checkout-quantity-button {margin:0;padding:0;background:transparent;color:inherit;border:0;}
@@ -2943,9 +2943,9 @@ button.checkout-quantity-button::after {border:0;}
   .checkout-product { display:grid;grid-template-columns:68px minmax(0,1fr);gap:10px 12px; }
   .checkout-quantity { grid-column:2;justify-self:start;text-align:left; }
 }
-.checkout-section { margin:20px 16px 0; }
+.checkout-section { margin:var(--v5-space-5) var(--v5-space-4) 0; }
 .checkout-section-heading { display:flex; align-items:center; min-height:44px; padding:0 2px; font:600 var(--ui-type-section)/20px var(--font-v5); letter-spacing:-.012em; }
-.checkout-option { display:flex; align-items:center; gap:12px; min-height:64px; padding:10px 16px; border-bottom:1px solid var(--v5-border); }
+.checkout-option { display:flex; align-items:center; gap:var(--v5-space-3); min-height:64px; padding:10px 16px; border-bottom:1px solid var(--v5-border); }
 .checkout-option:last-child { border-bottom:0; }
 .checkout-icon { display:grid; place-items:center; flex:none; width:36px; height:36px; border-radius:12px; color:var(--v5-ink-2); background:var(--ui-content-surface-2); }
 .checkout-option-copy { flex:1; min-width:0; }
@@ -2957,8 +2957,8 @@ button.checkout-quantity-button::after {border:0;}
 .checkout-voucher { cursor:pointer; }
 /* Voucher choice is a single-select list aligned with the row copy, then a muted link to the voucher list. */
 .checkout-voucher-details { border-bottom:1px solid var(--v5-border); }
-.checkout-voucher-match { padding:8px 16px 0 64px; }
-.checkout-voucher-choices { padding:4px 16px 4px 64px; }
+.checkout-voucher-match { padding:var(--v5-space-2) var(--v5-space-4) 0 64px; }
+.checkout-voucher-choices { padding:var(--v5-space-1) var(--v5-space-4) var(--v5-space-1) 64px; }
 .checkout-tradein :deep(.nx-button) { flex:none; max-width:42%; min-height:44px; padding:6px 0 6px 8px; color:var(--v5-brand); font-size:13px; }
 .checkout-payment { cursor:pointer; transition:background 180ms ease; }
 .checkout-payment--active { background:linear-gradient(90deg,color-mix(in srgb,var(--v5-brand) 12%,transparent),color-mix(in srgb,var(--v5-brand) 2%,transparent)); box-shadow:inset 3px 0 0 var(--v5-brand); }
@@ -2966,30 +2966,30 @@ button.checkout-quantity-button::after {border:0;}
 .checkout-radio { flex:none; width:20px; height:20px; border-radius:50%; border:1.5px solid var(--v5-ink-4); background:var(--v5-ink); }
 .checkout-radio--active { border-color:var(--v5-brand); background:radial-gradient(circle,var(--v5-brand) 0 55%,transparent 62%); }
 .checkout-fees { padding:6px 0; }
-.checkout-fee { gap:16px; min-height:40px; padding:6px 16px; }
+.checkout-fee { gap:var(--v5-space-4); min-height:40px; padding:6px 16px; }
 .checkout-fee :deep(uni-text),.checkout-fee :deep(text) { font-size:14px !important; line-height:20px; }
 .checkout-fee :deep(.tabular-nums) { text-align:right; flex-shrink:0; max-width:65%; overflow-wrap:anywhere; }
 .checkout-fee--discount :deep(.tabular-nums) { color:var(--v5-brand) !important; }
-.checkout-fee--total { margin-top:4px; padding-block:12px; min-height:55px; box-sizing:border-box; border-top:1px solid var(--v5-border); }
+.checkout-fee--total { margin-top:var(--v5-space-1); padding-block:12px; min-height:55px; box-sizing:border-box; border-top:1px solid var(--v5-border); }
 .checkout-fee--total > text,.checkout-fee--total > uni-text { font-weight:600; }
 .checkout-fee--total :deep(.tabular-nums) { font-size:18px !important; }
-.checkout-note { display:block; margin:12px 2px 0; font:400 12.5px/1.6 var(--font-v5); color:var(--v5-ink-3); }
+.checkout-note { display:block; margin:var(--v5-space-3) 2px 0; font:400 12.5px/1.6 var(--font-v5); color:var(--v5-ink-3); }
 .checkout-trial-credit { display:flex; justify-content:space-between; align-items:baseline; gap:var(--v5-space-3); margin-top:var(--v5-space-3); padding:var(--v5-space-3) var(--v5-space-4); border-radius:var(--v5-radius-m); background:color-mix(in srgb, var(--v5-brand) 10%, transparent); font-size:var(--ui-type-list-subtitle); line-height:var(--ui-type-list-subtitle-lh); font-weight:600; color:var(--v5-ink-2); }
 .checkout-trial-credit-value { color:var(--v5-brand); text-align:right; font-variant-numeric:tabular-nums; }
 .checkout-note--warning { padding:10px 12px; border-radius:12px; background:var(--v5-warning-soft); color:var(--v5-warning-ink); }
-.checkout-capacity-actions { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:6px; }
-.checkout-legal { margin:12px 2px 0; font:400 12.5px/20px var(--font-v5); color:var(--v5-ink-3); }
+.checkout-capacity-actions { display:flex; flex-wrap:wrap; gap:var(--v5-space-1) var(--v5-space-3); margin-top:6px; }
+.checkout-legal { margin:var(--v5-space-3) 2px 0; font:400 12.5px/20px var(--font-v5); color:var(--v5-ink-3); }
 .checkout-legal-link { display:inline; color:var(--v5-brand); cursor:pointer; }
 .checkout-legal-link:focus-visible { outline:2px solid var(--v5-brand); outline-offset:2px; border-radius:2px; }
-.checkout-policy-notice { margin-top:12px; font:400 var(--ui-type-list-subtitle)/20px var(--font-v5); color:var(--v5-ink-2); overflow-wrap:anywhere; }
-button.checkout-policy-link { display:block; width:100%; min-height:44px; margin:0; padding:8px 0; border:0; border-radius:0; background:transparent; color:var(--v5-brand); font:500 13px/20px var(--font-v5); text-align:left; overflow-wrap:anywhere; }
+.checkout-policy-notice { margin-top:var(--v5-space-3); font:400 var(--ui-type-list-subtitle)/20px var(--font-v5); color:var(--v5-ink-2); overflow-wrap:anywhere; }
+button.checkout-policy-link { display:block; width:100%; min-height:44px; margin:0; padding:var(--v5-space-2) 0; border:0; border-radius:0; background:transparent; color:var(--v5-brand); font:500 13px/20px var(--font-v5); text-align:left; overflow-wrap:anywhere; }
 button.checkout-policy-link::after { border:0; }
 .checkout-policy-link:focus-visible { outline:2px solid var(--v5-brand); outline-offset:2px; }
 .checkout-policy-body { color:var(--v5-ink-2); font:400 14px/22px var(--font-v5); overflow-wrap:anywhere; }
-.checkout-policy-section { display:block; margin-bottom:20px; }
+.checkout-policy-section { display:block; margin-bottom:var(--v5-space-5); }
 .checkout-policy-title { display:block; margin-bottom:6px; color:var(--v5-ink); font-weight:600; }
 .checkout-policy-links { border-top:1px solid var(--v5-border); }
-.checkout-cancel { display:grid; place-items:center; min-height:44px; margin-top:4px; font:400 var(--ui-type-list-subtitle)/18px var(--font-v5); color:var(--v5-ink-3); cursor:pointer; }
+.checkout-cancel { display:grid; place-items:center; min-height:44px; margin-top:var(--v5-space-1); font:400 var(--ui-type-list-subtitle)/18px var(--font-v5); color:var(--v5-ink-3); cursor:pointer; }
 .checkout-sticky { position:absolute; bottom:0; left:0; right:0; z-index:36; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--v5-space-3); min-height:100px; padding:var(--v5-space-3) var(--v5-space-4) calc(30px + env(safe-area-inset-bottom)); background:linear-gradient(180deg,color-mix(in srgb,var(--ui-ticket-top) 70%,transparent),color-mix(in srgb,var(--ui-ticket-bottom) 94%,transparent)); border-top:1px solid color-mix(in srgb,var(--v5-ink) 5%,transparent); backdrop-filter:blur(18px) saturate(160%); -webkit-backdrop-filter:blur(18px) saturate(160%); }
 .checkout-sticky-copy { min-width:0; }
 .checkout-total { display:block; font:600 20px/24px var(--font-amount); font-variant-numeric:tabular-nums; color:var(--v5-ink); white-space:nowrap; }
@@ -2997,9 +2997,9 @@ button.checkout-policy-link::after { border:0; }
 .checkout-summary-total { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:var(--v5-space-2); }
 .checkout-summary-total :deep(.checkout-amount) { font-size:var(--ui-type-section); }
 .checkout-exit-error { display:grid; gap:var(--v5-space-5); color:var(--v5-ink-2); line-height:1.6; }
-.checkout-promotion { padding:8px 16px 120px; color:var(--v5-ink); }
+.checkout-promotion { padding:var(--v5-space-2) var(--v5-space-4) 120px; color:var(--v5-ink); }
 .checkout-promotion--result { padding: 0; }
-.checkout-promotion :deep(.promotion-flat) { border:1px solid var(--v5-border); border-radius:22px; background:var(--ui-content-surface); padding:16px; }
+.checkout-promotion :deep(.promotion-flat) { border:1px solid var(--v5-border); border-radius:22px; background:var(--ui-content-surface); padding:var(--v5-space-4); }
 .checkout-promotion :deep(.promotion-summary) { min-height:40px; font-size:14px; }
 .checkout-promotion :deep(.promotion-summary.total) { min-height:55px; font-size:18px; }
 .checkout-promotion :deep(.promotion-image) { width:74px; height:74px; border-radius:16px; flex:none; }
@@ -3010,7 +3010,7 @@ button.checkout-policy-link::after { border:0; }
 </style>
 
 <style scoped>
-.checkout-voucher-choice { min-height:48px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--v5-border); cursor:pointer; }
+.checkout-voucher-choice { min-height:48px; display:flex; align-items:center; gap:var(--v5-space-3); border-bottom:1px solid var(--v5-border); cursor:pointer; }
 .checkout-voucher-choice:last-child { border-bottom:0; }
 .checkout-voucher-choice__label { flex:1; min-width:0; color:var(--v5-ink-2); font:400 var(--ui-type-subheading)/var(--ui-type-subheading-lh) var(--font-v5); }
 .checkout-voucher-choice[aria-checked="true"] .checkout-voucher-choice__label { color:var(--v5-ink); font-weight:var(--ui-type-subheading-weight); }

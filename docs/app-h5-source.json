@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\WORKS\\PLAN\\.wt\\checkout-pin-integration-20261031",
+  "sourcePath": "D:\\workspace\\.worktrees\\device-checkout-share-app-20261030",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "63bbcd8220ae7d6d4e2dc0a24e87c6590ea8db4b",
-  "sourceRef": "63bbcd8220ae7d6d4e2dc0a24e87c6590ea8db4b",
+  "sourceHead": "a5790d41a5d2f2baee94c38935a7bc3f4f14459d",
+  "sourceRef": "a5790d41a5d2f2baee94c38935a7bc3f4f14459d",
   "sourceRefKind": "commit",
-  "sourceTree": "0a911c1716767e9ea94e5d81929f34ac8756a6fb",
+  "sourceTree": "efc9f384fc630de07842c95f7071ef1e67727e8a",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -279,10 +279,10 @@
       "mode": "100644"
     },
     "PRD/UVEL_设备收益结算与Share展示_20261030.md": {
-      "sourceBlob": "26da30b85726471bbcb8e8b8c7ebf1f675fd3a09",
-      "sourceSha256": "6ce626640c253d888f906524e96803f7d2b631b4585daec7a4194c6103294d09",
-      "targetBlob": "26da30b85726471bbcb8e8b8c7ebf1f675fd3a09",
-      "targetSha256": "6ce626640c253d888f906524e96803f7d2b631b4585daec7a4194c6103294d09",
+      "sourceBlob": "2121ac7f2afd5c8c9ccf27191ebdd4ede306e28e",
+      "sourceSha256": "a33b89d2b34671e038ae1148e036a2019316c2feae6d35535814c5c6d3383505",
+      "targetBlob": "2121ac7f2afd5c8c9ccf27191ebdd4ede306e28e",
+      "targetSha256": "a33b89d2b34671e038ae1148e036a2019316c2feae6d35535814c5c6d3383505",
       "mode": "100644"
     },
     "PRD/UVEL_设计审查功能同步_20261026.md": {
@@ -489,10 +489,10 @@
       "mode": "100644"
     },
     "docs/前端产品更新日志.md": {
-      "sourceBlob": "1dbfc3479df753397fd06f56d73b50a560b3cf46",
-      "sourceSha256": "a4a751c282a2b2c7d4e4961e858bea5b21b931b1304f6792035838225143b8f1",
-      "targetBlob": "1dbfc3479df753397fd06f56d73b50a560b3cf46",
-      "targetSha256": "a4a751c282a2b2c7d4e4961e858bea5b21b931b1304f6792035838225143b8f1",
+      "sourceBlob": "9e6d94e717b9c24ea1bea876df614d3611b2a8a0",
+      "sourceSha256": "2c9b8ec1b087b50f7e6fe07aea78f14dca9fb597d9fecae1f35c0e04f8138633",
+      "targetBlob": "9e6d94e717b9c24ea1bea876df614d3611b2a8a0",
+      "targetSha256": "2c9b8ec1b087b50f7e6fe07aea78f14dca9fb597d9fecae1f35c0e04f8138633",
       "mode": "100644"
     },
     "index.html": {
@@ -5515,10 +5515,10 @@
       "mode": "100644"
     },
     "src/components/home/data-visibility.behavior.test.ts": {
-      "sourceBlob": "aa201d677994ae39dfae3452ea15724487eb9320",
-      "sourceSha256": "97e26a6dc118dc79fd4770347417ed31166119e6c4065308ef14cb408b86c8f6",
-      "targetBlob": "aa201d677994ae39dfae3452ea15724487eb9320",
-      "targetSha256": "97e26a6dc118dc79fd4770347417ed31166119e6c4065308ef14cb408b86c8f6",
+      "sourceBlob": "799623c6d4c4032111f9b25a9bddd22747eb3966",
+      "sourceSha256": "de18c7953441c2d8d6fb9efa733918f8e3a50b1bb75f72d66c2ee1591923adfd",
+      "targetBlob": "799623c6d4c4032111f9b25a9bddd22747eb3966",
+      "targetSha256": "de18c7953441c2d8d6fb9efa733918f8e3a50b1bb75f72d66c2ee1591923adfd",
       "mode": "100644"
     },
     "src/components/home/day-one-observation-recovery.behavior.test.ts": {
@@ -6222,10 +6222,10 @@
       "mode": "100644"
     },
     "src/components/me/me-authority-display.behavior.test.ts": {
-      "sourceBlob": "5aa62a2e8227e7de62324c27e6ff85e3f72662f8",
-      "sourceSha256": "ca0b2fa7a604eea6f1471391f090aefbf251ccdc72636aee3784f4aa506dbe1b",
-      "targetBlob": "5aa62a2e8227e7de62324c27e6ff85e3f72662f8",
-      "targetSha256": "ca0b2fa7a604eea6f1471391f090aefbf251ccdc72636aee3784f4aa506dbe1b",
+      "sourceBlob": "22b7a781897afe9db6e8f6fc206edf7447340fd4",
+      "sourceSha256": "5caa4b4e193bb935d4567c0087f7e228cbba3f2c86f1f894907adcacc87c62e4",
+      "targetBlob": "22b7a781897afe9db6e8f6fc206edf7447340fd4",
+      "targetSha256": "5caa4b4e193bb935d4567c0087f7e228cbba3f2c86f1f894907adcacc87c62e4",
       "mode": "100644"
     },
     "src/components/me/menu-grid-card.vue": {
@@ -14237,10 +14237,10 @@
       "mode": "100644"
     },
     "src/pages/store/checkout.vue": {
-      "sourceBlob": "82ad32f579db640ef2ede8de59f9e0c9c3599c61",
-      "sourceSha256": "c580c5c57d81486d4a11cf7887a7d28a1c923a41e9929e46db2569ba0cefd85d",
-      "targetBlob": "82ad32f579db640ef2ede8de59f9e0c9c3599c61",
-      "targetSha256": "c580c5c57d81486d4a11cf7887a7d28a1c923a41e9929e46db2569ba0cefd85d",
+      "sourceBlob": "cba169fb6f9234d61921216cc9bf6356f9054aa0",
+      "sourceSha256": "af0267f9396cab174302b1898794349788c86d55d769329495bd071380fbc941",
+      "targetBlob": "cba169fb6f9234d61921216cc9bf6356f9054aa0",
+      "targetSha256": "af0267f9396cab174302b1898794349788c86d55d769329495bd071380fbc941",
       "mode": "100644"
     },
     "src/pages/store/detail-loading-header.contract.test.ts": {
@@ -14265,17 +14265,17 @@
       "mode": "100644"
     },
     "src/pages/store/detail-specifications.test.ts": {
-      "sourceBlob": "fac5696220c30460f43ff7375f57c6b7885c6b74",
-      "sourceSha256": "e282526565e55c89381d936396f6f574deb203e2064a5248b0167db95443af13",
-      "targetBlob": "fac5696220c30460f43ff7375f57c6b7885c6b74",
-      "targetSha256": "e282526565e55c89381d936396f6f574deb203e2064a5248b0167db95443af13",
+      "sourceBlob": "3562a0e6c8459f90bbb6ec1519177b794f2909fa",
+      "sourceSha256": "4d4765617a5cb325c49602f5c7eefce53abe18ddd42e63bd3fb9a728bac164bc",
+      "targetBlob": "3562a0e6c8459f90bbb6ec1519177b794f2909fa",
+      "targetSha256": "4d4765617a5cb325c49602f5c7eefce53abe18ddd42e63bd3fb9a728bac164bc",
       "mode": "100644"
     },
     "src/pages/store/detail-surfaces.browser.test.ts": {
-      "sourceBlob": "057d6f48dc403676bd16cf6e48e52c61aa633f57",
-      "sourceSha256": "66c4548af8ec4bed19ed72d4560b4438989ba05b116576eb25ec86e88f0b0549",
-      "targetBlob": "057d6f48dc403676bd16cf6e48e52c61aa633f57",
-      "targetSha256": "66c4548af8ec4bed19ed72d4560b4438989ba05b116576eb25ec86e88f0b0549",
+      "sourceBlob": "8ce390b0083247b8941454d73651ac8d1fc2c5ed",
+      "sourceSha256": "d4ef00582ac2b044e502dce6357ca06367b264567dc97c0842cb1f73cc6128d4",
+      "targetBlob": "8ce390b0083247b8941454d73651ac8d1fc2c5ed",
+      "targetSha256": "d4ef00582ac2b044e502dce6357ca06367b264567dc97c0842cb1f73cc6128d4",
       "mode": "100644"
     },
     "src/pages/store/detail-trust-links.test.ts": {
@@ -14286,10 +14286,10 @@
       "mode": "100644"
     },
     "src/pages/store/detail.vue": {
-      "sourceBlob": "011861026da5eeab15505595f73be9d9341c2f33",
-      "sourceSha256": "0dee216d607fc6c662fe46b57309e780cf4dfecfd78d36d4abb702b62e8e1f90",
-      "targetBlob": "011861026da5eeab15505595f73be9d9341c2f33",
-      "targetSha256": "0dee216d607fc6c662fe46b57309e780cf4dfecfd78d36d4abb702b62e8e1f90",
+      "sourceBlob": "8c34b4b25d7fb3b2089150291442b9f649c64692",
+      "sourceSha256": "e76f548c08bd764e03de1822bb3fe7c1b0c31330c07da6afcd02d19bcc83f58f",
+      "targetBlob": "8c34b4b25d7fb3b2089150291442b9f649c64692",
+      "targetSha256": "e76f548c08bd764e03de1822bb3fe7c1b0c31330c07da6afcd02d19bcc83f58f",
       "mode": "100644"
     },
     "src/pages/store/finite-share-stock.behavior.test.ts": {

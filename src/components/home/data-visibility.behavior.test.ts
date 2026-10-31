@@ -69,7 +69,7 @@ function fixture(copy = zh) {
       month: period(1234.56, 82, 987), all: period(9876.54, 328, 2468), todayVsYesterdayPct: 12.3 },
       earningsLedgerMode: 'SETTLED', earningsLedger: [{ id: 'ledger-1', client: 'Client', model: 'Model',
         rewardUsdt: 0.00032, completedAt: '2026-10-27T16:05:00Z', synthetic: false }] },
-    refreshHomeTruth: vi.fn(), refreshRemoteFleet: vi.fn() });
+    refreshHomeTruth: vi.fn(), refreshRemoteFleet: vi.fn(), setTaskReadPageVisible: vi.fn() });
   const open = vi.fn();
   const navTo = vi.fn();
   const passiveReads = createPassiveTabReadFixture(() => JSON.stringify([app.accountKey, app.accountBindingEpoch]));

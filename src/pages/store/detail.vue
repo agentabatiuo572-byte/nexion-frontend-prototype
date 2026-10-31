@@ -31,19 +31,19 @@
         <view v-if="activity||voucherContext.voucherId" class="promotion-action primary" role="button" tabindex="0" @click="navTo('/pages/login/login?return='+encodeURIComponent(promotionDetailHref(id,activityId,voucherContext)))"><text>{{ t.promotion.signIn }}</text></view>
         <view class="promotion-link" role="button" tabindex="0" @click="navTo(promotionStoreHref())"><text>{{ t.promotion.allProducts }}</text></view>
       </view>
-      <view v-else-if="catalogStatus === 'loading'" class="text-center" style="padding: 40px 16px">
+      <view v-else-if="catalogStatus === 'loading'" class="text-center" style="padding: var(--v5-space-10) var(--v5-space-4)">
         <text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3)">{{ t.store.catalogLoadingTitle }}</text>
       </view>
 
-      <view v-else-if="catalogStatus === 'error'" class="text-center" style="padding: 40px 16px">
-        <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); margin-bottom: 12px">{{ t.store.catalogErrorTitle }}</text>
+      <view v-else-if="catalogStatus === 'error'" class="text-center" style="padding: var(--v5-space-10) var(--v5-space-4)">
+        <text class="block" style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3); margin-bottom: var(--v5-space-3)">{{ t.store.catalogErrorTitle }}</text>
         <view data-testid="detail-catalog-retry" class="inline-flex items-center justify-center active:opacity-90" :style="catalogRetryStyle" role="button" tabindex="0" :aria-disabled="catalogRetrying" @click.stop="retryCatalog">
           <text>{{ catalogRetrying ? t.store.catalogLoadingTitle : t.store.catalogRetry }}</text>
         </view>
       </view>
 
       <!-- Product not found — plain floor text (matches checkout / order-detail). -->
-      <view v-else-if="!product" class="text-center" style="padding: 40px 16px">
+      <view v-else-if="!product" class="text-center" style="padding: var(--v5-space-10) var(--v5-space-4)">
         <text style="font-size: var(--ui-type-list-subtitle); color: var(--v5-ink-3)">{{ t.store.coProductNotFound }}</text>
       </view>
 
@@ -56,9 +56,9 @@
       <!-- The server has not certified the managed-service specification. Keep
            the detail readable, but never expose a purchase CTA for it. -->
       <template v-else-if="purchaseUnavailable">
-        <view class="mx-4 rounded-2xl border" style="padding: 24px; border-color: var(--v5-border); background: var(--v5-surface)">
+        <view class="mx-4 rounded-2xl border" style="padding: var(--v5-space-6); border-color: var(--v5-border); background: var(--v5-surface)">
           <text class="block" style="font-size: 15px; font-weight: 600; color: var(--v5-ink)">{{ (product.name) }}</text>
-          <text class="block" style="margin-top: 8px; font-size: var(--ui-type-list-subtitle); line-height: 1.6; color: var(--v5-ink-3)">{{ t.store.specUnavailable }}</text>
+          <text class="block" style="margin-top: var(--v5-space-2); font-size: var(--ui-type-list-subtitle); line-height: 1.6; color: var(--v5-ink-3)">{{ t.store.specUnavailable }}</text>
         </view>
         <view aria-hidden style="height: 32px" />
       </template>
@@ -793,11 +793,11 @@ const multBadgeStyle: CSSProperties = {
 // De-carded to a filled tile (no border) — keeps the phone-vs-device commercial
 // comparison punch without the boxed weight.
 const vsStripStyle: CSSProperties = {
-  padding: "12px 14px",
-  gap: "12px",
+  padding: "var(--v5-space-3) 14px",
+  gap: "var(--v5-space-3)",
 };
 const vsMultChipStyle: CSSProperties = {
-  padding: "4px 10px",
+  padding: "var(--v5-space-1) 10px",
   borderRadius: "999px",
   background: "var(--v5-brand-soft)",
   fontFamily: "var(--font-v5)",
@@ -808,7 +808,7 @@ const vsMultChipStyle: CSSProperties = {
   lineHeight: 1,
 };
 const roiCardStyle: CSSProperties = {
-  padding: "16px",
+  padding: "var(--v5-space-4)",
   background: "var(--v5-surface)",
 };
 const stepperStyle: CSSProperties = {
@@ -859,7 +859,7 @@ function roiValStyle(tone: "success" | "brand" | "ink"): CSSProperties {
 // textWrap pretty: the vs-phone subline now carries a server-sized figure, so it
 // can wrap in the half-width cell — keep the last line from stranding one char.
 const roiSubStyle: CSSProperties = { fontSize: "12px", color: "var(--v5-ink-3)", marginTop: "4px", textWrap: "pretty" };
-const trustCardStyle: CSSProperties = { padding: "16px" };
+const trustCardStyle: CSSProperties = { padding: "var(--v5-space-4)" };
 const mediaStyle: CSSProperties = {
   fontFamily: "var(--font-v5)",
   fontWeight: 500,
@@ -867,7 +867,7 @@ const mediaStyle: CSSProperties = {
   color: "var(--v5-ink-2)",
 };
 const complianceChipStyle: CSSProperties = {
-  padding: "4px 10px",
+  padding: "var(--v5-space-1) 10px",
   borderRadius: "999px",
   background: "var(--v5-surface-2)",
   fontFamily: "var(--font-v5)",
@@ -876,7 +876,7 @@ const complianceChipStyle: CSSProperties = {
   color: "var(--v5-ink-2)",
   letterSpacing: "-0.005em",
 };
-const trustDisclosureRowStyle: CSSProperties = { padding: "12px 0", borderBottom: "1px solid var(--v5-border)" };
+const trustDisclosureRowStyle: CSSProperties = { padding: "var(--v5-space-3) 0", borderBottom: "1px solid var(--v5-border)" };
 const trustDisclosureTitleStyle: CSSProperties = { fontSize: "13px", fontWeight: 600, color: "var(--v5-ink)" };
 const trustBodyStyle: CSSProperties = { marginTop: "4px", fontSize: "12px", lineHeight: 1.5, color: "var(--v5-ink-3)" };
 const trustLinkStyle: CSSProperties = { marginTop: "6px", fontSize: "12px", fontWeight: 600, color: "var(--v5-brand)" };
@@ -890,7 +890,7 @@ function faqItemStyle(i: number): CSSProperties {
   return { borderBottom: i < faqs.value.length - 1 ? "1px solid var(--v5-border)" : "none" };
 }
 const faqQStyle: CSSProperties = {
-  padding: "12px 0",
+  padding: "var(--v5-space-3) 0",
   minHeight: "44px",
   boxSizing: "border-box",
   fontFamily: "var(--font-v5)",
@@ -955,7 +955,7 @@ const faqQStyle: CSSProperties = {
   backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);
   box-shadow:inset 0 1px 0 var(--v5-sticky-bar-border);
 }
-.product-material-retry { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 16px; margin-top: 12px; border: 1px solid var(--v5-border); border-radius: 999px; color: var(--v5-ink); font-size: var(--ui-type-list-subtitle); }
+.product-material-retry { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: var(--v5-space-1) var(--v5-space-4); margin-top: var(--v5-space-3); border: 1px solid var(--v5-border); border-radius: 999px; color: var(--v5-ink); font-size: var(--ui-type-list-subtitle); }
 .product-material-retry__label { font: 600 13px/20px var(--font-v5); }
 .product-material-retry:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
 .promotion-quantity-stepper { display:flex;align-items:center;border:1px solid var(--v5-border);border-radius:999px;overflow:hidden; }

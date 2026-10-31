@@ -95,25 +95,25 @@ describe("Me wallet and device authority", () => {
     expect(s.readDevices()).toMatchObject({ count: "6 / 6", active: "5 active", open: "0 slots open", warehouseActive: 5 });
   });
   it.each([[1.005, "1.01", "1.005"], [2.675, "2.68", "2.675"], [0.145, "0.15", "0.145"],
-    [999.995, "1000.00", "999.995"]] as const)("uses decimal amount rounding for NEX valuation while keeping the price rate: %s", (price, amount, rate) => {
+    [999.995, "1000.00", "999.995"]] as const)("uses decimal amount rounding for UVT valuation while keeping the price rate: %s", (price, amount, rate) => {
       const s = mount(false);
       s.app.user.nexBalance = 1;
       s.market.nexPriceUSDT = price;
-      expect(s.read().valuation).toBe(`≈ ${amount} USDT · 1 NEX = ${rate} USDT`);
+      expect(s.read().valuation).toBe(`≈ ${amount} USDT · 1 UVT = ${rate} USDT`);
       expect(s.market.nexPriceUSDT).toBe(price);
       expect(s.app.user.nexBalance).toBe(1);
     });
 
   it("keeps initial unknown balances, buckets and default six slots out of the first frame", () => {
     expect(mount().read()).toEqual({
-      usdt: "—", nex: "—", pending: "Review — · Locked —", valuation: "≈ — USDT · 1 NEX = 2.000 USDT",
+      usdt: "—", nex: "—", pending: "Review -- · Locked --", valuation: "≈ — USDT · 1 UVT = 2.000 USDT",
       count: "—", active: "—", open: "—", promotion: false,
     });
   });
 
   it("shows a payment receipt's confirmed USDT without authorizing NEX, buckets or slots", () => {
     const s = mount(); s.app.user.usdtBalance = 1299; s.app.remoteWalletReceiptHasSnapshot = true;
-    expect(s.read()).toMatchObject({ usdt: "1299.00", nex: "—", pending: "Review — · Locked —", count: "—", promotion: false });
+    expect(s.read()).toMatchObject({ usdt: "1299.00", nex: "—", pending: "Review -- · Locked --", count: "—", promotion: false });
   });
 
   it("requires both fleet and trial authority and preserves genuine zero", () => {
@@ -121,7 +121,7 @@ describe("Me wallet and device authority", () => {
     expect(s.read()).toMatchObject({ usdt: "0.00", nex: "0.00", count: "—", active: "—", open: "—", promotion: false });
     s.confirmFleetAndTrial();
     expect(s.read()).toEqual({
-      usdt: "0.00", nex: "0.00", pending: "Review — · Locked —", valuation: "≈ 0.00 USDT · 1 NEX = 2.000 USDT",
+      usdt: "0.00", nex: "0.00", pending: "Review -- · Locked --", valuation: "≈ 0.00 USDT · 1 UVT = 2.000 USDT",
       count: "0 / 3", active: "0 active", open: "3 slots open", promotion: true,
     });
   });
@@ -135,7 +135,7 @@ describe("Me wallet and device authority", () => {
     s.app.remoteFleetHasSnapshot = false; s.app.remoteWalletReceiptHasSnapshot = false;
     s.earningsReleaseHasSnapshot.value = false; s.earningsReleaseStatus.value = "idle";
     s.trial.authorityServerState = null; s.trial.authorityStatus = "unknown";
-    expect(s.read()).toMatchObject({ usdt: "—", nex: "—", pending: "Review — · Locked —", count: "—", open: "—", promotion: false });
+    expect(s.read()).toMatchObject({ usdt: "—", nex: "—", pending: "Review -- · Locked --", count: "—", open: "—", promotion: false });
   });
 
   it("keeps failed initial reads unknown and recovers after confirmed snapshots arrive", () => {
@@ -204,6 +204,7 @@ describe("Me wallet and device authority", () => {
     s.app.remoteFleetHasSnapshot = true;
     expect(s.readDevices()).toMatchObject({ active: "—", walletSummary: null });
     s.confirmFleetAndTrial();
+    s.app.remoteSlotUsage = { slotsUsed: 0, reservedSlotCount: 0, trialSlotCount: 0 };
     expect(s.readDevices()).toMatchObject({ count: "0 / 6", active: "1 active", walletSummary: "1 active · 6 slots open" });
     s.app.remoteFleetStatus = "loading"; s.trial.authorityStatus = "loading";
     expect(s.readDevices()).toMatchObject({ active: "1 active", walletSummary: "1 active · 6 slots open" });
@@ -221,26 +222,28 @@ describe("Me wallet and device authority", () => {
   it("preserves readable local mode and keeps unknown market valuation distinct from known holdings", () => {
     const s = mount(false); s.app.user.usdtBalance = 12.5; s.app.user.nexBalance = 10; s.market.remoteReady = false;
     s.app.user.earningBuckets.pendingReviewUsdt = 4; s.app.user.earningBuckets.bonusLockedUsdt = 2;
-    expect(s.read()).toMatchObject({ usdt: "12.50", nex: "10.00", pending: "Review 4.00 · Locked 2.00", valuation: "≈ — USDT · 1 NEX = — USDT", count: "0 / 6" });
+    expect(s.read()).toMatchObject({ usdt: "12.50", nex: "10.00", pending: "Review 4.00 · Locked 2.00", valuation: "≈ — USDT · 1 UVT = — USDT", count: "0 / 6" });
   });
 
   it.each(["idle", "loading", "error"])("fleet confirmation never authorizes held buckets while release is %s without a snapshot", status => {
     const s = mount(); s.confirmFleetAndTrial(); s.earningsReleaseStatus.value = status;
-    expect(s.read()).toMatchObject({ usdt: "0.00", nex: "0.00", pending: "Review — · Locked —", count: "0 / 6" });
+    expect(s.read()).toMatchObject({ usdt: "0.00", nex: "0.00", pending: "Review -- · Locked --", count: "0 / 6" });
   });
 
-  it("requires complete release authority and shows genuine zero only from a confirmed release snapshot", () => {
+  it("requires complete release authority and omits confirmed zero held buckets", () => {
     const s = mount(); s.confirmFleetAndTrial(); s.confirmRelease();
-    expect(s.read().pending).toBe("Review 0.00 · Locked 0.00");
+    expect(s.read().pending).toBe("");
     s.earningsReleaseSnapshot.value = null;
-    expect(s.read().pending).toBe("Review — · Locked —");
+    expect(s.read().pending).toBe("Review -- · Locked --");
     s.confirmRelease(); s.earningsReleaseHasSnapshot.value = false;
-    expect(s.read().pending).toBe("Review — · Locked —");
+    expect(s.read().pending).toBe("Review -- · Locked --");
     s.confirmRelease(); s.earningsReleaseStatus.value = "error";
-    expect(s.read().pending).toBe("Review — · Locked —");
+    expect(s.read().pending).toBe("Review -- · Locked --");
     s.confirmRelease(); s.earningsReleaseSnapshot.value!.serverCanonical = false;
-    expect(s.read().pending).toBe("Review — · Locked —");
-    s.confirmRelease(); expect(s.read().pending).toBe("Review 0.00 · Locked 0.00");
+    expect(s.read().pending).toBe("Review -- · Locked --");
+    s.confirmRelease(); expect(s.read().pending).toBe("");
+    s.confirmRelease(0, 7); expect(s.read().pending).toBe("Locked 7.00");
+    s.confirmRelease(4.5, 0); expect(s.read().pending).toBe("Review 4.50");
   });
 
   it("reads release independently of fleet, retains same-account buckets only during refresh, and hides reset or failed authority", () => {
@@ -249,8 +252,8 @@ describe("Me wallet and device authority", () => {
     s.earningsReleaseStatus.value = "loading";
     expect(s.read().pending).toBe("Review 4.50 · Locked 7.00");
     s.earningsReleaseSnapshot.value = null; s.earningsReleaseHasSnapshot.value = false; s.earningsReleaseStatus.value = "error";
-    expect(s.read().pending).toBe("Review — · Locked —");
+    expect(s.read().pending).toBe("Review -- · Locked --");
     s.confirmRelease(4.5, 7); s.earningsReleaseHasSnapshot.value = false; s.earningsReleaseStatus.value = "loading";
-    expect(s.read().pending).toBe("Review — · Locked —");
+    expect(s.read().pending).toBe("Review -- · Locked --");
   });
 });

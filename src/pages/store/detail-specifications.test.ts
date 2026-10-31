@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { computed, ref } from "vue";
+import { parse } from "@vue/compiler-sfc";
 import ts from "typescript";
 import page from "./detail.vue?raw";
 import { en } from "@/i18n/messages/en";
@@ -8,7 +9,13 @@ import { vi } from "@/i18n/messages/vi";
 import { productCopy, specRow, specText } from "@/lib/product-copy";
 import type { Product } from "@/mock/products";
 
-const declarations = page.slice(page.indexOf("const hardwareSpecs ="), page.indexOf("const aiExpanded ="));
+const script = parse(page).descriptor.scriptSetup!.content;
+const ast = ts.createSourceFile("detail.ts", script, ts.ScriptTarget.Latest, true);
+const names = ["hardwareSpecs", "aiPerfRows"];
+const declarations = ast.statements.filter(ts.isVariableStatement)
+  .flatMap(statement => [...statement.declarationList.declarations])
+  .filter(declaration => names.includes(declaration.name.getText(ast)))
+  .map(declaration => `const ${declaration.getText(ast)};`).join("\n");
 const code = ts.transpileModule(`${declarations}; return { hardwareSpecs, aiPerfRows };`, {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None },
 }).outputText;
