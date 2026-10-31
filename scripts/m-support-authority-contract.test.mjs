@@ -98,7 +98,7 @@ test("human realtime and open snapshots cannot write after hide or regress a new
   assert.match(conversations, /conversation\.version < prior\.version/);
   assert.match(conversations, /conversation\.version === prior\.version && conversation\.lastTs < prior\.lastTs/);
   assert.match(chat, /await convStore\.open\(id, current\)/);
-  assert.match(chat, /humanOpenRequest === request && request\.binding === app\.accountBindingEpoch/);
+  assert.match(chat, /humanOpenRequest\.value === request && request\.binding === app\.accountBindingEpoch/);
   assert.match(chat, /humanRealtime\.isCurrent\(request\.epoch, request\.id\)/);
   assert.match(chat, /if \(current\(\)\) startHumanThreadPolling\(epoch, id\)/);
   assert.match(realtimePage, /return openEpoch === epoch && isVisibleFor\(openId\);/);
@@ -129,7 +129,7 @@ test("canonical support uses the development authority and late lifecycle work c
   assert.doesNotMatch(api, /support\/acceptance|sourceEnvironment !== "SANDBOX"/);
   assert.match(api, /supportPath\(`\/commands\//);
   assert.match(chat, /async function activateHumanPage\(\) \{\s*if \(!pageVisible \|\| !supportSessionReady\.value\) return;\s*stopHumanThreadPolling\(\);\s*const epoch = humanRealtime\.show\(\)/);
-  assert.match(chat, /humanOpenRequest === request && request\.binding === app\.accountBindingEpoch/);
+  assert.match(chat, /humanOpenRequest\.value === request && request\.binding === app\.accountBindingEpoch/);
   assert.match(chat, /humanRealtime\.isCurrent\(request\.epoch, request\.id\)/);
   assert.match(chat, /if \(current\(\)\) startHumanThreadPolling\(epoch, id\);/);
   assert.match(chat, /if \(current\(\)\) navBack\("\/pages\/support\/messages"\)/);
@@ -143,8 +143,9 @@ test("unknown 409, network, protocol, and 5xx support commands read back a stabl
     assert.match(source, /supportApi\.commandResult\(key\)/);
     assert.match(source, /scope\.pending\.delete\(fingerprint\)/);
   }
-  assert.match(conversations, /error\.status === 409/);
-  assert.match(conversations, /!isSupportAttachmentNotReady\(cause\)/);
+  // The read-back decision is the shared delivery policy; 409 stays ambiguous unless the server asks for a reply.
+  assert.match(conversations, /!isSupportAttachmentNotReady\(cause\)\s*&& !isSupportReplyRequired\(cause\)\s*&& isConversationDeliveryAmbiguous\(cause\)/);
+  assert.match(await read("src/lib/conversation-delivery-policy.ts"), /\[408, 409, 425, 429\]\.includes\(code\) \|\| \(code >= 500 && code <= 599\)/);
 });
 
 test("an empty human conversation lane gives the user an authoritative start path instead of a local fallback", async () => {
@@ -158,7 +159,7 @@ test("an empty human conversation lane gives the user an authoritative start pat
   assert.match(messages, /navTo\("\/pages\/support\/chat\?start="/);
   assert.match(chat, /q\?\.start/);
   assert.match(chat, /convStore\.startConversation\(/);
-  assert.match(conversations, /async function startConversation\(type: Exclude<ConversationType, "ai">, openingText: string, attachmentId\?: string\)/);
+  assert.match(conversations, /async function startConversation\(type: Exclude<ConversationType, "ai">, openingText: string, attachmentId\?: string, onDispatch\?: \(key: string\) => void\)/);
 });
 
 test("conversation list and detail localize an unassigned server owner after refresh", async () => {
@@ -216,17 +217,18 @@ test("a deferred authority revision cannot send an old account command with the 
     assert.match(source, /const accountKey = accountKeyValue;\s*const epoch = accountEpoch;\s*const startingRunId = pendingRunId;/);
     assert.match(source, /const runId = await supportApi\.authorityRevision\(\);/);
     assert.match(source, /startingRunId !== pendingRunId[\s\S]*?throw new Error\("SUPPORT_ACCOUNT_SCOPE_CHANGED"\)/);
-    assert.match(source, /const scope = await commandScope\(\);[\s\S]*?if \(!scopeIsCurrent\(scope\)\) throw new Error\("SUPPORT_ACCOUNT_SCOPE_CHANGED"\);[\s\S]*?const (?:promise =|result = await) action\(key\);/);
+    assert.match(source, /const scope = await commandScope\(\);[\s\S]*?if \(!scopeIsCurrent\(scope\)\) throw new Error\("SUPPORT_ACCOUNT_SCOPE_CHANGED"\);[\s\S]*?const (?:promise =|result = await|operation =) action\(key\);/);
     assert.match(source, /persistPending\(scope\.accountKey, scope\.runId, scope\.pending\)/);
     assert.match(source, /scope\.pending === pendingKeys && scope\.inFlight === inFlight/);
   }
-  const preflight = conversations.match(/const promise = Promise\.resolve\(\)\.then\(async \(\) => \{\s*try \{\s*if \(!scopeIsCurrent\(scope\)\) throw new Error\("SUPPORT_ACCOUNT_SCOPE_CHANGED"\);([\s\S]*?)const result = await action\(key\);/)?.[1];
+  const preflight = conversations.match(/const promise = Promise\.resolve\(\)\.then\(async \(\) => \{\s*try \{\s*if \(!scopeIsCurrent\(scope\)\) throw new Error\("SUPPORT_ACCOUNT_SCOPE_CHANGED"\);([\s\S]*?)const (?:result = await|operation =) action\(key\);/)?.[1];
   assert.notEqual(preflight, undefined, "final scope guard must precede the transport action");
   assert.doesNotMatch(preflight, /\bawait\b/, "no async work may separate the final scope guard from dispatch");
   assert.equal(preflight.trim().replace(/\s+/g, " "),
     'if (createPolicy?.recovery && scope.pending.get(fingerprint) !== createPolicy.recovery.key) throw new Error("SUPPORT_PENDING_RECOVERY_SCOPE_CHANGED"); '
     + 'if (createPolicy && !createPolicy.recovery && !createPolicy.gate()) throw new Error("SUPPORT_CATEGORY_UNAVAILABLE");',
     "only the synchronous original-key and category guards may precede dispatch");
-  assert.match(conversations, /const adopted = await recover\(key\);\s*if \(!scopeIsCurrent\(scope\)\) throw new Error\("SUPPORT_ACCOUNT_SCOPE_CHANGED"\);/);
+  // Read-back is bounded for human sends; the account scope is re-checked right after it settles.
+  assert.match(conversations, /const recovery = recover\(key\);\s*adopted = await \(humanSend \? awaitMessageOutcome\(recovery, MESSAGE_READBACK_TIMEOUT_MS\) : recovery\);[\s\S]*?\}\s*if \(!scopeIsCurrent\(scope\)\) throw new Error\("SUPPORT_ACCOUNT_SCOPE_CHANGED"\);/);
   assert.match(conversations, /scope\.inFlight\.set\(fingerprint, promise\);[\s\S]*?return promise;/);
 });

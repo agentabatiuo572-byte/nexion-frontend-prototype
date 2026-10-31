@@ -154,8 +154,8 @@ test("search keeps its richer raw-navigation failure visible, retryable, and ord
   assert.match(searchPage, /const navigationState = ref\(\{ attempt: 0, pendingUrl: "", hasError: false \}\)/);
   assert.match(searchPage, /const navigationError = computed\(\(\) => navigationState\.value\.hasError\)/);
   assert.match(searchPage, /const started = beginNavigationAttempt\(navigationState\.value, url\);\s*navigationState\.value = started;/);
-  assert.match(searchPage, /success:\s*\(\)\s*=>\s*\{\s*navigationState\.value = completeNavigationAttempt\(navigationState\.value, started\.attempt, "success"\);\s*\}/);
-  assert.match(searchPage, /fail:\s*\(\)\s*=>\s*\{\s*navigationState\.value = completeNavigationAttempt\(navigationState\.value, started\.attempt, "failure"\);\s*\}/);
+  // Search now resolves its attempt from the shared navTo result instead of raw uni callbacks.
+  assert.match(searchPage, /void navTo\(url\)\.then\(ok => \{\s*navigationState\.value = completeNavigationAttempt\(navigationState\.value, started\.attempt, ok \? "success" : "failure"\);\s*\}\);/);
   assert.match(searchPage, /if \(pendingNavigationUrl\.value\) navigateWithFeedback\(pendingNavigationUrl\.value\)/);
   assert.match(searchPage, /v-if="navigationError"/);
   assert.match(searchPage, /retryNavigation/);

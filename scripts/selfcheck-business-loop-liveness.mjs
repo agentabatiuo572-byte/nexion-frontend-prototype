@@ -148,7 +148,8 @@ function evaluate(text) {
 
 function evaluateConfig(text) {
   const load = functionBody(text, "load");
-  assert.match(text, /import\s*\{\s*platformConfigApi\s*,\s*remoteApiEnabled\s*\}\s*from\s*["']@\/api\/runtime["']/,
+  // The store also imports the runtime origin to invalidate itself when the environment drifts.
+  assert.match(text, /import\s*\{[^}]*\bplatformConfigApi\b[^}]*\bremoteApiEnabled\b[^}]*\}\s*from\s*["']@\/api\/runtime["']/,
     "config store must use the formal API runtime");
   assert.doesNotMatch(load, /if\s*\(!remoteApiEnabled\)/,
     "formal App config loading must not retain a browser-local authority branch");
@@ -197,7 +198,8 @@ evaluate(source);
 assertNoRawTimeoutsInBusinessModules(businessModuleSources);
 evaluateDeposits(depositsSource);
 evaluateConfig(configSource);
-assert.match(functionBody(genesisSource, "syncRemote"), /^\s*if \(!remoteApiEnabled\) return true;/,
+// Only the synchronous passive-read invalidation may precede the local-mock exit (78c1cb3d).
+assert.match(functionBody(genesisSource, "syncRemote"), /^\s*(?:invalidateBeforePassiveTabRead\("genesis-state"\);\s*)?if \(!remoteApiEnabled\) return true;/,
   "account bootstrap must not leak a rejected Genesis remote sync in local-mock mode");
 
 const mutations = [

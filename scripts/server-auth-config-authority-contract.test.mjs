@@ -179,10 +179,12 @@ test("remote policy branches use dedicated server contracts or stay fail-closed"
   assert.match(login, /async function requestCode\(captchaTicket\?: string\) \{[\s\S]*?if \(remoteApiEnabled\) \{[\s\S]*?authApi\.sendPasswordResetOtp[\s\S]*?authApi\.sendLoginOtp/);
   assert.match(login, /async function verifyCode\(\) \{[\s\S]*?if \(remoteTwoFactorChallenge\.value\) \{ await verifyRemoteTwoFactor\(\); return; \}[\s\S]*?if \(remoteApiEnabled\) \{[\s\S]*?authApi\.completeOtpLogin/);
   assert.match(login, /async function finishReset\(\) \{[\s\S]*?authApi\.completePasswordReset/);
-  assert.match(share, /if \(remoteApiEnabled && useConfig\(\)\.configStatus !== "ready"\) return "";/);
+  // c482b840: a validated share base survives config polling ("loading"); only idle/failed loads close sharing.
+  assert.match(share, /if \(remoteApiEnabled && \["idle", "failed"\]\.includes\(useConfig\(\)\.configStatus\)\) return "";/);
   assert.match(share, /if \(remoteApiEnabled\) return "";/);
   assert.match(share, /export function buildShareText\(\): string \{[\s\S]*?if \(remoteApiEnabled\) return "";/);
-  assert.match(share, /export function visibleChannels\(\): ShareChannelDef\[\] \{[\s\S]*?useConfig\(\)\.config\.share\.channels\.filter\(\(c\) => c\.enabled\)/);
+  // Server-enabled channels only; scheme-launch channels are additionally hidden.
+  assert.match(share, /export function visibleChannels\(\): ShareChannelDef\[\] \{[\s\S]*?useConfig\(\)\.config\.share\.channels\.filter\(\(c\) => c\.enabled && c\.intentType !== "scheme"\)/);
   assert.match(share, /const text = remoteApiEnabled[\s\S]*?referralShareText\([\s\S]*?def\.textTemplate \?\? "\{link\}"/);
   assert.match(share, /const effectiveDef = remoteApiEnabled && !remoteRewardEnabled[\s\S]*?textTemplate: undefined/);
 });

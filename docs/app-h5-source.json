@@ -3,10 +3,10 @@
   "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-bug013",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "3ac8c83033938689a609d2e6552179576bbeeddf",
-  "sourceRef": "3ac8c83033938689a609d2e6552179576bbeeddf",
+  "sourceHead": "5cb5dbb9cf0915bc71b48f2a8ac2ab3723db964a",
+  "sourceRef": "5cb5dbb9cf0915bc71b48f2a8ac2ab3723db964a",
   "sourceRefKind": "commit",
-  "sourceTree": "429c3163f22207a41319d324093226bbcb53ecd4",
+  "sourceTree": "515d6bc38608f1184170de55b7fe874cb9d9dd29",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -1252,10 +1252,10 @@
       "mode": "100644"
     },
     "scripts/h8-first-user-truth-contract.test.mjs": {
-      "sourceBlob": "9155bce4c3a24a0bf277b0d68b49053a05d61b86",
-      "sourceSha256": "d560e3a0e0f52295074c8dfa87cbe0896dd313ab76a062edbfc6a26aacf82dfe",
-      "targetBlob": "9155bce4c3a24a0bf277b0d68b49053a05d61b86",
-      "targetSha256": "d560e3a0e0f52295074c8dfa87cbe0896dd313ab76a062edbfc6a26aacf82dfe",
+      "sourceBlob": "282d3a22251f6588516c9b2b03a3220e8b4e1ca9",
+      "sourceSha256": "ab4a46d7bde6832a905cddb082c763bde04c9ca2f08908517b9cf8d0b0943959",
+      "targetBlob": "282d3a22251f6588516c9b2b03a3220e8b4e1ca9",
+      "targetSha256": "ab4a46d7bde6832a905cddb082c763bde04c9ca2f08908517b9cf8d0b0943959",
       "mode": "100644"
     },
     "scripts/h8-run-scoped-referral-projection-contract.test.mjs": {
@@ -1889,10 +1889,10 @@
       "mode": "100644"
     },
     "scripts/m-support-authority-contract.test.mjs": {
-      "sourceBlob": "02a9cc5520071a040adeffe630513de241b9708b",
-      "sourceSha256": "d812796d014fae8ba06f99e7a643f7c29209e67e9b6c09f7459f1b33cbe08db9",
-      "targetBlob": "02a9cc5520071a040adeffe630513de241b9708b",
-      "targetSha256": "d812796d014fae8ba06f99e7a643f7c29209e67e9b6c09f7459f1b33cbe08db9",
+      "sourceBlob": "cb65c57568b5022be72acc8f4455ef605e8a5182",
+      "sourceSha256": "0720045cd380b4f3266ed9d9c786fe417e56b70e93681347e8a75e6f67006420",
+      "targetBlob": "cb65c57568b5022be72acc8f4455ef605e8a5182",
+      "targetSha256": "0720045cd380b4f3266ed9d9c786fe417e56b70e93681347e8a75e6f67006420",
       "mode": "100644"
     },
     "scripts/market-board-visual-contract.test.mjs": {
@@ -2365,10 +2365,10 @@
       "mode": "100644"
     },
     "scripts/selfcheck-business-loop-liveness.mjs": {
-      "sourceBlob": "03883cb504697010828735fc83da2200a1d234a5",
-      "sourceSha256": "df7b193bc7b7ca3c720cae980c134fd8aff0aa61f7988bcdfe5385be8bc9bc0c",
-      "targetBlob": "03883cb504697010828735fc83da2200a1d234a5",
-      "targetSha256": "df7b193bc7b7ca3c720cae980c134fd8aff0aa61f7988bcdfe5385be8bc9bc0c",
+      "sourceBlob": "54397fe7e14b0cead2ed80e487b0be4baded3d44",
+      "sourceSha256": "7d270d74aef1576cfa49dc66cab0e8b52ba2c20cfcb938c19289441a347c2dda",
+      "targetBlob": "54397fe7e14b0cead2ed80e487b0be4baded3d44",
+      "targetSha256": "7d270d74aef1576cfa49dc66cab0e8b52ba2c20cfcb938c19289441a347c2dda",
       "mode": "100644"
     },
     "scripts/selfcheck-cards.mjs": {
@@ -2652,10 +2652,10 @@
       "mode": "100644"
     },
     "scripts/server-auth-config-authority-contract.test.mjs": {
-      "sourceBlob": "2dfc8333bf2b21828473201a5b027dcd5dd8b908",
-      "sourceSha256": "0f24bb967880c295e063de4ce09bb9236bfe44bdb8d565d9b2d98b415682da65",
-      "targetBlob": "2dfc8333bf2b21828473201a5b027dcd5dd8b908",
-      "targetSha256": "0f24bb967880c295e063de4ce09bb9236bfe44bdb8d565d9b2d98b415682da65",
+      "sourceBlob": "7cfb7a030bd17a7e905dff99cdd13ff03547c7dd",
+      "sourceSha256": "6de03e03912b5a4ed6fb8b1cd9b563687dc36d03ff99f978ad858b2160b4e03e",
+      "targetBlob": "7cfb7a030bd17a7e905dff99cdd13ff03547c7dd",
+      "targetSha256": "6de03e03912b5a4ed6fb8b1cd9b563687dc36d03ff99f978ad858b2160b4e03e",
       "mode": "100644"
     },
     "scripts/server-login-identity-projection-contract.test.mjs": {
@@ -2771,10 +2771,10 @@
       "mode": "100644"
     },
     "scripts/static-review-routes.test.mjs": {
-      "sourceBlob": "48b1902ce6c51530ff411650b66b20e4c688019d",
-      "sourceSha256": "4c81bcfba7a6ae9b4e6b01a41b767d38aeaaf9cfdafd2fa8f3b17f6ffa71fa2c",
-      "targetBlob": "48b1902ce6c51530ff411650b66b20e4c688019d",
-      "targetSha256": "4c81bcfba7a6ae9b4e6b01a41b767d38aeaaf9cfdafd2fa8f3b17f6ffa71fa2c",
+      "sourceBlob": "926c970afe3b943a1cb4be8d0a3307a52461c93c",
+      "sourceSha256": "c3d98e94655c67e0b4b6b1c7d7fd4245653f764079e68291d031065079501fde",
+      "targetBlob": "926c970afe3b943a1cb4be8d0a3307a52461c93c",
+      "targetSha256": "c3d98e94655c67e0b4b6b1c7d7fd4245653f764079e68291d031065079501fde",
       "mode": "100644"
     },
     "scripts/sticky-check.mjs": {
@@ -15210,10 +15210,10 @@
       "mode": "100644"
     },
     "src/services/native-push.ts": {
-      "sourceBlob": "bcbcc4b64b57a2820daa1dce4ffe78d2026d4272",
-      "sourceSha256": "d4f6d7e80b205a40995da903c9f33c910608743698ace0a2bd36c47ec5b36fe0",
-      "targetBlob": "bcbcc4b64b57a2820daa1dce4ffe78d2026d4272",
-      "targetSha256": "d4f6d7e80b205a40995da903c9f33c910608743698ace0a2bd36c47ec5b36fe0",
+      "sourceBlob": "470cc449cc788a0ab54ab76e4dbd0056b98e6eef",
+      "sourceSha256": "0bc2971435ee05f29666aad95395f09f763cb94d972bb978cea442663cced026",
+      "targetBlob": "470cc449cc788a0ab54ab76e4dbd0056b98e6eef",
+      "targetSha256": "0bc2971435ee05f29666aad95395f09f763cb94d972bb978cea442663cced026",
       "mode": "100644"
     },
     "src/shime-uni.d.ts": {

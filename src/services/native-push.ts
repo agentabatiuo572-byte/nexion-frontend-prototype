@@ -5,6 +5,7 @@ import type { SessionSnapshot, SessionVault } from "@/api/session-vault";
 import { getDeviceId } from "@/lib/device-id";
 import { requireCryptoUuid } from "@/lib/secure-command-id";
 import { hasCheckoutLeaveGuard } from "@/lib/promotion-leave-guard";
+import { navTo } from "@/lib/route";
 import { createNativePushController, validNativePushToken, type NativePushToken, type PushPermission } from "./native-push-controller";
 // #ifdef APP-PLUS
 import { initializeNativePush, getNativePushToken, addNativePushListener, getInitialNotification,
@@ -108,7 +109,8 @@ export function installNativePush(options: { client: ApiClient; vault: SessionVa
         readInitialNotification();
       } catch { nativePushRegistrationUnavailable.value = true; }
     },
-    navigate: route => new Promise(resolve => uni.navigateTo({ url: route, success: () => resolve(true), fail: () => resolve(false) })),
+    // The shared helper opens tab routes, keeps the query and reports a failed open.
+    navigate: route => navTo(route),
     canNavigate: () => options.canNavigate() && !hasCheckoutLeaveGuard(), received: options.received,
   });
   options.vault.subscribe?.((previous, next, continuation) => {

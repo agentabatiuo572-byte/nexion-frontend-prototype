@@ -56,7 +56,8 @@ test("H8 invitation summary keeps authoritative server data across refresh and r
   assert.doesNotMatch(card, />Share &amp; earn/);
   assert.doesNotMatch(card, /"settled to wallet"/);
   for (const messages of [en, zh, vi]) {
-    assert.match(messages, /serverRewardPerSettlement:/);
+    // The per-settlement reward line left the invite card in ffeead77.
+    assert.doesNotMatch(messages, /serverRewardPerSettlement:/);
     assert.match(messages, /settlementStatus:/);
     assert.match(messages, /settledToWallet:/);
   }
