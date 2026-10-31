@@ -4,7 +4,7 @@ import { validateHostedPaymentUrl } from '@/lib/hosted-payment';
 
 export const purchaseKinds = ['ORDER_PAY', 'TRIAL_CONVERT', 'TRADE_IN', 'CAPACITY_REPLACE', 'CAPACITY_KEEP'] as const;
 export type PurchaseKind = typeof purchaseKinds[number];
-export type ExternalPaymentMethod = 'HDPAY_BANK' | 'CREGIS_USDT_BSC';
+export type ExternalPaymentMethod = 'HDPAY_BANK' | 'CREGIS_USDT_BSC' | 'CREGIS_USDT_ERC20';
 export type PurchaseMethod = 'WALLET' | ExternalPaymentMethod;
 type PurchaseFinancialSnapshot = { businessAmountUsdt?: string; roundingAdjustmentUsdt?: string; fxRateVndPerUsdt: string | null; feePolicyVersion: number };
 export type PurchaseQuote = {
@@ -42,10 +42,12 @@ const timestamp = (raw: unknown): string => {
   return value;
 };
 function common(raw: Record<string, unknown>) {
-  if (!purchaseKinds.includes(raw.kind as PurchaseKind) || !['HDPAY_BANK', 'CREGIS_USDT_BSC'].includes(String(raw.paymentMethod))) throw invalid();
+  if (!purchaseKinds.includes(raw.kind as PurchaseKind) || typeof raw.paymentMethod !== 'string'
+    || !['HDPAY_BANK', 'CREGIS_USDT_BSC', 'CREGIS_USDT_ERC20'].includes(raw.paymentMethod)) throw invalid();
   const paymentMethod = raw.paymentMethod as ExternalPaymentMethod;
   const network = raw.network == null ? null : text(raw.network);
   if (paymentMethod === 'CREGIS_USDT_BSC' && !['BSC', 'BEP20', 'USDT-BSC'].includes(network ?? '')) throw invalid();
+  if (paymentMethod === 'CREGIS_USDT_ERC20' && network !== 'ERC20') throw invalid();
   const amountVnd = raw.amountVnd == null ? null : text(raw.amountVnd);
   if (paymentMethod === 'HDPAY_BANK' && (!amountVnd || !/^[1-9]\d*$/.test(amountVnd))) throw invalid();
   const subtotalUsdt = money(raw.subtotalUsdt), channelFeeUsdt = money(raw.channelFeeUsdt), networkConfirmFeeUsdt = money(raw.networkConfirmFeeUsdt), totalUsdt = money(raw.totalUsdt);
@@ -76,7 +78,7 @@ export function parsePurchaseIntent(value: unknown): PurchasePaymentIntent {
   if (!purchasePaymentStatuses.includes(raw.status as PurchasePaymentStatus)) throw invalid();
   const paymentUrl = raw.paymentUrl == null ? null : text(raw.paymentUrl), address = raw.address == null ? null : text(raw.address);
   if (paymentUrl && (fields.paymentMethod !== 'HDPAY_BANK' || !validateHostedPaymentUrl(paymentUrl))) throw invalid();
-  if (address && (fields.paymentMethod !== 'CREGIS_USDT_BSC' || !/^0x[0-9a-fA-F]{40}$/.test(address))) throw invalid();
+  if (address && (!['CREGIS_USDT_BSC', 'CREGIS_USDT_ERC20'].includes(fields.paymentMethod) || !/^0x[0-9a-fA-F]{40}$/.test(address))) throw invalid();
   if ((raw.status === 'DELIVERED' || raw.fulfilmentStatus === 'DELIVERED') && (!raw.receipt || typeof raw.receipt !== 'object')) throw invalid();
   return { ...fields, intentNo: text(raw.intentNo), commandKey: text(raw.commandKey), status: raw.status as PurchasePaymentStatus,
     paymentUrl, address, reason: raw.reason == null || typeof raw.reason === 'string' && !raw.reason.trim() ? null : text(raw.reason), receipt: raw.receipt ?? null,

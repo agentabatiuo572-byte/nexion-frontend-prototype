@@ -97,3 +97,51 @@ describe('durable external payment orchestration', () => {
     payment.close(); expect(await choice).toBeNull();
   });
 });
+
+
+it('rejects another rail with the same original key and quote before showing its address, including after reload', async () => {
+  const ethereumQuote = { ...quote, paymentMethod: 'CREGIS_USDT_ERC20', network: 'ERC20' };
+  const ethereumIntent = { ...intent, ...ethereumQuote, address: '0x' + 'e'.repeat(40) };
+  ports.request.mockResolvedValueOnce(ethereumQuote).mockResolvedValueOnce(intent).mockResolvedValueOnce(intent).mockResolvedValueOnce(ethereumIntent);
+  let store = await import('./purchase-payment'), payment = store.usePurchasePayment();
+  const first = store.requestPurchasePayment(context());
+  await payment.select('CREGIS_USDT_ERC20'); await payment.confirm();
+  expect(payment.state.error).toBe(true); expect(payment.state.intent).toBeNull();
+  expect(payment.pending()).toMatchObject([{ paymentMethod: 'CREGIS_USDT_ERC20', network: 'ERC20', commandKey: 'business-original-key', paymentQuoteId: 'Q-1' }]);
+  payment.close(); expect(await first).toBeNull();
+  vi.resetModules(); store = await import('./purchase-payment'); payment = store.usePurchasePayment();
+  const restored = store.requestPurchasePayment(context());
+  await vi.waitFor(() => expect(payment.state.error).toBe(true));
+  expect(payment.state.intent).toBeNull();
+  expect(payment.pending()).toMatchObject([{ paymentMethod: 'CREGIS_USDT_ERC20', network: 'ERC20' }]);
+  await payment.query();
+  expect(payment.state.intent).toMatchObject({ paymentMethod: 'CREGIS_USDT_ERC20', network: 'ERC20', address: ethereumIntent.address });
+  expect(ports.request.mock.calls.filter(([request]) => request.method === 'POST' && request.path.endsWith('-intents'))).toHaveLength(1);
+  payment.close(); expect(await restored).toBeNull();
+});
+
+it('rejects a changed network spelling for a known quote even when the rail is unchanged', async () => {
+  ports.request.mockResolvedValueOnce(quote).mockResolvedValueOnce({ ...intent, network: 'BEP20' });
+  const store = await import('./purchase-payment'), payment = store.usePurchasePayment();
+  const result = store.requestPurchasePayment(context());
+  await payment.select('CREGIS_USDT_BSC'); await payment.confirm();
+  expect(payment.state.error).toBe(true); expect(payment.state.intent).toBeNull();
+  expect(payment.pending()).toMatchObject([{ paymentMethod: 'CREGIS_USDT_BSC', network: 'BSC' }]);
+  payment.close(); expect(await result).toBeNull();
+});
+
+it('binds legacy recovery rows to their first validated original intent without inventing the old rail', async () => {
+  const ethereumIntent = { ...intent, paymentMethod: 'CREGIS_USDT_ERC20', network: 'ERC20', address: '0x' + 'e'.repeat(40) };
+  const original = { fingerprint: JSON.stringify(['ORDER_PAY', context().payload]), kind: 'ORDER_PAY', commandKey: 'business-original-key', paymentQuoteId: 'Q-1', summary: 'Legacy order' };
+  ports.rows.set('uvel-purchase-payment-accounts-v1user:1', { records: { 'business-original-key': original } });
+  ports.request.mockResolvedValueOnce(ethereumIntent).mockResolvedValueOnce(intent);
+  const store = await import('./purchase-payment'), payment = store.usePurchasePayment();
+  const result = store.requestPurchasePayment(context());
+  await vi.waitFor(() => expect(payment.state.intent?.network).toBe('ERC20'));
+  expect(payment.pending()).toMatchObject([{ paymentMethod: 'CREGIS_USDT_ERC20', network: 'ERC20', intentNo: 'PI-1' }]);
+  await payment.query();
+  expect(payment.state.error).toBe(true);
+  expect(payment.state.intent).toMatchObject({ paymentMethod: 'CREGIS_USDT_ERC20', network: 'ERC20', address: ethereumIntent.address });
+  expect(ports.request.mock.calls.every(([request]) => request.method !== 'POST')).toBe(true);
+  payment.close(); expect(await result).toBeNull();
+});

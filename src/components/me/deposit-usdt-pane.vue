@@ -1,6 +1,6 @@
 <!--
   DepositUsdtPane — 充值页「USDT 链上」通道段(PAY-规格 [FEAT-PAY01] ⑤⑥)。
-  正式模式仅 BEP20 → 专属地址 QR + 复制 + 服务端费/最低额/确认数
+  正式模式支持 BEP20 / ERC20 → 专属地址 QR + 复制 + 服务端费/最低额/确认数
   → 常驻错网络警示 → 指引/工单入口 → 最近入金
   列表(confirming n/N 实时进度 · credited / dust_hold / returned 态)。
   4 态:骨架(匹配形状)/ 空列表 / 通道停用置灰 / 断网 inline 重试。
@@ -8,11 +8,27 @@
 -->
 <template>
   <view class="mx-4" style="padding: 0 2px">
+      <!-- ── 网络 chip ── -->
+      <view class="flex" style="gap: 8px">
+        <view
+          v-for="nw in NETWORKS"
+          :key="nw.id"
+          :class="['flex-1 flex flex-col items-center justify-center', isSelectable(nw.id) ? 'active:opacity-85' : '', `nx-dep-net-${nw.label.toLowerCase()}`]"
+          :style="chipStyle(nw.id)"
+          role="button" tabindex="0"
+          :aria-disabled="!isSelectable(nw.id)"
+          :aria-pressed="net === nw.id"
+          @click="pickNet(nw.id)" @keydown.enter.prevent="pickNet(nw.id)" @keydown.space.prevent="pickNet(nw.id)"
+        >
+          <text :style="chipLabelStyle(nw.id)">{{ nw.label }}</text>
+          <text v-if="nw.id === 'usdt-trc20'" :style="chipTagStyle">{{ t.topupChrome.netRecommended }}</text>
+          <text v-else :style="chipSubStyle" style="white-space: nowrap">{{ fmt(t.topupChrome.netFee, { fee: (addressRefreshFailed || (fundsServerEnabled && !serverEnabled)) ? "—" : formatAmount(fundsServerEnabled ? feeUsdt : CHAIN_DEPOSIT_FEE_USDT[nw.id]) }) }}</text>
+        </view>
+      </view>
+
+
     <!-- ── 加载骨架(chip 行 / QR 区 / 入口区,匹配真实形状)── -->
     <view v-if="phase === 'loading'">
-      <view class="flex" style="gap: 8px">
-        <view v-for="i in NETWORKS.length" :key="i" class="flex-1 nx-dep-sk" style="height: 56px" />
-      </view>
       <view class="nx-dep-sk" style="height: 300px; margin-top: 16px" />
       <view class="nx-dep-sk" style="height: 96px; margin-top: 16px" />
     </view>
@@ -38,23 +54,6 @@
         <text :style="noteStyle">{{ t.topupChrome.addrLoadFailed }}</text>
         <view class="nx-dep-background-retry grid place-items-center active:opacity-80" :style="retryBtnStyle" role="button" tabindex="0" @click="load(true)"><text style="font-size: 13px; font-weight: 500; color: var(--v5-ink)">{{ t.ui.retry }}</text></view>
       </view>
-      <!-- ── 三网络 chip ── -->
-      <view class="flex" style="gap: 8px">
-        <view
-          v-for="nw in NETWORKS"
-          :key="nw.id"
-          :class="['flex-1 flex flex-col items-center justify-center', isEnabled(nw.id) ? 'active:opacity-85' : '', `nx-dep-net-${nw.label.toLowerCase()}`]"
-          :style="chipStyle(nw.id)"
-          role="button" tabindex="0"
-          :aria-disabled="!isEnabled(nw.id)"
-          @click="pickNet(nw.id)"
-        >
-          <text :style="chipLabelStyle(nw.id)">{{ nw.label }}</text>
-          <text v-if="nw.id === 'usdt-trc20'" :style="chipTagStyle">{{ t.topupChrome.netRecommended }}</text>
-          <text v-else :style="chipSubStyle" style="white-space: nowrap">{{ fmt(t.topupChrome.netFee, { fee: addressRefreshFailed ? "—" : formatAmount(fundsServerEnabled ? feeUsdt : CHAIN_DEPOSIT_FEE_USDT[nw.id]) }) }}</text>
-        </view>
-      </view>
-
       <!-- ── 专属地址 + QR(所选网络启用时)── -->
       <view v-if="activeNet" style="margin-top: 18px">
         <view><text class="font-mono-tabular" :style="metaLabelStyle">{{ fmt(t.topupChrome.sendVia, { network: activeLabel }) }}</text></view>
@@ -88,7 +87,7 @@
         <view class="grid place-items-center" :style="stateIconBoxStyle">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--v5-ink-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M10 15V9" /><path d="M14 15V9" /></svg>
         </view>
-        <view><text class="block text-center" style="margin-top: 10px; font-size: 12px; color: var(--v5-ink-3); line-height: 1.45; max-width: 260px">{{ t.topupChrome.allNetworksPaused }}</text></view>
+        <view><text class="block text-center" style="margin-top: 10px; font-size: 12px; color: var(--v5-ink-3); line-height: 1.45; max-width: 260px">{{ fundsServerEnabled ? CHANNEL_SHORT[net] + " · " : "" }}{{ fundsServerEnabled ? t.topupChrome.channelPaused : t.topupChrome.allNetworksPaused }}</text></view>
       </view>
 
       <!-- ── 可用专属地址警示:地址恒定 + 错网络不可找回(规格 ⑦ 语义)── -->
@@ -210,6 +209,7 @@ const remoteSessionReady = computed(() => {
 // ── 网络 chip(标签为链名专有名词,非文案)──
 const NETWORKS: { id: ChainDepositChannel; label: string }[] = fundsServerEnabled ? [
   { id: "usdt-bep20", label: "BEP20" },
+  { id: "usdt-erc20", label: "ERC20" },
 ] : [
   { id: "usdt-trc20", label: "TRC20" },
   { id: "usdt-bep20", label: "BEP20" },
@@ -224,6 +224,8 @@ const CHANNEL_SHORT: Record<DepositChannel, string> = {
 };
 /** confirming 超过 30 分钟未走满 → 「网络拥堵」提示([FEAT-PAY01] ② 异常3)。 */
 const CONFIRM_DELAY_NOTE_MS = 30 * 60 * 1000;
+
+const net = ref<ChainDepositChannel>(fundsServerEnabled ? "usdt-bep20" : "usdt-trc20");
 
 // ── 正式模式从服务端获取地址与记录；失败时只显示重试，不回退到模拟地址。──
 const phase = ref<"loading" | "preparing" | "error" | "ready">("loading");
@@ -273,9 +275,10 @@ function load(background = false) {
     nextPollAt = Number.POSITIVE_INFINITY;
     const account = app.accountKey;
     const bindingEpoch = app.accountBindingEpoch;
+    const selectedNetwork = net.value === "usdt-erc20" ? "ERC20" : "BEP20";
     void (async () => {
       try {
-        const snapshot = await cregisDepositApi.address();
+        const snapshot = await cregisDepositApi.address(selectedNetwork);
         if (generation !== loadGeneration || account !== app.accountKey
             || bindingEpoch !== app.accountBindingEpoch || !remoteSessionReady.value) return;
         if (snapshot.enabled && (snapshot.minDepositUsdt == null || !Number.isSafeInteger(Number(snapshot.minDepositUsdt))
@@ -308,7 +311,7 @@ function load(background = false) {
         chainHistoryLoaded.value = true;
         chainHistoryFailed.value = false;
         serverRecords.value = deposits.map((row) => ({
-          depositId: row.depositId, channel: "usdt-bep20", txHash: row.txHash,
+          depositId: row.depositId, channel: row.network === "ERC20" ? "usdt-erc20" : "usdt-bep20", txHash: row.txHash,
           address: row.address, grossAmountUsdt: row.grossAmountUsdt,
           grossExact: exactDepositAmount(row.grossAmountUsdt, row.grossAmountUsdtExact),
           creditedExact: exactDepositAmount(row.creditedUsdt, row.creditedUsdtExact),
@@ -379,24 +382,33 @@ onUnmounted(() => {
   if (pollTimer) clearInterval(pollTimer);
 });
 
-// ── 网络选择(停用 chip 不可选;所选被停用时回落到首个启用网络)──
-const net = ref<ChainDepositChannel>(fundsServerEnabled ? "usdt-bep20" : "usdt-trc20");
+// ── 服务端逐网络确认能力；切换时立即移除旧地址和二维码。──
+function isSelectable(id: ChainDepositChannel): boolean {
+  return fundsServerEnabled ? id === "usdt-bep20" || id === "usdt-erc20" : isEnabled(id);
+}
 function isEnabled(id: ChainDepositChannel): boolean {
-  if (fundsServerEnabled) return id === "usdt-bep20" && serverEnabled.value && !!serverAddress.value;
+  if (fundsServerEnabled) return id === net.value && serverEnabled.value && !!serverAddress.value;
   return dep.chainChannelEnabled[id] === true;
 }
 const activeNet = computed<ChainDepositChannel | null>(() => {
   if (isEnabled(net.value)) return net.value;
+  if (fundsServerEnabled) return null;
   const fallback = NETWORKS.find((n) => isEnabled(n.id));
   return fallback ? fallback.id : null;
 });
 const activeLabel = computed(() => (activeNet.value ? CHANNEL_SHORT[activeNet.value] : ""));
 function pickNet(id: ChainDepositChannel) {
-  if (!isEnabled(id)) {
-    toast.info(fundsServerEnabled ? t.value.topupChrome.allNetworksPaused : t.value.topupChrome.channelPaused);
+  if (!isSelectable(id) || (fundsServerEnabled && id === net.value && !serverEnabled.value)) {
+    toast.info(t.value.topupChrome.channelPaused);
     return;
   }
+  if (id === net.value) return;
   net.value = id;
+  if (fundsServerEnabled) {
+    serverAddress.value = ""; serverEnabled.value = false; serverCreditEnabled.value = false; copied.value = false;
+    minDeposit.value = null; feeUsdt.value = null; addressRefreshFailed.value = false;
+    load();
+  }
 }
 
 // ── 专属地址(同账号同网络恒定;中段省略防溢出,复制取全量)──
@@ -543,21 +555,21 @@ const metaLabelStyle: CSSProperties = {
   letterSpacing: "0.06em",
 };
 function chipStyle(id: ChainDepositChannel): CSSProperties {
-  const on = activeNet.value === id;
+  const on = net.value === id;
   return {
     minHeight: "56px",
     borderRadius: "16px",
     gap: "2px",
     padding: "8px 6px",
     background: on ? "var(--v5-brand-soft)" : "var(--v5-surface)",
-    opacity: isEnabled(id) ? 1 : 0.45,
+    opacity: isSelectable(id) ? 1 : 0.45,
   };
 }
 function chipLabelStyle(id: ChainDepositChannel): CSSProperties {
   return {
     fontSize: "13px",
     fontWeight: 600,
-    color: activeNet.value === id ? "var(--v5-brand)" : "var(--v5-ink-2)",
+    color: net.value === id ? "var(--v5-brand)" : "var(--v5-ink-2)",
   };
 }
 const chipTagStyle: CSSProperties = {

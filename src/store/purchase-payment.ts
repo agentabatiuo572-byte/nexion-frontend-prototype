@@ -10,7 +10,9 @@ import { formatAmount } from '@/lib/amount-display';
 import { validatePurchasePaymentReceipt } from '@/lib/purchase-payment-receipt';
 
 export type PurchasePaymentContext = { kind: PurchaseKind; payload: Record<string, unknown>; amount: number | string; summary: string; current: () => boolean; commandKey?: () => string };
-type PendingExternal = { fingerprint: string; kind: PurchaseKind; commandKey: string; paymentQuoteId: string; intentNo?: string; summary: string; lastStatus?: string; validated?: boolean; businessDelivered?: boolean };
+type PendingExternal = { fingerprint: string; kind: PurchaseKind; commandKey: string; paymentQuoteId: string;
+  paymentMethod?: PurchaseQuote['paymentMethod']; network?: PurchaseQuote['network'];
+  intentNo?: string; summary: string; lastStatus?: string; validated?: boolean; businessDelivered?: boolean };
 type PendingRow = { records: Record<string, PendingExternal> };
 export type PurchaseChoice = { method: 'WALLET' } | { method: 'EXTERNAL'; receipt: unknown; commandKey: string; accountKey: string };
 const TABLE = 'uvel-purchase-payment-accounts-v1', KEYS = 'uvel-purchase-payment-keys-accounts-v1';
@@ -43,11 +45,15 @@ function fingerprint(value: PurchasePaymentContext): string {
 function owns(version: number, accountKey: string) { return state.open && requestVersion === version && account() === accountKey && state.accountKey === accountKey; }
 function matches(intent: PurchasePaymentIntent, pending: PendingExternal) {
   if (intent.commandKey !== pending.commandKey || intent.kind !== pending.kind || intent.paymentQuoteId !== pending.paymentQuoteId
+    || pending.paymentMethod !== undefined && intent.paymentMethod !== pending.paymentMethod
+    || pending.network !== undefined && intent.network !== pending.network
     || pending.intentNo && intent.intentNo !== pending.intentNo) throw new Error('PURCHASE_PAYMENT_RESPONSE_INVALID');
 }
 function accept(intent: PurchasePaymentIntent, pending: PendingExternal) {
   matches(intent, pending);
-  const known = { ...pending, intentNo: intent.intentNo, lastStatus: intent.status, businessDelivered: intent.status === 'DELIVERED' || intent.fulfilmentStatus === 'DELIVERED' };
+  // Legacy recovery rows have only the quote identity; bind their first validated original intent for subsequent reads.
+  const known = { ...pending, paymentMethod: intent.paymentMethod, network: intent.network,
+    intentNo: intent.intentNo, lastStatus: intent.status, businessDelivered: intent.status === 'DELIVERED' || intent.fulfilmentStatus === 'DELIVERED' };
   save(known); state.pending = known; state.intent = intent; state.method = intent.paymentMethod;
   if (intent.status === 'DELIVERED' || intent.fulfilmentStatus === 'DELIVERED') {
     const payload = JSON.parse(known.fingerprint)[1] as Record<string, unknown>;
@@ -124,7 +130,8 @@ async function confirm() {
   const commandKey = context.commandKey?.() ?? acquireAccountCommandKey(KEYS, state.accountKey, scope, 'purchase');
   const original = rows(state.accountKey).records[commandKey];
   if (original) { state.pending = original; await query(); return; }
-  const pending = { fingerprint: scope, kind: context.kind, commandKey, paymentQuoteId: quote.paymentQuoteId, summary: context.summary };
+  const pending = { fingerprint: scope, kind: context.kind, commandKey, paymentQuoteId: quote.paymentQuoteId,
+    paymentMethod: quote.paymentMethod, network: quote.network, summary: context.summary };
   save(pending); state.pending = pending;
   await submitOriginal();
 }

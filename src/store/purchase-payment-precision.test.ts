@@ -10,10 +10,10 @@ vi.mock('./account-scoped-storage', () => ({
   writeAccountRow: (table: string, account: string, value: unknown) => { ports.rows.set(table + account, structuredClone(value)); return true; },
   acquireAccountCommandKey: () => 'original-precision-key', releaseAccountCommandKey: vi.fn(),
 }));
-const methods = ['CREGIS_USDT_BSC', 'HDPAY_BANK'] as const;
+const methods = ['CREGIS_USDT_BSC', 'CREGIS_USDT_ERC20', 'HDPAY_BANK'] as const;
 function fixture(method: typeof methods[number], amount: string, charged: string) {
   const bank = method === 'HDPAY_BANK', total = (Number(charged) + (bank ? 1.75 : 2)).toFixed(2);
-  const quote = { paymentQuoteId: 'Q-precision', kind: 'ORDER_PAY', paymentMethod: method, network: bank ? 'VND_BANK' : 'BSC',
+  const quote = { paymentQuoteId: 'Q-precision', kind: 'ORDER_PAY', paymentMethod: method, network: bank ? 'VND_BANK' : method === 'CREGIS_USDT_ERC20' ? 'ERC20' : 'BSC',
     businessAmountUsdt: amount, roundingAdjustmentUsdt: (Number(charged) - Number(amount)).toFixed(6), subtotalUsdt: charged,
     channelFeeUsdt: '1.75', networkConfirmFeeUsdt: bank ? '0.00' : '0.25', totalUsdt: total, feePolicyVersion: 1,
     expiresAt: '2099-01-01T00:00:00Z', fxRateVndPerUsdt: bank ? '25000' : null, amountVnd: bank ? String(Math.round(Number(total) * 25000)) : null };

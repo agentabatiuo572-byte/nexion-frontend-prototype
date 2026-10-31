@@ -10,7 +10,7 @@ export function validatePurchasePaymentReceipt(kind: PurchaseKind, payload: Reco
   expected?: { subtotalUsdt: string; paymentMethod: string }): string {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('PURCHASE_PAYMENT_RECEIPT_INVALID');
   const row = raw as Record<string, unknown>;
-  if (row.paymentMethod !== 'HDPAY_BANK' && row.paymentMethod !== 'CREGIS_USDT_BSC') throw new Error('PURCHASE_PAYMENT_RECEIPT_INVALID');
+  if (row.paymentMethod !== 'HDPAY_BANK' && row.paymentMethod !== 'CREGIS_USDT_BSC' && row.paymentMethod !== 'CREGIS_USDT_ERC20') throw new Error('PURCHASE_PAYMENT_RECEIPT_INVALID');
   if (typeof row.paymentSubtotalUsdt !== 'string' || !/^(0|[1-9]\d{0,11})(\.\d{1,2})?$/.test(row.paymentSubtotalUsdt)
       || formatAmount(row.amountUsdt as string | number) !== formatAmount(row.paymentSubtotalUsdt)
       || expected && (row.paymentMethod !== expected.paymentMethod || formatAmount(row.paymentSubtotalUsdt) !== formatAmount(expected.subtotalUsdt))) throw new Error('PURCHASE_PAYMENT_RECEIPT_MISMATCH');

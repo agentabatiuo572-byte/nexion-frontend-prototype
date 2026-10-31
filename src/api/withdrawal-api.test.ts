@@ -143,13 +143,13 @@ test("abandons an ambiguous attempt through the server fence instead of deleting
 });
 
 
-test("unknown BEP20 provider submission keeps its reservation and active slot instead of becoming failed", async () => {
+test.each(["USDT-BEP20", "USDT-ERC20"])("unknown %s provider submission keeps its reservation and active slot instead of becoming failed", async chain => {
   const api = createWithdrawalApi({ request: async () => ({ source: "nx_withdrawal_order", sourceEnvironment: "PRODUCTION",
-    withdrawals: [{ ...row, status: "TX_ORPHANED" }], page: { pageNum: 1, pageSize: 50, total: 1, hasMore: false } }) } as never);
+    withdrawals: [{ ...row, chain, status: "TX_ORPHANED" }], page: { pageNum: 1, pageSize: 50, total: 1, hasMore: false } }) } as never);
   const [unknown] = await api.list();
   expect(toCanonicalWithdrawal(unknown, row.targetAddress).status).toBe("frozen");
   expect(occupiesWithdrawalSlot(toCanonicalWithdrawal(unknown, row.targetAddress).status)).toBe(true);
   const detail = createWithdrawalApi({ request: async () => ({ source: "nx_withdrawal_order", sourceEnvironment: "PRODUCTION",
-    withdrawal: { ...row, status: "TX_ORPHANED" } }) } as never);
+    withdrawal: { ...row, chain, status: "TX_ORPHANED" } }) } as never);
   await expect(detail.get("WD-1")).resolves.toMatchObject({ status: "frozen" });
 });

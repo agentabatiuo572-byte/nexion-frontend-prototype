@@ -418,7 +418,7 @@ function parsePolicy(value: unknown): WithdrawalPolicy {
 
 function canonicalStatus(status: string, chain?: string): WithdrawalStatus {
   // These provider channels retain the reservation while the original transfer is being reconciled.
-  if (status.trim().toUpperCase() === "TX_ORPHANED" && (chain === "BANK-VND" || chain === "USDT-BEP20")) return "frozen";
+  if (status.trim().toUpperCase() === "TX_ORPHANED" && (chain === "BANK-VND" || chain === "USDT-BEP20" || chain === "USDT-ERC20")) return "frozen";
   switch (status.trim().toUpperCase()) {
     case "REVIEW_PENDING":
     case "REVIEWING":

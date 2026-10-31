@@ -131,15 +131,15 @@ async function pane(response: object, records: unknown[] | Promise<unknown[]> = 
 
 test.each([zh, en, vietnamese])("paused channel and disabled button use the same message without account allowlisting", async messages => {
   const h = await pane({ enabled: false, network: "BEP20", reason: "CREGIS_DEPOSIT_PAUSED" }, [], messages);
-  expect(h.text()).toContain(messages.topupChrome.allNetworksPaused);
+  expect(h.text()).toContain(messages.topupChrome.channelPaused);
   (h.state.pickNet as (id: string) => void)("usdt-bep20");
-  expect(h.info).toHaveBeenCalledWith(messages.topupChrome.allNetworksPaused);
+  expect(h.info).toHaveBeenCalledWith(messages.topupChrome.channelPaused);
   expect(nodesOf(h.root).filter(n => n.kind === "image")).toHaveLength(0);
 });
 
 test.each([undefined, "CREGIS_DEPOSIT_ACCOUNT_NOT_OPEN", "UNKNOWN_REASON"])("legacy or missing reason %s does not introduce account permission UI", async reason => {
   const h = await pane({ enabled: false, network: "BEP20", reason });
-  expect(h.text()).toContain(zh.topupChrome.allNetworksPaused);
+  expect(h.text()).toContain(zh.topupChrome.channelPaused);
   expect(h.text()).not.toContain("当前账号暂未开放");
 });
 
@@ -151,7 +151,7 @@ test("paused channel recovers after network failure and retry without retaining 
   h.request.mockImplementation(async ({ path }) => path.startsWith("/api/deposits/address") ? address : []);
   (controls(h.root, "nx-dep-retry-cta")[0].props.onClick as () => void)();
   await vi.waitFor(() => expect((h.state.serverEnabled as Vue.Ref<boolean>).value).toBe(true));
-  expect(h.text()).not.toContain(zh.topupChrome.allNetworksPaused);
+  expect(h.text()).not.toContain(zh.topupChrome.channelPaused);
   h.auth.isAuthenticated = false;
   await Vue.nextTick();
   expect((h.state.serverAddress as Vue.Ref<string>).value).toBe("");
@@ -388,7 +388,7 @@ for (const messages of [zh, en, vietnamese]) {
 for (const messages of [zh, en, vietnamese]) {
   test.each([undefined, address.address])("a disabled address %s has no address promise, QR or transfer instructions", async retainedAddress => {
     const h = await pane({ enabled: false, creditEnabled: false, network: "BEP20", address: retainedAddress }, [], messages);
-    expect(h.text()).toContain(messages.topupChrome.allNetworksPaused);
+    expect(h.text()).toContain(messages.topupChrome.channelPaused);
     expect(h.text()).not.toContain(messages.topupChrome.depositAddrNote);
     expect(h.text()).not.toContain(messages.topupChrome.scanOrCopy);
     expect(h.text()).not.toContain(messages.topupChrome.amountAtSenderNote);
@@ -500,7 +500,7 @@ test.each([zh,en,vietnamese])("empty pool prepares automatically without an erro
   const h=await pane({ enabled:false, network:"BEP20", reason:"CREGIS_ADDRESS_PREPARING" }, [], messages);
   expect(h.text()).toContain(messages.topupChrome.addrPreparing);
   expect(h.text()).not.toContain(messages.topupChrome.addrLoadFailed);
-  expect(h.text()).not.toContain(messages.topupChrome.allNetworksPaused);
+  expect(h.text()).not.toContain(messages.topupChrome.channelPaused);
   expect(nodesOf(h.root).filter(n=>n.props["aria-label"]===messages.topupChrome.copyAddress)).toHaveLength(0);
   h.request.mockImplementation(async ({path})=>path.startsWith("/api/deposits/address")?address:[]);
   h.lifecycle.hide();
@@ -601,7 +601,7 @@ test("background address failure withholds the address but preserves history and
   expect(controls(h.root, "nx-dep-qr-box")).toHaveLength(0);
   expect(controls(h.root, "nx-dep-copy-address-cta")).toHaveLength(0);
   expect(controls(h.root, "nx-dep-record-row")).toHaveLength(1);
-  expect(h.text()).not.toContain(zh.topupChrome.allNetworksPaused);
+  expect(h.text()).not.toContain(zh.topupChrome.channelPaused);
   expect(h.text()).not.toContain(zh.topupChrome.noDepositsYet);
   h.request.mockImplementation(async ({ path }) => path.startsWith("/api/deposits/address") ? address : [rows[1]]);
   (controls(h.root, "nx-dep-background-retry")[0].props.onClick as () => void)();
@@ -625,4 +625,57 @@ test('a remote integer minimum and explicit zero fee remain valid and display tw
   expect(h.text()).toContain('$37.00'); expect(h.text()).toContain('0.00 USDT');
   expect(controls(h.root, 'nx-dep-qr-box')).toHaveLength(1);
   expect((h.state.minDeposit as Vue.Ref<string>).value).toBe('37');
+});
+
+
+test.each([zh, en, vietnamese])("switching networks clears QR and copy immediately; disabled ERC20 never borrows the BEP20 address", async messages => {
+  const h = await pane(address, [], messages);
+  let resolveErc20!: (value: object) => void;
+  h.request.mockImplementation(async ({ path }) => path.endsWith("network=ERC20")
+    ? new Promise(resolve => { resolveErc20 = resolve; }) : []);
+  (controls(h.root, "nx-dep-net-erc20")[0].props.onClick as () => void)();
+  await Vue.nextTick();
+  expect((h.state.serverAddress as Vue.Ref<string>).value).toBe("");
+  expect(controls(h.root, "nx-dep-qr-box")).toHaveLength(0);
+  expect(controls(h.root, "nx-dep-copy-address-cta")).toHaveLength(0);
+  resolveErc20({ enabled: false, network: "ERC20", reason: "CREGIS_DEPOSIT_PAUSED", address: address.address });
+  await vi.waitFor(() => expect(h.text()).toContain(messages.topupChrome.channelPaused));
+  expect(controls(h.root, "nx-dep-qr-box")).toHaveLength(0);
+  expect(h.request).toHaveBeenCalledWith({ method: "GET", path: "/api/deposits/address?network=ERC20" });
+});
+
+test("late ERC20 response cannot replace a later BEP20 selection; ERC20 history keeps its network in transaction details", async () => {
+  const h = await pane(address);
+  let resolveErc20!: (value: object) => void;
+  h.request.mockImplementation(async ({ path }) => path.endsWith("network=ERC20")
+    ? new Promise(resolve => { resolveErc20 = resolve; }) : path.startsWith("/api/deposits/address") ? address : [{ ...rows[1], network: "ERC20" }]);
+  (h.state.pickNet as (network: string) => void)("usdt-erc20");
+  (h.state.pickNet as (network: string) => void)("usdt-bep20");
+  await vi.waitFor(() => expect((h.state.serverAddress as Vue.Ref<string>).value).toBe(address.address));
+  resolveErc20({ ...address, network: "ERC20", address: "0x" + "e".repeat(40) });
+  await new Promise(resolve => setTimeout(resolve, 0)); await Vue.nextTick();
+  expect((h.state.serverAddress as Vue.Ref<string>).value).toBe(address.address);
+  const record = controls(h.root, "nx-dep-record-row")[0];
+  expect(textOf(record)).toContain("ERC20");
+  (record.props.onClick as () => void)();
+  expect(h.navTo.mock.calls[0][0]).toContain("net=ERC20");
+});
+
+test("an ERC20 success changes both the QR payload and copied address, and logout clears both", async () => {
+  const copied = vi.fn();
+  vi.stubGlobal("uni", { setClipboardData: copied });
+  const h = await pane(address);
+  const erc20Address = "0x" + "e".repeat(40);
+  h.request.mockImplementation(async ({ path }) => path.startsWith("/api/deposits/address")
+    ? { ...address, network: "ERC20", address: erc20Address, creditEnabled: true } : []);
+  (h.state.pickNet as (network: string) => void)("usdt-erc20");
+  await vi.waitFor(() => expect((h.state.serverAddress as Vue.Ref<string>).value).toBe(erc20Address));
+  expect(h.text()).toContain(fmt(zh.topupChrome.sendVia, { network: "ERC20" }));
+  (controls(h.root, "nx-dep-copy-address-cta")[0].props.onClick as () => void)();
+  expect(copied).toHaveBeenCalledWith(expect.objectContaining({ data: erc20Address }));
+  const qr = qrcode(0, "M"); qr.addData(erc20Address); qr.make();
+  expect(controls(h.root, "nx-dep-qr-image")[0].props.src).toBe(qr.createDataURL(4, 16));
+  h.auth.isAuthenticated = false; await Vue.nextTick();
+  expect((h.state.serverAddress as Vue.Ref<string>).value).toBe("");
+  expect(controls(h.root, "nx-dep-copy-address-cta")).toHaveLength(0);
 });

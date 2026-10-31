@@ -120,7 +120,7 @@ export interface CanonicalTradeinQuote {
 }
 
 export interface CanonicalTradeinResult {
-  paymentMethod?: 'HDPAY_BANK' | 'CREGIS_USDT_BSC';
+  paymentMethod?: 'HDPAY_BANK' | 'CREGIS_USDT_BSC' | 'CREGIS_USDT_ERC20';
   amountUsdt?: number;
   tradeinNo: string;
   orderNo: string;
@@ -135,7 +135,7 @@ export interface CanonicalTradeinResult {
 }
 
 export interface CanonicalCapacityKeepResult {
-  paymentMethod?: 'HDPAY_BANK' | 'CREGIS_USDT_BSC';
+  paymentMethod?: 'HDPAY_BANK' | 'CREGIS_USDT_BSC' | 'CREGIS_USDT_ERC20';
   amountUsdt?: number;
   operationNo: string;
   orderNo: string;
@@ -413,7 +413,7 @@ function quote(value: unknown): CanonicalTradeinQuote {
 
 function purchaseReceiptRecord(value: unknown): Record<string, unknown> {
   const source = { ...record(value) };
-  if (source.paymentMethod === 'HDPAY_BANK' || source.paymentMethod === 'CREGIS_USDT_BSC') {
+  if (source.paymentMethod === 'HDPAY_BANK' || source.paymentMethod === 'CREGIS_USDT_BSC' || source.paymentMethod === 'CREGIS_USDT_ERC20') {
     for (const key of ['amountUsdt', 'walletDebitUsdt', 'walletBalanceAfterUsdt', 'discountUsdt']) {
       const raw = source[key];
       if (typeof raw === 'string') {
@@ -424,8 +424,8 @@ function purchaseReceiptRecord(value: unknown): Record<string, unknown> {
   }
   return source;
 }
-function externalPurchaseFields(source: Record<string, unknown>): { paymentMethod?: 'HDPAY_BANK' | 'CREGIS_USDT_BSC'; amountUsdt?: number } {
-  if (source.paymentMethod !== 'HDPAY_BANK' && source.paymentMethod !== 'CREGIS_USDT_BSC') return {};
+function externalPurchaseFields(source: Record<string, unknown>): { paymentMethod?: 'HDPAY_BANK' | 'CREGIS_USDT_BSC' | 'CREGIS_USDT_ERC20'; amountUsdt?: number } {
+  if (source.paymentMethod !== 'HDPAY_BANK' && source.paymentMethod !== 'CREGIS_USDT_BSC' && source.paymentMethod !== 'CREGIS_USDT_ERC20') return {};
   if (number(source.walletDebitUsdt) !== 0) return invalid();
   return { paymentMethod: source.paymentMethod, amountUsdt: number(source.amountUsdt) };
 }

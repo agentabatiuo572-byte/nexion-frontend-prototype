@@ -26,3 +26,20 @@ test("native build converts tab and wallet icons while leaving large illustratio
     else process.env.UNI_PLATFORM = previous;
   }
 });
+
+test("native checkout completion check uses the supported view SVG bridge", () => {
+  const previous = process.env.UNI_PLATFORM;
+  process.env.UNI_PLATFORM = "app";
+  try {
+    const source = readFileSync(new URL("../src/components/checkout/CheckoutResult.vue", import.meta.url), "utf8");
+    const transformed = nativeSvgIcons().transform(source, "CheckoutResult.vue")?.code ?? source;
+    const badge = transformed.match(/class="checkout-result__check"[\s\S]*?<\/view>/)?.[0];
+    assert.ok(badge, "production result completion badge must exist");
+    assert.match(badge, /<NxNativeSvg width="24" height="24"/);
+    assert.match(badge, /<path d="m5 12 4 4L19 6"\s*\/>/);
+    assert.doesNotMatch(badge, /<svg\b/);
+  } finally {
+    if (previous === undefined) delete process.env.UNI_PLATFORM;
+    else process.env.UNI_PLATFORM = previous;
+  }
+});

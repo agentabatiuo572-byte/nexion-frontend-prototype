@@ -7,7 +7,7 @@
         <image v-if="productImage && !imageFailed" class="checkout-result__image" :src="productImage" :alt="productName || copy.device" mode="aspectFit" @error="imageFailed = true" />
         <view v-else class="checkout-result__fallback" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2"><rect x="16" y="8" width="32" height="44" rx="4"/><path d="M24 18h16M24 26h16M24 34h16M20 56h24"/><circle cx="32" cy="43" r="2"/></svg></view>
         <view v-if="state === 'activated' && phase === 'activating'" class="checkout-result__orbit" aria-hidden="true" />
-        <view v-if="(state === 'activated' || state === 'inventory') && phase === 'complete'" class="checkout-result__check" :class="{ 'is-pop': popped }" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg></view>
+        <view v-if="(state === 'activated' || state === 'inventory') && phase === 'complete'" class="checkout-result__check" :class="{ 'is-pop': popped }" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg></view>
       </view>
       <view class="checkout-result__status" role="status" aria-live="polite"><text class="checkout-result__title" role="heading" aria-level="1">{{ title }}</text><text class="checkout-result__description">{{ description }}</text></view>
       <view v-if="state === 'activated'" class="checkout-result__progress">

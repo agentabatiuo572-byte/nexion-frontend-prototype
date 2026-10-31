@@ -1,11 +1,12 @@
 import type { ApiClient } from "./api-client";
 import { ApiError } from "./errors";
 
+export type CregisNetwork = "BEP20" | "ERC20";
 export interface CregisAddress {
   enabled: boolean;
   creditEnabled?: boolean;
   reason?: string;
-  network: "BEP20";
+  network: CregisNetwork;
   address?: string;
   confirmations?: number;
   feeUsdt?: number;
@@ -15,6 +16,7 @@ export interface CregisAddress {
 }
 
 export interface CregisDeposit {
+  network?: CregisNetwork;
   depositId: string;
   txHash: string;
   address: string;
@@ -37,11 +39,12 @@ export function exactDepositAmount(value: number, exact?: string): string | null
 
 export function createCregisDepositApi(client: ApiClient) {
   return {
-    async address(): Promise<CregisAddress> {
+    async address(network: CregisNetwork = "BEP20"): Promise<CregisAddress> {
+      if (network !== "BEP20" && network !== "ERC20") throw new ApiError({ kind: "protocol", message: "CREGIS_NETWORK_INVALID" });
       const value = await client.request<CregisAddress>({
-        method: "GET", path: "/api/deposits/address?network=BEP20",
+        method: "GET", path: `/api/deposits/address?network=${network}`,
       });
-      if (!value || value.network !== "BEP20" || typeof value.enabled !== "boolean"
+      if (!value || value.network !== network || typeof value.enabled !== "boolean"
           || (value.creditEnabled !== undefined && typeof value.creditEnabled !== "boolean")
           || (value.reason !== undefined && typeof value.reason !== "string")
           || (value.enabled && (typeof value.address !== "string"
@@ -59,9 +62,10 @@ export function createCregisDepositApi(client: ApiClient) {
     async list(): Promise<CregisDeposit[]> {
       const rows = await client.request<unknown>({ method: "GET", path: "/api/deposits" });
       if (!Array.isArray(rows) || rows.some((row) => !row || typeof row !== "object"
+          || (row.network !== undefined && row.network !== "BEP20" && row.network !== "ERC20")
           || typeof row.depositId !== "string" || !/^CR-[0-9]+$/.test(row.depositId)
-          || !/^0x[0-9a-f]{64}$/i.test(String(row.txHash))
-          || !/^0x[0-9a-f]{40}$/i.test(String(row.address))
+          || typeof row.txHash !== "string" || !/^0x[0-9a-f]{64}$/i.test(row.txHash)
+          || typeof row.address !== "string" || !/^0x[0-9a-f]{40}$/i.test(row.address)
           || typeof row.grossAmountUsdt !== "number" || !Number.isFinite(row.grossAmountUsdt) || row.grossAmountUsdt <= 0
           || (row.grossAmountUsdtExact !== undefined && (exactDepositAmount(row.grossAmountUsdt, row.grossAmountUsdtExact) === null || Number(row.grossAmountUsdtExact) <= 0))
           || typeof row.creditedUsdt !== "number" || !Number.isFinite(row.creditedUsdt) || row.creditedUsdt < 0
@@ -69,8 +73,8 @@ export function createCregisDepositApi(client: ApiClient) {
           || !Number.isInteger(row.confirmations) || row.confirmations < 0
           || (row.requiredConfirmations != null && (!Number.isSafeInteger(row.requiredConfirmations) || row.requiredConfirmations < 15))
           || typeof row.createdAt !== "number" || !Number.isFinite(row.createdAt)
-          || !["CONFIRMING", "CREDITED", "DUST_HOLD", "REVIEW_HOLD",
-            "REORG_INVESTIGATING", "PROVIDER_CONFLICT_HOLD", "REFUNDED", "REORG_REVERSED"].includes(String(row.status)))) {
+          || typeof row.status !== "string" || !["CONFIRMING", "CREDITED", "DUST_HOLD", "REVIEW_HOLD",
+            "REORG_INVESTIGATING", "PROVIDER_CONFLICT_HOLD", "REFUNDED", "REORG_REVERSED"].includes(row.status))) {
         throw new ApiError({ kind: "protocol", message: "CREGIS_DEPOSITS_INVALID" });
       }
       return rows as CregisDeposit[];

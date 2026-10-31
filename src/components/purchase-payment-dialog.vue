@@ -26,7 +26,7 @@
           <view class="purchase-payment__row purchase-payment__total"><text>{{ copy.total }}</text><text>{{ vnd(fees.amountVnd) }} VND</text></view>
         </template>
         <text class="purchase-payment__note">{{ copy.validity }} {{ expiry(fees.expiresAt) }}</text>
-        <text v-if="s.method === 'CREGIS_USDT_BSC'" class="purchase-payment__note">{{ copy.gas }}</text>
+        <text v-if="s.method !== 'HDPAY_BANK'" class="purchase-payment__note">{{ s.method === 'CREGIS_USDT_ERC20' ? copy.erc20Gas : copy.gas }}</text>
       </view>
       <view v-else-if="!s.pending && s.method === 'WALLET'" class="purchase-payment__row purchase-payment__total"><text>{{ copy.total }}</text><CheckoutAmount :value="s.amount" currency="USDT" /></view>
       <template v-if="s.intent">
@@ -35,7 +35,7 @@
           <text class="purchase-payment__title">{{ copy.address }}</text>
           <image v-if="qrImage" class="purchase-payment__qr" :src="qrImage" mode="aspectFit" aria-hidden="true" />
           <text class="purchase-payment__address" selectable>{{ s.intent.address }}</text>
-          <text class="purchase-payment__note">{{ copy.network }}</text>
+          <text class="purchase-payment__note">{{ s.intent.paymentMethod === 'CREGIS_USDT_ERC20' ? copy.erc20Network : copy.network }}</text>
           <NxButton :label="copy.copyAddress" variant="secondary" @click="copyAddress" />
         </template>
         <NxButton v-if="s.intent.paymentUrl && s.intent.status === 'AWAITING_PAYMENT'" :label="copy.openBank" variant="primary" @click="payment.openBank" />
@@ -84,7 +84,7 @@ const copy = computed(() => purchasePaymentCopy(locale.code));
 const pending = computed(() => { app.accountKey; s.revision; return payment.pending(); });
 const records = computed(() => { app.accountKey; s.revision; return payment.records(); });
 const methods = computed<{ id: PurchaseMethod; title: string; hint: string }[]>(() => [
-  { id: 'WALLET', title: copy.value.wallet, hint: copy.value.walletHint }, { id: 'HDPAY_BANK', title: copy.value.bank, hint: copy.value.bankHint }, { id: 'CREGIS_USDT_BSC', title: copy.value.chain, hint: copy.value.chainHint },
+  { id: 'WALLET', title: copy.value.wallet, hint: copy.value.walletHint }, { id: 'HDPAY_BANK', title: copy.value.bank, hint: copy.value.bankHint }, { id: 'CREGIS_USDT_BSC', title: copy.value.chain, hint: copy.value.chainHint }, { id: 'CREGIS_USDT_ERC20', title: copy.value.erc20, hint: copy.value.chainHint },
 ]);
 const balanceKnown = computed(() => Number.isFinite(app.user.usdtBalance) && app.user.usdtBalance >= 0 && app.remoteFleetHasSnapshot);
 const balanceText = computed(() => balanceKnown.value ? formatGroupedAmount(app.user.usdtBalance) : '—');
