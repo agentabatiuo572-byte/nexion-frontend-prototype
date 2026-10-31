@@ -85,8 +85,9 @@ describe("team page leadership-pool summary row stays compact", () => {
   });
 
   it("renders the separator only when both segments have content", () => {
-    // 渲染表达式必须按 lineB 是否存在决定是否拼接分隔符,而不是无条件输出「/」。
-    expect(source).toMatch(/leadershipPoolLineB\s*\?\s*`\$\{leadershipPoolLineA\}[^`]*\/[^`]*\$\{leadershipPoolLineB\}`\s*:\s*leadershipPoolLineA/);
+    // 分隔符只在票数（lineA）就绪时与它一起渲染；其余状态各占独立一行，不拼接分隔符。
+    expect(source).toMatch(/<template v-if="poolShareReady"> · <text[^>]*>\{\{ leadershipPoolLineA \}\}<\/text><\/template>/);
+    expect(source).toMatch(/<text v-if="!poolShareReady" class="team-bento__meta">\{\{ remotePoolReadable \? leadershipPoolLineB : leadershipPoolLineA \}\}<\/text>/);
   });
 
   it("keeps the full explanation available in all three locales for the detail page", () => {

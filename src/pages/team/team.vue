@@ -81,12 +81,12 @@
             <view class="nx-team-leadership-pool-link team-bento__card nx-viz-press team-bento__card--wide team-bento__card--violet" role="link" tabindex="0" @click="go('/pages/team/leadership-pool')" @keydown.enter.prevent="go('/pages/team/leadership-pool')">
               <view class="team-bento__head"><view class="team-bento__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14" /></svg></view><svg class="team-bento__chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg></view>
               <view class="team-bento__pool">
-                <view class="team-bento__ring" aria-hidden="true" :style="{ '--nx-viz-ring': bentoInView === false ? 0 : poolRingPct, transition: bentoInView === false ? 'none' : VIZ_RING_TRANSITION }"><view /></view>
-                <view class="team-bento__pool-copy">
+                <view class="team-bento__foot">
                   <view class="team-estimate"><text v-if="leadershipPoolUnlocked && remotePoolReadable" class="team-estimate__label">{{ designCopy.estimated }}</text><text v-if="poolAmountParts && !visibility.hidden" class="team-bento__value team-bento__amount nx-num-amount"><text class="team-bento__currency">{{ poolAmountParts.prefix }}</text>{{ poolAmountParts.integer }}<text class="team-bento__fraction">.{{ poolAmountParts.fraction }}</text></text><text v-else class="team-bento__value team-bento__amount nx-num-amount">{{ visibility.mask(leadershipPoolPrimary) }}</text></view>
-                  <text class="team-bento__caption">{{ t.teamV3.weeklyPool }}</text>
-                  <text class="team-bento__meta">{{ leadershipPoolLineB ? `${leadershipPoolLineA}  /  ${leadershipPoolLineB}` : leadershipPoolLineA }}</text>
+                  <text class="team-bento__caption">{{ t.teamV3.weeklyPool }}<template v-if="poolShareReady"> · <text class="team-bento__muted">{{ leadershipPoolLineA }}</text></template></text>
+                  <text v-if="!poolShareReady" class="team-bento__meta">{{ remotePoolReadable ? leadershipPoolLineB : leadershipPoolLineA }}</text>
                 </view>
+                <view class="team-bento__ring" aria-hidden="true" :style="{ '--nx-viz-ring': bentoInView === false ? 0 : poolRingPct, transition: bentoInView === false ? 'none' : VIZ_RING_TRANSITION }"><view><text class="team-bento__ring-value nx-num-metric">{{ !remotePoolReadable ? "—" : poolShareReady ? leadershipPoolLineB : fmt(t.home.rankUnlockAt, { n: leadershipUnlockRank }) }}</text><text v-if="poolShareReady" class="team-bento__ring-label">{{ t.pool.myShare }}</text></view></view>
               </view>
             </view>
           </view>
@@ -345,6 +345,7 @@ const binarySplit = computed(() => {
 // Decorative pedestals (2nd, 1st, 3rd); they rise 3rd → 2nd → 1st.
 const PODIUM_BARS = [{ height: 26, order: 1 }, { height: 40, order: 2 }, { height: 18, order: 0 }];
 const { elRef: bentoEl, inView: bentoInView } = useScrollGrowProgress();
+const poolShareReady = computed(() => remotePoolReadable.value && leadershipPoolUnlocked.value);
 const poolRingPct = computed(() => !visibility.hidden && remotePoolReadable.value && leadershipPoolUnlocked.value
   ? Math.min(100, Math.max(0, myShare.value * 100)) : 0);
 
@@ -598,11 +599,12 @@ const teamSummaryStatus = computed(() => remoteApiEnabled ? network.remoteStatus
 .team-bento__split { display: flex; gap: 3px; }
 .team-bento__split > view { height: 8px; min-width: 0; border-radius: 999px; background: var(--ui-device-ink); }
 .team-bento__split > view:last-child { background: color-mix(in srgb, var(--ui-device-ink) 35%, transparent); }
-.team-bento__pool { display: flex; align-items: center; gap: var(--ui-space-inline); margin-top: auto; }
-.team-bento__ring { display: grid; place-items: center; flex: none; width: 52px; height: 52px; border-radius: 999px; background: conic-gradient(var(--v5-nex) calc(var(--nx-viz-ring) * 1%), var(--v5-surface-3) 0); }
-.team-bento__ring > view { width: 40px; height: 40px; border-radius: 999px; background: var(--v5-surface); }
-.team-bento__pool-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.team-bento__pool .team-estimate { flex-direction: row; align-items: baseline; gap: var(--v5-space-2); }
+.team-bento__pool { display: grid; grid-template-columns: minmax(0, 1fr) 92px; align-items: end; gap: var(--v5-space-3); margin-top: auto; }
+.team-bento__ring { display: grid; place-items: center; width: 92px; height: 92px; border-radius: 999px; background: conic-gradient(var(--v5-nex) calc(var(--nx-viz-ring) * 1%), var(--v5-surface-3) 0); }
+.team-bento__ring > view { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 76px; height: 76px; padding: 0 var(--v5-space-1); box-sizing: border-box; border-radius: 999px; background: var(--v5-surface); text-align: center; }
+.team-bento__ring-value { font: 600 15px/18px var(--font-metric); color: var(--v5-nex); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.team-bento__ring-label { font: 500 11px/14px var(--font-v5); color: var(--v5-ink-3); }
+.team-bento__pool .team-estimate { align-items: flex-start; gap: 2px; }
 /* More tools: four glass icon buttons in one row. */
 .team-tools { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--v5-space-2); }
 .team-tool { display: flex; flex-direction: column; align-items: center; gap: var(--v5-space-2); min-width: 0; }

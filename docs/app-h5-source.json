@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "D:\\WORKS\\PLAN\\.wt\\statusbar-final-app",
+  "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-polish",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "dd84bdde5462f1e1aa084bcb3cf0d83b46d81491",
-  "sourceRef": "dd84bdde5462f1e1aa084bcb3cf0d83b46d81491",
+  "sourceHead": "4bf3a4f2ab541416cd29f9382e81000993772a6f",
+  "sourceRef": "4bf3a4f2ab541416cd29f9382e81000993772a6f",
   "sourceRefKind": "commit",
-  "sourceTree": "c35c59d459c0762076189c4258db03a275bb06a4",
+  "sourceTree": "d79cde3390160c9c4af2094f8caeea144947ea46",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -14398,10 +14398,10 @@
       "mode": "100644"
     },
     "src/pages/team/leadership-pool-summary-compact.contract.test.ts": {
-      "sourceBlob": "70becaecdeb67ca6c13f6c563eb44446b5e28bbc",
-      "sourceSha256": "699209ed97e54a2e81fa867ee09af26a11a6d8803a089f636431e676e41ed6ea",
-      "targetBlob": "70becaecdeb67ca6c13f6c563eb44446b5e28bbc",
-      "targetSha256": "699209ed97e54a2e81fa867ee09af26a11a6d8803a089f636431e676e41ed6ea",
+      "sourceBlob": "3ab269c77859b1979c2479a963e862b4c29a8299",
+      "sourceSha256": "b09a4536390d666fde5e38ac05a026b319171edfd9142b3ff31d47188bec3b95",
+      "targetBlob": "3ab269c77859b1979c2479a963e862b4c29a8299",
+      "targetSha256": "b09a4536390d666fde5e38ac05a026b319171edfd9142b3ff31d47188bec3b95",
       "mode": "100644"
     },
     "src/pages/team/leadership-pool.vue": {
@@ -14587,10 +14587,10 @@
       "mode": "100644"
     },
     "src/pages/team/team.vue": {
-      "sourceBlob": "bb10664fb5e02edfea37c06fb3cf79b07715cb7a",
-      "sourceSha256": "b5229cb7c8a41af99a023c261e59da1a6142f3f9900c4ed393d14f0415c7045c",
-      "targetBlob": "bb10664fb5e02edfea37c06fb3cf79b07715cb7a",
-      "targetSha256": "b5229cb7c8a41af99a023c261e59da1a6142f3f9900c4ed393d14f0415c7045c",
+      "sourceBlob": "106f4a908903bf5f51efd81b4dd8c12345cfe679",
+      "sourceSha256": "23adbbc8bc9e180b79c9757c7b72e320ffea2b5ef26bae1a32057ce04f6bc6f6",
+      "targetBlob": "106f4a908903bf5f51efd81b4dd8c12345cfe679",
+      "targetSha256": "23adbbc8bc9e180b79c9757c7b72e320ffea2b5ef26bae1a32057ce04f6bc6f6",
       "mode": "100644"
     },
     "src/pages/team/tree.vue": {
