@@ -175,7 +175,9 @@
         </template>
         <NxButton v-else-if="canBuyAgain" variant="brand" :label="t.promotion.buyAgain" @click="goStore" />
       </view>
-      <NxNoticeDialog class="pending-order-notice" :open="!!paymentNotice" :title="paymentNotice === 'query' ? pendingCopy.queryFailed : pendingCopy.cannotPay" :body="paymentNoticeReason"
+      <NxNoticeDialog :open="cancelBlocked" icon="clock" :title="t.orders.cancelBlockedTitle" :body="t.orders.cancelBlockedBody"
+        :primary="t.orders.paymentInProgressContinue" :secondary="t.orders.cancelBlockedOk" @primary="cancelBlocked = false; requestPendingPayment()" @secondary="cancelBlocked = false" />
+      <NxNoticeDialog class="pending-order-notice" :open="!!paymentNotice" :title="paymentNotice === 'query' ? pendingCopy.queryFailed : pendingCopy.cannotPay" :body="paymentNoticeReason === pendingCopy.queryFailed ? '' : paymentNoticeReason"
         :icon="paymentNotice === 'query' ? 'alert' : 'info'" :primary="paymentNotice === 'query' ? pendingCopy.retry : orderAction?.kind === 'cancel' ? recoveryCopy.retryCancel : orderAction || orderCommandUnavailable ? recoveryCopy.query : liveOrder?.status === 'placed' ? pendingCopy.cancelOrder : pendingCopy.viewDetails"
         :secondary="t.store.coCancel" :busy="pendingPaymentChecking || cancellingOrder || orderCommandQuerying" @primary="runPaymentNoticeAction" @secondary="paymentNotice = ''">
         <text v-if="noticeCancelFailed" class="pending-notice-error" role="alert">{{ pendingCopy.cancelFailed }}</text>
@@ -479,6 +481,8 @@ const paymentSheetAmount = ref<number|string>(0);
 const paymentSheetError = ref('');
 const pendingPaymentChecking = ref(false);
 const paymentNotice = ref<''|'query'|'blocked'>('');
+// Cancelling while an external payment is underway is refused; say so instead of sending the cancel.
+const cancelBlocked = ref(false);
 const paymentNoticeReason = ref('');
 const noticeCancelFailed = ref(false);
 const paymentResultOrder = ref<Order|null>(null);
@@ -730,6 +734,7 @@ function dt(ts: number): string {
 }
 
 async function handleCancel() {
+  if (externalPayment.value) { cancelBlocked.value = true; return; }
   if (!cancellable.value) return;
   const scope = captureDetailScope();
   const cancelAttempt = ++cancelAttemptSequence;
@@ -783,6 +788,7 @@ async function requestPendingPayment(originalJustRead = false): Promise<void> {
     return;
   }
   const attempt = ++pendingPaymentSequence;
+  let waitingForRead = false;
   autoPayRequested.value = true;
   pendingPaymentIntentAccount = scope.accountScope.accountKey;
   pendingPaymentReadScope = null;
@@ -794,7 +800,10 @@ async function requestPendingPayment(originalJustRead = false): Promise<void> {
     if (!originalJustRead) await refreshOrder();
     if (!isCurrentDetailScope(scope)) return;
     pendingPaymentReadScope = null;
-    if (remoteOrderError.value || remoteOrderRefreshing.value || !liveOrder.value) throw new Error('ORDER_READ_UNAVAILABLE');
+    // Another read of this order is still running (e.g. the page just came back to the
+    // foreground): keep the pay intent and continue when that read lands, as on a cold ?pay=1.
+    if (remoteOrderRefreshing.value && !remoteOrderError.value) { waitingForRead = true; return; }
+    if (remoteOrderError.value || !liveOrder.value) throw new Error('ORDER_READ_UNAVAILABLE');
     let original = liveOrder.value;
     restoreOrderAction();
     if ((orderAction.value || orderCommandUnavailable.value) && !externalPayment.value) {
@@ -852,7 +861,7 @@ async function requestPendingPayment(originalJustRead = false): Promise<void> {
     // local lock, but must never unlock a newer attempt after hide/re-entry.
     if (attempt === pendingPaymentSequence) {
       pendingPaymentChecking.value = false;
-      if (isCurrentDetailScope(scope) && (paymentSheetOpen.value || payingFromWallet.value || paymentResultVisible.value || paymentNotice.value || orderAction.value || orderCommandUnavailable.value)) {
+      if (!waitingForRead && isCurrentDetailScope(scope) && (paymentSheetOpen.value || payingFromWallet.value || paymentResultVisible.value || paymentNotice.value || orderAction.value || orderCommandUnavailable.value)) {
         autoPayRequested.value = false;
         pendingPaymentIntentAccount = '';
         pendingPaymentReadScope = null;

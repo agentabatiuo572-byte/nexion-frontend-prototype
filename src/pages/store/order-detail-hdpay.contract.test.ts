@@ -28,6 +28,12 @@ describe("wallet payment for a pending commerce order", () => {
     expect(detailSource).toContain('await executeSelectedPurchase(');
   });
 
+  it("explains that an order cannot be cancelled while its external payment is underway", () => {
+    // The cancel request is never sent; the centered notice offers to continue the same payment.
+    expect(detailSource).toContain('if (externalPayment.value) { cancelBlocked.value = true; return; }');
+    expect(detailSource).toMatch(/<NxNoticeDialog :open="cancelBlocked"[^>]*:title="t\.orders\.cancelBlockedTitle"[^>]*@primary="cancelBlocked = false; requestPendingPayment\(\)"/);
+  });
+
   it("fences payment and readback to the account that opened the detail", () => {
     expect(detailSource).toContain("accountScope: captureAccountScope()");
     expect(detailSource).toContain("isCurrentAccountScope(scope.accountScope)");

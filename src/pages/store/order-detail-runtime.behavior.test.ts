@@ -158,6 +158,16 @@ describe('original pending order payment entry',()=>{
     expect(h.requests).toHaveLength(1);
     expect(h.payments).toHaveLength(0);expect(h.authorize).not.toHaveBeenCalled();
   });
+  it('a pay tap during a foreground re-read waits for that read instead of reporting a failed query',async()=>{
+    const h=harness();remote.purchaseEligibilityApi.get.mockResolvedValueOnce({eligible:true,policies:[]});
+    h.requests[0].resolve(list([placed]));await settle();
+    h.hide();h.show();await settle(); // returning to the page starts another read of the same order
+    await h.page.requestPendingPayment();await settle();
+    expect(h.page.paymentNotice.value).toBe('');expect(h.page.autoPayRequested.value).toBe(true);expect(h.selection.state.open).toBe(false);
+    h.requests.slice(1).forEach(request=>request.resolve(list([placed])));await settle();
+    expect(h.page.paymentNotice.value).toBe('');expect(h.selection.state.open).toBe(true);
+    expect(h.payments).toHaveLength(0);expect(h.authorize).not.toHaveBeenCalled();
+  });
   it('retains cold pay intent and consumes the newer authoritative read after the obsolete preflight settles',async()=>{
     const h=harness(),eligibility=deferred<{eligible:boolean;policies:[]}>();remote.purchaseEligibilityApi.get.mockReturnValueOnce(eligibility.promise);
     h.page.autoPayRequested.value=true;h.requests[0].resolve(list([placed]));await settle();
