@@ -57,7 +57,9 @@ for (const language of ['en', 'zh', 'vi'] as const) for (const period of ['today
     p.nodes('nx-leader-periods')[0].props.onSelect(period); await flush();
     expect(p.request.mock.calls.at(-1)![0].path).toContain(`period=${period}`);
     expect(presentation(p.root)).toContain(leaderboardPointsCopy(language).title);
-    expect(p.nodes('leader-points').map(text)).toEqual([formatComputePoints(3421, language).split(' ')[0], '0', '—']);
+    // Chinese podium points carry a short visual unit; unknown points never get one.
+    const unit = language === 'zh' ? ' 点' : '';
+    expect(p.nodes('leader-points').map(text)).toEqual([formatComputePoints(3421, language).split(' ')[0] + unit, '0' + unit, '—']);
     expect(p.nodes('leader-points').map(node => all(node).find(child => child.props['aria-label'])!.props['aria-label'])).toEqual([formatComputePoints(3421, language), formatComputePoints(0, language), '—']);
     expect(text(p.nodes('leader-gap')[0])).toContain(formatComputePoints(3421, language));
     expect(presentation(p.root)).not.toMatch(/\$|USDT|USD|98,765|98765|765432/);

@@ -12,23 +12,22 @@
           <view class="nx-inline-recovery__action nx-card-recovery-action nx-card-recovery-action--quiet nx-card-recovery-action--inline" role="button" tabindex="0" @click="network.refreshCanonicalNetwork()" @keydown.enter.prevent="network.refreshCanonicalNetwork()" @keydown.space.prevent="network.refreshCanonicalNetwork()"><text>{{ t.network.retry }}</text><text aria-hidden="true">→</text></view>
         </view>
         <view class="network-overview nx-viz-press">
-          <view class="network-self" role="button" tabindex="0" :aria-label="selfNodeLabel" @click="openSelf" @keydown.enter.prevent="openSelf" @keydown.space.prevent="openSelf">
-            <TeamRankEmblem v-if="!visibility.hidden" :rank="remoteApiEnabled && !vRank.remoteReady ? null : myRank" :size="44" />
-            <view class="network-self-copy"><text class="network-self-title">{{ t.network.diagramYou }}</text><text class="network-meta">{{ visibility.mask(myRankText) }}</text></view>
-            <text class="network-self-route">{{ t.rank.currentRank }}</text><text class="network-chevron" aria-hidden="true">→</text>
-          </view>
-          <view class="network-metrics">
-            <view :style="metricCardStyle"><text class="block" :style="metricLabelStyle">{{ t.network.members }}</text><text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-ink)')">{{ visibility.mask(metricsUnavailable ? '—' : members.length) }}</text></view>
-            <view :style="metricCardStyle"><text class="block" :style="metricLabelStyle">{{ t.network.activeNow }}</text><text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-brand)')">{{ visibility.mask(metricsUnavailable ? '—' : activeCount) }}</text></view>
-            <view :style="metricCardStyle"><text class="block" :style="metricLabelStyle">{{ t.network.direct }}</text><text class="block font-display tabular-nums" :style="metricValueStyle('var(--v5-ink-2)')">{{ visibility.mask(metricsUnavailable ? '—' : directCount) }}</text></view>
+          <view class="network-overview__head">
+            <text class="network-overview__split">{{ visibility.mask(metricsUnavailable ? '—' : ringSplitText) }}</text>
+            <text class="network-overview__total"><text class="nx-num-metric">{{ visibility.mask(metricsUnavailable ? '—' : members.length) }}</text> {{ peopleUnit }}</text>
           </view>
           <!-- Orbit (P-41): direct invites on the inner ring, the rest outside, dot colour = status.
                Positions only group members; they do not encode who invited whom. -->
-          <view v-if="!visibility.hidden && !metricsUnavailable && members.length" ref="orbitRef" class="network-orbit" aria-hidden="true">
-            <view class="network-orbit__ring network-orbit__ring--outer" /><view class="network-orbit__ring network-orbit__ring--inner" />
-            <view class="network-orbit__center"><text>{{ t.network.diagramYou }}</text></view>
-            <view v-for="(dot, index) in orbitDots" :key="dot.id" class="network-orbit__dot nx-viz-pop" :class="{ 'network-orbit__dot--inner': dot.inner }"
-              :style="{ left: `${dot.x}%`, top: `${dot.y}%`, background: dot.color, animation: orbitInView === false ? 'none' : undefined, opacity: orbitInView === false ? 0 : undefined, animationDelay: `${Math.min(index * 60, 900)}ms` }"><text>{{ dot.initial }}</text></view>
+          <view ref="orbitRef" class="network-orbit">
+            <view class="network-orbit__ring network-orbit__ring--outer" aria-hidden="true" /><view class="network-orbit__ring network-orbit__ring--inner" aria-hidden="true" />
+            <!-- The centre is you: it keeps the route to your current rank. -->
+            <view class="network-orbit__center" role="button" tabindex="0" :aria-label="selfNodeLabel" @click="openSelf" @keydown.enter.prevent="openSelf" @keydown.space.prevent="openSelf">
+              <TeamRankEmblem v-if="!visibility.hidden" :rank="remoteApiEnabled && !vRank.remoteReady ? null : myRank" :size="52" /><text class="network-orbit__you">{{ t.network.diagramYou }}</text>
+            </view>
+            <template v-if="!visibility.hidden && !metricsUnavailable">
+              <view v-for="(dot, index) in orbitDots" :key="dot.id" class="network-orbit__dot nx-viz-pop" :class="{ 'network-orbit__dot--inner': dot.inner }" aria-hidden="true"
+                :style="{ left: `${dot.x}%`, top: `${dot.y}%`, background: dot.color, animation: orbitInView === false ? 'none' : undefined, opacity: orbitInView === false ? 0 : undefined, animationDelay: `${Math.min(index * 60, 900)}ms` }"><text>{{ dot.initial }}</text></view>
+            </template>
           </view>
           <view class="network-legend">
             <view v-for="item in memberStatusCounts" :key="item.status" class="network-legend__item"><view class="network-member-dot" :style="{ background: statusColor(item.status) }" aria-hidden="true" /><text>{{ item.label }}</text><text class="nx-num-metric">{{ visibility.mask(metricsUnavailable ? '—' : item.count) }}</text></view>
@@ -47,13 +46,12 @@
                   <text class="network-member-name">{{ member.name }}</text>
                   <view class="network-member-meta"><text>{{ visibility.mask(rankLabel(member.vRank, locale.code, [])) }}</text><view class="network-member-dot" :style="{ background: statusColor(member.status) }" aria-hidden="true" /><text>{{ networkReauditCopy(locale.code)[member.status] }}</text></view>
                 </view>
-                <view class="network-member-compute"><text class="network-member-points nx-num-metric" :aria-label="visibility.mask(formatComputePoints(member.monthComputePoints, locale.code))">{{ visibility.mask(formatComputePoints(member.monthComputePoints, locale.code).split(' ')[0]) }}</text><text class="network-meta">{{ t.network.monthVolume }}</text></view>
+                <view class="network-member-compute"><text class="network-member-points nx-num-metric" :aria-label="visibility.mask(formatComputePoints(member.monthComputePoints, locale.code))">{{ visibility.mask(formatComputePoints(member.monthComputePoints, locale.code).split(' ')[0]) }}</text><text class="network-meta">{{ monthPointsLabel }}</text></view>
                 <text class="network-chevron" aria-hidden="true">›</text>
               </view>
             </view>
           </view>
         </view>
-        <view class="network-list-link" role="button" tabindex="0" @click="navTo('/pages/team/tree')" @keydown.enter.prevent="navTo('/pages/team/tree')" @keydown.space.prevent="navTo('/pages/team/tree')"><text>{{ t.tree.pageTitle }}</text><text aria-hidden="true">→</text></view>
       </view>
 
       <!-- Member details keep the existing keyboard and pointer interactions. -->
@@ -187,15 +185,28 @@ const memberGroupOptions = computed(() => memberGroups.value.map(group => ({ val
 const directCount = computed(() => members.value.filter((m) => m.layer === 1).length);
 // Orbit dots: up to 12 direct invites on the inner ring and 24 others outside, evenly spaced.
 const orbitDots = computed(() => {
+  const used = new Set<string>();
+  const initialOf = (name: string) => {
+    const trimmed = name.trim(), first = trimmed.charAt(0).toUpperCase() || "•";
+    // A repeated first letter gets its second letter so two dots never read the same.
+    const initial = used.has(first) && trimmed.length > 1 ? first + trimmed.charAt(1).toLowerCase() : first;
+    used.add(first);
+    return initial;
+  };
   const place = (list: typeof members.value, radius: number, offset: number, inner: boolean) => list.map((member, index) => {
     const angle = (offset + index * 360 / list.length) * Math.PI / 180;
-    return { id: member.id, inner, color: statusColor(member.status), initial: member.name.trim().charAt(0).toUpperCase() || "•",
+    return { id: member.id, inner, color: statusColor(member.status), initial: initialOf(member.name),
       x: 50 + radius * Math.cos(angle), y: 50 + radius * Math.sin(angle) };
   });
   return [...place(members.value.filter(m => m.layer === 1).slice(0, 12), 25, -90, true),
     ...place(members.value.filter(m => m.layer !== 1).slice(0, 24), 45, -60, false)];
 });
-const activeCount = computed(() => members.value.filter((m) => m.status === "active").length);
+const ringSplitText = computed(() => {
+  const direct = directCount.value, team = members.value.length - direct;
+  return locale.code === "zh" ? `内圈直接邀请 ${direct} · 外圈团队 ${team}` : locale.code === "vi" ? `Vòng trong: mời trực tiếp ${direct} · Vòng ngoài: đội ${team}` : `Inner: direct ${direct} · Outer: team ${team}`;
+});
+const peopleUnit = computed(() => locale.code === "zh" ? "人" : locale.code === "vi" ? "thành viên" : "members");
+const monthPointsLabel = computed(() => locale.code === "zh" ? "本月算力点" : t.value.network.monthVolume);
 const memberStatusCounts = computed(() => (["active", "idle", "offline"] as const).map(status => ({
   status, label: networkReauditCopy(locale.code)[status], count: members.value.filter(member => member.status === status).length,
 })));
@@ -218,12 +229,7 @@ function statusColor(status: MemberStatus): string {
   return status === "active" ? "var(--v5-brand)" : status === "idle" ? "var(--v5-warning)" : "var(--v5-ink-4)";
 }
 
-const metricCardStyle: CSSProperties = { display: "flex", flexDirection: "column", minWidth: 0 };
 const errorStateStyle: CSSProperties = { padding: "12px 0", borderBottom: "1px solid var(--v5-border)", color: "var(--v5-ink)" };
-const metricLabelStyle: CSSProperties = { fontSize: "var(--ui-type-meta)", color: "var(--v5-ink-3)", lineHeight: "var(--ui-type-meta-lh)", flex: 1 };
-function metricValueStyle(color: string): CSSProperties {
-  return { fontFamily: "var(--font-metric)", fontSize: "var(--ui-type-page-title)", lineHeight: "var(--ui-type-page-title-lh)", fontWeight: 600, marginTop: "6px", overflowWrap: "anywhere", color };
-}
 const sheetStyle: CSSProperties = {
   boxShadow: "var(--nx-glass-edge)", width: "100%", maxWidth: "520px",
   maxHeight: "min(80vh, calc(100% - var(--nx-overlay-top)))", overflowY: "auto", boxSizing: "border-box",
@@ -245,40 +251,40 @@ useDialogA11y(computed(() => selected.value !== null), ".nx-net-sheet-wrap", () 
 </script>
 
 <style scoped>
-.network-content { display: flex; flex-direction: column; gap: var(--v5-space-6); padding: var(--v5-space-3) var(--v5-space-5) var(--v5-space-6); }
+.network-content { display: flex; flex-direction: column; gap: var(--v5-space-4); padding: var(--v5-space-3) var(--v5-space-5) var(--v5-space-6); }
 .network-overview { padding: 0 var(--v5-space-4) var(--v5-space-4); border: 0; border-radius: 28px; background: radial-gradient(120% 90% at 50% 40%, color-mix(in srgb, var(--v5-brand) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
-.network-self { display: flex; align-items: center; gap: var(--ui-space-row-y); min-height: 64px; padding-block: var(--ui-space-row-y); border-bottom: 1px solid var(--v5-border); }
-.network-self-copy { min-width: 0; flex: 1; }
-.network-self-title { display: block; font-size: var(--ui-type-list-title); line-height: var(--ui-type-list-title-lh); font-weight: 500; }
-.network-self-route { max-width: 36%; color: var(--v5-ink-3); font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); text-align: right; }
-.network-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; padding-block: 18px; }
-.network-orbit { position: relative; width: 260px; max-width: 100%; aspect-ratio: 1; margin: var(--v5-space-2) auto var(--v5-space-1); }
+.network-overview__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--ui-space-inline); padding-top: var(--ui-space-inset); font: 600 12px/18px var(--font-v5); color: var(--v5-ink-2); }
+.network-overview__split { min-width: 0; overflow-wrap: anywhere; }
+.network-overview__total { flex: none; color: var(--v5-ink); }
+.network-overview__total > .nx-num-metric { font-size: 13px; }
+.network-orbit { position: relative; width: 300px; max-width: 100%; aspect-ratio: 1; margin: var(--v5-space-1) auto 0; }
 .network-orbit__ring { position: absolute; border-radius: 999px; border: 1px dashed color-mix(in srgb, var(--v5-ink) 14%, transparent); }
 .network-orbit__ring--outer { inset: 5%; }
 .network-orbit__ring--inner { inset: 25%; border-color: color-mix(in srgb, var(--v5-brand) 30%, transparent); }
-.network-orbit__center { position: absolute; left: 50%; top: 50%; display: grid; place-items: center; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 999px; background: color-mix(in srgb, var(--v5-brand) 18%, var(--v5-surface-2)); box-shadow: 0 0 24px color-mix(in srgb, var(--v5-brand) 30%, transparent); font: 600 var(--ui-type-message-title)/1 var(--font-v5); color: var(--v5-brand); }
+.network-orbit__center { position: absolute; left: 50%; top: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 72px; height: 72px; margin: -36px 0 0 -36px; border-radius: 999px; background: radial-gradient(closest-side, color-mix(in srgb, var(--v5-brand) 16%, transparent), transparent); }
+.network-orbit__you { font: 600 11px/14px var(--font-v5); color: var(--v5-brand); }
+.network-orbit__center:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 2px; }
 .network-orbit__dot { position: absolute; display: grid; place-items: center; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 999px; box-shadow: 0 0 0 3px var(--v5-surface); font: 600 10px/1 var(--font-v5); color: var(--v5-on-brand); }
 .network-orbit__dot--inner { width: 26px; height: 26px; margin: -13px 0 0 -13px; }
 .network-legend { display: flex; justify-content: center; flex-wrap: wrap; gap: var(--v5-space-2) var(--v5-space-3); padding-top: var(--ui-space-row-y); font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); color: var(--v5-ink-3); }
 .network-legend__item { display: flex; align-items: center; gap: 5px; }
 .network-meta { display: block; color: var(--v5-ink-3); font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); margin-top: var(--v5-space-1); overflow-wrap: anywhere; }
 .network-read-state { color: var(--v5-ink-3); font-size: var(--ui-type-list-subtitle); line-height: var(--ui-type-list-subtitle-lh); padding: var(--v5-space-4) 0; }
-.network-member-index { display: flex; flex-direction: column; gap: 28px; }
+.network-member-index { display: flex; flex-direction: column; gap: var(--v5-space-4); }
 .network-members-card { padding: 0 var(--ui-space-inset); border-radius: var(--ui-radius-surface); background: var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
 .network-members-card > .network-member-pick:first-child, .network-members-card > .network-empty:first-child { border-top: 0; }
 .network-group-heading { display: flex; align-items: baseline; gap: var(--ui-space-row-y); font-size: var(--ui-type-section); line-height: var(--ui-type-section-lh); font-weight: 600; padding-bottom: var(--v5-space-3); }
 .network-group-count { color: var(--v5-ink-3); font-size: var(--ui-type-meta); font-weight: 400; }
-.network-member-pick { display: flex; align-items: center; gap: var(--ui-space-row-y); min-height: 64px; padding-block: 14px; border-top: 1px solid var(--v5-border); box-sizing: border-box; }
+.network-member-pick { display: flex; align-items: center; gap: var(--ui-space-inline); min-height: 60px; padding-block: 10px; border-top: 1px solid var(--v5-border); box-sizing: border-box; }
 .network-member-pick--selected { background: color-mix(in srgb, var(--v5-brand) 6%, transparent); }
 .network-member-identity { flex: 1; min-width: 0; }
 .network-member-name { display: block; font-size: var(--ui-type-list-title); line-height: var(--ui-type-list-title-lh); font-weight: 500; overflow-wrap: anywhere; }
 .network-member-meta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--v5-space-1) 6px; margin-top: 5px; font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); color: var(--v5-ink-3); }
 .network-member-dot { width: 5px; height: 5px; border-radius: 50%; flex: none; }
 .network-member-compute { max-width: 33%; text-align: right; font-size: var(--ui-type-list-subtitle); line-height: var(--ui-type-list-subtitle-lh); color: var(--v5-ink-2); overflow-wrap: anywhere; }
-.network-member-points { font-weight: 600; color: var(--v5-ink); }
+.network-member-points { font-size: 15px; line-height: 20px; font-weight: 600; color: var(--v5-ink); }
 .network-chevron { color: var(--v5-ink-3); flex: none; }
 .network-empty { display: block; padding-block: var(--v5-space-4); border-top: 1px solid var(--v5-border); color: var(--v5-ink-3); font-size: var(--ui-type-list-subtitle); line-height: var(--ui-type-list-subtitle-lh); }
-.network-list-link { display: flex; align-items: center; justify-content: space-between; gap: var(--v5-space-4); min-height: 48px; padding: var(--v5-space-3) 0; border-top: 1px solid var(--v5-border); color: var(--v5-ink-2); font-size: var(--ui-type-button); line-height: var(--ui-type-button-lh); }
 .sheet-handle { width: 36px; height: 3px; border-radius: 999px; background: var(--v5-ink-4); margin: 0 auto var(--v5-space-5); }
 .sheet-heading { display: flex; align-items: center; gap: var(--ui-space-inline); }
 .sheet-identity { flex: 1; min-width: 0; overflow-wrap: anywhere; }

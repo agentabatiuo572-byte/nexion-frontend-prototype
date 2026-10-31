@@ -171,7 +171,7 @@ import LiquidGlass from "@/components/liquid-glass.vue";
 .spv--solid .spv-glass > .nx-liquid-glass { display: none; }
 .spv--solid .spv-glass > svg { stroke: var(--v5-ink); }
 :global([data-theme="light"] .spv--solid .spv-glass) { background: var(--v5-surface); box-shadow: 0 2px 6px rgba(23,31,45,.12); }
-.spv-action { position: relative; z-index: 1; min-height: 44px; min-width: 72px; max-width: 100%; box-sizing: border-box; padding: 0 4px; display: flex; align-items: center; justify-content: center; color: var(--v5-ink-2); font-size: 14px; font-weight: 500; line-height: 18px; border-radius: 22px; text-align: center; }
+.spv-action { position: relative; z-index: 1; min-height: 44px; min-width: 72px; max-width: 100%; box-sizing: border-box; margin-right: 6px; padding: 0 4px; display: flex; align-items: center; justify-content: center; color: var(--v5-ink-2); font-size: 14px; font-weight: 500; line-height: 18px; border-radius: 22px; text-align: center; }
 .spv-action-surface { position: absolute; inset: 4px 0; border-radius: 18px; pointer-events: none; }
 .spv-action > text { position: relative; z-index: 1; white-space: nowrap; }
 .spv-action:active { opacity: .75; transform: scale(.98); }

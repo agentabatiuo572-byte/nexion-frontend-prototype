@@ -2,22 +2,21 @@
   <AppChassis active="team">
     <RewardPageSurface>
     <view class="pb-6 nx-viz-motion" style="color: var(--v5-ink)">
-      <SubPageHeader back="/pages/team/team" :title="t.pool.pageTitle" />
+      <SubPageHeader back="/pages/team/team" :title="t.teamV3.weeklyPool" :action-label="t.pool.howItWorksEntry" :action="openRules" />
 
       <view class="pool-content">
 
 
         <view class="pool-hero nx-viz-press">
           <view class="pool-share">
-            <view ref="shareRingRef" class="pool-ring" :style="{ '--nx-viz-ring': shareRingInView === false || visibility.hidden || (remoteApiEnabled && !remotePool) ? 0 : Math.min(100, Math.max(0, myShare * 100)), transition: shareRingInView === false || visibility.hidden ? 'none' : VIZ_RING_TRANSITION }"><view class="pool-ring__hole"><text class="pool-ring__pct">{{ visibility.mask(shareLabel) }}</text><text class="pool-ring__label">{{ t.pool.myShare }}</text></view></view>
+            <view ref="shareRingRef" class="pool-ring" :class="{ 'pool-ring--capped': !visibility.hidden && !(remoteApiEnabled && !remotePool) && myShare > 0 }" :style="{ '--nx-viz-ring': shareRingInView === false || visibility.hidden || (remoteApiEnabled && !remotePool) ? 0 : Math.min(100, Math.max(0, myShare * 100)), transition: shareRingInView === false || visibility.hidden ? 'none' : VIZ_RING_TRANSITION }"><view class="pool-ring__hole"><text class="pool-ring__pct">{{ visibility.mask(shareLabel) }}</text><text class="pool-ring__label">{{ t.pool.myShare }}</text></view></view>
             <view class="pool-share__copy">
-              <text class="pool-label">{{ t.pool.projectedDividend }}</text>
+              <text class="pool-label">{{ locale.code === "zh" ? "本周预估奖励" : t.pool.projectedDividend }}</text>
               <text class="reward-amount nx-num-amount"><text v-if="!remoteApiEnabled || remotePool" class="pool-dollar">$</text>{{ projectedAmountParts[0] }}<text v-if="projectedAmountParts[1]" class="pool-decimals">.{{ projectedAmountParts[1] }}</text></text>
               <text class="pool-share__note">{{ t.pool.weekPool }} {{ remoteApiEnabled && !remotePool ? '—' : '$' + formatFinanceAmount(currentWeekPoolUSDT) }}</text>
             </view>
           </view>
-          <view class="pool-payout"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg><text>{{ weeklyDescText }}</text></view>
-          <view class="pool-rule-link" role="link" tabindex="0" :aria-label="t.pool.howItWorksEntry" @click="go('/pages/team/leadership-pool-how')" @keydown.enter.prevent="go('/pages/team/leadership-pool-how')" @keydown.space.prevent="go('/pages/team/leadership-pool-how')"><text>{{ t.pool.howItWorksEntry }}</text><text aria-hidden="true">›</text></view>
+          <view class="pool-payout"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg><text>{{ payoutParts[0] }}</text><text v-if="payoutParts[1]" class="pool-payout__days nx-num-metric">{{ payoutParts[1] }}</text><text>{{ payoutParts[2] }}</text></view>
         </view>
 
         <view class="pool-personal nx-viz-press" :style="statusStyle">
@@ -54,7 +53,7 @@
         </view>
 
         <view v-if="poolHistory.length > 0" :style="pastGroupStyle">
-          <text class="block font-mono-tabular" :style="pastHeadStyle">{{ t.pool.pastPools }}</text>
+          <text class="block" :style="pastHeadStyle">{{ t.pool.pastPools }}</text>
           <view
             v-for="(h, i) in poolHistory"
             :key="h.weekId"
@@ -182,6 +181,11 @@ const weeklyDescText = computed(() => {
   const n = `${daysToPayout.value}${t.value.pool.daysShort}`;
   return fmt(t.value.pool.weeklyDesc, { n });
 });
+// The day count stands out in the countdown pill; the sentence around it stays localized.
+const payoutParts = computed(() => {
+  const days = String(daysToPayout.value), text = weeklyDescText.value, i = text === "—" ? -1 : text.indexOf(days);
+  return i < 0 ? [text, "", ""] : [text.slice(0, i), days, text.slice(i + days.length)];
+});
 const locale = useLocaleStore();
 const auditCopy = computed(() => networkReauditCopy(locale.code));
 const shareLabel = computed(() => totalVotes.value > 0 && Number.isFinite(myShare.value)
@@ -232,6 +236,9 @@ function poolTotalText(h: LeadershipPayout): string {
   return fmt(t.value.pool.poolTotalShort, { k: formatFinanceAmount(h.poolUSDT / 1000), n: visibility.mask(h.totalVotes.toLocaleString()) });
 }
 
+function openRules() {
+  go('/pages/team/leadership-pool-how');
+}
 function go(url: string) {
   navTo(url);
 }
@@ -304,7 +311,7 @@ onUnmounted(() => {
 });
 
 const statusStyle: CSSProperties = {
-  padding: "var(--v5-space-5)",
+  padding: "var(--v5-space-4)",
 };
 function statusCapStyle(color: string): CSSProperties {
   return { fontSize: "var(--ui-type-list-subtitle)", lineHeight: "var(--ui-type-list-subtitle-lh)", color };
@@ -325,20 +332,24 @@ function historyRowStyle(isLast: boolean): CSSProperties {
 </script>
 
 <style scoped>
-.pool-content { display: flex; flex-direction: column; gap: 28px; padding: var(--v5-space-3) var(--v5-space-5) var(--v5-space-6); }
+.pool-content { display: flex; flex-direction: column; gap: var(--v5-space-4); padding: var(--v5-space-3) var(--v5-space-5) var(--v5-space-6); }
 .pool-hero { position: relative; padding: var(--v5-space-5); border-radius: 28px; background: radial-gradient(120% 90% at 85% 0%, color-mix(in srgb, var(--v5-nex) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
-.pool-label { color: var(--v5-ink-2); font-size: var(--ui-type-list-subtitle); line-height: var(--ui-type-list-subtitle-lh); }
-.pool-rule-link { display: flex; align-items: center; justify-content: flex-end; gap: 6px; min-height: 44px; min-width: 44px; margin-top: var(--v5-space-1); color: var(--v5-ink-3); font-size: var(--ui-type-meta); }
+.pool-label { color: var(--v5-ink); font-size: 13px; line-height: 18px; font-weight: 600; }
 .pool-hero .reward-amount { display: block; margin: var(--v5-space-1) 0 6px; font-size: 32px; line-height: 40px; font-weight: 550; letter-spacing: -.03em; overflow-wrap: anywhere; }
 .pool-dollar { margin-right: 2px; font-size: 18px; color: var(--v5-ink-3); }
 .pool-decimals { color: var(--v5-ink-3); }
 .pool-payout { display: flex; align-items: center; gap: var(--v5-space-2); min-height: 44px; margin-top: var(--v5-space-4); padding: var(--ui-space-row-y) var(--v5-space-4); border-radius: 16px; background: var(--v5-surface-2); color: var(--v5-ink); font-size: 14px; font-weight: 600; }
 .pool-payout > svg { color: var(--v5-nex); flex: none; }
+.pool-payout__days { font-size: 18px; line-height: 22px; font-weight: 700; }
 /* Personal share (P-41): ring for my share, dot grid for votes, faint violet tint (DS-28/29). */
-.pool-personal { padding: var(--v5-space-5); border-radius: 28px; background: var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.pool-personal { padding: var(--v5-space-4); border-radius: 24px; background: var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
 .pool-share { display: flex; align-items: center; gap: var(--v5-space-4); }
-.pool-ring { display: grid; place-items: center; flex: none; width: 128px; height: 128px; border-radius: 999px; background: conic-gradient(var(--v5-nex) calc(var(--nx-viz-ring) * 1%), var(--v5-surface-3) 0); }
-.pool-ring__hole { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 104px; height: 104px; border-radius: 999px; background: var(--v5-surface); }
+.pool-ring { display: grid; place-items: center; flex: none; width: 132px; height: 132px; border-radius: 999px; background: conic-gradient(var(--v5-nex) calc(var(--nx-viz-ring) * 1%), var(--v5-surface-3) 0); }
+/* Round arc ends: a dot at the start and one at the current end of the share arc. */
+@supports (width: calc(sin(1deg) * 1px)) {
+  .pool-ring--capped { background: radial-gradient(circle at calc(50% + sin(calc(var(--nx-viz-ring) * 3.6deg)) * 60px) calc(50% - cos(calc(var(--nx-viz-ring) * 3.6deg)) * 60px), var(--v5-nex) 5.5px, transparent 6px), radial-gradient(circle at 50% 6px, var(--v5-nex) 5.5px, transparent 6px), conic-gradient(var(--v5-nex) calc(var(--nx-viz-ring) * 1%), var(--v5-surface-3) 0); }
+}
+.pool-ring__hole { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 108px; height: 108px; border-radius: 999px; background: var(--v5-surface); }
 .pool-ring__pct { font: 600 20px/28px var(--font-metric); color: var(--v5-nex); }
 .pool-ring__label { font-size: 11px; line-height: 16px; color: var(--v5-ink-3); }
 .pool-share__copy { display: flex; flex-direction: column; gap: var(--v5-space-1); min-width: 0; }

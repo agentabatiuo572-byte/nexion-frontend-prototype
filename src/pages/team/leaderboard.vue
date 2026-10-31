@@ -24,9 +24,10 @@
                   <view class="leader-podium__badge">
                     <svg v-if="row.rank === 1" class="leader-podium__crown nx-viz-pop" :style="{ animation: podiumInView === false ? 'none' : undefined, opacity: podiumInView === false ? 0 : undefined }" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zM5 20h14" /></svg>
                     <TeamRankEmblem v-if="!visibility.hidden" :rank="row.vRank" :size="row.rank === 1 ? 48 : 42" /><view v-else class="leader-podium__blank" aria-hidden="true" />
+                    <text class="leader-podium__rank nx-num-metric">{{ visibility.mask(rankLabel(row.vRank, locale.code, [])) }}</text>
                   </view>
                   <text class="leader-name">{{ row.handle }}</text>
-                  <view class="leader-points"><text class="nx-num-metric" :aria-label="visibility.mask(formatComputePoints(row.computePoints, locale.code))">{{ visibility.mask(formatComputePoints(row.computePoints, locale.code).split(' ')[0]) }}</text></view>
+                  <view class="leader-points"><text class="nx-num-metric" :aria-label="visibility.mask(formatComputePoints(row.computePoints, locale.code))">{{ visibility.mask(formatComputePoints(row.computePoints, locale.code).split(' ')[0]) }}</text><text v-if="locale.code === 'zh' && !visibility.hidden && row.computePoints !== null" aria-hidden="true"> 点</text></view>
                   <view class="leader-podium__track"><view class="leader-podium__step" :style="{ height: podiumInView === false ? '0%' : '100%', transition: podiumInView === false ? 'none' : VIZ_GROW_HEIGHT_TRANSITION, transitionDelay: podiumInView === false ? '0ms' : vizStagger(3 - row.rank, 120) }"><text class="leader-position nx-num-metric">{{ visibility.mask(row.rank) }}</text></view></view>
                 </template>
                 <template v-else>
@@ -42,9 +43,9 @@
               </view>
             </view>
             <view class="leader-me nx-viz-press">
-              <view class="leader-my-rank"><text class="nx-num-metric">{{ visibility.mask(!pointsRankingAvailable || me.rank === null ? '—' : '#' + myRankDisplay) }}</text><text class="leader-total">/ {{ visibility.mask(pointsRankingAvailable ? totalRows.toLocaleString() : '—') }}</text></view>
+              <view class="leader-my-rank"><text class="nx-num-metric">{{ visibility.mask(!pointsRankingAvailable || me.rank === null ? '—' : '#' + myRankDisplay) }}</text></view>
               <view class="leader-me__body">
-                <view class="leader-me__line"><text class="leader-caption">{{ t.leaderboard.myRank.label }}</text><text class="leader-gap">{{ visibility.mask(gapText) }}</text></view>
+                <view class="leader-me__line"><text class="leader-caption">{{ myRowPoints === null ? t.leaderboard.myRank.label : `${t.network.diagramYou} · ${visibility.mask(formatComputePoints(myRowPoints, locale.code))}` }}</text><text class="leader-gap">{{ visibility.mask(gapText) }}</text></view>
                 <view v-if="myProgress !== null && !visibility.hidden" ref="rankBarRef" class="leader-me__bar nx-viz-motion" aria-hidden="true"><view :style="{ width: rankBarInView === false ? '0%' : `${myProgress}%`, transition: rankBarInView === false ? 'none' : PROGRESS_GROW_TRANSITION }" /></view>
               </view>
             </view>
@@ -233,7 +234,10 @@ const gapText = computed(() => !pointsRankingAvailable.value ? "—"
   : me.value.rank === null ? t.value.leaderboard.myRank.notRanked
     : me.value.rank === 1 ? t.value.leaderboard.myRank.first
       : me.value.gapToNextComputePoints === null ? "—"
-        : fmt(pointsCopy.value.gap, { points: formatComputePoints(me.value.gapToNextComputePoints, locale.code) }));
+        : locale.code === "zh" ? `距 #${me.value.rank - 1} 还差 ${formatComputePoints(me.value.gapToNextComputePoints, locale.code)}`
+          : fmt(pointsCopy.value.gap, { points: formatComputePoints(me.value.gapToNextComputePoints, locale.code) }));
+// My own points, read from my row when it is among the loaded rows.
+const myRowPoints = computed(() => rows.value.find(row => row.rank === me.value.rank)?.computePoints ?? null);
 
 function go(url: string) {
   navTo(url);
@@ -268,9 +272,10 @@ const periodOptions = computed(() => PERIODS.map(value => ({ value, label: t.val
 </script>
 
 <style scoped>
-.leader-content { display: flex; flex-direction: column; gap: var(--v5-space-6); padding: var(--ui-space-inline) var(--v5-space-5) var(--v5-space-6); }
+.leader-content { display: flex; flex-direction: column; gap: var(--v5-space-4); padding: var(--ui-space-inline) var(--v5-space-5) var(--v5-space-6); }
 .nx-leader-periods { width: 100%; min-width: 0; }
 .leader-caption { color: var(--v5-ink-3); font: var(--ui-type-meta-weight) var(--ui-type-meta)/var(--ui-type-meta-lh) var(--font-v5); }
+.leader-me .leader-caption { color: var(--v5-ink); font-size: 13px; font-weight: 600; }
 /* Podium: top three on pedestals, 2-1-3 visual order (DOM stays 1-2-3), faint gold tint. */
 .leader-podium { display: flex; align-items: flex-end; gap: var(--v5-space-2); padding: 28px var(--ui-space-inline) var(--ui-space-inset); border-radius: 28px; background: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--v5-warning) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
 .leader-row.leader-row--podium { flex: 1; min-width: 0; border-top: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
@@ -281,12 +286,13 @@ const periodOptions = computed(() => PERIODS.map(value => ({ value, label: t.val
 .leader-podium__crown { position: absolute; top: -20px; color: var(--v5-warning); animation-delay: 1000ms; }
 .leader-podium__blank { width: 42px; height: 42px; }
 .leader-row--podium .leader-name { max-width: 100%; overflow: hidden; text-align: center; white-space: nowrap; text-overflow: ellipsis; font-weight: 600; }
-.leader-row--podium .leader-points { max-width: 100%; text-align: center; font: 600 var(--ui-type-meta)/var(--ui-type-meta-lh) var(--font-metric); color: var(--v5-ink-3); }
+.leader-row--podium .leader-points { max-width: 100%; text-align: center; font: 500 var(--ui-type-meta)/var(--ui-type-meta-lh) var(--font-metric); color: var(--v5-ink-3); }
+.leader-podium__rank { margin-top: 2px; font-size: 10px; line-height: 12px; font-weight: 600; color: var(--v5-ink-3); }
 /* Pedestals rise 3rd → 2nd → 1st as the podium renders; the crown lands last (DS-29). */
 .leader-podium__track { position: relative; width: 100%; height: var(--step); }
 .leader-podium__step { position: absolute; bottom: 0; display: flex; justify-content: center; width: 100%; min-height: 0; overflow: hidden; box-sizing: border-box; padding: 0; border-radius: 16px 16px 6px 6px; background: linear-gradient(180deg, color-mix(in srgb, var(--tone) 40%, transparent), color-mix(in srgb, var(--tone) 4%, transparent)); }
 .leader-podium__step .leader-position { margin-top: var(--ui-space-row-y); font: 600 26px/30px var(--font-metric); color: var(--tone); }
-.leader-flat { margin-top: var(--ui-space-inline); padding: 0 var(--ui-space-inset); border-radius: var(--ui-radius-surface); background: var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.leader-flat { margin-top: var(--v5-space-4); padding: 0 var(--ui-space-inset); border-radius: var(--ui-radius-surface); background: var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
 .leader-flat > .leader-row:first-child { border-top: 0; }
 .leader-row { display: flex; align-items: center; gap: var(--ui-space-inline); border-top: 1px solid var(--v5-border); min-height: 64px; }
 .leader-position { min-width: 20px; font: 600 var(--ui-type-list-title)/20px var(--font-metric); color: var(--v5-ink-3); }
@@ -298,7 +304,6 @@ const periodOptions = computed(() => PERIODS.map(value => ({ value, label: t.val
 /* My rank: brand-tinted strip with the gap and, when known, progress to the next rank. */
 .leader-me { display: flex; align-items: center; gap: var(--ui-space-inline); padding: var(--ui-space-inline) var(--ui-space-inset); border-radius: 20px; background: color-mix(in srgb, var(--v5-brand) 10%, var(--v5-surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--v5-brand) 30%, transparent); }
 .leader-me .leader-my-rank { display: flex; align-items: baseline; gap: var(--v5-space-1); flex: none; font: 600 22px/28px var(--font-metric); color: var(--v5-brand); }
-.leader-total { color: var(--v5-ink-3); font: 400 var(--ui-type-meta)/var(--ui-type-meta-lh) var(--font-metric); }
 .leader-me__body { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
 .leader-me__line { display: flex; align-items: baseline; justify-content: space-between; gap: var(--v5-space-2); }
 .leader-gap { min-width: 0; color: var(--v5-ink-2); font: var(--ui-type-meta-weight) var(--ui-type-meta)/var(--ui-type-meta-lh) var(--font-v5); overflow-wrap: anywhere; }

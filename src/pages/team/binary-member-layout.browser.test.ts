@@ -60,6 +60,7 @@ for (const width of [320, 360, 390]) {
       });
       const app = Vue.createSSRApp({ render, setup: () => ({
         ...styles, visibility: teamPrivacyFixture().visibility, t, locale: { code: language }, formatComputePoints,
+        binaryCopy: { leads: { zh: '领先', en: ' lead', vi: ' dẫn đầu' }[language] },
         wingMembersText: (n: number) => fmt(t.binary.monthVolMembers, { n }),
         wings: ['left', 'right'].map((key, i) => ({ key, name: i ? t.binary.rightWing : t.binary.leftWing,
           count: 2, computePoints: i ? 1480 : 1720, isWeak: !!i, color: '#ddd',

@@ -209,7 +209,9 @@ test.each(["app", "h5"] as const)("%s preserves unavailable/error and confirmed 
   const page = await mount(platform);
   page.network.hasRemoteSnapshot = false; page.network.remoteStatus = "error"; page.rank.remoteReady = false;
   await Vue.nextTick();
-  expect(all(page.root).filter((item) => item.tag === "text" && hasClass(item, "tabular-nums") && text(item) === "—")).toHaveLength(3);
+  // The ring split, the member total and the three legend counts show unavailable, never zero.
+  expect(text(all(page.root).find((item) => hasClass(item, "network-overview__split"))!)).toBe("—");
+  expect(all(page.root).filter((item) => item.tag === "text" && hasClass(item, "nx-num-metric") && text(item) === "—")).toHaveLength(4);
   expect(text(page.root)).toContain(en.network.projectionErrorTitle);
   expect(page.self().props["aria-label"]).toContain("—");
   page.network.hasRemoteSnapshot = true; page.network.members = [member("kept", 1)];

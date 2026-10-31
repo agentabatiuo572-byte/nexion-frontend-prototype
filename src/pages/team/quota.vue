@@ -12,7 +12,7 @@
           <view v-if="heroTier && focusedProductId" class="quota-hero__main"><view class="quota-hero__copy"><text class="quota-headline">{{ heroTier.name }}</text><view class="quota-hero__price nx-num-amount"><text class="quota-price-symbol">$</text><text>{{ heroPriceParts[0] }}</text><text v-if="heroPriceParts[1]" class="quota-price-fraction">.{{ heroPriceParts[1] }}</text></view></view><image v-if="heroImage" :src="heroImage" mode="aspectFit" class="quota-hero__image" :alt="heroTier?.name" /><TeamArt v-else kind="members" :size="112" /></view>
           <view class="quota-invite-count">
             <view ref="inviteRingRef" class="quota-ring" :style="{ '--nx-viz-ring': inviteRingInView === false ? 0 : inviteRingPct, transition: inviteRingInView === false ? 'none' : VIZ_RING_TRANSITION }"><view class="quota-ring__hole nx-num-metric"><text class="quota-invite-count__number">{{ visibility.mask(activeDirectText) }}</text><text>{{ visibility.hidden ? '' : remoteApiEnabled && !remoteSnapshot ? '/—' : `/${directInvites}` }}</text></view></view>
-            <view class="quota-invite-count__copy"><text>{{ t.quota.yourInvites }}</text><text class="quota-body">{{ t.quota.heroBody }}</text></view>
+            <view class="quota-invite-count__copy"><text>{{ t.quota.yourInvites }}</text><text v-if="inviteStepText" class="quota-invite-count__step">{{ inviteStepText }}</text><text class="quota-body">{{ t.quota.heroBody }}</text></view>
           </view>
         </view>
 
@@ -168,6 +168,15 @@ const { elRef: inviteRingRef, inView: inviteRingInView } = useScrollGrowProgress
 const inviteRingPct = computed(() => {
   const total = directInvites.value;
   return visibility.hidden || typeof total !== "number" || total <= 0 ? 0 : Math.min(100, activeDirect.value / total * 100);
+});
+// The next step reads from the same counts as the ring: invited friends who are not active yet.
+const inviteStepText = computed(() => {
+  const total = directInvites.value;
+  if (visibility.hidden || typeof total !== "number" || total <= 0 || (remoteApiEnabled && !remoteSnapshot.value)) return "";
+  const n = Math.max(0, total - activeDirect.value);
+  if (locale.code === "zh") return n > 0 ? `还有 ${n} 位好友未激活` : "邀请的好友已全部激活";
+  if (locale.code === "vi") return n > 0 ? `Còn ${n} người bạn chưa kích hoạt` : "Bạn bè đã mời đều đã kích hoạt";
+  return n > 0 ? `${n} invited ${n === 1 ? "friend is" : "friends are"} not active yet` : "All invited friends are active";
 });
 const activeDirectText = computed(() => remoteApiEnabled && !remoteSnapshot.value ? "—" : String(activeDirect.value));
 
@@ -346,6 +355,9 @@ const quotaReady = computed(() => !remoteApiEnabled || (catalogDisplayReady.valu
 .quota-invite-count .quota-body { margin-top:var(--v5-space-1); font-size:12px; line-height:1.6; }
 .quota-devices-heading { display:flex; align-items:center; justify-content:space-between; gap:var(--v5-space-3); margin-top:14px; }
 .quota-section-title { font:600 var(--ui-type-section)/var(--ui-type-section-lh) var(--font-v5); }
+.quota-invite-count__step { display:block; margin:2px 0; font:600 16px/22px var(--font-v5); color:var(--v5-ink); }
+.quota-hero > .quota-invite-count:last-child { margin-bottom:0; }
+.quota-hero > .quota-invite-count:first-child { margin-top:0; }
 .quota-footer { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--v5-space-3); margin-top:var(--v5-space-4); }
 .quota-invite-hint { margin-top:var(--v5-space-3); }
 .quota-hero__price { display:flex; align-items:baseline; font:550 24px/32px var(--font-amount); letter-spacing:-.03em; }
@@ -353,7 +365,7 @@ const quotaReady = computed(() => !remoteApiEnabled || (catalogDisplayReady.valu
 .quota-price-fraction { color:var(--v5-ink-3); }
 .quota-carousel { display: flex; gap: var(--ui-space-inline); margin: var(--ui-space-inset) -20px 0; padding: 0 var(--v5-space-5) var(--v5-space-1); overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-inline: var(--v5-space-5); scrollbar-width: none; }
 .quota-carousel::-webkit-scrollbar { display: none; }
-.quota-content .quota-carousel :deep(.quota-tier) { flex: none; width: 280px; box-sizing: border-box; padding: var(--ui-space-inset); border: 0; border-radius: 28px; scroll-snap-align: start; background: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--v5-brand) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.quota-content .quota-carousel :deep(.quota-tier) { flex: none; width: 260px; box-sizing: border-box; padding: var(--ui-space-inset); border: 0; border-radius: 28px; scroll-snap-align: start; background: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--v5-brand) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
 .quota-content .quota-carousel :deep(.quota-product) { flex-direction: column; align-items: flex-start; gap: var(--v5-space-2); }
 .quota-content .quota-carousel :deep(.quota-product__image) { align-self: center; width: 100%; height: 120px; }
 .quota-content .quota-carousel :deep(.quota-product__arrow) { display: none; }

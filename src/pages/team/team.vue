@@ -50,14 +50,14 @@
 
         <!-- Rewards: one card per reward with its own accent and mini visual (P-41) -->
         <view>
-          <text class="team-section-title">{{ designCopy.rewardsSection }}</text>
+          <view class="team-section-head"><text class="team-section-title">{{ designCopy.rewardsSection }}</text><text class="team-section-meta">{{ locale.code === "zh" ? "本期" : locale.code === "vi" ? "Kỳ này" : "This period" }}</text></view>
           <view ref="bentoEl" class="team-bento nx-viz-motion">
             <view class="nx-team-leaderboard-link team-bento__card nx-viz-press team-bento__card--wide team-bento__card--gold" role="link" tabindex="0" @click="go('/pages/team/leaderboard')" @keydown.enter.prevent="go('/pages/team/leaderboard')">
               <view class="team-bento__head"><view class="team-bento__icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0z" /></svg></view><svg class="team-bento__chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg></view>
               <view class="team-bento__podium" aria-hidden="true"><view v-for="(bar, index) in PODIUM_BARS" :key="index" :style="{ height: bentoInView === false ? '0px' : `${bar.height}px`, transition: bentoInView === false ? 'none' : VIZ_GROW_HEIGHT_TRANSITION, transitionDelay: bentoInView === false ? '0ms' : vizStagger(bar.order) }" /></view>
               <view class="team-bento__foot">
                 <text class="team-bento__headline">{{ t.teamV3.leaderboardCard.subtitle }}</text>
-                <text class="team-bento__caption">{{ t.teamV3.leaderboardCard.title }}</text>
+                <text class="team-bento__caption">{{ t.teamV3.leaderboardCard.title }} · <text class="team-bento__muted">{{ t.leaderboard.periods.week }}</text></text>
               </view>
             </view>
             <view class="nx-team-royalty-network-link team-bento__card nx-viz-press team-bento__card--brand" role="button" tabindex="0" :aria-label="t.teamV3.sevenLayerNetwork" @click="openReferralNetwork" @keydown.enter.prevent="openReferralNetwork">
@@ -66,7 +66,7 @@
                 <text v-for="(initial, index) in memberInitials" :key="index" class="team-bento__avatar">{{ initial }}</text>
               </view>
               <view class="team-bento__foot">
-                <text class="team-bento__value">{{ visibility.mask(totalMembersCountText) }}</text>
+                <text class="team-bento__value team-bento__value--count">{{ visibility.mask(totalMembersCountText) }}<text v-if="locale.code === 'zh' && !visibility.hidden" class="team-bento__unit">人</text></text>
                 <text class="team-bento__caption">{{ designCopy.teamRewards }} · <text class="team-bento__muted">{{ designCopy.memberCountLabel }}</text></text>
               </view>
             </view>
@@ -86,7 +86,7 @@
                   <text class="team-bento__caption">{{ t.teamV3.weeklyPool }}<template v-if="poolShareReady"> · <text class="team-bento__muted">{{ leadershipPoolLineA }}</text></template></text>
                   <text v-if="!poolShareReady" class="team-bento__meta">{{ remotePoolReadable ? leadershipPoolLineB : leadershipPoolLineA }}</text>
                 </view>
-                <view class="team-bento__ring" aria-hidden="true" :style="{ '--nx-viz-ring': bentoInView === false ? 0 : poolRingPct, transition: bentoInView === false ? 'none' : VIZ_RING_TRANSITION }"><view><text class="team-bento__ring-value nx-num-metric">{{ !remotePoolReadable ? "—" : poolShareReady ? leadershipPoolLineB : fmt(t.home.rankUnlockAt, { n: leadershipUnlockRank }) }}</text><text v-if="poolShareReady" class="team-bento__ring-label">{{ t.pool.myShare }}</text></view></view>
+                <view class="team-bento__ring" :class="{ 'team-bento__ring--capped': poolRingPct > 0 }" aria-hidden="true" :style="{ '--nx-viz-ring': bentoInView === false ? 0 : poolRingPct, transition: bentoInView === false ? 'none' : VIZ_RING_TRANSITION }"><view><text class="team-bento__ring-value nx-num-metric">{{ !remotePoolReadable ? "—" : poolShareReady ? leadershipPoolLineB : fmt(t.home.rankUnlockAt, { n: leadershipUnlockRank }) }}</text><text v-if="poolShareReady" class="team-bento__ring-label">{{ t.pool.myShare }}</text></view></view>
               </view>
             </view>
           </view>
@@ -98,7 +98,7 @@
             <view class="team-tool" role="link" tabindex="0" :aria-label="t.teamV3.hardwareQuota" @click="go('/pages/team/quota')" @keydown.enter.prevent="go('/pages/team/quota')"><view class="team-tool__icon team-tool__icon--brand"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 9 5v10l-9 5-9-5V7Z M3 7l9 5 9-5M12 12v10"/></svg></view><text class="team-tool__label">{{ t.teamV3.hardwareQuota }}</text></view>
             <view class="team-tool" role="link" tabindex="0" :aria-label="t.teamV3.ambassador" @click="go('/pages/team/agent')" @keydown.enter.prevent="go('/pages/team/agent')"><view class="team-tool__icon team-tool__icon--orange"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></view><text class="team-tool__label">{{ t.teamV3.ambassador }}</text></view>
             <view class="team-tool" role="link" tabindex="0" :aria-label="t.teamV3.visualizations.influenceNetwork" @click="go('/pages/team/network')" @keydown.enter.prevent="go('/pages/team/network')"><view class="team-tool__icon team-tool__icon--cyan"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="4" r="3"/><circle cx="4" cy="19" r="3"/><circle cx="20" cy="19" r="3"/><path d="m10.5 7-5 9m9-9 5 9M7 19h10"/></svg></view><text class="team-tool__label">{{ t.teamV3.visualizations.influenceNetwork }}</text></view>
-            <view class="team-tool" role="link" tabindex="0" :aria-label="t.teamV3.visualizations.genealogy" @click="go('/pages/team/tree')" @keydown.enter.prevent="go('/pages/team/tree')"><view class="team-tool__icon team-tool__icon--violet"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M2 22v-3a7 7 0 0 1 14 0v3M16 3a4 4 0 0 1 0 8M22 22v-3a7 7 0 0 0-5-6.7"/></svg></view><text class="team-tool__label">{{ t.teamV3.visualizations.genealogy }}</text></view>
+            <view class="team-tool" role="link" tabindex="0" :aria-label="t.teamV3.visualizations.genealogy" @click="go('/pages/team/tree')" @keydown.enter.prevent="go('/pages/team/tree')"><view class="team-tool__icon team-tool__icon--violet"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg></view><text class="team-tool__label">{{ t.teamV3.visualizations.genealogy }}</text></view>
           </view>
         </view>
       </view>
@@ -557,7 +557,9 @@ const teamSummaryStatus = computed(() => remoteApiEnabled ? network.remoteStatus
 @media(max-width:359px) {
   .team-overview-grid :deep(.team-summary__header),.team-rank__header { min-height: 42px; }
 }
-.team-section-title { display: block; font: 600 var(--ui-type-section)/1.4 var(--font-v5); margin-bottom: 8px; }
+.team-section-title { display: block; font: 600 var(--ui-type-section)/1.4 var(--font-v5); margin-bottom: var(--v5-space-4); }
+.team-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--ui-space-inline); }
+.team-section-meta { font: 400 12px/1.4 var(--font-v5); color: var(--v5-ink-3); }
 .team-estimate { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
 .team-estimate__label { font: 400 11px/1.4 var(--font-v5); color: var(--v5-ink-3); }
 /* Reward cards (P-41): flat surface with a faint accent tint, accent icon and a mini visual. */
@@ -576,6 +578,8 @@ const teamSummaryStatus = computed(() => remoteApiEnabled ? network.remoteStatus
 .team-bento__headline { font: 600 var(--ui-type-hero-title)/var(--ui-type-hero-title-lh) var(--font-v5); }
 .team-bento__value { font: 500 22px/30px var(--font-metric); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .team-bento__amount { font-family: var(--font-amount); }
+.team-bento__value--count { font-size: 28px; line-height: 34px; }
+.team-bento__unit { margin-left: 6px; font: 400 13px/1 var(--font-v5); color: var(--v5-ink-3); }
 .team-bento__currency { font-size: 14px; }
 .team-bento__fraction { color: var(--v5-ink-3); }
 .team-bento__caption { font: 500 var(--ui-type-description)/18px var(--font-v5); color: var(--v5-ink); }
@@ -601,6 +605,10 @@ const teamSummaryStatus = computed(() => remoteApiEnabled ? network.remoteStatus
 .team-bento__split > view:last-child { background: color-mix(in srgb, var(--ui-device-ink) 35%, transparent); }
 .team-bento__pool { display: grid; grid-template-columns: minmax(0, 1fr) 92px; align-items: end; gap: var(--v5-space-3); margin-top: auto; }
 .team-bento__ring { display: grid; place-items: center; width: 92px; height: 92px; border-radius: 999px; background: conic-gradient(var(--v5-nex) calc(var(--nx-viz-ring) * 1%), var(--v5-surface-3) 0); }
+/* Round arc ends, as on the pool page. */
+@supports (width: calc(sin(1deg) * 1px)) {
+  .team-bento__ring--capped { background: radial-gradient(circle at calc(50% + sin(calc(var(--nx-viz-ring) * 3.6deg)) * 42px) calc(50% - cos(calc(var(--nx-viz-ring) * 3.6deg)) * 42px), var(--v5-nex) 3.5px, transparent 4px), radial-gradient(circle at 50% 4px, var(--v5-nex) 3.5px, transparent 4px), conic-gradient(var(--v5-nex) calc(var(--nx-viz-ring) * 1%), var(--v5-surface-3) 0); }
+}
 .team-bento__ring > view { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 76px; height: 76px; padding: 0 var(--v5-space-1); box-sizing: border-box; border-radius: 999px; background: var(--v5-surface); text-align: center; }
 .team-bento__ring-value { font: 600 15px/18px var(--font-metric); color: var(--v5-nex); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .team-bento__ring-label { font: 500 11px/14px var(--font-v5); color: var(--v5-ink-3); }

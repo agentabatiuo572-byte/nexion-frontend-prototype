@@ -83,8 +83,6 @@ test.each(["en", "zh", "vi"] as const)("flat roster expands actual member facts 
   expect(text(page.root)).toContain(copy.tree.emptyDirect);
   state.members = [member("active", 10)]; await flush();
   expect(page.nodes("member-details")).toHaveLength(0);
-  press(page.nodes("roster-heading")[0]); await flush();
-  expect(triggers()).toHaveLength(0);
 });
 
 test.each(["en", "zh", "vi"] as const)("network legend counts real statuses and compact points retain accessible units in %s", async language => {

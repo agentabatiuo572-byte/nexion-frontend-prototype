@@ -27,7 +27,7 @@ async function page(paused: boolean, period: string, t: typeof en, poolUSD = 0, 
     pauseCapturedAt: "2026-10-08T12:30:00Z",
     heroCapStyle: () => ({}), fmtCompactUSD: () => `$${poolUSD}`, prize: { poolUSD, topN: poolUSD > 0 ? 21 : 0 },
     payoutToText: "PAYOUT_TO_FROZEN_21",
-    totalRows: 0, me: { rank: null }, myRankDisplay: "—", gapText: t.leaderboard.myRank.notRanked,
+    totalRows: 0, me: { rank: null }, myRankDisplay: "—", myRowPoints: null, gapText: t.leaderboard.myRank.notRanked,
     visibleRows: [], rankingGroups: [], hasMore: false, periodOptions: [],
     go() {}, selectPeriod() {}, loadRemote() {},
   }) });

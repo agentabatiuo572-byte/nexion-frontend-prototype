@@ -8,13 +8,11 @@
         <view v-else-if="remoteState !== 'ready' && !remoteSnapshot" role="status" aria-busy="true"><text>{{ t.network.projectionLoadingTitle }}</text></view>
         <template v-else-if="remoteSnapshot">
           <RewardHero class="nx-unilevel-hero nx-viz-press" kind="members">
-            <text class="block" style="font-size: var(--ui-type-section); font-weight: 600">{{ filter === 'device_earning' ? t.directReferral.deviceEarning : t.directReferral.purchaseTotal }}</text>
+            <text class="block nx-unilevel-hero-title">{{ filter === 'device_earning' ? t.directReferral.deviceEarning : t.directReferral.purchaseTotal }} · {{ visibility.mask(remoteGroupCount) }} {{ t.directReferral.settlementGroups }}</text>
             <view class="nx-royalty-totals" :class="{ 'nx-royalty-totals-large': wideAmount(remoteTotalUSDT) || wideAmount(remoteTotalNEX) }">
               <view><text class="block nx-num-amount nx-direct-amount nx-unilevel-main-amount"><text class="nx-unilevel-dollar">$</text>{{ totalAmountParts[0] }}<text v-if="totalAmountParts[1]" class="nx-unilevel-decimals">.{{ totalAmountParts[1] }}</text></text></view>
-              <view><text class="block font-display tabular-nums nx-direct-amount" :style="{ fontSize: amount(remoteTotalNEX).length > 18 ? '20px' : '26px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ amount(remoteTotalNEX) }}</text><text>UVT</text></view>
+              <view><text class="block font-display tabular-nums nx-direct-amount" :style="{ fontSize: amount(remoteTotalNEX).length > 18 ? '20px' : '26px', fontWeight: 600, color: 'var(--v5-ink)' }">{{ visibility.mask(((remoteTotalNEX ?? 0) > 0 ? '+' : '') + formatAmount(remoteTotalNEX)) }}</text><text>UVT</text></view>
             </view>
-            <text class="block" style="margin-top: 8px; font-size: 12px; color: var(--v5-ink-3)">{{ visibility.mask(remoteGroupCount) }} {{ t.directReferral.settlementGroups }}</text>
-            <text class="block" style="margin-top: 6px; font-size: 12px; line-height: 1.6; color: var(--v5-ink-3)">{{ auditCopy.netSummary }}</text>
           </RewardHero>
         </template>
         <view class="nx-unilevel-filters">
@@ -248,13 +246,15 @@ function openRules() { go('/pages/team/unilevel-how'); }
 .nx-direct-amount { overflow-wrap: anywhere; }
 /* Hero (P-41): flat surface with a faint brand tint; USDT total in the amount font, UVT in metric. */
 :deep(.nx-unilevel-hero) { padding: var(--v5-space-5); border: 0; border-radius: 28px; background: radial-gradient(120% 90% at 85% 0%, color-mix(in srgb, var(--v5-brand) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.nx-unilevel-hero-title { font-size: 13px; line-height: 18px; font-weight: 500; color: var(--v5-ink-2); }
+:deep(.nx-unilevel-hero .reward-hero__art) { display: none; }
 .nx-royalty-totals { display: flex; flex-direction: column; gap: 2px; margin-top: var(--ui-space-row-y); }
 .nx-unilevel-main-amount { font-size: 40px; line-height: 48px; font-weight: 550; letter-spacing: -0.03em; }
 .nx-unilevel-dollar { margin-right: 2px; font-size: 22px; color: var(--v5-ink-3); }
 .nx-unilevel-decimals { color: var(--v5-ink-3); }
 .nx-royalty-totals > view + view { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
 .nx-royalty-totals > view + view > text { font-family: var(--font-metric); color: var(--v5-brand) !important; }
-.nx-royalty-totals > view + view > text:first-child { font-size: 15px !important; font-weight: 500 !important; }
+.nx-royalty-totals > view + view > text { font-size: 14px !important; font-weight: 500 !important; }
 .nx-royalty-totals-large > view:first-child > text { font-size: 26px !important; line-height: 34px; }
 
 .nx-unilevel-filters { display: flex; flex-direction: column; gap: var(--ui-space-inline); }
@@ -265,7 +265,7 @@ function openRules() { go('/pages/team/unilevel-how'); }
 .nx-unilevel-day { display: flex; flex-direction: column; gap: var(--v5-space-2); }
 .nx-unilevel-day-label { padding: 0 var(--v5-space-1); font: 500 var(--ui-type-meta)/var(--ui-type-meta-lh) var(--font-v5); color: var(--v5-ink-4); }
 .nx-unilevel-day-card { padding: 0 var(--ui-space-inset); border-radius: var(--ui-radius-surface); background: var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
-.nx-direct-event { padding: 14px 0; }
+.nx-direct-event { padding: 12px 0; }
 .nx-direct-event + .nx-direct-event { border-top: 1px solid var(--v5-border); }
 .nx-unilevel-record-head { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: var(--ui-space-inline); align-items: center; }
 .nx-unilevel-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px; color: var(--v5-brand); background: color-mix(in srgb, var(--v5-brand) 16%, transparent); }
@@ -275,7 +275,7 @@ function openRules() { go('/pages/team/unilevel-how'); }
 .nx-unilevel-member-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--v5-space-1) 6px; }
 .nx-unilevel-member { min-width: 0; color: var(--v5-ink); font: var(--ui-type-message-title-weight) var(--ui-type-message-title)/var(--ui-type-message-title-lh) var(--font-v5); overflow-wrap: anywhere; }
 .nx-unilevel-record-amounts { min-width: 0; text-align: right; font-variant-numeric: tabular-nums; }
-.nx-unilevel-currency-row { display: block; font: 600 15px/20px var(--font-metric); color: var(--v5-brand); }
+.nx-unilevel-currency-row { display: block; font: 500 15px/20px var(--font-metric); color: var(--v5-brand); }
 .nx-unilevel-uvt { display: block; margin-top: 2px; color: var(--v5-ink-3); font: 500 12px/16px var(--font-metric); }
 .nx-unilevel-source-label { display: block; margin-top: 2px; color: var(--v5-ink-3); font-size: 12px; line-height: 18px; }
 .nx-royalty-status { display: inline-flex; align-items: center; min-height: 20px; padding: 0 6px; border-radius: 999px; background: color-mix(in srgb, var(--v5-ink) 8%, transparent); color: var(--v5-ink-2); font: 500 11px/16px var(--font-v5); overflow-wrap: anywhere; }

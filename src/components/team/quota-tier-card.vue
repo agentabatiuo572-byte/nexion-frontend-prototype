@@ -21,7 +21,7 @@
     <view v-if="tier.conditions.length" class="quota-conditions">
       <text class="quota-section-label">{{ tier.unlockKind === 'either' ? t.quota.unlockEither : t.quota.unlockAll }}</text>
       <view v-for="(condition, index) in tier.conditions" :key="index" class="quota-condition">
-        <view class="quota-stat-line"><text>{{ conditionLabel(condition) }}</text><text class="quota-condition__values">{{ conditionValue(condition) }}</text></view>
+        <view class="quota-stat-line"><text>{{ conditionLabel(condition) }}</text><text class="quota-condition__values nx-num-metric" :aria-label="conditionValue(condition)">{{ conditionValue(condition, true) }}</text></view>
         <QuotaConditionBar v-if="!visibility.hidden" :pct="pending ? 0 : condition.required > 0 ? Math.min(1, Math.max(0, condition.current / condition.required)) : 1" :met="!pending && condition.current >= condition.required" :tint="tier.tint" :label="conditionLabel(condition)" :value-text="conditionValue(condition)" />
       </view>
     </view>
@@ -88,10 +88,13 @@ const stockRingStyle = computed(() => ({ '--nx-viz-ring': props.pending || stock
 function conditionLabel(condition: QuotaCondition) {
   return condition.label;
 }
-function conditionValue(condition: QuotaCondition) {
+// Compact values drop the points unit on screen; the accessible label keeps it.
+function conditionValue(condition: QuotaCondition, compact = false) {
   if (props.pending) return `${visibility.mask("—")} / —`;
   return condition.kind === 'volume'
-    ? `${visibility.mask(formatComputePoints(condition.current, locale.code))} / ${formatComputePoints(condition.required, locale.code)}`
+    ? compact
+      ? `${visibility.mask(formatComputePoints(condition.current, locale.code).split(' ')[0])} / ${formatComputePoints(condition.required, locale.code).split(' ')[0]}`
+      : `${visibility.mask(formatComputePoints(condition.current, locale.code))} / ${formatComputePoints(condition.required, locale.code)}`
     : `${visibility.mask(condition.current)} / ${condition.required}`;
 }
 function openProduct() { emit('navigate', `/pages/store/detail?id=${encodeURIComponent(props.tier.productId)}`); }
@@ -106,7 +109,7 @@ function openAction() { if (!props.pending && !props.actionBlocked) openProduct(
 .quota-product__qualification { display:block;margin-top:6px;font:500 11px/1.5 var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }.quota-product__qualification--met { color:var(--v5-brand); }.quota-product__arrow { flex:none;color:var(--v5-ink-3); }
 .quota-stock { margin-top:18px; }.quota-stat-line { display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px 14px;font:400 12px/1.6 var(--font-v5);color:var(--v5-ink-2);overflow-wrap:anywhere; }
 .quota-stock__track { height:3px;background:var(--v5-surface-3);border-radius:9px;overflow:hidden;margin-top:var(--v5-space-2); }.quota-stock__track > view { height:100%;background:var(--v5-ink-3);border-radius:inherit; }
-.quota-conditions { margin-top:22px; }.quota-section-label { display:block;font:600 13px/1.5 var(--font-v5); }.quota-condition { margin-top:var(--ui-space-inset); }.quota-condition__values { margin-left:auto;font-weight:500;color:var(--v5-ink);font-variant-numeric:tabular-nums;text-align:right; }
+.quota-conditions { margin-top:22px; }.quota-section-label { display:block;font:600 13px/1.5 var(--font-v5); }.quota-condition { margin-top:var(--ui-space-inset); }.quota-condition__values { margin-left:auto;font:500 13px/18px var(--font-metric);color:var(--v5-brand);font-variant-numeric:tabular-nums;text-align:right; }
 .quota-perks { display:flex;flex-direction:column;gap:6px;margin-top:18px;color:var(--v5-ink-3);font:400 12px/1.6 var(--font-v5);overflow-wrap:anywhere; }.quota-actions { margin-top:var(--ui-space-section); }.quota-actions :deep(.nx-button) { width:100%;box-sizing:border-box; }
 .quota-unavailable { display:block;font:400 var(--ui-type-list-subtitle)/1.6 var(--font-v5);color:var(--v5-ink-3);overflow-wrap:anywhere; }
 .quota-product:focus-visible { outline:2px solid var(--v5-brand);outline-offset:4px; }

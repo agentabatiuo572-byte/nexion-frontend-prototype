@@ -14,8 +14,8 @@
             <view class="binary-hero nx-viz-press">
               <view class="binary-hero-heading">
                 <text class="binary-label">{{ binaryCopy.contributions }}</text>
-                <view class="binary-rule-link" role="link" tabindex="0" :aria-label="t.binary.howItWorksEntry"
-                  @click="go('/pages/team/binary-how')" @keydown.enter.prevent="go('/pages/team/binary-how')" @keydown.space.prevent="go('/pages/team/binary-how')"><text>{{ binaryCopy.rules }}</text></view>
+                <view class="binary-rule-link" role="button" tabindex="0" :aria-label="t.binary.howItWorksEntry"
+                  @click="go('/pages/team/binary-how')" @keydown.enter.prevent="go('/pages/team/binary-how')" @keydown.space.prevent="go('/pages/team/binary-how')"><text class="binary-rule-pill">{{ binaryCopy.rules }} ›</text></view>
               </view>
               <view class="binary-comparison">
                 <view v-for="(wing, index) in wings" :key="wing.key" class="binary-contribution">
@@ -60,9 +60,9 @@
                         <VBadge v-if="!visibility.hidden" class="reward-wing-member__rank" :v="wing.top.vRank" size="lg" :show-title="false" />
                         <text v-else class="reward-wing-member__rank">{{ visibility.mask('') }}</text>
                         <view class="reward-wing-member__body">
-                        <text class="binary-label">{{ wing.name }}</text>
+                        <text class="binary-label">{{ wing.name }}{{ binaryCopy.leads }}</text>
                         <text class="reward-wing-member__name">{{ wing.top.name }}</text>
-                        <text class="reward-wing-member__points tabular-nums">{{ visibility.mask(formatComputePoints(wing.top.monthComputePoints, locale.code)) }}</text>
+                        <text class="reward-wing-member__points nx-num-metric">{{ visibility.mask(formatComputePoints(wing.top.monthComputePoints, locale.code)) }}</text>
                         </view>
                       </view>
                   </view>
@@ -76,7 +76,7 @@
               <view class="binary-recent-card" :style="recentGroupStyle">
                 <view v-for="(e, i) in recentBinaries" :key="e.id" class="binary-recent-row nx-viz-press" :style="recentRowStyle(i === recentBinaries.length - 1)">
                   <view class="binary-record-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13z" /></svg></view>
-                  <view class="binary-recent-source"><text class="binary-record-name">{{ e.sourceUserName }}</text><text class="binary-note">{{ formatTrialDate(e.ts, dateLocale()) }}<template v-if="binaryStatusLabel(e.status)"> · {{ binaryStatusLabel(e.status) }}</template></text></view>
+                  <view class="binary-recent-source"><text class="binary-record-name">{{ e.sourceUserName }}</text><text class="binary-note">{{ formatTrialDate(e.ts, dateLocale()) }}<template v-if="binaryStatusLabel(e.status)">{{ ' · ' + binaryStatusLabel(e.status) }}</template></text></view>
                   <view class="reward-match-amount"><text class="binary-record-value nx-num-metric" :style="{ color: binaryAmountColor(e.status) }">{{ visibility.mask(binaryAmountLabel(e)) }}</text><text v-if="'amountNEX' in e" class="binary-record-uvt">{{ visibility.mask(formatFinanceAmount(e.amountNEX)) }} UVT</text></view>
                 </view>
               </view>
@@ -128,9 +128,9 @@ const locale = useLocaleStore();
 const { elRef: comparisonRef, inView: comparisonInView } = useScrollGrowProgress();
 const canonicalReadCoalescer = createScopedReadCoalescer();
 const binaryCopy = computed(() => ({
-  zh: { rules: '玩法说明', contributions: '本月两组订单额', leadingMembers: '各组领先成员' },
-  en: { rules: 'How it works', contributions: 'This month’s group volume', leadingMembers: 'Top members by group' },
-  vi: { rules: 'Cách nhận thưởng', contributions: 'Doanh số hai nhóm tháng này', leadingMembers: 'Thành viên dẫn đầu mỗi nhóm' },
+  zh: { rules: '玩法说明', contributions: '本月两组订单额', leadingMembers: '各组领先成员', leads: '领先' },
+  en: { rules: 'How it works', contributions: 'This month’s group volume', leadingMembers: 'Top members by group', leads: ' lead' },
+  vi: { rules: 'Cách nhận thưởng', contributions: 'Doanh số hai nhóm tháng này', leadingMembers: 'Thành viên dẫn đầu mỗi nhóm', leads: ' dẫn đầu' },
 })[locale.code === 'zh' ? 'zh' : locale.code === 'vi' ? 'vi' : 'en']);
 
 const displayEnvironment = [apiRuntimeConfig.environment, apiRuntimeConfig.baseUrl] as const;
@@ -359,7 +359,8 @@ function recentRowStyle(isLast: boolean): CSSProperties {
 .binary-hero-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--v5-space-4); }
 .binary-label { display: block; font-size: var(--ui-type-list-subtitle); line-height: var(--ui-type-list-subtitle-lh); color: var(--v5-ink-2); }
 .binary-hero-heading > .binary-label { flex: 1; min-width: 0; }
-.binary-rule-link { display: flex; align-items: center; justify-content: flex-end; min-width: 44px; min-height: 44px; color: var(--v5-ink-3); font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); flex: 0 0 auto; }
+.binary-rule-link { display: flex; align-items: center; justify-content: flex-end; min-width: 44px; min-height: 44px; flex: 0 0 auto; }
+.binary-rule-pill { padding: 4px 10px; border-radius: 999px; background: var(--v5-surface-3); color: var(--v5-ink-2); font: 600 12px/16px var(--font-v5); }
 .binary-estimate { display: flex; align-items: center; justify-content: space-between; gap: var(--v5-space-3); margin-top: var(--v5-space-4); padding: 14px var(--v5-space-4); border-radius: 18px; background: color-mix(in srgb, var(--ui-device-ink) 10%, transparent); }
 .binary-estimate .binary-label { flex: 1; min-width: 0; }
 .binary-hero .reward-amount { margin: 0; max-width: 68%; font-size: 30px; line-height: 38px; font-weight: 550; letter-spacing: -.03em; overflow-wrap: anywhere; }
@@ -398,10 +399,11 @@ function recentRowStyle(isLast: boolean): CSSProperties {
 .reward-wing-member__rank :deep(.nx-vbadge__level) { display: none; }
 .reward-wing-member__points { display: block; max-width: 100%; overflow-wrap: anywhere; color: var(--v5-ink-3); font-size: var(--ui-type-meta); line-height: var(--ui-type-meta-lh); }
 .binary-recent-card { padding: 0 var(--v5-space-4); border-radius: 24px; background: var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
-.binary-recent-row { display: flex; align-items: center; }
+.binary-recent-row { display: flex; align-items: center; min-height: 64px; }
+.binary-recent-row .binary-note { font-size: 12px; line-height: 16px; }
 .binary-record-icon { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: 12px; color: var(--ui-device-ink); background: color-mix(in srgb, var(--ui-device-ink) 16%, transparent); }
 .binary-recent-source { min-width: 0; flex: 1; }
-.binary-record-name { display: block; font-size: var(--ui-type-list-title); line-height: var(--ui-type-list-title-lh); overflow-wrap: anywhere; margin-bottom: var(--v5-space-1); }
+.binary-record-name { display: block; font-size: var(--ui-type-list-title); line-height: var(--ui-type-list-title-lh); font-weight: 500; overflow-wrap: anywhere; margin-bottom: var(--v5-space-1); }
 .binary-record-value { font-size: var(--ui-type-list-title); line-height: var(--ui-type-list-title-lh); font-weight: 600; overflow-wrap: anywhere; }
 .binary-record-uvt { color: var(--v5-ink-3); font: 500 12px/16px var(--font-metric); overflow-wrap: anywhere; }
 .reward-match-amount { display: flex; flex-direction: column; align-items: flex-end; text-align: right; gap: var(--v5-space-1); max-width: 48%; }
