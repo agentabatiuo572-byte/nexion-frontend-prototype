@@ -1,6 +1,6 @@
 import { teamLogicCopy } from '@/i18n/team-logic-copy';
 import { increasedRankBenefitKeys, rankBenefitIncreaseHeading } from '@/lib/team-rank-benefits';
-import { teamRankRequirements } from '@/lib/team-rank-progress';
+import { teamRankProgress } from '@/lib/team-rank-progress';
 import * as Vue from 'vue';
 import { formatAmount } from '@/lib/amount-display';
 import type { Component } from 'vue';
@@ -93,7 +93,7 @@ async function page(locale: Locale = 'en', initial?: ReturnType<typeof facts>) {
   const shows: Array<() => void> = [];
   const dependencies: Record<string, unknown> = {
     '@/lib/team-rank-benefits': { increasedRankBenefitKeys, rankBenefitIncreaseHeading },
-    '@/i18n/team-logic-copy': { teamLogicCopy }, '@/lib/team-rank-progress': { teamRankRequirements },
+    '@/i18n/team-logic-copy': { teamLogicCopy }, '@/lib/team-rank-progress': { teamRankProgress },
     '@/lib/amount-display': { formatAmount },
     vue: Vue, '@/lib/route': { navTo }, '@/lib/brand-copy': { platformDisplayText },
     '@/lib/rank-entitlement-label': { isEntitlementVRankReward, rankEntitlementLabel },

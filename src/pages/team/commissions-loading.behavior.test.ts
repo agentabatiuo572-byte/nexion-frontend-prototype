@@ -318,11 +318,11 @@ for (const [zone, localDate] of [["Asia/Tokyo", "2026-10-12"], ["Asia/Ho_Chi_Min
       const shownDate = language === "zh" ? localDate.replace(/-/g, "/") : language === "vi" ? `${localDate.slice(8)}/${localDate.slice(5, 7)}/${localDate.slice(0, 4)}` : `Oct ${Number(localDate.slice(8))}, 2026`;
       for (const kind of kinds) {
         const copy = dictionaries[language];
-        expect(text(page.root)).toContain(`${copy.commissions.kind[kind]} · ${kind === "direct_purchase" ? copy.directReferral.order : copy.directReferral.receipt} REF-${kind} · ${copy.directReferral.device}: DEVICE-7 · ${shownDate}`);
+        expect(text(page.root)).toContain(`${copy.commissions.kind[kind]} · ${kind === "direct_purchase" ? copy.directReferral.order : copy.directReferral.receipt} REF-${kind} · ${copy.directReferral.device}: DEVICE-7`);
       }
+      // P-42 groups records under their local date instead of repeating it on every row.
+      expect(all(page.root).filter(item => item.props.class === 'commission-day__label').map(text)).toEqual([shownDate]);
       expect(text(page.root)).not.toMatch(/Mon Oct|Invalid Date|NaN|GMT\+/);
-      expect(all(page.root).filter(item => item.props.style?.marginTop === "2px" && item.props.style?.fontSize === "12px")
-        .some(item => item.props.style.color === "var(--v5-ink-3)" && text(item).endsWith(shownDate))).toBe(true);
     }
     expect(nativeLocale).not.toHaveBeenCalled();
     expect(originalEvents.map(item => [item.ts, item.amountUSDT, item.amountNEX, item.status]))
@@ -342,7 +342,8 @@ test.each([NaN, Infinity, -Infinity, 8.64e15 + 1, -8.64e15 - 1, null, undefined,
         expect(page.commission.eventsStatus).toBe('loading');
         page.reads.at(-1)!.resolve(records); await flush();
       }
-      expect(text(page.root)).toContain(`${dictionaries[language].commissions.kind.direct_purchase} · —`);
+      expect(text(page.root)).toContain(dictionaries[language].commissions.kind.direct_purchase);
+      expect(all(page.root).filter(item => item.props.class === 'commission-day__label').map(text)).toEqual(['—']);
       expect(text(page.root)).not.toMatch(/Invalid Date|NaN|1970/);
     }
   },

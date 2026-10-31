@@ -68,6 +68,7 @@ const modules:Record<string,any>={'@/lib/passive-tab-read':passive,'@test/ledger
  '@/components/tab-page-frame.vue':{default:{setup:(_:unknown,{slots}:any)=>()=>Vue.h('view',slots.default?.())}}};
 const runtimeHooks={load:null as any,show:[] as Array<()=>void>,hide:[] as Array<()=>void>};
 modules['@/store/data-visibility']={useDataVisibility};
+modules['@/lib/team-rank-progress']=await import('@/lib/team-rank-progress');modules['@/i18n/audit-ui']=await import('@/i18n/audit-ui');modules['@/components/team/team-rank-emblem.vue']={default:{props:['rank','size'],setup:(props:any)=>()=>Vue.h('view',{class:'team-rank-emblem','data-rank':props.rank})}};
 modules['@/components/ui/nx-button.vue']={default:{props:['label'],emits:['click'],setup:(props:any,{emit}:any)=>()=>Vue.h('button',{onClick:()=>emit('click')},props.label)}};
 modules['@/components/team/team-summary-card.vue']={default:compile(summarySource,modules)};
 modules['@/components/team/team-ledger-card.vue']={default:compile(ledgerSource.replace('<script setup lang="ts">','<script setup lang="ts">\nimport { watch } from "vue"; import { record } from "@test/ledger-probe";').replace('</script>','watch(() => ({failed:props.failed,loading:props.loading}),record,{immediate:true,flush:"sync"});\n</script>'),modules)};modules['@/components/team/invite-earn-card.vue']={default:compile(inviteSource,modules)};
@@ -75,12 +76,12 @@ const observedTeam=teamSource.replace('<script setup lang="ts">','<script setup 
 const page=compile(observedTeam,modules),root=node('root'),view=renderer.createApp(page);view.mount(root);mounted.push(view);runtimeHooks.show.forEach(fn=>fn());await flush();
 const find=(cls:string)=>all(root).find(n=>String(n.props.class??'').split(' ').includes(cls))!;
 return{commission,vrank,rewards,app,locale,network,root,activate,normalVisit,syncStates,ledgerStates,navTo,copyText,hooks:runtimeHooks,find,amounts:()=>[text(find('team-ledger__amount')),text(find('team-ledger__nex')),...all(find('team-ledger__settlement')).filter(n=>String(n.props.class??'').includes('tabular-nums')).map(text)]};}
-it.each([en,zh,vietnamese])('keeps actual income, settled, cooling, rank and invitation presentation while runtime authority is reset',async copy=>{const s=await screen(copy),before=s.amounts(),hero=s.find('team-ledger__amount');expect(before).toContain('+ 4118.29 UVT');expect(text(s.find('invite-card__amount'))).toBe('0.02');
+it.each([en,zh,vietnamese])('keeps actual income, settled, cooling, rank and invitation presentation while runtime authority is reset',async copy=>{const s=await screen(copy),before=s.amounts(),hero=s.find('team-ledger__amount');expect(before).toContain('+4118.29 UVT');expect(text(s.find('invite-card__amount'))).toBe('0.02');
 const events=deferred(),binary=deferred(),current=deferred(),invite=deferred(),pool=deferred();remote.teamInsightsApi.commissions.mockReturnValue(events.promise);remote.commissionConfigApi.binary.mockReturnValue(binary.promise);remote.vRankApi.current.mockReturnValue(current.promise);remote.referralRewardApi.snapshot.mockReturnValue(invite.promise);remote.teamInsightsApi.leadershipPool.mockReturnValue(pool.promise);
 await refreshProductCatalog(true);await Vue.nextTick();expect(s.commission.eventsEvidence).toBeNull();expect(s.commission.eventsStatus).toBe('loading');expect(s.commission.binarySnapshot).toBeNull();expect(s.vrank.remoteReady).toBe(false);expect(s.rewards.snapshot).toBeNull();expect(s.rewards.loading).toBe(true);
 expect(s.amounts()).toEqual(before);expect(s.find('team-ledger__amount')).toBe(hero);expect(text(s.find('team-rank__level'))).toBe('V2');expect(text(s.find('invite-card__amount'))).toBe('0.02');
 expect(s.find('team-ledger__breakdown').props.class).not.toContain('is-hidden');
-expect(s.find('team-ledger__breakdown').props['aria-disabled']).toBe(true);
+expect(s.find('team-ledger__breakdown').props['data-state']).not.toBe('ready');
 expect(all(s.find('team-ledger__feedback')).filter(n=>String(n.props.class??'').split(' ').includes('is-active'))).toHaveLength(0);
 const captions=all(s.find('invite-card__descriptions')).filter(n=>String(n.props.class??'').split(' ').includes('is-active'));
 expect(captions).toHaveLength(1);expect(text(captions[0])).toBe(teamRedesignCopy(s.locale.code).qualifiedFriendReward);
@@ -143,7 +144,7 @@ it.each([en,zh,vietnamese])('keeps the actual SFC confirmed display visible at e
  expect(transitions.every(state=>state.visible)).toBe(true);
  expect(transitions.every(state=>!state.failed)).toBe(true);
  expect(s.commission.eventsEvidence).toBeNull();expect(s.commission.eventsStatus).toBe('loading');
- expect(s.find('team-ledger__breakdown').props['aria-disabled']).toBe(true);
+ expect(s.find('team-ledger__breakdown').props['data-state']).not.toBe('ready');
  events.resolve(commissions(23));network.resolve({...proof,totalMembers:0,members:[],monthVolumeUsdt:0,lifetimeVolumeUsdt:0});await flush();
  expect(s.amounts()[0]).toContain('23');
 });
@@ -180,7 +181,7 @@ it.each([0,20_000,undefined])('retains read-only history through HTTP429 and res
  await Promise.all([s.commission.refreshCanonicalEvents(),s.network.refreshCanonicalNetwork()]);await flush();
  expect(s.commission.eventsStatus).toBe('error');expect(s.network.remoteStatus).toBe('error');expect(s.commission.eventsEvidence).toBeNull();
  expect(s.commission.eventsRateLimited).toBe(true);expect(s.network.remoteRateLimited).toBe(true);expect(s.amounts()).toEqual(before);
- expect(s.find('team-ledger__retry').props.tabindex).toBe(0);expect(s.find('team-ledger__breakdown').props['aria-disabled']).toBe(true);
+ expect(s.find('team-ledger__retry').props.tabindex).toBe(0);expect(s.find('team-ledger__breakdown').props['data-state']).not.toBe('ready');
  const events=remote.teamInsightsApi.commissions.mock.calls.length,network=remote.teamNetworkApi.snapshot.mock.calls.length;
  const delay=retryAfterMs??30_000;
  if(delay>0){
@@ -220,7 +221,7 @@ it('keeps confirmed Team display during protected visits and reads a fresh pendi
  const pending=deferred();remote.teamInsightsApi.commissions.mockReturnValue(pending.promise);
  s.normalVisit();s.hooks.hide.forEach(fn=>fn());s.hooks.show.forEach(fn=>fn());await Vue.nextTick();
  expect(counts()).toEqual(first.map(n=>n+1));expect(s.amounts()).toEqual(before);expect(s.commission.eventsStatus).toBe('loading');
- expect(s.find('team-ledger__breakdown').props['aria-disabled']).toBe(true);
+ expect(s.find('team-ledger__breakdown').props['data-state']).not.toBe('ready');
  pending.resolve(commissions(23));await flush();expect(s.amounts()[0]).toContain('23');expect(s.commission.eventsStatus).toBe('ready');
 });
 
@@ -239,11 +240,11 @@ it.each([
   const refresh=refreshProductCatalog(true);await Vue.nextTick();
   expect(productCatalogState.status).toBe('loading');expect(productCatalogDisplayProof.value).not.toBeNull();expect(isProductCatalogDisplayCurrent()).toBe(true);
   expect(s.amounts()).toEqual(before);expect(s.find('team-ledger__amount')).toBe(ledgerNode);expect(s.find('invite-card__amount')).toBe(inviteNode);expect(text(inviteNode)).toBe('0.02');
-  expect(s.find('team-ledger__breakdown').props['aria-disabled']).toBe(true);expect(s.find('nx-team-copy-code').props['aria-disabled']).toBe(true);
+  expect(s.find('team-ledger__breakdown').props['data-state']).not.toBe('ready');expect(s.find('nx-team-copy-code').props['aria-disabled']).toBe(true);
   pending.reject(failure);expect(await refresh).toBe(false);await flush();
   expect(productCatalogState.status).toBe('error');expect(productCatalogState.serverCanonical).toBe(false);
   expect(s.amounts()).toEqual(before);expect(text(inviteNode)).toBe('0.02');expect(s.vrank.remoteReady).toBe(false);expect(s.rewards.snapshot).toBeNull();
-  expect(s.find('team-ledger__retry')).toBeDefined();expect(s.find('team-ledger__breakdown').props['aria-disabled']).toBe(true);expect(s.find('nx-team-copy-code').props['aria-disabled']).toBe(true);
+  expect(s.find('team-ledger__retry')).toBeDefined();expect(s.find('team-ledger__breakdown').props['data-state']).not.toBe('ready');expect(s.find('nx-team-copy-code').props['aria-disabled']).toBe(true);
  }
  remote.teamInsightsApi.commissions.mockResolvedValue(commissions(23));remote.teamNetworkApi.snapshot.mockResolvedValue({...proof,totalMembers:0,members:[],monthVolumeUsdt:0,lifetimeVolumeUsdt:0});remote.referralRewardApi.snapshot.mockResolvedValue(reward(.04));remote.vRankApi.current.mockResolvedValue(rank);
  remote.productCatalogApi.catalog.mockResolvedValue({...proof,products:[],revision:'offline-recovered'});expect(await refreshProductCatalog(true)).toBe(true);await flush();
@@ -461,7 +462,7 @@ it.each([
  remote.teamNetworkApi.snapshot.mockResolvedValue({...proof,totalMembers:12,members:Array.from({length:12},(_,i)=>member(i)),monthVolumeUsdt:0,lifetimeVolumeUsdt:0});await s.network.refreshCanonicalNetwork();await flush();const before=s.amounts();
  remote.teamNetworkApi.snapshot.mockRejectedValue(failure);await s.network.refreshCanonicalNetwork();await flush();
  expect.soft(s.amounts()).toEqual(before);expect.soft(text(s.find('team-summary__number'))).toBe('12');expect.soft(text(s.find('team-summary__direct'))).toContain('3');expect.soft(s.syncStates.at(-1)?.extendedMembers).toBe('9');
- expect(s.network.remoteStatus).toBe('error');s.navTo.mockClear();s.find('team-summary').props.onClick();expect(s.navTo).not.toHaveBeenCalled();expect(text(s.find('team-summary__status'))).toContain(en.team.summaryUnavailable);expect(s.find('team-ledger__retry')).toBeDefined();expect(s.find('team-ledger__breakdown').props['aria-disabled']).toBe(true);
+ expect(s.network.remoteStatus).toBe('error');s.navTo.mockClear();s.find('team-summary').props.onClick();expect(s.navTo).not.toHaveBeenCalled();expect(text(s.find('team-summary__status'))).toContain(en.team.summaryUnavailable);expect(s.find('team-ledger__retry')).toBeDefined();expect(s.find('team-ledger__breakdown').props['data-state']).not.toBe('ready');
  remote.teamNetworkApi.snapshot.mockResolvedValue({...proof,totalMembers:1,members:[member(0)],monthVolumeUsdt:0,lifetimeVolumeUsdt:0});await s.network.refreshCanonicalNetwork();await flush();expect(text(s.find('team-summary__number'))).toBe('1');expect(s.network.remoteStatus).toBe('ready');
 });
 
@@ -474,7 +475,7 @@ it.each([
  await Promise.all([s.commission.refreshCanonicalEvents(),s.rewards.refresh(),s.vrank.refreshCanonicalVRank()]);await flush();
  expect.soft(s.amounts()).toEqual(before);expect.soft(text(s.find('invite-card__amount'))).toBe('0.02');expect.soft(text(s.find('team-rank__level'))).toBe('V2');
  expect(s.commission.eventsStatus).toBe('error');expect(s.commission.eventsEvidence).toBeNull();expect(s.rewards.snapshot).toBeNull();expect(s.rewards.error).not.toBeNull();expect(s.vrank.remoteReady).toBe(false);expect(s.vrank.ladder).toEqual([]);expect(s.vrank.capabilities).toEqual({peer:false,genesis:false});
- expect(s.find('nx-team-copy-code').props['aria-disabled']).toBe(true);s.find('nx-team-copy-code').props.onClick();expect(s.copyText).not.toHaveBeenCalled();expect(s.find('team-ledger__breakdown').props['aria-disabled']).toBe(true);expect(s.find('team-ledger__retry')).toBeDefined();expect(text(s.find('team-rank__status'))).toContain(en.rank.loadError);
+ expect(s.find('nx-team-copy-code').props['aria-disabled']).toBe(true);s.find('nx-team-copy-code').props.onClick();expect(s.copyText).not.toHaveBeenCalled();expect(s.find('team-ledger__breakdown').props['data-state']).not.toBe('ready');expect(s.find('team-ledger__retry')).toBeDefined();expect(text(s.find('team-rank__status'))).toContain(en.rank.loadError);
  remote.teamInsightsApi.commissions.mockResolvedValue(commissions(23));remote.referralRewardApi.snapshot.mockResolvedValue({...reward(.04),referralCode:'RESTORED'});remote.vRankApi.current.mockResolvedValue({...rank,rankCode:'V1'});
  await Promise.all([s.commission.refreshCanonicalEvents(),s.rewards.refresh(),s.vrank.refreshCanonicalVRank()]);await flush();expect(s.amounts()[0]).toContain('23');expect(text(s.find('invite-card__amount'))).toBe('0.04');expect(text(s.find('team-rank__level'))).toBe('V1');
 });
@@ -563,7 +564,7 @@ it.each([
  expect.soft(s.syncStates.slice(start).every(state=>state.visible&&state.catalogValid&&state.present)).toBe(true);
  expect(productCatalogState.status).toBe('error');expect(productCatalogState.serverCanonical).toBe(false);expect(s.network.remoteStatus).toBe('error');expect(s.commission.eventsStatus).toBe('error');expect(s.commission.eventsEvidence).toBeNull();expect(s.rewards.snapshot).toBeNull();expect(s.vrank.remoteReady).toBe(false);
  for(const cls of ['nx-team-share-now','nx-team-share-poster','nx-team-copy-code','nx-team-copy-link']){expect(s.find(cls).props['aria-disabled']).toBe(true);await s.find(cls).props.onClick()}
- expect(s.copyText).not.toHaveBeenCalled();expect(s.find('team-ledger__retry')).toBeDefined();expect(s.find('team-ledger__breakdown').props['aria-disabled']).toBe(true);
+ expect(s.copyText).not.toHaveBeenCalled();expect(s.find('team-ledger__retry')).toBeDefined();expect(s.find('team-ledger__breakdown').props['data-state']).not.toBe('ready');
 });
 
 it.each(['auth','business','protocol','configuration'] as const)('strict catalog %s cannot retain history even though four chains only have temporary errors',async kind=>{

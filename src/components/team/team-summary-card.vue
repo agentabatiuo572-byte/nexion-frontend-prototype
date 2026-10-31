@@ -1,5 +1,5 @@
 <template>
-  <view class="team-summary" data-testid="team-summary" :role="canOpen ? 'link' : undefined" :tabindex="canOpen ? 0 : undefined" :aria-label="canOpen ? t.team.summaryView : undefined" :aria-busy="status === 'idle' || status === 'loading'" @click="open" @keydown.enter.prevent="open" @keydown.space.prevent="open">
+  <view class="team-summary nx-viz-press" data-testid="team-summary" :role="canOpen ? 'link' : undefined" :tabindex="canOpen ? 0 : undefined" :aria-label="canOpen ? t.team.summaryView : undefined" :aria-busy="status === 'idle' || status === 'loading'" @click="open" @keydown.enter.prevent="open" @keydown.space.prevent="open">
     <view class="team-summary__header"><text class="team-summary__title">{{ copy.myTeam }}</text><text class="team-summary__arrow" :style="{ visibility: canOpen ? 'visible' : 'hidden' }" aria-hidden="true">›</text></view>
     <view class="team-summary__body" :class="{ 'team-summary__body--long-count': readable && !visibility.hidden && String(total).length > 6 }"><TeamArt kind="members" :size="56" /><view class="team-summary__metrics"><text class="team-summary__number" :style="{ '--team-summary-count-units': countUnits }">{{ totalText }}</text><text class="team-summary__label">{{ copy.members }}</text></view></view>
     <view class="team-summary__direct"><text>{{ copy.directInvites }}</text><text>{{ visibility.mask(readable ? direct : '—') }}</text></view>
@@ -27,40 +27,27 @@ const countUnits=computed(()=>Math.max(1, totalText.value.length * .7));
 function open(){if(canOpen.value)emit('open');}
 </script>
 <style scoped>
-.team-summary { container: team-summary / inline-size; display: flex; flex-direction: column; gap: 6px; padding: var(--ui-space-inline); min-width: 0; color: var(--v5-ink); border: 1px solid var(--v5-border); border-radius: 22px; background: var(--v5-surface); }
-.team-summary__header { display: flex; align-items: center; justify-content: space-between; min-height: 32px; gap: 4px; }
-.team-summary__title { min-width: 0; overflow-wrap: anywhere; font: var(--ui-type-card-title-weight) var(--ui-type-card-title)/1.4 var(--font-v5); }
-.team-summary__arrow { flex: none; font-size: 26px; color: var(--v5-ink-3); }
-.team-summary__body { --team-art-size: 56px; display: flex; flex-direction: column; align-items: center; min-height: 78px; gap: 6px; }
-.team-summary__metrics { container-type: inline-size; width: 100%; min-width: 0; text-align: center; }
-.team-summary__number { display: block; max-width: 100%; font: 600 24px/1.3 var(--font-metric); font-size: clamp(18px, calc(100cqi / var(--team-summary-count-units)), 38px); font-variant-numeric: tabular-nums; white-space: nowrap; overflow-x: auto; }
-.team-summary__label { display: block; margin-top: 2px; color: var(--v5-ink-3); font: 400 12px/1.5 var(--font-v5); }
-.team-summary__direct { display: flex; flex-wrap: wrap; gap: 0 6px; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--v5-border); color: var(--v5-ink-3); font: 400 12px/1.5 var(--font-v5); }
+.team-summary { container: team-summary / inline-size; position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 176px; box-sizing: border-box; padding: var(--ui-space-inset); color: var(--v5-ink); border-radius: 24px; background: radial-gradient(120% 90% at 85% 0%, color-mix(in srgb, var(--ui-device-ink) 9%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.team-summary__header { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; min-height: 24px; gap: 4px; }
+.team-summary__title { min-width: 0; overflow-wrap: anywhere; font: 600 14px/20px var(--font-v5); }
+.team-summary__arrow { flex: none; font-size: 18px; color: var(--v5-ink-4); }
+.team-summary__body { --team-art-size: 64px; display: flex; flex-direction: column; flex: 1; justify-content: flex-end; }
+.team-summary__body :deep(.team-art) { position: absolute; top: 30px; right: -10px; opacity: .9; pointer-events: none; }
+.team-summary__metrics { position: relative; container-type: inline-size; display: flex; align-items: baseline; gap: 4px; width: 100%; min-width: 0; }
+.team-summary__number { display: block; max-width: 100%; font: 600 32px/36px var(--font-metric); font-size: clamp(18px, calc(100cqi / var(--team-summary-count-units)), 32px); font-variant-numeric: tabular-nums; white-space: nowrap; overflow-x: auto; }
+.team-summary__label { flex: none; color: var(--v5-ink-3); font: 400 13px/18px var(--font-v5); }
+.team-summary__direct { position: relative; display: flex; flex-wrap: wrap; gap: 0 6px; color: var(--v5-ink-3); font: 400 12px/16px var(--font-v5); }
 .team-summary__direct > text { min-width: 0; overflow-wrap: anywhere; }
-.team-summary__direct > text:last-child { max-width: 100%; white-space: nowrap; overflow-x: auto; color: var(--v5-ink); font-weight: 600; }
+.team-summary__direct > text:last-child { max-width: 100%; white-space: nowrap; overflow-x: auto; color: var(--ui-device-ink); font: 600 12px/16px var(--font-metric); }
 .team-summary__number,.team-summary__direct > text:last-child { overflow-y: hidden; scrollbar-width: none; }
 .team-summary__number::-webkit-scrollbar,.team-summary__direct > text:last-child::-webkit-scrollbar { display: none; }
-.team-summary__empty,.team-summary__status { display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: var(--ui-space-inline); color: var(--v5-ink-3); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.team-summary__empty,.team-summary__status { position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: var(--ui-space-inline); color: var(--v5-ink-3); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
 .team-summary__action { max-width: 100%; }
 .team-summary__status .team-summary__action { font: 600 13px/20px var(--font-v5); }
 .team-summary[role='link'] { cursor: pointer; }
-.team-summary[role='link']:active { opacity: .8; }
 .team-summary:focus-visible { outline: 2px solid var(--v5-brand); outline-offset: 3px; }
-/* Content-box widths, independent of the viewport or the parent's column count. */
-@container team-summary (min-width: 110px) {
-  .team-summary__body { --team-art-size: 48px; flex-direction: row-reverse; }
-  .team-summary__metrics { flex: 1; width: auto; text-align: left; }
-  .team-summary__body--long-count { flex-direction: column; }
-  .team-summary__body--long-count .team-summary__metrics { width: 100%; text-align: center; }
-}
-@container team-summary (min-width: 140px) {
-  .team-summary__body { --team-art-size: 72px; flex-direction: row-reverse; }
-  .team-summary__metrics { flex: 1; width: auto; text-align: left; }
-  .team-summary__body--long-count { flex-direction: column; }
-  .team-summary__body--long-count .team-summary__metrics { width: 100%; text-align: center; }
-}
-@container team-summary (min-width: 260px) {
-  .team-summary__body { --team-art-size: 80px; flex-direction: row-reverse; }
-  .team-summary__metrics,.team-summary__body--long-count .team-summary__metrics { flex: 1; width: auto; text-align: left; }
-}
+/* Content-box widths: the art grows with the card; a very long count drops below it. */
+@container team-summary (min-width: 110px) { .team-summary__body { --team-art-size: 72px; } }
+@container team-summary (min-width: 140px) { .team-summary__body { --team-art-size: 88px; } .team-summary__body--long-count :deep(.team-art) { opacity: .35; } }
+@container team-summary (min-width: 260px) { .team-summary__body { --team-art-size: 104px; } }
 </style>

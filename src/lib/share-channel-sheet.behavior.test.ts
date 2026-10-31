@@ -204,7 +204,8 @@ describe("mounted invitation share sheet", () => {
     await s.control(messages.share.posterTitle)!.props.onClick();
     expect(s.poster).toHaveBeenCalledOnce();
     expect(runtime.shareEventApi.record).not.toHaveBeenCalled();
-    s.control(messages.share.cancel)!.props.onClick(); await flush();
+    // P-42 closes from the header button; the sheet has no separate cancel row.
+    s.control(messages.ui.close)!.props.onClick(); await flush();
     expect(s.nodes("ss-root")).toHaveLength(0);
   });
 

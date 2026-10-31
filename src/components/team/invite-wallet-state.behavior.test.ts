@@ -207,7 +207,8 @@ test('033 localized header fits 320/360/390 with 44px controls in both themes an
               columnGap: getComputedStyle(document.querySelector('.invite-card__header')!).columnGap };
           });
           const { title, actions, reward, rules, icon, header } = geometry;
-          expect(title.right <= actions.x + 1 || title.bottom <= actions.y + 1).toBe(true);
+          // P-42 puts the record/rules pills above the title; they only must not overlap it.
+          expect(title.right <= actions.x + 1 || title.bottom <= actions.y + 1 || actions.bottom <= title.y + 1).toBe(true);
           expect(reward.right).toBeLessThanOrEqual(rules.x);
           for (const control of [reward, rules]) {
             expect(control.width).toBeGreaterThanOrEqual(44); expect(control.height).toBeGreaterThanOrEqual(44);

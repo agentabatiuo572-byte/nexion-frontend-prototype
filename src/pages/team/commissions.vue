@@ -19,21 +19,22 @@
         <RewardHero class="commission-overview" kind="ledger" panel :label="t.commissions.thisMonth">
           <text class="reward-amount">{{ assetTotal(monthTotals.usdt, 'usdt') }}</text>
           <text class="block reward-income-uvt">{{ assetTotal(monthTotals.nex, 'uvt') }}</text>
+          <view v-if="settlementSplit" class="commission-split" aria-hidden="true"><view :style="{ flexGrow: settlementSplit.unlocked }" /><view :style="{ flexGrow: settlementSplit.cooling }" /></view>
+          <view class="reward-income-summary">
+            <view>
+              <text class="block reward-caption">{{ t.directReferral.creditedTotal }}</text>
+              <text class="block reward-income-summary__amount">${{ assetNumber('unlockedUSDT', commission.unlockedUSDT()) }}</text>
+              <text class="block reward-caption">{{ assetNumber('unlockedNEX', commission.unlockedNEX()) }} UVT</text>
+            </view>
+            <view>
+              <text class="block reward-caption">{{ t.commissions.cooling }}</text>
+              <text class="block reward-income-summary__amount">${{ assetNumber('coolingUSDT', commission.coolingUSDT()) }}</text>
+              <text class="block reward-caption">{{ coolingOverviewText }}</text>
+            </view>
+          </view>
+          <view class="reward-income-lifetime"><text>{{ t.commissions.lifetime }}</text><view class="reward-income-lifetime__amounts"><text>{{ assetTotal(lifetimeTotals.usdt, 'usdt') }}</text><text>{{ assetTotal(lifetimeTotals.nex, 'uvt') }}</text></view></view>
           <template #footer><view class="commission-overview__rules nx-commissions-focusable" role="link" tabindex="0" :aria-label="t.commissions.howItWorksEntry" @click="go('/pages/team/commissions-how')" @keydown.enter.prevent="go('/pages/team/commissions-how')" @keydown.space.prevent="go('/pages/team/commissions-how')"><text>{{ t.commissions.howItWorksEntry }}</text></view></template>
         </RewardHero>
-        <view class="reward-income-summary">
-          <view>
-            <text class="block reward-caption">{{ t.directReferral.creditedTotal }}</text>
-            <text class="block reward-income-summary__amount">${{ assetNumber('unlockedUSDT', commission.unlockedUSDT()) }}</text>
-            <text class="block reward-caption">{{ assetNumber('unlockedNEX', commission.unlockedNEX()) }} UVT</text>
-          </view>
-          <view>
-            <text class="block reward-caption">{{ t.commissions.cooling }}</text>
-            <text class="block reward-income-summary__amount">${{ assetNumber('coolingUSDT', commission.coolingUSDT()) }}</text>
-            <text class="block reward-caption">{{ coolingOverviewText }}</text>
-          </view>
-        </view>
-        <view class="reward-income-lifetime"><text>{{ t.commissions.lifetime }}</text><view class="reward-income-lifetime__amounts"><text>{{ assetTotal(lifetimeTotals.usdt, 'usdt') }}</text><text>{{ assetTotal(lifetimeTotals.nex, 'uvt') }}</text></view></view>
 
 
         <view class="commission-filter-bar">
@@ -46,12 +47,15 @@
         <view v-if="filter !== 'all'" class="commission-filter-summary"><text>{{ t.commissions.kind[filter] }}</text><text>${{ visibility.mask(formatAmount(byKind[filter].usdt)) }} · {{ visibility.mask(formatAmount(byKind[filter].nex)) }} UVT</text></view>
 
         <EmptyState v-if="filtered.length === 0 && !hasMoreEvents" :kind="filter === 'all' ? 'empty-list' : 'no-filter-results'" :title="filter === 'all' ? t.empty.commissionsTitle : t.empty.filterTitle" :desc="filter === 'all' ? t.empty.commissionsDesc : t.empty.filterDesc" />
-        <view v-if="filtered.length > 0" :style="listGroupStyle">
+        <view v-if="filtered.length > 0" class="commission-days">
+          <view v-for="day in eventDays" :key="day.key" class="commission-day">
+            <text class="commission-day__label">{{ day.label }}</text>
+            <view class="commission-day__card">
             <view
-              v-for="(e, i) in filtered"
+              v-for="(e, i) in day.events"
               :key="e.id"
               class="flex items-center reward-income-event"
-              :style="eventRowStyle(i === filtered.length - 1)"
+              :style="eventRowStyle(i === day.events.length - 1)"
             >
               <view class="grid place-items-center shrink-0 reward-income-icon">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" :stroke="KIND[e.kind].color" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path v-for="(p, pi) in KIND[e.kind].paths" :key="pi" :d="p" /></svg>
@@ -77,6 +81,8 @@
                 <text v-if="e.status === 'recovery_pending' && e.recoveryPendingUSDT !== undefined && e.recoveryPendingNEX !== undefined" class="block" style="font-size: 12px; color: var(--v5-warning)">{{ fmt(t.directReferral.pendingAmounts, { usdt: visibility.mask(formatAmount(e.recoveryPendingUSDT)), nex: visibility.mask(formatAmount(e.recoveryPendingNEX)) }) }}</text>
               </view>
             </view>
+            </view>
+          </view>
         </view>
             <view
               v-if="hasMoreEvents"
@@ -181,6 +187,22 @@ onShow(() => { if (remoteApiEnabled) void commission.refreshCanonicalEvents(); }
 
 const events = computed(() => remoteApiEnabled ? ledger.value?.events ?? [] : commission.events);
 const byKind = computed(() => remoteApiEnabled ? ledger.value?.aggregate.byKind ?? commission.byKind() : commission.byKind());
+// Records group under their local date; the formatter falls back safely without Intl.
+const eventDays = computed(() => {
+  const days: { key: string; label: string; events: CommissionEvent[] }[] = [];
+  for (const e of filtered.value) {
+    const label = formatTrialDate(e.ts, dateLocale());
+    const day = days.find(item => item.key === label);
+    if (day) day.events.push(e); else days.push({ key: label, label, events: [e] });
+  }
+  return days;
+});
+// Settled vs pending share of the lifetime amounts, drawn as one bar.
+const settlementSplit = computed(() => {
+  if (visibility.hidden || (remoteApiEnabled && !ledger.value)) return null;
+  const unlocked = Math.max(0, commission.unlockedUSDT()), cooling = Math.max(0, commission.coolingUSDT());
+  return unlocked + cooling > 0 ? { unlocked, cooling } : null;
+});
 const filtered = computed(() =>
   filter.value === "all" ? events.value : events.value.filter((e) => e.kind === filter.value),
 );
@@ -227,8 +249,7 @@ function eventMeta(e: CommissionEvent): string {
   const kindLabel = t.value.commissions.kind[e.kind];
   const order = e.sourceRef ? ` · ${e.kind === "direct_purchase" ? t.value.directReferral.order : t.value.directReferral.receipt} ${e.sourceRef}` : e.orderAmountUSD ? ` · ${t.value.commissions.orderPrefix}${visibility.mask(formatGroupedAmount(e.orderAmountUSD))}` : "";
   const device = e.sourceDeviceId ? ` · ${t.value.directReferral.device}: ${e.sourceDeviceId}` : "";
-  const date = formatTrialDate(e.ts, dateLocale());
-  return `${kindLabel}${order}${device} · ${date}`;
+  return `${kindLabel}${order}${device}`;
 }
 function coolingTag(e: CommissionEvent): string {
   const days = Math.max(0, Math.ceil((e.unlockAt - Date.now()) / 86400000));
@@ -276,9 +297,9 @@ function activateLoadMore(event: KeyboardEvent) {
   loadMoreEvents();
 }
 // Transparent hairline group — border-top opens the group, rows separate with hairlines.
-const listGroupStyle: CSSProperties = { padding: "0 2px", borderTop: "1px solid var(--v5-border)" };
 function eventRowStyle(isLast: boolean): CSSProperties {
   return {
+    minHeight: "68px",
     padding: "12px 0",
     gap: "12px",
     borderBottom: isLast ? "none" : "1px solid var(--v5-border)",
@@ -310,20 +331,28 @@ const filterOptions = computed(() => [
 </script>
 
 <style scoped>
-.commission-overview.reward-hero--panel { position: relative; box-sizing: border-box; min-height: 136px; padding: 14px 16px 18px; }
-.commission-overview :deep(.reward-hero__art) { --team-art-size: 64px; flex-basis: 64px; align-self: flex-start; }
-.commission-overview .reward-income-uvt { padding-right: 48px; }
-.commission-overview__rules { position: absolute; right: 10px; bottom: 2px; display: flex; align-items: center; justify-content: flex-end; box-sizing: border-box; min-width: 44px; min-height: 44px; padding: 0 6px; background: transparent; color: var(--v5-ink-3); font-size: 12px; font-weight: 400; line-height: 16px; cursor: pointer; }
-.reward-income-summary { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 24px; padding: var(--ui-space-inline) 0; border-bottom: 1px solid var(--v5-border); }
-.reward-income-summary__amount { font-family: var(--font-amount); margin: 6px 0 4px; font-size: 23px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.reward-income-uvt { font-family: var(--font-amount); margin-top: 6px; font-size: 16px; font-variant-numeric: tabular-nums; }
-.reward-income-lifetime { display: flex; justify-content: space-between; gap: var(--ui-space-inline); font-size: 12px; color: var(--v5-ink-3); padding-bottom: 8px; }
-.reward-income-lifetime__amounts { display: flex; flex-direction: column; gap: 4px; text-align: right; font-variant-numeric: tabular-nums; }
-.reward-income-icon { width: 32px; height: 32px; color: var(--v5-ink-2); }
-.reward-income-event { align-items: flex-start; }
+.commission-overview.reward-hero--panel { position: relative; box-sizing: border-box; padding: 20px; border-radius: 28px; background: radial-gradient(120% 90% at 85% 0%, color-mix(in srgb, var(--v5-brand) 10%, transparent), transparent 60%), var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.commission-overview :deep(.reward-hero__art) { display: none; }
+.commission-overview__rules { position: absolute; right: 12px; top: 10px; display: flex; align-items: center; justify-content: center; gap: 4px; box-sizing: border-box; min-width: 44px; min-height: 44px; padding: 0 10px; color: var(--v5-ink-2); font: 600 12px/16px var(--font-v5); isolation: isolate; }
+.commission-overview__rules::before { content: ""; position: absolute; inset: 8px 0; z-index: -1; border-radius: 999px; background: color-mix(in srgb, var(--v5-ink) 6%, transparent); }
+.reward-income-uvt { margin-top: 2px; font: 500 14px/18px var(--font-metric); color: var(--v5-brand); font-variant-numeric: tabular-nums; }
+.commission-split { display: flex; gap: 3px; height: 8px; margin-top: 14px; }
+.commission-split > view { min-width: 4px; border-radius: 999px; background: var(--v5-brand); }
+.commission-split > view + view { background: var(--v5-warning); }
+.reward-income-summary { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; margin-top: 14px; }
+.reward-income-summary__amount { margin: 2px 0; font: 600 17px/22px var(--font-metric); font-variant-numeric: tabular-nums; }
+.reward-income-lifetime { display: flex; justify-content: space-between; gap: var(--ui-space-inline); margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--v5-border); font-size: 12px; color: var(--v5-ink-3); }
+.reward-income-lifetime__amounts { display: flex; gap: 6px; text-align: right; font-family: var(--font-metric); color: var(--v5-ink-2); font-variant-numeric: tabular-nums; }
+.commission-days { display: flex; flex-direction: column; gap: var(--v5-space-4); }
+.commission-day { display: flex; flex-direction: column; gap: var(--v5-space-2); }
+.commission-day__label { padding: 0 4px; font: 400 12px/16px var(--font-v5); color: var(--v5-ink-3); }
+.commission-day__card { padding: 0 var(--ui-space-inset); border-radius: 24px; background: var(--v5-surface); box-shadow: inset 0 0 0 1px var(--v5-border); }
+.reward-income-icon { width: 36px; height: 36px; border-radius: 12px; color: var(--v5-ink-2); background: color-mix(in srgb, var(--v5-ink) 8%, transparent); }
+.reward-income-event { align-items: center; }
 .commission-filter-summary { display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;color:var(--v5-ink-2);font-size:12px; }
 .commission-filter-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--v5-ink-3); font-size: var(--ui-type-list-subtitle); }
-.commission-filter-trigger { display: flex; align-items: center; justify-content: flex-end; gap: 8px; min-height: 44px; max-width: 70%; color: var(--v5-ink); font-weight: 500; cursor: pointer; }
+.commission-filter-trigger { position: relative; isolation: isolate; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; max-width: 70%; padding: 0 14px; color: var(--v5-ink); font: 600 13px/18px var(--font-v5); cursor: pointer; }
+.commission-filter-trigger::before { content: ""; position: absolute; inset: 4px 0; z-index: -1; border-radius: 999px; background: linear-gradient(145deg, rgba(255,255,255,.07), transparent 40%, transparent 64%, rgba(255,255,255,.05)), color-mix(in srgb, var(--v5-ink) 6%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--v5-ink) 8%, transparent); }
 .commission-filter-trigger svg { flex: none; }
 .commission-filter-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .commission-filter-option { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; min-height: 44px; box-sizing: border-box; border-radius: 12px; background: var(--v5-surface-2); font-size: var(--ui-type-list-subtitle); line-height: 1.4; overflow-wrap: anywhere; cursor: pointer; }

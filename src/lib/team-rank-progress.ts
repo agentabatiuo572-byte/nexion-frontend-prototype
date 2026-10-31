@@ -37,3 +37,11 @@ export function teamRankRequirements(state: VRankData, ladder: readonly VRankDef
   }
   return { next: next ?? null, rows, missing: rows.filter(row => row.status === 'missing'), unknown: rows.filter(row => row.status === 'unknown') };
 }
+
+/** Next-rank progress as pages show it: the API's exact L1 rank buckets are counted at or above each required rank. */
+export function teamRankProgress(state: VRankData, ladder: readonly VRankDef[]) {
+  const vDownlineCounts = Object.fromEntries(ladder.map(({ v }) => [v,
+    Object.entries(state.vDownlineCounts).reduce((sum, [level, count]) => sum + (Number(level) >= v ? count : 0), 0),
+  ])) as VRankData['vDownlineCounts'];
+  return teamRankRequirements({ ...state, vDownlineCounts }, ladder);
+}
