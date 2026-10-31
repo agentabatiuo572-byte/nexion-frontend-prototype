@@ -15,12 +15,14 @@
         <text v-if="s.loading" class="purchase-payment__note" role="status">{{ copy.loading }}</text>
       </template>
       <view v-if="fees" class="purchase-payment__fees">
+        <view v-if="fees.businessAmountUsdt !== undefined" class="purchase-payment__row"><text>{{ copy.businessAmount }}</text><text>{{ fees.businessAmountUsdt }} USDT</text></view>
         <view class="purchase-payment__row"><text>{{ copy.subtotal }}</text><text>{{ amount(fees.subtotalUsdt) }}</text></view>
+        <view v-if="fees.roundingAdjustmentUsdt !== undefined" class="purchase-payment__row"><text>{{ copy.roundingAdjustment }}</text><text>{{ fees.roundingAdjustmentUsdt }} USDT</text></view>
         <view class="purchase-payment__row"><text>{{ copy.channelFee }}</text><text>{{ amount(fees.channelFeeUsdt) }}</text></view>
         <view class="purchase-payment__row"><text>{{ copy.networkFee }}</text><text>{{ s.method === 'HDPAY_BANK' ? copy.notApplicable : amount(fees.networkConfirmFeeUsdt) }}</text></view>
         <view class="purchase-payment__row purchase-payment__total"><text>{{ copy.total }}</text><CheckoutAmount :value="fees.totalUsdt" currency="USDT" /></view>
         <template v-if="s.method === 'HDPAY_BANK'">
-          <view v-if="s.quote?.fxRateVndPerUsdt" class="purchase-payment__row"><text>{{ copy.fx }}</text><text>1 USDT = {{ s.quote.fxRateVndPerUsdt }} VND</text></view>
+          <view v-if="fees.fxRateVndPerUsdt" class="purchase-payment__row"><text>{{ copy.fx }}</text><text>1 USDT = {{ fees.fxRateVndPerUsdt }} VND</text></view>
           <view class="purchase-payment__row purchase-payment__total"><text>{{ copy.total }}</text><text>{{ vnd(fees.amountVnd) }} VND</text></view>
         </template>
         <text class="purchase-payment__note">{{ copy.validity }} {{ expiry(fees.expiresAt) }}</text>

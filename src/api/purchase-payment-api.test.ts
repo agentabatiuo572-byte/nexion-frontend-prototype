@@ -8,6 +8,27 @@ const quote = (method = 'CREGIS_USDT_BSC') => ({ paymentQuoteId: 'Q-1', kind: 'O
   fxRateVndPerUsdt: method === 'HDPAY_BANK' ? '25000' : null, amountVnd: method === 'HDPAY_BANK' ? '2543750' : null });
 const intent = () => ({ ...quote(), intentNo: 'PI-1', commandKey: 'purchase-1', status: 'AWAITING_PAYMENT', address: '0x' + '1'.repeat(40), paymentUrl: null, reason: null, receipt: null });
 describe('external purchase contracts', () => {
+  it('retains the persisted HDPAY financial snapshot with exact six-place rounding and integer dong', () => {
+    const snapshot = { ...intent(), ...quote('HDPAY_BANK'), address: null, paymentUrl: 'https://api.hdpayadmin.com/pay/original',
+      businessAmountUsdt: '99.995000', roundingAdjustmentUsdt: '0.005000', amountVnd: '9007199254740993', fxRateVndPerUsdt: '25000.123456' };
+    expect(parsePurchaseIntent(snapshot)).toMatchObject({ businessAmountUsdt: '99.995000', roundingAdjustmentUsdt: '0.005000',
+      fxRateVndPerUsdt: '25000.123456', amountVnd: '9007199254740993' });
+    expect(parsePurchaseQuote(snapshot)).toMatchObject({ businessAmountUsdt: '99.995000', roundingAdjustmentUsdt: '0.005000' });
+    expect(parsePurchaseIntent({ ...snapshot, businessAmountUsdt: '100.004000', roundingAdjustmentUsdt: '-0.004000' }).roundingAdjustmentUsdt).toBe('-0.004000');
+  });
+  it.each([{ businessAmountUsdt: '99.9950001', roundingAdjustmentUsdt: '0.005000' },
+    { businessAmountUsdt: '99.995000', roundingAdjustmentUsdt: '0.004000' },
+    { businessAmountUsdt: '99.995000', roundingAdjustmentUsdt: null },
+    { businessAmountUsdt: null, roundingAdjustmentUsdt: '0.005000' },
+    { businessAmountUsdt: '99.990000', roundingAdjustmentUsdt: '0.010000' }])('rejects malformed or inconsistent provided raw amount/rounding: %j', change => {
+    expect(() => parsePurchaseIntent({ ...intent(), ...change })).toThrow();
+    expect(() => parsePurchaseQuote({ ...quote(), ...change })).toThrow();
+  });
+  it('requires the original HDPAY intent FX instead of silently accepting an absent or invalid rate', () => {
+    const original = { ...intent(), ...quote('HDPAY_BANK'), address: null };
+    for (const fxRateVndPerUsdt of [null, '0', '2.5e4', '-25000']) expect(() => parsePurchaseIntent({ ...original, fxRateVndPerUsdt })).toThrow();
+    expect(parsePurchaseIntent(intent()).businessAmountUsdt).toBeUndefined();
+  });
   it('accepts exact server fee totals and HDPAY dong without charging a network fee', () => {
     expect(parsePurchaseQuote(quote()).totalUsdt).toBe('102.00');
     expect(parsePurchaseQuote(quote('HDPAY_BANK'))).toMatchObject({ amountVnd: '2543750', networkConfirmFeeUsdt: '0.00' });

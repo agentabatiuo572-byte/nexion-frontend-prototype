@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourcePath": "/Volumes/HD1/Projects/UVEL/nu-bug013",
+  "sourcePath": "D:\\workspace\\worktrees\\pay1718-app-20261031",
   "sourceRemote": "https://github.com/agentabatiuo572-byte/nexion-frontend-uniapp.git",
   "sourceBranch": "test",
-  "sourceHead": "cff5c845e99d514232cabf9b20916ae6970cf4a3",
-  "sourceRef": "cff5c845e99d514232cabf9b20916ae6970cf4a3",
+  "sourceHead": "734e0f821b207544b59a385a3acffdb083cbb44b",
+  "sourceRef": "734e0f821b207544b59a385a3acffdb083cbb44b",
   "sourceRefKind": "commit",
-  "sourceTree": "ffb79041fa4241dbc68ac6d9fbb641d7ca7f3b25",
+  "sourceTree": "2f2d5d6494a807e71bf48e05f6f2f7b7d7f6d9ec",
   "overlays": [
     "vite.config.ts: web dev port 5175",
     ".githooks/config.json: mainline H5"
@@ -446,6 +446,13 @@
       "targetSha256": "e4ac214cc6e72b02a19ce54ebb8a548df2661ab399526e539fdb86d48815b2d6",
       "mode": "100644"
     },
+    "docs/PRD/purchase-payment-snapshot-recovery-20261031.md": {
+      "sourceBlob": "caeabcb83bf57bcbd56c6ce86b61948d07920b96",
+      "sourceSha256": "fda4b0f9a76f8407767cf932569346cfea74e0fae23611103d1c393acc30f049",
+      "targetBlob": "caeabcb83bf57bcbd56c6ce86b61948d07920b96",
+      "targetSha256": "fda4b0f9a76f8407767cf932569346cfea74e0fae23611103d1c393acc30f049",
+      "mode": "100644"
+    },
     "docs/TAP-FEEDBACK-LEDGER.json": {
       "sourceBlob": "d4ccd691b9c60607aed329f04428a0482f9cfa75",
       "sourceSha256": "28c3c1130cd8dfcb384baa76e72d1ee720bc7d438ec5e1cf1edf9200ef10032c",
@@ -496,10 +503,10 @@
       "mode": "100644"
     },
     "docs/前端产品更新日志.md": {
-      "sourceBlob": "89b46d3b53b313c589e99d6e454050a4651f429d",
-      "sourceSha256": "a04de4cde0af07916a56fa81bd622f62053afd3213687a245769ffb710b44f15",
-      "targetBlob": "89b46d3b53b313c589e99d6e454050a4651f429d",
-      "targetSha256": "a04de4cde0af07916a56fa81bd622f62053afd3213687a245769ffb710b44f15",
+      "sourceBlob": "f62dcfe615d8f04cbba86f8bdde078e7e7b9c020",
+      "sourceSha256": "58db330ea54cd0b6a38edfe4e1833943a7dbcd1eb703e63d69d4d8c0a50176a2",
+      "targetBlob": "f62dcfe615d8f04cbba86f8bdde078e7e7b9c020",
+      "targetSha256": "58db330ea54cd0b6a38edfe4e1833943a7dbcd1eb703e63d69d4d8c0a50176a2",
       "mode": "100644"
     },
     "index.html": {
@@ -2211,10 +2218,10 @@
       "mode": "100644"
     },
     "scripts/purchase-payment.h5.e2e.mjs": {
-      "sourceBlob": "987f1a9a681d155be0160f9573a52f363f256e34",
-      "sourceSha256": "c06cbd5e97d53bfc76c347f21799209044654ae017174be1ab6901904371922f",
-      "targetBlob": "987f1a9a681d155be0160f9573a52f363f256e34",
-      "targetSha256": "c06cbd5e97d53bfc76c347f21799209044654ae017174be1ab6901904371922f",
+      "sourceBlob": "772c43eb1c97854610b61cf032618883a4b286ad",
+      "sourceSha256": "45f54e90fe093008af20a7a2806f0dd9a079f20c47df9e49b1f88344f9769436",
+      "targetBlob": "772c43eb1c97854610b61cf032618883a4b286ad",
+      "targetSha256": "45f54e90fe093008af20a7a2806f0dd9a079f20c47df9e49b1f88344f9769436",
       "mode": "100644"
     },
     "scripts/quest-genesis-tripwire-runtime.mjs": {
@@ -4304,17 +4311,17 @@
       "mode": "100644"
     },
     "src/api/purchase-payment-api.test.ts": {
-      "sourceBlob": "13832e912a16dba3461c529f641b349cc9d93ba3",
-      "sourceSha256": "e73af29b5eb64d93f1794ba3ce01841364aa89f18bbbaf289458effba82317a6",
-      "targetBlob": "13832e912a16dba3461c529f641b349cc9d93ba3",
-      "targetSha256": "e73af29b5eb64d93f1794ba3ce01841364aa89f18bbbaf289458effba82317a6",
+      "sourceBlob": "9f37916fa6c80d008a8c9957f046073762a71492",
+      "sourceSha256": "1f485d7d7c4606175d6e7fa6622baa34c3e969ba981e6a4d7a737833a6dc4262",
+      "targetBlob": "9f37916fa6c80d008a8c9957f046073762a71492",
+      "targetSha256": "1f485d7d7c4606175d6e7fa6622baa34c3e969ba981e6a4d7a737833a6dc4262",
       "mode": "100644"
     },
     "src/api/purchase-payment-api.ts": {
-      "sourceBlob": "ee48039565473036050222459af934e462dbb384",
-      "sourceSha256": "b9479019968ebbafbe7542322ca8b8b73434c65e31f81ed1c7ec9f2acfac0784",
-      "targetBlob": "ee48039565473036050222459af934e462dbb384",
-      "targetSha256": "b9479019968ebbafbe7542322ca8b8b73434c65e31f81ed1c7ec9f2acfac0784",
+      "sourceBlob": "7324bc5c06f0509f352d6c6a0a4df98045880915",
+      "sourceSha256": "040669a52b42d82f927b90fdee78abbb748e8f2e675edc9e068e2a519b2b0cac",
+      "targetBlob": "7324bc5c06f0509f352d6c6a0a4df98045880915",
+      "targetSha256": "040669a52b42d82f927b90fdee78abbb748e8f2e675edc9e068e2a519b2b0cac",
       "mode": "100644"
     },
     "src/api/quest-api-authority.test.ts": {
@@ -6789,10 +6796,10 @@
       "mode": "100644"
     },
     "src/components/purchase-payment-dialog.vue": {
-      "sourceBlob": "38e03710fc96be295e1ef1ee81ce19ebe061797b",
-      "sourceSha256": "9aad73d66586dd714d436bb785b7c815190722b054c9acbe20a57d735da1517f",
-      "targetBlob": "38e03710fc96be295e1ef1ee81ce19ebe061797b",
-      "targetSha256": "9aad73d66586dd714d436bb785b7c815190722b054c9acbe20a57d735da1517f",
+      "sourceBlob": "aa80793725d55a37194cad6a336ac54ac0af96a1",
+      "sourceSha256": "96940e59197797e66c00258b919b138a0e673fa45a992421f3621ce6257022b9",
+      "targetBlob": "aa80793725d55a37194cad6a336ac54ac0af96a1",
+      "targetSha256": "96940e59197797e66c00258b919b138a0e673fa45a992421f3621ce6257022b9",
       "mode": "100644"
     },
     "src/components/server-captcha-slider.behavior.test.ts": {
@@ -10779,10 +10786,10 @@
       "mode": "100644"
     },
     "src/lib/purchase-payment-copy.ts": {
-      "sourceBlob": "5d574cff7f5ef993bf2cd226ab200bf8af77ca66",
-      "sourceSha256": "aee749babb5400354a74bd41f772258f516ddd00f17b65d1723c3b30f88f2168",
-      "targetBlob": "5d574cff7f5ef993bf2cd226ab200bf8af77ca66",
-      "targetSha256": "aee749babb5400354a74bd41f772258f516ddd00f17b65d1723c3b30f88f2168",
+      "sourceBlob": "3ceed3a55b736283ecdadbf60dd3834ee5836eae",
+      "sourceSha256": "b1c97586fda4a0aa497c4830768bfba1e2067dc48f628029b710bb8be07a0a13",
+      "targetBlob": "3ceed3a55b736283ecdadbf60dd3834ee5836eae",
+      "targetSha256": "b1c97586fda4a0aa497c4830768bfba1e2067dc48f628029b710bb8be07a0a13",
       "mode": "100644"
     },
     "src/lib/purchase-payment-receipt.ts": {
@@ -16995,10 +17002,10 @@
       "mode": "100644"
     },
     "src/store/purchase-payment.test.ts": {
-      "sourceBlob": "5053db9a282fa272caf9bd21021dfbeb4d74c92a",
-      "sourceSha256": "f7c1e24ad3ab17b380ebe338e89c7d787614290c26ac34246991e1529168891e",
-      "targetBlob": "5053db9a282fa272caf9bd21021dfbeb4d74c92a",
-      "targetSha256": "f7c1e24ad3ab17b380ebe338e89c7d787614290c26ac34246991e1529168891e",
+      "sourceBlob": "f87c326be039ddf47c34ed89a8fab0e5ddd2763e",
+      "sourceSha256": "12443e9fd6bbb2c25d90b64c50e8fe54df37471f74f98d20d8e527f50c3100cb",
+      "targetBlob": "f87c326be039ddf47c34ed89a8fab0e5ddd2763e",
+      "targetSha256": "12443e9fd6bbb2c25d90b64c50e8fe54df37471f74f98d20d8e527f50c3100cb",
       "mode": "100644"
     },
     "src/store/purchase-payment.ts": {

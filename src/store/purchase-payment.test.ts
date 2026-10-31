@@ -15,6 +15,24 @@ const receipt = { orderNo: 'ORD-1', paymentNo: 'PAY-1', paymentStatus: 'PAID', o
 const context = () => ({ kind: 'ORDER_PAY' as const, payload: { orderNo: 'ORD-1' }, amount: 100, summary: 'Synthetic device', current: () => true, commandKey: () => 'business-original-key' });
 beforeEach(() => { vi.resetModules(); ports.request.mockReset(); ports.rows.clear(); ports.account = 'user:1'; ports.nav.mockReset(); });
 describe('durable external payment orchestration', () => {
+  it('reloads an HDPAY intent with its original FX/raw amount/rounding without a quote or a second POST', async () => {
+    const frozen = { ...quote, paymentMethod: 'HDPAY_BANK', network: 'VND_BANK', networkConfirmFeeUsdt: '0.00', totalUsdt: '101.75',
+      fxRateVndPerUsdt: '25000.123456', amountVnd: '2543763', businessAmountUsdt: '99.995000', roundingAdjustmentUsdt: '0.005000' };
+    const original = { ...intent, ...frozen, address: null, paymentUrl: 'https://api.hdpayadmin.com/pay/original' };
+    const first = await import('./purchase-payment'), payment = first.usePurchasePayment();
+    ports.request.mockResolvedValueOnce(frozen).mockResolvedValueOnce(original);
+    const choice = first.requestPurchasePayment({ ...context(), amount: '99.995000' });
+    await payment.select('HDPAY_BANK'); await payment.confirm();
+    const pending = payment.pending()[0]!; payment.close(); expect(await choice).toBeNull();
+    vi.resetModules(); ports.request.mockReset().mockResolvedValueOnce(original);
+    const restored = (await import('./purchase-payment')).usePurchasePayment();
+    await restored.resume(pending);
+    expect(restored.state.quote).toBeNull();
+    expect(restored.state.intent).toMatchObject({ intentNo: 'PI-1', commandKey: 'business-original-key', fxRateVndPerUsdt: '25000.123456',
+      amountVnd: '2543763', businessAmountUsdt: '99.995000', roundingAdjustmentUsdt: '0.005000' });
+    expect(ports.request).toHaveBeenCalledExactlyOnceWith({ path: '/api/app/purchase-payment-intents/PI-1' });
+    restored.close();
+  });
   it('selecting and confirming wallet never reads the external API or a PIN state', async () => {
     const { requestPurchasePayment, usePurchasePayment } = await import('./purchase-payment');
     const choice = requestPurchasePayment(context()); await usePurchasePayment().confirm();

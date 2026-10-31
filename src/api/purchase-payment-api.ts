@@ -6,11 +6,12 @@ export const purchaseKinds = ['ORDER_PAY', 'TRIAL_CONVERT', 'TRADE_IN', 'CAPACIT
 export type PurchaseKind = typeof purchaseKinds[number];
 export type ExternalPaymentMethod = 'HDPAY_BANK' | 'CREGIS_USDT_BSC';
 export type PurchaseMethod = 'WALLET' | ExternalPaymentMethod;
+type PurchaseFinancialSnapshot = { businessAmountUsdt?: string; roundingAdjustmentUsdt?: string; fxRateVndPerUsdt: string | null; feePolicyVersion: number };
 export type PurchaseQuote = {
   paymentQuoteId: string; kind: PurchaseKind; paymentMethod: ExternalPaymentMethod; network: string | null;
   subtotalUsdt: string; channelFeeUsdt: string; networkConfirmFeeUsdt: string; totalUsdt: string;
-  feePolicyVersion: number; expiresAt: string; fxRateVndPerUsdt: string | null; amountVnd: string | null;
-};
+  expiresAt: string; amountVnd: string | null;
+} & PurchaseFinancialSnapshot;
 export const purchasePaymentStatuses = ['CREATING', 'SUBMIT_UNKNOWN', 'AWAITING_PAYMENT', 'FUNDS_CONFIRMED', 'DELIVERED', 'MANUAL_REVIEW', 'EXPIRED'] as const;
 export type PurchasePaymentStatus = typeof purchasePaymentStatuses[number];
 export type PurchasePaymentIntent = {
@@ -19,7 +20,7 @@ export type PurchasePaymentIntent = {
   networkConfirmFeeUsdt: string; totalUsdt: string; amountVnd: string | null; paymentUrl: string | null;
   address: string | null; expiresAt: string; reason: string | null; receipt: unknown;
   fulfilmentStatus?: 'DELIVERED';
-};
+} & PurchaseFinancialSnapshot;
 const invalid = () => new ApiError({ kind: 'protocol', message: 'PURCHASE_PAYMENT_RESPONSE_INVALID' });
 const object = (raw: unknown): Record<string, unknown> => {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw invalid();
@@ -29,6 +30,11 @@ const text = (raw: unknown): string => { if (typeof raw !== 'string' || !raw.tri
 const money = (raw: unknown): string => {
   if (typeof raw !== 'string' || !/^(0|[1-9]\d{0,11})(\.\d{1,2})?$/.test(raw)) throw invalid();
   return raw;
+};
+const micros = (value: string): bigint => {
+  const [whole, fraction = ''] = value.replace(/^-/, '').split('.');
+  const units = BigInt(whole!) * 1000000n + BigInt(fraction.padEnd(6, '0'));
+  return value.startsWith('-') ? -units : units;
 };
 const timestamp = (raw: unknown): string => {
   const value = text(raw);
@@ -47,14 +53,23 @@ function common(raw: Record<string, unknown>) {
   // Compare in integer cents; these checks validate a complete server quote, not client pricing.
   const cents = (v: string) => { const [whole, fraction = ''] = v.split('.'); return BigInt(whole!) * 100n + BigInt(fraction.padEnd(2, '0')); };
   if (cents(subtotalUsdt) + cents(channelFeeUsdt) + cents(networkConfirmFeeUsdt) !== cents(totalUsdt)) throw invalid();
-  return { kind: raw.kind as PurchaseKind, paymentMethod, network, subtotalUsdt, channelFeeUsdt, networkConfirmFeeUsdt, totalUsdt, amountVnd, expiresAt: timestamp(raw.expiresAt), paymentQuoteId: text(raw.paymentQuoteId) };
-}
-export function parsePurchaseQuote(value: unknown): PurchaseQuote {
-  const raw = object(value), fields = common(raw);
   if (!Number.isSafeInteger(raw.feePolicyVersion) || Number(raw.feePolicyVersion) < 0) throw invalid();
   const fxRateVndPerUsdt = raw.fxRateVndPerUsdt == null ? null : text(raw.fxRateVndPerUsdt);
-  if (fields.paymentMethod === 'HDPAY_BANK' && (!fxRateVndPerUsdt || !/^\d+(\.\d+)?$/.test(fxRateVndPerUsdt) || Number(fxRateVndPerUsdt) <= 0)) throw invalid();
-  return { ...fields, feePolicyVersion: Number(raw.feePolicyVersion), fxRateVndPerUsdt };
+  if (paymentMethod === 'HDPAY_BANK' && (!fxRateVndPerUsdt || !/^(0|[1-9]\d*)(\.\d{1,18})?$/.test(fxRateVndPerUsdt) || Number(fxRateVndPerUsdt) <= 0)) throw invalid();
+  const businessAmountUsdt = raw.businessAmountUsdt, roundingAdjustmentUsdt = raw.roundingAdjustmentUsdt;
+  if (businessAmountUsdt !== undefined || roundingAdjustmentUsdt !== undefined) {
+    if (typeof businessAmountUsdt !== 'string' || !/^(0|[1-9]\d{0,11})(\.\d{1,6})?$/.test(businessAmountUsdt)
+      || typeof roundingAdjustmentUsdt !== 'string' || !/^-?(0|[1-9]\d{0,11})(\.\d{1,6})?$/.test(roundingAdjustmentUsdt)
+      || micros(businessAmountUsdt) + micros(roundingAdjustmentUsdt) !== micros(subtotalUsdt)
+      || (micros(businessAmountUsdt) + 5000n) / 10000n !== cents(subtotalUsdt)) throw invalid();
+  }
+  return { kind: raw.kind as PurchaseKind, paymentMethod, network, subtotalUsdt, channelFeeUsdt, networkConfirmFeeUsdt, totalUsdt, amountVnd,
+    feePolicyVersion: Number(raw.feePolicyVersion), fxRateVndPerUsdt,
+    ...(typeof businessAmountUsdt === 'string' && typeof roundingAdjustmentUsdt === 'string' ? { businessAmountUsdt, roundingAdjustmentUsdt } : {}),
+    expiresAt: timestamp(raw.expiresAt), paymentQuoteId: text(raw.paymentQuoteId) };
+}
+export function parsePurchaseQuote(value: unknown): PurchaseQuote {
+  return common(object(value));
 }
 export function parsePurchaseIntent(value: unknown): PurchasePaymentIntent {
   const raw = object(value), fields = common(raw);

@@ -140,6 +140,16 @@ try {
   await bank.page.locator('.purchase-payment-resume').getByRole('button', { name: '查看付款进度', exact: true }).click();
   dialog = sheet(bank.page); await dialog.getByRole('button', { name: '继续前往 HDPAY 付款', exact: true }).waitFor({ state: 'visible' });
   assert.equal(bank.fixture.evidence.creates.length, 1); assert.equal(bank.fixture.evidence.pinRequests.length, 0);
+  await dialog.getByText('锁定汇率', { exact: true }).waitFor({ state: 'visible' });
+  assert.match(await dialog.innerText(), /1 USDT = 25000\.000000 VND/);
+  assert.match(await dialog.innerText(), /1299\.000000 USDT/);
+  assert.match(await dialog.innerText(), /0\.000000 USDT/);
+  assert.match(await dialog.innerText(), /32,893,500 VND/);
+  assert.equal(bank.fixture.evidence.quotes.length, 1, 'recovery must not reprice the original snapshot');
+  await dialog.getByText('原业务金额', { exact: true }).scrollIntoViewIfNeeded();
+  await screenshot(bank.page, '11-hdpay-restored-raw6-320');
+  await dialog.getByText('锁定汇率', { exact: true }).scrollIntoViewIfNeeded(); await bounded(bank.page);
+  await screenshot(bank.page, '12-hdpay-restored-fx-vnd-320');
   assert.equal(bank.fixture.evidence.walletPayments.length, 0); assert.equal([...bank.fixture.intents.values()][0].intentNo, bankIntent.intentNo);
   const paymentPhasePinRequests = bank.fixture.evidence.pinRequests.length;
   // A real SPA page change must close the global payment overlay, retaining only its account-scoped recovery pointer.
@@ -155,7 +165,7 @@ try {
   assert.equal(await bank.page.locator('.purchase-payment').count(), 0); assert.equal(await bank.page.locator('.purchase-payment-resume').count(), 0);
   record.steps.push({ id: 'hdpay-pinlock-empty-wallet-integer-vnd-hosted-original-and-page-account-boundaries', status: 'pass', viewport: 320,
     intentNo: bankIntent.intentNo, createWrites: 1, paymentPhasePinRequests, accountSettingsPinReads: bank.fixture.evidence.pinRequests.length - paymentPhasePinRequests,
-    walletPayments: 0, hostedNetwork: 'fulfilled locally by Playwright before any PSP access', evidence: '07-hdpay-vnd-pinlocked-empty-wallet-320.png' });
+    walletPayments: 0, recoveredSnapshotEvidence: ['11-hdpay-restored-raw6-320.png', '12-hdpay-restored-fx-vnd-320.png'], quoteReads: 1, hostedNetwork: 'fulfilled locally by Playwright before any PSP access', evidence: '07-hdpay-vnd-pinlocked-empty-wallet-320.png' });
   assert.deepEqual(errors, []);
   assert.equal(createHash('sha256').update(await readFile('dist/build/h5/' + entry)).digest('hex'), artifact.sha256, 'built artifact changed during acceptance');
   record.verdict = 'pass'; record.pageErrors = errors; record.realFinancialEffects = false;
