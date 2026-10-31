@@ -1020,9 +1020,7 @@ function goDevices() {
 }
 const usdt = (value: number | string) => `${formatAmount(value)} USDT`;
 function summaryMoney(value: number | string, showCurrency = true): string {
-  // Pending receipts currently contain only USDT. A dollar quote must be
-  // bound to this order before a numeric USD amount can be presented.
-  if (order.value?.status === 'placed' && !paymentSheetOpen.value && !payingFromWallet.value) return showCurrency ? '$—' : '—';
+  if (order.value?.status === 'placed' && !paymentSheetOpen.value && !payingFromWallet.value) return showCurrency ? '$' + formatAmount(value) : formatAmount(value);
   return showCurrency ? usdt(value) : formatAmount(value);
 }
 const trialRewardText = computed(() => {

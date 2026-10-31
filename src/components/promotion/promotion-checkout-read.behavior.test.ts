@@ -287,10 +287,11 @@ it('an order discount keeps the quoted amount through create, recovery and payme
   q.expectedRewards=[{...q.expectedRewards[0],reward:{rewardRuleId:'gift',beneficiaryRole:'BUYER',type:'DISCOUNT_USDT',calculation:'FIXED',amount:'500.000000'}}];
   const order={...receipt(q),amountUsdt:q.amountUsdt},page=screen();
   page.api.quote.mockResolvedValue(q);page.api.create.mockResolvedValue(order);page.api.findOrder.mockResolvedValue(order);page.api.pay.mockResolvedValue({...order,paymentStatus:'PAID',orderStatus:'COMPLETED'});
-  await page.start();expect(page.exposed.footer.value.amount).toBe('$—');
+  await page.start();expect(page.exposed.footer.value.amount).toBe('$799.00');
   await page.view.createOrder();expect(page.saved().order?.amountUsdt).toBe('799.000000');expect(page.saved().order?.rewards?.[0].reward.type).toBe('DISCOUNT_USDT');
-  await page.view.recover();expect(page.exposed.footer.value.amount).toBe('799.00 USDT');
-  await page.view.pay();await page.view.confirmPayment();
+  expect(page.exposed.footer.value.amount).toBe('799.00 USDT');page.view.paymentSheetOpen.value=false;
+  await page.view.recover();expect(page.exposed.footer.value.amount).toBe('$799.00');
+  await page.view.pay();expect(page.exposed.footer.value.amount).toBe('799.00 USDT');await page.view.confirmPayment();
   expect(page.pin).toHaveBeenCalledWith(expect.objectContaining({amount:'799.000000',currency:'USDT'}),expect.any(Function),expect.any(Function));
   expect(page.api.pay).toHaveBeenCalledOnce();expect(page.saved().order?.paymentStatus).toBe('PAID');
 });
@@ -308,11 +309,12 @@ it('all pending-order amounts default to dollars, switch only with wallet select
   const q={...quote(),discountUsdt:'20',amountUsdt:'100'};
   const original={...receipt(q),subtotalUsdt:'120',discountUsdt:'20',amountUsdt:'100'};
   const page=screen({quote:q,order:original,pending:null});page.api.findOrder.mockResolvedValue(original);await page.start();
-  expect(page.view.reviewCurrency.value).toBe('USD');expect(page.exposed.footer.value).toMatchObject({amount:'$—',amountValue:null,currency:'USD',disabled:false});
-  let html=await page.html();expect(html.match(/\$—/g)?.length).toBeGreaterThanOrEqual(4);expect(html).not.toContain('100.00 USDT');
+  expect(page.view.reviewCurrency.value).toBe('USD');expect(page.exposed.footer.value).toMatchObject({amount:'$100.00',amountValue:'100',currency:'USD',disabled:false});
+  let html=await page.html();expect(html).toContain('$120.00');expect(html).toContain('−$20.00');expect(html).toContain('$100.00');expect(html).not.toContain('$—');expect(html).not.toContain('100.00 USDT');
   await page.view.pay();expect(page.view.reviewCurrency.value).toBe('USDT');expect(page.exposed.footer.value).toMatchObject({amount:'100.00 USDT',amountValue:'100',currency:'USDT'});
   html=await page.html();expect(html).toContain('120.00 USDT');expect(html).toContain('−20.00 USDT');expect(html).toContain('100.00 USDT');expect(html).not.toContain('$—');
-  page.view.paymentSheetOpen.value=false;expect(page.view.reviewCurrency.value).toBe('USD');expect(page.exposed.footer.value.amount).toBe('$—');
+  page.view.paymentSheetOpen.value=false;expect(page.view.reviewCurrency.value).toBe('USD');expect(page.exposed.footer.value.amount).toBe('$100.00');
+  html=await page.html();expect(html).toContain('$120.00');expect(html).toContain('−$20.00');expect(html).toContain('$100.00');expect(html).not.toContain('100.00 USDT');
   expect(page.saved().order).toMatchObject({amountUsdt:'100',paymentStatus:'PENDING'});expect(page.pin).not.toHaveBeenCalled();expect(page.api.pay).not.toHaveBeenCalled();expect(page.api.cancel).not.toHaveBeenCalled();
 });
 it.each(['stock','unavailable','read'] as const)('a fresh %s rejection before method selection never opens the method sheet or PIN',async reason=>{
@@ -358,7 +360,7 @@ it('an explicit buy-again action restores checkout for the same paid cart withou
   const page=screen({quote:quote(),order:paid,pending:null});page.api.findOrder.mockResolvedValue(paid);await page.start();
   expect(await page.html()).toContain('data-testid="checkout-buy-again"');expect(page.saved().order?.paymentStatus).toBe('PAID');expect(page.api.quote).not.toHaveBeenCalled();
   await page.view.startNewPurchase();expect(page.api.quote).toHaveBeenCalledWith([{productNo:'sku',quantity:1}],'a1',null);
-  expect(page.saved().order).toBeNull();expect(page.view.canCreate.value).toBe(true);expect(page.exposed.footer.value.amount).toBe('$—');
+  expect(page.saved().order).toBeNull();expect(page.view.canCreate.value).toBe(true);expect(page.exposed.footer.value.amount).toBe('$120.00');
 });
 it('a directly opened paid order offers no new purchase action',async()=>{
   const paid={...receipt(),paymentStatus:'PAID' as const,orderStatus:'COMPLETED' as const};
@@ -610,8 +612,8 @@ it('quantity edits discard the old quote and rewards before awaiting canonical e
   await page.view.changeQuantity('sku',1);await page.exposed.footer.value.action();
   expect(page.api.quote).toHaveBeenCalledTimes(2);expect(page.api.create).not.toHaveBeenCalled();
   next.resolve(selectedQuote([{productNo:'sku',quantity:2}]));await edit;
-  expect(page.exposed.footer.value).toMatchObject({amount:'$—',disabled:false});
-  const html=await page.html();expect(html).toContain('$—');expect(html).not.toContain('2,598.00');expect(html).not.toContain('17.13');
+  expect(page.exposed.footer.value).toMatchObject({amount:'$2,580.87',disabled:false});
+  const html=await page.html();expect(html).toContain('$2,598.00');expect(html).toContain('−$17.13');expect(html).toContain('$2,580.87');expect(html).not.toContain('$—');
   expect(page.view.quote.value.amountUsdt).toBe('2580.87');expect(page.api.pay).not.toHaveBeenCalled();
   expect(html).toContain('data-testid="checkout-item-decrease"');expect(html).toContain('data-testid="checkout-item-increase"');
   page.api.quote.mockResolvedValueOnce(quote('single-again'));await page.view.changeQuantity('sku',-1);
@@ -688,7 +690,7 @@ it('automatically selects the best eligible server quote, not the largest advert
   await page.start();
   expect(page.api.quote.mock.calls.map(call=>call[2])).toEqual([null,'large','best']);
   expect(page.view.voucherId.value).toBe('best');expect(page.saved().voucherMode).toBe('auto');
-  expect(page.exposed.footer.value.amount).toBe('$—');expect(page.api.create).not.toHaveBeenCalled();
+  expect(page.exposed.footer.value.amount).toBe('$100.00');expect(page.api.create).not.toHaveBeenCalled();
 });
 it('manual opt-out survives requote, hide/show and reload without silently choosing another voucher',async()=>{
   const page=screen();page.vouchers.claimedUnused=[voucherDef('best',20)];
@@ -731,7 +733,7 @@ it('BF20 requires an explicit claim then rereads availability and quotes the sel
   await page.view.claimEventVoucher();
   expect(page.vouchers.claimRemote).toHaveBeenCalledWith('BF20','store');expect(page.vouchers.refreshRemote).toHaveBeenCalledTimes(2);
   expect(page.api.quote).toHaveBeenCalledWith([{productNo:'sku',quantity:1}],null,'BF20',false);
-  expect(page.exposed.footer.value.amount).toBe('$—');expect(page.saved().voucherId).toBe('BF20');
+  expect(page.exposed.footer.value.amount).toBe('$80.00');expect(page.saved().voucherId).toBe('BF20');
   await page.view.chooseVoucher();expect(page.vouchers.refreshRemote).toHaveBeenCalledTimes(2);
   await page.view.createOrder();expect(page.api.create).toHaveBeenCalledWith(expect.objectContaining({amountUsdt:'80.000000',activityId:null,expectedRewards:[]}),'original-key','BF20');
 });
@@ -776,7 +778,7 @@ it('a canonical BF20-only S1 quote creates and pays 80 USDT without any promotio
   const q=voucherOnlyQuote('S1');
   const order={...receipt(q),payBy:q.expiresAt,amountUsdt:'80.000000',items:[{lineId:'9001',productNo:'S1',productName:'S1',quantity:1}],rewards:[]};
   page.api.quote.mockResolvedValue(q);page.api.create.mockResolvedValue(order);page.api.pay.mockResolvedValue({...order,paymentStatus:'PAID',orderStatus:'COMPLETED'});
-  await page.start();expect(page.exposed.footer.value).toMatchObject({amount:'$—',disabled:false});
+  await page.start();expect(page.exposed.footer.value).toMatchObject({amount:'$80.00',disabled:false});
   await page.view.createOrder();expect(page.api.create).toHaveBeenCalledWith(q,'original-key','BF20');
   await page.view.confirmPayment();expect(page.api.pay).toHaveBeenCalledWith('o1','original-key',page.authorization);
   expect(page.saved().order).toMatchObject({amountUsdt:'80.000000',paymentStatus:'PAID',rewards:[]});
@@ -801,7 +803,7 @@ it('loads the authoritative balance on entry and hides stale money until a faile
 });
 it('returning from top-up restores the rendered quote, wallet and create action after the hidden page rendered',async()=>{
   const page=screen(undefined,{activityId:''});await page.start();
-  expect(page.exposed.footer.value).toMatchObject({amount:'$—',disabled:false});
+  expect(page.exposed.footer.value).toMatchObject({amount:'$120.00',disabled:false});
   expect(await page.html()).toContain('data-testid="checkout-payment"');
   page.exposed.hide();await flush();
   expect(page.view.displayQuote.value).toBeNull();expect(page.view.canCreate.value).toBe(false);
@@ -810,7 +812,7 @@ it('returning from top-up restores the rendered quote, wallet and create action 
   page.app.refreshRemoteFleet.mockImplementation(async()=>{page.app.user.usdtBalance=20;return true;});
   page.exposed.show();await flush();
   expect(page.view.displayQuote.value?.quoteId).toBe('returned');
-  expect(page.exposed.footer.value).toMatchObject({amount:'$—',disabled:false});
+  expect(page.exposed.footer.value).toMatchObject({amount:'$119.00',disabled:false});
   const html=await page.html();expect(html).toContain('data-testid="checkout-payment"');expect(html).toContain('20.00');expect(html).not.toContain('20.00 USDT');expect(html).toContain('data-testid="checkout-fees"');
   expect(page.api.quote).toHaveBeenCalledTimes(2);expect(page.api.create).not.toHaveBeenCalled();expect(page.api.pay).not.toHaveBeenCalled();expect(page.key).not.toHaveBeenCalled();
 });
@@ -825,7 +827,7 @@ it.each(['hidden','returned'] as const)('top-up return recovers after an old quo
   if(boundary==='hidden')page.exposed.show();await flush();
   expect(page.view.loading.value).toBe(false);expect(page.view.busy.value).toBe(false);
   expect(page.view.displayQuote.value?.quoteId).toBe('returned');
-  expect(page.exposed.footer.value).toMatchObject({amount:'$—',disabled:false});
+  expect(page.exposed.footer.value).toMatchObject({amount:'$119.00',disabled:false});
   expect(page.api.quote).toHaveBeenCalledTimes(3);expect(page.api.create).not.toHaveBeenCalled();expect(page.key).not.toHaveBeenCalled();
 });
 it('a failed top-up return offers retry and restores only the newly read quote',async()=>{
@@ -985,12 +987,14 @@ it.each([
   expect(parsePromotedOrder(original).amountUsdt).toBe(amount);
   const page=screen();page.api.quote.mockResolvedValue(q);page.api.create.mockResolvedValue(original);page.api.findOrder.mockResolvedValue(original);
   page.api.pay.mockResolvedValue({...original,paymentStatus:'PAID',orderStatus:'COMPLETED'});
-  await page.start();expect(page.exposed.footer.value.amount).toBe('$—');
-  expect(await page.html()).toContain('$—');
-  await page.view.createOrder();await page.view.recover();
+  await page.start();expect(page.exposed.footer.value.amount).toBe('$'+display);
+  expect(await page.html()).toMatch(new RegExp('class="promotion-summary total"[^]*?\\$'+display.replace('.', '\\.')));
+  await page.view.createOrder();expect(page.exposed.footer.value.amount).toBe(display+' USDT');page.view.paymentSheetOpen.value=false;await page.view.recover();
+  expect(page.exposed.footer.value.amount).toBe('$'+display);
+  await page.view.pay();
   expect(page.exposed.footer.value.amount).toBe(display+' USDT');
   expect(await page.html()).toMatch(new RegExp('class="promotion-summary total"[^]*?'+display.replace('.', '\\.')+' USDT'));
-  await page.view.pay();expect(page.api.pay).not.toHaveBeenCalled();
+  expect(page.api.pay).not.toHaveBeenCalled();
   expect(page.pin).not.toHaveBeenCalled();await page.view.confirmPayment();
   expect(page.pin).toHaveBeenCalledWith(expect.objectContaining({amount,currency:'USDT'}),expect.any(Function),expect.any(Function));
   expect(page.api.pay).toHaveBeenCalledWith(original.orderNo,'original-key',page.authorization);
@@ -1007,23 +1011,23 @@ it.each(['0.000000','10.000000',undefined])('voucher row attributes only explici
   const q={...voucherOnlyQuote('sku'),discountUsdt:'20.000000',promotionDiscountUsdt};page.api.quote.mockResolvedValue(q);await page.start();
   const html=await page.html(),coupon=html.split('data-testid="checkout-event-voucher"')[1].split('data-testid="checkout-payment"')[0];
   if(promotionDiscountUsdt==='0.000000'){
-    expect(page.view.voucherOnlyDiscount.value).toBe('20.000000');expect(coupon).toContain('$—');expect(coupon).not.toContain('−20.00');expect(html).not.toContain('data-testid="checkout-total-discount"');
+    expect(page.view.voucherOnlyDiscount.value).toBe('20.000000');expect(coupon).toContain('−$20.00');expect(coupon).not.toContain('−20.00 USDT');expect(html).not.toContain('data-testid="checkout-total-discount"');
   }else{
     expect(page.view.voucherOnlyDiscount.value).toBeUndefined();expect(coupon).not.toContain('- USDT');expect(html).toContain('data-testid="checkout-total-discount"');
   }
-  expect(html).toContain('$—');expect(page.saved().quote?.discountUsdt).toBe('20.000000');
+  expect(html).toContain('−$20.00');expect(html).toContain('$80.00');expect(page.saved().quote?.discountUsdt).toBe('20.000000');
 });
 
 it('regular selected voucher shows only its confirmed deduction, while no voucher stays unclaimed',async()=>{
   const page=screen();page.vouchers.catalog=[bf20];page.vouchers.claimedUnused=[bf20];
   page.api.quote.mockImplementation(async(_items,_activity,voucherId)=>voucherId?{...voucherOnlyQuote('sku'),discountUsdt:'20.000000'}:{...quote(),expectedRewards:[]});
   await page.start();const html=await page.html();
-  expect(html).toMatch(/class="checkout-discount-row promotion-link checkout-voucher-row"[^]*?\$—/);
+  expect(html).toMatch(/class="checkout-discount-row promotion-link checkout-voucher-row"[^]*?−\$20\.00/);
   expect(page.view.voucherOnlyDiscount.value).toBe('20.000000');
   expect(page.saved().voucherId).toBe('BF20');
   await page.view.chooseVoucher();await page.view.selectVoucher(null);
   expect(await page.html()).toContain(zh.promotion.noVoucher);expect(page.view.voucherOnlyDiscount.value).toBeUndefined();
-  expect(await page.html()).not.toContain('−20.00');
+  expect(await page.html()).not.toContain('−$20.00');
 });
 
 it('an unresolved event-voucher order keeps its total deduction when the editable voucher row is hidden',async()=>{
@@ -1032,7 +1036,7 @@ it('an unresolved event-voucher order keeps its total deduction when the editabl
   page.api.command.mockResolvedValue({status:'OUTCOME_UNKNOWN',order:null});await page.start();
   expect(page.view.unknown.value).toBe(true);expect(page.exposed.footer.value).toBeNull();
   const html=await page.html();expect(html).not.toContain('data-testid="checkout-event-voucher"');
-  expect(html).toContain('data-testid="checkout-total-discount"');expect(html).toContain('$—');expect(page.view.summary.value.discountUsdt).toBe('20.000000');
+  expect(html).toContain('data-testid="checkout-total-discount"');expect(html).toContain('−$20.00');expect(html).toContain('$80.00');expect(page.view.summary.value.discountUsdt).toBe('20.000000');
   expect(page.saved().pending).toEqual(pending);expect(page.api.pay).not.toHaveBeenCalled();
 });
 
@@ -1084,33 +1088,33 @@ it.each([1,2])('same-selection quantity %s refresh retains all read-only fees wh
   const page=await ordinaryCheckout(quantity),old=await page.html(),response=deferred<Quote>(),oldAmount=quantity===2?'31.84':'15.92',newAmount=quantity===2?'30.00':'15.00';page.api.quote.mockReturnValueOnce(response.promise);
   const read=page.view.loadQuote();await flush();const pending=await page.html();
   for(const section of ['checkout-discounts','checkout-payment','checkout-fees']){expect(old).toContain('data-testid="'+section+'"');expect(pending).toContain('data-testid="'+section+'"');}
-  expect(pending).toContain('$—');expect(page.view.displayQuote.value.amountUsdt).toBe(oldAmount);expect(page.saved().quote).toBeNull();expect(page.view.quote.value).toBeNull();expect(page.exposed.footer.value).toMatchObject({amount:'$—',disabled:true});
+  expect(pending).toContain('$'+oldAmount);expect(page.view.displayQuote.value.amountUsdt).toBe(oldAmount);expect(page.saved().quote).toBeNull();expect(page.view.quote.value).toBeNull();expect(page.exposed.footer.value).toMatchObject({amount:'$'+oldAmount,disabled:true});
   await page.view.createOrder();await page.view.pay();expect(page.api.create).not.toHaveBeenCalled();expect(page.api.pay).not.toHaveBeenCalled();
-  response.resolve(ordinaryQuote(quantity,newAmount));await read;expect(page.exposed.footer.value).toMatchObject({amount:'$—',disabled:false});expect(page.view.displayQuote.value.amountUsdt).toBe(newAmount);expect(await page.html()).not.toContain(oldAmount+' USDT');expect(page.api.create).not.toHaveBeenCalled();
+  response.resolve(ordinaryQuote(quantity,newAmount));await read;expect(page.exposed.footer.value).toMatchObject({amount:'$'+newAmount,disabled:false});expect(page.view.displayQuote.value.amountUsdt).toBe(newAmount);expect(await page.html()).not.toContain('$'+oldAmount);expect(page.api.create).not.toHaveBeenCalled();
 });
 it('same-input network failure keeps fees visible with retry but never restores create/payment authority',async()=>{
   const page=await ordinaryCheckout();page.api.quote.mockRejectedValueOnce(new ApiError({kind:'network',message:'REQUEST_TIMEOUT'}));await page.view.loadQuote();
-  const html=await page.html();expect(html).toContain('data-testid="checkout-fees"');expect(html).toContain('$—');expect(page.view.displayQuote.value.amountUsdt).toBe('31.84');expect(html).toContain(zh.promotion.errorNote);expect(html).toContain(zh.empty.errorCta);
+  const html=await page.html();expect(html).toContain('data-testid="checkout-fees"');expect(html).toContain('$31.84');expect(page.view.displayQuote.value.amountUsdt).toBe('31.84');expect(html).toContain(zh.promotion.errorNote);expect(html).toContain(zh.empty.errorCta);
   expect(page.saved().quote).toBeNull();expect(page.view.canCreate.value).toBe(false);expect(page.exposed.footer.value.disabled).toBe(true);await page.view.createOrder();await page.view.pay();expect(page.api.create).not.toHaveBeenCalled();expect(page.api.pay).not.toHaveBeenCalled();
 });
 it.each([new ApiError({kind:'business',message:'PROMOTION_NOT_ELIGIBLE_OR_UNAVAILABLE'}),new ApiError({kind:'auth',message:'AUTH_REQUIRED'}),new ApiError({kind:'protocol',message:'INVALID_QUOTE'}),new Error('QUOTE_INPUT_CHANGED')])('strict refresh rejection removes prior fee snapshot: %s',async failure=>{
-  const page=await ordinaryCheckout();page.api.quote.mockRejectedValueOnce(failure);await page.view.loadQuote();expect(await page.html()).not.toContain('31.84 USDT');expect(page.exposed.footer.value).toMatchObject({amount:'$—',disabled:true});expect(page.view.canCreate.value).toBe(false);
+  const page=await ordinaryCheckout();page.api.quote.mockRejectedValueOnce(failure);await page.view.loadQuote();expect(await page.html()).not.toContain('$31.84');expect(page.exposed.footer.value).toMatchObject({amount:'$—',disabled:true});expect(page.view.canCreate.value).toBe(false);
 });
 it('new quantity never inherits the prior displayed subtotal or payable while pending or failed',async()=>{
-  const page=await ordinaryCheckout(),response=deferred<Quote>();page.api.quote.mockReturnValueOnce(response.promise);const read=page.view.changeQuantity('sku',-1);await flush();expect(await page.html()).not.toContain('31.84 USDT');expect(page.exposed.footer.value).toMatchObject({amount:'$—',disabled:true});response.reject(new ApiError({kind:'network',message:'OFFLINE'}));await read;expect(await page.html()).not.toContain('31.84 USDT');
+  const page=await ordinaryCheckout(),response=deferred<Quote>();page.api.quote.mockReturnValueOnce(response.promise);const read=page.view.changeQuantity('sku',-1);await flush();expect(await page.html()).not.toContain('$31.84');expect(page.exposed.footer.value).toMatchObject({amount:'$—',disabled:true});response.reject(new ApiError({kind:'network',message:'OFFLINE'}));await read;expect(await page.html()).not.toContain('$31.84');
 });
 it('new manual voucher never inherits prior payable while its current selection is unread',async()=>{
-  const page=await ordinaryCheckout(),response=deferred<Quote>();page.view.voucherOpen.value=true;page.api.quote.mockReturnValueOnce(response.promise);const read=page.view.selectVoucher(null);await flush();expect(await page.html()).not.toContain('31.84 USDT');response.reject(new ApiError({kind:'network',message:'OFFLINE'}));await read;expect(await page.html()).not.toContain('31.84 USDT');expect(page.exposed.footer.value.disabled).toBe(true);
+  const page=await ordinaryCheckout(),response=deferred<Quote>();page.view.voucherOpen.value=true;page.api.quote.mockReturnValueOnce(response.promise);const read=page.view.selectVoucher(null);await flush();expect(await page.html()).not.toContain('$31.84');response.reject(new ApiError({kind:'network',message:'OFFLINE'}));await read;expect(await page.html()).not.toContain('$31.84');expect(page.exposed.footer.value.disabled).toBe(true);
 });
 it.each(['hide','account'] as const)('late same-scope refresh after %s cannot restore presentation or eligibility',async change=>{
   const page=await ordinaryCheckout(),response=deferred<Quote>();page.api.quote.mockReturnValueOnce(response.promise);const read=page.view.loadQuote();await flush();if(change==='hide')page.exposed.hide();else page.app.accountBindingEpoch++;
-  expect(await page.html()).not.toContain('31.84 USDT');response.resolve(ordinaryQuote(2,'1.00'));await read;expect(await page.html()).not.toContain('1.00 USDT');expect(page.view.quote.value).toBeNull();expect(page.view.canCreate.value).toBe(false);expect(page.api.create).not.toHaveBeenCalled();expect(page.api.pay).not.toHaveBeenCalled();
+  expect(await page.html()).not.toContain('$31.84');response.resolve(ordinaryQuote(2,'1.00'));await read;expect(await page.html()).not.toContain('$1.00');expect(page.view.quote.value).toBeNull();expect(page.view.canCreate.value).toBe(false);expect(page.api.create).not.toHaveBeenCalled();expect(page.api.pay).not.toHaveBeenCalled();
 });
 
 it.each(['locale','auth','activity'] as const)('presentation scope %s A-B-A clears memory and rejects an old read',async key=>{
   const page=await ordinaryCheckout(),response=deferred<Quote>();page.api.quote.mockReturnValueOnce(response.promise);const read=page.view.loadQuote();await flush();
   if(key==='locale'){page.locale.code='en';page.locale.code='zh';}else if(key==='auth'){page.auth.isAuthenticated=false;page.auth.isAuthenticated=true;}else{page.props.activityId='other';page.props.activityId='';}
-  expect(await page.html()).not.toContain('31.84 USDT');response.resolve(ordinaryQuote(2,'30.00'));await read;expect(page.view.quote.value).toBeNull();expect(page.exposed.footer.value.disabled).toBe(true);expect(await page.html()).not.toContain('30.00 USDT');expect(page.api.create).not.toHaveBeenCalled();
+  expect(await page.html()).not.toContain('$31.84');response.resolve(ordinaryQuote(2,'30.00'));await read;expect(page.view.quote.value).toBeNull();expect(page.exposed.footer.value.disabled).toBe(true);expect(await page.html()).not.toContain('$30.00');expect(page.api.create).not.toHaveBeenCalled();
 });
 it('same campaign refresh preserves its existing deadline while busy rather than shortening the fee section',async()=>{
   const page=screen();await page.start();const response=deferred<Quote>();page.api.quote.mockReturnValueOnce(response.promise);page.api.get.mockReturnValueOnce(new Promise(()=>{}));const read=page.view.loadQuote();await flush();expect(await page.html()).toContain(zh.promotion.deadline);expect(page.view.canCreate.value).toBe(false);response.resolve(quote('q2'));await read;

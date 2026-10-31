@@ -44,10 +44,10 @@ function leaving() {
   return { ...deps, run: new Function(...Object.keys(deps), code)(...Object.values(deps)) };
 }
 describe('unified checkout payment and explicit back', () => {
-  it('shows unknown dollars before selecting a wallet and the unchanged USDT quote while selected',async()=>{
-    const h=payment();expect(h.reviewCurrency.value).toBe('USD');expect(h.reviewAmount(100)).toBeNull();expect(h.reviewMoney(100)).toBe('$—');
+  it('shows the amount in dollars before selecting a wallet and the unchanged USDT amount while selected',async()=>{
+    const h=payment();expect(h.reviewCurrency.value).toBe('USD');expect(h.reviewAmount(100)).toBe(100);expect(h.reviewMoney(100)).toBe('$100.00');
     const pending=h.requestConfirmPay();expect(h.reviewCurrency.value).toBe('USDT');expect(h.reviewAmount(100)).toBe(100);expect(h.reviewMoney(100)).toBe('100.00 USDT');
-    h.closePaymentSheet();await pending;expect(h.reviewCurrency.value).toBe('USD');expect(h.reviewMoney(100)).toBe('$—');expect(h.onConfirmPay).not.toHaveBeenCalled();
+    h.closePaymentSheet();await pending;expect(h.reviewCurrency.value).toBe('USD');expect(h.reviewMoney(100)).toBe('$100.00');expect(h.onConfirmPay).not.toHaveBeenCalled();
   });
   it('keeps the selected USDT currency through method confirmation and resets after PIN cancellation',async()=>{
     const h=payment();let finish!:()=>void;h.onConfirmPay.mockReturnValueOnce(new Promise<void>(done=>{finish=done;}));

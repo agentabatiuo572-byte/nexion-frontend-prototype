@@ -133,9 +133,9 @@ describe('original pending order payment entry',()=>{
   async function pending(){const h=harness();h.requests[0].resolve(list([placed]));await settle();return h;}
   it('uses dollars before method selection and the real USDT amount after selection without changing the order',async()=>{
     const h=await pending();
-    expect(h.page.summaryMoney(19.9)).toBe('$—');expect(h.page.summaryMoney(19.9,false)).toBe('—');
+    expect(h.page.summaryMoney(19.9)).toBe('$19.90');expect(h.page.summaryMoney(19.9,false)).toBe('19.90');
     h.page.paymentSheetOpen.value=true;expect(h.page.summaryMoney(19.9)).toBe('19.90 USDT');
-    h.page.paymentSheetOpen.value=false;expect(h.page.summaryMoney(19.9)).toBe('$—');
+    h.page.paymentSheetOpen.value=false;expect(h.page.summaryMoney(19.9)).toBe('$19.90');
     expect(h.orders.orders[0].total).toBe(19.9);expect(h.payments).toHaveLength(0);
   });
   it('keeps paid receipt amounts in the actual payment currency',async()=>{

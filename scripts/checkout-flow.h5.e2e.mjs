@@ -68,8 +68,8 @@ try {
   } finally {await deniedContext.close();}
   await route('/pages/store/checkout?product=stellarbox-s1');
   await page.getByRole('button',{name:'立即支付',exact:true}).waitFor();
-  assert.match(await page.locator('.checkout-product-price').innerText(),/^\$\s*—$/);
-  assert.match(await page.locator('.checkout-sticky-copy .checkout-total').innerText(),/^\$\s*—$/);
+  assert.match(await page.locator('.checkout-product-price').innerText(),/^\$\s*1,299\.00$/);
+  assert.match(await page.locator('.checkout-sticky-copy .checkout-total').innerText(),/^\$\s*1,299\.00$/);
   assert.equal(await page.locator('.checkout-cancel').count(),0);
   assert.equal(await page.locator('.checkout-legal-group__links [role="link"]').count(),3);
   await capture('01-confirm-order');
@@ -77,7 +77,7 @@ try {
   await page.getByRole('button',{name:'确认支付',exact:true}).waitFor();
   assert.match(await page.locator('.checkout-payment__amount').innerText(),/1,299\.00\s*USDT$/);
   await page.getByRole('button',{name:'关闭',exact:true}).click();
-  assert.match(await page.locator('.checkout-product-price').innerText(),/^\$\s*—$/);
+  assert.match(await page.locator('.checkout-product-price').innerText(),/^\$\s*1,299\.00$/);
   await page.getByRole('button',{name:'立即支付',exact:true}).click();
   await page.getByRole('button',{name:'确认支付',exact:true}).waitFor();
   assert.equal((await state()).payWrites,0);
@@ -111,9 +111,10 @@ try {
   assert.ok(frames.every(frame=>!frame.buttonInset||frame.buttonInset.every(inset=>inset>=15)),'result controls need at least 16px side inset');
   assert.equal((await state()).payWrites,1);await page.getByRole('button',{name:'查看设备',exact:true}).click();
   await page.waitForURL(url=>url.hash.includes('/pages/me/devices'));await capture('06-existing-warehouse');
-  steps.push({id:'actual-app-journey',status:'pass',evidence:['Built APP ordinary checkout uses dollars before method selection ($— when the USD quote is unavailable), real 1,299.00 USDT inside the wallet method sheet, and restores dollars after closing it. Original order -> two PIN setup entries -> fresh third entry; incorrect PIN does not debit; one successful payment; animationend yields intermediate rendered progress and 28 particles; View devices reaches the existing warehouse.','01-confirm-order.png','02-method.png','03-third-entry.png','motion.json','06-existing-warehouse.png']});
+  steps.push({id:'actual-app-journey',status:'pass',evidence:['Built APP ordinary checkout keeps the existing amount visible as $1,299.00 before method selection, shows 1,299.00 USDT inside the wallet method sheet, and restores $1,299.00 after closing it. Original order -> two PIN setup entries -> fresh third entry; incorrect PIN does not debit; one successful payment; animationend yields intermediate rendered progress and 28 particles; View devices reaches the existing warehouse.','01-confirm-order.png','02-method.png','03-third-entry.png','motion.json','06-existing-warehouse.png']});
   await route('/pages/store/checkout?items='+encodeURIComponent(JSON.stringify([{productNo:'stellarbox-s1',quantity:2}])));
-  for(const amount of await page.locator('.promotion .checkout-amount').all())assert.match(await amount.innerText(),/^\$\s*—$/);
+  for(const amount of await page.locator('.promotion .checkout-amount').all())assert.match(await amount.innerText(),/^\$\s*[\d,]+\.\d{2}$/);
+  assert.match(await page.locator('.checkout-sticky-copy .checkout-total').innerText(),/^\$\s*2,598\.00$/);
   await page.locator('.checkout-sticky').getByRole('button').click();
   await page.getByRole('button',{name:'确认支付',exact:true}).waitFor();
   let lostPaymentResponse=false;
