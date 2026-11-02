@@ -1,0 +1,34 @@
+# Dependencies and generated output
+node_modules/
+.next/
+out/
+build/
+dist/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# Local environment and credentials
+.env*
+!.env.example
+*.pem
+*.key
+
+# Logs, tests, editor files and temporary artifacts
+*.log
+.playwright*/
+playwright-report/
+test-results/
+output/
+.tmp*/
+.tmp*
+.trash/
+.claude/
+.codex/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.zip
+*.tar
+*.gz
